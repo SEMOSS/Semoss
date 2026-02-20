@@ -1,48 +1,20 @@
-from typing import Dict, List, Optional, Any, Literal
-from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Union, Any, Literal
+from pydantic import BaseModel, Field, field_validator
 from ...utils import StringEnum
-
-
-class SEMOSSMessageType(StringEnum):
-    INPUT_TEXT = "INPUT_TEXT"
-    INPUT_MEDIA = "INPUT_MEDIA"
-    INPUT_TOOL_EXEC = "INPUT_TOOL_EXEC"
-    RESPONSE_TEXT = "RESPONSE_TEXT"
-    RESPONSE_TOOL = "RESPONSE_TOOL"
-    RESPONSE_MEDIA = "RESPONSE_MEDIA"
+import json
+from deprecated import deprecated
 
 
 class SEMOSSMediaInputType(StringEnum):
+    """Represents media input types"""
+
     URL = "url"
     BASE64 = "base64"
 
 
-class SEMOSSToolFunction(BaseModel):
-    """Represents a tool function definition"""
-
-    name: str
-    description: str
-    parameters: Dict[str, Any]
-
-
-class SEMOSSToolCall(BaseModel):
-    """Represents a tool call"""
-
-    function: SEMOSSToolFunction
-    type: Literal["function"]
-    id: Optional[str] = None
-
-
-class SEMOSSToolResponse(BaseModel):
-    """Represents a tool response"""
-
-    id: str
-    type: Literal["function"]
-    name: str
-    arguments: str
-
-
 class SEMOSSMediaContent(BaseModel):
+    """Represents media content in a message"""
+
     type: SEMOSSMediaInputType
     data: Optional[str] = None
     format: Optional[str] = None
@@ -54,7 +26,145 @@ class SEMOSSMediaContent(BaseModel):
         use_enum_values = True
 
 
+class SEMOSSToolFunction(BaseModel):
+    """Represents a tool function definition"""
+
+    name: str
+    description: str
+    parameters: Union[Dict[str, Any], str] = {}
+
+    @field_validator("parameters", mode="before")
+    @classmethod
+    def parse_parameters(cls, v):
+        if v == "":
+            return {}
+
+        # If it's already a dict, return it
+        if isinstance(v, dict):
+            return v
+
+        # If it's a string, try to parse as JSON
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+                else:
+                    raise ValueError("Parsed JSON is not a dictionary")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON string: {e}")
+
+        return v
+
+
+class SEMOSSToolCall(BaseModel):
+    """Wrapper around the tool definition"""
+
+    function: SEMOSSToolFunction
+    type: Literal["function"]
+    id: Optional[str] = None
+
+
+class SEMOSSToolResponse(BaseModel):
+    """Represents a tool response from the model"""
+
+    id: str
+    type: Literal["function"]
+    name: str
+    arguments: str
+
+
+class SEMOSSToolExecution(BaseModel):
+    """Represents a tool response output"""
+
+    id: str
+    output: str
+
+
+# new parts
+class SEMOSSMessagePartType(StringEnum):
+    MEDIA = "MEDIA"
+    TEXT = "TEXT"
+    THINKING = "THINKING"
+    TOOL_CALL = "TOOL_CALL"
+    TOOL_RESULT = "TOOL_RESULT"
+    SYSTEM = "SYSTEM"
+    UNKNOWN = "UNKNOWN"
+
+
+class SEMOSSMediaMessagePart(BaseModel):
+    """Represents a text input message content"""
+
+    mediaInfo: SEMOSSMediaContent
+    type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
+
+
+class SEMOSSSystemMessagePart(BaseModel):
+    """Represents a system message content"""
+
+    prompt: str
+    type: Literal[SEMOSSMessagePartType.SYSTEM] = SEMOSSMessagePartType.SYSTEM
+
+
+class SEMOSSTextMessagePart(BaseModel):
+    """Represents a text message content"""
+
+    text: str
+    uiText: Optional[str] = None
+    type: Literal[SEMOSSMessagePartType.TEXT] = SEMOSSMessagePartType.TEXT
+
+
+class SEMOSSThinkingMessagePart(BaseModel):
+    """Represents a thinking message content"""
+
+    thinking: str
+    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+
+
+class SEMOSSThinkingMessagePart(BaseModel):
+    """Represents a thinking message content"""
+
+    thinking: str
+    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+
+
+class SEMOSSToolCallMessagePart(BaseModel):
+    """Represents a tool call message content"""
+
+    toolCall: SEMOSSToolCall
+    type: Literal[SEMOSSMessagePartType.TOOL_CALL] = SEMOSSMessagePartType.TOOL_CALL
+
+
+class SEMOSSToolResultMessagePart(BaseModel):
+    """Represents a tool result message content"""
+
+    toolResult: SEMOSSToolExecution
+    type: Literal[SEMOSSMessagePartType.TOOL_RESULT] = SEMOSSMessagePartType.TOOL_RESULT
+
+
+class SEMOSSUnknownMessagePart(BaseModel):
+    """Represents an unknown message part content"""
+
+    data: Any
+    type: Literal[SEMOSSMessagePartType.UNKNOWN] = SEMOSSMessagePartType.UNKNOWN
+
+
+# legacy message types for backwards compatibility
+@deprecated(
+    reason="Each part of a message now has a type to handle text w/ tool, text w/ media, etc",
+    version="5.1.0",
+)
+class SEMOSSMessageType(StringEnum):
+    INPUT_TEXT = "INPUT_TEXT"
+    INPUT_MEDIA = "INPUT_MEDIA"
+    INPUT_TOOL_EXEC = "INPUT_TOOL_EXEC"
+    RESPONSE_TEXT = "RESPONSE_TEXT"
+    RESPONSE_TOOL = "RESPONSE_TOOL"
+    RESPONSE_MEDIA = "RESPONSE_MEDIA"
+
+
 class SEMOSSMessage(BaseModel):
+    # all of the below should be replaced with just parts
     type: SEMOSSMessageType
     content: Optional[str] = None
     media_content: Optional[List[SEMOSSMediaContent]] = None
@@ -63,6 +173,22 @@ class SEMOSSMessage(BaseModel):
     tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
     tokens: Optional[int] = 0
     param_map: Dict[str, Any] = Field(default_factory=dict)
+    # parts
+    # this will become mandatory once all the above are optional/removed
+    parts: Optional[
+        List[
+            Union[
+                SEMOSSMediaMessagePart,
+                SEMOSSSystemMessagePart,
+                SEMOSSTextMessagePart,
+                SEMOSSThinkingMessagePart,
+                SEMOSSToolCallMessagePart,
+                SEMOSSToolResultMessagePart,
+                SEMOSSUnknownMessagePart,
+            ]
+        ]
+    ] = (None,)
+    io: Literal["INPUT", "OUTPUT"]
 
     class Config:
         validate_by_name = True

@@ -286,6 +286,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static void addEngineOwner(String engineId, String userId) {
+		// make sure user doesn't already exist for this database
+		if (getUserEnginePermission(userId, engineId) != null) {
+			// that means there is already a value
+			throw new IllegalArgumentException("This user already has access to this engine");
+		}
+
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
 
 		PreparedStatement ps = null;
@@ -1574,8 +1580,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param visibility
 	 * @throws IllegalAccessException
 	 */
-	public static void setEngineFavorite(User user, String engineId, boolean isFavorite)
-			throws IllegalAccessException {
+	public static void setEngineFavorite(User user, String engineId, boolean isFavorite) throws IllegalAccessException {
 		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
