@@ -19,17 +19,24 @@ IMAGE_EXTENSION = "jpeg"
 class AbstractModelEngineResponse:
     """
     A model engine response object
+    Attributes:
+        response: response from api.
+        responseTokens: response token count.
+        promptTokens: prompt token count.
+        usage_map: full token usage map for the response
     """
 
     response: Any = None
     response_tokens: int = 0
     prompt_tokens: int = 0
+    usage_map: Optional[dict] = None
 
     def to_dict(self, additional_keys: Optional[dict] = None) -> dict:
         # Map attribute names to desired dictionary keys
         key_mapping = {
             "response_tokens": "numberOfTokensInResponse",
             "prompt_tokens": "numberOfTokensInPrompt",
+            "usage_map": "providerUsageMap",
         }
 
         if additional_keys:

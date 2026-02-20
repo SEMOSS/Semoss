@@ -30,8 +30,6 @@ package prerna.engine.impl.model.responses;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import prerna.engine.api.TokenTypeEnum;
 
@@ -49,18 +47,25 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
 	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
+	public static final String PROVIDER_USAGE_MAP = "providerUsageMap";
 	
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
 	protected Integer numberOfTokensInResponse;
+	protected Object providerUsageMap; // never read, only stored here to be passed back to caller if needed for usage tracking or other purposes.
 	protected Map<String, Object> usageRestriction = null;
 
 	protected Map<TokenTypeEnum, Integer> additionalTokenTypeCounts = Map.of();
 
-    public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+	public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Object usageMap) {
         this.response = response;
         this.numberOfTokensInPrompt = numberOfTokensInPrompt;
         this.numberOfTokensInResponse = numberOfTokensInResponse;
+        this.providerUsageMap = usageMap;
+    }
+
+    public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+        this(response, numberOfTokensInPrompt, numberOfTokensInResponse, null);
     }
 
     public T getResponse() {
@@ -98,6 +103,10 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public Map<TokenTypeEnum, Integer> getAdditionalTokenTypeCounts() {
         return this.additionalTokenTypeCounts;
     }
+
+	public Object getProviderUsageMap() {
+		return providerUsageMap;
+	}
     
     public Map<String, Object> toMap(){
     	Map<String, Object> responseMap = new HashMap<>();

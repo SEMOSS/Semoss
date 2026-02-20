@@ -183,7 +183,7 @@ public class Room {
 
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			return response;
 		}
@@ -214,7 +214,7 @@ public class Room {
 			String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 			kwArgMap.put("message_json", singleMessageJson);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 
 			// set transaction id for both pieces
@@ -261,7 +261,7 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
 
@@ -353,7 +353,7 @@ public class Room {
 			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
 			kwArgMap.put("message_json", messageJsonString);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
+			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
 
@@ -417,7 +417,7 @@ public class Room {
 	 * @param insight
 	 * @return
 	 */
-	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+	public AskModelEngineResponse<?> addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
 		if (messages.isEmpty()) {
@@ -529,7 +529,7 @@ public class Room {
 			}
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", this, toolExecution, paramValuesMap);
+			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom("", this, toolExecution, paramValuesMap);
 
 			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
 			nextAssistant.setParentMessageId(toolExecution.getMessageId());
@@ -682,7 +682,7 @@ public class Room {
 	 * @param llmResponse
 	 * @return
 	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
+	private ResponseMessage createResponseMessage(AskModelEngineResponse<?> llmResponse) {
 		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
 			return ResponseMessage.text(llmResponse.getStringResponse());
 		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {

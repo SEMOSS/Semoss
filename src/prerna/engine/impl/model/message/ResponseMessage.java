@@ -51,6 +51,9 @@ public class ResponseMessage extends AbstractMessage {
 
 	@SerializedName("tool_responses")
 	private List<Map<String, Object>> toolResponses = new ArrayList<>();
+	
+	@SerializedName("usage_map")
+	private Object providerUsageMap = null;
 
 	private transient AskModelEngineResponse<?> modelEngineResponse;
 
@@ -167,6 +170,11 @@ public class ResponseMessage extends AbstractMessage {
             message.thinking = thinking;
             return this;
         }
+		
+		public Builder withProviderUsageMap(Object providerUsageMap) {
+			message.providerUsageMap = providerUsageMap;
+			return this;
+		}
 
 		public static Builder fromAskModelEngineResponse(AskModelEngineResponse<?> llmResponse) {
 
@@ -203,6 +211,9 @@ public class ResponseMessage extends AbstractMessage {
 			
 			if (llmResponse.getThinking() != null) {
 				builder.withThinking(llmResponse.getThinking());
+			}
+			if (llmResponse.getProviderUsageMap() != null) {
+				builder.withProviderUsageMap(llmResponse.getProviderUsageMap());
 			}
 			return builder;
 		}

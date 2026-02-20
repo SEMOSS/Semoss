@@ -66,7 +66,7 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 	 */
 	public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt,
 			Integer numberOfTokensInResponse) {
-		this(response, numberOfTokensInPrompt, numberOfTokensInResponse, null);
+		this(response, numberOfTokensInPrompt, numberOfTokensInResponse, null, null);
 	}
 
 	/**
@@ -75,10 +75,11 @@ public class AskToolModelEngineResponse extends AskModelEngineResponse<List<Map<
 	 * @param numberOfTokensInPrompt
 	 * @param numberOfTokensInResponse
 	 * @param additionalTokenTypeCounts
+	 * @param usageMap
 	 */
 	public AskToolModelEngineResponse(List<Map<String, Object>> response, Integer numberOfTokensInPrompt,
-			Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
-		super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+			Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts, Object usageMap) {
+		super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts, usageMap);
 		this.toolResponse = response;
 		this.tools = new ArrayList<>();
 		parseToolResponses(response);

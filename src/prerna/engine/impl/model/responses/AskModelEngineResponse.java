@@ -52,8 +52,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
     protected String messageType = CHAT;
     protected String thinking;
     
-    public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
-    	super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
+    public AskModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts, Object usageMap) {
+    	super(response, numberOfTokensInPrompt, numberOfTokensInResponse, usageMap);
         if (additionalTokenTypeCounts != null) {
             this.additionalTokenTypeCounts = additionalTokenTypeCounts;
         }
@@ -122,6 +122,8 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             }
         }
 
+        Object providerUsageMap = modelResponse.get(PROVIDER_USAGE_MAP);
+
         // Set default messageType
         String messageType = CHAT;
         
@@ -163,7 +165,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             	//TODO: why are we grabbing only 1 tool???
                 List<?> responseList = (List<?>) response;
                 if (!responseList.isEmpty()) {
-                    askResponse = new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
+                    askResponse = new AskToolModelEngineResponse((List<Map<String, Object>>) responseList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts, providerUsageMap);
                 } else {
                     throw new IllegalArgumentException("Tool list is empty or not valid");
                 }
@@ -172,7 +174,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
             }
         } else if (CHAT.equals(messageType)) {
             if (response instanceof String) {
-                askResponse = new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
+                askResponse = new AskStringModelEngineResponse((String) response, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts, providerUsageMap);
             } else {
                 throw new IllegalArgumentException("Expected a String response for Chat messageType");
             }
@@ -192,7 +194,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
                 List<String> imageList = (List<String>) responseList;
                 
                 // Use the OpenAI factory method
-                askResponse = AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts);
+                askResponse = AskImageModelEngineResponse.getOpenAIImageResponse(imageList, tokensInPrompt, tokensInResponse, additionalTokenTypeCounts, providerUsageMap);
                 
             } else {
                 throw new IllegalArgumentException("Expected a List<String> response for Image messageType, but received: " + response.getClass().getSimpleName());

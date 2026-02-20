@@ -63,9 +63,10 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 	 * @param numberOfTokensInPrompt
 	 * @param numberOfTokensInResponse
 	 * @param additionalTokenTypeCounts
+	 * @param usageMap
 	 */
-    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
-        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts, Object usageMap) {
+        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts, usageMap);
         this.messageType = IMAGE; 
     }
 
@@ -76,7 +77,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
      * @return AskImageModelEngineResponse
      */
     public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
-        return getOpenAIImageResponse(imageList, numberOfTokensInPrompt, numberOfTokensInResponse, null);
+        return getOpenAIImageResponse(imageList, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
     /**
@@ -87,9 +88,9 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
      * @param additionalTokenTypeCounts
      * @return AskImageModelEngineResponse
      */
-    public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
+    public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts, Object usageMap) {
         Map<String, Object> responseMap = buildOpenAIImageResponseMap(imageList);
-        return new AskImageModelEngineResponse(responseMap, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+        return new AskImageModelEngineResponse(responseMap, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts, usageMap);
     }
 
     /**

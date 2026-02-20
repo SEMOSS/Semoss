@@ -41,8 +41,8 @@ public class AskStringModelEngineResponse extends AskModelEngineResponse<String>
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
-    public AskStringModelEngineResponse(String response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts) {
-        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts);
+    public AskStringModelEngineResponse(String response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse, Map<TokenTypeEnum, Integer> additionalTokenTypeCounts, Object usageMap) {
+        super(response, numberOfTokensInPrompt, numberOfTokensInResponse, additionalTokenTypeCounts, usageMap);
     }
 
 	@Override
