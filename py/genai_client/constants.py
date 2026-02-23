@@ -1,5 +1,6 @@
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Dict
 import dataclasses
+from pydantic import BaseModel, Field
 
 MODEL_NAME = "model_name"
 MAX_TOKENS = "max_tokens"
@@ -55,6 +56,21 @@ class AbstractModelEngineResponse:
         return str(self.to_dict())
 
 
+# I WILL CHANGE THIS NAME IN LAST COMMIT
+class AskModelEngineResponse2(BaseModel):
+    response: Any = ""
+    prompt_tokens: int = Field(default=0, serialization_alias="numberOfTokensInPrompt")
+    response_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInResponse"
+    )
+    schemaVersion: Optional[int] = None
+    io: Optional[str] = None
+    parts: Optional[List[Dict[str, Any]]] = None
+    messageType: str = "CHAT"
+
+    model_config = {"populate_by_name": True, "serialize_by_alias": True}
+
+
 @dataclasses.dataclass
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
@@ -82,6 +98,12 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     cached_tokens: Optional[int] = None
     messageType: str = "CHAT"
     thinking: Optional[List[str]] = None
+
+    # Parts-based response payload (preferred by newer Java servers).
+    schemaVersion: Optional[int] = None
+    io: Optional[str] = None  # "INPUT" | "OUTPUT"
+    parts: Optional[List[Dict[str, Any]]] = None
+
     warning: Optional[str] = None
     tokens: Optional[List[str]] = None
     logprobs: Optional[List[float]] = None

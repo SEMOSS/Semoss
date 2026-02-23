@@ -12,7 +12,7 @@ from smss_thread_local import get_smss_stream
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
-from ...constants import AskModelEngineResponse
+from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 
 
@@ -59,7 +59,6 @@ class BedrockClient(AbstractTextGenerationClient):
                 region_name=region,
             )
         else:
-            # We assume keys are provided by environment or IAM role
             return boto3.client(
                 service_name=service_name,
                 region_name=region,
@@ -81,7 +80,7 @@ class BedrockClient(AbstractTextGenerationClient):
         self,
         prefix: str = "",
         **kwargs,
-    ) -> AskModelEngineResponse | ErrorDetails:
+    ) -> AskModelEngineResponse2 | ErrorDetails:
         """Entry point for making Bedrock ask calls."""
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
@@ -102,14 +101,12 @@ class BedrockClient(AbstractTextGenerationClient):
                 bedrock_request = {
                     k: v for k, v in bedrock_request.items() if v is not None
                 }
-
             except Exception as e:
                 raise ValueError(f"Error building Bedrock messages: {str(e)}") from e
 
             if stream:
                 return self._handle_streaming(bedrock_request, prefix=prefix)
-            else:
-                return self._handle_non_streaming(bedrock_request)
+            return self._handle_non_streaming(bedrock_request)
         except Exception as e:
             return ModelEngineException(
                 error=e, client="bedrock", model=self.model_id
@@ -117,32 +114,26 @@ class BedrockClient(AbstractTextGenerationClient):
 
     def _handle_streaming(
         self, request: Dict[str, Any], prefix: str = ""
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         """Handle streaming responses from Bedrock."""
         smss_stream = get_smss_stream()
         stream_response = self.client.converse_stream(modelId=self.model_id, **request)
 
-        stop_reason = ""
-        final_response = ""
-        input_tokens = 0
+        prompt_tokens = 0
         output_tokens = 0
         thinking_tokens = Optional[int] = None
         cached_tokens = Optional[int] = None
 
         content_array = []
-        this_content_block = {}
+        this_content_block: Dict[str, Any] = {}
         this_content_block_type = ""
 
-        # since we can have text and tools
-        # we will declare this a tool response
-        # if any tools come back
         tool_result = []
 
         for event in stream_response.get("stream", []):
             if "messageStart" in event:
-                pass
+                continue
 
-            # only tools get a contentBlockStart for some reason...
             elif "contentBlockStart" in event:
                 start_this_content = event["contentBlockStart"]["start"]
                 tool_use_content = start_this_content.get("toolUse", None)
@@ -157,6 +148,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     )
                     this_content_block["id"] = tool_use_content["toolUseId"]
                     this_content_block["function"]["name"] = tool_use_content["name"]
+
                     data = StreamUtil.create_tool_id_chunk(
                         index=len(tool_result),
                         tool_id=tool_use_content["toolUseId"],
@@ -175,17 +167,16 @@ class BedrockClient(AbstractTextGenerationClient):
                     smss_stream(data, stream_type="tool")
                     print(prefix + str(data), end="")
 
-            # this is for normal text and tool arguments
             elif "contentBlockDelta" in event:
                 this_content_delta = event["contentBlockDelta"]["delta"]
 
                 if "text" in this_content_delta:
                     text_chunk = this_content_delta["text"]
                     if text_chunk is not None:
-                        if "final_response" in this_content_block:
-                            this_content_block["final_response"] += text_chunk
-                        else:
-                            this_content_block["final_response"] = text_chunk
+                        this_content_block["type"] = "text"
+                        this_content_block["final_response"] = (
+                            this_content_block.get("final_response", "") + text_chunk
+                        )
 
                         data = StreamUtil.create_content_chunk(text_chunk)
                         smss_stream(data, stream_type="content")
@@ -205,7 +196,6 @@ class BedrockClient(AbstractTextGenerationClient):
 
             elif "contentBlockStop" in event:
                 if this_content_block_type == "tool_use":
-                    # append the tool result as a anthropic tool
                     try:
                         arguments = json.loads(
                             this_content_block["function"]["arguments"]
@@ -226,19 +216,14 @@ class BedrockClient(AbstractTextGenerationClient):
                 this_content_block = {}
                 this_content_block_type = ""
 
-            elif "messageStop" in event:
-                stop_reason = event["messageStop"]["stopReason"]
-
             if "metadata" in event:
                 metadata = event["metadata"]
                 if "usage" in metadata:
                     prompt_tokens = metadata["usage"]["inputTokens"]
                     output_tokens = metadata["usage"]["outputTokens"]
-                    # thinking_tokens = metadata["usage"].get("thinkingTokens", None)
+                    thinking_tokens = metadata["usage"].get("thinkingTokens", None)
                     cached_tokens = metadata["usage"].get("cacheReadInputTokens", None)
 
-        # we are done iterating
-        # do we have tools that we need to do a tool response?
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
             smss_stream(data, stream_type="tool", interim=False)
@@ -246,35 +231,118 @@ class BedrockClient(AbstractTextGenerationClient):
             data = StreamUtil.create_finish_reason_chunk("stop")
             smss_stream(data, stream_type="content", interim=False)
 
-        # aggregate text blocks
         final_response = ""
         for content in content_array:
             if content.get("final_response", None):
                 final_response += content.get("final_response")
 
-        if self.has_schema:
-            final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(0)
+        if self.has_schema and isinstance(final_response, str):
+            try:
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
+            except Exception:
+                pass
+
+        parts = []
+        current_text_block = None  # Track consecutive text blocks to merge them
+        for content in content_array:
+            content_type = content.get("type")
+
+            # flush accumulated text if we hit a non-text block
+            if content_type != "text" and current_text_block is not None:
+                parts.append(current_text_block)
+                current_text_block = None
+
+            if content_type == "thinking":
+                parts.append(
+                    {"type": "THINKING", "thinking": content.get("final_response", "")}
+                )
+
+            elif content_type == "text":
+                text_content = content.get("final_response", "")
+                # Append citation markers to the text content
+                for citation in content.get("citations", []):
+                    url = citation.get("url", None)
+                    if url:
+                        text_content += f"<sup>[{citation_index}]({url})</sup>"
+                        citation_index += 1  # Increment for next citation
+
+                # If we have a current text block, append to it
+                if current_text_block is not None:
+                    current_text_block["text"] += text_content
+                else:
+                    # Start a new text block
+                    current_text_block = {
+                        "type": "TEXT",
+                        "text": text_content,
+                    }
+
+            elif content_type == "function":
+                # Parse the function arguments JSON
+                try:
+                    arguments = content.get("function", {}).get("arguments")
+                    # Return empty dict if no arguments
+                    if arguments == "":
+                        arguments = {}
+                    else:
+                        arguments = json.loads(arguments)
+                except json.decoder.JSONDecodeError:
+                    arguments = content.get("function", {}).get("arguments")
+
+                tool_call = {
+                    "id": content.get("id"),
+                    "name": content.get("function", {}).get("name"),
+                    "arguments": arguments,
+                    "type": "function",
+                }
+                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+
+            elif content_type == "tool_result":
+                tool_use_id = content.get("tool_use_id")
+                tool_name = content.get("name", "unknown_tool")
+                tool_content = content.get("content", [])
+                parts.append(
+                    {
+                        "type": "TOOL_RESULT",
+                        "toolResult": {
+                            "toolCallId": tool_use_id,
+                            "toolName": tool_name,
+                            "output": json.dumps(tool_content, ensure_ascii=False),
+                        },
+                    }
+                )
+
+        # Don't forget to flush any remaining text at the end
+        if current_text_block is not None:
+            parts.append(current_text_block)
 
         if tool_result:
-            return AskModelEngineResponse(
+            return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
-                prompt_tokens=input_tokens,
+                prompt_tokens=prompt_tokens,
                 thinking_tokens=thinking_tokens,
                 cached_tokens=cached_tokens,
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=parts,
                 messageType="TOOL",
             )
-        else:
-            return AskModelEngineResponse(
-                response=final_response,
-                response_tokens=output_tokens,
-                prompt_tokens=input_tokens,
-                thinking_tokens=thinking_tokens,
-                cached_tokens=cached_tokens,
-                messageType="CHAT",
-            )
 
-    def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse:
+        return AskModelEngineResponse2(
+            response=final_response,
+            response_tokens=output_tokens,
+            prompt_tokens=prompt_tokens,
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=parts,
+            messageType="CHAT",
+        )
+
+    def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse2:
         """Handle non-streaming responses from Bedrock"""
         response = self.client.converse(modelId=self.model_id, **request)
 
@@ -300,20 +368,33 @@ class BedrockClient(AbstractTextGenerationClient):
                 texts.append(content["text"])
 
         if tool_uses:
-            final_response = tool_uses
+            final_response: Any = tool_uses
             message_type = "TOOL"
         else:
             final_response = "\n".join(texts) if texts else ""
             message_type = "CHAT"
 
-        if self.has_schema:
-            final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(0)
+        if self.has_schema and isinstance(final_response, str):
+            try:
+                final_response = re.search(r"\{.*\}", final_response, re.DOTALL).group(
+                    0
+                )
+            except Exception:
+                pass
 
-        return AskModelEngineResponse(
+        parts = (
+            [{"type": "TOOL_CALL", "toolCall": t} for t in final_response]
+            if message_type == "TOOL"
+            else ([{"type": "TEXT", "text": final_response}] if final_response else [])
+        )
+        return AskModelEngineResponse2(
             response=final_response,
             prompt_tokens=response["usage"]["inputTokens"],
             response_tokens=response["usage"]["outputTokens"],
-            # thinking_tokens=response["usage"].get("thinkingTokens", None),
-            cached_tokens=response["usage"].get("cacheReadInputTokens", None),
+            thinking_tokens = response["usage"].get("thinkingTokens", None),
+            cached_tokens = response["usage"].get("cacheReadInputTokens", None),
             messageType=message_type,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=parts,
         )
