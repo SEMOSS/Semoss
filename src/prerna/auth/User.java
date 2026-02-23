@@ -35,9 +35,8 @@ import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -75,8 +74,8 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private Hashtable<AuthProvider, AccessToken> resourceAccessTokens = new Hashtable<>();
+	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
+  private Map<AuthProvider, AccessToken> resourceAccessTokens = new ConcurrentHashMap<>();
 	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
@@ -103,7 +102,7 @@ public class User implements Serializable {
 	private transient SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient Map<String, PlaywrightSession> playwrightSession = null;
+	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
@@ -979,9 +978,9 @@ public class User implements Serializable {
 			}
 		}
 
-		Enumeration<AuthProvider> accessKeys = accessTokens.keys();
-		if (accessKeys.hasMoreElements()) {
-			AuthProvider provider = accessKeys.nextElement();
+		Iterator<AuthProvider> accessKeysItr = accessTokens.keySet().iterator();
+		while (accessKeysItr.hasNext()) {
+			AuthProvider provider = accessKeysItr.next();
 			AccessToken tok = accessTokens.get(provider);
 			String[] creds = getUserEmail(tok);
 			if (creds[1] != null) {
@@ -1047,18 +1046,34 @@ public class User implements Serializable {
 	}
 
 	public PlaywrightSession getPlaywrightSession(String id) {
-		if (playwrightSession.get(id) == null) {
+		PlaywrightSession session = getPlaywrightSessionStore().get(id);
+		if (session == null) {
 			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
 		}
-		return playwrightSession.get(id);
+		return session;
 	}
 
 	public void setPlaywrightSession(String id, PlaywrightSession s) {
-		playwrightSession.put(id, s);
+		getPlaywrightSessionStore().put(id, s);
 	}
 
 	public void removePlaywrightSession(String id) {
-		playwrightSession.remove(id);
+		getPlaywrightSessionStore().remove(id);
+	}
+
+	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
+		if (this.playwrightSession != null) {
+			return this.playwrightSession;
+		}
+
+		if (this.playwrightSession == null) {
+			synchronized (this) {
+				if (this.playwrightSession == null) {
+					this.playwrightSession = new ConcurrentHashMap<>();
+				}
+			}
+		}
+		return this.playwrightSession;
 	}
 
 	public BrowserContext getSharedPlaywrightContext() {

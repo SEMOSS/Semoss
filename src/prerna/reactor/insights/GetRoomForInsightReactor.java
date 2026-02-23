@@ -25,49 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.model.message;
+package prerna.reactor.insights;
 
-@Deprecated
-public enum MessageType {
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+public class GetRoomForInsightReactor extends AbstractReactor {
 
-	private final String value;
-
-	MessageType(String value) {
-		this.value = value;
-	}
-
-	public String getValue() {
-		return value;
-	}
-
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
+	@Override
+	public NounMetadata execute() {
+		String roomId = this.insight.getRoomId();
+		if (roomId == null) {
+			throw new IllegalArgumentException("Insight is not associated with any room");
 		}
-		throw new IllegalArgumentException("Unknown value: " + value);
+		return new NounMetadata(roomId, PixelDataType.CONST_STRING);
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
+	@Override
+	public String getReactorDescription() {
+		return "Get the room that is set for the current insight";
 	}
 
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
-	}
 }

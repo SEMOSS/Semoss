@@ -27,47 +27,51 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import com.google.gson.annotations.SerializedName;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+public class TextMessagePart extends MessagePart {
 
-	private final String value;
+	@SerializedName("text")
+	private String text;
 
-	MessageType(String value) {
-		this.value = value;
+	/**
+	 * Optional UI-only text (legacy inputUIPrompt) when {@code text} differs.
+	 */
+	@SerializedName("uiText")
+	private String uiText;
+
+	public TextMessagePart() {
+		super(MessagePartType.TEXT);
 	}
 
-	public String getValue() {
-		return value;
+	public TextMessagePart(String text) {
+		this();
+		this.text = text;
+		this.uiText = text;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
+	public TextMessagePart(String text, String uiText) {
+		this();
+		this.text = text;
+		this.uiText = (uiText == null || uiText.isEmpty()) ? text : uiText;
+	}
+
+	public String getText() {
+		return text;
+	}
+
+	public void setText(String text) {
+		this.text = text;
+		if (uiText == null || uiText.isEmpty()) {
+			uiText = text;
 		}
-		throw new IllegalArgumentException("Unknown value: " + value);
 	}
 
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
+	public String getUiText() {
+		return (uiText == null || uiText.isEmpty()) ? text : uiText;
 	}
 
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public void setUiText(String uiText) {
+		this.uiText = (uiText == null || uiText.isEmpty()) ? text : uiText;
 	}
 }
