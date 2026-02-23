@@ -202,6 +202,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TEXT", "text": final_query}] if final_query else [],
+            usage_map=response.usage
         )
 
         return model_engine_response
@@ -340,6 +341,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                         )
                         + [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
                     ),
+                    usage_map=response.usage
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -366,6 +368,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             else []
                         )
                     ),
+                    usage_map=response.usage
                 )
         else:
             response_tokens = response.usage.output_tokens
@@ -410,6 +413,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             else []
                         )
                     ),
+                    usage_map=response.usage
                 )
 
     def handle_chat_completion_response(
@@ -432,6 +436,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
+
+            usage_map = None
             for chunk in response:
                 # Usage info typically comes in the final chunk
                 if hasattr(chunk, "usage") and chunk.usage is not None:
@@ -440,6 +446,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
+                    usage_map = chunk.usage
                     if hasattr(chunk.usage, "completion_tokens_details") and chunk.usage.completion_tokens_details is not None:
                         thinking_tokens = chunk.usage.completion_tokens_details.reasoning_tokens
                     if hasattr(chunk.usage, "prompt_tokens_details") and chunk.usage.prompt_tokens_details is not None:
@@ -558,6 +565,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
+                    usage_map=usage_map
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -585,8 +593,15 @@ class OpenAiClient(AbstractTextGenerationClient):
                             else []
                         )
                     ),
+                    usage_map=usage_map
                 )
         else:
+            # Initialize token counts for non-streaming
+            response_tokens = 0
+            prompt_tokens = 0
+            thinking_tokens = None
+            cached_tokens = None
+            
             if response.usage:
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
@@ -594,9 +609,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                     thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
                 if hasattr(response.usage, "input_tokens_details") and response.usage.input_tokens_details is not None:
                     cached_tokens = response.usage.input_tokens_details.cached_tokens
-            else:
-                response_tokens = 0
-                prompt_tokens = 0
 
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
@@ -631,6 +643,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             else []
                         )
                     ),
+                    usage_map=response.usage
                 )
 
     def _parse_tools_call_response(
@@ -693,6 +706,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            usage_map=response.usage
         )
 
     def _extract_reasoning_summary(self, response) -> str:

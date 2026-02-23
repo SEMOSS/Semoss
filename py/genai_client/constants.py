@@ -1,6 +1,5 @@
 from typing import List, Any, Optional, Dict
-import dataclasses
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict, field_serializer
 from typing_extensions import deprecated
 
 MODEL_NAME = "model_name"
@@ -26,12 +25,35 @@ class AbstractModelEngineResponse(BaseModel):
         response_tokens: response token count.
         usage_map: provider usage map if given, otherwise None
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True, serialize_by_alias=True)
+    
     response: Any = ""
     prompt_tokens: int = Field(default=0, serialization_alias="numberOfTokensInPrompt")
     response_tokens: int = Field(
         default=0, serialization_alias="numberOfTokensInResponse"
     )
     usage_map: Optional[Any] = Field(default=None, serialization_alias="providerUsageMap")
+    
+    # TODO: find a better way to do this
+    @field_serializer('usage_map')
+    def serialize_usage_map(self, value: Any, _info):
+        """Convert arbitrary usage objects to dict for serialization"""
+        if value is None:
+            return None
+        # Try model_dump for Pydantic models
+        if hasattr(value, 'model_dump'):
+            return value.model_dump()
+        # Try to_dict if available
+        if hasattr(value, 'to_dict'):
+            return value.to_dict()
+        # Use vars() to convert object to dict
+        if hasattr(value, '__dict__'):
+            return vars(value)
+        # Fallback to returning as-is if it's already a dict
+        if isinstance(value, dict):
+            return value
+        # Last resort: convert to string representation
+        return str(value)
 
 # TODO: Change the name to AskModelEngineResponse before release.
 class AskModelEngineResponse2(AbstractModelEngineResponse):
@@ -51,13 +73,14 @@ class AskModelEngineResponse2(AbstractModelEngineResponse):
         tokens: the response tokens
         logprobs: logprob for a given token
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True, serialize_by_alias=True)
+    
     thinking_tokens: Optional[int] = Field(default=None, serialization_alias="numberOfThinkingTokens")
     cached_tokens: Optional[int] = Field(default=None, serialization_alias="numberOfCachedTokens")
     schemaVersion: Optional[int] = None
     io: Optional[str] = None
     parts: Optional[List[Dict[str, Any]]] = None
     messageType: str = "CHAT"
-    model_config = {"populate_by_name": True, "serialize_by_alias": True}
 
 @deprecated("AskModelEngineResponse is deprecated. Use AskModelEngineResponse2 instead.")
 class AskModelEngineResponse(AbstractModelEngineResponse):
