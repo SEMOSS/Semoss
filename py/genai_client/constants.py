@@ -76,6 +76,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         warning: warning message sent back with the response when a param was adjusted at runtime.
         tokens: the response tokens
         logprobs: logprob for a given token
+        usage_map: provider usage map if given, otherwise None
     """
 
     response_media: Optional[List[Any]] = None
