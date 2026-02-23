@@ -27,47 +27,27 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-@Deprecated
-public enum MessageType {
+import com.google.gson.annotations.SerializedName;
 
-	// @formatter:off
-	INPUT_TEXT("INPUT_TEXT"),
-    INPUT_MEDIA("INPUT_MEDIA"),
-    INPUT_TOOL_EXEC("INPUT_TOOL_EXEC"),
-    RESPONSE_TEXT("RESPONSE_TEXT"),
-    RESPONSE_TOOL("RESPONSE_TOOL"),
-    RESPONSE_MEDIA("RESPONSE_MEDIA"),
-//    SYSTEM("SYSTEM")
-    ;
-	// @formatter:on 
+/**
+ * Base type for parts-based messages.
+ * <p>
+ * Concrete subclasses are type-specific (text/media/tool/etc.) to avoid mixing
+ * unrelated fields.
+ */
+public abstract class MessagePart {
 
-	private final String value;
+	@SerializedName("type")
+	protected MessagePartType type = MessagePartType.UNKNOWN;
 
-	MessageType(String value) {
-		this.value = value;
+	protected MessagePart() {
 	}
 
-	public String getValue() {
-		return value;
+	protected MessagePart(MessagePartType type) {
+		this.type = type == null ? MessagePartType.UNKNOWN : type;
 	}
 
-	public static MessageType fromString(String value) {
-		for (MessageType type : values()) {
-			if (type.value.equals(value)) {
-				return type;
-			}
-		}
-		throw new IllegalArgumentException("Unknown value: " + value);
-	}
-
-	public static boolean isResponseMessage(MessageType type) {
-		if (type == RESPONSE_TEXT || type == RESPONSE_TOOL || type == RESPONSE_MEDIA) {
-			return true;
-		}
-		return false;
-	}
-
-	public static boolean isInputMessage(MessageType type) {
-		return !isResponseMessage(type);
+	public MessagePartType getType() {
+		return type;
 	}
 }

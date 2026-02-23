@@ -98,8 +98,7 @@ public class AskCOTTriageReactor extends AbstractReactor {
 		paramMap.put("schema", PlaygroundUtils.COT_JSON_SCHEMA);
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.TRIAGE_PROMPT)
-				.withInputUIPrompt(userQuery).withInputPrompt(userQuery).withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap).build();
+				.withText(userQuery).withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
