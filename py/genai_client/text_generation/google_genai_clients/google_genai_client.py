@@ -151,6 +151,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                     thinking_tokens=thinking_tokens,
                     cached_tokens=cached_tokens,
+                    usage_map=model_response.usage_metadata
                 )
 
             thinking_text = ""
@@ -198,6 +199,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
+                usage_map=model_response.usage_metadata
             )
         except Exception as e:
             return ModelEngineException(
@@ -218,6 +220,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prompt_tokens: int,
         thinking_tokens: Optional[int],
         cached_tokens: Optional[int],
+        usage_map: Optional[dict] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
         for i, function_call in enumerate(response.function_calls):
@@ -241,6 +244,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            usage_map=usage_map
         )
 
     def _handle_streaming(
@@ -259,6 +263,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         output_tokens = 0
         thinking_tokens = None
         cached_tokens = None
+        usage_map = None
 
         content_array = []
         this_content_block: Dict[str, Any] = {}
@@ -318,11 +323,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 this_content_block = {}
 
             if event.usage_metadata:
+                usage_map = event.usage_metadata
                 if getattr(event.usage_metadata, "thoughts_token_count", None):
                     thinking_tokens = event.usage_metadata.thoughts_token_count
                 if getattr(event.usage_metadata, "cached_content_token_count", None):
                     cached_tokens = event.usage_metadata.cached_content_token_count
-
+                
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
                     function_id = str(i)
@@ -420,6 +426,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
+                        usage_map=usage_map
                     )
 
             parts = []
@@ -439,6 +446,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
+                usage_map=usage_map
             )
 
         final_text = final_response
@@ -468,10 +476,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response=final_text,
             response_tokens=output_tokens,
             prompt_tokens=input_tokens,
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
             messageType="CHAT",
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,
+            usage_map=usage_map
         )
 
     def _count_tokens(self, contents: List[types.Content]) -> int:

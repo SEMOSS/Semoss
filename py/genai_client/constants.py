@@ -16,7 +16,6 @@ IMAGE_ENCODED = "image_encoded"
 IMAGE_URL = "image_url"
 IMAGE_EXTENSION = "jpeg"
 
-@dataclasses.dataclass
 class AbstractModelEngineResponse(BaseModel):
     """
     An abstract model engine response object
@@ -32,10 +31,9 @@ class AbstractModelEngineResponse(BaseModel):
     response_tokens: int = Field(
         default=0, serialization_alias="numberOfTokensInResponse"
     )
-    usage_map: Optional[dict] = Field(default=None, serialization_alias="providerUsageMap")
+    usage_map: Optional[Any] = Field(default=None, serialization_alias="providerUsageMap")
 
 # TODO: Change the name to AskModelEngineResponse before release.
-@dataclasses.dataclass
 class AskModelEngineResponse2(AbstractModelEngineResponse):
     """
     A text-generation model engine response object for text-generation
@@ -62,7 +60,6 @@ class AskModelEngineResponse2(AbstractModelEngineResponse):
     model_config = {"populate_by_name": True, "serialize_by_alias": True}
 
 @deprecated("AskModelEngineResponse is deprecated. Use AskModelEngineResponse2 instead.")
-@dataclasses.dataclass
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
     A text-generation model engine response object for text-generation
@@ -110,7 +107,7 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
         # Filter out attributes with None values and use the custom keys
         non_none_attributes = {
             key_mapping.get(key, key): value
-            for key, value in dataclasses.asdict(self).items()
+            for key, value in self.model_dump().items()
             if value is not None
         }
 
