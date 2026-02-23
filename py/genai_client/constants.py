@@ -94,6 +94,29 @@ class AskModelEngineResponse(AbstractModelEngineResponse):
     tokens: Optional[List[str]] = None
     logprobs: Optional[List[float]] = None
 
+    def to_dict(self, additional_keys: Optional[dict] = None) -> dict:
+        # Build key mapping from field serialization aliases
+        key_mapping = {}
+        for field_name, field_info in self.__class__.model_fields.items():
+            # Use serialization_alias if present, otherwise field name stays as is
+            if field_info.serialization_alias:
+                key_mapping[field_name] = field_info.serialization_alias
+        
+        if additional_keys:
+            key_mapping.update(additional_keys)
+
+        # Filter out attributes with None values and use the custom keys
+        non_none_attributes = {
+            key_mapping.get(key, key): value
+            for key, value in dataclasses.asdict(self).items()
+            if value is not None
+        }
+
+        return non_none_attributes
+
+    def __str__(self):
+        return str(self.to_dict())
+
 
 class EmbeddingsModelEngineResponse(AbstractModelEngineResponse):
     """
