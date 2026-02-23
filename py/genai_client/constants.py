@@ -1,6 +1,7 @@
 from typing import List, Any, Optional, Dict
 import dataclasses
 from pydantic import BaseModel, Field
+from typing_extensions import deprecated
 
 MODEL_NAME = "model_name"
 MAX_TOKENS = "max_tokens"
@@ -60,6 +61,7 @@ class AskModelEngineResponse2(AbstractModelEngineResponse):
     messageType: str = "CHAT"
     model_config = {"populate_by_name": True, "serialize_by_alias": True}
 
+@deprecated("AskModelEngineResponse is deprecated. Use AskModelEngineResponse2 instead.")
 @dataclasses.dataclass
 class AskModelEngineResponse(AbstractModelEngineResponse):
     """
