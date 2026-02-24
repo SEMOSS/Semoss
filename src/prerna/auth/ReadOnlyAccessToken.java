@@ -94,6 +94,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
+    @Override
 	public void setInstance_url(String instanceUrl) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
