@@ -128,12 +128,9 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			databaseNames = databaseNames + ";" + this.newDatabaseId;
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, databaseNames);
 
-			// even if no security, just add user as engine owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(this.newDatabaseId);
