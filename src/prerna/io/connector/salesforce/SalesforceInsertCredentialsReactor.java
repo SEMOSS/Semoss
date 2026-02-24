@@ -123,7 +123,7 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 		HashMap<String, Object> map = new HashMap<>();
 		boolean flag = false;
 
-		try (Connection conn = salesforceDb.makeConnection()) {
+		try (Connection conn = salesforceDb.getConnection()) {
 			// validate table name
 			if (!isValidTableName(tableName)) {
 				map.put("Data inserted successfully", false);
@@ -184,7 +184,7 @@ public class SalesforceInsertCredentialsReactor extends AbstractReactor {
 		}
 		
 		String query = "SELECT " + SALESFORCE_UNIQUE_ID + " FROM " + tableName + " WHERE INSTANCEURL=? AND CLIENTID=?";
-		try (Connection conn = salesforceDb.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+		try (Connection conn = salesforceDb.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
 			pstmt.setString(1, instanceUrl);
 			pstmt.setString(2, clientId);
 
