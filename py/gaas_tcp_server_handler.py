@@ -1274,12 +1274,14 @@ class InsightGlobalStore:
                 """
                 Reloads the mcp_driver module
                 """
-                # Delete from the shared sys.modules cache to force a true reload
-                if "mcp_driver" in sys.modules:
-                    del sys.modules["mcp_driver"]
+                import importlib
 
-                # Use the secure_import to load the module
-                mcp_module = secure_import("mcp_driver", globals=globals_dict)
+                if "mcp_driver" in sys.modules:
+                    # Use importlib.reload for a proper reload
+                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                else:
+                    # First-time import
+                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
