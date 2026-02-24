@@ -178,11 +178,12 @@ public final class MCPUtility {
 
 		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String loadFreshSmssModule = "import sys\n" +
-		                           "for mod in ['mcp_driver', 'smss_driver']:\n" +
-		                           "    if mod in sys.modules:\n" +
-		                           "        del sys.modules[mod]\n" +
-		                           "import " + moduleName + " as mcp_driver";
+		String loadFreshSmssModule = 
+			    "if 'reload_mcp_function' in globals():\n" +
+			    "    mcp_driver = reload_mcp_function()\n" +
+			    "else:\n" +
+			    "    import " + moduleName + " as mcp_driver";
+		
 		// @formatter:on
 		// Copy default path vars from translator globals into the loaded MCP module.
 		// These vars are injected into the translator scope, not the module scope.
