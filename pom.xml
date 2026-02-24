@@ -606,6 +606,12 @@
 				<version>26.50.0</version>
 				<type>pom</type>
 				<scope>import</scope>
+				<exclusions>
+					<exclusion>
+						<groupId>io.grpc</groupId>
+						<artifactId>grpc-netty-shaded</artifactId>
+					</exclusion>
+				</exclusions>
 			</dependency>
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
@@ -2824,11 +2830,21 @@
 		</dependency>
 		<!-- Override grpc-netty-shaded due to CVE in transitive dependency from weaviate client -->
 		<!-- https://mvnrepository.com/artifact/io.grpc/grpc-netty-shaded -->
-		<!--<dependency>
+		<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
-			<version>1.75.0</version>			
-		</dependency>-->
+			<version>1.75.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.google.code.gson</groupId>
+					<artifactId>gson</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.google.errorprone</groupId>
+					<artifactId>error_prone_annotations</artifactId>
+				</exclusion>
+			</exclusions>		
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/jcifs/jcifs -->
 		<dependency>
 			<groupId>jcifs</groupId>
@@ -2970,6 +2986,10 @@
 					<groupId>org.checkerframework</groupId>
 					<artifactId>checker-qual</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>io.grpc</groupId>
+					<artifactId>grpc-netty-shaded</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- google cloud speech client -->
@@ -3005,6 +3025,10 @@
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
 					<artifactId>checker-qual</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.grpc</groupId>
+					<artifactId>grpc-netty-shaded</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -3056,6 +3080,10 @@
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.grpc</groupId>
+					<artifactId>grpc-netty-shaded</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -3110,6 +3138,10 @@
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
 					<artifactId>checker-qual</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>io.grpc</groupId>
+					<artifactId>grpc-netty-shaded</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
