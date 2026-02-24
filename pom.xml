@@ -1122,7 +1122,6 @@
 			<artifactId>compiler</artifactId>
 			<version>0.9.14</version>
 		</dependency>
-		<!--
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
@@ -1134,7 +1133,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		-->
 		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
@@ -1674,6 +1672,10 @@
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>jakarta.xml.bind</groupId>
+					<artifactId>jakarta.xml.bind-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -2822,11 +2824,11 @@
 		</dependency>
 		<!-- Override grpc-netty-shaded due to CVE in transitive dependency from weaviate client -->
 		<!-- https://mvnrepository.com/artifact/io.grpc/grpc-netty-shaded -->
-		<dependency>
+		<!--<dependency>
 			<groupId>io.grpc</groupId>
 			<artifactId>grpc-netty-shaded</artifactId>
-			<version>1.75.0</version>
-		</dependency>
+			<version>1.75.0</version>			
+		</dependency>-->
 		<!-- https://mvnrepository.com/artifact/jcifs/jcifs -->
 		<dependency>
 			<groupId>jcifs</groupId>
