@@ -751,9 +751,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             break
 
                     if not is_correct_path:
-                        reload_mcp_func = insight_globals.get("reload_mcp")
-                        if reload_mcp_func:
-                            reload_mcp_func()
+                        reload_mcp_function = insight_globals.get("reload_mcp_function")
+                        if reload_mcp_function:
+                            reload_mcp_function()
             except Exception:
                 # If anything goes wrong during the check, do nothing and proceed
                 pass
@@ -1306,7 +1306,9 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
+            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
+                globals_dict
+            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1326,7 +1328,7 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp",
+                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",
