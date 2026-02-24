@@ -179,7 +179,7 @@ public class Room {
 	 * @param parentMessageId
 	 * @return
 	 */
-	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+	public synchronized ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
 			Boolean appendToHistory) {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
@@ -334,7 +334,7 @@ public class Room {
 	 * @param insight
 	 * @return
 	 */
-	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
 		if (messages.isEmpty()) {
