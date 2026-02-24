@@ -27,20 +27,17 @@
  *******************************************************************************/
 package prerna.algorithm.learning.util;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import prerna.algorithm.learning.util.CategoricalCluster;
 
 public class CategoricalClusterUnitTests {
 
@@ -49,7 +46,7 @@ public class CategoricalClusterUnitTests {
 	    @Mock
 	    private Map<String, Double> mockWeights;
 
-	    @Before
+	    @BeforeEach
 	    public void setUp() {
 	        MockitoAnnotations.openMocks(this);
 	        mockWeights = new HashMap<>();
@@ -83,9 +80,10 @@ public class CategoricalClusterUnitTests {
 	        assertFalse(cluster.get("attribute1").containsKey("instance1"));
 	    }
 
-	    @Test(expected = NullPointerException.class)
+	    @Test
 	    public void testRemoveFromClusterNonExistent() {
-	        cluster.removeFromCluster("attribute1", "instance1", 1.0);
+	        assertThrows(NullPointerException.class, () ->
+	            cluster.removeFromCluster("attribute1", "instance1", 1.0));
 	    }
 
 	    @Test

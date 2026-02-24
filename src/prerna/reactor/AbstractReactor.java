@@ -53,11 +53,16 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
@@ -117,7 +122,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected boolean evaluate = false;
 
 	// all the different keys to get
-	public String[] keysToGet = new String[] { "no keys defined" };
+	public String[] keysToGet = new String[] {};
 	// which of these are optional : 1 means required, 0 means optional
 	protected int[] keyRequired = null;
 	// single or multi if 1 multi if 0 single
@@ -663,6 +668,33 @@ public abstract class AbstractReactor implements IReactor {
 		return testId;
 	}
 
+	/**
+	 * 
+	 * @param engine
+	 * @param engineId
+	 * @param user
+	 */
+	protected void checkEngineEditSecurity(IEngine engine, User user) {
+		if (engine == null) {
+			throw new NullPointerException("Engine/Project is null");
+		}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
+		if (engine instanceof IProject) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Project " + engine.getEngineId() + " does not exist or user does not have access");
+			}
+		} else {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine.getEngineId())) {
+				throw new IllegalArgumentException(
+						"Engine " + engine.getEngineId() + " does not exist or user does not have access");
+			}
+		}
+	}
+
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////
@@ -802,7 +834,7 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * Assumes everything is a string input
+	 * Get the reactor parameters and properties to display in the MCP JSON.
 	 * 
 	 * @return
 	 */
@@ -814,7 +846,7 @@ public abstract class AbstractReactor implements IReactor {
 
 			JSONObject paramMap = new JSONObject();
 			paramMap.put("title", canonicalKey);
-			paramMap.put("type", "string");
+			paramMap.put("type", getKeyTypeForMCP(canonicalKey).getValue());
 
 			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
@@ -830,6 +862,28 @@ public abstract class AbstractReactor implements IReactor {
 			properties.put(canonicalKey, paramMap);
 		}
 		return properties;
+	}
+
+	/**
+	 * Represents the specific type for a given key that the reactor is expecting
+	 * for MCPs. Reactors should override this to provide more specific information
+	 * about types.
+	 * 
+	 * Default is string, accepted values are: array, boolean, number, integer,
+	 * string, object
+	 * 
+	 * @param key
+	 * @return
+	 */
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.MAP.getKey()) || key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())
+				|| key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey()) || key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return MCP_KEY_TYPE.INTEGER;
+		}
+
+		return MCP_KEY_TYPE.STRING;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////
