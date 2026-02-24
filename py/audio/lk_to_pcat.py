@@ -5,7 +5,7 @@ logger.add("pipecat.log", encoding="utf-8", level="DEBUG")
 
 import logging, asyncio, json
 from typing import Optional
-
+import boto3
 from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
@@ -41,6 +41,98 @@ from pipecat.services.openai.realtime.events import (
     SessionProperties,
 )
 from gaas_server_proxy import ServerProxy
+from .debug_logger import DebugLogger
+
+from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import (
+    LLMContextAggregatorPair,
+)
+
+
+class AmazonTranslateProcessor(FrameProcessor):
+    """
+    Translates transcription frames using Amazon Translate and (optionally)
+    publishes translations to LiveKit via the provided transport.
+
+    Notes:
+    - Amazon Translate is sync HTTPS; we run it in a thread to avoid blocking the event loop.
+    - We forward the original frames unchanged.
+    """
+
+    def __init__(
+        self,
+        *,
+        region: str,
+        target_lang: str,
+        source_lang: str = "auto",
+        transport=None,
+        send_interim: bool = True,
+        max_concurrency: int = 8,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.client = boto3.client(
+            "translate",
+            region_name=region,
+            aws_access_key_id="",
+            aws_secret_access_key="",
+        )
+        self.source_lang = source_lang
+        self.target_lang = target_lang
+        self.transport = transport
+        self.send_interim = send_interim
+        self.sem = asyncio.Semaphore(max_concurrency)
+
+    async def _translate(self, text: str) -> str:
+        # Run boto3 call off the event loop
+        def call():
+            return self.client.translate_text(
+                Text=text,
+                SourceLanguageCode=self.source_lang,
+                TargetLanguageCode=self.target_lang,
+            )["TranslatedText"]
+
+        async with self.sem:
+            return await asyncio.to_thread(call)
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+
+        should_translate = isinstance(frame, TranscriptionFrame) or (
+            self.send_interim and isinstance(frame, InterimTranscriptionFrame)
+        )
+
+        if should_translate and getattr(frame, "text", None):
+            translated = await self._translate(frame.text)
+
+            # Option A (recommended): send translation as a LiveKit data message
+            if self.transport is not None:
+                payload = {
+                    "type": "translation",
+                    "sourceText": frame.text,
+                    "translatedText": translated,
+                    "sourceLang": self.source_lang,
+                    "targetLang": self.target_lang,
+                    "isFinal": isinstance(frame, TranscriptionFrame),
+                    "userId": getattr(frame, "user_id", None),
+                    "ts": getattr(frame, "timestamp", None),
+                }
+                await self.transport.send_message(json.dumps(payload))
+
+            # Option B (optional): emit a new transcription frame downstream
+            # from pipecat.frames.frames import TranscriptionFrame
+            # await self.push_frame(
+            #     TranscriptionFrame(
+            #         text=translated,
+            #         user_id=getattr(frame, "user_id", None),
+            #         timestamp=getattr(frame, "timestamp", None),
+            #         language=self.target_lang,
+            #     ),
+            #     direction,
+            # )
+
+        # Always forward the original frame
+        await self.push_frame(frame, direction)
 
 
 class FrameTapObserver(BaseObserver):
@@ -191,6 +283,12 @@ class LiveKitToPipecatListener(ServerProxy):
             f"Initialized LiveKitToPipecatListener for room: {room_name}, url: {url}"
         )
 
+        self.logger2 = DebugLogger(
+            log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
+            log_file_name="pipecat.txt",
+            class_name=__name__,
+        ).logger
+
     async def run(self):
         """Entry point for the daemon thread to start the listener based on the operation type."""
         if self.operation == "turn_based_transcription":
@@ -216,6 +314,7 @@ class LiveKitToPipecatListener(ServerProxy):
         )
 
         self.logger.info("LiveKit Transport configured")
+        self.logger2.info("LiveKit Transport configured")
 
         session_properties = SessionProperties(
             audio=AudioConfiguration(
@@ -253,36 +352,42 @@ class LiveKitToPipecatListener(ServerProxy):
 
         s2s = OpenAIRealtimeLLMService(
             api_key=self.api_key,
-            model=self.model,
+            # model=self.model,
             session_properties=session_properties,
             start_audio_paused=False,
         )
 
         self.logger.info("S2S service configured")
+        self.logger2.info("S2S service configured")
 
         transcript = TranscriptProcessor()
 
-        context = OpenAILLMContext(
+        context = LLMContext(
             [{"role": "user", "content": "Say hello and greet the human participant!"}]
         )
 
-        context_aggregator = s2s.create_context_aggregator(context)
+        user_agg, assistant_agg = LLMContextAggregatorPair(context)
+
+        self.logger2.info("Context Aggregator created")
 
         transcript_logger = TranscriptionLogger()
+
+        self.logger2.info("Set Transcription Logger")
 
         pipeline = Pipeline(
             [
                 transport.input(),
-                context_aggregator.user(),
+                user_agg,
                 s2s,
                 transcript.user(),
                 transport.output(),
                 transcript.assistant(),
-                context_aggregator.assistant(),
+                assistant_agg,
                 transcript_logger,
             ]
         )
         self.logger.info("Pipeline configured")
+        self.logger2.info("Pipeline configured")
 
         task = PipelineTask(
             pipeline,
@@ -293,6 +398,7 @@ class LiveKitToPipecatListener(ServerProxy):
             ],
         )
         self.logger.info("Started pipeline task")
+        self.logger2.info("Started pipeline task")
 
         # -------------------START TRANSPORT EVENTS-------------------
 
@@ -377,10 +483,19 @@ class LiveKitToPipecatListener(ServerProxy):
         transcription_logger = TranscriptionLogger()
         lk_bridge = LiveKitDataBridge(transport, send_interim=True)
 
+        translate_proc = AmazonTranslateProcessor(
+            region="us-east-1",
+            source_lang="auto",
+            target_lang="es",
+            transport=transport,
+            send_interim=True,
+        )
+
         pipeline = Pipeline(
             [
                 transport.input(),
                 stt,
+                translate_proc,
                 lk_bridge,
                 transcription_logger,
                 transport.output(),
@@ -475,6 +590,10 @@ def join_as_listener(
 
         try:
             loop.run_until_complete(run())
+        except Exception as e:
+            logging.getLogger("LiveKitThread").error(
+                f"Listener thread crashed: {e}", exc_info=True
+            )
         finally:
             loop.close()
 
