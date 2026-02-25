@@ -37,18 +37,11 @@ from pipecat.services.openai.realtime.events import (
     SessionProperties,
 )
 from gaas_server_proxy import ServerProxy
-from .debug_logger import DebugLogger
 
 from pipecat.processors.aggregators.llm_context import LLMContext
 from pipecat.processors.aggregators.llm_response_universal import (
     LLMContextAggregatorPair,
 )
-
-logger = DebugLogger(
-    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
-    log_file_name="livekit.txt",
-    class_name=__name__,
-).logger
 
 
 class AmazonTranslateProcessor(FrameProcessor):
