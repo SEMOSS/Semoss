@@ -86,12 +86,6 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	protected AuditLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions, String engineId, int batchSize) {
 		super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
-		if (!Utility.isAuditLogsDatabaseEnabled()) {
-			this.SCHEDULER = null;
-			this.INSERT_SQL = null;
-			this.ENGINE_ID = null;
-			return;
-		}
 		this.ENGINE_ID = engineId;
 		if (batchSize > 0) {
 			this.batchSize = batchSize;
