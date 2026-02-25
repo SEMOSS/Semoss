@@ -58,7 +58,6 @@ class AmazonTranslateProcessor(FrameProcessor):
 
     Notes:
     - Amazon Translate is sync HTTPS; we run it in a thread to avoid blocking the event loop.
-    - We forward the original frames unchanged.
     """
 
     def __init__(
@@ -70,13 +69,15 @@ class AmazonTranslateProcessor(FrameProcessor):
         transport=None,
         send_interim: bool = True,
         max_concurrency: int = 8,
+        aws_access_key: str,
+        aws_secret_key: str,
     ):
         super().__init__()
         self.client = boto3.client(
             "translate",
             region_name=region,
-            aws_access_key_id="",
-            aws_secret_access_key="",
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
         )
         self.source_lang = source_lang
         self.target_lang = target_lang
@@ -256,7 +257,7 @@ class LiveKitToPipecatListener(ServerProxy):
         self.model_url = model_url
         self.insight_id = insight_id
         self.param_map = param_map
-
+        self.voice = self.param_map.get("voice", "coral")
         self.logger = logging.getLogger("LiveKitToPipecatListener")
         self.logger.setLevel(logging.DEBUG)
 
@@ -293,7 +294,6 @@ class LiveKitToPipecatListener(ServerProxy):
         )
 
         self.logger.info("LiveKit Transport configured")
-        self.logger2.info("LiveKit Transport configured")
 
         session_properties = SessionProperties(
             audio=AudioConfiguration(
@@ -303,11 +303,11 @@ class LiveKitToPipecatListener(ServerProxy):
                         create_response=True, interrupt_response=True
                     ),
                     noise_reduction=InputAudioNoiseReduction(type="near_field"),
-                )
-            ),
-            # "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"
-            output=AudioOutput(
-                voice="coral",
+                ),
+                output=AudioOutput(
+                    # "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"
+                    voice=self.voice,
+                ),
             ),
             instructions="""You are a helpful and friendly AI.
 
@@ -331,13 +331,12 @@ class LiveKitToPipecatListener(ServerProxy):
 
         s2s = OpenAIRealtimeLLMService(
             api_key=self.api_key,
-            # model=self.model,
+            model=self.model,
             session_properties=session_properties,
             start_audio_paused=False,
         )
 
         self.logger.info("S2S service configured")
-        self.logger2.info("S2S service configured")
 
         transcript = TranscriptProcessor()
 
@@ -347,11 +346,7 @@ class LiveKitToPipecatListener(ServerProxy):
 
         user_agg, assistant_agg = LLMContextAggregatorPair(context)
 
-        self.logger2.info("Context Aggregator created")
-
         transcript_logger = TranscriptionLogger()
-
-        self.logger2.info("Set Transcription Logger")
 
         pipeline = Pipeline(
             [
@@ -366,18 +361,16 @@ class LiveKitToPipecatListener(ServerProxy):
             ]
         )
         self.logger.info("Pipeline configured")
-        self.logger2.info("Pipeline configured")
 
         task = PipelineTask(
             pipeline,
             params=PipelineParams(enable_metrics=True, enable_usage_metrics=True),
             enable_tracing=False,
             observers=[
-                FrameTapObserver(),  # PROBABLY REMOVE THIS AFTER DEBUGGING
+                FrameTapObserver(),
             ],
         )
         self.logger.info("Started pipeline task")
-        self.logger2.info("Started pipeline task")
 
         # -------------------START TRANSPORT EVENTS-------------------
 
@@ -477,6 +470,8 @@ class LiveKitToPipecatListener(ServerProxy):
             target_lang=target_lang,
             transport=transport,
             send_interim=True,
+            aws_access_key=self.param_map.get("aws_access_key", ""),
+            aws_secret_key=self.param_map.get("aws_secret_key", ""),
         )
 
         pipeline = Pipeline(
@@ -561,7 +556,6 @@ class LiveKitToPipecatListener(ServerProxy):
             api_key=self.api_key,
             model=self.model,
             prompt="Expect conversational speech with various topics.",
-            language="en",
             temperature=0.0,
         )
 
@@ -570,19 +564,10 @@ class LiveKitToPipecatListener(ServerProxy):
         transcription_logger = TranscriptionLogger()
         lk_bridge = LiveKitDataBridge(transport, send_interim=True)
 
-        translate_proc = AmazonTranslateProcessor(
-            region="us-east-1",
-            source_lang="auto",
-            target_lang="es",
-            transport=transport,
-            send_interim=True,
-        )
-
         pipeline = Pipeline(
             [
                 transport.input(),
                 stt,
-                translate_proc,
                 lk_bridge,
                 transcription_logger,
                 transport.output(),
@@ -652,7 +637,9 @@ def join_as_listener(
     api_key: str,
     model_url: str,
     insight_id: str,
-    param_map: Optional[dict] = {},
+    aws_secret_key: str,
+    aws_access_key: str,
+    param_map: dict = {},
 ):
     """Entry point method that provides a non-blocking background thread listening to room events."""
     import threading
@@ -661,6 +648,9 @@ def join_as_listener(
         f"Starting LiveKit listener thread for room: {room_name}, operation: {operation}"
     )
     logger.info(f"PARAM_MAP: {param_map}")
+
+    param_map["aws_secret_key"] = aws_secret_key
+    param_map["aws_access_key"] = aws_access_key
 
     def background_task():
         loop = asyncio.new_event_loop()

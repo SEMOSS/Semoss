@@ -90,7 +90,7 @@ public class LiveKitController {
 	/*
 	 * Record for the required model details that I need to send to the Python server
 	 */
-	private record ModelDetails(String model, String modelType, String apiKey, boolean realtimeSupport, String modelUrl) {
+	private record ModelDetails(String model, String modelType, String apiKey, boolean realtimeSupport, String modelUrl, String awsAccessKey, String awsSecretKey) {
 	    ModelDetails {
 	        if (model == null || model.isBlank()) {
 	            throw new IllegalArgumentException("Model is not defined in SMSS file.");
@@ -105,13 +105,14 @@ public class LiveKitController {
 	        String model = p.getProperty(Settings.MODEL, "").trim();
 	        String modelType = p.getProperty(Settings.MODEL_TYPE, "").trim();
 	        String apiKey = p.getProperty("OPEN_AI_KEY", "").trim();
-
+	        String awsAccessKey = p.getProperty("AWS_ACCESS_KEY", "").trim();
+	        String awsSecretKey = p.getProperty("AWS_SECRET_KEY", "").trim();
 	        String rt = p.getProperty("REALTIME", "false");
 	        boolean realtime = "true".equalsIgnoreCase(rt) || "1".equals(rt);
 	        // TODO: How am I grabbing custom model URLs for hosted models...
 	        String modelUrl = "";
 
-	        return new ModelDetails(model, modelType, apiKey, realtime, modelUrl);
+	        return new ModelDetails(model, modelType, apiKey, realtime, modelUrl, awsAccessKey, awsSecretKey);
 	    }
 	}
 	
@@ -403,7 +404,7 @@ public class LiveKitController {
 	    String insightId = insight.getInsightId();
 	    
 	    String joinAsListenerCommand = String.format(
-	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s', param_map=%s)",
+	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s', aws_access_key='%s', aws_secret_key='%s', param_map=%s)",
 	            roomName,
 	            token,
 	            liveKitUrl,
@@ -413,6 +414,8 @@ public class LiveKitController {
 	            modelDetails.apiKey(),
 	            modelDetails.modelUrl(),
 	            insightId,
+	            modelDetails.awsAccessKey(),
+	            modelDetails.awsSecretKey(),
 	            pythonParamMap 
 	    );
 
