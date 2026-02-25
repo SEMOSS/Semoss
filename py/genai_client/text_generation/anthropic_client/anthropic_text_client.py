@@ -42,12 +42,6 @@ class ToolCall(BaseModel):
     description: Optional[str] = None
     input_schema: Optional[Dict[str, Any]] = None
 
-
-class Usage(BaseModel):
-    input_tokens: int
-    output_tokens: int
-
-
 class AnthropicTextClient(AbstractTextGenerationClient):
 
     def __init__(
@@ -106,6 +100,22 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
+        
+    def _count_thinking_tokens(self, thinking_text: str) -> int:
+        try:
+            count_response = self.client.messages.count_tokens(
+                model=self.model_name,
+                messages=[{
+                    "role": "assistant",
+                    "content": [{
+                        "type": "thinking",
+                        "thinking": thinking_text
+                    }]
+                }]
+            )
+            return count_response.input_tokens
+        except Exception as e:
+            return None
 
     def ask_call(
         self,
@@ -180,13 +190,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "The model refused to complete the request."
                 )
 
-            if response.stop_reason == "tool_use":
-                return self._parse_tools_call_response(
-                    response,
-                    prompt_tokens=response.usage.input_tokens,
-                    response_tokens=response.usage.output_tokens,
-                )
-
             thinking_text = ""
             response_text = ""
             for content in response.content:
@@ -195,13 +198,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 elif hasattr(content, "type") and content.type == "text":
                     response_text += content.text
 
+            thinking_tokens = None
+            if thinking_text:
+                thinking_tokens = self._count_tokens(thinking_text)
+
+            if response.stop_reason == "tool_use":
+                return self._parse_tools_call_response(
+                    response,
+                    prompt_tokens=response.usage.input_tokens,
+                    response_tokens=response.usage.output_tokens,
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=response.usage.cache_read_input_tokens,
+                )
+            
             if web_search_enabled and inline_citations_enabled:
                 response_text = self._add_inline_citations(response) or response_text
-
-            usage = Usage(
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-            )
 
             parts = []
             if response_text:
@@ -211,12 +222,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             return AskModelEngineResponse2(
                 response=response_text,
-                response_tokens=usage.output_tokens,
-                prompt_tokens=usage.input_tokens,
+                response_tokens=response.usage.output_tokens,
+                prompt_tokens=response.usage.input_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
                 messageType="CHAT",
+                thinking_tokens=thinking_tokens,
+                cached_tokens=response.usage.cache_read_input_tokens,
+                usage_map=response.usage
             )
         except Exception as e:
             return ModelEngineException(
@@ -224,7 +238,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = 0, response_tokens: int = 0
+        self, response, prompt_tokens: int = 0, response_tokens: int = 0, thinking_tokens: Optional[int] = None, cached_tokens: Optional[int] = None
     ) -> AskModelEngineResponse2:
         tools_result = []
         for content in response.content:
@@ -249,6 +263,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=parts,
                     messageType="CHAT",
+                    thinking_tokens=thinking_tokens,
+                    cached_tokens=cached_tokens,
+                    usage_map=response.usage
                 )
 
         return AskModelEngineResponse2(
@@ -259,6 +276,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
             messageType="TOOL",
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
+            usage_map=response.usage
         )
 
     def _handle_streaming(
@@ -272,7 +292,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         input_tokens = 0
         output_tokens = 0
+        cached_tokens = None
         stop_reason: Optional[str] = None
+        usage_map = None
 
         content_array = []
         this_content_block: Dict[str, Any] = {}
@@ -450,7 +472,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     this_content_block_type = ""
 
                 elif event.type == "message_delta":
-                    output_tokens = event.usage.output_tokens
+                    output_tokens = event.usage.output_tokens,
+                    cached_tokens = event.usage.cache_read_input_tokens,
+                    usage_map = event.usage
                     if getattr(event, "delta", None) and getattr(
                         event.delta, "stop_reason", None
                     ):
@@ -500,6 +524,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         if url:
                             final_response += f"<sup>[{citation_index}]({url})</sup>"
                             citation_index += 1
+
+        thinking_tokens = None
+        if thinking_response:
+            thinking_tokens = self._count_thinking_tokens(thinking_response)
 
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
@@ -599,6 +627,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         io="OUTPUT",
                         parts=parts,
                         messageType="CHAT",
+                        thinking_tokens=thinking_tokens,
+                        cached_tokens=cached_tokens,
+                        usage_map=usage_map
                     )
 
             return AskModelEngineResponse2(
@@ -609,6 +640,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="TOOL",
+                thinking_tokens=thinking_tokens,
+                cached_tokens=cached_tokens,
+                usage_map=usage_map
             )
 
         return AskModelEngineResponse2(
@@ -619,6 +653,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
             messageType="CHAT",
+            thinking_tokens=thinking_tokens,
+            cached_tokens=cached_tokens,
+            usage_map=usage_map
         )
 
     def _flatten_schema_tool(self, tools_result, schema_tool_name: str = "return_json"):
