@@ -93,6 +93,6 @@ public class GetServiceNowConnectionsReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Fetches all User API Permission records from the database and returns them for UI display.";
+		return "Fetches all ServiceNow Connections from the database and returns them for UI display.";
 	}
 }
