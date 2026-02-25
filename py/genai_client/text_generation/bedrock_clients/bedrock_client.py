@@ -123,6 +123,7 @@ class BedrockClient(AbstractTextGenerationClient):
         output_tokens = 0
         thinking_tokens = Optional[int] = None
         cached_tokens = Optional[int] = None
+        usage_map = None
 
         content_array = []
         this_content_block: Dict[str, Any] = {}
@@ -223,6 +224,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     output_tokens = metadata["usage"]["outputTokens"]
                     thinking_tokens = metadata["usage"].get("thinkingTokens", None)
                     cached_tokens = metadata["usage"].get("cacheReadInputTokens", None)
+                    usage_map = metadata["usage"]
 
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_use")
@@ -328,6 +330,7 @@ class BedrockClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="TOOL",
+                usage_map=usage_map,
             )
 
         return AskModelEngineResponse2(
@@ -340,6 +343,7 @@ class BedrockClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
             messageType="CHAT",
+            usage_map=usage_map,
         )
 
     def _handle_non_streaming(self, request: Dict[str, Any]) -> AskModelEngineResponse2:
@@ -397,4 +401,5 @@ class BedrockClient(AbstractTextGenerationClient):
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,
+            usage_map=response["usage"],
         )
