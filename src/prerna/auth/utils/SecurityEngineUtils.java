@@ -548,17 +548,20 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
-			
+
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-			for (int i = 0; i < requests.size(); i++) {
-				NotificationDbUtils.createNotification(user, requests.get(i).get("userid"), requests.get(i).get("type"), engineId,
-						NotificationConstants.Type.REQUEST_APPROVAL, engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"));
-			// Adding email notification
-				EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
-						"engineAccessApproval.html", engineId, requests.get(i).get("permission"), "SEMOSS - Engine Access Request");
-			}}
+				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
+				for (int i = 0; i < requests.size(); i++) {
+					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+							requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
+							engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"));
+					// Adding email notification
+					EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
+							"engineAccessApproval.html", engineId, requests.get(i).get("permission"),
+							"SEMOSS - Engine Access Request");
+				}
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -614,18 +617,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		
+
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-			for (int i = 0; i < requestIds.size(); i++) {
-				String requestId = requestIds.get(i);
-				List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
-				String permission = AccessPermissionEnum.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-				NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"), (String) deniedUserDetails.get(i).get("type"),
-									             engineId, NotificationConstants.Type.REQUEST_DENIAL, engineType, NotificationConstants.Priority.MEDIUM, null, permission);
-			}}
-			
+				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
+				for (int i = 0; i < requestIds.size(); i++) {
+					String requestId = requestIds.get(i);
+					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
+					String permission = AccessPermissionEnum
+							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
+					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+							(String) deniedUserDetails.get(i).get("type"), engineId,
+							NotificationConstants.Type.REQUEST_DENIAL, engineType,
+							NotificationConstants.Priority.MEDIUM, null, permission);
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -1022,15 +1029,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			
+
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-			for (int i = 0; i < permission.size(); i++) { 
-				NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"), (String) permission.get(i).get("type"), engineId,
-						NotificationConstants.Type.USER_ADDITION, engineType, NotificationConstants.Priority.MEDIUM, null, (String) permission.get(i).get("permission"));
-			}}
-			
+				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
+				for (int i = 0; i < permission.size(); i++) {
+					NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"),
+							(String) permission.get(i).get("type"), engineId, NotificationConstants.Type.USER_ADDITION,
+							engineType, NotificationConstants.Priority.MEDIUM, null,
+							(String) permission.get(i).get("permission"));
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -1054,9 +1064,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType, String engineId, String newPermission,
-			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime)
-			throws IllegalAccessException {
+	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType,
+			String engineId, String newPermission, String endDate, String usageRestriction, String usageFrequency,
+			int maxTokens, double maxResponseTime) throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1135,15 +1145,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-			
+
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
-			String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
+				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 //		    String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(existingUserId, engineId));
-			String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-		    NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
-		    
-		} }catch (Exception e) {
+				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
+				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
+						NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
+						existingPermission, newPermission);
+
+			}
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
@@ -1206,7 +1219,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		
+
 		String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 		// update user permissions in bulk
 		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION = ?, USAGEFREQUENCY = ?, MAXTOKENS = ?, MAXRESPONSETIME = ? WHERE USERID = ? AND ENGINEID = ?";
@@ -1217,10 +1230,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				Map<String, Object> thisPermissionMap = permission.get(i);
 
 				int parameterIndex = 1;
-				
+
 				String newUserId = (String) thisPermissionMap.get("userid");
 				String newUserType = (String) thisPermissionMap.get("type");
-				String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(newUserId, engineId));
+				String existingPermission = AccessPermissionEnum
+						.getPermissionValueById(getUserEnginePermission(newUserId, engineId));
 				// SET
 				ps.setInt(parameterIndex++,
 						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
@@ -1263,10 +1277,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
 				ps.setString(parameterIndex++, engineId);
 				ps.addBatch();
-				
+
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-				NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId, NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM, existingPermission, (String) thisPermissionMap.get("permission"));
+					NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId,
+							NotificationConstants.Type.PERMISSION_CHANGE, engineType,
+							NotificationConstants.Priority.MEDIUM, existingPermission,
+							(String) thisPermissionMap.get("permission"));
 				}
 			}
 			ps.executeBatch();
@@ -3419,42 +3436,43 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Get userDetails by using user's engine access request
 	 * 
 	 * @param requestId
 	 * @return List of user details
 	 */
-	public static List<Map<String, Object>> getUserDetailsFromEngineAccessRequest(String engineRequestId) {  
+	public static List<Map<String, Object>> getUserDetailsFromEngineAccessRequest(String engineRequestId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_USERID", "userId"));
+		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_TYPE", "type"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION", "permission"));
 		qs.addRelation("ENGINEACCESSREQUEST__PERMISSION", "PERMISSION__ID", "inner.join");
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__ID", "==", engineRequestId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
 	 * Get all authors for a specific engine (for engine-related notifications)
 	 */
 	public static List<Map<String, Object>> getEngineAuthors(String engineId, String userId) {
-	    SelectQueryStruct qs = new SelectQueryStruct();
-	    qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
-	    qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-	    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1));
-	    qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "==", 1));
+		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "inner.join");
 
-	    return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
-    /**
-     * 
-     * @param engineIds
-     * @return
-     */
+
+	/**
+	 * 
+	 * @param engineIds
+	 * @return
+	 */
 	public static Map<String, String> getEngineNamesByIds(Collection<String> engineIds) {
 		Map<String, String> engineMap = new HashMap<>();
 		if (engineIds == null || engineIds.isEmpty()) {
