@@ -698,7 +698,7 @@
 			</exclusions>
 		</dependency>
 		<!-- Docx4J Deps --> 
-		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-core -->
+		<!-- https://mvnrepository.com/artifact/org.docx4j/docx4j-core -->
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-core</artifactId>
@@ -3190,7 +3190,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.14.1</version>
+			<version>0.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
