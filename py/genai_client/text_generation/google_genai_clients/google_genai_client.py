@@ -40,7 +40,7 @@ class StreamingResponse(BaseModel):
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
     client: GoogleGenAIClient
-    
+
     def __init__(
         self,
         service_account_credentials: Optional[Dict] = None,
