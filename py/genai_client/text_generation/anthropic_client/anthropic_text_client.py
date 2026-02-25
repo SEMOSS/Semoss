@@ -472,8 +472,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     this_content_block_type = ""
 
                 elif event.type == "message_delta":
-                    output_tokens = event.usage.output_tokens,
-                    cached_tokens = event.usage.cache_read_input_tokens,
+                    output_tokens = event.usage.output_tokens
+                    cached_tokens = event.usage.cache_read_input_tokens
                     usage_map = event.usage
                     if getattr(event, "delta", None) and getattr(
                         event.delta, "stop_reason", None
