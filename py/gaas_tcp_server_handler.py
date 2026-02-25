@@ -751,9 +751,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             break
 
                     if not is_correct_path:
-                        reload_mcp_func = insight_globals.get("reload_mcp")
-                        if reload_mcp_func:
-                            reload_mcp_func()
+                        reload_mcp_function = insight_globals.get("reload_mcp_function")
+                        if reload_mcp_function:
+                            reload_mcp_function()
             except Exception:
                 # If anything goes wrong during the check, do nothing and proceed
                 pass
@@ -1274,12 +1274,14 @@ class InsightGlobalStore:
                 """
                 Reloads the mcp_driver module
                 """
-                # Delete from the shared sys.modules cache to force a true reload
-                if "mcp_driver" in sys.modules:
-                    del sys.modules["mcp_driver"]
+                import importlib
 
-                # Use the secure_import to load the module
-                mcp_module = secure_import("mcp_driver", globals=globals_dict)
+                if "mcp_driver" in sys.modules:
+                    # Use importlib.reload for a proper reload
+                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                else:
+                    # First-time import
+                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
@@ -1304,7 +1306,9 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
+            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
+                globals_dict
+            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1324,7 +1328,7 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp",
+                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",
