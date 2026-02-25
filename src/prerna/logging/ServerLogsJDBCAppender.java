@@ -78,11 +78,6 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	protected ServerLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions, int batchSize) {
 		super(name, filter, layout, ignoreExceptions, Property.EMPTY_ARRAY);
-		if (!Utility.isAuditLogsDatabaseEnabled()) {
-			this.SCHEDULER = null;
-			this.INSERT_SQL = null;
-			return;
-		}
 		if (batchSize > 0) {
 			this.batchSize = batchSize;
 		}
