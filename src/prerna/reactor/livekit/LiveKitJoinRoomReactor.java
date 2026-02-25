@@ -29,12 +29,16 @@ package prerna.reactor.livekit;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.livekit.LiveKitController;
 import io.livekit.server.AccessToken;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -42,6 +46,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IModelEngine;
 
 public class LiveKitJoinRoomReactor extends AbstractReactor {
 	
@@ -52,7 +57,8 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(),
 				"operation",
-				"roomId"
+				"roomId",
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
 		};
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -77,9 +83,14 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
 		}
 		
+		Map<String, Object> paramMap = getParamMap();
+		if (paramMap == null) {
+			paramMap = new HashMap<String, Object>();
+		}
+		
 		LiveKitController controller = new LiveKitController();
 		try {
-		AccessToken token = controller.joinRoom(userId, userId, roomId, engineId, operation, this.insight);
+		AccessToken token = controller.joinRoom(userId, userId, roomId, engineId, operation, this.insight, paramMap);
 		
 		String jwt = token.toJwt();
 		
@@ -97,6 +108,26 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 			
 			return getError(errorMsg);
 		}
+	}
+	
+	/**
+	 * 
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getParamMap() {
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
 	}
 	
 	@Override
