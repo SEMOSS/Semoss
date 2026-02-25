@@ -3,6 +3,10 @@ import json
 
 from sympy import content
 
+import logging
+
+logger = logging.getLogger("SocketServer")
+
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -101,20 +105,30 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
         
-    def _count_thinking_tokens(self, thinking_text: str) -> int:
+    def _count_thinking_tokens(self, thinking_text: str, thinking_signature: str) -> int:
         try:
+            payload = [{
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "thinking",
+                            "thinking": thinking_text,
+                            "signature": thinking_signature
+                        },
+                        {
+                            "type": "text",
+                            "text": "a",  # Empty text block to satisfy API validation
+                        }
+                    ]
+                }]
             count_response = self.client.messages.count_tokens(
                 model=self.model_name,
-                messages=[{
-                    "role": "assistant",
-                    "content": [{
-                        "type": "thinking",
-                        "thinking": thinking_text
-                    }]
-                }]
+                messages=payload
             )
             return count_response.input_tokens
         except Exception as e:
+            logger.info(f"Request payload: {payload}")
+            logger.error(f"Failed to count thinking tokens: {e}")
             return None
 
     def ask_call(
@@ -191,16 +205,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 )
 
             thinking_text = ""
+            thinking_signature = ""
             response_text = ""
             for content in response.content:
                 if hasattr(content, "type") and content.type == "thinking":
                     thinking_text += content.thinking
+                    if hasattr(content, "signature"):
+                        thinking_signature = content.signature
                 elif hasattr(content, "type") and content.type == "text":
                     response_text += content.text
 
             thinking_tokens = None
             if thinking_text:
-                thinking_tokens = self._count_tokens(thinking_text)
+                thinking_tokens = self._count_thinking_tokens(thinking_text, thinking_signature)
 
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
@@ -527,7 +544,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         thinking_tokens = None
         if thinking_response:
-            thinking_tokens = self._count_thinking_tokens(thinking_response)
+            thinking_tokens = self._count_thinking_tokens(thinking_response, thinking_signature)
 
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
