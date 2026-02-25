@@ -108,7 +108,6 @@ public class ClaudeCodeManager {
 			this.createCacheFolder();
 		}
 
-		// check if we have already created a process wrapper
 		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
 		if (this.cpw != null) {
 			this.cpw.shutdown(false);
@@ -119,19 +118,16 @@ public class ClaudeCodeManager {
 		if (cpwToInit.getSocketClient() == null) {
 			boolean debug = false;
 
-			// pull the relevant values from the smss
 			String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
 			String customClassPath = null;
 			String loggerLevel = null;
 
 			if (port < 0) {
-				// port has not been forced
 				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
 					try {
 						port = Integer.parseInt(forcePort);
 						debug = true;
 					} catch (NumberFormatException e) {
-						// ignore
 						classLogger.warn("Claude Code" + " has an invalid FORCE_PORT value");
 					}
 				}
@@ -162,23 +158,16 @@ public class ClaudeCodeManager {
 		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
 		try {
-			// execute all the basic commands
 			String initCommands = initScript;
-			// break the commands seperated by ;
 			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			// replace the Vars
 			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
 			this.pyTranslator.runEmptyPy(commands);
-			// for debugging...
 			classLogger.info("Initializing Claude Code"
 					+ " python process with commands >>> " + String.join("\n", commands));
-
-			// run a prefix command
 			setPrefix(cpwToInit);
 
-			// finally set the cpw in the class
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
 			classLogger.error("Failed to  to the python process for Claude Code", e);
@@ -219,7 +208,6 @@ public class ClaudeCodeManager {
 		this.workingDirectoryBasePath = Utility.getInsightCacheDir() + "/" + this.workingDirectory;
 		this.cacheFolder = new File(workingDirectoryBasePath);
 
-		// make the folder if one does not exist
 		if (!this.cacheFolder.exists()) {
 			this.cacheFolder.mkdir();
 		}
