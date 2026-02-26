@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -8,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,6 +45,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +53,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -37,7 +67,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 
-public class AbstractReactorFunctionEngineUnitTests {
+public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private User user;
@@ -60,7 +90,9 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		user = mock(User.class);
 		// using inner class to access abstract methods
 		engine = new FunctionEngine();
@@ -68,7 +100,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testOpenWithFile(@TempDir Path tempDir) throws Exception {
+	void testOpenWithFile() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -125,7 +157,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testDelete(@TempDir Path tempDir) throws Exception {
+	void testDelete() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -273,7 +305,7 @@ public class AbstractReactorFunctionEngineUnitTests {
 	}
 
 	@Test
-	void testGetSetSmssFilePath(@TempDir Path tempDir) throws Exception {
+	void testGetSetSmssFilePath() throws Exception {
 		openEngine(engine, null); // set initial engine id
 		assertNull(engine.getSmssFilePath());
 		String newSmssFilePath = tempDir.toString();

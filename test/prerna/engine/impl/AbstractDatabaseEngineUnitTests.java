@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,6 +77,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.openrdf.repository.RepositoryConnection;
 
+import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -74,7 +102,7 @@ import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
-public class AbstractDatabaseEngineUnitTests {
+public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
     private AbstractDatabaseEngine engine;
 
@@ -345,7 +373,7 @@ public class AbstractDatabaseEngineUnitTests {
         private List<MockedStatic> mockedStatics;
 
         @BeforeEach
-        void setupForOpen(@TempDir Path tempDir) throws IOException {
+        void setupForOpen() throws IOException {
             tempPath = tempDir;
             testProps = tempPath.resolve("test.props");
             testPropsPath = testProps.toAbsolutePath().toString();
@@ -493,11 +521,11 @@ public class AbstractDatabaseEngineUnitTests {
     class CreateBaseRelationEngine {
 
         @Test
-        void create(@TempDir Path tempPath) throws Exception {
-            Path base = tempPath.resolve("Semoss");
+        void create() throws Exception {
+            Path base = tempDir.resolve("Semoss");
             Files.createDirectories(base);
             Properties rdf = new Properties();
-            rdf.put(Constants.BASE_FOLDER, tempPath.toAbsolutePath().toString());
+            rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
             DIHelper.getInstance().setCoreProp(rdf);
 
             RepositoryConnection mockRC = mock(RepositoryConnection.class);
@@ -556,15 +584,15 @@ public class AbstractDatabaseEngineUnitTests {
     }
 
     @Test
-    void testSetOwlFilePath(@TempDir Path tempPath) throws IOException {
-        Path base = tempPath.resolve("Semoss");
+    void testSetOwlFilePath() throws IOException {
+        Path base = tempDir.resolve("Semoss");
         Path p = base.resolve("test.owl");
         String owlpath = p.toAbsolutePath().toString();
 
         engine.setOwlFilePath(owlpath);
         Files.createDirectories(base);
         Properties rdf = new Properties();
-        rdf.put(Constants.BASE_FOLDER, tempPath.toAbsolutePath().toString());
+        rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
         DIHelper.getInstance().setCoreProp(rdf);
 
         RepositoryConnection mockRC = mock(RepositoryConnection.class);
@@ -730,8 +758,8 @@ public class AbstractDatabaseEngineUnitTests {
     class Delete {
 
         @Test
-        void testDelete(@TempDir Path tempPath) throws Exception {
-            FileUtils.cleanDirectory(tempPath.toFile());
+        void testDelete() throws Exception {
+            FileUtils.cleanDirectory(tempDir.toFile());
             String engineId = "testId";
             String engineName = "testEngine";
             engine.setEngineId(engineId);
@@ -739,7 +767,7 @@ public class AbstractDatabaseEngineUnitTests {
 
             String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 
-            Path base = tempPath.resolve("Semoss");
+            Path base = tempDir.resolve("Semoss");
             Path engineDir = base.resolve("db");
             Path testEngine = engineDir.resolve("testEngine__testId");
             Files.createDirectories(testEngine);
@@ -1002,9 +1030,9 @@ public class AbstractDatabaseEngineUnitTests {
     }
 
     @Test
-    void getOwlPositionFile(@TempDir Path temp) throws IOException {
-        Path p = temp.resolve("test.owl");
-        Path positions = temp.resolve("positions.json");
+    void getOwlPositionFile() throws IOException {
+        Path p = tempDir.resolve("test.owl");
+        Path positions = tempDir.resolve("positions.json");
         engine.setOwlFilePath(p.toAbsolutePath().toString());
         Files.createFile(positions);
         File f = engine.getOwlPositionFile();
@@ -1305,7 +1333,7 @@ public class AbstractDatabaseEngineUnitTests {
 
         @Disabled // Disabled until Snow API is fixed and closes resources when finished.
         @Test
-        void decryptPass(@TempDir Path tempDir) throws IOException {
+        void decryptPass() throws IOException {
             Path base = tempDir.resolve("db");
             Files.createDirectories(base);
             Path props = base.resolve("props.smss");
@@ -1330,7 +1358,7 @@ public class AbstractDatabaseEngineUnitTests {
         }
 
         @Test
-        void decryptPassInputFileMissing(@TempDir Path tempDir) throws IOException {
+        void decryptPassInputFileMissing() throws IOException {
             Path base = tempDir.resolve("db");
             Files.createDirectories(base);
             Path props = base.resolve("props.smss");
@@ -1351,8 +1379,8 @@ public class AbstractDatabaseEngineUnitTests {
 
         // Fill in more tests once SnowApi issues are resolved
         @Test
-        void encryptPassPropFileDoesNotExist(@TempDir Path path) {
-            Path p = path.resolve("props.smss");
+        void encryptPassPropFileDoesNotExist() {
+            Path p = tempDir.resolve("props.smss");
             CaseInsensitiveProperties cip = engine.encryptPropFile(p.toAbsolutePath().toString());
             assertEquals(1, cip.size());
             assertEquals("encrypted password", cip.get("INSIGHT_PASSWORD"));

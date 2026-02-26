@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +57,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import com.google.gson.Gson;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -42,7 +70,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class ChromaVectorDatabaseEngineUnitTests {
+public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 	private Insight insight;
 	private ChromaVectorDatabaseEngine engine;
@@ -56,7 +84,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -125,7 +153,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -172,7 +200,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoEmbedderEngineId(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoEmbedderEngineId() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
@@ -182,7 +210,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddingsNoModelEmbedder(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddingsNoModelEmbedder() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -197,7 +225,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoModelProperties(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoModelProperties() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -220,7 +248,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbedderNoInsight(@TempDir Path tempDir) throws Exception {
+	void testAddEmbedderNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -245,7 +273,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		
@@ -323,7 +351,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String testEmbedderId = "123-456-789";
@@ -404,7 +432,7 @@ public class ChromaVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		String classname = "TEST_CHROMA_CLASS";
 		String testId = "TEST_ID";
 		

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import java.io.File;
@@ -44,6 +71,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected String engineVersionFolder = null;
 	protected String engineAssetsFolder = null;
 
+	protected boolean keepInputOutput = true;
 	// to define custom log4j2.xml at an engine level
 	// to isolate tenant logs
 	protected LoggerContext engineSpecificLoggerCtx;
@@ -103,9 +131,9 @@ public abstract class AbstractEngine implements IEngine {
 			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(getCatalogType(), this.engineId,
 					this.engineName);
 			if (engineSecrets == null || engineSecrets.isEmpty()) {
-				classLogger.info("No secrets found for " + engineIdAndName);
+				classLogger.info("No secrets found for {}", engineIdAndName);
 			} else {
-				classLogger.info("Successfully pulled secrets for " + engineIdAndName);
+				classLogger.info("Successfully pulled secrets for {}", engineIdAndName);
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
@@ -154,12 +182,15 @@ public abstract class AbstractEngine implements IEngine {
 		}
 
 		this.isMCPEnabled = Boolean.parseBoolean(smssProp.getProperty(Constants.MCP_ENABLED) + "");
+		if (smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) != null) {
+			this.keepInputOutput = Boolean.parseBoolean(smssProp.getProperty(Constants.KEEP_INPUT_OUTPUT) + "");
+		}
 	}
 
 	@Override
 	public void delete() {
 		IEngine.CATALOG_TYPE eType = getCatalogType();
-		classLogger.debug("Delete " + eType + " engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		classLogger.debug("Delete {} engine {}", eType, SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		try {
 			this.close();
 		} catch (IOException e) {
@@ -168,17 +199,17 @@ public abstract class AbstractEngine implements IEngine {
 
 		File engineFolder = new File(this.engineBaseFolder);
 		if (engineFolder.exists()) {
-			classLogger.info("Delete " + eType + " engine folder " + engineFolder);
+			classLogger.info("Deleting {} engine folder {}", eType, engineFolder);
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.info(eType + " engine folder " + engineFolder + " does not exist");
+			classLogger.info("{} engine folder {} does not exist", eType, engineFolder);
 		}
 
-		classLogger.info("Deleting " + eType + " engine smss " + this.smssFilePath);
+		classLogger.info("Deleting {} engine smss {}", eType, this.smssFilePath);
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
@@ -188,6 +219,12 @@ public abstract class AbstractEngine implements IEngine {
 
 		// remove from DIHelper
 		UploadUtilities.removeEngineFromDIHelper(this.engineId);
+
+		// remove from secret store
+		ISecrets secretStore = SecretsFactory.getSecretConnector();
+		if (secretStore != null) {
+			secretStore.deleteEngineSecrets(getCatalogType(), this.engineId, this.engineName);
+		}
 	}
 
 	@Override
@@ -254,6 +291,11 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public boolean isMCPEnabled() {
 		return this.isMCPEnabled;
+	}
+
+	@Override
+	public boolean keepInputOutput() {
+		return this.keepInputOutput;
 	}
 
 	@Override

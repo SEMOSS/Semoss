@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.sql.Connection;
@@ -15,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.LocalUserStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -140,7 +168,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setName(name);
 		token.setUsername(username);
 		token.setEmail(email);
-		
+
 		try {
 			SecurityUpdateUtils.validateUserLogin(token);
 		} catch (Exception e) {
@@ -149,6 +177,26 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 		user.setAccessToken(token);
 
+		return user;
+	}
+
+	/**
+	 * 
+	 * @param accessKey
+	 * @param secretKey
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static User validateLocalUserStore(String accessKey, String secretKey) throws IllegalAccessException {
+		Object[] userStoreDetails = LocalUserStore.getInstance().getUserStoreDetails(accessKey);
+		String userId = (String) userStoreDetails[0];
+		AuthProvider provider = (AuthProvider) userStoreDetails[1];
+
+		User user = new User();
+		AccessToken token = new AccessToken();
+		token.setProvider(provider);
+		token.setId(userId);
+		user.setAccessToken(token);
 		return user;
 	}
 

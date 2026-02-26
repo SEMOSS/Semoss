@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.playground.reactors;
 
 import java.util.ArrayList;
@@ -128,7 +155,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 
 		// put the string of mcp ids into the below
-		String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA.formatted(formattedEnum);
+		String formattedSchemaJson = PlaygroundUtils.COT_JSON_SCHEMA_NO_HUMAN_INTERVENTION.formatted(formattedEnum);
 		Map<String, Object> jsonSchemaMap = jsonToMap(formattedSchemaJson);
 
 		paramMap.put("schema", jsonSchemaMap);
@@ -137,8 +164,9 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			paramMap.put("tool_choice", MessageUtils.makeToolChoice(MessageUtils.ToolChoiceType.NONE, null));
 		}
 
-		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT).withInputUIPrompt(userQuery).withInputPrompt(userPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build(); //
+		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
+				.withText(userPrompt, userQuery).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.build(); //
 
 		// ==== Step 4. Run LLM ====
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
@@ -166,7 +194,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 			for (Map<String, Object> thisStep : steps) {
 				String thisStepType = (String) thisStep.get("type");
 				if ("tool_call".equals(thisStepType)) {
-					MCPUtility.updateCOTToolStepWithProjectMeta(thisStep);
+					MCPUtility.updateCOTToolStepWithEngineMeta(thisStep);
 				}
 			}
 

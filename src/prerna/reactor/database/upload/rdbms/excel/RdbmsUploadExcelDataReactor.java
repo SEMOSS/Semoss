@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.database.upload.rdbms.excel;
 
 import java.io.File;
@@ -20,6 +47,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.ACTION_TYPE;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.excel.ExcelBlock;
@@ -48,48 +76,38 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReactor {
 
 	/*
-	 * There are quite a few things that we need
-	 * 1) database -> name of the database to create
-	 * 1) filePath -> string contianing the path of the file
-	 * 2) dataTypes -> map of the sheet to another map of the header to the type, this will contain the original headers we send to FE
-	 * 3) newHeaders -> map of the sheet to another map containing old header to new headers for the csv file
-	 * 4) additionalTypes -> map of the sheet to another map containing header to an additional type specification
-	 * 						additional inputs would be {header : currency, header : date_format, ... }
-	 * 5) clean -> boolean if we should clean up the strings before insertion, default is true
-	 * TODO: 6) deduplicate -> boolean if we should remove duplicate rows in the relational database
-	 * 7) existing -> boolean if we should add to an existing database, defualt is false
+	 * There are quite a few things that we need 1) database -> name of the database
+	 * to create 1) filePath -> string contianing the path of the file 2) dataTypes
+	 * -> map of the sheet to another map of the header to the type, this will
+	 * contain the original headers we send to FE 3) newHeaders -> map of the sheet
+	 * to another map containing old header to new headers for the csv file 4)
+	 * additionalTypes -> map of the sheet to another map containing header to an
+	 * additional type specification additional inputs would be {header : currency,
+	 * header : date_format, ... } 5) clean -> boolean if we should clean up the
+	 * strings before insertion, default is true TODO: 6) deduplicate -> boolean if
+	 * we should remove duplicate rows in the relational database 7) existing ->
+	 * boolean if we should add to an existing database, defualt is false
 	 */
 
 	private ExcelWorkbookFileHelper helper;
-	
+
 	public RdbmsUploadExcelDataReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH, 
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DATA_TYPE_MAP,
-				UploadInputUtility.NEW_HEADERS, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES, 
-				UploadInputUtility.CLEAN_STRING_VALUES,
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS,
-				UploadInputUtility.REPLACE_EXISTING
-			};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.ADDITIONAL_DATA_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS, UploadInputUtility.REPLACE_EXISTING };
 	}
 
 	@Override
 	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		/*
-		 * Things we need to do
-		 * 1) make directory
-		 * 2) make owl
-		 * 3) make temporary smss
-		 * 4) make database class
-		 * 5) load actual data
-		 * 6) load owl metadata
-		 * 7) add to localmaster and solr
+		 * Things we need to do 1) make directory 2) make owl 3) make temporary smss 4)
+		 * make database class 5) load actual data 6) load owl metadata 7) add to
+		 * localmaster and solr
 		 */
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		if (!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
@@ -100,8 +118,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		Map<String, Map<String, Map<String, String>>> additionalDataTypeMap = getAdditionalTypes();
 		Map<String, Map<String, Map<String, String>>> metaDescriptions = getMetaDescriptions();
 		Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames = getMetaLogicalNames();
-		Map<String,Map<String,String>> tableNames = getTableNameMap();
-		Map<String,Map<String,String>> uniqueColumnNames = getUniqueColumnNameMap();
+		Map<String, Map<String, String>> tableNames = getTableNameMap();
+		Map<String, Map<String, String>> uniqueColumnNames = getUniqueColumnNameMap();
 		final boolean clean = UploadInputUtility.getClean(this.store);
 		final boolean replace = UploadInputUtility.getReplace(this.store);
 
@@ -115,8 +133,10 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile, RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+				RdbmsTypeEnum.H2_DB, null);
+		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
+				this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -138,18 +158,15 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 		// here is where we actually insert the data
-		processExcelSheets(this.database, owlEngine, this.helper, dataTypesMap, 
-				additionalDataTypeMap, newHeaders, 
-				metaDescriptions, metaLogicalNames, 
-				tableNames, uniqueColumnNames, 
-				clean, replace);
+		processExcelSheets((IRDBMSEngine) this.database, owlEngine, this.helper, dataTypesMap, additionalDataTypeMap,
+				newHeaders, metaDescriptions, metaLogicalNames, tableNames, uniqueColumnNames, clean, replace);
 		this.helper.clear();
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		// TODO
 		// TODO special insights for excel
 //		Map<String, Map<String, SemossDataType>> existingMetamodel = UploadUtilities.getExistingMetamodel(owler);
@@ -251,13 +268,14 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 
 	@Override
 	public void addToExistingDatabase(String filePath) throws Exception {
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		if (!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
 		}
-		if (!(this.database instanceof RDBMSNativeEngine)) {
+		if (!(this.database instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("Database must be using a relational database");
 		}
 
@@ -282,16 +300,13 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		logger.info("Done loading excel file");
 
 		/*
-		 * Since we want to determine if we should add to an existing table or
-		 * make new tables We need to go to the sheet level and determine it
+		 * Since we want to determine if we should add to an existing table or make new
+		 * tables We need to go to the sheet level and determine it
 		 */
 
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
-		processExcelSheets(this.database, owlEngine, this.helper, dataTypesMap, 
-				additionalDataTypeMap, newHeaders, 
-				metaDescriptions, metaLogicalNames, 
-				null, null, 
-				clean, replace);
+		processExcelSheets((IRDBMSEngine) this.database, owlEngine, this.helper, dataTypesMap, additionalDataTypeMap,
+				newHeaders, metaDescriptions, metaLogicalNames, null, null, clean, replace);
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
@@ -312,15 +327,15 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////
-	
-	
+
 	/*
 	 * Processing actually happens here
 	 * 
 	 */
-	
+
 	/**
 	 * Process all the excel sheets using the data type map
+	 * 
 	 * @param database
 	 * @param owlEngine
 	 * @param helper
@@ -333,25 +348,19 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	 * @param replace
 	 * @throws Exception
 	 */
-	private void processExcelSheets(
-			IDatabaseEngine database, 
-			WriteOWLEngine owlEngine, 
-			ExcelWorkbookFileHelper helper, 
-			Map<String, Map<String, Map<String, String>>> dataTypesMap, 
+	private void processExcelSheets(IRDBMSEngine database, WriteOWLEngine owlEngine, ExcelWorkbookFileHelper helper,
+			Map<String, Map<String, Map<String, String>>> dataTypesMap,
 			Map<String, Map<String, Map<String, String>>> additionalDataTypeMap,
 			Map<String, Map<String, Map<String, String>>> newHeaders,
 			Map<String, Map<String, Map<String, String>>> metaDescriptions,
 			Map<String, Map<String, Map<String, List<String>>>> metaLogicalNames,
-			Map<String,Map<String,String>> tableNames,
-			Map<String,Map<String,String>> uniqueColumnsMap,
-			boolean clean,
-			boolean replace) throws Exception {
-		
-		// 
+			Map<String, Map<String, String>> tableNames, Map<String, Map<String, String>> uniqueColumnsMap,
+			boolean clean, boolean replace) throws Exception {
+
 		Map<String, String> rangeAndNameMap = null;
 		Map<String, String> rangeAndUniqueColumnMap = null;
 		// user hasn't defined the data types
-		// that means i am going to assume that i should 
+		// that means i am going to assume that i should
 		// load everything
 		if (dataTypesMap == null || dataTypesMap.isEmpty()) {
 			// need to calculate all the ranges
@@ -360,20 +369,20 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 				wProcessor.parse(helper.getFilePath());
 				wProcessor.determineTableRanges();
 				Map<String, ExcelSheetPreProcessor> sProcessor = wProcessor.getSheetProcessors();
-	
+
 				for (String sheet : sProcessor.keySet()) {
 					ExcelSheetPreProcessor sheetProcessor = sProcessor.get(sheet);
 					List<ExcelBlock> blocks = sheetProcessor.getAllBlocks();
 					int counterSheetName = 0;
-					
+
 					if (tableNames != null) {
 						rangeAndNameMap = tableNames.get(sheet);
 					}
-					
+
 					if (uniqueColumnsMap != null) {
 						rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
 					}
-	
+
 					for (ExcelBlock eBlock : blocks) {
 						List<ExcelRange> ranges = eBlock.getRanges();
 						for (ExcelRange eRange : ranges) {
@@ -382,11 +391,11 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 							ExcelQueryStruct qs = new ExcelQueryStruct();
 							String tableName = null;
 							String uniqueColumnName = null;
-							
+
 							if (rangeAndNameMap != null) {
 								tableName = rangeAndNameMap.get(range);
 							}
-	
+
 							if (tableName == null) {
 								if (ranges.size() > 1) {
 									tableName = sheet + "_" + counterSheetName;
@@ -395,17 +404,18 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 									tableName = sheet;
 								}
 							}
-							
+
 							if (rangeAndUniqueColumnMap != null) {
 								uniqueColumnName = rangeAndUniqueColumnMap.get(range);
 							}
-	
+
 							qs.setSheetName(sheet);
 							qs.setSheetRange(range);
 							// sheetIterator will calculate the types if necessary
 							ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
-	
-							processSheet(database, owlEngine, sheetIterator, singleRange, null, null, tableName, uniqueColumnName, clean, replace);
+
+							processSheet(database, owlEngine, sheetIterator, singleRange, null, null, tableName,
+									uniqueColumnName, clean, replace);
 						}
 					}
 				}
@@ -416,15 +426,17 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			// only load the things that are defined
 			for (String sheet : dataTypesMap.keySet()) {
 				Map<String, Map<String, String>> rangeMaps = dataTypesMap.get(sheet);
-				Map<String, Map<String, String>> rangeDescription = metaDescriptions == null ? null : metaDescriptions.get(sheet);
-				Map<String, Map<String, List<String>>> rangeLogicalNames = metaLogicalNames == null ? null : metaLogicalNames.get(sheet);
+				Map<String, Map<String, String>> rangeDescription = metaDescriptions == null ? null
+						: metaDescriptions.get(sheet);
+				Map<String, Map<String, List<String>>> rangeLogicalNames = metaLogicalNames == null ? null
+						: metaLogicalNames.get(sheet);
 				boolean singleRange = (rangeMaps.keySet().size() == 1);
 				int counterSheetName = 0;
-				
+
 				if (tableNames != null) {
 					rangeAndNameMap = tableNames.get(sheet);
 				}
-				
+
 				if (uniqueColumnsMap != null) {
 					rangeAndUniqueColumnMap = uniqueColumnsMap.get(sheet);
 				}
@@ -433,7 +445,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 					ExcelQueryStruct qs = new ExcelQueryStruct();
 					String tableName = null;
 					String uniqueColumnName = null;
-					
+
 					if (rangeAndNameMap != null) {
 						tableName = rangeAndNameMap.get(range);
 					}
@@ -446,7 +458,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 							tableName = sheet;
 						}
 					}
-					
+
 					if (rangeAndUniqueColumnMap != null) {
 						uniqueColumnName = rangeAndUniqueColumnMap.get(range);
 					}
@@ -470,17 +482,20 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 					}
 
 					Map<String, String> descriptions = rangeDescription == null ? null : rangeDescription.get(range);
-					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null : rangeLogicalNames.get(range);
+					Map<String, List<String>> logicalNames = rangeLogicalNames == null ? null
+							: rangeLogicalNames.get(range);
 					ExcelSheetFileIterator sheetIterator = helper.getSheetIterator(qs);
 
-					processSheet(database, owlEngine, sheetIterator, singleRange, descriptions, logicalNames, tableName, uniqueColumnName, clean, replace);
+					processSheet(database, owlEngine, sheetIterator, singleRange, descriptions, logicalNames, tableName,
+							uniqueColumnName, clean, replace);
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * Process a single sheet
+	 * 
 	 * @param database
 	 * @param owlEngine
 	 * @param helper
@@ -489,12 +504,11 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	 * @param additionalDataTypeMap
 	 * @param clean
 	 * @param classLogger
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	private void processSheet(IDatabaseEngine database, WriteOWLEngine owlEngine, ExcelSheetFileIterator helper, boolean singleRange, 
-			Map<String, String> descriptions, Map<String, List<String>> logicalNames, 
-			String sheet, String uniqueColumnName, 
-			boolean clean, boolean replace) throws Exception {
+	private void processSheet(IRDBMSEngine database, WriteOWLEngine owlEngine, ExcelSheetFileIterator helper,
+			boolean singleRange, Map<String, String> descriptions, Map<String, List<String>> logicalNames, String sheet,
+			String uniqueColumnName, boolean clean, boolean replace) throws Exception {
 		logger.info("Start parsing sheet metadata");
 		// even if types are not defined
 		// the qs will end up calculating everything for unknown types
@@ -510,35 +524,41 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info("Done parsing sheet metadata");
- 
+
 		logger.info("Create table...");
 		String tableName = RDBMSEngineCreationHelper.cleanTableName(inputtedTableName).toUpperCase();
 
 		// if user defines unique column name set that if not generate one
 		// TODO: add change for false values once we want to enable that
-		String uniqueRowId = uniqueColumnName == null ? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID: uniqueColumnName;
+		String uniqueRowId = uniqueColumnName == null ? tableName + RdbmsUploadReactorUtility.UNIQUE_ROW_ID
+				: uniqueColumnName;
 
 		// NOTE ::: SQL_TYPES will have the added unique row id at index 0
 		String[] sqlTypes = null;
 		try {
-			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types, replace);
+			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types,
+					replace);
 		} catch (Exception e1) {
 			logger.error(Constants.STACKTRACE, e1);
-			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR));
 		}
 		logger.info("Done create table");
 
 		bulkInsertSheet(database, helper, sheetName, tableName, headers, types, additionalTypes, clean, logger);
 		RdbmsUploadReactorUtility.addIndex(database, tableName, uniqueRowId);
 
-		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes, additionalTypes);
+		RdbmsUploadReactorUtility.generateTableMetadata(owlEngine, tableName, uniqueRowId, headers, sqlTypes,
+				additionalTypes);
 		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, descriptions, logicalNames);
 	}
 
-	private void bulkInsertSheet(IDatabaseEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME, final String TABLE_NAME, String[] headers,
-			SemossDataType[] types, String[] additionalTypes, boolean clean, Logger logger) throws IOException {
+	private void bulkInsertSheet(IDatabaseEngine database, ExcelSheetFileIterator helper, final String SHEET_NAME,
+			final String TABLE_NAME, String[] headers, SemossDataType[] types, String[] additionalTypes, boolean clean,
+			Logger logger) throws IOException {
 
-		// now we need to loop through the excel sheet and cast to the appropriate type and insert
+		// now we need to loop through the excel sheet and cast to the appropriate type
+		// and insert
 		// let us be smart about this and use a PreparedStatement for bulk insert
 		// get the bulk statement
 
@@ -585,35 +605,35 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 						ps.setString(colIndex + 1, strValue);
 					}
 					// int
-					else if(type == SemossDataType.INT) {
-						if(value instanceof Number) {
-							ps.setInt(colIndex+1, ((Number) value).intValue());
+					else if (type == SemossDataType.INT) {
+						if (value instanceof Number) {
+							ps.setInt(colIndex + 1, ((Number) value).intValue());
 						} else {
 							Integer intValue = null;
 							String strValue = nextRow[colIndex].toString().trim();
 							try {
-								//added to remove $ and , in data and then try parsing as Double
+								// added to remove $ and , in data and then try parsing as Double
 								int mult = 1;
-								if(strValue.startsWith("(") || strValue.startsWith("-")) {
+								if (strValue.startsWith("(") || strValue.startsWith("-")) {
 									mult = -1;
 								}
 								strValue = strValue.replaceAll("[^0-9\\.E]", "");
 								intValue = mult * ((Number) Double.parseDouble(strValue.trim())).intValue();
-							} catch(NumberFormatException ex) {
-								//do nothing
+							} catch (NumberFormatException ex) {
+								// do nothing
 							}
-							if(intValue != null) {
-								ps.setInt(colIndex+1, intValue);
+							if (intValue != null) {
+								ps.setInt(colIndex + 1, intValue);
 							} else {
 								// set default as null
-								ps.setObject(colIndex+1, null);
+								ps.setObject(colIndex + 1, null);
 							}
 						}
 					}
 					// doubles
-					else if(type == SemossDataType.DOUBLE) {
-						if(value instanceof Number) {
-							ps.setDouble(colIndex+1, ((Number) value).doubleValue());
+					else if (type == SemossDataType.DOUBLE) {
+						if (value instanceof Number) {
+							ps.setDouble(colIndex + 1, ((Number) value).doubleValue());
 						} else {
 							Double doubleValue = null;
 							String strValue = nextRow[colIndex].toString().trim();
@@ -621,7 +641,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 								// added to remove $ and , in data and then try
 								// parsing as Double
 								int mult = 1;
-								if (strValue.startsWith("(") || strValue.startsWith("-")) { 
+								if (strValue.startsWith("(") || strValue.startsWith("-")) {
 									mult = -1;
 								}
 								strValue = strValue.replaceAll("[^0-9\\.E]", "");
@@ -665,7 +685,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 							ps.setNull(colIndex + 1, java.sql.Types.TIMESTAMP);
 						}
 					} else if (type == SemossDataType.BOOLEAN) {
-						Boolean dBool = Boolean.valueOf(value+"");
+						Boolean dBool = Boolean.valueOf(value + "");
 						if (dBool != null) {
 							ps.setBoolean(colIndex + 1, dBool);
 						} else {
@@ -694,7 +714,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on excel row number = " + count;
 			} else {
-				errorMessage = "Error occurred while performing insert on excel data row:" + "\n" + Arrays.toString(nextRow);
+				errorMessage = "Error occurred while performing insert on excel data row:" + "\n"
+						+ Arrays.toString(nextRow);
 			}
 			throw new IOException(errorMessage);
 		}
@@ -702,18 +723,18 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	/**
-	 * Figure out the types and how to use them
-	 * Will return an object[]
-	 * Index 0 of the return is an array of the headers
-	 * Index 1 of the return is an array of the types
-	 * Index 2 of the return is an array of the additional type information
-	 * The 3 arrays all match based on index
+	 * Figure out the types and how to use them Will return an object[] Index 0 of
+	 * the return is an array of the headers Index 1 of the return is an array of
+	 * the types Index 2 of the return is an array of the additional type
+	 * information The 3 arrays all match based on index
+	 * 
 	 * @param helper
 	 * @param dataTypesMap
 	 * @param additionalDataTypeMap
 	 * @return
 	 */
-	private Object[] getHeadersAndTypes(ExcelSheetFileIterator helper, Map<String, String> dataTypesMap, Map<String, String> additionalDataTypeMap) {
+	private Object[] getHeadersAndTypes(ExcelSheetFileIterator helper, Map<String, String> dataTypesMap,
+			Map<String, String> additionalDataTypeMap) {
 		String[] headers = helper.getHeaders();
 		int numHeaders = headers.length;
 		// we want types
@@ -734,7 +755,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 
 		return new Object[] { headers, types, additionalTypes };
 	}
-	
+
 	///////////////////////////////////////////////////////
 
 	/*
@@ -763,39 +784,40 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			return null;
 		}
 		Gson gson = null;
-		Map<String, Map<String, Map<String, Object>>> values = (Map<String, Map<String, Map<String, Object>>>) grs.get(0);
+		Map<String, Map<String, Map<String, Object>>> values = (Map<String, Map<String, Map<String, Object>>>) grs
+				.get(0);
 		Map<String, Map<String, Map<String, String>>> strValues = new HashMap<>();
 		// stringify since the FE sends custom types as a map
-		for(String k1 : values.keySet()) {
+		for (String k1 : values.keySet()) {
 			Map<String, Map<String, Object>> inner = values.get(k1);
 			Map<String, Map<String, String>> strInner = new HashMap<>();
 
-			for(String k2 : inner.keySet()) {
+			for (String k2 : inner.keySet()) {
 				Map<String, Object> inner2 = inner.get(k2);
 				Map<String, String> strInner2 = new HashMap<>();
-				
-				for(String k3 : inner2.keySet()) {
-					
-					if(inner2.get(k3) instanceof String) {
+
+				for (String k3 : inner2.keySet()) {
+
+					if (inner2.get(k3) instanceof String) {
 						strInner2.put(k3, inner2.get(k3) + "");
 					} else {
-						if(gson == null) {
+						if (gson == null) {
 							gson = new Gson();
 						}
 						strInner2.put(k3, gson.toJson(inner2.get(k3)));
 					}
 				}
-			
+
 				// put in parent map
 				strInner.put(k2, strInner2);
 			}
-			
+
 			// put in parent map
 			strValues.put(k1, strInner);
 		}
 		return strValues;
 	}
-	
+
 	public Map<String, Map<String, Map<String, String>>> getMetaDescriptions() {
 		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.DESCRIPTION_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -803,7 +825,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		}
 		return (Map<String, Map<String, Map<String, String>>>) grs.get(0);
 	}
-	
+
 	public Map<String, Map<String, Map<String, List<String>>>> getMetaLogicalNames() {
 		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.LOGICAL_NAMES_MAP);
 		if (grs == null || grs.isEmpty()) {
@@ -819,8 +841,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		}
 		return (Map<String, Map<String, String>>) grs.get(0);
 	}
-	
-	public Map<String,Map<String,String>> getUniqueColumnNameMap() {
+
+	public Map<String, Map<String, String>> getUniqueColumnNameMap() {
 		GenRowStruct grs = this.store.getGenRowStruct(UploadInputUtility.UNIQUE_COLUMN);
 		if (grs == null || grs.isEmpty()) {
 			return null;

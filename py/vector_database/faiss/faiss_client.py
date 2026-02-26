@@ -211,7 +211,7 @@ class FAISSSearcher:
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
 
-        fusion_limit = max(total_limit * 2, 20)
+        fusion_limit = max(total_limit * 2, limit * 2,  20)
 
         # 1. Do vector search
         vector_results = self._vector_only_search(
