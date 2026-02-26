@@ -81,7 +81,7 @@ class SEMOSSToolExecution(BaseModel):
     output: str
 
 
-# new parts
+# =========== NEW MODELS FOR MESSAGE PARTS ===========
 class SEMOSSMessagePartType(StringEnum):
     MEDIA = "MEDIA"
     TEXT = "TEXT"
@@ -93,7 +93,7 @@ class SEMOSSMessagePartType(StringEnum):
 
 
 class SEMOSSMediaMessagePart(BaseModel):
-    """Represents a text input message content"""
+    """Represents a media message content"""
 
     mediaInfo: SEMOSSMediaContent
     type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
@@ -112,13 +112,6 @@ class SEMOSSTextMessagePart(BaseModel):
     text: str
     uiText: Optional[str] = None
     type: Literal[SEMOSSMessagePartType.TEXT] = SEMOSSMessagePartType.TEXT
-
-
-class SEMOSSThinkingMessagePart(BaseModel):
-    """Represents a thinking message content"""
-
-    thinking: str
-    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
 
 
 class SEMOSSThinkingMessagePart(BaseModel):
@@ -147,6 +140,9 @@ class SEMOSSUnknownMessagePart(BaseModel):
 
     data: Any
     type: Literal[SEMOSSMessagePartType.UNKNOWN] = SEMOSSMessagePartType.UNKNOWN
+
+
+# =========== END NEW MODELS FOR MESSAGE PARTS ===========
 
 
 # legacy message types for backwards compatibility

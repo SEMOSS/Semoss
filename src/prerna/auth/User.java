@@ -58,6 +58,7 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
+import prerna.om.LocalUserStore;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -124,6 +125,8 @@ public class User implements Serializable {
 
 	private boolean anonymous;
 	private String anonymousId;
+
+	private transient volatile String[] cachedTemporalAccessSecretKey = null;
 
 	public User() {
 		// transient objects should be defined in the constructor
@@ -852,6 +855,39 @@ public class User implements Serializable {
 		}
 
 		return new String[] { "anonymous", "anonymous@not_logged_in.com" };
+	}
+
+	public String getCachedTemporalAccessKey() {
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey[0];
+		}
+		return null;
+	}
+
+	public String[] createCachedTemporalAccessSecretKey() {
+		AccessToken loginToken = this.getPrimaryLoginToken();
+		if (loginToken == null) {
+			throw new NullPointerException("User does not have a primary login token");
+		}
+
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey;
+		}
+
+		if (this.cachedTemporalAccessSecretKey == null) {
+			synchronized (this) {
+				if (this.cachedTemporalAccessSecretKey == null) {
+					String accessKey = UUID.randomUUID().toString();
+					String secretKey = UUID.randomUUID().toString();
+					this.cachedTemporalAccessSecretKey = new String[] { accessKey, secretKey };
+					LocalUserStore.getInstance().store(accessKey,
+							new Object[] { secretKey, loginToken.getId(), loginToken.getProvider() });
+					classLogger.info("Generated temporal access/secret key for user");
+				}
+			}
+		}
+
+		return this.cachedTemporalAccessSecretKey;
 	}
 
 	public void setInsightSerialization(String insightId, Boolean serialize) {
