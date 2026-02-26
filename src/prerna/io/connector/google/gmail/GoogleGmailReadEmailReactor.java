@@ -58,6 +58,8 @@ public class GoogleGmailReadEmailReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			Map<String, Object> retMap = GoogleGmailHelper.readEmail(accessToken, id);
+			// Mark the email as read after successfully reading it
+			GoogleGmailHelper.markEmailAsRead(accessToken, id);
 	        return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch(SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
