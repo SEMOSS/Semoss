@@ -101,6 +101,7 @@ public final class GoogleGmailHelper {
 	private static final String GOOGLE_GMAIL_LIST_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=%d";
 	private static final String GOOGLE_GMAIL_UNREAD_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=%d";
 	private static final String GOOGLE_GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/%s/messages/send";
+	private static final String GOOGLE_GMAIL_MODIFY_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/%s/modify";
 
 	private GoogleGmailHelper() {
 		
@@ -289,6 +290,30 @@ public final class GoogleGmailHelper {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			classLogger.warn("Failed to delete email", e.getMessage());
+			return false;
+		}
+	}
+
+	/**
+	 * 
+	 * @param accessToken
+	 * @param messageId
+	 * @return
+	 */
+	public static Boolean markEmailAsRead(String accessToken, String messageId) {
+		try {
+			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
+			String url = String.format(GOOGLE_GMAIL_MODIFY_URL, messageId);
+			Map<String, Object> requestBody = new HashMap<>();
+			List<String> labelsToRemove = new ArrayList<>();
+			labelsToRemove.add("UNREAD");
+			requestBody.put("removeLabelIds", labelsToRemove);
+			String jsonBody = GSON.toJson(requestBody);
+			String response = HttpHelperUtility.postRequestStringBody(url, headers, jsonBody, null, null, null, null);
+			return true;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.warn("Failed to mark email as read: {}", e.getMessage());
 			return false;
 		}
 	}
