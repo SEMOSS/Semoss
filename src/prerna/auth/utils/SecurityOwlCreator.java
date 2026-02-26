@@ -570,6 +570,11 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DISPLAYORDER", "INT");
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
 			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
+			// add new two column specifically for USERMETAKEYS
+			if (tableName.equals(Constants.USER_METAKEYS)) {
+				owler.addProp(tableName, "SOURCEREACTOR", "VARCHAR(255)");
+				owler.addProp(tableName, "REACTORCONFIG", "VARCHAR(255)");
+			}
 		}
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");

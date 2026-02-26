@@ -102,6 +102,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__DISPLAYORDER", "display_order"));
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__DISPLAYOPTIONS", "display_options"));
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__DEFAULTVALUES", "display_values"));
+		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__SOURCEREACTOR", "source_reactor"));
+		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__REACTORCONFIG", "reactor_config"));
 		if (metakeys != null && !metakeys.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETAKEYS__METAKEY", "==", metakeys));
 		}
@@ -230,7 +232,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			securityDb.removeData(truncateSql);
 			insertPs = securityDb.bulkInsertPreparedStatement(
 					new Object[] { "USERMETAKEYS", Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER,
-							Constants.DISPLAY_OPTIONS, Constants.DEFAULT_VALUES });
+							Constants.DISPLAY_OPTIONS, Constants.DEFAULT_VALUES, "SOURCEREACTOR", "REACTORCONFIG" });
 			// then insert latest options
 			for (int i = 0; i < metaoptions.size(); i++) {
 				Map<String, Object> m = metaoptions.get(i);
@@ -244,6 +246,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				}
 				insertPs.setString(4, (String) m.get("display_options"));
 				insertPs.setString(5, (String) m.get("display_values"));
+				insertPs.setString(6, (String) m.get("source_reactor"));
+				insertPs.setString(7, (String) m.get("reactor_config"));
 				insertPs.addBatch();
 			}
 			insertPs.executeBatch();

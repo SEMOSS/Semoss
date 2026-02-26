@@ -2150,10 +2150,11 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// USERMETAKEYS
-			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES" };
+			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES",
+					"SOURCEREACTOR", "REACTORCONFIG" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)",
-					"VARCHAR(500)" };
-			defaultValues = new Object[] { null, null, null, true, false };
+					"VARCHAR(500)", "VARCHAR(255)", "VARCHAR(255)" };
+			defaultValues = new Object[] { null, null, null, true, false, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(Constants.USER_METAKEYS, colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -2189,10 +2190,10 @@ public abstract class AbstractSecurityUtils {
 						int order = 0;
 						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
 								new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
+										"select-box", null, null, null }));
 						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
 								new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
+										"select-box", null, null, null }));
 					}
 				}
 			} catch (Exception e) {
