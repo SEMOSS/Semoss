@@ -219,6 +219,58 @@ public class PyUtils {
 		return dict.toString();
 	}
 
+	/**
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public static boolean isValidPythonVariableName(String name) {
+		// Check if the string is null or empty
+		if (name == null || name.isEmpty()) {
+			return false;
+		}
+
+		// Check if it's a Python keyword
+		if (isPythonKeyword(name)) {
+			return false;
+		}
+
+		// First character must be a letter (a-z, A-Z) or underscore
+		char firstChar = name.charAt(0);
+		if (!Character.isLetter(firstChar) && firstChar != '_') {
+			return false;
+		}
+
+		// Remaining characters must be letters, digits, or underscores
+		for (int i = 1; i < name.length(); i++) {
+			char c = name.charAt(i);
+			if (!Character.isLetterOrDigit(c) && c != '_') {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * 
+	 * @param name
+	 * @return
+	 */
+	private static boolean isPythonKeyword(String name) {
+		String[] keywords = { "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
+				"continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import",
+				"in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with",
+				"yield" };
+
+		for (String keyword : keywords) {
+			if (keyword.equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static boolean isPyPIReachable() {
 		try {
 			// Try to reach pypi.org with a timeout of 1000 milliseconds
