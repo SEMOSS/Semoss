@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.livekit;
 
 import prerna.util.Utility;
@@ -42,7 +69,7 @@ public class LiveKitController {
 
 	private static final Map<String, OperationInfo> OPERATIONS = Map.of(
 	    "turn_based_transcription", new OperationInfo("turn_based_transcription", false),
-	    "real_time_transcription",   new OperationInfo("real_time_transcription", true),
+	    "turn_based_translation",   new OperationInfo("turn_based_translation", true),
 	    "speech_to_speech_realtime", new OperationInfo("speech_to_speech_realtime", true)
 	);
 
@@ -63,7 +90,7 @@ public class LiveKitController {
 	/*
 	 * Record for the required model details that I need to send to the Python server
 	 */
-	private record ModelDetails(String model, String modelType, String apiKey, boolean realtimeSupport, String modelUrl) {
+	private record ModelDetails(String model, String modelType, String apiKey, boolean realtimeSupport, String modelUrl, String awsAccessKey, String awsSecretKey) {
 	    ModelDetails {
 	        if (model == null || model.isBlank()) {
 	            throw new IllegalArgumentException("Model is not defined in SMSS file.");
@@ -78,13 +105,14 @@ public class LiveKitController {
 	        String model = p.getProperty(Settings.MODEL, "").trim();
 	        String modelType = p.getProperty(Settings.MODEL_TYPE, "").trim();
 	        String apiKey = p.getProperty("OPEN_AI_KEY", "").trim();
-
+	        String awsAccessKey = p.getProperty("AWS_ACCESS_KEY", "").trim();
+	        String awsSecretKey = p.getProperty("AWS_SECRET_KEY", "").trim();
 	        String rt = p.getProperty("REALTIME", "false");
 	        boolean realtime = "true".equalsIgnoreCase(rt) || "1".equals(rt);
 	        // TODO: How am I grabbing custom model URLs for hosted models...
 	        String modelUrl = "";
 
-	        return new ModelDetails(model, modelType, apiKey, realtime, modelUrl);
+	        return new ModelDetails(model, modelType, apiKey, realtime, modelUrl, awsAccessKey, awsSecretKey);
 	    }
 	}
 	
@@ -161,7 +189,7 @@ public class LiveKitController {
 	}
 	
 	
-	public AccessToken joinRoom(String userName, String userId, String roomId, String modelId, String aiOperation, Insight insight) throws Exception {
+	public AccessToken joinRoom(String userName, String userId, String roomId, String modelId, String aiOperation, Insight insight, Map<String, Object> paramMap) throws Exception {
 		Boolean roomExists = checkIfRoomExists(roomId);
 		
 		if (!roomExists) {
@@ -172,8 +200,8 @@ public class LiveKitController {
 		
 		PyToken pyToken = mintPyListenerJwt(roomId);
 		
-		if (aiOperation.equalsIgnoreCase("turn_based_transcription") || aiOperation.equalsIgnoreCase("speech_to_speech_realtime")) {
-			createLiveKitToPipecatPipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
+		if (aiOperation.equalsIgnoreCase("turn_based_transcription") || aiOperation.equalsIgnoreCase("turn_based_translation") || aiOperation.equalsIgnoreCase("speech_to_speech_realtime")) {
+			createLiveKitToPipecatPipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight, paramMap);
 		} else if(aiOperation.equalsIgnoreCase("real_time_transcription")) {
 			createLiveKitToOpenAIRealTimePipeline(roomId, pyToken.token(), aiOperation, modelDetails, insight);
 		}
@@ -356,7 +384,7 @@ public class LiveKitController {
 		return pyTranslator.runScript(joinAsListenerCommand) + "";		
 	}
 	
-	protected String createLiveKitToPipecatPipeline(String roomName, String token, String aiOperation, ModelDetails modelDetails, Insight insight) {
+	protected String createLiveKitToPipecatPipeline(String roomName, String token, String aiOperation, ModelDetails modelDetails, Insight insight, Map<String, Object> paramMap) {
 	    OperationInfo op = requireOperation(aiOperation);
 
 	    if (op.requiresRealtime() && !modelDetails.realtimeSupport()) {
@@ -366,16 +394,17 @@ public class LiveKitController {
 	        );
 	    }
 		
-		PyTranslator pyTranslator = insight.getPyTranslator();
-		
-		String importCommand = "from audio.lk_to_pcat import join_as_listener";
-		
-		String icOutput = pyTranslator.runScript(importCommand) + "";
-		
-		String insightId = insight.getInsightId();
-		
+	    PyTranslator pyTranslator = insight.getPyTranslator();
+	    
+	    String pythonParamMap = prerna.ds.py.PyUtils.determineStringType(paramMap);
+	    
+	    String importCommand = "from audio.lk_to_pcat import join_as_listener";
+	    pyTranslator.runScript(importCommand);
+	    
+	    String insightId = insight.getInsightId();
+	    
 	    String joinAsListenerCommand = String.format(
-	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s')",
+	            "join_as_listener(room_name='%s', jwt='%s', url='%s', operation='%s', model='%s', model_type='%s', api_key='%s', model_url='%s', insight_id='%s', aws_access_key='%s', aws_secret_key='%s', param_map=%s)",
 	            roomName,
 	            token,
 	            liveKitUrl,
@@ -384,11 +413,13 @@ public class LiveKitController {
 	            modelDetails.modelType(),
 	            modelDetails.apiKey(),
 	            modelDetails.modelUrl(),
-		        insightId
-	        );
+	            insightId,
+	            modelDetails.awsAccessKey(),
+	            modelDetails.awsSecretKey(),
+	            pythonParamMap 
+	    );
 
-		
-		return pyTranslator.runScript(joinAsListenerCommand) + "";		
+	    return pyTranslator.runScript(joinAsListenerCommand) + "";       
 	}
 	
 	protected ModelDetails getModelDetails(String engineId) throws Exception {

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.query.parsers;
 
 import java.io.IOException;
@@ -9,7 +36,6 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -21,10 +47,10 @@ import prerna.util.Constants;
 
 public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(RDBMSNativeEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(ModifyParamQueryReactor.class);
 
 	public ModifyParamQueryReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.QUERY_KEY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.QUERY_KEY.getKey() };
 	}
 
 	@Override
@@ -32,8 +58,8 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 		organizeKeys();
 		String filterValue = this.keyValue.get(this.keysToGet[0]);
 		// if no value passed, do nothing
-		if(filterValue != null && !filterValue.isEmpty()) {
-			if(this.qs instanceof HardSelectQueryStruct) {
+		if (filterValue != null && !filterValue.isEmpty()) {
+			if (this.qs instanceof HardSelectQueryStruct) {
 				modifyHqs(filterValue);
 			} else {
 				modifySqs(filterValue);
@@ -42,9 +68,10 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 
 		return this.qs;
 	}
-	
+
 	/**
 	 * Modify the SQS that is being used based on a search
+	 * 
 	 * @param filterValue
 	 */
 	private void modifySqs(String filterValue) {
@@ -55,8 +82,8 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 	}
 
 	/**
-	 * Modify a HQS that is being used
-	 * Assumes the query is SQL
+	 * Modify a HQS that is being used Assumes the query is SQL
+	 * 
 	 * @param filterValue
 	 */
 	private void modifyHqs(String filterValue) {
@@ -67,12 +94,12 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 		String updatedQuery = "select * from (" + query + ") t12345 where 1=0;";
 		IDatabaseEngine engine = this.qs.retrieveQueryStructEngine();
 		IRDBMSEngine rdbms = null;
-		if(engine instanceof IRDBMSEngine) {
+		if (engine instanceof IRDBMSEngine) {
 			rdbms = (IRDBMSEngine) engine;
 		} else {
 			throw new IllegalArgumentException("Engine must be of type RDBMS to use this reactor");
 		}
-		
+
 		String columnName = null;
 		boolean requireCast = false;
 		IRawSelectWrapper it = null;
@@ -81,19 +108,20 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 			String[] headers = it.getHeaders();
 			SemossDataType[] types = it.getTypes();
 			columnName = headers[0];
-			if(columnName == null || columnName.isEmpty()) {
-				throw new SemossPixelException("Please provide an alias for the param query in order to properly execute");
+			if (columnName == null || columnName.isEmpty()) {
+				throw new SemossPixelException(
+						"Please provide an alias for the param query in order to properly execute");
 			}
-			if(types[0] != SemossDataType.STRING) {
+			if (types[0] != SemossDataType.STRING) {
 				requireCast = true;
 			}
-		} catch(SemossPixelException e) {
+		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("Error in executing the param query for the insight");
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
@@ -101,19 +129,17 @@ public class ModifyParamQueryReactor extends AbstractQueryStructReactor {
 				}
 			}
 		}
-		
+
 		columnName = rdbms.getQueryUtil().getEscapeKeyword(columnName);
 		String newQuery = null;
-		if(requireCast) {
-			newQuery = "select distinct " + columnName + " from (" 
-				+ query + ") t12345 where LOWER(CAST(" + columnName 
-				+ " AS CHAR(500))) LIKE '%" + filterValue.toLowerCase() + "%' order by " + columnName;
+		if (requireCast) {
+			newQuery = "select distinct " + columnName + " from (" + query + ") t12345 where LOWER(CAST(" + columnName
+					+ " AS CHAR(500))) LIKE '%" + filterValue.toLowerCase() + "%' order by " + columnName;
 		} else {
-			newQuery = "select distinct " + columnName + " from (" 
-					+ query + ") t12345 where LOWER(" + columnName 
+			newQuery = "select distinct " + columnName + " from (" + query + ") t12345 where LOWER(" + columnName
 					+ ") LIKE '%" + filterValue.toLowerCase() + "%' order by " + columnName;
 		}
 		((HardSelectQueryStruct) this.qs).setQuery(newQuery);
 	}
-	
+
 }

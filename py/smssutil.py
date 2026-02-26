@@ -4,7 +4,8 @@ import ast
 import json
 import datetime
 import os
-from typing import Optional
+from typing import List, Optional
+from deprecated import deprecated
 
 logger = logging.getLogger("SocketServer")
 
@@ -967,7 +968,6 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     if search is not None:
         sys.path.remove(search)
     return module
-    # import module_name
 
 
 def generate_mcp(
@@ -1019,15 +1019,50 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
-                mcp_execution_mode = getattr(func_obj, "_mcp_execution", None)
+                mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
+                if mcp_metadata.get("execution", None) is not None:
+                    mcp_execution_mode = mcp_metadata.pop("execution")
+                if mcp_metadata:
+                    mcp_ui_map = mcp_metadata
+
+                # Fallback to old _mcp_execution attribute if not set via new decorator
+                if (
+                    mcp_execution_mode is None
+                    and getattr(func_obj, "_mcp_execution", None) is not None
+                ):
+                    mcp_execution_mode = getattr(func_obj, "_mcp_execution")
             except:
                 # Failed to load module or get attribute, fallback to decorator parsing
                 for deco in node.decorator_list:
+                    # Handle @mcp_metadata('arg') or @smssutil.mcp_metadata('arg')
+                    if (
+                        isinstance(deco.func, ast.Name)
+                        and deco.func.id == "mcp_metadata"
+                    ) or (
+                        isinstance(deco.func, ast.Attribute)
+                        and deco.func.attr == "mcp_metadata"
+                        and isinstance(deco.func.value, ast.Name)
+                        and deco.func.value.id == "smssutil"
+                    ):
+                        if deco.args and isinstance(deco.args[0], ast.Dict):
+                            # Parse the dictionary argument
+                            try:
+                                mcp_metadata = ast.literal_eval(deco.args[0])
+
+                                if mcp_metadata.get("execution", None) is not None:
+                                    mcp_execution_mode = mcp_metadata.pop("execution")
+                                if mcp_metadata:
+                                    mcp_ui_map = mcp_metadata
+
+                            except:
+                                pass
+
+                    # Handle legacy @mcp_execution('arg') or @smssutil.mcp_execution('arg')
                     if isinstance(deco, ast.Call):
-                        # Handle @mcp_execution('arg') or @smssutil.mcp_execution('arg')
                         if (
                             isinstance(deco.func, ast.Name)
                             and deco.func.id == "mcp_execution"
@@ -1041,10 +1076,24 @@ def generate_mcp(
                                 # validate it's a string
                                 if isinstance(deco.args[0].value, str):
                                     mcp_execution_mode = deco.args[0].value
-                                    break
 
             if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
                 mcp_execution_mode = "ask"
+
+            cleaned_mcp_ui_map: dict = {}
+            if mcp_ui_map:
+                for key, value in mcp_ui_map.items():
+                    if key in [
+                        "loadingMessage",
+                        "resourceURI",
+                    ]:
+                        cleaned_mcp_ui_map[key] = value
+
+                    if key == "displayLocation":
+                        if value in ["inline", "sidebar", "hidden"]:
+                            cleaned_mcp_ui_map[key] = value
+                        else:
+                            cleaned_mcp_ui_map[key] = None
 
             this_function = node.name
             if (
@@ -1057,6 +1106,13 @@ def generate_mcp(
                 docstring = ast.get_docstring(node)
                 if docstring is not None and len(docstring) > 0:
                     function.update({"description": docstring})
+                else:
+                    # at least set it so users know to update manually
+                    function.update(
+                        {
+                            "description": "No docstring present or unable to parse docstring from function"
+                        }
+                    )
 
                 # Parse docstring to extract parameter descriptions
                 arg_descriptions = parse_docstring_args(docstring) if docstring else {}
@@ -1073,6 +1129,13 @@ def generate_mcp(
                     # Add description if found in docstring
                     if arg_name in arg_descriptions:
                         this_arg.update({"description": arg_descriptions[arg_name]})
+                    else:
+                        # at least set it so users know to update manually
+                        this_arg.update(
+                            {
+                                "description": "No docstring present or unable to parse docstring from function"
+                            }
+                        )
 
                     # Parse type annotation for this specific argument
                     arg_type = "string"
@@ -1104,6 +1167,8 @@ def generate_mcp(
                 _function_meta = {
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
+                    "SMSS_MCP_UI": cleaned_mcp_ui_map,
+                    "SMSS_FUNCTION_NAME": this_function,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1117,13 +1182,35 @@ def generate_mcp(
     return mcp_json
 
 
+@deprecated(
+    reason="Use @mcp_metadata({'execution':'auto'|'ask'|'disabled'}) instead",
+    version="5.1.0",
+)
 def mcp_execution(arg: str):
     """
-    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask'|'disabled')
     """
 
     def _decorator(func):
         func._mcp_execution = arg  # Useful for runtime checks
+
+        @functools.wraps(func)
+        def _wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return _wrapper
+
+    return _decorator
+
+
+def mcp_metadata(_mcp_metadata: dict):
+    """
+    Decorator factory to add metadata to MCP functions.
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    """
+
+    def _decorator(func):
+        func._mcp_metadata = _mcp_metadata
 
         @functools.wraps(func)
         def _wrapper(*args, **kwargs):
@@ -1349,7 +1436,7 @@ def map_mcp_to_py(input):
         return "object"
 
 
-def format_to_title_case(input_str):
+def format_to_title_case(input_str) -> str:
     """
     Converts camelCase, PascalCase, or snake_case strings to title case with spaces
     Examples:
@@ -1394,7 +1481,7 @@ def format_to_title_case(input_str):
     return "".join(result)
 
 
-def get_function_name_from_code(code_string):
+def get_function_name_from_code(code_string) -> str:
     """
     Extract the name of the first function defined in a Python code string.
 
@@ -1412,7 +1499,7 @@ def get_function_name_from_code(code_string):
         tree = ast.parse(code_string)
 
         # Walk through the AST nodes to find function definitions
-        for node in ast.walk(tree):
+        for node in tree.body:
             if isinstance(node, ast.FunctionDef):
                 return node.name
 
@@ -1423,7 +1510,7 @@ def get_function_name_from_code(code_string):
         raise SyntaxError(f"Invalid Python syntax: {e}")
 
 
-def get_all_function_names_from_code(code_string):
+def get_all_function_names_from_code(code_string) -> List[str]:
     """
     Extract all function names from a Python code string.
 
@@ -1440,7 +1527,7 @@ def get_all_function_names_from_code(code_string):
         tree = ast.parse(code_string)
         function_names = []
 
-        for node in ast.walk(tree):
+        for node in tree.body:
             if isinstance(node, ast.FunctionDef):
                 function_names.append(node.name)
 
@@ -1448,6 +1535,40 @@ def get_all_function_names_from_code(code_string):
 
     except SyntaxError as e:
         raise SyntaxError(f"Invalid Python syntax: {e}")
+
+
+def get_all_function_names_from_file(filepath: str) -> List[str]:
+    """
+    Extract all function names from a file. Only considering the root functions
+
+    Args:
+        filepath (str): Path to the Python file
+
+    Returns:
+        List[str]: The function names at the root of the file
+    """
+
+    # Check if file exists
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"File not found: {filepath}")
+
+    # Read the original file
+    with open(filepath, "r", encoding="utf-8") as f:
+        original_code = f.read()
+
+    try:
+        # Parse the code into an AST
+        tree = ast.parse(original_code)
+
+        function_names = []
+
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                function_names.append(node.name)
+
+        return function_names
+    except SyntaxError as e:
+        raise SyntaxError(f"Syntax error in {filepath}: {e}")
 
 
 def remove_function_from_file(filepath: str, function_name: str) -> bool:

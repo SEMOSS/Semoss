@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.vector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,6 +37,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,6 +52,7 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -47,6 +76,7 @@ import io.weaviate.client.v1.graphql.query.fields.Field;
 import io.weaviate.client.v1.schema.Schema;
 import io.weaviate.client.v1.schema.api.ClassCreator;
 import io.weaviate.client.v1.schema.api.SchemaGetter;
+import prerna.SemossUnitTest;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
@@ -58,7 +88,7 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class WeaviateVectorDatabaseEngineUnitTests {
+public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private WeaviateVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
@@ -70,14 +100,16 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	final private String content = "content";
 	
 	@BeforeEach
-	void setUp() {
+	void setUp() throws IOException {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
 		engine = new WeaviateVectorDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
 	}
 	
 	@Test
-	void testOpen(@TempDir Path tempDir) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -149,7 +181,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoHostname(@TempDir Path tempDir) throws Exception {
+	void testOpenNoHostname() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -197,7 +229,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testOpenNoAPIKey(@TempDir Path tempDir) throws Exception {
+	void testOpenNoAPIKey() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -245,7 +277,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testAddEmbeddings(@TempDir Path tempDir) throws Exception {
+	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -344,7 +376,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testRemoveDocument(@TempDir Path tempDir) throws Exception {
+	void testRemoveDocument() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";
@@ -442,7 +474,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testNearestNeighborCall(@TempDir Path tempDir) throws Exception {
+	void testNearestNeighborCall() throws Exception {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		String testEmbedderId = "123-456-789";
@@ -601,7 +633,7 @@ public class WeaviateVectorDatabaseEngineUnitTests {
 	}
 	
 	@Test
-	void testListDocuments(@TempDir Path tempDir) throws Exception {
+	void testListDocuments() throws Exception {
 		Properties testProps = new Properties();
 		String url = "http://fake.url/";
 		String testEngine = "asdf-1234";

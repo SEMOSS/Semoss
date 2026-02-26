@@ -8,7 +8,7 @@ import prerna.sablecc2.analysis.*;
 public final class AMetaScriptMetaRoutine extends PMetaRoutine
 {
     private TMeta _meta_;
-    private TCustom _custom_;
+    private TPipe _pipe_;
     private PScript _script_;
 
     public AMetaScriptMetaRoutine()
@@ -18,13 +18,13 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
 
     public AMetaScriptMetaRoutine(
         @SuppressWarnings("hiding") TMeta _meta_,
-        @SuppressWarnings("hiding") TCustom _custom_,
+        @SuppressWarnings("hiding") TPipe _pipe_,
         @SuppressWarnings("hiding") PScript _script_)
     {
         // Constructor
         setMeta(_meta_);
 
-        setCustom(_custom_);
+        setPipe(_pipe_);
 
         setScript(_script_);
 
@@ -35,7 +35,7 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
     {
         return new AMetaScriptMetaRoutine(
             cloneNode(this._meta_),
-            cloneNode(this._custom_),
+            cloneNode(this._pipe_),
             cloneNode(this._script_));
     }
 
@@ -70,16 +70,16 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
         this._meta_ = node;
     }
 
-    public TCustom getCustom()
+    public TPipe getPipe()
     {
-        return this._custom_;
+        return this._pipe_;
     }
 
-    public void setCustom(TCustom node)
+    public void setPipe(TPipe node)
     {
-        if(this._custom_ != null)
+        if(this._pipe_ != null)
         {
-            this._custom_.parent(null);
+            this._pipe_.parent(null);
         }
 
         if(node != null)
@@ -92,7 +92,7 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
             node.parent(this);
         }
 
-        this._custom_ = node;
+        this._pipe_ = node;
     }
 
     public PScript getScript()
@@ -125,7 +125,7 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
     {
         return ""
             + toString(this._meta_)
-            + toString(this._custom_)
+            + toString(this._pipe_)
             + toString(this._script_);
     }
 
@@ -139,9 +139,9 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
             return;
         }
 
-        if(this._custom_ == child)
+        if(this._pipe_ == child)
         {
-            this._custom_ = null;
+            this._pipe_ = null;
             return;
         }
 
@@ -164,9 +164,9 @@ public final class AMetaScriptMetaRoutine extends PMetaRoutine
             return;
         }
 
-        if(this._custom_ == oldChild)
+        if(this._pipe_ == oldChild)
         {
-            setCustom((TCustom) newChild);
+            setPipe((TPipe) newChild);
             return;
         }
 

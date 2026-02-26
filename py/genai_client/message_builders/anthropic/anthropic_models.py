@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
+
 from ...utils import StringEnum
 
 
@@ -8,38 +9,30 @@ class AnthropicRoles(StringEnum):
     ASSISTANT = "assistant"
 
 
-class AnthropicImageType(StringEnum):
+class AnthropicMediaType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
 
-class AnthropicImageMediaType(StringEnum):
-    JPEG = "image/jpeg"
-    PNG = "image/png"
-    WEBP = "image/webp"
-    GIF = "image/gif"
+class AnthropicMediaSourceBase64(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.BASE64
+    media_type: str
+    data: str
 
 
-class AnthropicImageSourceURL(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.URL
+class AnthropicURLMediaSource(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.URL
     url: str
-
-
-class AnthropicImageSourceBase64(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.BASE64
-    media_type: AnthropicImageMediaType
-    data: Optional[str] = None
 
 
 class AnthropicImageContentPart(BaseModel):
     type: str = "image"
-    source: Union[AnthropicImageSourceURL, AnthropicImageSourceBase64]
+    source: AnthropicMediaSourceBase64
 
 
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    media_type: str
-    data: Optional[str] = None
+    source: AnthropicMediaSourceBase64
 
 
 # FOR HISTORY
@@ -48,6 +41,23 @@ class AnthropicToolUseContentPart(BaseModel):
     id: str
     name: str
     input: Dict[str, Any]
+
+    @field_validator("input", mode="before")
+    @classmethod
+    def convert_empty_string_to_dict(cls, v):
+        """Convert empty string to empty dict for tools with no arguments"""
+        if v == "" or v is None:
+            return {}
+        if isinstance(v, str):
+            # If it's a non-empty string, try to parse it as JSON
+            import json
+
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                # If it fails, return empty dict
+                return {}
+        return v
 
 
 # FOR HISTORY
@@ -105,9 +115,12 @@ class AnthropicRequestConfig(BaseModel):
     top_p: Optional[float] = None
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
+    thinking: Optional[Dict[str, Any]] = None
 
 
 class AnthropicMessageBuilderResponse(BaseModel):
     request_config: AnthropicRequestConfig
     streaming: bool
     has_structured_input: bool
+    thinking: bool = False
+    thinking_budget: Optional[int] = None

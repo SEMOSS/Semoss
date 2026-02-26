@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.io.IOException;
@@ -259,6 +286,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static void addEngineOwner(String engineId, String userId) {
+		// make sure user doesn't already exist for this database
+		if (getUserEnginePermission(userId, engineId) != null) {
+			// that means there is already a value
+			throw new IllegalArgumentException("This user already has access to this engine");
+		}
+
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
 
 		PreparedStatement ps = null;
@@ -1089,7 +1122,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
+			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 
 		// get userid of all requests
@@ -1107,7 +1140,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the database: "
+					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
 							+ String.join(",", toRemoveUserIds));
 		}
 
@@ -1205,11 +1238,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void deleteEngine(String engineId) {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM INSIGHT WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM WORKSPACEENGINE WHERE ENGINEID=?");
-//		deletes.add("DELETE FROM ASSETENGINE WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINEACCESSREQUEST WHERE ENGINEID=?");
 
 		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
@@ -1240,7 +1271,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl) && !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
+		if (!AccessPermissionEnum.isEditor(userPermissionLvl)
+				&& !user.getPrimaryLoginToken().getId().equals(existingUserId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
 
@@ -1248,7 +1280,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Integer existingUserPermission = getUserEnginePermission(existingUserId, engineId);
 		if (existingUserPermission == null) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the engine");
+					"Attempting to modify engine permission for a user who does not currently have access to the engine");
 		}
 
 		// if i am not an owner
@@ -1305,7 +1337,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		toRemoveUserIds.removeAll(existingUserPermission.keySet());
 		if (!toRemoveUserIds.isEmpty()) {
 			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the engine: "
+					"Attempting to modify engine permission for the following users who do not currently have access to the engine: "
 							+ String.join(",", toRemoveUserIds));
 		}
 
@@ -1372,7 +1404,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static boolean setEngineGlobal(User user, String engineId, boolean global) throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
-					"The user doesn't have the permission to set this engine as global. Only the owner or an admin can perform this action.");
+					"The user doesn't have the permission to set this engine as global. Only the owner can perform this action.");
 		}
 
 		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
@@ -1460,11 +1492,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param engineId
 	 * @param visibility
-	 * @throws SQLException
 	 * @throws IllegalAccessException
 	 */
 	public static void setEngineVisibility(User user, String engineId, boolean visibility)
-			throws SQLException, IllegalAccessException {
+			throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1547,11 +1578,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param engineId
 	 * @param visibility
-	 * @throws SQLException
 	 * @throws IllegalAccessException
 	 */
-	public static void setEngineFavorite(User user, String engineId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
+	public static void setEngineFavorite(User user, String engineId, boolean isFavorite) throws IllegalAccessException {
 		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1640,7 +1669,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throws IllegalAccessException {
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
-					"The user doesn't have the permission to change the engine name. Only the owner or an admin can perform this action.");
+					"The user doesn't have the permission to change the engine name. Only the owner can perform this action.");
 		}
 
 		PreparedStatement ps = null;
@@ -3176,7 +3205,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
@@ -5,15 +32,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import com.google.common.collect.Lists;
 
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -118,6 +149,63 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Update user information.
+	 * 
+	 * @param user
+	 * @param userInfo
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public static boolean editUser(User user, Map<String, Object> userInfo) {
+		Pair<String, String> loggedInUser = User.getPrimaryUserIdAndTypePair(user);
+
+		String userId = loggedInUser.getValue0();
+		String userType = loggedInUser.getValue1();
+
+		// input fields
+		String name = userInfo.get("name") != null ? userInfo.get("name").toString().trim() : "";
+		String email = userInfo.get("newEmail") != null ? userInfo.get("newEmail").toString().trim().toLowerCase() : "";
+
+		if (email != null && !email.isEmpty()) {
+			try {
+				validEmail(email, false);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException("Email " + email + " is not valid");
+			}
+		}
+
+		String[] whereCol = { "ID", "TYPE" };
+		String[] columnsToUpdate = new String[] { "EMAIL", "NAME" };
+		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
+				columnsToUpdate, whereCol);
+		PreparedStatement editUserPs = null;
+		int updateCount = 0;
+		try {
+			editUserPs = securityDb.getPreparedStatement(editUserQuery);
+			int i = 1;
+			editUserPs.setString(i++, email);
+			editUserPs.setString(i++, name);
+			// Where
+			editUserPs.setString(i++, userId);
+			editUserPs.setString(i++, userType);
+			updateCount = editUserPs.executeUpdate();
+			if (!editUserPs.getConnection().getAutoCommit()) {
+				editUserPs.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException(e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
+		}
+		if (updateCount > 0) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * 
 	 * @return
 	 */
@@ -126,81 +214,6 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY"));
 		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
 		return metakeys;
-	}
-
-	/**
-	 * Update the user metadata Will delete existing values and then perform a bulk
-	 * insert
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param insightId
-	 * @param tags
-	 */
-	@SuppressWarnings("unchecked")
-	public static void updateUserMetadata(String userId, AuthProvider userType, Map<String, ?> metadata) {
-		String userTypeString = userType.toString();
-
-		// first do a delete
-		String deleteQ = "DELETE FROM USERMETA WHERE METAKEY=? AND USERID=? AND TYPE=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for (String field : metadata.keySet()) {
-				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, field);
-				deletePs.setString(parameterIndex++, userId);
-				deletePs.setString(parameterIndex++, userTypeString);
-				deletePs.addBatch();
-			}
-			deletePs.executeBatch();
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
-		}
-
-		// now we do the new insert with the order of the tags
-		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
-				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			for (String field : metadata.keySet()) {
-				Object val = metadata.get(field);
-				List<Object> values = new ArrayList<>();
-				if (val instanceof List) {
-					values = (List<Object>) val;
-				} else if (val instanceof Collection) {
-					values.addAll((Collection<Object>) val);
-				} else {
-					values.add(val);
-				}
-
-				for (int i = 0; i < values.size(); i++) {
-					int parameterIndex = 1;
-					Object fieldVal = values.get(i);
-
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userTypeString);
-					ps.setString(parameterIndex++, field);
-					ps.setString(parameterIndex++, fieldVal + "");
-					ps.setInt(parameterIndex++, i);
-					ps.addBatch();
-				}
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
 	}
 
 	/**
@@ -238,11 +251,196 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 			valid = true;
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
 		return valid;
 	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(User user, String metaKey, Object val) {
+		AccessToken token = user.getPrimaryLoginToken();
+		updateUserMetadata(token, metaKey, val);
+		loadUserMetadata(token);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(AccessToken token, String metaKey, Object val) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
+		try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+			ps.setString(1, userId);
+			ps.setString(2, userType);
+			ps.setString(3, metaKey);
+			ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			List<Object> values = new ArrayList<>();
+			if (val instanceof Collection) {
+				values.addAll((Collection<Object>) val);
+			} else {
+				values.add(val);
+			}
+
+			for (int i = 0; i < values.size(); i++) {
+				int parameterIndex = 1;
+				Object fieldVal = values.get(i);
+
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
+				ps.setString(parameterIndex++, metaKey);
+				ps.setString(parameterIndex++, fieldVal + "");
+				ps.setInt(parameterIndex++, i);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Load the user metadata from the db and set into the User object
+	 * 
+	 * @param user
+	 */
+	public static void loadUserMetadata(AccessToken token) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("USERMETA__METAKEY"));
+		qs.addSelector(new QueryColumnSelector("USERMETA__METAVALUE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETA__USERID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETA__TYPE", "==", userType));
+		qs.addOrderBy("USERMETA__METAORDER");
+
+		Map<String, Collection<String>> metadata = new HashMap<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] data = wrapper.next().getValues();
+				String metaKey = (String) data[0];
+				String metaValue = (String) data[1];
+				if (metaValue == null) {
+					continue;
+				}
+
+				if (metadata.containsKey(metaKey)) {
+					Collection<String> array = metadata.get(metaKey);
+					array.add(metaValue);
+				} else {
+					List<String> array = new ArrayList<>();
+					array.add(metaValue);
+					metadata.put(metaKey, array);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		token.setMeta(metadata);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metadata
+	 */
+	public static void updateUserMetadata(User user, Map<String, Collection<String>> metadata) {
+		AccessToken token = user.getPrimaryLoginToken();
+		updateUserMetadata(token, metadata);
+		loadUserMetadata(token);
+	}
+
+	/**
+	 * Update the current user's metadata
+	 * 
+	 * @param user
+	 * @param metaKey
+	 * @param val
+	 */
+	public static void updateUserMetadata(AccessToken token, Map<String, Collection<String>> metadata) {
+		String userId = token.getId();
+		String userType = token.getProvider().getLabel();
+		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
+		try (PreparedStatement ps = securityDb.getPreparedStatement(deleteQ)) {
+			for (String metaKey : metadata.keySet()) {
+				ps.setString(1, userId);
+				ps.setString(2, userType);
+				ps.setString(3, metaKey);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for (String metaKey : metadata.keySet()) {
+				Collection<String> values = metadata.get(metaKey);
+
+				int counter = 0;
+				Iterator<String> it = values.iterator();
+				while (it.hasNext()) {
+					int parameterIndex = 1;
+					Object fieldVal = it.next();
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userType);
+					ps.setString(parameterIndex++, metaKey);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, counter++);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 }

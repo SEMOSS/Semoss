@@ -33,6 +33,7 @@ package prerna.util;
 public class Constants {
 
 	// error messages
+	@Deprecated
 	public static final String STACKTRACE = "StackTrace: ";
 	public static final String ERROR_MESSAGE = "errorMessage";
 	public static final String TECH_ERROR_MESSAGE = "techErrorMessage";
@@ -566,6 +567,7 @@ public class Constants {
 	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
+	public static final String PLAYWRIGHT_EXPORT = "PLAYWRIGHT_EXPORT";
 	// reduce operations to only admins
 	public static final String ADMIN_ONLY_PROJECT_ADD = "ADMIN_ONLY_PROJECT_ADD";
 	public static final String ADMIN_ONLY_PROJECT_DELETE = "ADMIN_ONLY_PROJECT_DELETE";
@@ -926,8 +928,6 @@ public class Constants {
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 
 	// model
-	@Deprecated
-	public static final String KEEP_CONTEXT = "KEEP_CONTEXT";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
 
@@ -1041,4 +1041,7 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// default model key
+	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
+	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 }

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,18 +57,22 @@ import org.openpdf.text.pdf.PdfWriter;
 
 import com.google.gson.Gson;
 
+import prerna.SemossUnitTest;
 import prerna.auth.User;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.textract.TextractClient;
 import software.amazon.awssdk.services.textract.TextractClientBuilder;
 
-public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
+public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private User user;
 	private AWSTextractCustomEmbeddingsFunctionEngine engine;
@@ -67,6 +98,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 		String storageEngineId = "strg_engine_id";
 		String storagePath = "storage/path";
 		String pageLength = "5";
+		String objectPath = "object_path";
 
 		testProps.setProperty(Constants.ENGINE, testEngine);
 		testProps.setProperty(Constants.ENGINE_ALIAS, testEngineName);
@@ -78,7 +110,8 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 		testProps.setProperty("S3BUCKETENGINEID", storageEngineId);
 		testProps.setProperty("STORAGE_PATH", storagePath);
 		testProps.setProperty("PAGE_LENGTH", pageLength);
-		
+		testProps.setProperty("OBJECT_PATH", objectPath);
+
 		Gson gson = new Gson();
 		String funcParamName = "func_param_name";
 		String funcParamType = "func_param_type";
@@ -98,7 +131,9 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 		
 		
 		try(MockedStatic<AwsBasicCredentials> abc = Mockito.mockStatic(AwsBasicCredentials.class);
-				MockedStatic<TextractClient> tc = Mockito.mockStatic(TextractClient.class);){
+			MockedStatic<TextractClient> tc = Mockito.mockStatic(TextractClient.class);
+			MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+
 			AwsBasicCredentials abcMock = mock(AwsBasicCredentials.class);
 			TextractClientBuilder clientBuilderMock = mock(TextractClientBuilder.class);
 			TextractClient tcMock = mock(TextractClient.class);
@@ -107,6 +142,13 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 			when(clientBuilderMock.region(any(Region.class))).thenReturn(clientBuilderMock);
 			when(clientBuilderMock.credentialsProvider(any(StaticCredentialsProvider.class))).thenReturn(clientBuilderMock);
 			when(clientBuilderMock.build()).thenReturn(tcMock);
+
+			S3StorageEngine s3StorageEngine = mock(S3StorageEngine.class);
+			util.when(() -> Utility.getStorage(storageEngineId)).thenReturn(s3StorageEngine);
+			when(s3StorageEngine.getStorageType()).thenCallRealMethod();
+			CaseInsensitiveProperties storageProps = new CaseInsensitiveProperties();
+			storageProps.put(S3StorageEngine.S3_BUCKET_KEY, "bucket");
+			when(s3StorageEngine.getSmssProp()).thenReturn(storageProps);
 			
 			engine.setBasic(true); // skips folder initialization
 			engine.open(testProps);
@@ -129,6 +171,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 			for (int reqIdx = 0; reqIdx < engineReqParams.size(); reqIdx++) {
 				assertEquals(requiredParams.get(reqIdx), engineReqParams.get(reqIdx));
 			}
+			assertEquals("bucket", engine.bucketName);
 		}
 	}
 
@@ -308,7 +351,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 
 			engine.setBasic(true); // skips folder initialization
 			RuntimeException e = assertThrows(RuntimeException.class, () -> engine.open(testProps));
-			assertEquals("Must define the requiredParameters", e.getMessage());
+			assertEquals("Must define the region", e.getMessage());
 		}
 	}
 	
@@ -373,7 +416,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testCanProcessDocumentNonPDF(@TempDir Path tempDir) throws IOException {
+	void testCanProcessDocumentNonPDF() throws IOException {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "test.csv";
@@ -384,7 +427,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests {
 	}
 	
 	@Test
-	void testCanProcessDocument(@TempDir Path tempDir) throws IOException {
+	void testCanProcessDocument() throws IOException {
 		String mainDir = tempDir.toString();
 		Path mainDirPath = Paths.get(mainDir);
 		String fileName = "HelloWorld.pdf";
