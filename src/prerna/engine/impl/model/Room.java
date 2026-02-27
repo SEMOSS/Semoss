@@ -59,7 +59,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -587,43 +586,45 @@ public class Room {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
+		// make sure the same toolbox is not accidentally added more than once
+		Set<String> ensureUnique = new HashSet<>();
+
 		if (o.containsKey("mcp")) {
 			try {
-				@SuppressWarnings("unchecked")
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
 				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
-						String type = (String) mcpMap.get("type");
+					if (mcpMap.containsKey("id")) {
 						String id = (String) mcpMap.get("id");
-						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-						if (catalogType != null) {
+						if (!ensureUnique.contains(id)) {
 							aggregated.addAll(getToolJson(id));
+							ensureUnique.add(id);
 						}
 					} else {
 						throw new IllegalArgumentException("Tool map must contain both type and id");
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add tool map from room mcp", e);
 			}
 		}
 
 		if (o.containsKey("workspace")) {
 			try {
-				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
 							null);
-
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
-						aggregated.addAll(getToolJson(toolId));
+						if (!ensureUnique.contains(toolId)) {
+							aggregated.addAll(getToolJson(toolId));
+							ensureUnique.add(toolId);
+						}
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add tool map from workspace mcp", e);
 			}
 		}
 
