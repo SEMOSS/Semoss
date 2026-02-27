@@ -127,6 +127,14 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals("fileNames")) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
 	public String getReactorDescription() {
 		return """
 				Removes documents from a vector database. \
