@@ -32,12 +32,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAllStepsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetAllStepsReactor.class);
 
 	public GetAllStepsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName" };
@@ -97,10 +102,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Populates the session history with steps from the loaded recording.
-	 * This appends steps from the loaded file to the existing session history,
-	 * allowing multiple files to be loaded sequentially into the same session.
-	 * Step IDs are reassigned to ensure uniqueness across all loaded files.
+	 * Populates the session history with steps from the loaded recording. This
+	 * appends steps from the loaded file to the existing session history, allowing
+	 * multiple files to be loaded sequentially into the same session. Step IDs are
+	 * reassigned to ensure uniqueness across all loaded files.
 	 *
 	 * @param session The PlaywrightSession to populate
 	 * @param env     The StepsEnvelope containing the loaded steps
@@ -132,7 +137,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 		}
 
 		session.lastStepId = currentStepId;
-		System.out.println("Loaded and appended steps from file. New lastStepId: " + currentStepId);
+		classLogger.debug("Loaded and appended steps from file. New lastStepId: {}", currentStepId);
 	}
 
 	private Map<String, Object> convertStepToMap(PlaywrightStep step) {
