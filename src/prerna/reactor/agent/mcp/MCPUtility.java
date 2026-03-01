@@ -35,12 +35,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -952,6 +954,41 @@ public final class MCPUtility {
 				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
 			}
 		}
+	}
+
+	/**
+	 * Searches the tool catalog for tools whose name or description match the given query.
+	 * Each query term scores +2 if found in the tool name and +1 if found in the description.
+	 * Returns up to {@code maxResults} tools ranked by descending relevance score.
+	 *
+	 * @param catalog    tool name → tool definition map (as built by Room.buildToolCatalog)
+	 * @param query      free-text search query
+	 * @param maxResults maximum number of results to return
+	 * @return matching tool definitions, ordered by relevance
+	 */
+	public static List<Map<String, Object>> searchToolCatalog(Map<String, Map<String, Object>> catalog, String query,
+			int maxResults) {
+		if (catalog == null || query == null || query.isBlank()) {
+			return Collections.emptyList();
+		}
+		String[] terms = query.toLowerCase().split("\\s+");
+		return catalog.entrySet().stream().map(e -> {
+			String nameLower = e.getKey().toLowerCase();
+			Object desc = e.getValue().get("description");
+			String descLower = desc != null ? desc.toString().toLowerCase() : "";
+			int score = 0;
+			for (String term : terms) {
+				if (nameLower.contains(term)) {
+					score += 2;
+				}
+				if (descLower.contains(term)) {
+					score += 1;
+				}
+			}
+			return Map.entry(score, e.getValue());
+		}).filter(e -> e.getKey() > 0)
+				.sorted(Map.Entry.<Integer, Map<String, Object>>comparingByKey().reversed()).limit(maxResults)
+				.map(Map.Entry::getValue).collect(Collectors.toList());
 	}
 
 	private MCPUtility() {

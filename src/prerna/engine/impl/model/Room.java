@@ -34,9 +34,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -94,6 +97,10 @@ public class Room {
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
 			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
 
+	static final String SEARCH_TOOLS_NAME = "search_tools";
+	static final int DEFERRED_SEARCH_MAX_ROUNDS = 3;
+	static final int DEFERRED_SEARCH_RESULTS_LIMIT = 5;
+
 	private String room_id;
 	private String userId;
 	private String roomName;
@@ -107,6 +114,8 @@ public class Room {
 	// options contains the tools
 	private String options; // Stays as string (as from DB)
 	private transient Map<String, Object> optionsMap; // Not stored, just for use in code
+	private transient Map<String, Map<String, Object>> toolCatalog; // lazy-loaded in deferred mode
+	private transient Set<String> discoveredToolNames = new LinkedHashSet<>(); // grows as LLM searches
 
 	private String modelId;
 	private String messagesJson;
@@ -258,12 +267,21 @@ public class Room {
 			msg.setParentMessageId(null); // first message
 		}
 
+		List<AbstractMessage> deferredMessages = new ArrayList<>();
 		ResponseMessage response = null;
 		try {
 			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, msg);
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+
+			// If deferred tool loading is active and the LLM called search_tools, resolve it server-side
+			if (isDeferredToolLoadingEnabled()
+					&& llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)
+					&& isAllSearchToolsCalls((AskToolModelEngineResponse) llmResponse)) {
+				llmResponse = runSearchToolsLoop(llmResponse, msg, modelEngine, kwArgMap, deferredMessages);
+			}
+
 			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 			response.setMessageId(llmResponse.getMessageId());
 
@@ -285,6 +303,7 @@ public class Room {
 		// on success, add the message
 		if (appendToHistory) {
 			messages.add(msg);
+			messages.addAll(deferredMessages); // intermediate search_tools exchanges (may be empty)
 			messages.add(response);
 		}
 
@@ -489,6 +508,15 @@ public class Room {
 			ResponseMessage nextAssistant = null;
 			try {
 				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				// If deferred tool loading is active and the LLM called search_tools, resolve it server-side
+				if (isDeferredToolLoadingEnabled()
+						&& llmResponse != null
+						&& llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)
+						&& isAllSearchToolsCalls((AskToolModelEngineResponse) llmResponse)) {
+					List<AbstractMessage> deferredMessages = new ArrayList<>();
+					llmResponse = runSearchToolsLoop(llmResponse, toolResultsMessage, modelEngine, paramValuesMap, deferredMessages);
+					messages.addAll(deferredMessages);
+				}
 				nextAssistant = createResponseMessage(llmResponse);
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
@@ -563,17 +591,163 @@ public class Room {
 	}
 
 	private void appendToolsToParams(Map<String, Object> params) {
-		List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
-		Object existing = params.get("tools");
-		if (existing instanceof List<?>) {
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
-			toolsList.addAll(newTools);
-		} else if (existing == null) {
-			params.put("tools", new ArrayList<>(newTools));
-		} else {
-			params.put("tools", new ArrayList<>(newTools));
+		if (!isDeferredToolLoadingEnabled()) {
+			// Existing behavior: send all tools eagerly
+			List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
+			Object existing = params.get("tools");
+			if (existing instanceof List<?>) {
+				@SuppressWarnings("unchecked")
+				List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
+				toolsList.addAll(newTools);
+			} else if (existing == null) {
+				params.put("tools", new ArrayList<>(newTools));
+			} else {
+				params.put("tools", new ArrayList<>(newTools));
+			}
+			return;
 		}
+		// Deferred mode: lazy-load catalog, send search_tools + previously discovered tools only
+		if (toolCatalog == null) {
+			toolCatalog = buildToolCatalog();
+		}
+		List<Map<String, Object>> toolsToSend = new ArrayList<>();
+		toolsToSend.add(buildSearchToolDefinition());
+		for (String name : discoveredToolNames) {
+			Map<String, Object> def = toolCatalog.get(name);
+			if (def != null) {
+				toolsToSend.add(def);
+			}
+		}
+		params.put("tools", toolsToSend);
+	}
+
+	private boolean isDeferredToolLoadingEnabled() {
+		Map<String, Object> o = getOptionsMap();
+		Object flag = o.get("deferred_tool_loading");
+		if (flag instanceof Boolean) {
+			return (Boolean) flag;
+		} else if (flag instanceof String) {
+			return "true".equalsIgnoreCase((String) flag);
+		}
+		return false;
+	}
+
+	private Map<String, Map<String, Object>> buildToolCatalog() {
+		List<Map<String, Object>> allTools = getAllToolsJsonForRoom();
+		Map<String, Map<String, Object>> catalog = new LinkedHashMap<>();
+		for (Map<String, Object> tool : allTools) {
+			Object nameObj = tool.get("name");
+			if (nameObj instanceof String) {
+				catalog.put((String) nameObj, tool);
+			}
+		}
+		return catalog;
+	}
+
+	private static Map<String, Object> buildSearchToolDefinition() {
+		Map<String, Object> tool = new LinkedHashMap<>();
+		tool.put("name", SEARCH_TOOLS_NAME);
+		tool.put("description",
+				"Search for available tools by name or purpose. Returns matching tool definitions "
+				+ "that you can then call. Use this to discover what tools exist before calling them.");
+		Map<String, Object> schema = new LinkedHashMap<>();
+		schema.put("type", "object");
+		Map<String, Object> props = new LinkedHashMap<>();
+		Map<String, Object> queryProp = new LinkedHashMap<>();
+		queryProp.put("type", "string");
+		queryProp.put("description", "Keywords or description of the capability you need");
+		props.put("query", queryProp);
+		schema.put("properties", props);
+		schema.put("required", List.of("query"));
+		tool.put("inputSchema", schema);
+		return tool;
+	}
+
+	/**
+	 * If the LLM called search_tools (deferred loading mode), executes the search server-side,
+	 * accumulates intermediate messages into {@code accumulator}, and re-calls the LLM — looping
+	 * until it stops calling search_tools or max rounds are reached.
+	 * <p>
+	 * Intermediate messages are placed in {@code accumulator} so the caller can commit them to
+	 * {@code this.messages} only on success.
+	 */
+	private AskModelEngineResponse runSearchToolsLoop(AskModelEngineResponse llmResponse,
+			AbstractMessage parentMsg, IModelEngine modelEngine, Map<String, Object> params,
+			List<AbstractMessage> accumulator) {
+
+		int rounds = 0;
+		while (rounds < DEFERRED_SEARCH_MAX_ROUNDS
+				&& llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)
+				&& isAllSearchToolsCalls((AskToolModelEngineResponse) llmResponse)) {
+			rounds++;
+			AskToolModelEngineResponse toolResp = (AskToolModelEngineResponse) llmResponse;
+
+			// 1. Record the assistant's search_tools call
+			ResponseMessage assistantMsg = ResponseMessage.toolResponses(toolResp.getToolResponse());
+			assistantMsg.setParentMessageId(parentMsg.getMessageId());
+			assistantMsg.setModel(modelEngine);
+			accumulator.add(assistantMsg);
+
+			// 2. Execute each search_tools call and build a combined tool-result message
+			InputMessage toolResultMsg = null;
+			for (Map<String, Object> tc : toolResp.getToolResponse()) {
+				String callId = (String) tc.get("id");
+				if (!SEARCH_TOOLS_NAME.equals(tc.get("name"))) {
+					continue;
+				}
+				@SuppressWarnings("unchecked")
+				Map<String, Object> args = (Map<String, Object>) tc.get("arguments");
+				String query = (args != null && args.get("query") instanceof String)
+						? (String) args.get("query") : "";
+
+				List<Map<String, Object>> found = MCPUtility.searchToolCatalog(toolCatalog, query,
+						DEFERRED_SEARCH_RESULTS_LIMIT);
+				for (Map<String, Object> t : found) {
+					if (t.get("name") instanceof String) {
+						discoveredToolNames.add((String) t.get("name"));
+					}
+				}
+				String resultJson = GSON.toJson(found);
+
+				if (toolResultMsg == null) {
+					toolResultMsg = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
+							.withToolResult(callId, SEARCH_TOOLS_NAME, resultJson, args, "success")
+							.withModelType(modelEngine.getModelType()).build();
+					toolResultMsg.setParentMessageId(assistantMsg.getMessageId());
+					toolResultMsg.setModel(modelEngine);
+					toolResultMsg.setVisibile(false);
+				} else {
+					toolResultMsg.addPart(new ToolResultMessagePart(
+							new ToolResultPart(callId, SEARCH_TOOLS_NAME, resultJson, args, "success")));
+				}
+			}
+			if (toolResultMsg == null) {
+				break;
+			}
+			accumulator.add(toolResultMsg);
+
+			// 3. Rebuild message_json: committed history + all accumulated messages so far
+			List<AbstractMessage> allMessages = new ArrayList<>(this.messages);
+			allMessages.addAll(accumulator);
+			params.put("message_json", MessageUtils.toJsonArrayWithImageData(allMessages));
+
+			// 4. Refresh tool list (newly discovered tools are now included)
+			appendToolsToParams(params);
+
+			// 5. Re-call LLM
+			llmResponse = modelEngine.askRoom("", this, toolResultMsg, params);
+			parentMsg = toolResultMsg;
+		}
+		return llmResponse;
+	}
+
+	/** Returns true only if every tool call in the response is a search_tools call. */
+	private static boolean isAllSearchToolsCalls(AskToolModelEngineResponse toolResp) {
+		List<Map<String, Object>> calls = toolResp.getToolResponse();
+		if (calls == null || calls.isEmpty()) {
+			return false;
+		}
+		return calls.stream().allMatch(tc -> SEARCH_TOOLS_NAME.equals(tc.get("name")));
 	}
 
 	/**
