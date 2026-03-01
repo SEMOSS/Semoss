@@ -207,6 +207,14 @@ public class Room {
 					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
+		// Reset deferred-tool state at the start of each new user turn.
+		// toolCatalog is rebuilt fresh (matching the non-deferred path that always calls
+		// getAllToolsJsonForRoom() per request) so MCP changes are picked up immediately.
+		// discoveredToolNames is cleared so the model always starts with only search_tools.
+		if (isDeferredToolLoadingEnabled()) {
+			toolCatalog = null;
+			discoveredToolNames.clear();
+		}
 		appendToolsToParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
@@ -675,6 +683,11 @@ public class Room {
 			AbstractMessage parentMsg, IModelEngine modelEngine, Map<String, Object> params,
 			List<AbstractMessage> accumulator) {
 
+		// In ask(), the triggering user message is not yet in this.messages — it is
+		// committed only on success. Capture it now so we can include it in each
+		// rebuilt message_json, otherwise the model loses the user's original intent.
+		final AbstractMessage originalMsg = parentMsg;
+
 		int rounds = 0;
 		while (rounds < DEFERRED_SEARCH_MAX_ROUNDS
 				&& llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)
@@ -726,8 +739,13 @@ public class Room {
 			}
 			accumulator.add(toolResultMsg);
 
-			// 3. Rebuild message_json: committed history + all accumulated messages so far
+			// 3. Rebuild message_json: committed history + original triggering message
+			//    (if not yet committed, as is the case in ask()) + accumulated exchanges
 			List<AbstractMessage> allMessages = new ArrayList<>(this.messages);
+			boolean originalMsgCommitted = this.messages.stream().anyMatch(m -> m == originalMsg);
+			if (!originalMsgCommitted) {
+				allMessages.add(originalMsg);
+			}
 			allMessages.addAll(accumulator);
 			params.put("message_json", MessageUtils.toJsonArrayWithImageData(allMessages));
 
