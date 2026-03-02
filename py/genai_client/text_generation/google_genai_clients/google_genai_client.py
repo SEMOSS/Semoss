@@ -328,7 +328,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(i)
+                    function_id = str(len(tool_result) + i)
                     this_content_block.update(
                         {
                             "id": function_id,
