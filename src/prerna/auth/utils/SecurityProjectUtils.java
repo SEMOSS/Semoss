@@ -2037,7 +2037,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// METADATA sub-query - conditional based on type (ENGINEMETA vs PROJECTMETA)
 		{
-			// ENGINE metadata sub-query
+			// ENGINE metadata sub-query for description
 			SelectQueryStruct engineMetaQs = new SelectQueryStruct();
 			engineMetaQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
 			engineMetaQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "DESCRIPTION"));
@@ -2050,7 +2050,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					new String[] { "EM__ENGINEID", "ENGINE__ENGINEID", "=" });
 			qs.addRelation(engineMetaRel);
 
-			// PROJECT metadata sub-query
+			// PROJECT metadata sub-query for description
 			SelectQueryStruct projectMetaQs = new SelectQueryStruct();
 			projectMetaQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID", "PROJECTID"));
 			projectMetaQs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE", "DESCRIPTION"));
@@ -2069,6 +2069,45 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					new QueryColumnSelector("PM__DESCRIPTION"), new QueryColumnSelector("EM__DESCRIPTION"),
 					"description");
 			qs.addSelector(descriptionSelector);
+
+			// ENGINE metadata sub-query for tags - aggregated since there can be multiple
+			SelectQueryStruct engineTagsQs = new SelectQueryStruct();
+			engineTagsQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
+			QueryFunctionSelector engineTagsAggregator = new QueryFunctionSelector();
+			engineTagsAggregator.setFunction(QueryFunctionHelper.GROUP_CONCAT);
+			engineTagsAggregator.addInnerSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
+			engineTagsAggregator.setAlias("TAGS");
+			engineTagsQs.addSelector(engineTagsAggregator);
+			engineTagsQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
+			engineTagsQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+
+			SubqueryRelationship engineTagsRel = new SubqueryRelationship(engineTagsQs, "ET", "left.outer.join",
+					new String[] { "ET__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs.addRelation(engineTagsRel);
+
+			// PROJECT metadata sub-query for tags - aggregated since there can be multiple
+			SelectQueryStruct projectTagsQs = new SelectQueryStruct();
+			projectTagsQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID", "PROJECTID"));
+			QueryFunctionSelector projectTagsAggregator = new QueryFunctionSelector();
+			projectTagsAggregator.setFunction(QueryFunctionHelper.GROUP_CONCAT);
+			projectTagsAggregator.addInnerSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
+			projectTagsAggregator.setAlias("TAGS");
+			projectTagsQs.addSelector(projectTagsAggregator);
+			projectTagsQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "tag"));
+			projectTagsQs.addGroupBy(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
+
+			SubqueryRelationship projectTagsRel = new SubqueryRelationship(projectTagsQs, "PT", "left.outer.join",
+					new String[] { "PT__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectTagsRel);
+
+			// Use conditional selector for tags
+			QueryIfSelector tagsSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PT__TAGS"), new QueryColumnSelector("ET__TAGS"),
+					"tags");
+			qs.addSelector(tagsSelector);
 		}
 
 		// PERMISSION sub-query - conditional based on type (ENGINEPERMISSION vs

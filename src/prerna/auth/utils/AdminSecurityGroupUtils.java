@@ -501,6 +501,21 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get number of groups
+	 * 
+	 * @return
+	 */
+	public Long getNumGroups(String searchTerm) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_GROUP__ID", "numGroups"));
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
 	 * This is only valid for members assigned to custom group assignments
 	 * 
 	 * @return

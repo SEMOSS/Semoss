@@ -69,7 +69,6 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 	private Logger classLogger;
 
 	protected transient String newDatabaseId;
-	protected transient String newDatabaseAlias;
 	protected transient String newDatabaseName;
 	protected transient IDatabaseEngine database;
 	protected transient File databaseFolder;
@@ -108,13 +107,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		this.classLogger = getLogger(this.getClass().getName());
 		this.newDatabaseId = UUID.randomUUID().toString();
-		this.newDatabaseAlias = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()).trim();
-		this.newDatabaseName = Utility.sanitizeEngineName(this.newDatabaseAlias);
-		if (this.newDatabaseName == null || this.newDatabaseName.isEmpty()
-				|| !Utility.validateName(this.newDatabaseName)) {
-			throw new IllegalArgumentException(
-					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
-		}
+		this.newDatabaseName = this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()).trim().replaceAll("\\s+", "_");
 
 		boolean error = false;
 		try {
@@ -135,15 +128,9 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			databaseNames = databaseNames + ";" + this.newDatabaseId;
 			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, databaseNames);
 
-			// add to security with display alias
-			SecurityEngineUtils.addEngine(this.newDatabaseId, false, user, this.newDatabaseAlias);
-
-			// even if no security, just add user as engine owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(this.newDatabaseId);
@@ -318,7 +305,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		classLogger.info("5. Process database metadata to allow for traversing across databases	");
 		try {
-			UploadUtilities.updateMetadata(this.newDatabaseId, user, this.newDatabaseAlias);
+			UploadUtilities.updateMetadata(this.newDatabaseId, user);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

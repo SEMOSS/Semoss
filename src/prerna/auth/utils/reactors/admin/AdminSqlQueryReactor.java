@@ -163,6 +163,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			int limit = parseLimit(limitStr);
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
+			task.setCollectLimit(limit);
 			this.insight.addQueriedDatabasesese(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {

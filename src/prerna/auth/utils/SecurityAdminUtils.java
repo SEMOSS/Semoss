@@ -1239,7 +1239,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter,
+	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -1275,6 +1275,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		if (projectFilter != null && !projectFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
+		}
+		if (typeFilter != null && !typeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", typeFilter));
 		}
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
