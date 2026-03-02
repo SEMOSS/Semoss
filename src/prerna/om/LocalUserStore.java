@@ -25,47 +25,50 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.google.gmail;
+package prerna.om;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+public class LocalUserStore {
 
-import prerna.auth.User;
-import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+	private volatile Map<String, Object[]> localStore = new ConcurrentHashMap<String, Object[]>();
 
-public class GoogleGmailProfileByIdReactor extends AbstractReactor{
-	
-	private static final Logger classLogger = LogManager.getLogger(GoogleGmailProfileByIdReactor.class);
+	private static LocalUserStore userStore;
 
-	public GoogleGmailProfileByIdReactor() {
-		this.keysToGet = new String[] {};
+	private LocalUserStore() {
+		// do nothing
 	}
-	
-	@Override
-	public NounMetadata execute() {
-		try {
-			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			Map<String, Object> retMap = GoogleGmailHelper.getGmailProfileById(accessToken);
-	        return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch(SemossPixelException e) {
-			classLogger.error("Error while fetching Gmail profile", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to fetch Gmail profile", e);
-			throw new SemossPixelException("An error occurred getting the user profile details. Error message: " + e.getMessage());
+
+	public static LocalUserStore getInstance() {
+		if (userStore == null) {
+			userStore = new LocalUserStore();
+		}
+		return userStore;
+	}
+
+	public void store(String key, Object[] value) {
+		localStore.put(key, value);
+	}
+
+	public boolean validate(String key, String value) {
+		if (localStore.containsKey(key)) {
+			if (localStore.get(key)[0].equals(value)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public Object[] getUserStoreDetails(String key) {
+		Object[] userStore = localStore.get(key);
+		return new Object[] { userStore[1], userStore[2] };
+	}
+
+	public void remove(String key) {
+		if (key != null) {
+			localStore.remove(key);
 		}
 	}
-	
-	@Override
-	public String getReactorDescription() {
-		return "Get the user profile details";
-	}
-	
+
 }
