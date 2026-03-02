@@ -224,7 +224,7 @@ public class InternalMCP implements IMCP {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param inputName
 	 * @param jsonFileLoc
 	 * @return
@@ -239,6 +239,9 @@ public class InternalMCP implements IMCP {
 				JSONArray toolObj = null;
 				if (json.has("tools")) {
 					toolObj = json.getJSONArray("tools");
+					// First pass: standard contains-match (existing behavior)
+					// Also track a truncated-hash candidate for the fallback pass
+					JSONObject truncatedHashCandidate = null;
 					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
@@ -246,6 +249,16 @@ public class InternalMCP implements IMCP {
 							// return the full tool
 							return thisTool;
 						}
+						// Second-pass candidate: check if inputName is a truncated+hashed form
+						// of this tool name (handles OpenAI 64-char name truncation)
+						if (truncatedHashCandidate == null
+								&& MCPUtility.isOriginalForTruncatedName(toolName, inputName)) {
+							truncatedHashCandidate = thisTool;
+						}
+					}
+					// Fallback: return the truncated-hash match if found
+					if (truncatedHashCandidate != null) {
+						return truncatedHashCandidate;
 					}
 				}
 			} catch (FileNotFoundException e) {

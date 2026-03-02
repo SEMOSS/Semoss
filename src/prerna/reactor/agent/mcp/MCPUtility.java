@@ -374,6 +374,47 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * Returns {@code true} if {@code possiblyTruncated} is a valid truncated+hashed
+	 * form of {@code candidateOriginal}, as produced by
+	 * {@link #appendEngineIdToToolsMethodName(String, JSONObject, int)}.
+	 * <p>
+	 * A truncated name has the form {@code <base>_<4hexHash>} where {@code base} is
+	 * a prefix of {@code candidateOriginal} and {@code 4hexHash} equals
+	 * {@code computeShortHash(candidateOriginal)}.
+	 *
+	 * @param candidateOriginal the original (full, untruncated) tool name
+	 * @param possiblyTruncated the potentially truncated+hashed name (engine prefix
+	 *                          already stripped)
+	 * @return true if {@code possiblyTruncated} was derived from
+	 *         {@code candidateOriginal} via truncation
+	 */
+	public static boolean isOriginalForTruncatedName(String candidateOriginal, String possiblyTruncated) {
+		if (possiblyTruncated == null || candidateOriginal == null) {
+			return false;
+		}
+		int len = possiblyTruncated.length();
+		// Minimum: at least one base char + "_" + 4 hex chars = 6 chars
+		if (len < 6) {
+			return false;
+		}
+		// Last 5 chars must be "_XXXX" where XXXX is 4 lowercase hex digits
+		if (possiblyTruncated.charAt(len - 5) != '_') {
+			return false;
+		}
+		String potentialHash = possiblyTruncated.substring(len - 4);
+		if (!potentialHash.matches("[0-9a-f]{4}")) {
+			return false;
+		}
+		// Hash must match the candidate's hash
+		if (!computeShortHash(candidateOriginal).equals(potentialHash)) {
+			return false;
+		}
+		// The base (everything before "_XXXX") must be a prefix of the original name
+		String truncatedBase = possiblyTruncated.substring(0, len - 5);
+		return candidateOriginal.startsWith(truncatedBase);
+	}
+
+	/**
 	 * Returns the maximum tool name length for the given model type string
 	 * (as returned by {@code ModelTypeEnum.name()}).
 	 * <ul>
@@ -420,18 +461,32 @@ public final class MCPUtility {
 			return jsonToolsMap;
 		}
 
+		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+
+		if (maxLength == Integer.MAX_VALUE) {
+			// Non-OpenAI providers (no length limit): keep the original full-UUID prefix,
+			// preserving existing behavior for all non-OpenAI models.
+			for (int i = 0; i < toolsArray.length(); i++) {
+				JSONObject toolMap = toolsArray.getJSONObject(i);
+				String currentName = toolMap.getString("name");
+				toolMap.put("name", "a" + engineId + "_" + currentName);
+			}
+			return jsonToolsMap;
+		}
+
+		// Length-limited provider (e.g. OpenAI 64-char limit): use the short 8-hex
+		// prefix and only truncate when the full name would exceed maxLength.
 		String shortEngineId = computeShortEngineId(engineId);
 		String shortPrefix = "a" + shortEngineId + "_";
 
-		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
 			String currentName = toolMap.getString("name");
 			String llmName;
-			if (maxLength == Integer.MAX_VALUE || (shortPrefix.length() + currentName.length()) <= maxLength) {
+			if (shortPrefix.length() + currentName.length() <= maxLength) {
 				llmName = shortPrefix + currentName;
 			} else {
-				// Truncate tool name and append a 4-char hash to preserve uniqueness
+				// Truncate tool name and append a 4-char hash to preserve uniqueness.
 				// Layout: shortPrefix (10) + truncated + "_" + hash (4) = maxLength
 				int availableChars = maxLength - shortPrefix.length() - 5; // 5 = "_" + 4 hash chars
 				if (availableChars < 0) {
