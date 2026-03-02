@@ -114,6 +114,14 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
+	/**
+	 * Per-call reverse lookup map: LLM-facing tool name → enriched tool entry
+	 * (containing engine metadata and original untruncated function name).
+	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
+	 * {@link #updateToolResponseMeta(ResponseMessage)}.
+	 */
+	private final Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
+
 	public Room() {
 	}
 
@@ -198,7 +206,7 @@ public class Room {
 					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
-		appendToolsToParams(kwArgMap);
+		appendToolsToParams(kwArgMap, modelEngine);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -483,7 +491,7 @@ public class Room {
 				paramValuesMap = new HashMap<>();
 			}
 			paramValuesMap.put("message_json", messageJsonString);
-			appendToolsToParams(paramValuesMap);
+			appendToolsToParams(paramValuesMap, modelEngine);
 
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
@@ -562,8 +570,10 @@ public class Room {
 		return false;
 	}
 
-	private void appendToolsToParams(Map<String, Object> params) {
-		List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
+	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
+		String modelType = modelEngine != null ? modelEngine.getModelType().name() : null;
+		int maxLength = MCPUtility.getMaxToolNameLength(modelType);
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
 		Object existing = params.get("tools");
 		if (existing instanceof List<?>) {
 			@SuppressWarnings("unchecked")
@@ -577,12 +587,29 @@ public class Room {
 	}
 
 	/**
-	 * 
-	 * @param
-	 * @return List<Map<String, Object>> for a single app mcp
-	 * 
+	 * Returns all tools for this room using the default max tool name length.
+	 * Also populates {@link #toolLookupByLLMName} for reverse-lookup in
+	 * {@link #updateToolResponseMeta(ResponseMessage)}.
+	 *
+	 * @return list of tool definition maps ready to pass to the LLM
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
+		return getAllToolsJsonForRoom(MCPUtility.DEFAULT_MAX_TOOL_NAME_LENGTH);
+	}
+
+	/**
+	 * Returns all tools for this room, applying provider-specific name-length
+	 * limits. Also clears and rebuilds {@link #toolLookupByLLMName} so that
+	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
+	 * back to their original engine IDs and function names.
+	 *
+	 * @param maxLength maximum allowed tool name length (use
+	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
+	 * @return list of tool definition maps ready to pass to the LLM
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength) {
+		toolLookupByLLMName.clear();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
@@ -596,7 +623,7 @@ public class Room {
 					if (mcpMap.containsKey("id")) {
 						String id = (String) mcpMap.get("id");
 						if (!ensureUnique.contains(id)) {
-							aggregated.addAll(getToolJson(id));
+							aggregated.addAll(getToolJson(id, maxLength));
 							ensureUnique.add(id);
 						}
 					} else {
@@ -618,7 +645,7 @@ public class Room {
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
 						if (!ensureUnique.contains(toolId)) {
-							aggregated.addAll(getToolJson(toolId));
+							aggregated.addAll(getToolJson(toolId, maxLength));
 							ensureUnique.add(toolId);
 						}
 					}
@@ -632,11 +659,17 @@ public class Room {
 	}
 
 	/**
-	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
+	 * Returns the tool definitions for a single engine, applying the given name
+	 * length limit and populating {@link #toolLookupByLLMName} so that
+	 * {@link #updateToolResponseMeta(ResponseMessage)} can reverse-resolve
+	 * LLM-facing names.
+	 *
+	 * @param engineId  the engine/project UUID
+	 * @param maxLength maximum allowed tool name length
+	 * @return list of non-disabled tool definition maps
 	 */
-	private List<Map<String, Object>> getToolJson(String engineId) {
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -647,23 +680,63 @@ public class Room {
 			engine = Utility.getProject(engineId);
 		}
 		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
+
+		// Record original tool names (before prefix is added) so we can store them in
+		// the reverse-lookup map later
+		Map<Integer, String> originalNames = new HashMap<>();
+		if (toolMap != null && toolMap.has("tools")) {
+			JSONArray toolsBefore = toolMap.getJSONArray("tools");
+			for (int i = 0; i < toolsBefore.length(); i++) {
+				JSONObject t = toolsBefore.optJSONObject(i);
+				if (t != null && t.has("name")) {
+					originalNames.put(i, t.getString("name"));
+				}
+			}
+		}
+
+		// Capture engine-level metadata for the lookup entries
+		Map<String, Object> engineMeta = new HashMap<>();
+		if (toolMap != null && toolMap.has("_meta")) {
+			engineMeta = toolMap.getJSONObject("_meta").toMap();
+		}
+
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
 				JSONObject toolObj = arr.optJSONObject(i);
 				if (toolObj == null) {
-					continue; // no tool so skip
+					continue;
 				}
 
 				JSONObject meta = toolObj.optJSONObject("_meta");
 				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
 
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
-					result.add(toolObj.toMap());
-				}
+					Map<String, Object> toolMapEntry = toolObj.toMap();
+					result.add(toolMapEntry);
 
+					// Build lookup entry: tool JSON + engine metadata + original function name.
+					// Use a separate copy of _meta so we don't modify the LLM-bound tool map.
+					String llmFacingName = toolObj.getString("name");
+					String origName = originalNames.get(i);
+
+					Map<String, Object> lookupEntry = new HashMap<>(toolMapEntry);
+					Object rawToolMeta = toolMapEntry.get("_meta");
+					Map<String, Object> lookupMeta = (rawToolMeta instanceof Map)
+							? new HashMap<>((Map<String, Object>) rawToolMeta)
+							: new HashMap<>();
+					lookupEntry.put("_meta", lookupMeta);
+					// Merge in engine-level fields (SMSS_ENGINE_ID, SMSS_ENGINE_NAME, etc.)
+					lookupMeta.putAll(engineMeta);
+					// Ensure SMSS_ENGINE_ID is always present
+					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, engineId);
+					// Store the original (untruncated) function name for reverse lookup
+					lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, origName);
+
+					toolLookupByLLMName.put(llmFacingName, lookupEntry);
+				}
 			}
 			return result;
 		}
@@ -686,6 +759,29 @@ public class Room {
 		}
 		// TODO: handle image, tool calls, etc.
 		return ResponseMessage.text("null");
+	}
+
+	/**
+	 * Updates the tool response with engine and tool metadata, using the per-call
+	 * reverse-lookup map ({@link #toolLookupByLLMName}) that was populated during
+	 * the most recent call to {@link #getAllToolsJsonForRoom(int)}. Falls back to
+	 * UUID-regex parsing for legacy full-UUID-prefix names.
+	 *
+	 * @param response the response message to enrich
+	 */
+	public void updateToolResponseMeta(ResponseMessage response) {
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, toolLookupByLLMName);
+	}
+
+	/**
+	 * Returns the current per-call reverse-lookup map (LLM-facing name →
+	 * enriched tool entry). The map is rebuilt each time
+	 * {@link #getAllToolsJsonForRoom(int)} is called.
+	 *
+	 * @return unmodifiable view of the lookup map
+	 */
+	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
+		return Collections.unmodifiableMap(toolLookupByLLMName);
 	}
 
 	public boolean isMessageAuthor(String messageId) {

@@ -35,6 +35,7 @@ import java.util.Map;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -44,6 +45,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.util.Utility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -125,12 +127,32 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		List<AbstractMessage> page = RoomUtils.getPagedMessages(room.getMessages(), dateSort, offset, limit);
 
 		/**
+		 * Populate the per-room LLM-name lookup map so that new short-prefix tool names
+		 * can be resolved without regex parsing. Uses the model engine's max length to
+		 * reproduce the same name transformations that were applied when messages were
+		 * stored.
+		 */
+		String modelType = null;
+		String modelId = room.getModelId();
+		if (modelId != null) {
+			try {
+				IModelEngine modelEngine = (IModelEngine) Utility.getEngine(modelId);
+				if (modelEngine != null) {
+					modelType = modelEngine.getModelType().name();
+				}
+			} catch (Exception ignore) {
+			}
+		}
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(modelType));
+
+		/**
 		 * Add messages to list
 		 */
 		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage m : page) {
 			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache);
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
+						room.getToolLookupByLLMName());
 			}
 			Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
 //				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
