@@ -104,8 +104,7 @@ class GenerateInputValuesReactorUnitTests {
 		addParamsToStore(params);
 
 		Room historyRoom = mock(Room.class);
-		InputMessage historyQuestion = InputMessage.builder(historyRoom).withInputUIPrompt("Where should we go?")
-				.build();
+		InputMessage historyQuestion = InputMessage.builder(historyRoom).withText("Where should we go?").build();
 		ResponseMessage historyAnswer = ResponseMessage.builder().withText("Head to Wonderland").build();
 		List<AbstractMessage> historyMessages = List.of(historyQuestion, historyAnswer);
 		when(historyRoom.getMessages()).thenReturn(historyMessages);
