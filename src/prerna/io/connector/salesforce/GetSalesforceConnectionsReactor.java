@@ -2,10 +2,10 @@ package prerna.io.connector.salesforce;
 
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,11 +19,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GetAllUserApiPermissionsReactor extends AbstractReactor {
+public class GetSalesforceConnectionsReactor extends AbstractReactor {
 	
-	private static final String TABLE = "USERAPIPERMISSION";
-
-	private static final Logger classLogger = LogManager.getLogger(GetAllUserApiPermissionsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetSalesforceConnectionsReactor.class);
+	
+	private static final String TABLE = "SALESFORCE_CONNECTIONS";
 
 	@Override
 	public NounMetadata execute() {
@@ -31,16 +31,17 @@ public class GetAllUserApiPermissionsReactor extends AbstractReactor {
 			IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
 			String tableName = getTableName(database);
 			if (tableName == null) {
-				classLogger.error("User Api Permission table not found in database.");
-				throw new SemossPixelException("User Api Permission table not found in database.");
+				classLogger.error("Salesforce Connections table not found in database.");
+				throw new SemossPixelException("Salesforce Connections table not found in database.");
 			}
 			
-			String query = "SELECT ID, USERID, API_ID, TYPE FROM " + tableName;
+			String query = "SELECT ID, ALIAS, CLIENTID, CLIENTSECRET FROM " + tableName;
 			Object execResult = database.execQuery(query);
 			if (!(execResult instanceof Map)) {
 			    classLogger.error("Unexpected execQuery return type: {}", execResult == null ? "null" : execResult.getClass());
 			    throw new SemossPixelException("Unexpected database response.");
 			}
+			
 			@SuppressWarnings("unchecked")
 			Map<String, Object> resultMap = (Map<String, Object>) execResult;
 			Object rsObj = resultMap.get("RESULTSET_OBJECT");
@@ -71,10 +72,10 @@ public class GetAllUserApiPermissionsReactor extends AbstractReactor {
 			
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Error fetching User Api Permissions " + e.getMessage());
+			throw new SemossPixelException("Error fetching Salesforce Connections " + e.getMessage());
 		}
 	}
-
+	
 	// centralized table name lookup
 	private String getTableName(IDatabaseEngine database) {
 		try {
@@ -93,6 +94,7 @@ public class GetAllUserApiPermissionsReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Fetches all User API Permission records from the database and returns them for UI display.";
+		return "Fetches all Salesforce Connections from the database and returns them for UI display.";
 	}
+
 }

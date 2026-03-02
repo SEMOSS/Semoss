@@ -349,16 +349,13 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
 		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
 
-		// SALESFORCE_CREDENTIALS
-        owler.addConcept("SALESFORCE_CREDENTIALS", null, null);
-        owler.addProp("SALESFORCE_CREDENTIALS", "ID", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "INSTANCEURL", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "CLIENTID", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "CLIENTSECRET", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "REDIRECTURI", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "CREATEDBY", "VARCHAR(255)");
-        owler.addProp("SALESFORCE_CREDENTIALS", "DATECREATED", "TIMESTAMP");
-        owler.addProp("SALESFORCE_CREDENTIALS", "KEYNAME", "VARCHAR(255)");
+		// SALESFORCE_CONNECTIONS
+        owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
+        owler.addProp("SALESFORCE_CONNECTIONS", "ID", "VARCHAR(255)");
+        //owler.addProp("SALESFORCE_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
         
         //USERAPIPERMISSION
         owler.addConcept("USERAPIPERMISSION", null, null);

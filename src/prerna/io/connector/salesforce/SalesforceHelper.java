@@ -1,5 +1,6 @@
 package prerna.io.connector.salesforce;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,20 +54,40 @@ public class SalesforceHelper {
     		
     		String objectsResponse = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
     		Map<String, Object> objectsList = gson.fromJson(objectsResponse, new TypeToken<Map<String, Object>>() {}.getType());
-            result.put("objects", objectsList);
-    		
-            // fetch field metadata for a specific sObject
-            if (sObjectName != null && !sObjectName.trim().isEmpty()) {
-            	String describeUrl = instanceUrl + SOBJECTS_ENDPOINT_SUFFIX + sObjectName + FIELDS_DESCRIBE_SUFFIX;
-            	classLogger.info("Fetching Salesforce fields metadata for object: " + sObjectName + " from: " + describeUrl);
-            	
-            	String fieldsResponse = HttpHelperUtility.getRequest(describeUrl, headers, null, null, null);
-            	Map<String, Object> fieldsMetadata = gson.fromJson(fieldsResponse, new TypeToken<Map<String, Object>>(){}.getType());
-            	result.put("fieldsMetadata", fieldsMetadata);
-            } else {
-            	result.put("fieldsMetadata", null);
-            }
             
+    		// case 1: no sObject name
+    		// Return ONLY object API Names
+    		if (sObjectName == null || sObjectName.trim().isEmpty()) {
+    			
+    			// extract only sObject API names
+    			List<String> objectNames = new ArrayList<>();
+    			
+    			List<Map<String, Object>> sobjects = (List<Map<String, Object>>) objectsList.get("sobjects");
+    			for (Map<String, Object> object : sobjects) {
+    				objectNames.add((String)object.get("name"));
+    			}
+    			
+    			result.put("objects", objectNames);
+    			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+    		}
+    		
+    		// case 2: sObject name provided
+            // Fetch field metadata for the given sObject
+        	String describeUrl = instanceUrl + SOBJECTS_ENDPOINT_SUFFIX + sObjectName + FIELDS_DESCRIBE_SUFFIX;
+        	classLogger.info("Fetching Salesforce fields metadata for object: " + sObjectName + " from: " + describeUrl);
+        	
+        	String fieldsResponse = HttpHelperUtility.getRequest(describeUrl, headers, null, null, null);
+        	Map<String, Object> fieldsMetadata = gson.fromJson(fieldsResponse, new TypeToken<Map<String, Object>>(){}.getType());
+        	
+        	//extract only field API names
+        	List<String> fieldNames = new ArrayList<>();
+        	
+        	List<Map<String, Object>> fields = (List<Map<String, Object>>) fieldsMetadata.get("fields");
+        	for (Map<String, Object> field : fields) {
+				fieldNames.add((String)field.get("name"));
+			}
+        	
+        	result.put("fields", fieldNames);
             return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
             
     	} catch(Exception e) {
