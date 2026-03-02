@@ -238,7 +238,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if i < len(parts_with_fc):
                 ts = getattr(parts_with_fc[i], "thought_signature", None)
                 if ts:
-                    tool_entry["thought_signature"] = base64.b64encode(ts).decode("utf-8")
+                    tool_entry["thought_signature"] = base64.b64encode(ts).decode(
+                        "utf-8"
+                    )
             tools_result.append(tool_entry)
 
         return AskModelEngineResponse2(
@@ -289,8 +291,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             hasattr(part, "thought")
                             and part.thought
                             and hasattr(part, "text")
+                            and part.text
                         ):
                             thinking_response += part.text
+                            data = StreamUtil.create_thinking_chunk(part.text)
+                            smss_stream(data, stream_type="thinking")
+                            print(prefix + part.text, end="", flush=True)
                         if part.inline_data:
                             image_data.append(
                                 self._create_media_info(
@@ -383,7 +389,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     if i < len(parts_with_fc):
                         ts = getattr(parts_with_fc[i], "thought_signature", None)
                         if ts:
-                            tool_entry["thought_signature"] = base64.b64encode(ts).decode("utf-8")
+                            tool_entry["thought_signature"] = base64.b64encode(
+                                ts
+                            ).decode("utf-8")
                     tool_result.append(tool_entry)
 
                     content_array.append(this_content_block)
