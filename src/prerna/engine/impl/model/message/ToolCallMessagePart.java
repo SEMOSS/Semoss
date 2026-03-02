@@ -36,6 +36,9 @@ public class ToolCallMessagePart extends MessagePart {
 	@SerializedName("toolCall")
 	private Map<String, Object> toolCall;
 
+	@SerializedName("thought_signature")
+	private String thoughtSignature;
+
 	public ToolCallMessagePart() {
 		super(MessagePartType.TOOL_CALL);
 	}

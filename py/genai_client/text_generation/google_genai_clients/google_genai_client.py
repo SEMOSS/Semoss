@@ -258,7 +258,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             model=self.model_name, contents=contents, config=config
         )
 
+        # If single function call: the function call part contains a thought_signature
+        # if multiple function calls: the thought_signature is only attached to the first functionCall part, so subsequent function calls in the same response don't contain a signature
+        thought_signature = None
+
         for event in stream:
+            
+
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
@@ -273,6 +279,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             and hasattr(part, "text")
                         ):
                             thinking_response += part.text
+                        if (hasattr(part, "thought_signature") and part.thought_signature):
+                            # Convert bytes to base64 string for storage/transmission
+                            if isinstance(part.thought_signature, bytes):
+                                thought_signature = base64.b64encode(part.thought_signature).decode('utf-8')
+                            else:
+                                thought_signature = part.thought_signature
                         if part.inline_data:
                             image_data.append(
                                 self._create_media_info(
@@ -407,7 +419,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 parts.append({"type": "THINKING", "thinking": thinking_response})
             for media_info in image_data or []:
                 parts.append({"type": "MEDIA", "mediaInfo": media_info})
-            parts.extend([{"type": "TOOL_CALL", "toolCall": t} for t in tool_result])
+            parts.extend([{"type": "TOOL_CALL", "toolCall": t, "thought_signature": thought_signature} for t in tool_result])
 
             return AskModelEngineResponse2(
                 response=tool_result,

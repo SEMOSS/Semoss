@@ -76,6 +76,7 @@ class SEMOSSMessageBuilder:
 
                     elif p.get("type") == "TOOL_CALL":
                         tc = p.get("toolCall")
+                        thought_sig = p.get("thought_signature")
                         tool_call_part = SEMOSSToolCallMessagePart(
                             toolCall=SEMOSSToolCall(
                                 function=SEMOSSToolFunction(
@@ -84,8 +85,9 @@ class SEMOSSMessageBuilder:
                                     description=tc.get("description", ""),
                                 ),
                                 id=tc.get("id"),
-                                type="function",
-                            )
+                                type="function"
+                            ),
+                            thought_signature=thought_sig,
                         )
                         process_parts.append(tool_call_part)
 

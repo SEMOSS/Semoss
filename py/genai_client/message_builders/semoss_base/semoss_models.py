@@ -125,6 +125,7 @@ class SEMOSSToolCallMessagePart(BaseModel):
     """Represents a tool call message content"""
 
     toolCall: SEMOSSToolCall
+    thought_signature: Optional[str] = None
     type: Literal[SEMOSSMessagePartType.TOOL_CALL] = SEMOSSMessagePartType.TOOL_CALL
 
 

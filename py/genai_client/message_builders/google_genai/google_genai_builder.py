@@ -75,12 +75,12 @@ class GoogleGenAIMessageBuilder:
                         tool_id_to_name.update(
                             {p.toolCall.id: p.toolCall.function.name}
                         )
-                        parts.append(
-                            Part.from_function_call(
-                                name=p.toolCall.function.name,
-                                args=p.toolCall.function.parameters,
-                            )
+                        part_to_append = Part.from_function_call(
+                            name=p.toolCall.function.name,
+                            args=p.toolCall.function.parameters,
                         )
+                        part_to_append.thought_signature = p.thought_signature
+                        parts.append(part_to_append)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         parts.append(
