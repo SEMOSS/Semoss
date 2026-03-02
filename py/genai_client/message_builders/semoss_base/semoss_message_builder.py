@@ -33,6 +33,7 @@ class SEMOSSMessageBuilder:
         semoss_messages = []
         param_map.pop("question", None)
 
+        last_system_part = None
         for i, message in enumerate(input_messages):
             message_type = message.get("type")
             if message_type is None:
@@ -61,10 +62,13 @@ class SEMOSSMessageBuilder:
                 process_parts = []
                 for p in parts:
                     if p.get("type") == "SYSTEM":
-                        system_part = SEMOSSSystemMessagePart(prompt=p.get("prompt"))
-                        process_parts.append(system_part)
+                        # we store at each input message what the system prompt was at that time
+                        # so we will just grab the last one and inject into the final semoss_message param map at the end of processing all messages
+                        last_system_part = SEMOSSSystemMessagePart(
+                            prompt=p.get("prompt")
+                        )
 
-                    if p.get("type") == "TEXT":
+                    elif p.get("type") == "TEXT":
                         text_part = SEMOSSTextMessagePart(text=p.get("text"))
                         process_parts.append(text_part)
 
@@ -158,6 +162,12 @@ class SEMOSSMessageBuilder:
             semoss_message.tokens = message.get("tokens", 0)
 
             semoss_messages.append(semoss_message)
+
+        if last_system_part:
+            # If we had a system part, we append the last message param map
+            semoss_messages[-1].param_map.update(
+                {"system_prompt": last_system_part.prompt}
+            )
 
         return semoss_messages
 
