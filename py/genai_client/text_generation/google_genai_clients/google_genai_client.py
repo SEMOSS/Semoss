@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
+from google.genai import Client as GoogleGenAIClient
 from ...clients.google_clients import (
     GoogleClient,
     GoogleClientConfig,
@@ -38,6 +39,8 @@ class StreamingResponse(BaseModel):
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
+    client: GoogleGenAIClient
+
     def __init__(
         self,
         service_account_credentials: Optional[Dict] = None,

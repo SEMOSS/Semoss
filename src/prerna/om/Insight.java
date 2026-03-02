@@ -181,7 +181,6 @@ public class Insight implements Serializable {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonGlobalsOnDropInsight = true;
 
-	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
 
@@ -880,14 +879,6 @@ public class Insight implements Serializable {
 
 	public void setSchedulerMode(boolean isSchedulerMode) {
 		this.isSchedulerMode = isSchedulerMode;
-	}
-
-	public boolean isTemporaryInsight() {
-		return isTemporaryInsight;
-	}
-
-	public void setTemporaryInsight(boolean isTemporaryInsight) {
-		this.isTemporaryInsight = isTemporaryInsight;
 	}
 
 	/**
