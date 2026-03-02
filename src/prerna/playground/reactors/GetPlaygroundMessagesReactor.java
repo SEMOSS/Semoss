@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -120,9 +121,12 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		}
 
 		/**
-		 * Filter/slice results without altering room message object
+		 * Filter/slice results without altering room message object.
+		 * Skipped messages (e.g. intermediate search_tools exchanges) are excluded
+		 * from the history returned to the client.
 		 */
 		List<AbstractMessage> page = RoomUtils.getPagedMessages(room.getMessages(), dateSort, offset, limit);
+		page = page.stream().filter(m -> !m.isSkipped()).collect(Collectors.toList());
 
 		/**
 		 * Add messages to list
