@@ -228,7 +228,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             ]
 
         for i, function_call in enumerate(response.function_calls):
-            function_id = str(i)
+            function_id = function_call.id or str(uuid.uuid4())
             tool_entry = {
                 "id": function_id,
                 "type": "function",
@@ -328,7 +328,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(len(tool_result) + i)
+                    function_id = function_call.id or str(uuid.uuid4())
                     this_content_block.update(
                         {
                             "id": function_id,
@@ -339,7 +339,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     this_content_block["function"]["name"] = function_call.name
 
                     data = StreamUtil.create_tool_id_chunk(
-                        index=len(tool_result), tool_id=function_call.id
+                        index=len(tool_result), tool_id=function_id
                     )
                     smss_stream(data, stream_type="tool")
                     print(prefix + str(data), end="")
