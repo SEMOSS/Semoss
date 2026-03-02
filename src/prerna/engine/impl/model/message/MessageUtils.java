@@ -484,7 +484,11 @@ public class MessageUtils {
 			if (m == null) {
 				break;
 			}
-			history.add(m);
+			// Always follow the parent chain, but exclude messages flagged as skipped
+			// (e.g. intermediate search_tools exchanges in deferred tool loading).
+			if (!m.isSkipped()) {
+				history.add(m);
+			}
 			// parentMessageId may be null/empty String
 			currentId = m.getParentMessageId();
 			if (currentId == null || currentId.isEmpty()) {

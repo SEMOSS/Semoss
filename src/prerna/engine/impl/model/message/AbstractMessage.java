@@ -79,6 +79,10 @@ public abstract class AbstractMessage {
 
 	protected boolean visible = true;
 
+	/** When true this message is persisted to room history but excluded from the
+	 *  message_json sent to the LLM (e.g. intermediate search_tools exchanges). */
+	protected boolean skipped = false;
+
 	@SerializedName("platform_generated")
 	protected boolean platformGenerated = false;
 
@@ -257,6 +261,14 @@ public abstract class AbstractMessage {
 
 	public void setVisibile(boolean visibile) {
 		this.visible = visibile;
+	}
+
+	public boolean isSkipped() {
+		return skipped;
+	}
+
+	public void setSkipped(boolean skipped) {
+		this.skipped = skipped;
 	}
 
 	public boolean isPlatformGenerated() {

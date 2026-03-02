@@ -695,10 +695,13 @@ public class Room {
 			rounds++;
 			AskToolModelEngineResponse toolResp = (AskToolModelEngineResponse) llmResponse;
 
-			// 1. Record the assistant's search_tools call
+			// 1. Record the assistant's search_tools call.
+			//    Mark as skipped so it is persisted to room history but excluded from
+			//    the message_json sent to the LLM on subsequent turns.
 			ResponseMessage assistantMsg = ResponseMessage.toolResponses(toolResp.getToolResponse());
 			assistantMsg.setParentMessageId(parentMsg.getMessageId());
 			assistantMsg.setModel(modelEngine);
+			assistantMsg.setSkipped(true);
 			accumulator.add(assistantMsg);
 
 			// 2. Execute each search_tools call and build a combined tool-result message
@@ -729,6 +732,7 @@ public class Room {
 					toolResultMsg.setParentMessageId(assistantMsg.getMessageId());
 					toolResultMsg.setModel(modelEngine);
 					toolResultMsg.setVisibile(false);
+					toolResultMsg.setSkipped(true);
 				} else {
 					toolResultMsg.addPart(new ToolResultMessagePart(
 							new ToolResultPart(callId, SEARCH_TOOLS_NAME, resultJson, args, "success")));
@@ -739,17 +743,19 @@ public class Room {
 			}
 			accumulator.add(toolResultMsg);
 
-			// 3. Rebuild message_json: committed history + original triggering message
-			//    (if not yet committed, as is the case in ask()) + accumulated exchanges
+			// 3. Rebuild message_json: committed history + original triggering message only.
+			//    The search_tools exchange is intentionally excluded — the discovered tool
+			//    definitions are already reflected in params["tools"] via discoveredToolNames,
+			//    so including them here would just duplicate context.
 			List<AbstractMessage> allMessages = new ArrayList<>(this.messages);
 			boolean originalMsgCommitted = this.messages.stream().anyMatch(m -> m == originalMsg);
 			if (!originalMsgCommitted) {
 				allMessages.add(originalMsg);
 			}
-			allMessages.addAll(accumulator);
 			params.put("message_json", MessageUtils.toJsonArrayWithImageData(allMessages));
 
-			// 4. Refresh tool list (newly discovered tools are now included)
+			// 4. Refresh tool list with newly discovered tools.
+			//    search_tools remains available so the model can search again if needed.
 			appendToolsToParams(params);
 
 			// 5. Re-call LLM
