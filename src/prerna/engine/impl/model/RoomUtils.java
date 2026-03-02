@@ -46,6 +46,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
@@ -155,17 +156,23 @@ public final class RoomUtils {
 	public static Room getOrLoadRoom(String roomId, Insight insight) {
 		Room room;
 		// Check in user's cache (roomHash)
-		if (insight.getUser().roomHash.containsKey(roomId)) {
-			try {
-				room = (Room) insight.getUser().roomHash.get(roomId);
-				// is the message json null? if so then this is probably a legacy room
-				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-					RoomUtils.updateRoom(room, insight);
+			if (insight.getUser().roomHash.containsKey(roomId)) {
+				try {
+					room = (Room) insight.getUser().roomHash.get(roomId);
+					// is the message json null? if so then this is probably a legacy room (pre-message json!!)
+					if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+						RoomUtils.updateRoom(room, insight);
+					} else {
+						// Ensure messages are parsed exactly once before upgrade checks.
+						if (room.getMessages() == null || room.getMessages().isEmpty()) {
+							room.parseMessages();
+						}
+						upgradeRoomMessagesIfNeeded(room, insight);
+					}
+					return room;
+				} catch (ClassCastException e) {
+					insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
 				}
-				return room;
-			} catch (ClassCastException e) {
-				insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
-			}
 		}
 		// else it may be in the DB
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
@@ -178,15 +185,17 @@ public final class RoomUtils {
 		}
 
 		// is the message json null? if so then this is probably a legacy room
-		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-			RoomUtils.updateRoom(room, insight);
-		}
+			if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+				RoomUtils.updateRoom(room, insight);
+			} else {
+				upgradeRoomMessagesIfNeeded(room, insight);
+			}
 
 		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.size() > 0) {
 			// if the message id in room table does not match message ids in message table,
-			// probably needs migration
+			// probably needs migration - this is only if we never have had a message with a message_json yet!
 			boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId,
 					messages.get(0).getMessageId());
 			if (!migratedMessageIds) {
@@ -197,10 +206,26 @@ public final class RoomUtils {
 			}
 		}
 
-		room.setInsight(insight);
-		room.parseMessages();
-		insight.getUser().roomHash.put(roomId, room);
-		return room;
+			room.setInsight(insight);
+			insight.getUser().roomHash.put(roomId, room);
+			return room;
+		}
+
+	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String json = room.getMessageJson();
+		boolean jsonMissingSchema = (json != null && !json.contains("\"schemaVersion\""));
+		if (!jsonMissingSchema && !MessageSchemaUpgrader.needsUpgrade(room.getMessages())) {
+			return;
+		}
+
+		MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
+		String upgraded = room.getMessagesAsString();
+		room.setMessagesJson(upgraded);
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+				insight.getUser().getPrimaryLoginToken().getId(), upgraded);
 	}
 
 	private static void updateRoom(Room room, Insight insight) {
@@ -253,8 +278,7 @@ public final class RoomUtils {
 
 		// Switch by type
 		if ("INPUT".equals(type)) {
-			InputMessage im = InputMessage.builder(room).withInputUIPrompt(data).withInputPrompt(data)
-					.withType(MessageType.INPUT_TEXT).build();
+			InputMessage im = InputMessage.builder(room).withText(data).withType(MessageType.INPUT_TEXT).build();
 			im.setDateCreated(dateCreated);
 			im.setModelId(room.getModelId());
 			return im;
