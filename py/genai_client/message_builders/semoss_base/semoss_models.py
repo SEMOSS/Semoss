@@ -63,6 +63,7 @@ class SEMOSSToolCall(BaseModel):
     function: SEMOSSToolFunction
     type: Literal["function"]
     id: Optional[str] = None
+    thought_signature: Optional[str] = None  # Base64-encoded, Gemini thinking models only
 
 
 class SEMOSSToolResponse(BaseModel):
