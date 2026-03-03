@@ -67,10 +67,9 @@ public class StringExtractReactor extends AbstractRFrameReactor {
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 
-		
 		String frameName = frame.getName();
 		String table = frameName;
-				
+
 		// variables of things passed into the reactor
 		String srcCol = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
 		String where = this.keyValue.get(WHERE);
@@ -83,11 +82,11 @@ public class StringExtractReactor extends AbstractRFrameReactor {
 			replace = false;
 			newColName = getCleanNewColName(newColName);
 		}
-		
-		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
-		if(dataType == null)
-			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 
+		String dataType = metaData.getHeaderTypeAsString(table + "__" + srcCol);
+		if (dataType == null) {
+			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
 		// make sure all inputs are valid/present
 		String[] startingColumns = getColumns(frameName);
@@ -123,7 +122,8 @@ public class StringExtractReactor extends AbstractRFrameReactor {
 			if (where.equals(LEFT)) {
 				script.append(amount + 1).append(", nchar(").append(frameName).append("$").append(srcCol).append(")");
 			} else if (where.equals(RIGHT)) {
-				script.append("1").append(", nchar(").append(frameName).append("$").append(srcCol).append(") - ").append(amount);
+				script.append("1").append(", nchar(").append(frameName).append("$").append(srcCol).append(") - ")
+						.append(amount);
 			}
 		}
 		script.append(");");

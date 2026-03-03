@@ -436,7 +436,6 @@ import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
 import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
 import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
-import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
 public class ReactorFactory {
@@ -1104,7 +1103,6 @@ public class ReactorFactory {
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
 		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
 		reactorHash.put("PredictViz", CreateNLPVizReactor.class);
-		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
 
