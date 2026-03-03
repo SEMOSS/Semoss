@@ -359,10 +359,6 @@ public final class MCPUtility {
 
 	/**
 	 * Returns the first 8 hex characters of a UUID string (dashes removed).
-	 * For example, "12345678-1234-1234-1234-123456789012" → "12345678".
-	 *
-	 * @param engineId UUID string
-	 * @return 8-char hex prefix
 	 */
 	public static String computeShortEngineId(String engineId) {
 		return engineId.replace("-", "").substring(0, 8);
@@ -371,22 +367,12 @@ public final class MCPUtility {
 
 	/**
 	 * Returns the maximum tool name length for the given model engine.
-	 * <p>
-	 * Resolution order:
-	 * <ol>
-	 *   <li>{@value #MAX_TOOL_NAME_CHAR} property in the engine's SMSS file</li>
-	 *   <li>Per-provider default from {@link #PROVIDER_TOOL_NAME_LIMITS}</li>
-	 *   <li>{@link #DEFAULT_MAX_TOOL_NAME_LENGTH} if engine is null</li>
-	 * </ol>
-	 *
-	 * @param modelEngine the model engine (may be null)
-	 * @return maximum allowed tool name length
+	 * Checks MAX_TOOL_NAME_CHAR in the engine's SMSS first, then falls back to the per-provider default.
 	 */
 	public static int getMaxToolNameLength(IModelEngine modelEngine) {
 		if (modelEngine == null) {
 			return DEFAULT_MAX_TOOL_NAME_LENGTH;
 		}
-		// SMSS-level override takes precedence
 		java.util.Properties smssProp = modelEngine.getSmssProp();
 		if (smssProp != null) {
 			String smssValue = smssProp.getProperty(MAX_TOOL_NAME_CHAR);
@@ -399,21 +385,13 @@ public final class MCPUtility {
 				}
 			}
 		}
-		// Fall back to per-provider default
 		return getMaxToolNameLength(modelEngine.getModelType().name());
 	}
 
 	/**
-	 * Returns the maximum tool name length for the given model type string
-	 * (as returned by {@code ModelTypeEnum.name()}).
-	 * <ul>
-	 *   <li>OPEN_AI / AZURE_OPEN_AI → 64</li>
-	 *   <li>Other known types → {@link Integer#MAX_VALUE} (no truncation)</li>
-	 *   <li>null / unknown → {@link #DEFAULT_MAX_TOOL_NAME_LENGTH} (safe fallback)</li>
-	 * </ul>
-	 *
-	 * @param modelType model type name string (e.g. "OPEN_AI")
-	 * @return maximum allowed tool name length
+	 * Returns the maximum tool name length for the given model type string.
+	 * OPEN_AI and AZURE_OPEN_AI return 64; all others return Integer.MAX_VALUE (no truncation).
+	 * A null type falls back to DEFAULT_MAX_TOOL_NAME_LENGTH.
 	 */
 	public static int getMaxToolNameLength(String modelType) {
 		if (modelType == null) {
@@ -423,27 +401,15 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Appends a short engine ID prefix to each tool's method name.
-	 * Delegates to {@link #appendEngineIdToToolsMethodName(String, JSONObject, int)}
-	 * using {@link #DEFAULT_MAX_TOOL_NAME_LENGTH}.
-	 *
-	 * @param engineId   the engine UUID
-	 * @param jsonToolsMap the aggregated tools JSON
-	 * @return updated tools JSON
+	 * Appends engine ID prefix to each tool name using DEFAULT_MAX_TOOL_NAME_LENGTH.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
 		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, DEFAULT_MAX_TOOL_NAME_LENGTH);
 	}
 
 	/**
-	 * Appends a short engine ID prefix ({@code a{8hex}_}) to each tool's name,
-	 * truncating names that exceed {@code maxLength} and appending a 4-char hash
-	 * suffix for uniqueness.
-	 *
-	 * @param engineId     the engine UUID
-	 * @param jsonToolsMap the aggregated tools JSON
-	 * @param maxLength    maximum allowed tool name length
-	 * @return updated tools JSON
+	 * Appends engine ID prefix to each tool name, truncating to maxLength.
+	 * Non-length-limited providers (Integer.MAX_VALUE) use the full UUID prefix and skip truncation.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
@@ -453,8 +419,7 @@ public final class MCPUtility {
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
 
 		if (maxLength == Integer.MAX_VALUE) {
-			// Non-OpenAI providers (no length limit): keep the original full-UUID prefix,
-			// preserving existing behavior for all non-OpenAI models.
+			// No length limit: use the full UUID prefix (preserves existing behavior)
 			for (int i = 0; i < toolsArray.length(); i++) {
 				JSONObject toolMap = toolsArray.getJSONObject(i);
 				String currentName = toolMap.getString("name");
@@ -463,8 +428,7 @@ public final class MCPUtility {
 			return jsonToolsMap;
 		}
 
-		// Length-limited provider (e.g. OpenAI 64-char limit): use the short 8-hex
-		// prefix and only truncate when the full name would exceed maxLength.
+		// Length-limited provider: use the short 8-hex prefix, truncating if needed
 		String shortEngineId = computeShortEngineId(engineId);
 		String shortPrefix = "a" + shortEngineId + "_";
 
@@ -475,7 +439,6 @@ public final class MCPUtility {
 			if (shortPrefix.length() + currentName.length() <= maxLength) {
 				llmName = shortPrefix + currentName;
 			} else {
-				// Truncate tool name to fit within the provider's limit.
 				int availableChars = maxLength - shortPrefix.length();
 				if (availableChars < 0) {
 					availableChars = 0;
@@ -491,21 +454,14 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Removes the engine ID prefix from a tool function name, supporting both the
-	 * new short-prefix format ({@code a{8hex}_{name}}) and the legacy full-UUID
-	 * format ({@code a{UUID}_{name}}) for backward compatibility.
-	 *
-	 * @param engineId     the engine UUID
-	 * @param functionName the prefixed function name
-	 * @return the function name with the engine prefix stripped
+	 * Strips the engine ID prefix from a tool function name.
+	 * Tries the short prefix (a{8hex}_) first, then falls back to the legacy full-UUID prefix.
 	 */
 	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
-		// Try short format first (new format: a{8hex}_{toolName})
 		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
 		if (functionName.startsWith(shortPrefix)) {
 			return functionName.substring(shortPrefix.length());
 		}
-		// Fall back to full UUID prefix (old format: a{UUID}_{toolName})
 		String fullPrefix = "a" + engineId + "_";
 		if (functionName.startsWith(fullPrefix)) {
 			return functionName.substring(fullPrefix.length());
@@ -514,11 +470,8 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Parses the "a" + project id UUID + "_" prefix from a string
-	 * 
-	 * @param input the input string
-	 * @return String array [prefix, remainingString] if prefix found, null
-	 *         otherwise
+	 * Parses the legacy "a{UUID}_" prefix from a function name.
+	 * Returns [engineId, functionName] or null if no match.
 	 */
 	private static String[] parseEngineIdFromFunctionName(String input) {
 		if (input == null) {
@@ -538,22 +491,15 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Updates the tool response with information regarding the tool
-	 *
-	 * @param response
-	 * @return
+	 * Updates the tool response with engine/tool metadata.
 	 */
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response) {
 		updateToolResponseWithProjectMeta(response, null, null);
 	}
 
 	/**
-	 * Updates the tool response with information regarding the tool. Uses a map for
-	 * an intermediary cache during the process in case we are iterating through
-	 * numerous response messages.
-	 *
-	 * @param response
-	 * @param mcpToolsJsonCache
+	 * Updates the tool response with engine/tool metadata. Accepts a cache map to
+	 * avoid repeated engine lookups when iterating over multiple messages.
 	 */
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
 			Map<String, JSONObject> mcpToolsJsonCache) {
@@ -561,17 +507,9 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Updates the tool response with information regarding the tool.
-	 * <p>
-	 * When {@code llmNameToToolJson} is provided, performs a direct lookup by
-	 * LLM-facing name (new short-prefix format). Falls back to UUID-regex parsing
-	 * for backward compatibility with old full-UUID-prefix names.
-	 *
-	 * @param response          the response message containing tool calls
-	 * @param mcpToolsJsonCache per-call cache for aggregated engine tools JSON
-	 *                          (used by UUID-regex fallback path); may be null
-	 * @param llmNameToToolJson per-call lookup map keyed by LLM-facing tool name
-	 *                          (new short-prefix format); may be null
+	 * Updates the tool response with engine/tool metadata.
+	 * Uses llmNameToToolJson for direct lookup (short-prefix names) when provided,
+	 * falling back to UUID-regex parsing for legacy full-UUID-prefix names.
 	 */
 	@SuppressWarnings("unchecked")
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
@@ -585,11 +523,8 @@ public final class MCPUtility {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			String llmFacingName = (String) responseToolMap.get("name");
 
-			// --- New path: direct lookup via per-call LLM-name map (short-prefix format) ---
 			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
 				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
-
-				// The lookup entry's _meta contains engine-level fields + SMSS_FUNCTION_NAME
 				Object rawMeta = toolEntry.get("_meta");
 				Map<String, Object> enrichedMeta = (rawMeta instanceof Map)
 						? (Map<String, Object>) rawMeta
@@ -610,8 +545,6 @@ public final class MCPUtility {
 					responseToolMap.put("description", toolEntry.get("description"));
 				}
 
-				// Build _meta for response: start with all engine-level fields then
-				// validate/add tool-level SMSS_MCP_EXECUTION and SMSS_MCP_UI
 				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
 				JSONObject toolMetaJson = new JSONObject(enrichedMeta);
 				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(toolMetaJson));
@@ -623,10 +556,9 @@ public final class MCPUtility {
 				continue;
 			}
 
-			// --- Legacy fallback: UUID-regex parsing (old full-UUID-prefix format) ---
+			// Legacy fallback: UUID-regex parsing for old full-UUID-prefix names
 			String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(llmFacingName);
 			if (responseProjectIdToolFunctionNameSplit == null) {
-				// tool function name has no engine prefix — already in proper format for FE
 				continue;
 			}
 			String engineId = responseProjectIdToolFunctionNameSplit[0];
