@@ -44,7 +44,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CountIfReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(CountIfReactor.class);
 
 	@Override
@@ -76,17 +76,22 @@ public class CountIfReactor extends AbstractFrameReactor {
 		}
 		// 1) first add new column name
 		String addColumnSQL = "ALTER TABLE " + table + " ADD " + newColumnName + " " + dataType + ";";
-			// 2) create a temp column to replace the matching string in the column to count with a replacement string
+		// 2) create a temp column to replace the matching string in the column to count
+		// with a replacement string
 		String tempColName = "REP_" + Utility.getRandomString(5);
 		String addTempColumn = "ALTER TABLE " + table + " ADD  " + tempColName + " varchar(800);";
 		String tempReplacementString = ";;;" + Utility.getRandomString(3) + ";;;";
-		String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount + ", '" + regex + "', '" + tempReplacementString + "');";
+		String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount
+				+ ", '" + regex + "', '" + tempReplacementString + "');";
 
-		// 3) Update the count column by setting it to the length of the col - replacing the temp column with empty string
-		String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH("+tempColName+") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
+		// 3) Update the count column by setting it to the length of the col - replacing
+		// the temp column with empty string
+		String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH(" + tempColName
+				+ ") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
 
 		// 4) Update the count with MOD (tempColumn, tempString - 1)
-		updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + "," + (tempReplacementString.length() - 1) + " );";
+		updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + ","
+				+ (tempReplacementString.length() - 1) + " );";
 
 		// 5) Drop temp column
 		String dropTempColumn = "ALTER TABLE " + table + " DROP COLUMN " + tempColName + ";";

@@ -38,15 +38,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ColumnAverageReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor averages columns 
-	 * 1) the columns 
-	 * 2) the new column name
+	 * This reactor averages columns 1) the columns 2) the new column name
 	 */
 
 	public ColumnAverageReactor() {
@@ -103,14 +99,11 @@ public class ColumnAverageReactor extends AbstractPyFrameReactor {
 		metaData.setDerivedToProperty(frameName + "__" + newColName, true);
 		frame.syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "ColumnAverage",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
 		// return the output
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
+		retNoun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
 		return retNoun;
 	}
 
