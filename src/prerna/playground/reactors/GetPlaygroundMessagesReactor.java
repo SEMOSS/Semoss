@@ -132,18 +132,15 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 * reproduce the same name transformations that were applied when messages were
 		 * stored.
 		 */
-		String modelType = null;
+		IModelEngine roomModelEngine = null;
 		String modelId = room.getModelId();
 		if (modelId != null) {
 			try {
-				IModelEngine modelEngine = (IModelEngine) Utility.getEngine(modelId);
-				if (modelEngine != null) {
-					modelType = modelEngine.getModelType().name();
-				}
+				roomModelEngine = (IModelEngine) Utility.getEngine(modelId);
 			} catch (Exception ignore) {
 			}
 		}
-		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(modelType));
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
 
 		/**
 		 * Add messages to list

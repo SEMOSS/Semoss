@@ -571,8 +571,7 @@ public class Room {
 	}
 
 	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
-		String modelType = modelEngine != null ? modelEngine.getModelType().name() : null;
-		int maxLength = MCPUtility.getMaxToolNameLength(modelType);
+		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
 		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
 		Object existing = params.get("tools");
 		if (existing instanceof List<?>) {

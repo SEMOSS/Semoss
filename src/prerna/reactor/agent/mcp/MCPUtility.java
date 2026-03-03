@@ -56,6 +56,8 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -105,9 +107,13 @@ public final class MCPUtility {
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
 
+	// SMSS property key to override tool name length per engine instance
+	public static final String MAX_TOOL_NAME_CHAR = "MAX_TOOL_NAME_CHAR";
+
 	// Per-provider tool name length limits keyed by ModelTypeEnum.name()
 	private static final Map<String, Integer> PROVIDER_TOOL_NAME_LIMITS = Map.of(
-			"OPEN_AI", 64
+			ModelTypeEnum.OPEN_AI.name(), 64,
+			ModelTypeEnum.AZURE_OPEN_AI.name(), 64
 	// other providers default to Integer.MAX_VALUE (no truncation)
 	);
 
@@ -362,63 +368,46 @@ public final class MCPUtility {
 		return engineId.replace("-", "").substring(0, 8);
 	}
 
-	/**
-	 * Returns a 4-character lowercase hex hash of the given string.
-	 * Used to disambiguate truncated tool names.
-	 *
-	 * @param input the string to hash
-	 * @return 4-char hex string
-	 */
-	private static String computeShortHash(String input) {
-		return String.format("%04x", input.hashCode() & 0xFFFF);
-	}
 
 	/**
-	 * Returns {@code true} if {@code possiblyTruncated} is a valid truncated+hashed
-	 * form of {@code candidateOriginal}, as produced by
-	 * {@link #appendEngineIdToToolsMethodName(String, JSONObject, int)}.
+	 * Returns the maximum tool name length for the given model engine.
 	 * <p>
-	 * A truncated name has the form {@code <base>_<4hexHash>} where {@code base} is
-	 * a prefix of {@code candidateOriginal} and {@code 4hexHash} equals
-	 * {@code computeShortHash(candidateOriginal)}.
+	 * Resolution order:
+	 * <ol>
+	 *   <li>{@value #MAX_TOOL_NAME_CHAR} property in the engine's SMSS file</li>
+	 *   <li>Per-provider default from {@link #PROVIDER_TOOL_NAME_LIMITS}</li>
+	 *   <li>{@link #DEFAULT_MAX_TOOL_NAME_LENGTH} if engine is null</li>
+	 * </ol>
 	 *
-	 * @param candidateOriginal the original (full, untruncated) tool name
-	 * @param possiblyTruncated the potentially truncated+hashed name (engine prefix
-	 *                          already stripped)
-	 * @return true if {@code possiblyTruncated} was derived from
-	 *         {@code candidateOriginal} via truncation
+	 * @param modelEngine the model engine (may be null)
+	 * @return maximum allowed tool name length
 	 */
-	public static boolean isOriginalForTruncatedName(String candidateOriginal, String possiblyTruncated) {
-		if (possiblyTruncated == null || candidateOriginal == null) {
-			return false;
+	public static int getMaxToolNameLength(IModelEngine modelEngine) {
+		if (modelEngine == null) {
+			return DEFAULT_MAX_TOOL_NAME_LENGTH;
 		}
-		int len = possiblyTruncated.length();
-		// Minimum: at least one base char + "_" + 4 hex chars = 6 chars
-		if (len < 6) {
-			return false;
+		// SMSS-level override takes precedence
+		java.util.Properties smssProp = modelEngine.getSmssProp();
+		if (smssProp != null) {
+			String smssValue = smssProp.getProperty(MAX_TOOL_NAME_CHAR);
+			if (smssValue != null && !smssValue.isBlank()) {
+				try {
+					return Integer.parseInt(smssValue.trim());
+				} catch (NumberFormatException e) {
+					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} — falling back to provider default",
+							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
+				}
+			}
 		}
-		// Last 5 chars must be "_XXXX" where XXXX is 4 lowercase hex digits
-		if (possiblyTruncated.charAt(len - 5) != '_') {
-			return false;
-		}
-		String potentialHash = possiblyTruncated.substring(len - 4);
-		if (!potentialHash.matches("[0-9a-f]{4}")) {
-			return false;
-		}
-		// Hash must match the candidate's hash
-		if (!computeShortHash(candidateOriginal).equals(potentialHash)) {
-			return false;
-		}
-		// The base (everything before "_XXXX") must be a prefix of the original name
-		String truncatedBase = possiblyTruncated.substring(0, len - 5);
-		return candidateOriginal.startsWith(truncatedBase);
+		// Fall back to per-provider default
+		return getMaxToolNameLength(modelEngine.getModelType().name());
 	}
 
 	/**
 	 * Returns the maximum tool name length for the given model type string
 	 * (as returned by {@code ModelTypeEnum.name()}).
 	 * <ul>
-	 *   <li>OPEN_AI → 64</li>
+	 *   <li>OPEN_AI / AZURE_OPEN_AI → 64</li>
 	 *   <li>Other known types → {@link Integer#MAX_VALUE} (no truncation)</li>
 	 *   <li>null / unknown → {@link #DEFAULT_MAX_TOOL_NAME_LENGTH} (safe fallback)</li>
 	 * </ul>
@@ -486,17 +475,15 @@ public final class MCPUtility {
 			if (shortPrefix.length() + currentName.length() <= maxLength) {
 				llmName = shortPrefix + currentName;
 			} else {
-				// Truncate tool name and append a 4-char hash to preserve uniqueness.
-				// Layout: shortPrefix (10) + truncated + "_" + hash (4) = maxLength
-				int availableChars = maxLength - shortPrefix.length() - 5; // 5 = "_" + 4 hash chars
+				// Truncate tool name to fit within the provider's limit.
+				int availableChars = maxLength - shortPrefix.length();
 				if (availableChars < 0) {
 					availableChars = 0;
 				}
 				String truncated = currentName.length() > availableChars
 						? currentName.substring(0, availableChars)
 						: currentName;
-				String hash = computeShortHash(currentName);
-				llmName = shortPrefix + truncated + "_" + hash;
+				llmName = shortPrefix + truncated;
 			}
 			toolMap.put("name", llmName);
 		}
