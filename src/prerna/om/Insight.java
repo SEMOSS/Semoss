@@ -90,8 +90,6 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight implements Serializable {
 
@@ -359,13 +357,6 @@ public class Insight implements Serializable {
 
 	private void trackPixel(PixelRunner runner) {
 		try {
-			IUserTracker tracker = UserTrackerFactory.getInstance();
-			if (tracker.isActive()) {
-				List<Pixel> returnedPixelList = runner.getReturnPixelList();
-				for (Pixel p : returnedPixelList) {
-					tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
-				}
-			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

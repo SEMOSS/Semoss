@@ -34,8 +34,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SemanticDescription extends AbstractRFrameReactor {
 
@@ -69,7 +67,7 @@ public class SemanticDescription extends AbstractRFrameReactor {
 				+ ",function(x) cbind(x$url,ifelse(length(x$description)==0,NA,x$description)))));\n");
 		rsb.append("if(exists('" + rFrame + "')) { \n");
 		// rename columns
-		rsb.append(RSyntaxHelper.asDataTable(rFrame, rFrame)+"\n");
+		rsb.append(RSyntaxHelper.asDataTable(rFrame, rFrame) + "\n");
 		// remove frame if empty
 		rsb.append("if(nrow(SemanticMeaning) == 0) {\nrm(SemanticMeaning)\n} else {\n");
 		rsb.append("colnames(" + rFrame + ") <- c('" + url + "', '" + semanticMeaning + "'); \n");
@@ -78,10 +76,10 @@ public class SemanticDescription extends AbstractRFrameReactor {
 		rsb.append("}}\n");
 		// r temp variable clean up
 		rsb.append("rm(" + rFindItem + ");");
-		
+
 		this.rJavaTranslator.runR(rsb.toString());
 		this.addExecutedCode(rsb.toString());
-		
+
 		String frameExists = "exists('" + rFrame + "')";
 		boolean nullResults = this.rJavaTranslator.getBoolean(frameExists);
 		if (!nullResults) {
@@ -92,17 +90,9 @@ public class SemanticDescription extends AbstractRFrameReactor {
 			throw exception;
 		}
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				null, 
-				"SemanticDescription", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		RDataTable returnTable = createNewFrameFromVariable(rFrame);
 		this.insight.setDataMaker(returnTable);
 		return new NounMetadata(returnTable, PixelDataType.FRAME);
-
 	}
 
 	@Override

@@ -39,10 +39,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ExtractLettersReactor extends AbstractRFrameReactor {
+
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
 
 	public ExtractLettersReactor() {
@@ -63,7 +62,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 		boolean overrideColumn = getOverride();
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		
+
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		// update existing columns
@@ -72,8 +71,9 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 				String column = columns.get(i);
 				// check data type this is only valid on non numeric values
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if(dataType == null)
+				if (dataType == null) {
 					return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+				}
 
 				if (Utility.isStringType(dataType.toString())) {
 					String update = table + "$" + column + " <- gsub('[^a-zA-Z_]', '', " + table + "$" + column + ")";
@@ -104,14 +104,7 @@ public class ExtractLettersReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ExtractAlphaChars", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 	}
 
