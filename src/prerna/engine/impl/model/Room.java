@@ -593,7 +593,7 @@ public class Room {
 	 * @return list of tool definition maps ready to pass to the LLM
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
-		return getAllToolsJsonForRoom(MCPUtility.DEFAULT_MAX_TOOL_NAME_LENGTH);
+		return getAllToolsJsonForRoom(Integer.MAX_VALUE);
 	}
 
 	/**
@@ -716,24 +716,24 @@ public class Room {
 					Map<String, Object> toolMapEntry = toolObj.toMap();
 					result.add(toolMapEntry);
 
-					// Build lookup entry: tool JSON + engine metadata + original function name.
-					// Use a separate copy of _meta so we don't modify the LLM-bound tool map.
+					// Build a minimal lookup entry (only what updateToolResponseMeta reads).
+					// Engine-level fields go in first; tool-level meta overrides on top.
 					String llmFacingName = toolObj.getString("name");
-					String origName = originalNames.get(i);
-
-					Map<String, Object> lookupEntry = new HashMap<>(toolMapEntry);
+					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
 					Object rawToolMeta = toolMapEntry.get("_meta");
-					Map<String, Object> lookupMeta = (rawToolMeta instanceof Map)
-							? new HashMap<>((Map<String, Object>) rawToolMeta)
-							: new HashMap<>();
-					lookupEntry.put("_meta", lookupMeta);
-					// Merge in engine-level fields (SMSS_ENGINE_ID, SMSS_ENGINE_NAME, etc.)
-					lookupMeta.putAll(engineMeta);
-					// Ensure SMSS_ENGINE_ID is always present
-					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, engineId);
-					// Store the original (untruncated) function name for reverse lookup
-					lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, origName);
+					if (rawToolMeta instanceof Map) {
+						lookupMeta.putAll((Map<String, Object>) rawToolMeta);
+					}
+					lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
 
+					Map<String, Object> lookupEntry = new HashMap<>();
+					if (toolMapEntry.containsKey("title")) {
+						lookupEntry.put("title", toolMapEntry.get("title"));
+					}
+					if (toolMapEntry.containsKey("description")) {
+						lookupEntry.put("description", toolMapEntry.get("description"));
+					}
+					lookupEntry.put("_meta", lookupMeta);
 					toolLookupByLLMName.put(llmFacingName, lookupEntry);
 				}
 			}

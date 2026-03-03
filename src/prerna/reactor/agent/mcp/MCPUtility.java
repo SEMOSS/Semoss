@@ -546,9 +546,8 @@ public final class MCPUtility {
 				}
 
 				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
-				JSONObject toolMetaJson = new JSONObject(enrichedMeta);
-				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(toolMetaJson));
-				JSONObject uiMeta = getValidMcpUI(toolMetaJson);
+				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(enrichedMeta));
+				JSONObject uiMeta = getValidMcpUI(enrichedMeta);
 				if (uiMeta != null) {
 					currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
 				}
@@ -613,9 +612,9 @@ public final class MCPUtility {
 				}
 
 				if (mcpTool != null && mcpTool.has("_meta")) {
-					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
-					currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(toolMeta));
-					JSONObject uiMeta = getValidMcpUI(toolMeta);
+					Map<String, Object> toolMetaMap = mcpTool.getJSONObject("_meta").toMap();
+					currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(toolMetaMap));
+					JSONObject uiMeta = getValidMcpUI(toolMetaMap);
 					if (uiMeta != null) {
 						currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
 					}
@@ -967,34 +966,37 @@ public final class MCPUtility {
 	 * @param toolMeta
 	 * @return
 	 */
-	private static String getValidMcpExecution(JSONObject toolMeta) {
+	private static String getValidMcpExecution(Map<String, Object> toolMeta) {
 		if (toolMeta == null) {
-			return MCPExecution.ASK.getValue(); // default if _meta missing
+			return MCPExecution.ASK.getValue();
 		}
-
-		Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
-		String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
-
-		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
+		Object val = toolMeta.get(SMSS_MCP_EXECUTION);
+		String valueString = (val == null) ? null : val.toString();
+		MCPExecution exec = MCPExecution.fromValue(valueString);
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 
 	/**
-	 * 
+	 *
 	 * @param toolMeta
 	 * @return
 	 */
-	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
+	private static JSONObject getValidMcpUI(Map<String, Object> toolMeta) {
 		if (toolMeta == null) {
 			return null;
 		}
-
-		Object val = toolMeta.opt(SMSS_MCP_UI); // could be null, missing, etc
-		if (val == null || JSONObject.NULL.equals(val) || !(val instanceof JSONObject)) {
+		Object val = toolMeta.get(SMSS_MCP_UI);
+		if (val == null) {
 			return null;
 		}
-
-		JSONObject uiJson = (JSONObject) val;
+		JSONObject uiJson;
+		if (val instanceof JSONObject) {
+			uiJson = (JSONObject) val;
+		} else if (val instanceof Map) {
+			uiJson = new JSONObject((Map<?, ?>) val);
+		} else {
+			return null;
+		}
 
 		// Only add known keys
 		String resourceURI = null;
