@@ -887,15 +887,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public boolean deleteUser(String userIdToDelete, String userTypeToDelete) {
 		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM ENGINEPERMISSION WHERE USERID=?",
-					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
+					"DELETE FROM PROJECTPERMISSION WHERE USERID=?", "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
 					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?", "DELETE FROM USERMETA WHERE USERID=?",
 					"DELETE FROM SMSS_USER WHERE ID=?", };
 			for (String query : deleteQueries) {
@@ -904,6 +898,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(query);
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, userIdToDelete);
+					ps.execute();
+					if (!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
+			}
+		}
+		{
+			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?" };
+			for (String query : deleteQueries) {
+				PreparedStatement ps = null;
+				try {
+					ps = securityDb.getPreparedStatement(query);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userIdToDelete);
+					ps.setString(parameterIndex++, userTypeToDelete);
 					ps.execute();
 					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
@@ -4361,6 +4375,33 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		fSelector.setFunction(QueryFunctionHelper.COUNT);
 		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(fSelector);
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param searchTerm
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public Long getNumUsers(String searchTerm) throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("num_users");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
+		if (hasSearchTerm) {
+			final String SMSS_USER_PREFIX = "SMSS_USER__";
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 

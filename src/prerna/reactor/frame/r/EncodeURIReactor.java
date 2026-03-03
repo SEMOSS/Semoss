@@ -37,19 +37,18 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class EncodeURIReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor encodes special characters in columns to conform to URI standards
+	 * This reactor encodes special characters in columns to conform to URI
+	 * standards
 	 */
-	
+
 	public EncodeURIReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
@@ -74,31 +73,25 @@ public class EncodeURIReactor extends AbstractRFrameReactor {
 				table = split[0];
 			}
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
-			if(dataType == null)
+			if (dataType == null) {
 				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			}
 
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
 				builder.append(table + "$" + col + " <- url_encode(" + table + "$" + col + ");");
 			}
 		}
-		
+
 		// execute the r script
 		// script will be of the form:
 		// FRAME$column <- toupper(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
 		this.addExecutedCode(builder.toString());
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"EncodeURI", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////

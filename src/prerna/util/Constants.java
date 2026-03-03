@@ -757,9 +757,6 @@ public class Constants {
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";
 
-	// tracking
-	public static final String T_ON = "T_ON";
-
 	// post message specific keys
 	public static final String PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD = "PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD";
 
