@@ -886,15 +886,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public boolean deleteUser(String userIdToDelete, String userTypeToDelete) {
 		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM ENGINEPERMISSION WHERE USERID=?",
-					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
+					"DELETE FROM PROJECTPERMISSION WHERE USERID=?", "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
 					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?", "DELETE FROM USERMETA WHERE USERID=?",
 					"DELETE FROM SMSS_USER WHERE ID=?", };
 			for (String query : deleteQueries) {
@@ -903,6 +897,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(query);
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, userIdToDelete);
+					ps.execute();
+					if (!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
+			}
+		}
+		{
+			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?" };
+			for (String query : deleteQueries) {
+				PreparedStatement ps = null;
+				try {
+					ps = securityDb.getPreparedStatement(query);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userIdToDelete);
+					ps.setString(parameterIndex++, userTypeToDelete);
 					ps.execute();
 					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
