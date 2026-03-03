@@ -4359,4 +4359,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
+	/**
+	 * 
+	 * @param searchTerm
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public Long getNumUsers(String searchTerm) throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("num_users");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
+		if (hasSearchTerm) {
+			final String SMSS_USER_PREFIX = "SMSS_USER__";
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
 }
