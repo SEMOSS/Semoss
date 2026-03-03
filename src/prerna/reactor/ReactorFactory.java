@@ -432,9 +432,6 @@ import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesO;
 import prerna.util.git.reactors.SyncAppOReactor;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
-import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
-import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
-import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
@@ -667,7 +664,6 @@ public class ReactorFactory {
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
-		reactorHash.put("WidgetT", WidgetTReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
 
 		// Database uploading utils
@@ -1096,9 +1092,6 @@ public class ReactorFactory {
 		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
-		// User Tracking
-		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
-		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
 		// Recommendations
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
 		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
