@@ -1691,4 +1691,15 @@ public class Project implements IProject {
 		return getProjectMCP().callTool(toolName, params, insight);
 	}
 
+	@Override
+	public void setDisplayName(String displayName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getProjectName();
+	}
+
 }

@@ -231,4 +231,15 @@ public class RemoteModelEngine implements IModelEngine {
 		return this.getContextWindow();
 	}
 
+	@Override
+	public void setDisplayName(String displayName) {
+		// no display name for engine
+		
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getEngineName();
+	}
+
 }

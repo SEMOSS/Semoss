@@ -27,16 +27,28 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
+import java.io.IOException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
+import prerna.util.Utility;
 
 public class SetEngineDisplayNameReactor extends AbstractReactor {
 
+	private static final Logger classLogger = LogManager.getLogger(SetEngineDisplayNameReactor.class);
+
+	
 	public SetEngineDisplayNameReactor() {
 		this.keysToGet = new String[] {
 				ReactorKeysEnum.ENGINE.getKey(), "name"
@@ -58,6 +70,20 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 		} catch (IllegalAccessException e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
+
+		// update smss file, in-memory engine object, and push to cloud
+		IEngine engine = Utility.getEngine(engineId);
+		if (engine != null) {
+			String smssFilePath = engine.getSmssFilePath();
+			try {
+				Utility.changePropertiesFileValue(smssFilePath, Constants.ENGINE_DISPLAY_NAME, displayName);
+			} catch (IOException e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+			engine.setDisplayName(displayName);
+			ClusterUtil.pushEngineSmss(engineId);
+		}
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the display name for the engine"));
 		return noun;
