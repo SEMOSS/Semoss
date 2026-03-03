@@ -72,7 +72,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+		OrQueryFilter nameOrDisplayFilter1 = new OrQueryFilter();
+		nameOrDisplayFilter1.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+		nameOrDisplayFilter1.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+		qs.addExplicitFilter(nameOrDisplayFilter1);
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
@@ -83,7 +86,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+			OrQueryFilter nameOrDisplayFilter2 = new OrQueryFilter();
+			nameOrDisplayFilter2.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+			nameOrDisplayFilter2.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+			qs.addExplicitFilter(nameOrDisplayFilter2);
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 
