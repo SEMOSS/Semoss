@@ -501,6 +501,45 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get specific group details
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getGroupDetails(String groupId, String groupType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID", "CREATED_BY_USERID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE", "CREATED_BY_USERIDTYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+
+		List<Map<String, Object>> group = getSimpleQuery(qs);
+		if (group != null && !group.isEmpty()) {
+			return group.get(0);
+		}
+
+		throw new IllegalArgumentException("Group " + groupId + " does not exist");
+	}
+
+	/**
+	 * Get number of groups
+	 * 
+	 * @return
+	 */
+	public Long getNumGroups(String searchTerm) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_GROUP__ID", "numGroups"));
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
 	 * This is only valid for members assigned to custom group assignments
 	 * 
 	 * @return
