@@ -32,12 +32,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAllStepsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetAllStepsReactor.class);
 
 	public GetAllStepsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "fileName" };
@@ -83,71 +88,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 			List<Map<String, Object>> tabSteps = new ArrayList<>();
 			for (List<PlaywrightStep> page : pages) {
 				for (PlaywrightStep step : page) {
-					Map<String, Object> stepMap = new HashMap<>();
-					stepMap.put("id", step.id());
-					stepMap.put("type", step.type().toString());
-
-					if (step.shouldRun() != null) {
-						stepMap.put("shouldRun", step.shouldRun());
-					}
-
-					if (step.tag() != null) {
-						stepMap.put("tag", step.tag());
-					}
-
-					if (step.required() != null) {
-						stepMap.put("required", step.required());
-					}
-
-					if (step.url() != null) {
-						stepMap.put("url", step.url());
-					}
-					if (step.coords() != null) {
-						Map<String, Object> coordsMap = new HashMap<>();
-						coordsMap.put("x", step.coords().x());
-						coordsMap.put("y", step.coords().y());
-						stepMap.put("coords", coordsMap);
-					}
-
-					if (step.text() != null) {
-						stepMap.put("text", step.text());
-					}
-					if (step.label() != null) {
-						stepMap.put("label", step.label());
-					}
-					if (step.description() != null) {
-						stepMap.put("description", step.description());
-					}
-					if (step.type() == PlaywrightStepType.TYPE) {
-						stepMap.put("isPassword", step.isPassword());
-						stepMap.put("storeValue", step.storeValue());
-
-					}
-					if (step.deltaY() != null) {
-						stepMap.put("deltaY", step.deltaY());
-					}
-					if (step.type() == PlaywrightStepType.CONTEXT) {
-						if (step.multiCoords() != null) {
-							List<Map<String, Object>> multiCoordsList = new ArrayList<>();
-							for (Coords coord : step.multiCoords()) {
-								Map<String, Object> coordMap = new HashMap<>();
-								coordMap.put("x", coord.x());
-								coordMap.put("y", coord.y());
-								multiCoordsList.add(coordMap);
-							}
-							stepMap.put("multiCoords", multiCoordsList);
-						}
-						if (step.prompt() != null) {
-							stepMap.put("prompt", step.prompt());
-						}
-						if (step.sendToPlayground() != null) {
-							stepMap.put("sendToPlayground", step.sendToPlayground());
-						}
-					}
-					if (step.waitAfterMs() != null) {
-						stepMap.put("waitAfterMs", step.waitAfterMs());
-					}
-					tabSteps.add(stepMap);
+					tabSteps.add(convertStepToMap(step));
 				}
 			}
 			transformedSteps.put(tabId, tabSteps);
@@ -161,10 +102,10 @@ public class GetAllStepsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Populates the session history with steps from the loaded recording.
-	 * This appends steps from the loaded file to the existing session history,
-	 * allowing multiple files to be loaded sequentially into the same session.
-	 * Step IDs are reassigned to ensure uniqueness across all loaded files.
+	 * Populates the session history with steps from the loaded recording. This
+	 * appends steps from the loaded file to the existing session history, allowing
+	 * multiple files to be loaded sequentially into the same session. Step IDs are
+	 * reassigned to ensure uniqueness across all loaded files.
 	 *
 	 * @param session The PlaywrightSession to populate
 	 * @param env     The StepsEnvelope containing the loaded steps
@@ -196,7 +137,88 @@ public class GetAllStepsReactor extends AbstractReactor {
 		}
 
 		session.lastStepId = currentStepId;
-		System.out.println("Loaded and appended steps from file. New lastStepId: " + currentStepId);
+		classLogger.debug("Loaded and appended steps from file. New lastStepId: {}", currentStepId);
+	}
+
+	private Map<String, Object> convertStepToMap(PlaywrightStep step) {
+		Map<String, Object> stepMap = new HashMap<>();
+		stepMap.put("id", step.id());
+		stepMap.put("type", step.type() != null ? step.type().toString() : null);
+		stepMap.put("url", step.url());
+		stepMap.put("coords", convertCoords(step.coords()));
+		stepMap.put("multiCoords", convertMultiCoords(step.multiCoords()));
+		stepMap.put("prompt", step.prompt());
+		stepMap.put("text", step.text());
+		stepMap.put("pressEnter", step.pressEnter());
+		stepMap.put("deltaY", step.deltaY());
+		stepMap.put("waitUntil", step.waitUntil());
+		stepMap.put("waitAfterMs", step.waitAfterMs());
+		stepMap.put("viewport", convertViewport(step.viewport()));
+		stepMap.put("timestamp", step.timestamp());
+		stepMap.put("label", step.label());
+		stepMap.put("description", step.description());
+		stepMap.put("isPassword", step.isPassword());
+		stepMap.put("storeValue", step.storeValue());
+		stepMap.put("selector", convertSelector(step.selector()));
+		stepMap.put("isTriggerNewTab", convertTriggerNewTab(step.isTriggerNewTab()));
+		stepMap.put("shouldRun", step.shouldRun());
+		stepMap.put("required", step.required());
+		stepMap.put("sendToPlayground", step.sendToPlayground());
+		stepMap.put("tag", step.tag());
+		return stepMap;
+	}
+
+	private Map<String, Object> convertCoords(Coords coords) {
+		if (coords == null) {
+			return null;
+		}
+		Map<String, Object> coordsMap = new HashMap<>();
+		coordsMap.put("x", coords.x());
+		coordsMap.put("y", coords.y());
+		return coordsMap;
+	}
+
+	private List<Map<String, Object>> convertMultiCoords(List<Coords> coordsList) {
+		if (coordsList == null) {
+			return null;
+		}
+		List<Map<String, Object>> converted = new ArrayList<>(coordsList.size());
+		for (Coords coord : coordsList) {
+			converted.add(convertCoords(coord));
+		}
+		return converted;
+	}
+
+	private Map<String, Object> convertViewport(Viewport viewport) {
+		if (viewport == null) {
+			return null;
+		}
+		Map<String, Object> viewportMap = new HashMap<>();
+		viewportMap.put("width", viewport.width());
+		viewportMap.put("height", viewport.height());
+		viewportMap.put("deviceScaleFactor", viewport.deviceScaleFactor());
+		return viewportMap;
+	}
+
+	private Map<String, Object> convertSelector(Selector selector) {
+		if (selector == null) {
+			return null;
+		}
+		Map<String, Object> selectorMap = new HashMap<>();
+		selectorMap.put("strategy", selector.strategy());
+		selectorMap.put("value", selector.value());
+		selectorMap.put("frameSelector", selector.frameSelector());
+		return selectorMap;
+	}
+
+	private Map<String, Object> convertTriggerNewTab(TriggerNewTab triggerNewTab) {
+		if (triggerNewTab == null) {
+			return null;
+		}
+		Map<String, Object> triggerMap = new HashMap<>();
+		triggerMap.put("isTrue", triggerNewTab.isTrue());
+		triggerMap.put("tabId", triggerNewTab.tabId());
+		return triggerMap;
 	}
 
 	@Override
