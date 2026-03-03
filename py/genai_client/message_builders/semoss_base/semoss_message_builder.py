@@ -89,6 +89,7 @@ class SEMOSSMessageBuilder:
                                 ),
                                 id=tc.get("id"),
                                 type="function",
+                                thought_signature=tc.get("thought_signature"),
                             )
                         )
                         process_parts.append(tool_call_part)
