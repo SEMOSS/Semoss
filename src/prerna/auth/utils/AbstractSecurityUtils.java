@@ -2190,10 +2190,12 @@ public abstract class AbstractSecurityUtils {
 						int order = 0;
 						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
 								new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null, null, null }));
+										"select-box", null, "/api/auth/admin/engine/getEngines",
+										"{\"engineTypes\": [\"MODEL\"]}" }));
 						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
 								new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null, null, null }));
+										"select-box", null, "/api/auth/admin/engine/getEngines",
+										"{\"engineTypes\": [\"MODEL\"]}" }));
 					}
 				}
 			} catch (Exception e) {
