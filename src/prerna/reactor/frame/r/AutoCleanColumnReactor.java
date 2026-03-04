@@ -40,8 +40,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 
@@ -64,8 +62,9 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 
 		// make sure its a string
 		String dataType = this.getColumnType(tableName, column);
-		if(dataType == null)
+		if (dataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
 		if (SemossDataType.convertStringToDataType(dataType) != SemossDataType.STRING) {
 			throw new IllegalArgumentException("The column type must be a String.");
@@ -80,14 +79,14 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		NounMetadata retNoun = null;
-		
+
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		if(!override) {
+		if (!override) {
 			// adding new column
 			// data + headers change
 			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
 			retNoun = new NounMetadata(frame, PixelDataType.FRAME, opTypes);
-			
+
 			// new col is mastered version of column
 			String tempCol = Utility.getRandomString(8);
 			String newHeaderName = getCleanNewHeader(tableName, column);
@@ -100,7 +99,7 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 			script.append("rm(" + tempCol + ");");
 			this.rJavaTranslator.runR(script.toString());
 			this.addExecutedCode(script.toString());
-			
+
 			// add meta data to frame
 			retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newHeaderName));
 			metaData.addProperty(tableName, tableName + "__" + newHeaderName);
@@ -112,22 +111,17 @@ public class AutoCleanColumnReactor extends AbstractRFrameReactor {
 			retNoun = new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 
 			// execute the script on the column and replace original
-			this.rJavaTranslator.runR(tableName + "$" + column + " <- master_col_data(" + tableName + "$" + column + ");");
+			this.rJavaTranslator
+					.runR(tableName + "$" + column + " <- master_col_data(" + tableName + "$" + column + ");");
 		}
 		frame.syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"AutoClean", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
 		return retNoun;
 	}
-	
+
 	/**
 	 * Create new column or override existing column
+	 * 
 	 * @return
 	 */
 	private boolean overrideExistingColumn() {

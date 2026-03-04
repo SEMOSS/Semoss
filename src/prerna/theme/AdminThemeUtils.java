@@ -159,6 +159,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
+		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
 		return true;
 	}
 
@@ -260,7 +261,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		if (isActive) {
 			setActiveTheme(themeId);
-		}
+			PlaygroundThemeUtils.refreshCacheFromActiveTheme();
+		} 
 		return true;
 	}
 

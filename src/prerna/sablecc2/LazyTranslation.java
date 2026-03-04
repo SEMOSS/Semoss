@@ -132,8 +132,6 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class LazyTranslation extends DepthFirstAdapter {
 
@@ -298,19 +296,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 	 */
 	protected void trackError(String pixel, boolean meta, Exception ex) {
 		if (this.insight != null) {
-			IUserTracker tracker = UserTrackerFactory.getInstance();
-			if (tracker.isActive()) {
-				String curReactorName = null;
-				String parentReactorName = null;
-				if (this.curReactor != null) {
-					curReactorName = this.curReactor.getClass().getName();
-					IReactor parentReactor = this.curReactor.getParentReactor();
-					if (parentReactor != null) {
-						parentReactorName = parentReactor.getClass().getName();
-					}
-				}
-				tracker.trackError(this.insight, pixel, curReactorName, parentReactorName, meta, ex);
-			}
 		}
 	}
 
