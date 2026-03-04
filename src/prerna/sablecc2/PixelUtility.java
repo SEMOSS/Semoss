@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2;
 
 import java.io.ByteArrayInputStream;
@@ -16,7 +43,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -98,7 +124,7 @@ public class PixelUtility {
 	 *                         expression
 	 */
 	public static List<String> parsePixel(String pixelExpression) throws ParserException, LexerException, IOException {
-		List<String> parsed = new Vector<>();
+		List<String> parsed = new ArrayList<>();
 		List<String> encodingList = new ArrayList<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
 		String processedPixel = PixelPreProcessor.preProcessPixel(pixelExpression, encodingList, encodedTextToOriginal);
@@ -661,7 +687,7 @@ public class PixelUtility {
 				.generateInsightJsonForParameters(insightName, fullRecipe.toString(), params);
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		List<String> paramedRecipe = new Vector<>(currentInsight.getVarStore().getInsightParameterKeys().size() + 2);
+		List<String> paramedRecipe = new ArrayList<>(currentInsight.getVarStore().getInsightParameterKeys().size() + 2);
 		// if i add parameters here
 		appendAddInsightParameter(currentInsight, paramedRecipe);
 		paramedRecipe.add("META | AddPanel(0);");
@@ -678,7 +704,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static List<String> getMetaInsightRecipeSteps(Insight in, PixelList pixelList) {
-		List<String> additionalSteps = new Vector<>();
+		List<String> additionalSteps = new ArrayList<>();
 		// add the pipeline positions
 		appendPositionInsightRecipeStep(pixelList, additionalSteps);
 //		// add the semoss parameters
@@ -796,7 +822,7 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static List<String> getSetParamValuePixels(Insight in) {
-		List<String> additionalSteps = new Vector<>();
+		List<String> additionalSteps = new ArrayList<>();
 		VarStore varStore = in.getVarStore();
 		List<String> params = varStore.getInsightParameterKeys();
 		// loop through the keys
@@ -830,8 +856,8 @@ public class PixelUtility {
 	 * @return
 	 */
 	public static List<String> getCachedInsightRecipe(Insight in) {
-		List<String> cacheRecipe = new Vector<>();
-		List<String> panelTasks = new Vector<>();
+		List<String> cacheRecipe = new ArrayList<>();
+		List<String> panelTasks = new ArrayList<>();
 
 		// add sheets
 		Map<String, InsightSheet> sheets = in.getInsightSheets();
@@ -1337,7 +1363,7 @@ public class PixelUtility {
 			fullRecipe.append(s.trim());
 		}
 
-		List<Map<String, Object>> vec = new Vector<>();
+		List<Map<String, Object>> vec = new ArrayList<>();
 		Map<String, Object> map = new LinkedHashMap<>();
 		// recipe is the query
 		map.put("query", fullRecipe.toString());
@@ -1345,7 +1371,7 @@ public class PixelUtility {
 		map.put("description", "Please select paramters for the insight");
 		// add params
 		int infiniteScrollCounter = 0;
-		List<Map<String, Object>> paramList = new Vector<>();
+		List<Map<String, Object>> paramList = new ArrayList<>();
 		for (int i = 0; i < numParams; i++) {
 			Map<String, Object> pMap = paramsMap.get(i);
 			String param = (String) pMap.get("paramName");
@@ -1427,7 +1453,7 @@ public class PixelUtility {
 		vec.add(map);
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		List<String> paramedRecipe = new Vector<>(2);
+		List<String> paramedRecipe = new ArrayList<>(2);
 		paramedRecipe.add("AddPanel(0);");
 		paramedRecipe.add("META | Panel (0) | SetPanelView(\"param\", \"<encode> {\"json\":" + gson.toJson(vec)
 				+ "}</encode>\");");

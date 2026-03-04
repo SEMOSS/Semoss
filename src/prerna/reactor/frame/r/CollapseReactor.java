@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.HashSet;
@@ -12,8 +39,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollapseReactor extends AbstractRFrameReactor {
 
@@ -53,19 +78,20 @@ public class CollapseReactor extends AbstractRFrameReactor {
 
 		// get subset of frame using columns selected
 		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, row));
-		
+
 		// get unique subset values
 		rsb.append(tempFrame + "<-unique(" + tempFrame + ");");
 
 		// aggregate values
 		String aggFrame = "aggFrame" + Utility.getRandomString(8);
 		String delimR = "'" + delim + "'";
-		rsb.append(aggFrame + " <- aggregate(" + tempFrame + "$" + valueCol + ", by = " + groupByColsR + ", paste, collapse=" + delimR + ");");		
-		
+		rsb.append(aggFrame + " <- aggregate(" + tempFrame + "$" + valueCol + ", by = " + groupByColsR
+				+ ", paste, collapse=" + delimR + ");");
+
 		// rename columns
 		String names = RSyntaxHelper.createStringRColVec(newColNames);
 		rsb.append("colnames(" + aggFrame + ") <- " + names + ";");
-		
+
 		// get columns to keep
 		HashSet<String> colsToKeep = getKeepCols();
 		if (colsToKeep != null) {
@@ -74,7 +100,8 @@ public class CollapseReactor extends AbstractRFrameReactor {
 			String mergeFrame = Utility.getRandomString(8);
 			// get subset of frame using columns selected
 			rsb.append(RSyntaxHelper.getFrameSubset(mergeFrame, frameName, colsToKeep.toArray()));
-			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = " + RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
+			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = "
+					+ RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
 		}
 		// replace current frame with agg frame
 		rsb.append(RSyntaxHelper.asDataTable(frameName, aggFrame));
@@ -86,17 +113,11 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		this.addExecutedCode(rsb.toString());
 		frame.recreateMeta();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Collapse", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
-	
+
 	private List<String> getGroupByCols() {
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getGenRowStruct(this.keysToGet[0]);

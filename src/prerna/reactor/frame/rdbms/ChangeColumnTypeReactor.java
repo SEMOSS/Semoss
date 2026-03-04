@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
@@ -12,31 +39,28 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 /**
-* This reactor changes the data type of an existing column The inputs to the
-* reactor are: 
-* 1) the column to update 
-* 2) the desired column type
-* 3) if the desired type is a date, can enter the current date format
-*/
+ * This reactor changes the data type of an existing column The inputs to the
+ * reactor are: 1) the column to update 2) the desired column type 3) if the
+ * desired type is a date, can enter the current date format
+ */
 
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ChangeColumnTypeReactor.class);
 
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format"};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format" };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		// get frame
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
-		
+
 		// get inputs
 		String table = frame.getName();
 		String column = this.keyValue.get(this.keysToGet[0]);
@@ -53,24 +77,25 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
 		}
 		newType = frame.getQueryUtil().cleanType(newType);
-		
+
 		String additionalDataType = this.keyValue.get(this.keysToGet[2]);
-		
+
 		// check the column exists, if not then throw warning
 		String[] allCol = getColNames(frame);
 		if (!Arrays.asList(allCol).contains(column)) {
 			throw new IllegalArgumentException("Column doesn't exist.");
 		}
 
-		// if we are changing from a string to a date, we need to parse using the format entered by the user
+		// if we are changing from a string to a date, we need to parse using the format
+		// entered by the user
 		if (newType.equalsIgnoreCase("date")) {
 			String dateFormat = this.keyValue.get(this.keysToGet[3]);
-			if(dateFormat == null || dateFormat.isEmpty()) {
+			if (dateFormat == null || dateFormat.isEmpty()) {
 				dateFormat = "yyyy-MM-dd";
 			}
 			// query of form: UPDATE FRAME SET birthday = PARSEDATETIME(column, 'format');
-			String convertString = "UPDATE " + table + " SET " + column + 
-					" = PARSEDATETIME (" + column + ", " + "'" + dateFormat + "');";
+			String convertString = "UPDATE " + table + " SET " + column + " = PARSEDATETIME (" + column + ", " + "'"
+					+ dateFormat + "');";
 			try {
 				frame.getBuilder().runQuery(convertString);
 			} catch (Exception e) {
@@ -89,17 +114,11 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 		}
 
 		frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, newType);
-		if(additionalDataType != null && !additionalDataType.isEmpty()) {
+		if (additionalDataType != null && !additionalDataType.isEmpty()) {
 			frame.getMetaData().modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ChangeColumnType", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 }

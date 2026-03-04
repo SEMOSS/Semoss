@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
@@ -17,7 +44,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.poi.main.helper.excel.ExcelBlock;
 import prerna.poi.main.helper.excel.ExcelRange;
 import prerna.poi.main.helper.excel.ExcelSheetFileIterator;
@@ -47,23 +74,23 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
 	static {
-		String[] headers = new String[] {ENGINE_ID_KEY, USER_ID_KEY, PERMISSION_KEY};
+		String[] headers = new String[] { ENGINE_ID_KEY, USER_ID_KEY, PERMISSION_KEY };
 		StringBuilder builder = new StringBuilder("INSERT INTO ENGINEPERMISSION (");
-		for(int i = 0; i < headers.length; i++) {
-			if(i > 0) {
+		for (int i = 0; i < headers.length; i++) {
+			if (i > 0) {
 				builder.append(", ");
 			}
 			builder.append(headers[i]);
 		}
 		builder.append(") VALUES (");
-		for(int i = 0; i < headers.length; i++) {
-			if(i > 0) {
+		for (int i = 0; i < headers.length; i++) {
+			if (i > 0) {
 				builder.append(", ");
 			}
 			builder.append("?");
 
 			// also keep track of header to index for the file uploading
-			psIndex.put(headers[i], (i+1));
+			psIndex.put(headers[i], (i + 1));
 		}
 		insertQuery = builder.append(")").toString();
 	}
@@ -71,26 +98,26 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 	private Logger logger = null;
 
 	public AdminUploadDatabasePermissionsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
+		if (adminUtils == null) {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
 
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		File uploadFile = new File(Utility.normalizePath(filePath));
-		if(!uploadFile.exists() || !uploadFile.isFile()) {
+		if (!uploadFile.exists() || !uploadFile.isFile()) {
 			throw new IllegalArgumentException("Could not find the specified file");
 		}
 
 		this.logger = getLogger(CLASS_NAME);
 
-		RDBMSNativeEngine database = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
 		Connection conn = null;
 		try {
 			conn = database.getConnection();
@@ -110,7 +137,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
@@ -162,9 +189,8 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 		return it;
 	}
 
-	private void loadExcelFile(Connection conn, 
-			AbstractSqlQueryUtil queryUtil, 
-			ExcelSheetFileIterator helper) throws Exception {
+	private void loadExcelFile(Connection conn, AbstractSqlQueryUtil queryUtil, ExcelSheetFileIterator helper)
+			throws Exception {
 
 		boolean hasInsert = false;
 		boolean hasUpdate = false;
@@ -177,10 +203,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 			int idxUser = excelHeadersList.indexOf(USER_ID_KEY);
 			int idxRole = excelHeadersList.indexOf(PERMISSION_KEY);
 
-			if(idxEngine < 0 
-					|| idxUser < 0
-					|| idxRole < 0
-					) {
+			if (idxEngine < 0 || idxUser < 0 || idxRole < 0) {
 				throw new IllegalArgumentException("One or more headers are missing from the excel");
 			}
 
@@ -193,26 +216,29 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 				String userId = (String) row[idxUser];
 				String role = (String) row[idxRole];
 
-				if(engineId == null || engineId.isEmpty()) {
-					throw new IllegalArgumentException("Must have the engine id for the user defined - check row " + counter);
+				if (engineId == null || engineId.isEmpty()) {
+					throw new IllegalArgumentException(
+							"Must have the engine id for the user defined - check row " + counter);
 				}
-				if(userId == null || userId.isEmpty()) {
-					throw new IllegalArgumentException("Must have the user id for the user defined - check row " + counter);
+				if (userId == null || userId.isEmpty()) {
+					throw new IllegalArgumentException(
+							"Must have the user id for the user defined - check row " + counter);
 				}
-				if(role == null || role.isEmpty()) {
-					throw new IllegalArgumentException("Must have the role for the user defined - check row " + counter);
+				if (role == null || role.isEmpty()) {
+					throw new IllegalArgumentException(
+							"Must have the role for the user defined - check row " + counter);
 				}
 
 				AccessPermissionEnum permission = AccessPermissionEnum.valueOf(role);
-				if(permission == null) {
+				if (permission == null) {
 					throw new IllegalArgumentException("Must have a valid permission role - check row " + counter);
 				}
 
-
 				// check if the ID already exists
-				if(SecurityEngineUtils.checkUserHasAccessToDatabase(engineId, userId)) {
-					//TODO: update based on user id instead of continue?
-					logger.info("User id = " + userId + " alraedy exists for app = " + engineId + " - skipping record for upload");
+				if (SecurityEngineUtils.checkUserHasAccessToDatabase(engineId, userId)) {
+					// TODO: update based on user id instead of continue?
+					logger.info("User id = " + userId + " alraedy exists for app = " + engineId
+							+ " - skipping record for upload");
 					continue;
 				} else {
 					hasInsert = true;
@@ -227,14 +253,14 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 				counter++;
 			}
 			// we execute for insert and updates
-			if(hasInsert) {
+			if (hasInsert) {
 				insertPs.executeBatch();
 			}
 			logger.info("Done with item type updates , total rows = " + counter);
-		} catch(Exception e) {
-			logger.error(Constants.STACKTRACE, e);	
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(insertPs!=null) {
+			if (insertPs != null) {
 				insertPs.close();
 			}
 		}

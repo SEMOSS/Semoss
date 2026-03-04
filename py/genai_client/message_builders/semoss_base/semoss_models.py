@@ -1,8 +1,156 @@
-from typing import Dict, List, Optional, Any, Literal
-from pydantic import BaseModel, Field
+from typing import Dict, List, Optional, Union, Any, Literal
+from pydantic import BaseModel, Field, field_validator
 from ...utils import StringEnum
+import json
+from deprecated import deprecated
 
 
+class SEMOSSMediaInputType(StringEnum):
+    """Represents media input types"""
+
+    URL = "url"
+    BASE64 = "base64"
+
+
+class SEMOSSMediaContent(BaseModel):
+    """Represents media content in a message"""
+
+    type: SEMOSSMediaInputType
+    data: Optional[str] = None
+    format: Optional[str] = None
+    mime_type: Optional[str] = None
+    file_name: Optional[str] = None
+    url: Optional[str] = None
+
+    class Config:
+        use_enum_values = True
+
+
+class SEMOSSToolFunction(BaseModel):
+    """Represents a tool function definition"""
+
+    name: str
+    description: str
+    parameters: Union[Dict[str, Any], str] = {}
+
+    @field_validator("parameters", mode="before")
+    @classmethod
+    def parse_parameters(cls, v):
+        if v == "":
+            return {}
+
+        # If it's already a dict, return it
+        if isinstance(v, dict):
+            return v
+
+        # If it's a string, try to parse as JSON
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+                else:
+                    raise ValueError("Parsed JSON is not a dictionary")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON string: {e}")
+
+        return v
+
+
+class SEMOSSToolCall(BaseModel):
+    """Wrapper around the tool definition"""
+
+    function: SEMOSSToolFunction
+    type: Literal["function"]
+    id: Optional[str] = None
+    thought_signature: Optional[str] = None  # Base64-encoded, Gemini thinking models only
+
+
+class SEMOSSToolResponse(BaseModel):
+    """Represents a tool response from the model"""
+
+    id: str
+    type: Literal["function"]
+    name: str
+    arguments: str
+
+
+class SEMOSSToolExecution(BaseModel):
+    """Represents a tool response output"""
+
+    id: str
+    output: str
+
+
+# =========== NEW MODELS FOR MESSAGE PARTS ===========
+class SEMOSSMessagePartType(StringEnum):
+    MEDIA = "MEDIA"
+    TEXT = "TEXT"
+    THINKING = "THINKING"
+    TOOL_CALL = "TOOL_CALL"
+    TOOL_RESULT = "TOOL_RESULT"
+    SYSTEM = "SYSTEM"
+    UNKNOWN = "UNKNOWN"
+
+
+class SEMOSSMediaMessagePart(BaseModel):
+    """Represents a media message content"""
+
+    mediaInfo: SEMOSSMediaContent
+    type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
+
+
+class SEMOSSSystemMessagePart(BaseModel):
+    """Represents a system message content"""
+
+    prompt: str
+    type: Literal[SEMOSSMessagePartType.SYSTEM] = SEMOSSMessagePartType.SYSTEM
+
+
+class SEMOSSTextMessagePart(BaseModel):
+    """Represents a text message content"""
+
+    text: str
+    uiText: Optional[str] = None
+    type: Literal[SEMOSSMessagePartType.TEXT] = SEMOSSMessagePartType.TEXT
+
+
+class SEMOSSThinkingMessagePart(BaseModel):
+    """Represents a thinking message content"""
+
+    thinking: str
+    type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+
+
+class SEMOSSToolCallMessagePart(BaseModel):
+    """Represents a tool call message content"""
+
+    toolCall: SEMOSSToolCall
+    type: Literal[SEMOSSMessagePartType.TOOL_CALL] = SEMOSSMessagePartType.TOOL_CALL
+
+
+class SEMOSSToolResultMessagePart(BaseModel):
+    """Represents a tool result message content"""
+
+    toolResult: SEMOSSToolExecution
+    type: Literal[SEMOSSMessagePartType.TOOL_RESULT] = SEMOSSMessagePartType.TOOL_RESULT
+
+
+class SEMOSSUnknownMessagePart(BaseModel):
+    """Represents an unknown message part content"""
+
+    data: Any
+    type: Literal[SEMOSSMessagePartType.UNKNOWN] = SEMOSSMessagePartType.UNKNOWN
+
+
+# =========== END NEW MODELS FOR MESSAGE PARTS ===========
+
+
+# legacy message types for backwards compatibility
+@deprecated(
+    reason="Each part of a message now has a type to handle text w/ tool, text w/ media, etc",
+    version="5.1.0",
+)
 class SEMOSSMessageType(StringEnum):
     INPUT_TEXT = "INPUT_TEXT"
     INPUT_MEDIA = "INPUT_MEDIA"
@@ -12,77 +160,36 @@ class SEMOSSMessageType(StringEnum):
     RESPONSE_MEDIA = "RESPONSE_MEDIA"
 
 
-class SEMOSSImageType(StringEnum):
-    URL = "url"
-    BASE64 = "base64"
-
-
-class SEMOSSToolFunction(BaseModel):
-    """Represents a tool function definition"""
-
-    name: str
-    description: str
-    parameters: Dict[str, Any]
-
-
-class SEMOSSToolCall(BaseModel):
-    """Represents a tool call"""
-
-    function: SEMOSSToolFunction
-    type: Literal["function"]
-    id: Optional[str] = None
-
-
-class SEMOSSToolResponse(BaseModel):
-    """Represents a tool response"""
-
-    id: str
-    type: Literal["function"]
-    name: str
-    arguments: str
-
-
-class SEMOSSImageContent(BaseModel):
-    type: SEMOSSImageType
-    data: Optional[str] = None
-    format: Optional[str] = None
-    mime_type: Optional[str] = None
-    file_name: Optional[str] = None
-    url: Optional[str] = None
-
-
 class SEMOSSMessage(BaseModel):
+    # all of the below should be replaced with just parts
     type: SEMOSSMessageType
     content: Optional[str] = None
-    image_content: Optional[List[SEMOSSImageContent]] = None
+    media_content: Optional[List[SEMOSSMediaContent]] = None
     tool_calls: Optional[List[SEMOSSToolCall]] = Field(default_factory=list)
     tool_call_id: Optional[str] = None
     tool_responses: Optional[List[SEMOSSToolResponse]] = Field(default_factory=list)
     tokens: Optional[int] = 0
     param_map: Dict[str, Any] = Field(default_factory=dict)
+    # parts
+    # this will become mandatory once all the above are optional/removed
+    parts: Optional[
+        List[
+            Union[
+                SEMOSSMediaMessagePart,
+                SEMOSSSystemMessagePart,
+                SEMOSSTextMessagePart,
+                SEMOSSThinkingMessagePart,
+                SEMOSSToolCallMessagePart,
+                SEMOSSToolResultMessagePart,
+                SEMOSSUnknownMessagePart,
+            ]
+        ]
+    ] = (None,)
+    io: Literal["INPUT", "OUTPUT"]
 
     class Config:
         validate_by_name = True
         use_enum_values = True
-
-
-class AskSettings(BaseModel):
-    """
-    Represents all of the conditional settings that affect the model call but are not passed
-    as parameters to the model call itself.
-
-    *NOTE: The only purpose for this right now is for the new clients until we fully go to semoss messages.
-    """
-
-    full_prompt: Optional[List[Dict]] = None
-    streaming: bool = False
-    use_history: bool = True
-    history: Optional[List[Dict]] = None
-    image_url: Optional[List[str]] = None
-    image_encoded: Optional[List[str]] = None
-    semoss_messages: Optional[List[SEMOSSMessage]] = None
-    system_prompt: Optional[str] = None
-    extra_params: Optional[Dict[str, Any]] = None
 
 
 class ModelSettings(BaseModel):
@@ -98,3 +205,7 @@ class ModelSettings(BaseModel):
     model_type: Optional[str] = None
     chat_type: Optional[str] = None
     tokens_param_name: Optional[str] = None
+    thinking: Optional[bool] = False
+    thinking_budget: Optional[int] = None
+    global_param_override: Optional[Dict[str, Any]] = None
+    modalities: Optional[List[str]] = None

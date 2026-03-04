@@ -36,6 +36,11 @@ import pandas as pd
 import contextlib
 import semoss_console as console
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from gaas_tcp_socket_server import Server
+
 
 def custom_nan_handler(nan_value: Any) -> Union[Any, str]:
     """Custom handler for NaN values"""
@@ -79,6 +84,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     separate instance is created for each request, the handle() method
     can define other arbitrary instance variables.
     """
+
+    if TYPE_CHECKING:
+        server: Server
+        request: socket.socket
 
     # Class attribute to hold a singleton instance
     da_server = None
@@ -158,7 +167,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.log_file = None
         self.logger = None
 
-        # need to set timeout here also
+        # self.server.timeout_val holds the timeout in seconds for the client connection socket.
         if self.server.timeout_val > 0:
             self.request.settimeout(self.server.timeout_val)
         else:
@@ -292,9 +301,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # self.get_final_output(data)
                 if not data:
                     break
+            except socket.timeout:
+                self.logger.warning("Client connection timed out. Closing this socket.")
+                self.stop_request()
             except Exception as e:
-                self.logger.warning(e)
-                self.logger.warning("connection closed.. closing this socket")
+                self.logger.warning(f"An unexpected error occurred: {e}")
+                self.logger.warning("Closing this socket due to an unexpected error.")
                 self.stop_request()
 
     def log_data(self, data: Union[bytes, dict, None]):
@@ -662,15 +674,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
-            self.stop = True
 
     def close_request(self):
         """Closes the request."""
         print("close request called")
-
-    def handle_timeout(self):
-        """Handles a timeout."""
-        print("handler timeout")
 
     def release_all(self):
         """Releases all conditions so no threads are breaking."""
@@ -744,9 +751,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             break
 
                     if not is_correct_path:
-                        reload_mcp_func = insight_globals.get("reload_mcp")
-                        if reload_mcp_func:
-                            reload_mcp_func()
+                        reload_mcp_function = insight_globals.get("reload_mcp_function")
+                        if reload_mcp_function:
+                            reload_mcp_function()
             except Exception:
                 # If anything goes wrong during the check, do nothing and proceed
                 pass
@@ -764,7 +771,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
         # Get the original process CWD to ensure we change back to it
-        process_cwd = os.getcwd()
+        process_cwd = None
+        try:
+            process_cwd = os.getcwd()
+        except FileNotFoundError:
+            process_cwd = None
+
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
@@ -807,7 +819,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             # Always clear the function for the current thread
             clear_smss_stream()
             # Always change back to the original process CWD
-            os.chdir(process_cwd)
+            if process_cwd is not None:
+                os.chdir(process_cwd)
 
     def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
@@ -1261,12 +1274,14 @@ class InsightGlobalStore:
                 """
                 Reloads the mcp_driver module
                 """
-                # Delete from the shared sys.modules cache to force a true reload
-                if "mcp_driver" in sys.modules:
-                    del sys.modules["mcp_driver"]
+                import importlib
 
-                # Use the secure_import to load the module
-                mcp_module = secure_import("mcp_driver", globals=globals_dict)
+                if "mcp_driver" in sys.modules:
+                    # Use importlib.reload for a proper reload
+                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                else:
+                    # First-time import
+                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
@@ -1291,7 +1306,9 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
+            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
+                globals_dict
+            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1311,7 +1328,7 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp",
+                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",

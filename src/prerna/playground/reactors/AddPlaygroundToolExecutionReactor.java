@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.playground.reactors;
 
 import java.util.HashMap;
@@ -41,10 +68,12 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				"toolParameterValues", // 5
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), // 6
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
-				tool_execution_response };
+				tool_execution_response, // 8
+				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), // 9
+		};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
-		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -64,6 +93,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		Map<String, Object> toolParamterValues = getMap(this.keysToGet[5]);
 		String parentMessageId = this.keyValue.get(this.keysToGet[6]);
 		Map<String, Object> paramMap = getMap(this.keysToGet[7]);
+		String toolStatus = this.keyValue.get(this.keysToGet[9]);
 		if (paramMap == null) {
 			paramMap = new HashMap<>();
 		}
@@ -89,7 +119,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, paramMap, parentMessageId, modelEngine, insight);
+				toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
 
 		Map<String, Object> pixelReturn = new HashMap<>();
 		if (response == null) {
@@ -106,7 +136,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
 				MCPUtility.updateToolResponseWithProjectMeta(lastMessage);
 			}
-			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
+			Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
+//			MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+			pixelReturn.put("responseMessage", responseMap);
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
 	}

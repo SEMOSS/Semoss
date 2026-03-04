@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import prerna.algorithm.api.SemossDataType;
@@ -12,18 +39,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor takes an r frame and synchronizes it to an h2 frame in
-	 * semoss inputs are: 1) r data table name
+	 * This reactor takes an r frame and synchronizes it to an h2 frame in semoss
+	 * inputs are: 1) r data table name
 	 */
-	
+
 	public GenerateH2FrameFromRVariableReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -39,24 +64,18 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Error occurred instaniating new grid frame");
 		}
 
-		//sync R dataframe to H2Frame
-		syncFromR(this.rJavaTranslator,varName, newTable);
-		if(overrideFrame()) {
+		// sync R dataframe to H2Frame
+		syncFromR(this.rJavaTranslator, varName, newTable);
+		if (overrideFrame()) {
 			this.insight.setDataMaker(newTable);
 		}
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 		// add the alias as a noun by default
-		if(varName != null && !varName.isEmpty()) {
+		if (varName != null && !varName.isEmpty()) {
 			this.insight.getVarStore().put(varName, noun);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				null, 
-				"GenerateH2FrameFromRVariable", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return noun;
 	}
 
@@ -90,9 +109,10 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		}
 
 		if (colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
+			throw new IllegalArgumentException(
+					"Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
 		}
-		
+
 		CsvQueryStruct qs = new CsvQueryStruct();
 		qs.setSelectorsAndTypes(colNames, colTypes);
 
@@ -108,7 +128,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// importer will create the necessary meta information
 		importer.insertData();
 	}
-	
+
 	/**
 	 * Get the input being the r variable name
 	 * 
@@ -123,7 +143,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// first input
 		return this.curRow.get(0).toString();
 	}
-	
+
 	private boolean overrideFrame() {
 		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
@@ -132,7 +152,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// default is to override
 		return true;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
