@@ -35,16 +35,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class TimestampDataReactor extends AbstractPyFrameReactor {
-
 
 	private static final String TIME_KEY = "time";
 
 	public TimestampDataReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.NEW_COLUMN.getKey(), TIME_KEY};
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), TIME_KEY };
 	}
 
 	@Override
@@ -81,29 +78,22 @@ public class TimestampDataReactor extends AbstractPyFrameReactor {
 		metadata.setAliasToProperty(frame.getName() + "__" + validNewHeader, validNewHeader);
 
 		String script = null;
-		if(includeT) {
-			script = wrapperFrameName + ".add_datetime_col('"  + validNewHeader + "')";
+		if (includeT) {
+			script = wrapperFrameName + ".add_datetime_col('" + validNewHeader + "')";
 			frame.runScript(script);
 			this.addExecutedCode(script);
 			metadata.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.TIMESTAMP.toString());
 		} else {
-			script = wrapperFrameName + ".add_date_col('"  + validNewHeader + "')";
+			script = wrapperFrameName + ".add_date_col('" + validNewHeader + "')";
 			frame.runScript(script);
 			this.addExecutedCode(script);
 			metadata.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.DATE.toString());
 		}
-
 		frame.syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"TimestampData", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
-
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
-		return retNoun;	}
+		return retNoun;
+	}
 }
