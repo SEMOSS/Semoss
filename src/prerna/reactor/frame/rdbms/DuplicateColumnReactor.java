@@ -43,14 +43,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class DuplicateColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DuplicateColumnReactor.class);
 
 	/**
 	 * This reactor duplicates and existing column and adds it to the frame. The
-	 * inputs to the reactor are: 
-	 * 1) the name for the column to duplicate 
-	 * 2) the new column name
+	 * inputs to the reactor are: 1) the name for the column to duplicate 2) the new
+	 * column name
 	 */
 
 	public DuplicateColumnReactor() {
@@ -111,11 +110,12 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
-		if(adtlDataType != null && !adtlDataType.isEmpty()) {
+		if (adtlDataType != null && !adtlDataType.isEmpty()) {
 			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 		}
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;
 	}

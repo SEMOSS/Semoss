@@ -42,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.LocalUserStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -167,7 +168,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setName(name);
 		token.setUsername(username);
 		token.setEmail(email);
-		
+
 		try {
 			SecurityUpdateUtils.validateUserLogin(token);
 		} catch (Exception e) {
@@ -176,6 +177,26 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 		user.setAccessToken(token);
 
+		return user;
+	}
+
+	/**
+	 * 
+	 * @param accessKey
+	 * @param secretKey
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static User validateLocalUserStore(String accessKey, String secretKey) throws IllegalAccessException {
+		Object[] userStoreDetails = LocalUserStore.getInstance().getUserStoreDetails(accessKey);
+		String userId = (String) userStoreDetails[0];
+		AuthProvider provider = (AuthProvider) userStoreDetails[1];
+
+		User user = new User();
+		AccessToken token = new AccessToken();
+		token.setProvider(provider);
+		token.setId(userId);
+		user.setAccessToken(token);
 		return user;
 	}
 
