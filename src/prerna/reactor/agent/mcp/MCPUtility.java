@@ -401,10 +401,10 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Appends engine ID prefix to each tool name using DEFAULT_MAX_TOOL_NAME_LENGTH.
+	 * Appends engine ID prefix to each tool name with no length limit (preserves full UUID prefix).
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
-		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, DEFAULT_MAX_TOOL_NAME_LENGTH);
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, Integer.MAX_VALUE);
 	}
 
 	/**
@@ -428,16 +428,17 @@ public final class MCPUtility {
 			return jsonToolsMap;
 		}
 
-		// Length-limited provider: use the short 8-hex prefix, truncating if needed
-		String shortEngineId = computeShortEngineId(engineId);
-		String shortPrefix = "a" + shortEngineId + "_";
+		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
+		// fall back to short 8-hex prefix and truncate if still needed.
+		String fullPrefix = "a" + engineId + "_";
+		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
 
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
 			String currentName = toolMap.getString("name");
 			String llmName;
-			if (shortPrefix.length() + currentName.length() <= maxLength) {
-				llmName = shortPrefix + currentName;
+			if (fullPrefix.length() + currentName.length() <= maxLength) {
+				llmName = fullPrefix + currentName;
 			} else {
 				int availableChars = maxLength - shortPrefix.length();
 				if (availableChars < 0) {

@@ -710,7 +710,7 @@ public class Room {
 				}
 
 				JSONObject meta = toolObj.optJSONObject("_meta");
-				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
 
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
 					Map<String, Object> toolMapEntry = toolObj.toMap();
