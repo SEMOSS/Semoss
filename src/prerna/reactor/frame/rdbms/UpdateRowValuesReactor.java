@@ -47,7 +47,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class UpdateRowValuesReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(UpdateRowValuesReactor.class);
 
 	@Override
@@ -133,6 +133,7 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 				}
 			}
 		}
+
 		try {
 			frame.getBuilder().runQuery(sqlStatements);
 		} catch (Exception e) {

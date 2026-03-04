@@ -40,30 +40,26 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class PivotReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor pivots a column so that the unique values will be transformed into new headers
-	 * The inputs to the reactor are: 
-	 * 1) the column to pivot
-	 * 2) the column to turn into values for the selected pivot column
-	 * 3) the aggregate function
-	 * 4) the other columns to maintain
-	 * 5) the optional no value replace
+	 * This reactor pivots a column so that the unique values will be transformed
+	 * into new headers The inputs to the reactor are: 1) the column to pivot 2) the
+	 * column to turn into values for the selected pivot column 3) the aggregate
+	 * function 4) the other columns to maintain 5) the optional no value replace
 	 */
-	
+
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
 	private static final String VALUE_COLUMN_KEY = "valueCol";
 	private static final String AGGREGATE_FUNCTION_KEY = "function";
 	private static final String NA_REPLACE_KEY = "naReplace";
-	
+
 	public PivotReactor() {
-		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(), AGGREGATE_FUNCTION_KEY, NA_REPLACE_KEY };
+		this.keysToGet = new String[] { PIVOT_COLUMN_KEY, VALUE_COLUMN_KEY, ReactorKeysEnum.MAINTAIN_COLUMNS.getKey(),
+				AGGREGATE_FUNCTION_KEY, NA_REPLACE_KEY };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -81,14 +77,14 @@ public class PivotReactor extends AbstractRFrameReactor {
 		if (pivotCol.contains("__")) {
 			pivotCol = pivotCol.split("__")[1];
 		}
-		
-		//get the column to turn into values for the selected pivot column
-		String valuesCol = getValuesCol(); 
-		//separate the column name from the frame name
+
+		// get the column to turn into values for the selected pivot column
+		String valuesCol = getValuesCol();
+		// separate the column name from the frame name
 		if (valuesCol.contains("__")) {
 			valuesCol = valuesCol.split("__")[1];
-		} 
-				
+		}
+
 		// keep track of the columns to keep
 		List<String> colsToKeep = getKeepCols();
 		// get the aggregate function if it exists; if it does not exist
@@ -105,13 +101,13 @@ public class PivotReactor extends AbstractRFrameReactor {
 		}
 		boolean dropColumn = false;
 		if (numColsToKeep > 0) {
-			// with the portion of code to ignore if the user passes in the 
+			// with the portion of code to ignore if the user passes in the
 			// col to pivot or value to pivot in the selected columns
 			// we need to account for this so we dont end the keepString with " + "
 			keepString = ", formula = ";
 			for (int colIndex = 0; colIndex < numColsToKeep; colIndex++) {
 				String newKeepString = colsToKeep.get(colIndex);
-				if(newKeepString.equals(pivotCol) || newKeepString.equals(valuesCol)) {
+				if (newKeepString.equals(pivotCol) || newKeepString.equals(valuesCol)) {
 					continue;
 				}
 				keepString = keepString + newKeepString;
@@ -120,40 +116,42 @@ public class PivotReactor extends AbstractRFrameReactor {
 				}
 			}
 
-			// with the portion of code to ignore if the user passes in the 
+			// with the portion of code to ignore if the user passes in the
 			// col to pivot or value to pivot in the selected columns
 			// we need to account for this so we dont end the keepString with " + "
-			if(keepString.endsWith(" + ")) {
+			if (keepString.endsWith(" + ")) {
 				keepString = keepString.substring(0, keepString.length() - 3);
 			}
 			keepString = keepString + " ~ " + pivotCol + ", value.var=\"" + valuesCol + "\"";
 		} else {
 			// this creates a new column .
 			dropColumn = true;
-			keepString = ", formula = .~" + pivotCol + ", value.var=\"" + valuesCol + "\""; ;
+			keepString = ", formula = .~" + pivotCol + ", value.var=\"" + valuesCol + "\"";
+			;
 		}
 
 		String aggregateString = "";
 		if (aggregateFunction != null && aggregateFunction.length() > 0) {
-			// check data type of values col 
+			// check data type of values col
 			SemossDataType dataType = frame.getMetaData().getHeaderTypeAsEnum(table + "__" + valuesCol);
 			if (!(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE)) {
-				NounMetadata noun = new NounMetadata("Unable to aggregate on non-numeric column :" + valuesCol, PixelDataType.CONST_STRING,
-						PixelOperationType.ERROR);
+				NounMetadata noun = new NounMetadata("Unable to aggregate on non-numeric column :" + valuesCol,
+						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 				SemossPixelException exception = new SemossPixelException(noun);
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
 			aggregateString = ", fun.aggregate = " + aggregateFunction + " , na.rm = TRUE";
 		}
-		
-		//we need to make sure that the column we are pivoting on does not have values with dashes
-        //we should replace any dashes with underscores
-        String colScript = table + "$" + pivotCol;
-        String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
-        this.rJavaTranslator.executeEmptyR(cleanScript);
+
+		// we need to make sure that the column we are pivoting on does not have values
+		// with dashes
+		// we should replace any dashes with underscores
+		String colScript = table + "$" + pivotCol;
+		String cleanScript = colScript + "= gsub(" + "\"-\"" + "," + "\"_\"" + ", " + colScript + ");";
+		this.rJavaTranslator.executeEmptyR(cleanScript);
 		this.addExecutedCode(cleanScript);
-		
+
 		String script = newFrame + " <- dcast(" + table + keepString + aggregateString + ");";
 		script += RSyntaxHelper.asDataTable(newFrame, newFrame);
 		script += table + " <- " + newFrame + ";";
@@ -196,30 +194,24 @@ public class PivotReactor extends AbstractRFrameReactor {
 			this.addExecutedCode(rReplaceScript.toString());
 		}
 
-		//clean up temp r variables
+		// clean up temp r variables
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + newFrame + ");");
 		cleanUpScript.append("gc();");
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		this.addExecutedCode(cleanUpScript.toString());
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Pivot", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-		
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
-	//get column to pivot based on key "PIVOT_COLUMN_KEY"
+
+	// get column to pivot based on key "PIVOT_COLUMN_KEY"
 	private String getColumnToPivot() {
 		GenRowStruct pivotColInput = this.store.getGenRowStruct(PIVOT_COLUMN_KEY);
 		if (pivotColInput != null) {
@@ -228,8 +220,8 @@ public class PivotReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define column to pivot");
 	}
-	
-	//get column to turn into values based on key "VALUE_COLUMN_KEY"
+
+	// get column to turn into values based on key "VALUE_COLUMN_KEY"
 	private String getValuesCol() {
 		GenRowStruct valueColInput = this.store.getGenRowStruct(VALUE_COLUMN_KEY);
 		if (valueColInput != null) {
@@ -238,8 +230,8 @@ public class PivotReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define column to turn into values for the selected pivot column");
 	}
-	
-	//get any additional columns to keep based on the key "MAINTAIN_COLUMNS_KEY"
+
+	// get any additional columns to keep based on the key "MAINTAIN_COLUMNS_KEY"
 	private List<String> getKeepCols() {
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getGenRowStruct(ReactorKeysEnum.MAINTAIN_COLUMNS.getKey());
@@ -247,7 +239,7 @@ public class PivotReactor extends AbstractRFrameReactor {
 			int size = colGRS.size();
 			if (size > 0) {
 				for (int i = 0; i < size; i++) {
-					//get each individual column entry and clean 
+					// get each individual column entry and clean
 					String column = colGRS.get(i).toString();
 					if (column.contains("__")) {
 						column = column.split("__")[1];
@@ -259,18 +251,18 @@ public class PivotReactor extends AbstractRFrameReactor {
 		}
 		return null;
 	}
-	
-	//aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
+
+	// aggregate function is optional, uses key "AGGREGATE_FUNCTION_KEY"
 	private String getAggregateFunction() {
 		GenRowStruct functionInput = this.store.getGenRowStruct(AGGREGATE_FUNCTION_KEY);
 		if (functionInput != null) {
 			String function = functionInput.getNoun(0).getValue().toString();
 			return function;
 		}
-		//don't throw an error because this input is optional
+		// don't throw an error because this input is optional
 		return "";
 	}
-	
+
 	// NA Replace is optional, uses key "NA_REPLACE_KEY"
 	private String getNaReplace() {
 		GenRowStruct naReplaceInput = this.store.getGenRowStruct(NA_REPLACE_KEY);
@@ -278,17 +270,17 @@ public class PivotReactor extends AbstractRFrameReactor {
 			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
 			return naReplace;
 		}
-		//don't throw an error because this input is optional
+		// don't throw an error because this input is optional
 		return null;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(PIVOT_COLUMN_KEY)) {
+		if (key.equals(PIVOT_COLUMN_KEY)) {
 			return "The column to pivot on";
-		} else if(key.equals(VALUE_COLUMN_KEY)) {
+		} else if (key.equals(VALUE_COLUMN_KEY)) {
 			return "The column to turn into values for the selected pivot column";
 		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
 			return "The function used to aggregate columns";
@@ -298,18 +290,18 @@ public class PivotReactor extends AbstractRFrameReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-	
-	////////////////////// HELPER METHODS  //////////////////////////////////
-	
+
+	////////////////////// HELPER METHODS //////////////////////////////////
+
 	public static boolean isNumeric(String strNum) {
-	    if (strNum == null) {
-	        return false;
-	    }
-	    try {
-	        Double.parseDouble(strNum);
-	    } catch (NumberFormatException nfe) {
-	        return false;
-	    }
-	    return true;
+		if (strNum == null) {
+			return false;
+		}
+		try {
+			Double.parseDouble(strNum);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
 	}
 }
