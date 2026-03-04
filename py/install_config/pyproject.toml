@@ -8,7 +8,6 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "accelerate>=1.12.0",
     "annoy>=1.17.3",
     "anthropic[bedrock,vertex]==0.84.0",
     "asksageclient>=1.42",
@@ -29,7 +28,7 @@ dependencies = [
     "flask>=3.1.0",
     "gliner>=0.2.22",
     "google-auth>=2.38.0",
-    "google-cloud-aiplatform==1.112.0",
+    "google-cloud-aiplatform==1.133.0",
     "google-genai==1.56.0",
     "grpcio-status>=1.78.0",
     "guidance>=0.2.0",
@@ -48,7 +47,7 @@ dependencies = [
     "loralib>=0.1.2",
     "markdown>=3.7",
     "matplotlib>=3.10.1",
-    "nltk>=3.9.1",
+    "nltk>=3.9.3",
     "numpy>=2.2.6",
     "openai==2.23.0",
     "openpyxl>=3.1.5",
@@ -57,7 +56,7 @@ dependencies = [
     "pandas==2.2.3",
     "pandasql>=0.7.3",
     "pdfplumber>=0.11.5",
-    "peft==0.17.1",
+    "peft==0.18.1",
     "pip-system-certs>=5.3",
     "pipecat-ai==0.0.103",
     "protobuf>=6.33.5",
@@ -66,7 +65,7 @@ dependencies = [
     "pyenchant>=3.2.2",
     "pyjarowinkler>=2.0.0",
     # "pymupdf>=1.25.3",
-    "pypdf>=5.3.1",
+    "pypdf>=6.7.5",
     "pystemmer>=3.0.0",
     "pytesseract>=0.3.13",
     "pytest>=8.3.5",
