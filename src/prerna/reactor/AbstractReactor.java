@@ -83,6 +83,11 @@ public abstract class AbstractReactor implements IReactor {
 			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
 			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
+	// Reactor execution tracker for monitoring and interruption
+	private static final ReactorExecutionTracker executionTracker = ReactorExecutionTracker.getInstance();
+	// Thread-local to track start time for this reactor instance
+	private final ThreadLocal<Long> startTime = new ThreadLocal<>();
+
 	private static final Logger classLogger = LogManager.getLogger(AbstractReactor.class);
 	// get the directory separator
 	public static final String DIR_SEPARATOR = "/";
@@ -383,6 +388,25 @@ public abstract class AbstractReactor implements IReactor {
 	@Override
 	public void In() {
 		curNoun(ALL_NOUN_STORE);
+
+		// Record start time
+		startTime.set(System.currentTimeMillis());
+
+		if (this instanceof prerna.reactor.scheduler.ListRunningReactorsReactor) {
+			return;
+		}
+
+		String jobId = prerna.om.ThreadStore.getJobId();
+		boolean isScheduledJob = jobId != null && !jobId.equals("unknown")
+				&& !jobId.equals(this.insight.getInsightId());
+
+		// Also check for scheduler mode
+		Boolean isSchedulerMode = prerna.om.ThreadStore.isSchedulerMode();
+
+		// Register for tracking if it's a scheduled job or scheduler mode
+		if (isScheduledJob || (isSchedulerMode != null && isSchedulerMode)) {
+			executionTracker.registerReactorStart(this);
+		}
 	}
 
 	@Override
