@@ -43,11 +43,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ExtractNumbersReactor extends AbstractPyFrameReactor {
-	
+
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
 	private static final Logger classLogger = LogManager.getLogger(ExtractNumbersReactor.class);
 
@@ -81,8 +79,8 @@ public class ExtractNumbersReactor extends AbstractPyFrameReactor {
 						String script = wrapperFrameName + ".extract_num('" + column + "')";
 						frame.runScript(script);
 						this.addExecutedCode(script);
-						frame.getMetaData().modifyDataTypeToProperty(frame.getName() + "__" + column, 
-								frame.getName(), SemossDataType.DOUBLE.toString());
+						frame.getMetaData().modifyDataTypeToProperty(frame.getName() + "__" + column, frame.getName(),
+								SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
@@ -104,20 +102,14 @@ public class ExtractNumbersReactor extends AbstractPyFrameReactor {
 					this.addExecutedCode(script);
 					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
 					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn, SemossDataType.DOUBLE.toString());
+					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn,
+							SemossDataType.DOUBLE.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
 			}
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ExtractNumbers", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 	}
 
