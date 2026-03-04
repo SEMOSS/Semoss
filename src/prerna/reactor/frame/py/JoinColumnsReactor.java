@@ -36,26 +36,22 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class JoinColumnsReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor joins columns, and puts the joined string into a new column
-	 * with values separated by a separator The inputs to the reactor are: 
-	 * 1) the new column name 
-	 * 2) the delimiter 
-	 * 3) the columns to join
+	 * This reactor joins columns, and puts the joined string into a new column with
+	 * values separated by a separator The inputs to the reactor are: 1) the new
+	 * column name 2) the delimiter 3) the columns to join
 	 */
-	
+
 	public JoinColumnsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DELIMITER.getKey(), ReactorKeysEnum.COLUMNS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DELIMITER.getKey(),
+				ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
-	public NounMetadata execute() 
-	{
+	public NounMetadata execute() {
 		organizeKeys();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
@@ -70,13 +66,13 @@ public class JoinColumnsReactor extends AbstractPyFrameReactor {
 		}
 		// check if new colName is valid
 		newColName = getCleanNewColName(frame, newColName);
-		
+
 		// second input is the delimeter/separator
 		String separator = this.keyValue.get(this.keysToGet[1]);
 		if (separator == null) {
 			separator = getSeparator();
 		}
-		
+
 		List<String> columnList = getColumns();
 		StringBuilder pyColumnListSB = new StringBuilder();
 		pyColumnListSB.append("[");
@@ -85,33 +81,27 @@ public class JoinColumnsReactor extends AbstractPyFrameReactor {
 			if (column.contains("__")) {
 				column = column.split("__")[1];
 			}
-			pyColumnListSB.append("'" + column + "',");	
+			pyColumnListSB.append("'" + column + "',");
 		}
 		pyColumnListSB.append("]");
 		String pyColumnList = pyColumnListSB.toString();
-		
+
 		String script = wrapperFrameName + ".join('" + newColName + "', " + pyColumnList + ", '" + separator + "')";
 		frame.runScript(script);
 		this.addExecutedCode(script);
-		
+
 		recreateMetadata(frame, false);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"JoinColumns", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String getNewColName() {
 		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
@@ -159,5 +149,5 @@ public class JoinColumnsReactor extends AbstractPyFrameReactor {
 		}
 		return columns;
 	}
-	
+
 }

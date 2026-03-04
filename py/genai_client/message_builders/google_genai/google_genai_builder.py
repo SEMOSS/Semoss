@@ -1,4 +1,4 @@
-import json
+import base64, json
 from typing import List, Dict, Any, Tuple, Union
 from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
@@ -75,12 +75,23 @@ class GoogleGenAIMessageBuilder:
                         tool_id_to_name.update(
                             {p.toolCall.id: p.toolCall.function.name}
                         )
-                        parts.append(
-                            Part.from_function_call(
+                        ts_bytes = None
+                        if p.toolCall.thought_signature:
+                            ts_bytes = base64.b64decode(p.toolCall.thought_signature)
+                        if ts_bytes:
+                            fc_part = types.Part(
+                                function_call=types.FunctionCall(
+                                    name=p.toolCall.function.name,
+                                    args=p.toolCall.function.parameters,
+                                ),
+                                thought_signature=ts_bytes,
+                            )
+                        else:
+                            fc_part = Part.from_function_call(
                                 name=p.toolCall.function.name,
                                 args=p.toolCall.function.parameters,
                             )
-                        )
+                        parts.append(fc_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         parts.append(
@@ -144,12 +155,25 @@ class GoogleGenAIMessageBuilder:
                             if isinstance(args, str):
                                 args = json.loads(args)
 
-                            parts.append(
-                                Part.from_function_call(
+                            ts_bytes = None
+                            ts_b64 = tool_call.get("thought_signature")
+                            if ts_b64:
+                                ts_bytes = base64.b64decode(ts_b64)
+
+                            if ts_bytes:
+                                fc_part = types.Part(
+                                    function_call=types.FunctionCall(
+                                        name=tool_call.get("function").get("name"),
+                                        args=args,
+                                    ),
+                                    thought_signature=ts_bytes,
+                                )
+                            else:
+                                fc_part = Part.from_function_call(
                                     name=tool_call.get("function").get("name"),
                                     args=args,
                                 )
-                            )
+                            parts.append(fc_part)
 
                         google_messages.append(
                             Content(
