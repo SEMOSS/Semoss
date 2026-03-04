@@ -40,153 +40,172 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
 
 public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
-	
+
 	public GetProjectDependenciesReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		if(!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to view this project or project id is invalid");
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"The user does not have access to view this project or project id is invalid");
 		}
-		
+
 		// Get all dependencies with subdependencies
-		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId, true);
-		
-		// Build tree structure, showing all nodes but only expanding accessible ones
-		Map<String, Object> dependencyTree = buildDependencyTree(dependencies, projectId);
-		
-		return new NounMetadata(dependencyTree, PixelDataType.MAP);
+		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId,
+				true);
+
+		// Build graph structure with unique nodes and their direct dependencies
+		Map<String, Object> dependencyGraph = buildDependencyGraph(dependencies, projectId);
+
+		return new NounMetadata(dependencyGraph, PixelDataType.MAP);
 	}
-	
+
 	/**
-	 * Build a tree structure from flat list of dependencies, including all nodes
-	 * but only expanding dependencies for accessible nodes.
+	 * Build a graph structure from flat list of dependencies where each engine
+	 * appears once. Only includes engines that are reachable following access
+	 * rules.
 	 * 
-	 * @param dependencies Flat list of all dependencies
+	 * @param dependencies  Flat list of all dependencies
 	 * @param rootProjectId The root project ID
-	 * @return Tree structure with nested children
+	 * @return Graph structure with unique engines and direct dependency lists
 	 */
-	private Map<String, Object> buildDependencyTree(List<Map<String, Object>> dependencies, String rootProjectId) {
-		// Create a map of engineId -> dependency for quick lookup
-		// Use the original maps - we'll make copies only when adding to result
-		Map<String, Map<String, Object>> dependencyMap = new HashMap<>();
-		for (Map<String, Object> dep : dependencies) {
-			String engineId = (String) dep.get("engine_id");
-			dependencyMap.put(engineId, dep);
-		}
-		
-		// Build parent-child relationships using engine IDs only
+	private Map<String, Object> buildDependencyGraph(List<Map<String, Object>> dependencies, String rootProjectId) {
+		// Build maps for quick lookup
+		Map<String, Map<String, Object>> allEnginesMap = new HashMap<>();
 		Map<String, List<String>> childrenByParent = new HashMap<>();
+
 		for (Map<String, Object> dep : dependencies) {
 			String parentId = (String) dep.get("parent_id");
 			String engineId = (String) dep.get("engine_id");
+
+			// Store in engine map (avoid duplicates by using engineId as key)
+			if (!allEnginesMap.containsKey(engineId)) {
+				allEnginesMap.put(engineId, dep);
+			}
+
+			// Build parent-child relationships
 			if (parentId != null) {
-				childrenByParent.computeIfAbsent(parentId, k -> new ArrayList<>())
-					.add(engineId);
+				childrenByParent.computeIfAbsent(parentId, k -> new ArrayList<>()).add(engineId);
 			}
 		}
-		
-		// Build tree recursively with access control pruning
-		Map<String, Object> root = new HashMap<>();
-		root.put("project_id", rootProjectId);
-		root.put("dependencies", buildChildrenTree(rootProjectId, dependencyMap, childrenByParent, new HashMap<>()));
-		
-		return root;
-	}
-	
-	/**
-	 * Recursively build children tree, including all nodes but only expanding 
-	 * dependencies for nodes the user has access to.
-	 * 
-	 * @param parentId Parent engine ID
-	 * @param dependencyMap Map of engine ID to dependency data
-	 * @param childrenByParent Map of parent ID to list of child engine IDs
-	 * @param visited Map tracking which nodes have been visited in the current path to detect cycles
-	 * @return List of children with their nested dependencies
-	 */
-	private List<Map<String, Object>> buildChildrenTree(String parentId,
-	                                                     Map<String, Map<String, Object>> dependencyMap,
-	                                                     Map<String, List<String>> childrenByParent,
-	                                                     Map<String, Boolean> visited) {
-		List<String> childrenIds = childrenByParent.get(parentId);
-		if (childrenIds == null || childrenIds.isEmpty()) {
-			return new ArrayList<>();
+
+		// Traverse from root to find all reachable engines based on access rules
+		Map<String, Map<String, Object>> reachableEngines = new HashMap<>();
+		List<String> rootDependencies = childrenByParent.get(rootProjectId);
+		if (rootDependencies == null) {
+			rootDependencies = new ArrayList<>();
 		}
-		
-		// Mark this node as being processed in the current path
-		visited.put(parentId, true);
-		
-		List<Map<String, Object>> result = new ArrayList<>();
-		for (String childEngineId : childrenIds) {
-			
-			// Check for circular dependency
-			if (visited.containsKey(childEngineId) && visited.get(childEngineId)) {
-				// Create a new map for the circular reference marker
-				Map<String, Object> circularRef = new HashMap<>();
-				Map<String, Object> originalChild = dependencyMap.get(childEngineId);
-				if (originalChild != null) {
-					// Copy basic info
-					circularRef.put("engine_id", originalChild.get("engine_id"));
-					circularRef.put("engine_name", originalChild.get("engine_name"));
-					circularRef.put("engine_type", originalChild.get("engine_type"));
-				}
-				circularRef.put("circular_reference", true);
-				circularRef.put("circular_reference_to", childEngineId);
-				result.add(circularRef);
-				continue;
-			}
-			
-			Map<String, Object> originalChild = dependencyMap.get(childEngineId);
-			if (originalChild == null) {
-				continue;
-			}
-			
-			// Create a clean copy of the child node to avoid circular references in the map structure
-			Map<String, Object> child = new HashMap<>();
-			for (Map.Entry<String, Object> entry : originalChild.entrySet()) {
-				// Copy all fields except 'dependencies' to avoid any existing circular references
-				if (!"dependencies".equals(entry.getKey())) {
-					child.put(entry.getKey(), entry.getValue());
+
+		// Traverse and collect reachable engines
+		traverseReachable(rootProjectId, allEnginesMap, childrenByParent, reachableEngines);
+
+		// Build the final engines list with filtered dependencies
+		List<Map<String, Object>> engines = new ArrayList<>();
+		for (Map.Entry<String, Map<String, Object>> entry : reachableEngines.entrySet()) {
+			String engineId = entry.getKey();
+			Map<String, Object> originalEngine = entry.getValue();
+
+			// Create engine object with all metadata
+			Map<String, Object> engine = new HashMap<>();
+
+			// Copy all fields except parent_id
+			for (Map.Entry<String, Object> field : originalEngine.entrySet()) {
+				String key = field.getKey();
+				if (!"parent_id".equals(key)) {
+					engine.put(key, field.getValue());
 				}
 			}
-			
-			// Check if user has direct view permission for this node
-			Integer permission = (Integer) originalChild.get("permission");
-			Boolean isGlobal = (Boolean) originalChild.get("engine_global");
-			boolean hasDirectAccess = (permission != null) || (isGlobal != null && isGlobal);
-			
-			// Only recurse into children if user has access to this node
-			// If user doesn't have access, include the node but don't show its dependencies
-			if (hasDirectAccess) {
-				// Create a new visited map for this branch to allow the same node in different branches
-				Map<String, Boolean> branchVisited = new HashMap<>(visited);
-				
-				// Add nested children recursively
-				List<Map<String, Object>> subChildren = buildChildrenTree(childEngineId, dependencyMap, childrenByParent, branchVisited);
-				if (!subChildren.isEmpty()) {
-					child.put("dependencies", subChildren);
+
+			// Add dependencies - only include children that user has access to (reachable)
+			List<String> allChildren = childrenByParent.get(engineId);
+			List<String> reachableChildren = new ArrayList<>();
+			if (allChildren != null) {
+				for (String childId : allChildren) {
+					if (reachableEngines.containsKey(childId)) {
+						reachableChildren.add(childId);
+					}
 				}
 			}
-			// If user doesn't have access, the node is added without 'dependencies' field
-			
-			result.add(child);
+			engine.put("dependencies", reachableChildren);
+
+			engines.add(engine);
 		}
-		
-		// Unmark this node after processing (backtracking)
-		visited.put(parentId, false);
-		
+
+		// Filter root dependencies to only include reachable ones
+		List<String> filteredRootDeps = new ArrayList<>();
+		for (String depId : rootDependencies) {
+			if (reachableEngines.containsKey(depId)) {
+				filteredRootDeps.add(depId);
+			}
+		}
+
+		// Build result structure
+		Map<String, Object> result = new HashMap<>();
+		result.put("engines", engines);
+		result.put("dependencies", filteredRootDeps);
+
 		return result;
 	}
-	
+
+	/**
+	 * Recursively traverse and collect reachable engines based on access rules.
+	 * - Engines are visible if user has permission, or if they're
+	 * global
+	 * - Children are only traversed if user has actual permission (not just
+	 * discoverable)
+	 * 
+	 * @param parentId         The current parent engine ID
+	 * @param allEnginesMap    Map of all engine IDs to their full data
+	 * @param childrenByParent Map of parent ID to list of child engine IDs
+	 * @param reachableEngines Accumulator for reachable engines
+	 */
+	private void traverseReachable(String parentId,
+			Map<String, Map<String, Object>> allEnginesMap,
+			Map<String, List<String>> childrenByParent,
+			Map<String, Map<String, Object>> reachableEngines) {
+		List<String> children = childrenByParent.get(parentId);
+		if (children == null || children.isEmpty()) {
+			return;
+		}
+
+		for (String childId : children) {
+			Map<String, Object> childEngine = allEnginesMap.get(childId);
+			if (childEngine == null || reachableEngines.containsKey(childId)) {
+				continue;
+			}
+
+			// Check visibility: user can see engine if they have permission, or it's
+			// global
+			Integer permission = (Integer) childEngine.get("permission");
+			Boolean isGlobal = (Boolean) childEngine.get("engine_global");
+
+			boolean isVisible = (permission != null) || (isGlobal != null && isGlobal);
+
+			// Check access: user can traverse into children only if they have permission or
+			// it's global
+			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
+
+			if (isVisible) {
+				// Add engine to reachable list
+				reachableEngines.put(childId, childEngine);
+
+				// Only traverse children if user has actual access (not just discoverable)
+				if (hasAccess) {
+					traverseReachable(childId, allEnginesMap, childrenByParent, reachableEngines);
+				}
+			}
+		}
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Get project dependencies in a tree structure, stopping expansion at inaccessible nodes";
+		return "Get project dependencies as a graph with unique engines and their direct dependencies";
 	}
-	
+
 }
