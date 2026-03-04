@@ -385,7 +385,8 @@ public final class MCPUtility {
 				}
 			}
 		}
-		return getMaxToolNameLength(modelEngine.getModelType().name());
+		ModelTypeEnum modelType = modelEngine.getModelType();
+		return getMaxToolNameLength(modelType != null ? modelType.name() : null);
 	}
 
 	/**
