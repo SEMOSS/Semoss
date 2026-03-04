@@ -1973,14 +1973,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// Add direct dependencies and recurse for PROJECT type dependencies
 		for (Map<String, Object> dependency : directDependencies) {
 			allDependencies.add(dependency);
-			
 			String engineId = (String) dependency.get("engine_id");
-			String engineType = (String) dependency.get("engine_type");
-			
-			// If the dependency is a PROJECT, recursively fetch its dependencies
-			if ("PROJECT".equalsIgnoreCase(engineType)) {
-				getProjectDependenciesRecursive(engineId, visited, allDependencies);
-			}
+			getProjectDependenciesRecursive(engineId, visited, allDependencies);
 		}
 	}
 
@@ -2035,13 +2029,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		for (Map<String, Object> dependency : directDependencies) {
 			allDependencies.add(dependency);
 			
-			String engineId = (String) dependency.get("engine_id");
-			String engineType = (String) dependency.get("engine_type");
-			
-			// If the dependency is a PROJECT, recursively fetch its dependencies
-			if ("PROJECT".equalsIgnoreCase(engineType)) {
-				getProjectDependencyDetailsRecursive(engineId, visited, allDependencies);
-			}
+			String engineId = (String) dependency.get("engine_id");			
+			getProjectDependencyDetailsRecursive(engineId, visited, allDependencies);
 		}
 	}
 
@@ -2245,14 +2234,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// Add direct dependencies and recurse for PROJECT type dependencies
 		for (Map<String, Object> dependency : directDependencies) {
 			allDependencies.add(dependency);
-			
 			String engineId = (String) dependency.get("engine_id");
-			String engineType = (String) dependency.get("engine_type");
-			
-			// If the dependency is a PROJECT, recursively fetch its dependencies
-			if ("PROJECT".equalsIgnoreCase(engineType)) {
-				getProjectDependencyDetailsWithUserRecursive(engineId, userId, visited, allDependencies);
-			}
+			getProjectDependencyDetailsWithUserRecursive(engineId, userId, visited, allDependencies);
 		}
 	}
 

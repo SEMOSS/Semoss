@@ -39,12 +39,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ExtractNumbersReactor extends AbstractRFrameReactor {
+
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
-	
+
 	public ExtractNumbersReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
@@ -63,7 +62,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		boolean overrideColumn = getOverride();
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		
+
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		// update existing columns
@@ -71,14 +70,16 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
 				SemossDataType dataType = metadata.getHeaderTypeAsEnum(table + "__" + column);
-				if(dataType == null)
+				if (dataType == null) {
 					return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+				}
 
 				if (Utility.isStringType(dataType.toString())) {
 					String script = table + "$" + column + " <- gsub('[^\\\\.0-9]', '', " + table + "$" + column + ");";
 					frame.executeRScript(script);
 					this.addExecutedCode(script);
-					frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table, SemossDataType.STRING.toString());
+					frame.getMetaData().modifyDataTypeToProperty(table + "__" + column, table,
+							SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
@@ -105,14 +106,7 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ExtractNumbers", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 	}
 

@@ -36,16 +36,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor duplicates and existing column and adds it to the frame. The
-	 * inputs to the reactor are: 
-	 * 1) the name for the column to duplicate 
-	 * 2) the new column name
+	 * inputs to the reactor are: 1) the name for the column to duplicate 2) the new
+	 * column name
 	 */
 
 	public DuplicateColumnReactor() {
@@ -94,21 +91,14 @@ public class DuplicateColumnReactor extends AbstractPyFrameReactor {
 		metaData.addProperty(frame.getName(), frame.getName() + "__" + newColName);
 		metaData.setAliasToProperty(frame.getName() + "__" + newColName, newColName);
 		metaData.setDataTypeToProperty(frame.getName() + "__" + newColName, dataType);
-		if(adtlDataType != null && !adtlDataType.isEmpty()) {
+		if (adtlDataType != null && !adtlDataType.isEmpty()) {
 			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"DuplicateColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;
 	}
-	
 
 }
