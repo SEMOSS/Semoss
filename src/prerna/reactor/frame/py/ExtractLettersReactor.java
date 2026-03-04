@@ -43,9 +43,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
-
 
 public class ExtractLettersReactor extends AbstractPyFrameReactor {
 
@@ -71,8 +68,9 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 
 		// extracts the letters
-		//mv['add'] = mv.apply(lambda x: re.sub('\d+', '', x['MovieBudget']) if not(isinstance(x['MovieBudget'], int)) else x['MovieBudget'] , axis=1)
-		
+		// mv['add'] = mv.apply(lambda x: re.sub('\d+', '', x['MovieBudget']) if
+		// not(isinstance(x['MovieBudget'], int)) else x['MovieBudget'] , axis=1)
+
 		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		StringBuilder commands = new StringBuilder();
@@ -93,7 +91,7 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 				}
 			}
 		}
-		
+
 		// create new column
 		else {
 			opTypes.add(PixelOperationType.FRAME_HEADERS_CHANGE);
@@ -103,10 +101,11 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 				if (Utility.isStringType(dataType.toString())) {
 					String newColumn = getCleanNewColName(frame, column + ALPHA_COLUMN_NAME);
 					commands.append(wrapperFrameName + ".extract_alpha('" + column + "',  '" + newColumn + "')\n");
-					
+
 					metaData.addProperty(frame.getName(), frame.getName() + "__" + newColumn);
 					metaData.setAliasToProperty(frame.getName() + "__" + newColumn, newColumn);
-					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn, SemossDataType.STRING.toString());
+					metaData.setDataTypeToProperty(frame.getName() + "__" + newColumn,
+							SemossDataType.STRING.toString());
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
 				}
@@ -114,14 +113,7 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 		}
 		insight.getPyTranslator().runEmptyPy(commands.toString());
 		this.addExecutedCode(commands.toString());
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ExtractAlphaChars", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
 	}
 
