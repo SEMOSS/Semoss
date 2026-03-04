@@ -60,8 +60,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class PixelRunner extends Thread {
 
@@ -160,10 +158,6 @@ public class PixelRunner extends Thread {
 	 * @param ex
 	 */
 	private void trackInvalidSyntaxError(String pixel, Exception ex) {
-		IUserTracker tracker = UserTrackerFactory.getInstance();
-		if (tracker.isActive()) {
-			tracker.trackError(this.insight, pixel, "INVALID_SYNTAX", "INVALID_SYNTAX", false, ex);
-		}
 	}
 
 	/**
