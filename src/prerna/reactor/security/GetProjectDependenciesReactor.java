@@ -29,8 +29,10 @@ package prerna.reactor.security;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -78,28 +80,26 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	private Map<String, Object> buildDependencyGraph(List<Map<String, Object>> dependencies, String rootProjectId) {
 		// Build maps for quick lookup
 		Map<String, Map<String, Object>> allEnginesMap = new HashMap<>();
-		Map<String, List<String>> childrenByParent = new HashMap<>();
+		Map<String, Set<String>> childrenByParent = new HashMap<>();
 
 		for (Map<String, Object> dep : dependencies) {
 			String parentId = (String) dep.get("parent_id");
 			String engineId = (String) dep.get("engine_id");
 
 			// Store in engine map (avoid duplicates by using engineId as key)
-			if (!allEnginesMap.containsKey(engineId)) {
-				allEnginesMap.put(engineId, dep);
-			}
+			allEnginesMap.putIfAbsent(engineId, dep);
 
-			// Build parent-child relationships
+			// Build parent-child relationships (use Set to avoid duplicates)
 			if (parentId != null) {
-				childrenByParent.computeIfAbsent(parentId, k -> new ArrayList<>()).add(engineId);
+				childrenByParent.computeIfAbsent(parentId, k -> new LinkedHashSet<>()).add(engineId);
 			}
 		}
 
 		// Traverse from root to find all reachable engines based on access rules
 		Map<String, Map<String, Object>> reachableEngines = new HashMap<>();
-		List<String> rootDependencies = childrenByParent.get(rootProjectId);
+		Set<String> rootDependencies = childrenByParent.get(rootProjectId);
 		if (rootDependencies == null) {
-			rootDependencies = new ArrayList<>();
+			rootDependencies = new LinkedHashSet<>();
 		}
 
 		// Traverse and collect reachable engines
@@ -111,28 +111,29 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			String engineId = entry.getKey();
 			Map<String, Object> originalEngine = entry.getValue();
 
-			// Create engine object with all metadata
-			Map<String, Object> engine = new HashMap<>();
+			// Create engine object with all metadata except parent_id
+			Map<String, Object> engine = new HashMap<>(originalEngine);
+			engine.remove("parent_id");
 
-			// Copy all fields except parent_id
-			for (Map.Entry<String, Object> field : originalEngine.entrySet()) {
-				String key = field.getKey();
-				if (!"parent_id".equals(key)) {
-					engine.put(key, field.getValue());
-				}
-			}
+			// Check if user has access to this engine
+			Integer permission = (Integer) originalEngine.get("permission");
+			Boolean isGlobal = (Boolean) originalEngine.get("engine_global");
+			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
 
-			// Add dependencies - only include children that user has access to (reachable)
-			List<String> allChildren = childrenByParent.get(engineId);
-			List<String> reachableChildren = new ArrayList<>();
-			if (allChildren != null) {
-				for (String childId : allChildren) {
-					if (reachableEngines.containsKey(childId)) {
-						reachableChildren.add(childId);
+			// Only show dependencies if user has access to this engine
+			if (hasAccess) {
+				// Add dependencies - only include children that are reachable
+				Set<String> allChildren = childrenByParent.get(engineId);
+				List<String> reachableChildren = new ArrayList<>();
+				if (allChildren != null) {
+					for (String childId : allChildren) {
+						if (reachableEngines.containsKey(childId)) {
+							reachableChildren.add(childId);
+						}
 					}
 				}
+				engine.put("dependencies", reachableChildren);
 			}
-			engine.put("dependencies", reachableChildren);
 
 			engines.add(engine);
 		}
@@ -155,21 +156,19 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
 	/**
 	 * Recursively traverse and collect reachable engines based on access rules.
-	 * - Engines are visible if user has permission, or if they're
-	 * global
-	 * - Children are only traversed if user has actual permission (not just
-	 * discoverable)
+	 * - Direct children of accessible parents are always visible
+	 * - Children's dependencies are only explored if user has access to the child
 	 * 
 	 * @param parentId         The current parent engine ID
 	 * @param allEnginesMap    Map of all engine IDs to their full data
-	 * @param childrenByParent Map of parent ID to list of child engine IDs
+	 * @param childrenByParent Map of parent ID to set of child engine IDs
 	 * @param reachableEngines Accumulator for reachable engines
 	 */
 	private void traverseReachable(String parentId,
 			Map<String, Map<String, Object>> allEnginesMap,
-			Map<String, List<String>> childrenByParent,
+			Map<String, Set<String>> childrenByParent,
 			Map<String, Map<String, Object>> reachableEngines) {
-		List<String> children = childrenByParent.get(parentId);
+		Set<String> children = childrenByParent.get(parentId);
 		if (children == null || children.isEmpty()) {
 			return;
 		}
@@ -180,25 +179,16 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 				continue;
 			}
 
-			// Check visibility: user can see engine if they have permission, or it's
-			// global
+			// Always add direct children (they're visible if parent is accessible)
+			reachableEngines.put(childId, childEngine);
+
+			// Only traverse into child's dependencies if user has access to the child
 			Integer permission = (Integer) childEngine.get("permission");
 			Boolean isGlobal = (Boolean) childEngine.get("engine_global");
-
-			boolean isVisible = (permission != null) || (isGlobal != null && isGlobal);
-
-			// Check access: user can traverse into children only if they have permission or
-			// it's global
 			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
 
-			if (isVisible) {
-				// Add engine to reachable list
-				reachableEngines.put(childId, childEngine);
-
-				// Only traverse children if user has actual access (not just discoverable)
-				if (hasAccess) {
-					traverseReachable(childId, allEnginesMap, childrenByParent, reachableEngines);
-				}
+			if (hasAccess) {
+				traverseReachable(childId, allEnginesMap, childrenByParent, reachableEngines);
 			}
 		}
 	}
