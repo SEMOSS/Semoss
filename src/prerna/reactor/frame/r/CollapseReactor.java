@@ -39,8 +39,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollapseReactor extends AbstractRFrameReactor {
 
@@ -80,19 +78,20 @@ public class CollapseReactor extends AbstractRFrameReactor {
 
 		// get subset of frame using columns selected
 		rsb.append(RSyntaxHelper.getFrameSubset(tempFrame, frameName, row));
-		
+
 		// get unique subset values
 		rsb.append(tempFrame + "<-unique(" + tempFrame + ");");
 
 		// aggregate values
 		String aggFrame = "aggFrame" + Utility.getRandomString(8);
 		String delimR = "'" + delim + "'";
-		rsb.append(aggFrame + " <- aggregate(" + tempFrame + "$" + valueCol + ", by = " + groupByColsR + ", paste, collapse=" + delimR + ");");		
-		
+		rsb.append(aggFrame + " <- aggregate(" + tempFrame + "$" + valueCol + ", by = " + groupByColsR
+				+ ", paste, collapse=" + delimR + ");");
+
 		// rename columns
 		String names = RSyntaxHelper.createStringRColVec(newColNames);
 		rsb.append("colnames(" + aggFrame + ") <- " + names + ";");
-		
+
 		// get columns to keep
 		HashSet<String> colsToKeep = getKeepCols();
 		if (colsToKeep != null) {
@@ -101,7 +100,8 @@ public class CollapseReactor extends AbstractRFrameReactor {
 			String mergeFrame = Utility.getRandomString(8);
 			// get subset of frame using columns selected
 			rsb.append(RSyntaxHelper.getFrameSubset(mergeFrame, frameName, colsToKeep.toArray()));
-			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = " + RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
+			rsb.append(aggFrame + "<- merge(" + aggFrame + "," + mergeFrame + ", by = "
+					+ RSyntaxHelper.createStringRColVec(groupByCol.toArray()) + ");");
 		}
 		// replace current frame with agg frame
 		rsb.append(RSyntaxHelper.asDataTable(frameName, aggFrame));
@@ -113,17 +113,11 @@ public class CollapseReactor extends AbstractRFrameReactor {
 		this.addExecutedCode(rsb.toString());
 		frame.recreateMeta();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Collapse", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
-	
+
 	private List<String> getGroupByCols() {
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getGenRowStruct(this.keysToGet[0]);
