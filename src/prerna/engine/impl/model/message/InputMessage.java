@@ -415,7 +415,6 @@ public class InputMessage extends AbstractMessage {
 			paramMap.put("tools", toolCalls);
 		}
 		toolCalls.add(toolCallMap);
-		// this.formattedMessage = null;
 	}
 
 	public void setTools(List<Map<String, Object>> toolCalls) {
