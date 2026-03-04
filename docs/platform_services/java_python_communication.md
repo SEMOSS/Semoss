@@ -4,9 +4,82 @@ SEMOSS facilitates interoperability between its Java backend and Python scripts/
 
 ## 1. Overview
 
-### 1.1. Visual Flow / Diagram Placeholder
+### 1.1. Visual Flow / Diagram
 
-*(A visual diagram here would be beneficial to illustrate the interaction between Java's `PyTranslator`/`ClientProcessWrapper`, the TCP socket communication, and Python's `gaas_tcp_socket_server`/`gaas_tcp_server_handler`. The diagram should show the request flow from Java to Python, the execution of Python code, the streaming of stdout/stderr, the final response, and the callback mechanism via `gaas_server_proxy`.)*
+```mermaid
+flowchart TD
+    Start([Java Component Needs Python]) --> Init[Initialize Python Server]
+    
+    Init --> InitSteps[ClientProcessWrapper:<br/>- Allocate Port<br/>- Launch gaas_tcp_socket_server.py<br/>- Create SocketClient Connection]
+    
+    InitSteps --> Ready{Server Ready?}
+    Ready -->|Yes| WaitRequest[Python Server Listening<br/>ThreadingTCPServer]
+    Ready -->|No| Error1[Error: Connection Failed]
+    
+    WaitRequest --> JavaRequest[Java Sends Request<br/>PyTranslator.runScript]
+    
+    JavaRequest --> BuildPayload[Build PayloadStruct:<br/>- operation: PYTHON<br/>- script content<br/>- insightId]
+    
+    BuildPayload --> SendTCP[Send via TCP Socket<br/>Format: size + epoc + JSON]
+    
+    SendTCP --> PythonReceive[TCPServerHandler Receives]
+    
+    PythonReceive --> ParsePayload[Deserialize JSON Payload]
+    
+    ParsePayload --> CheckOp{Operation Type?}
+    
+    CheckOp -->|PYTHON| ExecPython[Execute Python Code<br/>eval/exec with SemossConsole]
+    CheckOp -->|REACTOR/ENGINE| Callback[Handle Callback from Python]
+    CheckOp -->|Other| OtherOp[Handle Other Operations]
+    
+    ExecPython --> StreamOutput[Stream stdout/stderr<br/>interim=true messages]
+    
+    StreamOutput --> PythonNeedsJava{Python Needs<br/>Java Resource?}
+    
+    PythonNeedsJava -->|Yes| PyCallback[ServerProxy.callReactor/<br/>callEngine]
+    PythonNeedsJava -->|No| CaptureResult[Capture Final Result]
+    
+    PyCallback --> SendCallback[Send Callback Request<br/>to Java with new epoc]
+    SendCallback --> JavaExec[Java Executes<br/>Reactor/Engine Method]
+    JavaExec --> RetCallback[Return Callback Result<br/>to Python]
+    RetCallback --> CaptureResult
+    
+    CaptureResult --> CheckError{Exception<br/>Occurred?}
+    
+    CheckError -->|Yes| SendError[Send Response<br/>with ex field set]
+    CheckError -->|No| SendResult[Send Response<br/>payload with result]
+    
+    SendError --> JavaReceive[Java SocketClient<br/>Receives Response]
+    SendResult --> JavaReceive
+    
+    JavaReceive --> JavaParse[Deserialize PayloadStruct]
+    
+    JavaParse --> JavaCheck{Check ex field}
+    
+    JavaCheck -->|Error| ThrowException[Throw SemossPixelException]
+    JavaCheck -->|Success| ReturnResult[Return ps.payload]
+    
+    ThrowException --> Complete
+    ReturnResult --> Complete
+    
+    Complete --> MoreRequests{More Requests?}
+    MoreRequests -->|Yes| WaitRequest
+    MoreRequests -->|No| Shutdown[Shutdown Request]
+    
+    Shutdown --> Cleanup[ClientProcessWrapper.shutdown:<br/>- Close Socket<br/>- Terminate Python Process]
+    
+    Cleanup --> End([End])
+    
+    Error1 --> End
+    
+    style Start fill:#e1f5e1
+    style End fill:#ffe1e1
+    style ExecPython fill:#e3f2fd
+    style JavaExec fill:#fff3e0
+    style CheckError fill:#fff9c4
+    style JavaCheck fill:#fff9c4
+    style PythonNeedsJava fill:#f3e5f5
+```
 
 The core mechanism involves:
 *   A Java client component that initiates requests and sends data.

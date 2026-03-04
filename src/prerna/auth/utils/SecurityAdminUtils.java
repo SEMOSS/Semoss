@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
@@ -859,15 +886,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public boolean deleteUser(String userIdToDelete, String userTypeToDelete) {
 		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
-		// TODO: need to start binding on userId + type
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM ENGINEPERMISSION WHERE USERID=?",
-					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
+					"DELETE FROM PROJECTPERMISSION WHERE USERID=?", "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
 					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?", "DELETE FROM USERMETA WHERE USERID=?",
 					"DELETE FROM SMSS_USER WHERE ID=?", };
 			for (String query : deleteQueries) {
@@ -876,6 +897,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps = securityDb.getPreparedStatement(query);
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, userIdToDelete);
+					ps.execute();
+					if (!ps.getConnection().getAutoCommit()) {
+						ps.getConnection().commit();
+					}
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+				}
+			}
+		}
+		{
+			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?" };
+			for (String query : deleteQueries) {
+				PreparedStatement ps = null;
+				try {
+					ps = securityDb.getPreparedStatement(query);
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userIdToDelete);
+					ps.setString(parameterIndex++, userTypeToDelete);
 					ps.execute();
 					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
@@ -1034,6 +1075,78 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Update the user metadata. Will delete existing values and then perform a bulk
+	 * insert
+	 * 
+	 * @param userId
+	 * @param userType
+	 * @param insightId
+	 * @param tags
+	 */
+	public void updateUserMetadata(String userId, AuthProvider userType, Map<String, ?> metadata) {
+		String userTypeString = userType.toString();
+
+		// first do a delete
+		String deleteQ = "DELETE FROM USERMETA WHERE METAKEY=? AND USERID=? AND TYPE=?";
+		PreparedStatement deletePs = null;
+		try {
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			for (String field : metadata.keySet()) {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, field);
+				deletePs.setString(parameterIndex++, userId);
+				deletePs.setString(parameterIndex++, userTypeString);
+				deletePs.addBatch();
+			}
+			deletePs.executeBatch();
+			if (!deletePs.getConnection().getAutoCommit()) {
+				deletePs.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
+		}
+
+		// now we do the new insert with the order of the tags
+		String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
+				new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(query);
+			for (String field : metadata.keySet()) {
+				Object val = metadata.get(field);
+				List<Object> values = new ArrayList<>();
+				if (val instanceof Collection) {
+					values.addAll((Collection<Object>) val);
+				} else {
+					values.add(val);
+				}
+
+				for (int i = 0; i < values.size(); i++) {
+					int parameterIndex = 1;
+					Object fieldVal = values.get(i);
+
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userTypeString);
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, fieldVal + "");
+					ps.setInt(parameterIndex++, i);
+					ps.addBatch();
+				}
+			}
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -1135,7 +1248,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
-	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter,
+	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -1171,6 +1284,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		if (projectFilter != null && !projectFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
+		}
+		if (typeFilter != null && !typeFilter.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", typeFilter));
 		}
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -1370,7 +1486,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static long getEngineUsersCount(String engineId, String searchParam, String permission) {
+	public long getEngineUsersCount(String engineId, String searchParam, String permission) {
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1408,7 +1524,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 
-	public static long getProjectUsersCount(String projectId, String searchParam, String permission) {
+	public long getProjectUsersCount(String projectId, String searchParam, String permission) {
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -1934,7 +2050,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param singleUserId
 	 * @return
 	 */
-	public static List<String> getEnginesUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
+	public List<String> getEnginesUserHasExplicitAccess(String singleUserId, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
@@ -2329,7 +2445,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @throws IllegalAccessException
 	 */
-	public static void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user)
+	public void editEngineUserPermissions(String engineId, List<Map<String, Object>> permission, User user)
 			throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
@@ -2486,7 +2602,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
+	public void editProjectUserPermissions(String projectId, List<Map<String, String>> requests, User user,
 			String endDate) throws IllegalAccessException {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 		Timestamp verifiedEndDate = null;
@@ -2557,8 +2673,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate
 	 * @throws IllegalAccessException
 	 */
-	public static void editInsightUserPermissions(String projectId, String insightId,
-			List<Map<String, String>> requests, User user, String endDate) throws IllegalAccessException {
+	public void editInsightUserPermissions(String projectId, String insightId, List<Map<String, String>> requests,
+			User user, String endDate) throws IllegalAccessException {
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
 		for (Map<String, String> i : requests) {
@@ -2911,7 +3027,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param permission
 	 * @return
 	 */
-	public static long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
+	public long getInsightUsersCount(String projectId, String insightId, String userId, String permission) {
 		boolean hasUserId = userId != null && !(userId = userId.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -4254,6 +4370,33 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		fSelector.setFunction(QueryFunctionHelper.COUNT);
 		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(fSelector);
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param searchTerm
+	 * @return
+	 * @throws IllegalArgumentException
+	 */
+	public Long getNumUsers(String searchTerm) throws IllegalArgumentException {
+		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		QueryFunctionSelector fSelector = new QueryFunctionSelector();
+		fSelector.setAlias("num_users");
+		fSelector.setFunction(QueryFunctionHelper.COUNT);
+		fSelector.addInnerSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(fSelector);
+		if (hasSearchTerm) {
+			final String SMSS_USER_PREFIX = "SMSS_USER__";
+			OrQueryFilter or = new OrQueryFilter();
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "ID", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "NAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "USERNAME", "?like", searchTerm));
+			or.addFilter(SimpleQueryFilter.makeColToValFilter(SMSS_USER_PREFIX + "EMAIL", "?like", searchTerm));
+			qs.addExplicitFilter(or);
+		}
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 

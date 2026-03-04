@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.vector;
 
 import java.util.HashMap;
@@ -96,8 +123,34 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	}
 
 	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.FILTERS.getKey()) || key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Performs a nearest neighbor search in a vector database. \
+				Takes a search query, converts it to an embedding, and returns the most similar documents \
+				from the vector database based on vector similarity. \
+				Supports optional filtering on document content and metadata.\
+				""";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "The search query text to find similar documents for";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The maximum number of similar documents to return. Defaults to 5 if not specified";
+		} else if (key.equals(ReactorKeysEnum.FILTERS.getKey())) {
+			return "Optional filters to apply on the document content before returning results";
+		} else if (key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
+			return "Optional filters to apply on the document metadata before returning results";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
 			for (VectorQueryParamOptions entry : VectorQueryParamOptions.values()) {

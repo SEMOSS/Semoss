@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import java.io.BufferedReader;
@@ -8,9 +35,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,7 +45,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -725,10 +754,20 @@ public class SmssUtilities {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
-		// need to make sure the app is unique
-		boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
-		if (containsProject) {
-			throw new IOException("Project name already exists. Please provide a unique project name");
+
+		// if admin only set public is true, the project name just needs to be user
+		// unique vs globally unique
+		if (AbstractSecurityUtils.adminOnlyProjectSetPublic()) {
+			if (SecurityProjectUtils.userHasProjectWithName(user, projectName)) {
+				throw new IOException(
+						"You already have at least one project with this name. Please choose a unique project name.");
+			}
+		} else {
+			// need to make sure the app is unique
+			boolean containsProject = AbstractSecurityUtils.containsProjectName(projectName);
+			if (containsProject) {
+				throw new IOException("Project name already exists. Please provide a unique project name");
+			}
 		}
 
 		// need to make sure app folder doesn't already exist
@@ -788,7 +827,7 @@ public class SmssUtilities {
 	 * 
 	 * @param insightEngine
 	 */
-	public static void runInsightCreateTableQueries(RDBMSNativeEngine insightEngine) {
+	public static void runInsightCreateTableQueries(IRDBMSEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255),
 		// QUESTION_PERSPECTIVE VARCHAR(225), QUESTION_LAYOUT VARCHAR(225),
 		// QUESTION_ORDER INT, QUESTION_DATA_MAKER VARCHAR(225), QUESTION_MAKEUP CLOB,
@@ -823,7 +862,7 @@ public class SmssUtilities {
 				insightEngine.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 			}
 
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -856,7 +895,7 @@ public class SmssUtilities {
 							"INT" };
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
@@ -867,7 +906,7 @@ public class SmssUtilities {
 					types = new String[] { "INT", "CLOB" };
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -913,6 +952,18 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
+		return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
+	}
+
+	/**
+	 * 
+	 * @param newSmssContent
+	 * @param currentSmssProperties
+	 * @param secretStoreValues
+	 * @return
+	 */
+	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
+			Map<String, Object> secretStoreValues) {
 		Properties newProperties = Utility.loadPropertiesString(newSmssContent);
 		if (newProperties == null) {
 			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
@@ -935,6 +986,10 @@ public class SmssUtilities {
 		// lets fix it
 
 		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
+		// add any secrets that might be there
+		if (secretStoreValues != null) {
+			allUpperCurrentSmss.putAll(secretStoreValues);
+		}
 		StringBuilder constructedSmssContent = new StringBuilder();
 		String[] currentSmssLines = newSmssContent.split("\n");
 

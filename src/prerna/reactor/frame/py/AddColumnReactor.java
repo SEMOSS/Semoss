@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import prerna.algorithm.api.SemossDataType;
@@ -9,19 +36,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class AddColumnReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
-	 * 1) the name for the new column 
-	 * 2) the new column type
+	 * This reactor adds an empty column to the frame The inputs to the reactor are:
+	 * 1) the name for the new column 2) the new column type
 	 */
-	
+
 	public AddColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
 
 	@Override
@@ -34,7 +59,7 @@ public class AddColumnReactor extends AbstractPyFrameReactor {
 		if (newColName == null || newColName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
-		
+
 		// get the column type and standardize
 		String colType = this.keyValue.get(this.keysToGet[1]);
 		if (colType == null) {
@@ -58,15 +83,15 @@ public class AddColumnReactor extends AbstractPyFrameReactor {
 		// execute the script
 		frame.runScript(script);
 		this.addExecutedCode(script);
-		
+
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-		if(adtlDataType != null && !adtlDataType.isEmpty()) {
+		if (adtlDataType != null && !adtlDataType.isEmpty()) {
 			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 		}
-		
+
 		if (Utility.isNumericType(colType)) {
 			// update the metadata depending on the data type
 			metaData.setDataTypeToProperty(table + "__" + newColName, SemossDataType.DOUBLE.toString());
@@ -84,14 +109,8 @@ public class AddColumnReactor extends AbstractPyFrameReactor {
 		}
 		frame.syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"AddColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;
 	}

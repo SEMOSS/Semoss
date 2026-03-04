@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.theme;
 
 import java.io.UnsupportedEncodingException;
@@ -24,10 +51,9 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AdminThemeUtils.class);
 
 	private static AdminThemeUtils instance = new AdminThemeUtils();
@@ -58,11 +84,12 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX+"IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "ID"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "THEME_NAME"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "THEME_MAP"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "IS_ACTIVE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ADMIN_THEME_PREFIX + "IS_ACTIVE", "==", true,
+				PixelDataType.BOOLEAN));
 
 		List<Map<String, Object>> retVal = null;
 		IRawSelectWrapper wrapper = null;
@@ -81,8 +108,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	}
 
 	/*
-	 * all other methods should be on the instance
-	 * so that we cannot bypass security easily
+	 * all other methods should be on the instance so that we cannot bypass security
+	 * easily
 	 */
 
 	/**
@@ -93,17 +120,17 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public List<Map<String, Object>> getAdminThemes(int limit, int offset) {
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"ID"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_NAME"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"THEME_MAP"));
-		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX+"IS_ACTIVE"));
-		if(limit > 0) {
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "ID"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "THEME_NAME"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "THEME_MAP"));
+		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "IS_ACTIVE"));
+		if (limit > 0) {
 			qs.setLimit(limit);
 		}
-		if(offset > 0) {
+		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		
+
 		IRawSelectWrapper wrapper;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(themeDb, qs);
@@ -128,10 +155,11 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		try {
 			themeDb.insertData(query);
 			themeDb.commit();
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
+		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
 		return true;
 	}
 
@@ -148,7 +176,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			ps.setBoolean(parameterIndex++, false);
 			ps.setBoolean(parameterIndex++, false);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -157,7 +185,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
-		
+
 		return true;
 	}
 
@@ -172,17 +200,19 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 	public String createAdminTheme(String themeName, String themeMap, boolean isActive) {
 		String themeId = UUID.randomUUID().toString();
-		
+
 		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement("INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)");
+			ps = themeDb.getPreparedStatement(
+					"INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, themeId);
 			ps.setString(parameterIndex++, themeName);
-			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++, new Gson());
+			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++,
+					new Gson());
 			ps.setBoolean(parameterIndex++, isActive);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (UnsupportedEncodingException | SQLException e) {
@@ -210,14 +240,16 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public boolean editAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
 		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement("UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?");
+			ps = themeDb
+					.getPreparedStatement("UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, themeName);
-			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++, new Gson());
+			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++,
+					new Gson());
 			ps.setBoolean(parameterIndex++, isActive);
 			ps.setString(parameterIndex++, themeId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (UnsupportedEncodingException | SQLException e) {
@@ -229,7 +261,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		if (isActive) {
 			setActiveTheme(themeId);
-		}
+			PlaygroundThemeUtils.refreshCacheFromActiveTheme();
+		} 
 		return true;
 	}
 
@@ -240,13 +273,13 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean deleteAdminTheme(String themeId) {
-		
+
 		PreparedStatement ps = null;
 		try {
 			ps = themeDb.getPreparedStatement("DELETE FROM ADMIN_THEME WHERE ID=?");
 			ps.setString(1, themeId);
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
@@ -255,7 +288,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
-		
+
 		return true;
 	}
 }

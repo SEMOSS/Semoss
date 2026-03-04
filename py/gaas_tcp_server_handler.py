@@ -6,11 +6,13 @@ import socketserver
 import traceback as tb
 import threading
 
+import importlib
 import os
 import gc as gc
 import sys
 import re
 import ast
+import textwrap
 
 # IMPORTANT
 # Your python support extention might tell you that these packages arent being used
@@ -33,6 +35,11 @@ import pandas as pd
 
 import contextlib
 import semoss_console as console
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from gaas_tcp_socket_server import Server
 
 
 def custom_nan_handler(nan_value: Any) -> Union[Any, str]:
@@ -77,6 +84,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     separate instance is created for each request, the handle() method
     can define other arbitrary instance variables.
     """
+
+    if TYPE_CHECKING:
+        server: Server
+        request: socket.socket
 
     # Class attribute to hold a singleton instance
     da_server = None
@@ -156,7 +167,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.log_file = None
         self.logger = None
 
-        # need to set timeout here also
+        # self.server.timeout_val holds the timeout in seconds for the client connection socket.
         if self.server.timeout_val > 0:
             self.request.settimeout(self.server.timeout_val)
         else:
@@ -290,9 +301,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # self.get_final_output(data)
                 if not data:
                     break
+            except socket.timeout:
+                self.logger.warning("Client connection timed out. Closing this socket.")
+                self.stop_request()
             except Exception as e:
-                self.logger.warning(e)
-                self.logger.warning("connection closed.. closing this socket")
+                self.logger.warning(f"An unexpected error occurred: {e}")
+                self.logger.warning("Closing this socket due to an unexpected error.")
                 self.stop_request()
 
     def log_data(self, data: Union[bytes, dict, None]):
@@ -572,6 +586,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             "payload": [output],
             "operation": operation,
             "insightId": (orig_payload.get("insightId") if orig_payload else None),
+            "asset_paths": (orig_payload.get("asset_paths") if orig_payload else None),
             "executionInsightId": (
                 orig_payload.get("executionInsightId") if orig_payload else None
             ),
@@ -659,15 +674,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.custom_dev_logger("---------- STOP REQUEST LOG - END -----------\n")
 
             sys.exit("Connection has been closed")
-            self.stop = True
 
     def close_request(self):
         """Closes the request."""
         print("close request called")
-
-    def handle_timeout(self):
-        """Handles a timeout."""
-        print("handler timeout")
 
     def release_all(self):
         """Releases all conditions so no threads are breaking."""
@@ -695,8 +705,58 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # Import the thread-local setters and getters
         from smss_thread_local import set_smss_stream, clear_smss_stream
 
+        payload = self.thread_local.payload
+        asset_paths = payload.get("asset_paths")
+
+        # If asset paths are provided, prepend the logic to set the sys.path
+        if asset_paths:
+            # Ensure asset_paths is a list for consistent processing
+            if isinstance(asset_paths, str):
+                asset_paths = [asset_paths]
+
+            if isinstance(asset_paths, list) and asset_paths:
+                path_script = ""
+                # Add each path to sys.path
+                # Reverse to maintain order after inserting at 0
+                for asset_path in reversed(asset_paths):
+                    if not asset_path:
+                        continue
+                    path_script += textwrap.dedent(
+                        f"""
+                        import sys
+                        asset_path = r'{asset_path}'
+                        if asset_path in sys.path:
+                            sys.path.remove(asset_path)
+                        sys.path.insert(0, asset_path)
+                        del asset_path
+
+                        """
+                    )
+                command = path_script + command
+
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
+
+        # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
+        if "mcp_driver" in sys.modules and asset_paths:
+            try:
+                mcp_module = sys.modules["mcp_driver"]
+                if hasattr(mcp_module, "__file__") and mcp_module.__file__:
+                    module_path = os.path.abspath(mcp_module.__file__)
+
+                    is_correct_path = False
+                    for p in asset_paths:
+                        if module_path.startswith(os.path.abspath(p)):
+                            is_correct_path = True
+                            break
+
+                    if not is_correct_path:
+                        reload_mcp_function = insight_globals.get("reload_mcp_function")
+                        if reload_mcp_function:
+                            reload_mcp_function()
+            except Exception:
+                # If anything goes wrong during the check, do nothing and proceed
+                pass
 
         # Define and inject the smss_stream function
         def smss_stream_func(
@@ -710,31 +770,57 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 interim=interim,
             )
 
+        # Get the original process CWD to ensure we change back to it
+        process_cwd = None
+        try:
+            process_cwd = os.getcwd()
+        except FileNotFoundError:
+            process_cwd = None
+
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
 
-            payload = self.thread_local.payload
+            # Determine the target CWD for this specific insight from its globals
+            target_cwd = insight_globals.get("__smss_cwd__")
+            if not target_cwd:
+                # If no CWD is stored for the insight, default to the first asset path
+                if asset_paths and isinstance(asset_paths, list) and asset_paths:
+                    target_cwd = asset_paths[0]
 
-            is_exception = False
-            output = None
-            with contextlib.redirect_stdout(self.console), contextlib.redirect_stderr(
-                self.console
-            ):
-                insight_globals["core_server"] = self
-                output, is_exception = self.execute_and_capture(
-                    command, insight_globals
-                )
+            if target_cwd:
+                try:
+                    os.chdir(target_cwd)
+                except Exception:
+                    # If we can't change to the dir, just proceed from the current dir
+                    pass
 
-                self.send_output(
-                    output if type(output) is not type(None) else '""',
-                    operation=payload["operation"],
-                    response=True,
-                    exception=is_exception,
-                )
+            try:
+                is_exception = False
+                output = None
+                with contextlib.redirect_stdout(
+                    self.console
+                ), contextlib.redirect_stderr(self.console):
+                    insight_globals["core_server"] = self
+                    output, is_exception = self.execute_and_capture(
+                        command, insight_globals
+                    )
+
+                    self.send_output(
+                        output if type(output) is not type(None) else '""',
+                        operation=payload["operation"],
+                        response=True,
+                        exception=is_exception,
+                    )
+            finally:
+                # After execution, save the potentially new CWD back to the insight's globals
+                insight_globals["__smss_cwd__"] = os.getcwd()
         finally:
             # Always clear the function for the current thread
             clear_smss_stream()
+            # Always change back to the original process CWD
+            if process_cwd is not None:
+                os.chdir(process_cwd)
 
     def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
         """
@@ -1184,6 +1270,23 @@ class InsightGlobalStore:
 
                 return module
 
+            def reload_mcp_function(globals_dict):
+                """
+                Reloads the mcp_driver module
+                """
+                import importlib
+
+                if "mcp_driver" in sys.modules:
+                    # Use importlib.reload for a proper reload
+                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                else:
+                    # First-time import
+                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
+
+                # Inject the newly loaded module into the current insight's globals
+                globals_dict["mcp_driver"] = mcp_module
+                return mcp_module
+
             # First-time initialization: build the globals dict
             globals_dict = {
                 "__builtins__": {
@@ -1203,6 +1306,9 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
+            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
+                globals_dict
+            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1221,6 +1327,8 @@ class InsightGlobalStore:
                 if isinstance(v, type(sys))
                 or k
                 in [
+                    "__smss_cwd__",
+                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",

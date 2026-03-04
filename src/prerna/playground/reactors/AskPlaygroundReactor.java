@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.playground.reactors;
 
 import java.util.Arrays;
@@ -6,13 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -24,6 +46,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -32,14 +55,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskPlaygroundReactor extends AbstractReactor {
-	
-	private static Logger logger = LogManager.getLogger(AskPlaygroundReactor.class);
+
+	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
 
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
 				ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
-		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0, 0 };
+				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 0, 0, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,79 +96,16 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		IModelEngine modelEngine = Utility.getModel(engineId);
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
-		
-		// Handle workspace context and authorizations
-	    JsonObject options = null;
-	    String rawOptions = room.getOptions();
-	    if (rawOptions != null) {
-	      try {
-	        options = JsonParser.parseString(rawOptions).getAsJsonObject();
-	      } catch (Exception e) {
-	        logger.warn("Failed to parse room options for room with id " + roomId, e);
-	      }
-	    }
-	    
-	    String workspaceId = null;
-	    // Try to deduce workspaceId from room options
-	    if (options != null) {
-	      JsonElement workspaceElement = options.get("workspace");
-	      if (workspaceElement != null) {
-	        if (workspaceElement.isJsonPrimitive()) {
-	          workspaceId = workspaceElement.getAsString();
-	        } else if (workspaceElement.isJsonObject()) {
-	          JsonElement idElement = workspaceElement.getAsJsonObject().get("workspace_id");
-	          if (idElement.isJsonPrimitive()) {
-	            workspaceId = idElement.getAsString();
-	          }
-	        }
-	      }
-	    }
+		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
 
-	    // Compose the effective system prompt
-	    Map<String, Object> workspace = null;
-	    if (workspaceId != null) {
-	      workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-	      if (workspace == null) {
-	        throw new IllegalArgumentException("Workspace not found");
-	      }
-	      Object currentlyIsActive = workspace.get("is_active");
-	      Boolean currentlyActive = (Boolean) currentlyIsActive;
-
-	      if (Boolean.TRUE != currentlyActive
-	          || !ModelInferenceLogsUtils.isWorkspaceSharedWithUser(workspaceId, user)) {
-	        throw new IllegalArgumentException("User unauthorized to perform this operation");
-	      }
-	    }
-	    
-
-	    String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
-		
-		// Compose the effective system prompt to use
-	    String givenSystemPrompt = context;
-	    if (givenSystemPrompt == null && options != null) {
-	      JsonElement instructionsElement = options.get("instructions");
-	      if (instructionsElement != null && instructionsElement.isJsonPrimitive()) {
-	        givenSystemPrompt = StringUtils.trimToNull(instructionsElement.getAsString());
-	      }
-	    }
-	    if (givenSystemPrompt == null && workspace != null) {
-	      givenSystemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
-	    }
+		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room)
-				.withSystemPrompt(givenSystemPrompt)
-				.withInputUIPrompt(question)
-				.withInputPrompt(question)
-				.withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap)
-				.withImages(copiedImages, room)
-				.withImageUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				// .withTools(tools)
 				.build();
 
@@ -163,10 +124,25 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJson(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(response)));
+		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
+		pixelReturn.put("inputMessage", inputMap);
+
+		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		pixelReturn.put("responseMessage", responseMap);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
@@ -183,7 +159,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is  an array of image file names that have already been uploaded to the insight folder.";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return """
 					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.

@@ -1,10 +1,23 @@
+import base64, re
 from typing import Any, List, Dict
 from .semoss_models import (
-    SEMOSSImageContent,
+    SEMOSSMediaContent,
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageType,
+    SEMOSSMediaInputType,
     ModelSettings,
+    SEMOSSToolCall,
+    SEMOSSToolFunction,
+    SEMOSSToolResponse,
+    # parts
+    SEMOSSMediaMessagePart,
+    SEMOSSSystemMessagePart,
+    SEMOSSTextMessagePart,
+    SEMOSSToolExecution,
+    SEMOSSThinkingMessagePart,
+    SEMOSSToolCallMessagePart,
+    SEMOSSToolResultMessagePart,
+    SEMOSSUnknownMessagePart,
 )
 
 
@@ -20,26 +33,107 @@ class SEMOSSMessageBuilder:
         semoss_messages = []
         param_map.pop("question", None)
 
+        last_system_part = None
         for i, message in enumerate(input_messages):
             message_type = message.get("type")
             if message_type is None:
                 raise ValueError("Message type cannot be None")
 
-            content = self._get_content(message)
-
             # If this is the last message, update the param map
             if i == len(input_messages) - 1:
-                updated_param_map = self._update_param_map(
-                    param_map, model_settings, message
-                )
+                updated_param_map = self._update_param_map(param_map, message)
             else:
                 updated_param_map = message.get("paramMap", {})
 
+            # ---- Parts-based support (schemaVersion 2) ----
+            parts = message.get("parts") or []
+            schema_version = message.get("schemaVersion", 1)
+
+            if isinstance(parts, list) and parts and schema_version == 2:
+                # loop through the parts
+                # and for each one add in the correct message type
+                semoss_message = SEMOSSMessage(
+                    type=message_type,
+                    param_map=updated_param_map,
+                    tokens=message.get("tokens", 0),
+                    io=message.get("io"),
+                )
+
+                process_parts = []
+                for p in parts:
+                    if p.get("type") == "SYSTEM":
+                        # we store at each input message what the system prompt was at that time
+                        # so we will just grab the last one and inject into the final semoss_message param map at the end of processing all messages
+                        last_system_part = SEMOSSSystemMessagePart(
+                            prompt=p.get("prompt")
+                        )
+
+                    elif p.get("type") == "TEXT":
+                        text_part = SEMOSSTextMessagePart(text=p.get("text"))
+                        process_parts.append(text_part)
+
+                    elif p.get("type") == "MEDIA":
+                        media_part = self._parse_media_from_part_dict(p)
+                        process_parts.append(
+                            SEMOSSMediaMessagePart(mediaInfo=media_part)
+                        )
+
+                    elif p.get("type") == "TOOL_CALL":
+                        tc = p.get("toolCall")
+                        tool_call_part = SEMOSSToolCallMessagePart(
+                            toolCall=SEMOSSToolCall(
+                                function=SEMOSSToolFunction(
+                                    name=tc.get("name"),
+                                    parameters=tc.get("arguments", {}),
+                                    description=tc.get("description", ""),
+                                ),
+                                id=tc.get("id"),
+                                type="function",
+                                thought_signature=tc.get("thought_signature"),
+                            )
+                        )
+                        process_parts.append(tool_call_part)
+
+                    elif p.get("type") == "TOOL_RESULT":
+                        tr = p.get("toolResult")
+                        tool_result_part = SEMOSSToolResultMessagePart(
+                            toolResult=SEMOSSToolExecution(
+                                id=tr.get("toolCallId"),
+                                output=tr.get("output"),
+                            )
+                        )
+                        process_parts.append(tool_result_part)
+
+                    else:
+                        # For unknown part types, we can either skip or include as unknown
+                        process_parts.append(SEMOSSUnknownMessagePart(data=p))
+
+                # set the parts of the message to the processed parts
+                semoss_message.parts = process_parts
+                # add to the list of messages
+                semoss_messages.append(semoss_message)
+                # Continue to the next message
+                continue
+
+            # ---- Legacy format (schemaVersion 1 or no schemaVersion) ----
+            # Should not hit here if parts are present
+            content = self._get_content(message)
+
+            # Extract thinking block info from message and add to param_map
+            if message_type == "RESPONSE_TOOL":
+                if message.get("thinking"):
+                    updated_param_map["thinking"] = message.get("thinking")
+                if message.get("thinking_signature"):
+                    updated_param_map["thinking_signature"] = message.get(
+                        "thinking_signature"
+                    )
+
             semoss_message = SEMOSSMessage(
-                type=message_type, content=content, param_map=updated_param_map
+                type=SEMOSSMessageType(message_type),
+                content=content,
+                param_map=updated_param_map,
             )
 
-            # Handle tool calls from RESPONSE_TOOL messages
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
                 tool_calls = []
                 for tool_resp in message["tool_responses"]:
@@ -47,7 +141,7 @@ class SEMOSSMessageBuilder:
                         {
                             "function": {
                                 "name": tool_resp["name"],
-                                "arguments": tool_resp["arguments"],
+                                "arguments": tool_resp.get("arguments", {}),
                             },
                             "id": str(tool_resp["id"]),
                             "type": "function",
@@ -55,26 +149,88 @@ class SEMOSSMessageBuilder:
                     )
                 semoss_message.tool_calls = tool_calls
 
-            # Handle tool execution results
             if message_type == "INPUT_TOOL_EXEC":
                 semoss_message.tool_call_id = message.get("tool_call_id")
-                semoss_message.content = message.get("inputUIPrompt", "")
+                semoss_message.content = message.get(
+                    "inputUIPrompt", ""
+                ) or message.get("content", "")
 
-            if message.get("imageInfos"):
-                semoss_message.image_content = self._parse_image_content(
-                    message["imageInfos"]
+            if message.get("mediaInputs"):
+                semoss_message.media_content = self._parse_media_content(
+                    message["mediaInputs"]
                 )
 
             semoss_message.tokens = message.get("tokens", 0)
 
             semoss_messages.append(semoss_message)
 
+        if last_system_part:
+            # If we had a system part, we append the last message param map
+            semoss_messages[-1].param_map.update(
+                {"system_prompt": last_system_part.prompt}
+            )
+
         return semoss_messages
+
+    def _get_content_from_parts(self, parts: List[Dict]) -> str:
+        """Extract text content from schemaVersion 2 parts array."""
+        text_parts = []
+        for part in parts:
+            if isinstance(part, dict) and part.get("type") == "TEXT":
+                text = part.get("text") or part.get("uiText") or ""
+                if text:
+                    text_parts.append(text)
+        return "\n".join(text_parts) if text_parts else ""
+
+    def _parse_media_from_parts(
+        self, parts: List[Dict]
+    ) -> List[SEMOSSMediaContent] | None:
+        """Extract media content from schemaVersion 2 parts array."""
+        media_contents = []
+        for part in parts:
+            media_info = self._parse_media_from_part_dict(part)
+            if media_info:
+                media_contents.append(media_info)
+
+        return media_contents if media_contents else None
+
+    def _parse_media_from_part_dict(self, part: Dict) -> SEMOSSMediaContent | None:
+        """Extract media content from schemaVersion 2 parts array."""
+        if isinstance(part, dict) and part.get("type") == "MEDIA":
+            media_info = part.get("mediaInfo", {})
+            if not media_info:
+                return None
+
+            mime_type = media_info.get("mimeType")
+            file_format = media_info.get("fileFormat")
+            file_name = media_info.get("fileName")
+            url = media_info.get("sourceUrl")
+            base_64_data = media_info.get("base64Data")
+
+            if url:
+                input_type = SEMOSSMediaInputType.URL
+                data = url
+            elif base_64_data:
+                input_type = SEMOSSMediaInputType.BASE64
+                data = base_64_data
+            else:
+                # Skip if no valid data source
+                return None
+
+            return SEMOSSMediaContent(
+                type=input_type,
+                data=data,
+                format=file_format,
+                mime_type=mime_type,
+                file_name=file_name,
+                url=url,
+            )
+
+        return None
 
     def _update_param_map(
         self,
         msg_param_map: Dict[str, Any],
-        model_settings: ModelSettings,
         message: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Update the last message param map"""
@@ -84,11 +240,10 @@ class SEMOSSMessageBuilder:
         token_param = next((p for p in token_params if p in param_map), None)
 
         if token_param:
-            param_map[model_settings.tokens_param_name] = param_map.pop(token_param)
+            param_map[token_param] = param_map.pop(token_param)
 
         param_map.pop("model_name", None)
 
-        # Adding system prompt to param map if exists in message
         system_prompt_params = ["system_prompt", "systemPrompt", "system", "context"]
         system_prompt_param = next(
             (p for p in system_prompt_params if p in message), None
@@ -107,7 +262,7 @@ class SEMOSSMessageBuilder:
         if message_type == "INPUT_TOOL_EXEC":
             return message.get("inputUIPrompt", "")
 
-        role = self._get_role(message_type)
+        role = self._get_role(SEMOSSMessageType(message_type))
         if role == "user":
             return message.get("inputPrompt", "")
         elif role == "assistant":
@@ -132,39 +287,84 @@ class SEMOSSMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {input_type}")
 
-    def _parse_image_content(
-        self, image_infos: List[Dict[str, str]]
-    ) -> List[SEMOSSImageContent]:
-        """Parse image content into SEMOSSImageContent objects."""
-        semoss_image_contents = []
-        for image_info in image_infos:
-            mime_type = image_info.get("mimeType", None)
-            img_format = image_info.get("format", None)
-            file_name = image_info.get("fileName", None)
-            url = image_info.get("imageUrl", None)
-            base_64_data = image_info.get("base64Data", None)
+    def _parse_media_content(
+        self, media_info_list: List[Dict[str, str]]
+    ) -> List[SEMOSSMediaContent]:
+        """Parse image content into SEMOSSMediaContent objects."""
+        semoss_media_contents = []
+        for media_info in media_info_list:
+            mime_type = media_info.get("mimeType", None)
+            file_format = media_info.get("fileFormat", None)
+            file_name = media_info.get("fileName", None)
+            url = media_info.get("sourceUrl", None)
+            base_64_data = media_info.get("base64Data", None)
 
-            if url:
-                img_type = SEMOSSImageType.URL
-            elif base_64_data:
-                img_type = SEMOSSImageType.BASE64
+            # Check base64Data FIRST - if we have base64 data, use it regardless of URL
+            if base_64_data:
+                input_type = SEMOSSMediaInputType.BASE64
+                data = base_64_data
+            elif url:
+                # Check if the URL is actually base64 data
+                if self._is_base64_data(url):
+                    input_type = SEMOSSMediaInputType.BASE64
+                    data = url
+                else:
+                    input_type = SEMOSSMediaInputType.URL
+                    data = url
             else:
                 raise ValueError("Image content must have either a URL or base64 data.")
 
-            if type == SEMOSSImageType.URL:
-                data = url
-            else:
-                data = base_64_data
-
-            semoss_image_contents.append(
-                SEMOSSImageContent(
-                    type=img_type,
+            semoss_media_contents.append(
+                SEMOSSMediaContent(
+                    type=input_type,
                     data=data,
-                    format=img_format,
+                    format=file_format,
                     mime_type=mime_type,
                     file_name=file_name,
                     url=url,
                 )
             )
 
-        return semoss_image_contents
+        return semoss_media_contents
+
+    def _is_base64_data(self, value: str) -> bool:
+        """
+        Check if a string value is actually base64 data rather than a URL.
+
+        Handles two cases:
+        1. Data URI format: 'data:<mime_type>;base64,<data>'
+        2. Raw base64 string: A string containing only valid base64 characters
+
+        Returns True if the value appears to be base64 data, False otherwise.
+        """
+        if not value or not isinstance(value, str):
+            return False
+
+        # Check for data URI scheme (e.g., 'data:image/png;base64,...')
+        if value.startswith("data:") and ";base64," in value:
+            return True
+
+        # Check if it looks like a URL (has a scheme like http://, https://, file://, etc.)
+        url_pattern = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://")
+        if url_pattern.match(value):
+            return False
+
+        # Check if the string is valid base64
+        # Base64 strings only contain A-Z, a-z, 0-9, +, /, and = for padding
+        # They should also have a length that is a multiple of 4 (with padding)
+        base64_pattern = re.compile(r"^[A-Za-z0-9+/]*={0,2}$")
+
+        # Remove any whitespace that might be in the base64 string
+        cleaned_value = value.replace("\n", "").replace("\r", "").replace(" ", "")
+
+        # Check if the string matches base64 pattern and has reasonable length
+        # (at least 20 chars to avoid false positives with short strings)
+        if len(cleaned_value) >= 20 and base64_pattern.match(cleaned_value):
+            # Try to decode it to verify it's valid base64
+            try:
+                base64.b64decode(cleaned_value, validate=True)
+                return True
+            except Exception:
+                return False
+
+        return False

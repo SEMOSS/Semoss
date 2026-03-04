@@ -1,7 +1,33 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -10,11 +36,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -25,11 +46,11 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -42,9 +63,6 @@ public final class RoomUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(RoomUtils.class);
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
-
 	/**
 	 * Overload create room
 	 * 
@@ -56,7 +74,7 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null);
 	}
 
 	/**
@@ -73,14 +91,13 @@ public final class RoomUtils {
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context) {
+			String workspaceId, Map<String, Object> options, String context, String projectId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
 		}
 
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
-
 		if (!roomExistsInDB) {
 			String agentType = null;
 			String engineId = null;
@@ -92,7 +109,9 @@ public final class RoomUtils {
 			AccessToken userToken = user.getPrimaryLoginToken();
 			String userName = userToken.getName();
 			String userEmail = userToken.getEmail();
-			String projectId = insight.getContextProjectId();
+			if (projectId == null) {
+				projectId = insight.getContextProjectId();
+			}
 			if (projectId == null) {
 				projectId = insight.getProjectId();
 			}
@@ -137,33 +156,46 @@ public final class RoomUtils {
 	public static Room getOrLoadRoom(String roomId, Insight insight) {
 		Room room;
 		// Check in user's cache (roomHash)
-		if (insight.getUser().roomHash.containsKey(roomId)) {
-			try {
-				room = (Room) insight.getUser().roomHash.get(roomId);
-				// is the message json null? if so then this is probably a legacy room
-				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-					RoomUtils.updateRoom(room, insight);
+			if (insight.getUser().roomHash.containsKey(roomId)) {
+				try {
+					room = (Room) insight.getUser().roomHash.get(roomId);
+					// is the message json null? if so then this is probably a legacy room (pre-message json!!)
+					if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+						RoomUtils.updateRoom(room, insight);
+					} else {
+						// Ensure messages are parsed exactly once before upgrade checks.
+						if (room.getMessages() == null || room.getMessages().isEmpty()) {
+							room.parseMessages();
+						}
+						upgradeRoomMessagesIfNeeded(room, insight);
+					}
+					return room;
+				} catch (ClassCastException e) {
+					insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
 				}
-				return room;
-			} catch (ClassCastException e) {
-				insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
-			}
 		}
 		// else it may be in the DB
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
 		if (!roomExistsInDB) {
-			throw new IllegalArgumentException("User room is not valid");
+			throw new IllegalArgumentException("Room ID is not valid");
 		}
 		room = ModelInferenceLogsUtils.getRoomById(roomId, insight.getUser().getPrimaryLoginToken().getId());
+		if (room == null) {
+			throw new IllegalArgumentException("Room is not valid for this user");
+		}
 
 		// is the message json null? if so then this is probably a legacy room
-		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-			RoomUtils.updateRoom(room, insight);
-		}
+			if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+				RoomUtils.updateRoom(room, insight);
+			} else {
+				upgradeRoomMessagesIfNeeded(room, insight);
+			}
+
+		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
 		if (messages.size() > 0) {
 			// if the message id in room table does not match message ids in message table,
-			// probably needs migration
+			// probably needs migration - this is only if we never have had a message with a message_json yet!
 			boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId,
 					messages.get(0).getMessageId());
 			if (!migratedMessageIds) {
@@ -173,10 +205,27 @@ public final class RoomUtils {
 				}
 			}
 		}
-		room.setInsight(insight);
-		room.parseMessages();
-		insight.getUser().roomHash.put(roomId, room);
-		return room;
+
+			room.setInsight(insight);
+			insight.getUser().roomHash.put(roomId, room);
+			return room;
+		}
+
+	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String json = room.getMessageJson();
+		boolean jsonMissingSchema = (json != null && !json.contains("\"schemaVersion\""));
+		if (!jsonMissingSchema && !MessageSchemaUpgrader.needsUpgrade(room.getMessages())) {
+			return;
+		}
+
+		MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
+		String upgraded = room.getMessagesAsString();
+		room.setMessagesJson(upgraded);
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+				insight.getUser().getPrimaryLoginToken().getId(), upgraded);
 	}
 
 	private static void updateRoom(Room room, Insight insight) {
@@ -205,7 +254,7 @@ public final class RoomUtils {
 	 * Gets the room options map
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
-		List<Map<String, Object>> roomOptions =  ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
+		List<Map<String, Object>> roomOptions = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
 		if (roomOptions == null || roomOptions.isEmpty()) {
 			return new HashMap<String, Object>();
 		}
@@ -229,8 +278,7 @@ public final class RoomUtils {
 
 		// Switch by type
 		if ("INPUT".equals(type)) {
-			InputMessage im = InputMessage.builder(room).withInputUIPrompt(data).withInputPrompt(data)
-					.withType(MessageType.INPUT_TEXT).build();
+			InputMessage im = InputMessage.builder(room).withText(data).withType(MessageType.INPUT_TEXT).build();
 			im.setDateCreated(dateCreated);
 			im.setModelId(room.getModelId());
 			return im;
@@ -290,75 +338,73 @@ public final class RoomUtils {
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
 	}
 
-    /**
-     * Returns true if there are any non-hidden (not starting with .)
-     * files under the room's folder, recursively.
-     */
-    public static boolean hasFiles(Room room) {
-        if (room == null) {
-            return false;
-        }
-        String folderPath = room.getRoomFolderPath();
-        if (folderPath == null) {
-            return false;
-        }
-        File folder = new File(folderPath);
-        return hasVisibleFilesRecursive(folder);
-    }
+	/**
+	 * Returns true if there are any non-hidden (not starting with .) files under
+	 * the room's folder, recursively.
+	 */
+	public static boolean hasFiles(Room room) {
+		if (room == null) {
+			return false;
+		}
+		String folderPath = room.getRoomFolderPath();
+		if (folderPath == null) {
+			return false;
+		}
+		File folder = new File(folderPath);
+		return hasVisibleFilesRecursive(folder);
+	}
 
-    private static boolean hasVisibleFilesRecursive(File folder) {
-        if (folder == null || !folder.exists() || !folder.isDirectory()) {
-            return false;
-        }
+	private static boolean hasVisibleFilesRecursive(File folder) {
+		if (folder == null || !folder.exists() || !folder.isDirectory()) {
+			return false;
+		}
 
-        File[] files = folder.listFiles();
-        if (files == null) {
-            return false;
-        }
+		File[] files = folder.listFiles();
+		if (files == null) {
+			return false;
+		}
 
-        for (File f : files) {
-            String name = f.getName();
-            if (name.startsWith(".")) {
-                continue; // skip hidden files/folders
-            }
-            if (f.isDirectory()) {
-                if (hasVisibleFilesRecursive(f)) {
-                    return true;
-                }
-            } else if (f.isFile()) {
-                return true; // found a non-hidden file!
-            }
-        }
-        return false;
-    }
-    
+		for (File f : files) {
+			String name = f.getName();
+			if (name.startsWith(".")) {
+				continue; // skip hidden files/folders
+			}
+			if (f.isDirectory()) {
+				if (hasVisibleFilesRecursive(f)) {
+					return true;
+				}
+			} else if (f.isFile()) {
+				return true; // found a non-hidden file!
+			}
+		}
+		return false;
+	}
 
-    public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
-        String userId = user.getPrimaryLoginToken().getId();
+	public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
+		String userId = user.getPrimaryLoginToken().getId();
 
-        // Check if user is the owner of the active room
-        boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
-        if (!isOwner) {
-            throw new IllegalArgumentException("User is not the owner of the active room");
-        }
+		// Check if user is the owner of the active room
+		boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
+		if (!isOwner) {
+			throw new IllegalArgumentException("User is not the owner of the active room");
+		}
 
-        // Load the Room
-        Room room = getOrLoadRoom(roomId, insight);
-        if (room == null) {
-            throw new IllegalArgumentException("Room not found");
-        }
-        String roomFolder = room.getRoomFolderPath();
+		// Load the Room
+		Room room = getOrLoadRoom(roomId, insight);
+		if (room == null) {
+			throw new IllegalArgumentException("Room not found");
+		}
+		String roomFolder = room.getRoomFolderPath();
 
-        // If there are non-hidden files, push them
-        if (hasFiles(room)) {
-            ClusterUtil.pushRoom(room.getId());
-        }
+		// If there are non-hidden files, push them
+		if (hasFiles(room)) {
+			ClusterUtil.pushRoom(room.getId());
+		}
 
-        // Set the insight's folder to the room's folder
-        insight.setInsightFolder(roomFolder);
-    }
+		// Set the insight's folder to the room's folder
+		insight.setInsightFolder(roomFolder);
+	}
 
-    
 	/*
 	 * Private constructor
 	 */

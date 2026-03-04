@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.query.querystruct.selectors;
 
 import java.util.ArrayList;
@@ -13,6 +40,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 	private String colCast;
 	private List<Object[]> additionalFunctionParams;
 	private String dataType = null;
+	private String separator = null;
 
 	public QueryFunctionSelector() {
 		this.innerSelectors = new ArrayList<>();
@@ -113,6 +141,14 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		this.additionalFunctionParams = additionalFunctionParams;
 	}
 
+	public String getSeparator() {
+		return separator;
+	}
+
+	public void setSeparator(String separator) {
+		this.separator = separator;
+	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof QueryFunctionSelector) {
@@ -205,7 +241,7 @@ public class QueryFunctionSelector extends AbstractQuerySelector {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.CONCAT);
 		fun.addInnerSelector(new QueryColumnSelector(qsName1));
-		fun.addInnerSelector(new QueryConstantSelector(qsName2));
+		fun.addInnerSelector(new QueryColumnSelector(qsName2));
 		fun.setAlias(alias);
 		return fun;
 	}

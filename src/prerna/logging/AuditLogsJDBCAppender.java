@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.logging;
 
 import java.io.Serializable;
@@ -54,7 +81,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	private int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
 	private final AtomicLong lastAppendTime = new AtomicLong(System.currentTimeMillis());
-	private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService SCHEDULER;
 
 	protected AuditLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions, String engineId, int batchSize) {
@@ -79,18 +106,21 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				);
 				""";
 
-		this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+		this.SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread t = new Thread(r, "AuditLogsJDBCAppender-Scheduler");
 			t.setDaemon(true);
 			return t;
 		});
 
-		this.scheduler.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
+		this.SCHEDULER.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
 				TimeUnit.MILLISECONDS);
 	}
 
 	@Override
 	public void append(LogEvent event) {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		synchronized (events) {
 			events.add(event.toImmutable());
 			lastAppendTime.set(System.currentTimeMillis());
@@ -101,12 +131,18 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	}
 
 	private void flushIfIdle() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		if (System.currentTimeMillis() - lastAppendTime.get() >= FLUSH_INTERVAL_MS) {
 			flush();
 		}
 	}
 
 	private void flush() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		List<LogEvent> processingEvents;
 		synchronized (events) {
 			if (events.isEmpty()) {
@@ -128,6 +164,10 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				LOGGER.error("Failed to initialize custom engine as audit logs database", e);
 				return;
 			}
+		}
+		if (auditLogs == null) {
+			LOGGER.warn("Audit logs database has not been initialized yet");
+			return;
 		}
 		AbstractSqlQueryUtil queryUtil = auditLogs.getQueryUtil();
 
@@ -219,14 +259,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 
 	@Override
 	public void stop() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		flush();
-		scheduler.shutdown();
+		SCHEDULER.shutdown();
 		try {
-			if (!scheduler.awaitTermination(1, TimeUnit.MINUTES)) {
-				scheduler.shutdownNow();
+			if (!SCHEDULER.awaitTermination(1, TimeUnit.MINUTES)) {
+				SCHEDULER.shutdownNow();
 			}
 		} catch (InterruptedException e) {
-			scheduler.shutdownNow();
+			SCHEDULER.shutdownNow();
 			Thread.currentThread().interrupt();
 		}
 		super.stop();

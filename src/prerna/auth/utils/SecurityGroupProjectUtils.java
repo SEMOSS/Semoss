@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
@@ -5,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +50,8 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
@@ -338,7 +368,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 
 		qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ENGINEID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
 		for (AuthProvider login : logins) {
@@ -482,7 +513,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
 		if (existingGroupPermission == null) {
 			throw new IllegalArgumentException(
-					"Attempting to modify project permission for a group who does not currently have access to the project");
+					"Attempting to modify group project permission for a group who does not currently have access to the project");
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
@@ -592,7 +623,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete a group project permission
+	 * Delete a group project permission Note: Does not check to see if group
+	 * permission is expired
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -637,7 +669,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getAllUserGroupProjects(User user) {
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null,
 				PixelDataType.CONST_INT));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -652,5 +684,57 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(orFilter);
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
+	}
+
+	/**
+	 * Get groups that have access to a project
+	 * 
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static List<Map<String, Object>> getGroupsWithAccessToProject(User user, String projectId, long limit,
+			long offset) throws IllegalAccessException {
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Input projectId must not be null or blank");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException("The user does not have access to view this project");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get number of groups that have access to a project
+	 * 
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static Long getNumGroupsWithAccessToProject(User user, String projectId) throws IllegalAccessException {
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Input projectId must not be null or blank");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException("The user does not have access to view this project");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"GROUPPROJECTPERMISSION__ID", "numGroups"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 }

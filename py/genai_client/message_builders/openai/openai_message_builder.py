@@ -1,7 +1,8 @@
-from typing import List, Dict, Any, Tuple, Union
+from email.mime import message
+from typing import List, Dict, Any, Optional, Tuple, Union
 import json
 from pydantic import BaseModel
-from ...utils import get_image_extension
+from ...utils import get_image_extension, string_to_bool
 from .openai_models import (
     OpenAIResponsesToolCall,
     OpenAIRoles,
@@ -10,9 +11,12 @@ from .openai_models import (
     OpenAIToolCall,
     OpenAIImageURL,
     OpenAIImageContentPart,
+    OpenAIFile,
+    OpenAIFileContentPart,
     OpenAITextContentPart,
     OpenAIImageDetail,
     OpenAIResponsesImageContentPart,
+    OpenAIResponsesFileContentPart,
     OpenAIToolChatCompletionContentPart,
     OpenAIToolResponsesContentPart,
     OpenAIResponsesToolCallOutput,
@@ -21,8 +25,9 @@ from .openai_models import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
-    SEMOSSImageContent,
-    SEMOSSImageType,
+    SEMOSSMessagePartType,
+    SEMOSSMediaContent,
+    SEMOSSMediaInputType,
     ModelSettings,
 )
 
@@ -86,63 +91,169 @@ class OpenAIMessageBuilder:
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            role = self._message_type_to_role(message.type)
 
-            if message.type == "RESPONSE_TOOL" and message.tool_calls:
-                for tool_call in message.tool_calls:
+            if message.parts:
+                content_parts = []
+                for p in message.parts:
+                    if p.type == SEMOSSMessagePartType.TEXT:
+                        content_parts.append(
+                            self._build_text_content_part(
+                                p.text,
+                                type=(
+                                    "input_text"
+                                    if message.io == "INPUT"
+                                    else "output_text"
+                                ),
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.MEDIA:
+                        media_content = self._build_media_content_single_part(
+                            p.mediaInfo
+                        )
+                        content_parts.append(media_content)
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_CALL:
+                        # other provider messages might have text with tool calls
+                        # we need to append them separately to be able to convert to the correct openai format
+                        if content_parts:
+                            openai_messages.append(
+                                OpenAIResponsesMessage(
+                                    role=(
+                                        OpenAIRoles.USER.value
+                                        if message.io == "INPUT"
+                                        else OpenAIRoles.ASSISTANT.value
+                                    ),
+                                    content=content_parts,
+                                )
+                            )
+                            content_parts = []
+
+                        openai_messages.append(
+                            OpenAIResponsesToolCall(
+                                call_id=p.toolCall.id,
+                                name=p.toolCall.function.name,
+                                arguments=p.toolCall.function.parameters or {},
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        # other provider messages might have text with tool calls
+                        # we need to append them separately to be able to convert to the correct openai format
+                        if content_parts:
+                            openai_messages.append(
+                                OpenAIResponsesMessage(
+                                    role=(
+                                        OpenAIRoles.USER.value
+                                        if message.io == "INPUT"
+                                        else OpenAIRoles.ASSISTANT.value
+                                    ),
+                                    content=content_parts,
+                                )
+                            )
+                            content_parts = []
+
+                        openai_messages.append(
+                            OpenAIResponsesToolCallOutput(
+                                type="function_call_output",
+                                call_id=p.toolResult.id,
+                                output=p.toolResult.output,
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.THINKING:
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        content_parts.append(thinking_dict)
+
+                # this message might be a tool result with no other content
+                # in that case we don't want to add an additional message with empty content
+                if content_parts:
                     openai_messages.append(
-                        OpenAIResponsesToolCall(
-                            call_id=tool_call.get("id"),
-                            name=tool_call["function"]["name"],
-                            arguments=tool_call["function"].get("arguments", {}),
+                        OpenAIResponsesMessage(
+                            role=(
+                                OpenAIRoles.USER.value
+                                if message.io == "INPUT"
+                                else OpenAIRoles.ASSISTANT.value
+                            ),
+                            content=content_parts,
                         )
                     )
-                continue
 
-            if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
-                openai_messages.append(
-                    OpenAIResponsesToolCallOutput(
-                        type="function_call_output",
-                        call_id=message.tool_call_id,
-                        output=message.content,
-                    )
-                )
+                # handle parameters update based on last message same as w/o parts
                 if is_last:
                     param_map.update(message.param_map)
-                continue
 
-            # Handle regular messages (text and image content)
-            content_parts = []
-
-            # Handle text content
-            if hasattr(message, "content") and message.content:
-                content_parts.append(self._build_text_content_part(message.content))
-
-            # Handle image content
-            if hasattr(message, "image_content") and message.image_content:
-                image_content_parts = self._build_image_content_parts(
-                    message.image_content
-                )
-                content_parts.extend(image_content_parts)
-
-            if len(content_parts) == 1 and isinstance(
-                content_parts[0], OpenAITextContentPart
-            ):
-                content = content_parts[0].text
             else:
-                content = content_parts
+                role = self._message_type_to_role(message.type)
 
-            openai_messages.append(
-                OpenAIResponsesMessage(
-                    role=role,
-                    content=content,
+                if message.type == "RESPONSE_TOOL" and message.tool_calls:
+                    for tool_call in message.tool_calls:
+                        openai_messages.append(
+                            OpenAIResponsesToolCall(
+                                call_id=tool_call.get("id"),
+                                name=tool_call["function"]["name"],
+                                arguments=tool_call["function"].get("arguments", {}),
+                            )
+                        )
+                    continue
+
+                if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                    openai_messages.append(
+                        OpenAIResponsesToolCallOutput(
+                            type="function_call_output",
+                            call_id=message.tool_call_id,
+                            output=message.content,
+                        )
+                    )
+                    if is_last:
+                        param_map.update(message.param_map)
+                    continue
+
+                # Handle regular messages (text and media content)
+                content_parts = []
+
+                # Handle text content
+                if hasattr(message, "content") and message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
+
+                # Handle media content
+                if hasattr(message, "media_content") and message.media_content:
+                    media_content_parts = self._build_media_content_parts(
+                        message.media_content
+                    )
+                    content_parts.extend(media_content_parts)
+
+                if len(content_parts) == 1 and isinstance(
+                    content_parts[0], OpenAITextContentPart
+                ):
+                    content = content_parts[0].text
+                else:
+                    content = content_parts
+
+                openai_messages.append(
+                    OpenAIResponsesMessage(
+                        role=role,
+                        content=content,
+                    )
                 )
-            )
 
-            if is_last:
-                param_map.update(message.param_map)
+                if is_last:
+                    param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
+
+        try:
+            reasoning = self._resolve_extended_reasoning(param_map)
+            if reasoning:
+                param_map["reasoning"] = reasoning
+        except Exception:
+            pass
+
         if has_schema:
             # converting string to boolean for "additionalProperties" key
             param_map["schema"] = self.replace_string_false(param_map["schema"])
@@ -150,8 +261,11 @@ class OpenAIMessageBuilder:
 
         # convert tools into openai responses format if present
         if param_map.get("tools"):
-            tools = self.convert_mcp_to_openai_responses_tools(param_map["tools"])
-            param_map["tools"] = [tool.model_dump() for tool in tools]
+            tools = self._handle_responses_tools(param_map["tools"])
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -174,85 +288,196 @@ class OpenAIMessageBuilder:
 
         for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            role = self._message_type_to_role(message.type)
 
-            # Handle RESPONSE_TOOL messages (assistant messages with tool calls)
-            if message.type == "RESPONSE_TOOL" and message.tool_calls:
-                tool_calls = []
-                for tool_call in message.tool_calls:
-                    tool_calls.append(
-                        OpenAIToolCall(
-                            id=tool_call.get("id"),
-                            type=tool_call.get("type", "function"),
-                            function=OpenAIToolFunctionPart(
-                                name=tool_call["function"]["name"],
-                                arguments=tool_call["function"].get("arguments", {}),
+            if message.parts:
+                content_parts = []
+                tool_call_parts = []
+                for p in message.parts:
+                    if p.type == SEMOSSMessagePartType.TEXT:
+                        content_parts.append(self._build_text_content_part(p.text))
+
+                    elif p.type == SEMOSSMessagePartType.MEDIA:
+                        media_content = self._build_media_content_single_part(
+                            p.mediaInfo
+                        )
+                        content_parts.append(media_content)
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_CALL:
+                        # other provider messages might have text with tool calls
+                        # we need to be able to convert to the correct openai format
+                        # if content_parts:
+                        #     openai_messages.append(
+                        #         OpenAIResponsesMessage(
+                        #             role=(
+                        #                 OpenAIRoles.USER.value
+                        #                 if message.io == "INPUT"
+                        #                 else OpenAIRoles.ASSISTANT.value
+                        #             ),
+                        #             content=content_parts,
+                        #         )
+                        #     )
+                        #     content_parts = []
+
+                        tool_call_parts.append(
+                            OpenAIToolCall(
+                                id=p.toolCall.id,
+                                type=p.toolCall.type,
+                                function=OpenAIToolFunctionPart(
+                                    name=p.toolCall.function.name,
+                                    arguments=p.toolCall.function.parameters or {},
+                                ),
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        # other provider messages might have text with tool calls
+                        # we need to be able to convert to the correct openai format
+                        if content_parts:
+                            # openai_messages.append(
+                            #     OpenAIResponsesMessage(
+                            #         role=(
+                            #             OpenAIRoles.USER.value
+                            #             if message.io == "INPUT"
+                            #             else OpenAIRoles.ASSISTANT.value
+                            #         ),
+                            #         content=content_parts,
+                            #     )
+                            # )
+                            content_parts = []
+
+                        openai_messages.append(
+                            OpenAIMessage(
+                                role="tool",
+                                content=p.toolResult.output,
+                                tool_call_id=p.toolResult.id,
+                            )
+                        )
+
+                    elif p.type == SEMOSSMessagePartType.THINKING:
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        content_parts.append(thinking_dict)
+
+                # openai does not allow text with tool calls
+                # so if tool call we will drop the text portion
+                if tool_call_parts:
+                    openai_messages.append(
+                        OpenAIMessage(
+                            role="assistant",
+                            content="",
+                            tool_calls=tool_call_parts,
+                        ),
+                    )
+                # this message might be a tool result with no other content
+                # in that case we don't want to add an additional message with empty content
+                elif content_parts:
+                    openai_messages.append(
+                        OpenAIMessage(
+                            role=(
+                                OpenAIRoles.USER.value
+                                if message.io == "INPUT"
+                                else OpenAIRoles.ASSISTANT.value
                             ),
+                            content=content_parts,
                         )
                     )
 
-                openai_messages.append(
-                    OpenAIMessage(
-                        role="assistant",
-                        content="",
-                        tool_calls=tool_calls,
-                    )
-                )
-                continue
-
-            # Handle INPUT_TOOL_EXEC messages (tool execution results)
-            if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
-                openai_messages.append(
-                    OpenAIMessage(
-                        role="tool",
-                        content=message.content,
-                        tool_call_id=message.tool_call_id,
-                    )
-                )
+                # handle parameters update based on last message same as w/o parts
                 if is_last:
                     param_map.update(message.param_map)
-                continue
 
-            # Handle regular messages (text and image content)
-            content_parts = []
-
-            # Handle text content
-            if message.content:
-                content_parts.append(self._build_text_content_part(message.content))
-
-            # Handle image content
-            if message.image_content:
-                image_content_parts = self._build_image_content_parts(
-                    message.image_content
-                )
-                content_parts.extend(image_content_parts)
-
-            if len(content_parts) == 1 and isinstance(
-                content_parts[0], OpenAITextContentPart
-            ):
-                content = content_parts[0].text
             else:
-                content = content_parts
+                role = self._message_type_to_role(message.type)
 
-            openai_messages.append(
-                OpenAIMessage(
-                    role=role,
-                    content=content,
+                # Handle RESPONSE_TOOL messages (assistant messages with tool calls)
+                if message.type == "RESPONSE_TOOL" and message.tool_calls:
+                    tool_calls = []
+                    for tool_call in message.tool_calls:
+                        tool_calls.append(
+                            OpenAIToolCall(
+                                id=tool_call.get("id"),
+                                type=tool_call.get("type", "function"),
+                                function=OpenAIToolFunctionPart(
+                                    name=tool_call["function"]["name"],
+                                    arguments=tool_call["function"].get(
+                                        "arguments", {}
+                                    ),
+                                ),
+                            )
+                        )
+
+                    openai_messages.append(
+                        OpenAIMessage(
+                            role="assistant",
+                            content="",
+                            tool_calls=tool_calls,
+                        )
+                    )
+                    continue
+
+                # Handle INPUT_TOOL_EXEC messages (tool execution results)
+                if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                    openai_messages.append(
+                        OpenAIMessage(
+                            role="tool",
+                            content=message.content,
+                            tool_call_id=message.tool_call_id,
+                        )
+                    )
+                    if is_last:
+                        param_map.update(message.param_map)
+                    continue
+
+                # Handle regular messages (text and media content)
+                content_parts = []
+
+                # Handle text content
+                if message.content:
+                    content_parts.append(self._build_text_content_part(message.content))
+
+                # Handle media content
+                if message.media_content:
+                    media_content_parts = self._build_media_content_parts(
+                        message.media_content
+                    )
+                    content_parts.extend(media_content_parts)
+
+                if len(content_parts) == 1 and isinstance(
+                    content_parts[0], OpenAITextContentPart
+                ):
+                    content = content_parts[0].text
+                else:
+                    content = content_parts
+
+                openai_messages.append(
+                    OpenAIMessage(
+                        role=role,
+                        content=content,
+                    )
                 )
-            )
 
-            if is_last:
-                param_map.update(message.param_map)
+                if is_last:
+                    param_map.update(message.param_map)
 
         has_schema = param_map.get("schema", False)
         if has_schema:
+            # # converting string to boolean for "additionalProperties" key
+            param_map["schema"] = self.replace_string_false(param_map["schema"])
             param_map = self._get_structured_parameters_format(**param_map)
 
         # convert tools into openai chat-completion format if present
         if not has_schema and param_map.get("tools"):
-            param_map["tools"] = self.convert_mcp_to_openai_chat_completions_tools(
+            tools = self.convert_mcp_to_openai_chat_completions_tools(
                 param_map["tools"]
             )
+            param_map["tools"] = [
+                tool.model_dump() if hasattr(tool, "model_dump") else tool
+                for tool in tools
+            ]
         else:
             param_map.pop("tools", None)
 
@@ -267,14 +492,17 @@ class OpenAIMessageBuilder:
         return openai_messages, param_map
 
     def _build_tool_choice(
-        self, tool_choice: Dict[str, str]
-    ) -> Union[Dict[str, str], str, None]:
+        self, tool_choice: Dict[str, str] | str
+    ) -> Dict[str, Any] | str | None:
         """
         Build the tool choice as string and dictionary for OpenAI
         SEMOSS tool_type options [auto, required, forced, none]
         OpenAI type options [auto, required, forced, none]
         OpenAI types of any and tool are not available with extended thinking
         """
+        if isinstance(tool_choice, str):
+            return tool_choice
+
         tool_type = tool_choice.get("type", "auto").lower()
         tool_name = tool_choice.get("name", None)
 
@@ -361,21 +589,23 @@ class OpenAIMessageBuilder:
         and whether the schema is a dict or Pydantic model.
         """
         if self.chat_type == "chat-completion":
-            return (
-                (
+            if schema_type == "dict":
+                # Ensure the schema has additionalProperties set to False for chat completions API
+                processed_schema = self._ensure_additional_properties_false(schema)
+                return (
                     "response_format",
                     {
                         "type": "json_schema",
                         "json_schema": {
                             "name": "custom_schema",
                             "strict": True,
-                            "schema": schema,
+                            "schema": processed_schema,
                         },
                     },
                 )
-                if schema_type == "dict"
-                else ("response_format", schema)  # Pydantic model
-            )
+            else:
+                return ("response_format", schema)  # Pydantic model
+
         elif self.chat_type == "responses":
             if schema_type == "dict":
                 # Ensure the schema has additionalProperties set to False for responses API
@@ -429,7 +659,7 @@ class OpenAIMessageBuilder:
 
     def convert_mcp_to_openai_chat_completions_tools(
         self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    ) -> List[Any]:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
@@ -440,6 +670,17 @@ class OpenAIMessageBuilder:
         openai_tools = []
 
         for tool in mcp_tools:
+            tool_type = tool.get("type", "function")
+
+            # built-in tools
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
             openai_tool = {
                 "name": tool["name"],
                 "description": tool["description"],
@@ -469,46 +710,75 @@ class OpenAIMessageBuilder:
 
         return openai_tools
 
-    def convert_mcp_to_openai_responses_tools(
-        self, mcp_tools: List[Dict]
-    ) -> List[Dict]:
+    def _handle_responses_tools(self, tools: List[Dict]) -> List[Any]:
+        """
+        I'm returning a mix of pydantic models and raw dictionaries because of OpenAI's built in tools.
+        I want to be able to explictly define non-built-in tools but I'm not going to try to update or keep track
+        of OpenAI's built-in tool's parameters.
+        """
+        openai_tools = []
+        for tool in tools:
+            tool_type = tool.get("type", "function")
+
+            # Built-in tools (web_search, code_interpreter, etc.)
+            if (
+                tool_type != "function"
+                and "inputSchema" not in tool
+                and "parameters" not in tool
+            ):
+                openai_tools.append(tool)
+                continue
+
+            if "parameters" in tool:
+                # Already in OpenAI format
+                openai_tools.append(
+                    OpenAIToolResponsesContentPart(
+                        type=tool.get("type", "function"),
+                        name=tool.get("name"),
+                        description=tool.get("description"),
+                        parameters=tool.get("parameters"),
+                    )
+                )
+            else:
+                # MCP format
+                converted_tools = self._convert_mcp_to_openai_responses_tool(tool)
+                openai_tools.append(converted_tools)
+
+        return openai_tools
+
+    def _convert_mcp_to_openai_responses_tool(
+        self, mcp_tool: Dict[str, Any]
+    ) -> OpenAIToolResponsesContentPart:
         """
         Convert MCP-formatted tools to OpenAI function calling format.
         Args:
-            mcp_tools: List of tools in MCP format
+            mcp_tool: A tool in MCP format
         Returns:
-            List of OpenAI tools for Responses
+            An OpenAI tool for Responses
         """
-        openai_tools = []
+        openai_tool_parameters = {
+            "type": mcp_tool["inputSchema"]["type"],
+            "properties": {},
+            "required": mcp_tool["inputSchema"].get("required", []),
+        }
 
-        for tool in mcp_tools:
-            openai_tool_parameters = {
-                "type": tool["inputSchema"]["type"],
-                "properties": {},
-                "required": tool["inputSchema"].get("required", []),
-            }
+        for prop_name, prop_def in mcp_tool["inputSchema"]["properties"].items():
+            # copy all properties except 'title'
+            converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
 
-            for prop_name, prop_def in tool["inputSchema"]["properties"].items():
-                # copy all properties except 'title'
-                converted_prop = {k: v for k, v in prop_def.items() if k != "title"}
+            # if type is array, change to object and remove items
+            if prop_def.get("type") == "array":
+                converted_prop["type"] = "object"
+                converted_prop.pop("items", None)
 
-                # if type is array, change to object and remove items
-                if prop_def.get("type") == "array":
-                    converted_prop["type"] = "object"
-                    converted_prop.pop("items", None)
+            openai_tool_parameters["properties"][prop_name] = converted_prop
 
-                openai_tool_parameters["properties"][prop_name] = converted_prop
-
-            openai_tools.append(
-                OpenAIToolResponsesContentPart(
-                    type="function",
-                    name=tool["name"],
-                    description=tool["description"],
-                    parameters=openai_tool_parameters,
-                )
-            )
-
-        return openai_tools
+        return OpenAIToolResponsesContentPart(
+            type="function",
+            name=mcp_tool["name"],
+            description=mcp_tool["description"],
+            parameters=openai_tool_parameters,
+        )
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
@@ -524,7 +794,7 @@ class OpenAIMessageBuilder:
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
 
-        # Removing any unhanlded semoss specific params
+        # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
         param_map.pop("max_new_tokens", None)
@@ -533,6 +803,7 @@ class OpenAIMessageBuilder:
         param_map.pop("use_history", None)
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
+        param_map.pop("chat_type", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
@@ -541,6 +812,14 @@ class OpenAIMessageBuilder:
         """
         Cleaning the param map for the specific chat type and removing any unhandled semoss specific params
         """
+
+        # CODEX SPECIFIC HANDLING
+        if param_map.get("instructions"):
+            openai_messages = self._create_system_message(
+                param_map.pop("instructions"), openai_messages
+            )
+        param_map.pop("include", None)
+        # END CODEX SPECIFIC HANDLING
 
         if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(
@@ -607,71 +886,151 @@ class OpenAIMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {message_type}")
 
-    def _build_text_content_part(self, content: str) -> OpenAITextContentPart:
+    def _build_text_content_part(
+        self, content: str, type: Optional[str] = "input_text"
+    ) -> OpenAITextContentPart:
         """Build OpenAI text content part"""
         if self.chat_type == "responses":
-            return OpenAITextContentPart(text=content, type="input_text")
+            return OpenAITextContentPart(text=content, type=type)
         else:
             return OpenAITextContentPart(text=content)
 
-    def _build_image_content_parts(
-        self, image_content: List[SEMOSSImageContent] = []
-    ) -> List[OpenAIImageContentPart]:
-        """Build OpenAI image content parts from SEMOSS image content."""
-        openai_image_parts = []
+    def _build_media_content_parts(
+        self, media_content: List[SEMOSSMediaContent] = []
+    ) -> List[
+        Union[
+            OpenAIImageContentPart,
+            OpenAIFileContentPart,
+            OpenAIResponsesImageContentPart,
+            OpenAIResponsesFileContentPart,
+        ]
+    ]:
+        """Build OpenAI media content parts from SEMOSS media content."""
+        openai_media_parts = []
+        for media in media_content:
+            openai_media_parts.append(self._build_media_content_single_part(media))
 
-        for image in image_content:
-            if image.type == SEMOSSImageType.URL:
-                openai_image_parts.append(self._build_url_image_content(image))
-            elif image.type == SEMOSSImageType.BASE64:
-                openai_image_parts.append(self._build_base64_image_content(image))
-            else:
-                raise ValueError(f"Unknown image type: {image.type}")
+        return openai_media_parts
 
-        return openai_image_parts
+    def _build_media_content_single_part(
+        self, media: SEMOSSMediaContent = None
+    ) -> Union[
+        OpenAIImageContentPart,
+        OpenAIFileContentPart,
+        OpenAIResponsesImageContentPart,
+        OpenAIResponsesFileContentPart,
+    ]:
+        """Build OpenAI media content part from SEMOSS media content."""
+        if media.type == SEMOSSMediaInputType.URL:
+            return self._build_url_image_content(media)
+        elif media.type == SEMOSSMediaInputType.BASE64:
+            return self._build_base64_media_content(media)
+        else:
+            raise ValueError(f"Unknown media type: {media.type}")
 
     def _build_url_image_content(
-        self, image_content: SEMOSSImageContent
+        self, media_content: SEMOSSMediaContent
     ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from URL"""
-        if not image_content.url:
+        """Build OpenAI media content part from URL"""
+        if not media_content.url:
             raise ValueError(
-                "The image type was specified as URL but no URL was provided."
+                "The media type was specified as URL but no URL was provided."
             )
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=image_content.url)
+            return OpenAIResponsesImageContentPart(image_url=media_content.url)
         else:
             image_url = OpenAIImageURL(
-                url=image_content.url, detail=OpenAIImageDetail.AUTO.value
+                url=media_content.url, detail=OpenAIImageDetail.AUTO.value
             )
 
             return OpenAIImageContentPart(image_url=image_url)
 
-    def _build_base64_image_content(
-        self, image_content: SEMOSSImageContent
-    ) -> Union[OpenAIImageContentPart, OpenAIResponsesImageContentPart]:
-        """Build OpenAI image content part from base64"""
-        if not image_content.data:
+    def _build_base64_media_content(self, media_content: SEMOSSMediaContent) -> Union[
+        OpenAIImageContentPart,
+        OpenAIFileContentPart,
+        OpenAIResponsesImageContentPart,
+        OpenAIResponsesFileContentPart,
+    ]:
+        """Build OpenAI media content part from base64"""
+        if not media_content.data:
             raise ValueError(
-                "The image type was specified as base64 but no data was provided."
+                "The media type was specified as base64 but no data was provided."
             )
 
-        if not image_content.mime_type:
-            image_content.mime_type = get_image_extension(image_content.data)
+        if not media_content.mime_type:
+            media_content.mime_type = get_image_extension(media_content.data)
 
-        if image_content.mime_type == "image/jpg":
-            image_content.mime_type = "image/jpeg"
+        if media_content.mime_type == "image/jpg":
+            media_content.mime_type = "image/jpeg"
 
-        data_uri = f"data:{image_content.mime_type};base64,{image_content.data}"
+        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
 
         if self.chat_type == "responses":
-            return OpenAIResponsesImageContentPart(image_url=data_uri)
+            if media_content.mime_type.startswith("image"):
+                return OpenAIResponsesImageContentPart(image_url=data_uri)
+            else:
+                return OpenAIResponsesFileContentPart(
+                    filename=media_content.file_name, file_data=data_uri
+                )
         else:
-            image_url = OpenAIImageURL(
-                url=data_uri, detail=OpenAIImageDetail.AUTO.value
-            )
-            return OpenAIImageContentPart(image_url=image_url)
+            if media_content.mime_type.startswith("image"):
+                image_url = OpenAIImageURL(
+                    url=data_uri, detail=OpenAIImageDetail.AUTO.value
+                )
+                return OpenAIImageContentPart(image_url=image_url)
+            else:
+                file_data = OpenAIFile(
+                    filename=media_content.file_name, file_data=data_uri
+                )
+                return OpenAIFileContentPart(file=file_data)
+
+    def _resolve_extended_reasoning(self, param_map: Dict[str, Any]) -> Dict[str, Any]:
+        thinking = param_map.pop("thinking", None)
+        if thinking and isinstance(thinking, str):
+            try:
+                thinking = string_to_bool(thinking)
+            except ValueError:
+                thinking = None
+        thinking_budget = param_map.pop("thinking_budget", None)
+
+        if not thinking and self.model_settings.thinking:
+            thinking = self.model_settings.thinking
+        if not thinking_budget and self.model_settings.thinking_budget:
+            thinking_budget = self.model_settings.thinking_budget
+
+        if thinking:
+            return {
+                "effort": self._budget_to_effort(thinking_budget),
+                "summary": "auto",
+            }
+        return None
+
+    def _budget_to_effort(self, budget_tokens=None) -> str:
+        """
+        Accepts either a string ('low', 'medium', 'high') or an int (tokens), and returns 'low', 'medium', or 'high'.
+        """
+        if budget_tokens is None:
+            return "medium"
+        if isinstance(budget_tokens, str):
+            s = budget_tokens.strip().lower()
+            if s in ("low", "medium", "high"):
+                return s
+            try:  # Try to parse string integer
+                n = int(s)
+                budget_tokens = n
+            except Exception:
+                return "medium"  # fallback
+        # If not string, must be int now
+        try:
+            val = int(budget_tokens)
+        except Exception:
+            return "medium"
+        if val >= 20000:
+            return "high"
+        if val >= 5000:
+            return "medium"
+        return "low"
 
     # def _truncate_by_tokens(
     #     self,

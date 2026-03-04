@@ -45,6 +45,11 @@ def __getattr__(name: str) -> Any:
 
         return GoogleGenAiImageClient
 
+    elif name == "AskSageClient":
+        from .text_generation.ask_sage_client.ask_sage_client import AskSage
+
+        return AskSage
+
     elif name == "LocalEmbedder":
         from .embedders.local_embedder import LocalEmbedder
 
@@ -79,6 +84,11 @@ def __getattr__(name: str) -> Any:
         from .embedders.bedrock_embedder import BedrockEmbedder
 
         return BedrockEmbedder
+
+    elif name == "ClaudeCodeClient":
+        from .agents.claude_code.claude_code_client import ClaudeCodeClient
+
+        return ClaudeCodeClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -190,4 +200,5 @@ __all__ = [
     "get_embedder",
     "get_tokenizer",
     "BedrockEmbedder",
+    "ClaudeCodeClient",
 ]

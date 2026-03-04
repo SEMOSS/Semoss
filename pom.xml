@@ -68,6 +68,13 @@
 					<exclude>**/*.java</exclude>
 				</excludes>
 			</resource>
+			<resource>
+				<directory>.</directory>
+				<includes>
+					<include>docx4j.properties</include>
+					<include>docx4j-ImportXHTML.properties</include>
+				</includes>
+			</resource>
 		</resources>
 		<testResources>
 			<testResource>
@@ -95,6 +102,7 @@
 									<include>org.apache.parquet:*</include>
 									<include>org.apache.hadoop:*</include>
 									<include>com.amazon.athena:athena-jdbc-uber</include>
+									<include>org.neo4j:neo4j-jdbc-bolt</include>
 								</includes>
 							</artifactSet>
 							<filters>
@@ -146,6 +154,13 @@
 									<artifact>org.apache.parquet:parquet-hadoop</artifact>
 									<excludes>
 										<exclude>shaded/parquet/it/unimi/dsi/fastutil/**</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.neo4j:*</artifact>
+									<excludes>
+										<exclude>com/fasterxml/**</exclude>
+										<exclude>org/slf4j/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
@@ -248,6 +263,45 @@
 					<target>21</target>
 					<encoding>cp1252</encoding>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.mycila</groupId>
+				<artifactId>license-maven-plugin</artifactId>
+				<version>4.3</version>
+				<configuration>
+					<header>src/license/header.txt</header>
+					<properties>
+						<year>2015</year>
+						<owner>Defense Health Agency (DHA)</owner>
+					</properties>
+					<includes>
+						<include>src/**/*.java</include>
+						<include>test/**/*.java</include>
+						<include>test_legacy/**/*.java</include>
+					</includes>
+					<headerDefinitions>
+						<headerDefinition>src/license/header-style.xml</headerDefinition>
+					</headerDefinitions>
+					<mapping>
+						<java>javadoc_style</java>
+					</mapping>
+					<useDefaultMapping>true</useDefaultMapping>
+					<strictCheck>true</strictCheck>
+				</configuration>
+				<executions>
+					<execution>
+						<id>format-headers</id>
+						<phase>process-sources</phase>
+						<goals>
+							<goal>format</goal>
+						</goals>
+					</execution>
+					<execution>
+						<goals>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -449,6 +503,28 @@
 					-->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.8</version>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+								<configuration>
+									<bestPractices>true</bestPractices>
+									<executable>gpg</executable>
+									<gpgArguments>
+										<arg>--pinentry-mode</arg>
+										<arg>loopback</arg>
+									</gpgArguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
 						<executions>
 							<execution>
@@ -615,6 +691,236 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Docx4J Deps --> 
+		<!-- https://mvnrepository.com/artifact/org.docx4j/docx4j-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-core</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-ImportXHTML-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-ImportXHTML-core</artifactId>
+		    <version>11.5.6</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-core</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-pml</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-sml</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-JAXB-ReferenceImpl -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-core</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-pml</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-runtime</artifactId>
+		    <version>4.0.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api -->
+		<dependency>
+		    <groupId>jakarta.xml.bind</groupId>
+		    <artifactId>jakarta.xml.bind-api</artifactId>
+		    <version>4.0.2</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
+		<dependency>
+		    <groupId>javax.xml.bind</groupId>
+		    <artifactId>jaxb-api</artifactId>
+		    <version>2.3.1</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- WebP ImageIO Plugin for reading WebP images -->
+		<!-- Source: https://mvnrepository.com/artifact/org.sejda.imageio/webp-imageio -->
+		<dependency>
+		    <groupId>org.sejda.imageio</groupId>
+		    <artifactId>webp-imageio</artifactId>
+		    <version>0.1.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- End Docx4J Deps --> 
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -699,7 +1005,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.0</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-lang</groupId>
@@ -887,7 +1193,7 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-arq</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -900,14 +1206,14 @@
 		<dependency>
 			<groupId>com.apicatalog</groupId>
 			<artifactId>titanium-json-ld</artifactId>
-			<version>1.4.1</version>
+			<version>1.7.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
 		<!-- required for apache jena -->
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
-			<version>0.21.0</version>
+			<version>0.22.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -926,7 +1232,7 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-base</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -938,13 +1244,13 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-core</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-tdb2 -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-tdb2</artifactId>
-			<version>5.3.0</version>
+			<version>5.6.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
@@ -1035,7 +1341,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1053,7 +1359,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1073,7 +1379,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
-			<version>1.27.1</version>
+			<version>1.28.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1085,19 +1391,19 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1110,6 +1416,19 @@
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
 			<version>4.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- streaming poi -->
+		<!-- https://mvnrepository.com/artifact/com.github.pjfanning/excel-streaming-reader -->
+		<dependency>
+			<groupId>com.github.pjfanning</groupId>
+			<artifactId>excel-streaming-reader</artifactId>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1227,7 +1546,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-repository-sail</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -1263,11 +1582,15 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-nativerdf</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.lz4</groupId>
+	   				<artifactId>lz4-java</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.jetbrains.kotlin</groupId>
@@ -1279,11 +1602,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.lz4/lz4-java -->
+		<dependency>
+	   		<groupId>org.lz4</groupId>
+	   		<artifactId>lz4-java</artifactId>
+	    	<version>1.8.1</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-memory</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1295,7 +1624,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-rdfxml</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>
@@ -1307,7 +1636,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-inferencer</artifactId>
-			<version>5.1.5</version>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
@@ -1397,12 +1726,6 @@
 			<artifactId>neo4j-gremlin</artifactId>
 			<version>3.7.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-jdbc-bolt</artifactId>
-			<version>5.0.0</version>
-		</dependency>
 		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
 			<groupId>commons-validator</groupId>
@@ -1417,10 +1740,14 @@
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
 		<dependency>
-			<groupId>org.eclipse.jgit</groupId>
-			<artifactId>org.eclipse.jgit</artifactId>
-			<version>5.13.3.202401111512-r</version>
-			<exclusions>
+		    <groupId>org.eclipse.jgit</groupId>
+		    <artifactId>org.eclipse.jgit</artifactId>
+		    <version>7.4.0.202509020913-r</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>commons-codec</groupId>
+		    		<artifactId>commons-codec</artifactId>
+		    	</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -1509,10 +1836,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.ow2.asm</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
@@ -1737,10 +2060,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>io.netty</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
@@ -2231,10 +2550,6 @@
 					<artifactId>commons-io</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>io.netty</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>log4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -2323,10 +2638,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/io.github.jopenlibs/vault-java-driver -->
 		<dependency>
-			<groupId>com.bettercloud</groupId>
-			<artifactId>vault-java-driver</artifactId>
-			<version>5.1.0</version>
+		    <groupId>io.github.jopenlibs</groupId>
+		    <artifactId>vault-java-driver</artifactId>
+		    <version>6.2.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
@@ -2441,7 +2757,7 @@
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -2470,6 +2786,10 @@
 				<exclusion>
 					<groupId>com.google.j2objc</groupId>
 					<artifactId>j2objc-annotations</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.nimbusds</groupId>
+					<artifactId>oauth2-oidc-sdk</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>net.minidev</groupId>
@@ -2814,7 +3134,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.14.1</version>
+			<version>0.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2962,6 +3282,18 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-jdbc-bolt</artifactId>
+			<version>5.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>

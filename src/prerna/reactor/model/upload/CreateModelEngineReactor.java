@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.model.upload;
 
 import java.io.File;
@@ -83,6 +110,16 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		Map<String, Object> modelDetails = getModelDetails();
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
+		NounMetadata warning = null;
+		if (global) {
+			if (AbstractSecurityUtils.adminOnlyEngineSetPublic(IEngine.CATALOG_TYPE.MODEL)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Public access can only be enabled by administrators. This item will be created as private.");
+				global = false;
+			}
+		}
+		
 		String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
 		if (modelTypeStr == null || (modelTypeStr = modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
@@ -148,7 +185,12 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
-		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		if (warning != null) {
+			retNoun.addAdditionalReturn(warning);
+		}
+		return retNoun;
+	
 	}
 
 	/**
