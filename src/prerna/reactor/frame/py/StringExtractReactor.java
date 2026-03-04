@@ -40,8 +40,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class StringExtractReactor extends AbstractPyFrameReactor {
 
@@ -66,9 +64,9 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 		organizeKeys();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		//get table name
+		// get table name
 		String wrapperFrameName = frame.getWrapperName();
-		
+
 		// variables of things passed into the reactor
 		String srcCol = this.keyValue.get(ReactorKeysEnum.COLUMN.getKey());
 		String where = this.keyValue.get(WHERE);
@@ -111,11 +109,11 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 			script.append("right, ");
 		}
 		script.append(amount + ")");
-		
+
 		// run script
 		frame.runScript(script.toString());
 		this.addExecutedCode(script.toString());
-		
+
 		// if not replacing vals (creating a new col, update metadata)
 		String frameName = frame.getName();
 		if (!replace) {
@@ -135,13 +133,6 @@ public class StringExtractReactor extends AbstractPyFrameReactor {
 			metaData.setDerivedToProperty(frameName + "__" + newColName, true);
 			frame.syncHeaders();
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"StringExtract", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// create retNoun and if not replacing vals (creating a new col, add
 		// that pixeloptype)
