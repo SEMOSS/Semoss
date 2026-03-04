@@ -93,7 +93,7 @@ public class JiraHelper {
 		if (tableName == null)
 			return false;
 		String checkQuery = "SELECT 1 FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
-		try (Connection conn = jiraDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(checkQuery)) {
+		try (Connection conn = jiraDB.getConnection(); PreparedStatement pstmt = conn.prepareStatement(checkQuery)) {
 			pstmt.setString(1, keyName);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				return rs.next();
@@ -116,7 +116,7 @@ public class JiraHelper {
 		if (tableName == null)
 			return null;
 		String query = "SELECT " + field + " FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
-		try (Connection conn = jiraDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+		try (Connection conn = jiraDB.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
 			pstmt.setString(1, keyName);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if (rs.next()) {
@@ -423,7 +423,7 @@ public class JiraHelper {
 						NounMetadata.getErrorNounMessage("User id " + keyName + " is not present in DB"));
 			}
 			String deleteQuery = "DELETE FROM " + tableName + " WHERE " + JIRA_UNIQUE_ID + " = ?";
-			try (Connection conn = jiraDB.makeConnection();
+			try (Connection conn = jiraDB.getConnection();
 					PreparedStatement pstmt = conn.prepareStatement(deleteQuery)) {
 				pstmt.setString(1, keyName);
 				pstmt.executeUpdate();
