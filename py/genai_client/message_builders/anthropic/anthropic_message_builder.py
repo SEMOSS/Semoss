@@ -87,6 +87,7 @@ class AnthropicMessageBuilder:
             is_last = i == len(semoss_messages) - 1
             content_parts = []
 
+            ## =============== NEW PARTS STRUCTURE ============
             if message.parts:
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
@@ -136,7 +137,6 @@ class AnthropicMessageBuilder:
                 # handle parameters update based on last message same as w/o parts
                 if is_last:
                     param_map = message.param_map
-                    # ... (rest of the param_map logic remains the same) ...
                     schema = param_map.pop("schema", False)
                     if schema:
                         schema_tool = self._get_structured_parameters_format(schema)
@@ -161,6 +161,7 @@ class AnthropicMessageBuilder:
                             param_map["tool_choice"]
                         )
 
+            ## =============== LEGACY MESSAGE TYPE STRUCTURE ============
             else:
                 # --- 1. HANDLE USER TEXT / MEDIA MESSAGES ---
                 if (

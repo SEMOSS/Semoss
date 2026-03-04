@@ -39,7 +39,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleGmailReadEmailReactor extends AbstractReactor {
 	
@@ -58,12 +57,13 @@ public class GoogleGmailReadEmailReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			Map<String, Object> retMap = GoogleGmailHelper.readEmail(accessToken, id);
+			GoogleGmailHelper.markEmailAsRead(accessToken, id);
 	        return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while reading Gmail email id {}", id, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read Gmail email id {}", id, e);
 			throw new SemossPixelException("An error occurred reading the email details. Error message: " + e.getMessage());
 		}
 	}
@@ -82,4 +82,3 @@ public class GoogleGmailReadEmailReactor extends AbstractReactor {
 	}
 
 }
-

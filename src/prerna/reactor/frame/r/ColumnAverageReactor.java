@@ -99,8 +99,10 @@ public class ColumnAverageReactor extends AbstractRFrameReactor {
 		metaData.setDerivedToProperty(frameName + "__" + newColName, true);
 		frame.syncHeaders();
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
+		retNoun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully performed average across columns."));
 		return retNoun;
 	}
 
