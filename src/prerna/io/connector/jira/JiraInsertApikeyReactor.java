@@ -123,7 +123,7 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 		String query = "SELECT " + JIRA_UNIQUE_ID + " FROM " + tableName
 				+ " WHERE USER_ID=? AND API_KEY=? AND URL=? AND DATE_CREATED=? AND DATE_LAST_USED=? AND KEY_NAME=? AND PROJECT=?";
 
-		try (Connection conn = jiraDB.makeConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
+		try (Connection conn = jiraDB.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
 			pstmt.setString(1, userId);
 			pstmt.setString(2, apiKey);
 			pstmt.setString(3, url);
@@ -160,7 +160,7 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 		boolean flag = false;
 		ResultSet rs = null;
 
-		try (Connection conn = jiraDB.makeConnection()) {
+		try (Connection conn = jiraDB.getConnection()) {
 			// Validate table name
 			if (!isValidTableName(tableName)) {
 				map.put("Data inserted successfully", false);
