@@ -214,24 +214,28 @@ class OpenAiClient(AbstractTextGenerationClient):
     ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
 
-        response = self.client.responses.create(
-            model=self.model_settings.model_name, **request
-        )
-
-        if request.get("stream", False):
+        is_streaming = request.pop("stream", False)
+        
+        if is_streaming:
+            stream_response = self.client.responses.create(
+                model=self.model_settings.model_name, stream=True, **request
+            )
             response_tokens = 0
             input_tokens = 0
+            usage_map = None
             thinking_tokens = None
             cached_tokens = None
             streamed_tools = {}
             finish_reason = None
             aggregated_content = ""
             aggregated_thinking = ""
-            for chunk in response:
+            for chunk in stream_response:
                 # Usage info typically comes in the final chunk
                 if "response.completed" in chunk.type:
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
+                    if hasattr(chunk.response, "usage") and chunk.response.usage is not None:
+                        usage_map = chunk.response.usage
                     if hasattr(chunk.response.usage, "output_tokens_details") and chunk.response.usage.output_tokens_details is not None:
                         thinking_tokens = chunk.response.usage.output_tokens_details.reasoning_tokens
                     if hasattr(chunk.response.usage, "input_tokens_details") and chunk.response.usage.input_tokens_details is not None:
@@ -341,7 +345,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                         )
                         + [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
                     ),
-                    usage_map=response.usage
+                    usage_map=usage_map
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -368,9 +372,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                             else []
                         )
                     ),
-                    usage_map=response.usage
+                    usage_map=usage_map
                 )
         else:
+            response = self.client.responses.create(
+                model=self.model_settings.model_name, stream=False, **request
+            )
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
             if hasattr(response.usage, "output_tokens_details") and response.usage.output_tokens_details is not None:
