@@ -1,0 +1,164 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.model;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Map;
+
+import prerna.auth.User;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class GetUserModelUsageReactor extends AbstractReactor {
+
+    public GetUserModelUsageReactor() {
+        this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.START_DATE.getKey(),
+                ReactorKeysEnum.END_DATE.getKey() };
+        this.keyRequired = new int[] { 1, 0, 0 }; // engines required, dates optional
+    }
+
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        User user = insight.getUser();
+
+        if (user == null) {
+            throw new IllegalArgumentException("You are not properly logged in");
+        }
+
+        // Get the parameters
+        List<String> engineIds = getEngineIds();
+        String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+        String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+
+        // Validate date parameters
+        validateDateParameters(startDate, endDate);
+
+        // Validate we have at least one engine
+        if (engineIds == null || engineIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one engine ID must be provided");
+        }
+
+        // Get usage data per engine
+        List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
+                startDate, endDate);
+
+        return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
+    }
+
+    /**
+     * Validates that if one date is provided, both must be provided,
+     * that dates are valid, and that start date is before or equal to end date
+     * 
+     * @param startDate
+     * @param endDate
+     */
+    private void validateDateParameters(String startDate, String endDate) {
+        boolean hasStartDate = startDate != null && !startDate.trim().isEmpty();
+        boolean hasEndDate = endDate != null && !endDate.trim().isEmpty();
+
+        if (hasStartDate != hasEndDate) {
+            throw new IllegalArgumentException(
+                    "Both startDate and endDate must be provided together, or neither should be provided");
+        }
+
+        // If both dates are provided, validate them
+        if (hasStartDate && hasEndDate) {
+            LocalDate start;
+            LocalDate end;
+
+            // Parse and validate start date
+            try {
+                start = LocalDate.parse(startDate.trim());
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException(
+                        "Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
+            }
+
+            // Parse and validate end date
+            try {
+                end = LocalDate.parse(endDate.trim());
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException(
+                        "Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
+            }
+
+            // Validate start date is before or equal to end date
+            if (start.isAfter(end)) {
+                throw new IllegalArgumentException(
+                        "startDate must be before or equal to endDate. Provided: startDate=" + startDate
+                                + ", endDate=" + endDate);
+            }
+        }
+    }
+
+    /**
+     * Gets the list of engine IDs from the reactor parameters
+     * 
+     * @return List of engine IDs or null if not provided
+     */
+    private List<String> getEngineIds() {
+        // Try to get as a list first
+        List<String> engineIds = null;
+
+        // Also check keyValue
+        if (this.keyValue.containsKey(ReactorKeysEnum.ENGINE.getKey())) {
+            Object enginesObj = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+            if (enginesObj instanceof List) {
+                engineIds = (List<String>) enginesObj;
+            } else if (enginesObj instanceof String) {
+                engineIds = List.of((String) enginesObj);
+            }
+        }
+
+        return engineIds;
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Returns model usage (tokens used) for the current user over a specified time period. "
+                + "Requires a list of engine IDs and optionally accepts a date range.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+            return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
+        } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+            return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
+        } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+            return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+}

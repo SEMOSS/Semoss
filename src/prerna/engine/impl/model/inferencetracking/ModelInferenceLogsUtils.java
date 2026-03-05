@@ -129,11 +129,13 @@ public class ModelInferenceLogsUtils {
 			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
 
-//      boolean primaryKeysAdded =
-//          addAllPrimaryKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBPrimaryKeys());
-//      if (primaryKeysAdded) {
-//        addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
-//      }
+			// boolean primaryKeysAdded =
+			// addAllPrimaryKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBPrimaryKeys());
+			// if (primaryKeysAdded) {
+			// addAllForeignKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBForeignKeys());
+			// }
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -2772,6 +2774,68 @@ public class ModelInferenceLogsUtils {
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addOrderBy("last_utilized_date", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * Get user model usage per specific engines
+	 * 
+	 * @param user      The user to get usage for
+	 * @param engineIds List of engine IDs to filter by
+	 * @param startDate Optional start date (format: YYYY-MM-DD)
+	 * @param endDate   Optional end date (format: YYYY-MM-DD)
+	 * @return List of maps containing usage data per engine
+	 */
+	public static List<Map<String, Object>> getUserModelUsagePerEngine(User user, List<String> engineIds,
+			String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Select engine ID and name
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+
+		// Sum total tokens
+		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
+		sumTokenSelector.setAlias("TOTAL_TOKENS");
+		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokenSelector);
+
+		// Count number of requests
+		QueryFunctionSelector countRequestSelector = new QueryFunctionSelector();
+		countRequestSelector.setAlias("TOTAL_REQUESTS");
+		countRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(countRequestSelector);
+
+		// Join to AGENT table to get agent name
+		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
+
+		// Filter by user ID
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+
+		// Filter by engine IDs
+		if (engineIds != null && !engineIds.isEmpty()) {
+			if (engineIds.size() == 1) {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds.get(0)));
+			} else {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
+			}
+		}
+
+		// Filter by date range if provided
+		addStartDateEndDateFitler(qs, startDate, endDate);
+
+		// Group by engine
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
+		qs.addGroupBy(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
+
+		// Order by engine ID
+		qs.addOrderBy(MESSAGE_TABLE_NAME + "AGENT_ID", "ASC");
 
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
