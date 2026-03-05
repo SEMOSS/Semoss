@@ -89,9 +89,19 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
+		
+		// if we've already opened don't automatically drop the searcher variable
+		if(this.vectorDatabaseSearcher == null) {
+			this.vectorDatabaseSearcher = Utility.getRandomString(6);
+		}
 	}
-
+	
+	@Override
+	public void close() throws IOException {
+		this.vectorDatabaseSearcher = null;
+		super.close();
+	}
+	
 	@Override
 	protected String[] getServerStartCommands() {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
