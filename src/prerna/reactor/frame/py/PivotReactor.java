@@ -38,19 +38,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class PivotReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor pivots a column so that the unique values will be transformed into new headers
-	 * The inputs to the reactor are: 
-	 * 1) the column to pivot
-	 * 2) the column to turn into values for the selected pivot column
-	 * 3) the aggregate function
-	 * 4) the other columns to maintain
-	 * 5) the optional no value replace
+	 * This reactor pivots a column so that the unique values will be transformed
+	 * into new headers The inputs to the reactor are: 1) the column to pivot 2) the
+	 * column to turn into values for the selected pivot column 3) the aggregate
+	 * function 4) the other columns to maintain 5) the optional no value replace
 	 */
 
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
@@ -64,8 +59,10 @@ public class PivotReactor extends AbstractPyFrameReactor {
 	}
 
 	/*
-	 * What is being sent Pivot(pivotCol = ["Nominated"], valueCol = ["MovieBudget"], function = [""], maintainCols = []); 
-	 * Frame()|QueryAll()|AutoTaskOptions(panel=["0"], layout=["Grid"])|Collect(500); the maintain cols is the keep cols
+	 * What is being sent Pivot(pivotCol = ["Nominated"], valueCol =
+	 * ["MovieBudget"], function = [""], maintainCols = []);
+	 * Frame()|QueryAll()|AutoTaskOptions(panel=["0"],
+	 * layout=["Grid"])|Collect(500); the maintain cols is the keep cols
 	 */
 	@Override
 	public NounMetadata execute() {
@@ -135,13 +132,13 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			// need a way to map it
 			String aggregateString = "";
 			if (aggregateFunction != null && aggregateFunction.length() > 0) {
-				if(aggregateFunction.equalsIgnoreCase("sum")) {
+				if (aggregateFunction.equalsIgnoreCase("sum")) {
 					aggregateFunction = "np.sum";
 				}
-				if(aggregateFunction.equalsIgnoreCase("mean")) {
+				if (aggregateFunction.equalsIgnoreCase("mean")) {
 					aggregateFunction = "np.mean";
 				}
-				if(aggregateFunction.equalsIgnoreCase("median")) {
+				if (aggregateFunction.equalsIgnoreCase("median")) {
 					aggregateFunction = "np.median";
 				}
 				aggregateString = ", aggfunc = " + aggregateFunction;
@@ -165,14 +162,15 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			}
 			frame.runScript(colScript);
 			this.addExecutedCode(colScript);
-			
+
 		} else {
 
 			// if we can't aggregate we will count non numeric values
-			String script = newFrame + "= pd.pivot_table(" + table + pivotString + keepString + " , aggfunc='count'" + ")";
+			String script = newFrame + "= pd.pivot_table(" + table + pivotString + keepString + " , aggfunc='count'"
+					+ ")";
 			frame.runScript(script);
 			this.addExecutedCode(script);
-			
+
 			// python allows weird headers
 			// need to clean them up!!!
 			// need to get old headers
@@ -204,7 +202,7 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		this.addExecutedCode(colScript);
 
 		frame = (PandasFrame) recreateMetadata(frame);
-		
+
 		// get the optional replace value for na values
 		// for the pivoted column new values
 		String naReplace = getNaReplace();
@@ -221,16 +219,13 @@ public class PivotReactor extends AbstractPyFrameReactor {
 				if (!colsToKeep.contains(possibleHeader)) {
 					// py script to replace a value within the pivot column
 					// df['DataFrame Column'] = df['DataFrame Column'].fillna(0)
-					pyReplaceScript.append(table + "['" + possibleHeader + "'] = " + table + "['" + possibleHeader + "'].fillna(" + naReplace + ")");
+					pyReplaceScript.append(table + "['" + possibleHeader + "'] = " + table + "['" + possibleHeader
+							+ "'].fillna(" + naReplace + ")");
 				}
 			}
 			frame.runScript(pyReplaceScript.toString());
 			this.addExecutedCode(pyReplaceScript.toString());
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Pivot",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
@@ -303,10 +298,10 @@ public class PivotReactor extends AbstractPyFrameReactor {
 			String naReplace = naReplaceInput.getNoun(0).getValue().toString();
 			return naReplace;
 		}
-		//don't throw an error because this input is optional
+		// don't throw an error because this input is optional
 		return null;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
@@ -322,18 +317,18 @@ public class PivotReactor extends AbstractPyFrameReactor {
 		}
 	}
 
-	////////////////////// HELPER METHODS  //////////////////////////////////
-	
+	////////////////////// HELPER METHODS //////////////////////////////////
+
 	public static boolean isNumeric(String strNum) {
-	    if (strNum == null) {
-	        return false;
-	    }
-	    try {
-	        Double.parseDouble(strNum);
-	    } catch (NumberFormatException nfe) {
-	        return false;
-	    }
-	    return true;
+		if (strNum == null) {
+			return false;
+		}
+		try {
+			Double.parseDouble(strNum);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
 	}
-	
+
 }

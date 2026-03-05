@@ -45,11 +45,12 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageSchemaUpgrader;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
 
@@ -116,7 +117,8 @@ public final class RoomUtils {
 				projectId = insight.getProjectId();
 			}
 			String projectName = null;
-			if (projectId != null) {
+			// ignore playground project id
+			if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
 				IProject project = Utility.getProject(projectId);
 				projectName = project != null ? project.getProjectName() : null;
 			}
@@ -156,23 +158,24 @@ public final class RoomUtils {
 	public static Room getOrLoadRoom(String roomId, Insight insight) {
 		Room room;
 		// Check in user's cache (roomHash)
-			if (insight.getUser().roomHash.containsKey(roomId)) {
-				try {
-					room = (Room) insight.getUser().roomHash.get(roomId);
-					// is the message json null? if so then this is probably a legacy room (pre-message json!!)
-					if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-						RoomUtils.updateRoom(room, insight);
-					} else {
-						// Ensure messages are parsed exactly once before upgrade checks.
-						if (room.getMessages() == null || room.getMessages().isEmpty()) {
-							room.parseMessages();
-						}
-						upgradeRoomMessagesIfNeeded(room, insight);
+		if (insight.getUser().getRoomHash().containsKey(roomId)) {
+			try {
+				room = (Room) insight.getUser().getRoomHash().get(roomId);
+				// is the message json null? if so then this is probably a legacy room
+				// (pre-message json!!)
+				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+					RoomUtils.updateRoom(room, insight);
+				} else {
+					// Ensure messages are parsed exactly once before upgrade checks.
+					if (room.getMessages() == null || room.getMessages().isEmpty()) {
+						room.parseMessages();
 					}
-					return room;
-				} catch (ClassCastException e) {
-					insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
+					upgradeRoomMessagesIfNeeded(room, insight);
 				}
+				return room;
+			} catch (ClassCastException e) {
+				insight.getUser().getRoomHash().remove(roomId); // Clear corrupted cache entry
+			}
 		}
 		// else it may be in the DB
 		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
@@ -185,17 +188,18 @@ public final class RoomUtils {
 		}
 
 		// is the message json null? if so then this is probably a legacy room
-			if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-				RoomUtils.updateRoom(room, insight);
-			} else {
-				upgradeRoomMessagesIfNeeded(room, insight);
-			}
+		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
+			RoomUtils.updateRoom(room, insight);
+		} else {
+			upgradeRoomMessagesIfNeeded(room, insight);
+		}
 
 		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
-		if (messages.size() > 0) {
+		if (!messages.isEmpty()) {
 			// if the message id in room table does not match message ids in message table,
-			// probably needs migration - this is only if we never have had a message with a message_json yet!
+			// probably needs migration - this is only if we never have had a message with a
+			// message_json yet!
 			boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId,
 					messages.get(0).getMessageId());
 			if (!migratedMessageIds) {
@@ -206,10 +210,10 @@ public final class RoomUtils {
 			}
 		}
 
-			room.setInsight(insight);
-			insight.getUser().roomHash.put(roomId, room);
-			return room;
-		}
+		room.setInsight(insight);
+		insight.getUser().getRoomHash().put(roomId, room);
+		return room;
+	}
 
 	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
 		if (room == null || insight == null || insight.getUser() == null) {
@@ -224,8 +228,8 @@ public final class RoomUtils {
 		MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
 		String upgraded = room.getMessagesAsString();
 		room.setMessagesJson(upgraded);
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-				insight.getUser().getPrimaryLoginToken().getId(), upgraded);
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+				upgraded);
 	}
 
 	private static void updateRoom(Room room, Insight insight) {

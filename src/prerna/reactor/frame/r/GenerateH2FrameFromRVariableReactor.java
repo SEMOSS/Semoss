@@ -39,18 +39,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor takes an r frame and synchronizes it to an h2 frame in
-	 * semoss inputs are: 1) r data table name
+	 * This reactor takes an r frame and synchronizes it to an h2 frame in semoss
+	 * inputs are: 1) r data table name
 	 */
-	
+
 	public GenerateH2FrameFromRVariableReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.VARIABLE.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
@@ -66,24 +64,18 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Error occurred instaniating new grid frame");
 		}
 
-		//sync R dataframe to H2Frame
-		syncFromR(this.rJavaTranslator,varName, newTable);
-		if(overrideFrame()) {
+		// sync R dataframe to H2Frame
+		syncFromR(this.rJavaTranslator, varName, newTable);
+		if (overrideFrame()) {
 			this.insight.setDataMaker(newTable);
 		}
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 		// add the alias as a noun by default
-		if(varName != null && !varName.isEmpty()) {
+		if (varName != null && !varName.isEmpty()) {
 			this.insight.getVarStore().put(varName, noun);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				null, 
-				"GenerateH2FrameFromRVariable", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return noun;
 	}
 
@@ -117,9 +109,10 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		}
 
 		if (colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
+			throw new IllegalArgumentException(
+					"Please make sure the variable " + rFrameName + " exists and can be a valid data.table object");
 		}
-		
+
 		CsvQueryStruct qs = new CsvQueryStruct();
 		qs.setSelectorsAndTypes(colNames, colTypes);
 
@@ -135,7 +128,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// importer will create the necessary meta information
 		importer.insertData();
 	}
-	
+
 	/**
 	 * Get the input being the r variable name
 	 * 
@@ -150,7 +143,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// first input
 		return this.curRow.get(0).toString();
 	}
-	
+
 	private boolean overrideFrame() {
 		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
 		if (overrideGrs != null && !overrideGrs.isEmpty()) {
@@ -159,7 +152,7 @@ public class GenerateH2FrameFromRVariableReactor extends AbstractRFrameReactor {
 		// default is to override
 		return true;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
