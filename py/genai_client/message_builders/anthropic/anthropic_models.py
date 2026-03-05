@@ -9,15 +9,20 @@ class AnthropicRoles(StringEnum):
     ASSISTANT = "assistant"
 
 
-class AnthropicImageType(StringEnum):
+class AnthropicMediaType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
 
 class AnthropicMediaSourceBase64(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.BASE64
+    type: AnthropicMediaType = AnthropicMediaType.BASE64
     media_type: str
     data: str
+
+
+class AnthropicURLMediaSource(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.URL
+    url: str
 
 
 class AnthropicImageContentPart(BaseModel):

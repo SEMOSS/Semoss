@@ -50,8 +50,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -68,18 +66,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.gson.GsonUtility;
 
 public final class MCPUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
 
-	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+	private static final Gson GSON = GsonUtility.getDefaultGson();
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
+	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+	public static final String UI_RESOURCE_URI = "resourceURI";
+	public static final String UI_LOADING_MESSAGE = "loadingMessage";
+	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -122,6 +125,29 @@ public final class MCPUtility {
 		}
 	}
 
+	public enum MCPDisplayOption {
+		INLINE("inline"), SIDEBAR("sidebar"), HIDDEN("hidden");
+
+		private final String value;
+
+		MCPDisplayOption(String value) {
+			this.value = value;
+		}
+
+		public String getValue() {
+			return value;
+		}
+
+		public static MCPDisplayOption fromValue(String value) {
+			for (MCPDisplayOption option : values()) {
+				if (option.getValue().equalsIgnoreCase(value)) {
+					return option;
+				}
+			}
+			return null;
+		}
+	}
+
 	/**
 	 * Run a python mcp tool
 	 * 
@@ -152,11 +178,19 @@ public final class MCPUtility {
 
 		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String loadFreshSmssModule = "import sys\n" +
-		                           "for mod in ['mcp_driver', 'smss_driver']:\n" +
-		                           "    if mod in sys.modules:\n" +
-		                           "        del sys.modules[mod]\n" +
-		                           "import " + moduleName + " as mcp_driver";
+		String loadFreshSmssModule = 
+			    "if 'reload_mcp_function' in globals():\n" +
+			    "    mcp_driver = reload_mcp_function()\n" +
+			    "else:\n" +
+			    "    import " + moduleName + " as mcp_driver";
+		
+		// @formatter:on
+		// Copy default path vars from translator globals into the loaded MCP module.
+		// These vars are injected into the translator scope, not the module scope.
+		// @formatter:off
+		String injectDefaultVars = "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
+		                          "    if _k in globals():\n" +
+		                          "        setattr(mcp_driver, _k, globals()[_k])";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -216,8 +250,10 @@ public final class MCPUtility {
 
 		// reload the module
 		pyt.runScript(insight, loadFreshSmssModule);
+		// inject default vars into module scope
+		pyt.runScript(insight, injectDefaultVars);
 		// run method
-		return pyt.runScript(insight, runMethod) + "";
+		return stringifyMcpResult(pyt.runScript(insight, runMethod));
 	}
 
 	/**
@@ -287,7 +323,23 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return result.getValue() + "";
+		return stringifyMcpResult(result.getValue());
+	}
+
+	/**
+	 * Return the tool output in the proper string representation
+	 * 
+	 * @param value
+	 * @return
+	 */
+	private static String stringifyMcpResult(Object value) {
+		// toString method properly handles this already
+		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
+				|| value instanceof com.google.gson.JsonElement) {
+			return value.toString();
+		}
+
+		return GSON.toJson(value);
 	}
 
 	/**
@@ -442,11 +494,19 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", currentMeta);
 				}
 
-				// Add SMSS_MCP_EXECUTION
+				// Add additional MCP metadata
 				if (mcpTool != null && mcpTool.has("_meta")) {
 					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
+
+					// Add SMSS_MCP_EXECUTION
 					String mcpExecution = getValidMcpExecution(toolMeta);
 					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
+
+					// Add SMSS_MCP_UI
+					JSONObject uiMeta = getValidMcpUI(toolMeta);
+					if (uiMeta != null) {
+						currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
+					}
 				}
 
 			} else {
@@ -791,10 +851,11 @@ public final class MCPUtility {
 		return (boolean) insight.getPyTranslator().runDirectPy(script);
 	}
 
-	private MCPUtility() {
-
-	}
-
+	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
 	private static String getValidMcpExecution(JSONObject toolMeta) {
 		if (toolMeta == null) {
 			return MCPExecution.ASK.getValue(); // default if _meta missing
@@ -808,7 +869,57 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * 
+	 * @param toolMeta
+	 * @return
+	 */
+	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
+		if (toolMeta == null) {
+			return null;
+		}
+
+		Object val = toolMeta.opt(SMSS_MCP_UI); // could be null, missing, etc
+		if (val == null || JSONObject.NULL.equals(val) || !(val instanceof JSONObject)) {
+			return null;
+		}
+
+		JSONObject uiJson = (JSONObject) val;
+
+		// Only add known keys
+		String resourceURI = null;
+		if (uiJson.has(UI_RESOURCE_URI) && !uiJson.isNull(UI_RESOURCE_URI)) {
+			resourceURI = uiJson.getString(UI_RESOURCE_URI);
+		}
+
+		String loadingMessage = null;
+		if (uiJson.has(UI_LOADING_MESSAGE) && !uiJson.isNull(UI_LOADING_MESSAGE)) {
+			loadingMessage = uiJson.getString(UI_LOADING_MESSAGE);
+		}
+
+		String displayLocation = null;
+		if (uiJson.has(UI_DISPLAY_LOCATION) && !uiJson.isNull(UI_DISPLAY_LOCATION)) {
+			displayLocation = uiJson.getString(UI_DISPLAY_LOCATION);
+		}
+
+		JSONObject validUiJson = new JSONObject();
+		if (resourceURI != null) {
+			validUiJson.put(UI_RESOURCE_URI, resourceURI);
+		}
+		if (loadingMessage != null) {
+			validUiJson.put(UI_LOADING_MESSAGE, loadingMessage);
+		}
+		if (displayLocation != null) {
+			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
+		}
+
+		return validUiJson;
+	}
+
+	/**
 	 * Add the MCP tag to an existing engine (engine and project)
+	 * 
 	 * @param engine
 	 */
 	public static void addMCPTag(IEngine engine) {
@@ -841,5 +952,9 @@ public final class MCPUtility {
 				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
 			}
 		}
+	}
+
+	private MCPUtility() {
+
 	}
 }

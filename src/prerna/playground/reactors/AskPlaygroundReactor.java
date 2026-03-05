@@ -103,9 +103,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
-				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				// .withTools(tools)
 				.build();
 
@@ -124,10 +124,25 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
+		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
+		pixelReturn.put("inputMessage", inputMap);
+
+		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		pixelReturn.put("responseMessage", responseMap);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override

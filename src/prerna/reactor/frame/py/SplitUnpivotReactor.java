@@ -36,20 +36,17 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SplitUnpivotReactor extends AbstractPyFrameReactor {
 
 	/**
 	 * This reactor splits columns based on a separator The split values will be
-	 * combined into a single column The inputs to the reactor are: 1) the
-	 * columns to split "columns" 2) the delimiters "delimiters"
+	 * combined into a single column The inputs to the reactor are: 1) the columns
+	 * to split "columns" 2) the delimiters "delimiters"
 	 */
 
 	public SplitUnpivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(),
-				ReactorKeysEnum.DELIMITER.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
 	}
 
 	@Override
@@ -93,16 +90,7 @@ public class SplitUnpivotReactor extends AbstractPyFrameReactor {
 		// update the frame reference as well since these changes modify the object
 		String script = frame.getName() + " = " + wrapperFrameName + ".cache['data']";
 		frame.runScript(script);
-		// TODO : should this be recorded
 		this.addExecutedCode(script);
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight,
-				frame,
-				"SplitUnpivot",
-				AnalyticsTrackerHelper
-						.getHashInputs(this.store, this.keysToGet));
 
 		// column header data is changing so we must recreate metadata
 		recreateMetadata(frame, false);

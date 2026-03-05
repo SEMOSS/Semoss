@@ -60,18 +60,17 @@ public class CreateRoomReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		User user = insight.getUser();
 
-		organizeKeys();
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 
 		Map<String, Object> options = null;
-
 		if (workspaceId != null) {
-			if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 				throw new IllegalArgumentException("Workspace " + workspaceId
 						+ " does not exist or user does not have access to view the workspace");
 			}

@@ -198,7 +198,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		// store the method name
 		newMdc.put(SemossLogUtils.METHOD_NAME, methodName);
 		{
-			newMdc.put(SemossLogUtils.ENGINE_ID, engineId);
+			newMdc.put(SemossLogUtils.ENGINE_ID, this.engineId);
 			newMdc.put(SemossLogUtils.ENGINE_NAME, this.engineName);
 			newMdc.put(SemossLogUtils.ENGINE_TYPE, this.engineType);
 			newMdc.put(SemossLogUtils.ENGINE_SUBTYPE, this.engineSubType);
@@ -209,6 +209,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				Insight insight = InsightStore.getInstance().get(insightId);
 				newMdc.put(SemossLogUtils.PROJECT_ID, insight.getContextProjectId());
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
+				newMdc.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
 			}
 		}
 
