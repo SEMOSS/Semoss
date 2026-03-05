@@ -172,6 +172,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         response = self.client.completions.create(
             model=self.model_settings.model_name, **request
         )
+        usage_map = None
         if request.get("stream", True):
             final_query = ""
             for chunk in response:
@@ -192,6 +193,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 thinking_tokens = response.usage.completion_tokens_details.reasoning_tokens
             if hasattr(response.usage, "prompt_tokens_details") and response.usage.prompt_tokens_details is not None:
                 cached_tokens = response.usage.prompt_tokens_details.cached_tokens
+            usage_map = response.usage
 
         model_engine_response = AskModelEngineResponse2(
             response=final_query,
@@ -202,7 +204,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TEXT", "text": final_query}] if final_query else [],
-            usage_map=response.usage
+            usage_map=usage_map
         )
 
         return model_engine_response
