@@ -68,6 +68,10 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     return dataframe
 
 
+class ExecutionCancelled(Exception):
+    """Raised when a running python execution is cancelled by a remote request."""
+
+
 class TCPServerHandler(socketserver.BaseRequestHandler):
     """
     This class is the request handler for the Native Python Server.
@@ -91,6 +95,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     # Class attribute to hold a singleton instance
     da_server = None
+    CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     def log_level_mapper(self, log_level_name: str) -> int:
         """
@@ -158,6 +163,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # cache where the link between payload id and monitor is kept
         self.monitors = {}
+        # cache insight cancellation flags so a secondary request can interrupt
+        # currently running execution while keeping the process alive
+        self.insight_cancel_events = {}
+        self.insight_cancel_events_lock = threading.Lock()
 
         # add the storage
         # LLM
@@ -436,6 +445,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     operation=payload["operation"],
                     response=True,
                 )
+            elif command == "INTERRUPT_INSIGHT" and payload["operation"] == "INSIGHT":
+                interrupted = self.interrupt_insight_execution(payload)
+                message = (
+                    "Interrupt signal received"
+                    if interrupted
+                    else "No insight id provided for interrupt request"
+                )
+                self.send_output(
+                    message,
+                    operation=payload["operation"],
+                    response=True,
+                )
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
@@ -694,6 +715,87 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
+    def _resolve_execution_cancel_keys(
+        self, payload: dict, insight_id: Optional[str] = None
+    ):
+        keys = []
+        if payload is not None:
+            payload_job_id = payload.get("jobId")
+            execution_insight_id = payload.get("executionInsightId")
+            payload_insight_id = payload.get("insightId")
+            if payload_job_id:
+                keys.append(f"job::{payload_job_id}")
+            if execution_insight_id:
+                keys.append(f"insight::{execution_insight_id}")
+            if payload_insight_id:
+                insight_key = f"insight::{payload_insight_id}"
+                if insight_key not in keys:
+                    keys.append(insight_key)
+
+        if insight_id:
+            insight_key = f"insight::{insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+
+        return keys
+
+    def _resolve_interrupt_target_keys(self, payload: dict):
+        keys = []
+        if payload is None:
+            return keys
+
+        payload_job_id = payload.get("jobId")
+        if payload_job_id:
+            return [f"job::{payload_job_id}"]
+
+        execution_insight_id = payload.get("executionInsightId")
+        payload_insight_id = payload.get("insightId")
+        if execution_insight_id:
+            keys.append(f"insight::{execution_insight_id}")
+        if payload_insight_id:
+            insight_key = f"insight::{payload_insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+        return keys
+
+    def _get_or_create_cancel_event(self, insight_id: str) -> threading.Event:
+        with self.insight_cancel_events_lock:
+            event = self.insight_cancel_events.get(insight_id)
+            if event is None:
+                event = threading.Event()
+                self.insight_cancel_events[insight_id] = event
+            return event
+
+    def interrupt_insight_execution(self, payload: dict) -> bool:
+        keys = self._resolve_interrupt_target_keys(payload)
+        if not keys:
+            return False
+
+        for key in keys:
+            self._get_or_create_cancel_event(key).set()
+        return True
+
+    def _prepare_execution_cancel_events(
+        self, payload: dict, insight_id: Optional[str]
+    ) -> List[threading.Event]:
+        keys = self._resolve_execution_cancel_keys(payload, insight_id)
+        events = []
+        for key in keys:
+            event = self._get_or_create_cancel_event(key)
+            # reset any stale interrupt so new work starts cleanly
+            event.clear()
+            events.append(event)
+        return events
+
+    def _build_cancel_trace(self, cancel_events: List[threading.Event]):
+        def _cancel_trace(frame, event, arg):
+            for cancel_event in cancel_events:
+                if cancel_event.is_set():
+                    raise ExecutionCancelled(self.CANCELLED_MESSAGE)
+            return _cancel_trace
+
+        return _cancel_trace
+
     def handle_python(self, command: str, insight_id: str):
         """
         Execute python code within the proper globals object
@@ -707,6 +809,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
+        cancel_trace = self._build_cancel_trace(cancel_events)
 
         # If asset paths are provided, prepend the logic to set the sys.path
         if asset_paths:
@@ -802,9 +906,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
-                    output, is_exception = self.execute_and_capture(
-                        command, insight_globals
-                    )
+                    previous_trace = sys.gettrace()
+                    try:
+                        sys.settrace(cancel_trace)
+                        output, is_exception = self.execute_and_capture(
+                            command, insight_globals
+                        )
+                    finally:
+                        sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
@@ -908,6 +1017,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 exec(ast.unparse(last_node), insight_globals)
                 return '""', False
 
+        except ExecutionCancelled as e:
+            return str(e), True
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]

@@ -458,6 +458,43 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 	@Override
+	public void interruptInsight(String insightId) {
+		interruptInsightJob(insightId, null);
+	}
+
+	@Override
+	public void interruptInsightJob(String insightId, String jobId) {
+		// Always cancel local waiters first.
+		super.interruptInsightJob(insightId, jobId);
+
+		if ((insightId == null || insightId.isBlank()) && (jobId == null || jobId.isBlank())) {
+			return;
+		}
+		if (!this.connected || this.killAll) {
+			return;
+		}
+
+		// Best-effort remote interrupt so the Python process can stop the currently
+		// running execution without killing the socket server process.
+		PayloadStruct ps = new PayloadStruct();
+		ps.epoc = "pi" + count.getAndIncrement();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.methodName = "interruptInsight";
+		ps.payload = new Object[] { "INTERRUPT_INSIGHT" };
+		ps.hasReturn = false;
+		ps.longRunning = false;
+		ps.insightId = insightId;
+		ps.executionInsightId = insightId;
+		ps.jobId = jobId;
+		writePayload(ps);
+	}
+
+	@Override
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	@Override
 	public Object executeCommand(PayloadStruct ps) {
 		String threadName = Thread.currentThread().getName();
 		long threadId = Thread.currentThread().threadId();
@@ -478,6 +515,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 		if (ps.insightId != null) {
 			addEpocForInsight(ps.insightId, ps.epoc);
+		}
+		if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+			addEpocForInsight(ps.executionInsightId, ps.epoc);
+		}
+		if (ps.jobId != null) {
+			addEpocForJob(ps.jobId, ps.epoc);
 		}
 		ps.longRunning = true;
 
@@ -533,6 +576,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			}
 		} finally {
 			removeEpocForInsight(ps.insightId, ps.epoc);
+			if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+				removeEpocForInsight(ps.executionInsightId, ps.epoc);
+			}
+			removeEpocForJob(ps.jobId, ps.epoc);
 		}
 	}
 
