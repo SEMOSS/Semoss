@@ -121,8 +121,8 @@ class BedrockClient(AbstractTextGenerationClient):
 
         prompt_tokens = 0
         output_tokens = 0
-        thinking_tokens = Optional[int] = None
-        cached_tokens = Optional[int] = None
+        thinking_tokens: Optional[int] = None
+        cached_tokens: Optional[int] = None
         usage_map = None
 
         content_array = []
