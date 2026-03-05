@@ -901,6 +901,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             try:
                 is_exception = False
+                user_cancelled = False
                 output = None
                 with contextlib.redirect_stdout(
                     self.console
@@ -909,7 +910,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     previous_trace = sys.gettrace()
                     try:
                         sys.settrace(cancel_trace)
-                        output, is_exception = self.execute_and_capture(
+                        output, is_exception, user_cancelled = self.execute_and_capture(
                             command, insight_globals
                         )
                     finally:
@@ -917,7 +918,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
-                        operation=payload["operation"],
+                        operation=(
+                            payload["operation"] if not user_cancelled else "CANCELLED"
+                        ),
                         response=True,
                         exception=is_exception,
                     )
@@ -931,7 +934,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             if process_cwd is not None:
                 os.chdir(process_cwd)
 
-    def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
+    def execute_and_capture(
+        self, code: str, insight_globals: dict
+    ) -> Tuple[str, bool, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
 
@@ -945,6 +950,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
                                 The first element is the eval output of the last expression. If last expression is not evaluable, then it will exec and return an empty string.
                                 The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
+                                The third element is a boolean indicatiing if the code was cancelled by the user (True) or not (False).
         """
         try:
             # Handle empty code
@@ -979,6 +985,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             for arg in print_args
                         ),
                         False,
+                        False,
                     )
 
             # Check if the last node is an evaluatable expression using an explicit list
@@ -1011,14 +1018,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
             if can_eval:
-                return eval(ast.unparse(last_node), insight_globals), False
+                return (eval(ast.unparse(last_node), insight_globals), False, False)
             else:
                 # It's a statement or a non-evaluatable expression, so just execute it
                 exec(ast.unparse(last_node), insight_globals)
-                return '""', False
+                return ('""', False, False)
 
         except ExecutionCancelled as e:
-            return str(e), True
+            return (str(e), True, True)
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -1029,7 +1036,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 + tb.format_exception_only(type(e), e)
             )
 
-            return "".join(full_trace), True
+            return ("".join(full_trace), True, False)
 
     def handle_response(self):
         """Handles a response from the client."""

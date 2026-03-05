@@ -59,6 +59,8 @@ import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobStatus;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -194,8 +196,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							classLogger.debug("incoming payload " + ps);
 							classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
+							// cancelled operations
+							if (ps.operation == PayloadStruct.OPERATION.CANCELLED) {
+								classLogger.debug("User cancelled request for epoc: {}", ps.epoc);
+							}
 							// std out no questions
-							if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response) {
+							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null
+									&& !ps.response) {
 								String logMessage = (String) ps.payload[0];
 								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
@@ -552,7 +559,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (pollNum < maxWait) {
 								ps.wait(this.averageMillis);
 							} else {
-								classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
+								classLogger.debug("Im about to wait eternally for epoc {}", ps.epoc);
 								// wait eternally - we dont know how long some of the load operations would take
 								// besides
 								// I am not sure if the null gets us anything
@@ -560,7 +567,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							}
 							pollNum++;
 						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							boolean cancelled = cancelledEpocs.contains(ps.epoc);
+							if (!cancelled && ps.jobId != null) {
+								PixelJobThread jt = PixelJobManager.getManager().getJob(ps.jobId);
+								cancelled = jt != null && jt.getPixelJobStatus() == PixelJobStatus.CANCELED;
+							}
+
+							if (cancelled) {
+								classLogger.debug("Interrupted due to cancel for epoc {}", ps.epoc);
+								break; // let existing cancelledEpocs/job handling throw cancel response
+							}
+
+							classLogger.warn("Interrupted while waiting for epoc {}", ps.epoc, e);
 						}
 					}
 					if (cancelledEpocs.contains(ps.epoc)) {
@@ -687,7 +705,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted or execution failure during stop server", e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -741,7 +760,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			classLogger.warn("Not able to release the payload structs within a timely fashion");
 			future.cancel(true);
 		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted or execution failure during crash", e);
 		} finally {
 			executor.shutdown();
 		}
