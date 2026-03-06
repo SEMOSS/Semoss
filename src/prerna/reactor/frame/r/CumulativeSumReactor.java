@@ -51,6 +51,7 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(),
 				GROUP_BY_COLUMNS_KEY, SORT_BY_COLUMNS_KEY, ReactorKeysEnum.SORT.getKey() };
 	}
+
 	@Override
 	public NounMetadata execute() {
 		init();
@@ -65,24 +66,25 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		}
 		// clean the column name to ensure that it is valid
 		newColName = getCleanNewColName(frame, newColName);
-		
+
 		// check the column type to ensure the user uses numeric column for value
 		String value = this.keyValue.get(this.keysToGet[1]);
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
-		// determine if the value column datatype is int or double this will define the new column datatype
+		// determine if the value column datatype is int or double this will define the
+		// new column datatype
 		SemossDataType dataType = metadata.getHeaderTypeAsEnum(dataFrame + "__" + value);
 
 		if (value == null || value.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the value to aggregate sum");
 		}
-		if(!Utility.isNumericType(dataType.toString())) {
+		if (!Utility.isNumericType(dataType.toString())) {
 			throw new IllegalArgumentException("Need to aggregate on numerical column type");
 		}
-		
+
 		// optional value to group by
-		List<String> groupCols =  getGroupByColumns();
-		if(groupCols == null) {
-			
+		List<String> groupCols = getGroupByColumns();
+		if (groupCols == null) {
+
 		}
 		// optional value to sort by
 		List<String> sortColumns = getSortByColumns();
@@ -95,11 +97,11 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		// add group by
 		String groupBy = " %>% group_by( ";
 		String implicitSort = "";
-		for(int i = 0; i < groupCols.size(); i++){
+		for (int i = 0; i < groupCols.size(); i++) {
 			String col = groupCols.get(i);
 			groupBy += col;
 			implicitSort += col;
-			if(i < groupCols.size() -1) {
+			if (i < groupCols.size() - 1) {
 				groupBy += ",";
 				implicitSort += ",";
 			}
@@ -110,33 +112,33 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		if (!groupCols.isEmpty()) {
 			rsb.append(groupBy);
 		}
-		
+
 		// TODO find a way to sum based on direction asc is the default for now
 		String sortDir = this.keyValue.get(this.keysToGet[4]);
 		if (sortDir == null || sortDir.equalsIgnoreCase("asc")) {
-			
+
 		} else if (sortDir.equalsIgnoreCase("desc")) {
-			
+
 		}
-		
+
 		// add sort by
 		String sortBy = " %>% arrange( ";
 		if (!groupCols.isEmpty()) {
 			sortBy += implicitSort;
 		}
-		for(int i = 0; i < sortColumns.size(); i++){
+		for (int i = 0; i < sortColumns.size(); i++) {
 			String col = sortColumns.get(i);
 			sortBy += col;
-			if(i < sortColumns.size() -1) {
+			if (i < sortColumns.size() - 1) {
 				sortBy += ",";
 			}
 		}
 		sortBy += ") ";
-		
+
 		if (!sortColumns.isEmpty()) {
 			rsb.append(sortBy);
-		}		
-		
+		}
+
 		// add cumsum function
 		rsb.append("%>% mutate(" + newColName + "=cumsum(" + value + "))");
 
@@ -149,10 +151,10 @@ public class CumulativeSumReactor extends AbstractRFrameReactor {
 		// if it is successful add the new column
 		// update the metadata to include this new column
 		boolean success = this.rJavaTranslator.varExists(outputFrame);
-		if(!success) {
+		if (!success) {
 			throw new IllegalArgumentException("Unable to generate Cumulative Sum");
 		}
-		frame.executeRScript(RSyntaxHelper.asDataTable(dataFrame, outputFrame) + "; rm("+outputFrame+")");
+		frame.executeRScript(RSyntaxHelper.asDataTable(dataFrame, outputFrame) + "; rm(" + outputFrame + ")");
 		metadata.addProperty(dataFrame, dataFrame + "__" + newColName);
 		metadata.setAliasToProperty(dataFrame + "__" + newColName, newColName);
 		metadata.setDataTypeToProperty(dataFrame + "__" + newColName, dataType.toString());

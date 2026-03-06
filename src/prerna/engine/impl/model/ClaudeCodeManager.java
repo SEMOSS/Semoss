@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
@@ -5,12 +32,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.om.ThreadStore;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
@@ -18,18 +47,16 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.tcp.PayloadStruct;
-import prerna.util.Utility;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
+import prerna.tcp.PayloadStruct;
 import prerna.util.EngineUtility;
-import java.util.stream.Collectors;
+import prerna.util.Utility;
 
 public class ClaudeCodeManager {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ClaudeCodeManager.class);
-	
+
 	protected String prefix = null;
 	protected String workingDirectory;
 	protected String workingDirectoryBasePath = null;
@@ -76,7 +103,7 @@ public class ClaudeCodeManager {
 	        mcpsString
 	    );
 	}
-	
+
 	private String createQueryScript(String prompt, String systemPrompt) {
 		return String.format(
 				"claude_code.query_cc(prompt='%s', system_prompt='%s')",
@@ -93,11 +120,12 @@ public class ClaudeCodeManager {
 		}
 		IModelEngine modelEngine = Utility.getModel(engineId);
 		IProject project = Utility.getProject(projectId);
-		if(project == null) {
+		if (project == null) {
 			throw new IllegalArgumentException("Could not find or load project = " + projectId);
 		}
 		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId, projectName);
+		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
+				projectName);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
 //		Map<String, Object> roomOptions = new HashMap<>();
 //		roomOptions.put("mcps", mcps);
@@ -113,7 +141,7 @@ public class ClaudeCodeManager {
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
 	}
-	
+
 	/**
 	 * This method is responsible for starting the python process that is linked to
 	 * this model engine.
@@ -157,8 +185,8 @@ public class ClaudeCodeManager {
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
 
 			try {
-				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath,
-						debug, timeout, "INFO");
+				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
+						timeout, "INFO");
 			} catch (Exception e) {
 				classLogger.error("Failed to create the python process for Claude Code Agent: {}", e);
 				throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
@@ -185,22 +213,21 @@ public class ClaudeCodeManager {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
 			this.pyTranslator.runEmptyPy(commands);
-			classLogger.info("Initializing Claude Code"
-					+ " python process with commands >>> " + String.join("\n", commands));
+			classLogger.info(
+					"Initializing Claude Code" + " python process with commands >>> " + String.join("\n", commands));
 			setPrefix(cpwToInit);
 
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
 			classLogger.error("Failed to  to the python process for Claude Code", e);
 			if (cpwToInit != null) {
-				classLogger.warn(
-						"Able to start the python process for Claude Code but the start script failed");
+				classLogger.warn("Able to start the python process for Claude Code but the start script failed");
 				cpwToInit.shutdown(false);
 			}
 			throw e;
 		}
 	}
-	
+
 	/**
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
@@ -209,7 +236,7 @@ public class ClaudeCodeManager {
 			this.startServer(-1, initScript);
 		}
 	}
-	
+
 	/**
 	 * 
 	 */
@@ -220,7 +247,7 @@ public class ClaudeCodeManager {
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
 		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
-	
+
 	/**
 	 * 
 	 */
@@ -233,7 +260,7 @@ public class ClaudeCodeManager {
 			this.cacheFolder.mkdir();
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param input
@@ -244,6 +271,5 @@ public class ClaudeCodeManager {
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
-
 
 }

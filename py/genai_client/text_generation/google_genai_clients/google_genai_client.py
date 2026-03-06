@@ -213,17 +213,36 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prompt_tokens: int,
     ) -> AskModelEngineResponse2:
         tools_result = []
-        for i, function_call in enumerate(response.function_calls):
-            function_id = str(i)
 
-            tools_result.append(
-                {
-                    "id": function_id,
-                    "type": "function",
-                    "name": function_call.name,
-                    "arguments": getattr(function_call, "args", {}),
-                }
-            )
+        parts_with_fc = []
+        if (
+            hasattr(response, "candidates")
+            and response.candidates
+            and hasattr(response.candidates[0], "content")
+            and hasattr(response.candidates[0].content, "parts")
+        ):
+            parts_with_fc = [
+                p
+                for p in response.candidates[0].content.parts
+                if getattr(p, "function_call", None) is not None
+            ]
+
+        for i, function_call in enumerate(response.function_calls):
+            function_id = function_call.id or str(uuid.uuid4())
+            tool_entry = {
+                "id": function_id,
+                "type": "function",
+                "name": function_call.name,
+                "arguments": getattr(function_call, "args", {}),
+            }
+            if i < len(parts_with_fc):
+                ts = getattr(parts_with_fc[i], "thought_signature", None)
+                if ts:
+                    tool_entry["thought_signature"] = base64.b64encode(ts).decode(
+                        "utf-8"
+                    )
+            tools_result.append(tool_entry)
+
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
@@ -259,6 +278,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         for event in stream:
+            parts_with_fc = []
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
@@ -271,8 +291,12 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             hasattr(part, "thought")
                             and part.thought
                             and hasattr(part, "text")
+                            and part.text
                         ):
                             thinking_response += part.text
+                            data = StreamUtil.create_thinking_chunk(part.text)
+                            smss_stream(data, stream_type="thinking")
+                            print(prefix + part.text, end="", flush=True)
                         if part.inline_data:
                             image_data.append(
                                 self._create_media_info(
@@ -280,6 +304,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                                     image_bytes=part.inline_data.data,
                                 )
                             )
+                        if getattr(part, "function_call", None) is not None:
+                            parts_with_fc.append(part)
 
             if event.text:
                 this_content_block["final_response"] = ""
@@ -308,7 +334,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(i)
+                    function_id = function_call.id or str(uuid.uuid4())
                     this_content_block.update(
                         {
                             "id": function_id,
@@ -319,7 +345,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     this_content_block["function"]["name"] = function_call.name
 
                     data = StreamUtil.create_tool_id_chunk(
-                        index=len(tool_result), tool_id=function_call.id
+                        index=len(tool_result), tool_id=function_id
                     )
                     smss_stream(data, stream_type="tool")
                     print(prefix + str(data), end="")
@@ -354,14 +380,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         except Exception:
                             arguments = this_content_block["function"]["arguments"]
 
-                    tool_result.append(
-                        {
-                            "id": this_content_block["id"],
-                            "type": this_content_block["type"],
-                            "name": this_content_block["function"]["name"],
-                            "arguments": arguments,
-                        }
-                    )
+                    tool_entry = {
+                        "id": this_content_block["id"],
+                        "type": this_content_block["type"],
+                        "name": this_content_block["function"]["name"],
+                        "arguments": arguments,
+                    }
+                    if i < len(parts_with_fc):
+                        ts = getattr(parts_with_fc[i], "thought_signature", None)
+                        if ts:
+                            tool_entry["thought_signature"] = base64.b64encode(
+                                ts
+                            ).decode("utf-8")
+                    tool_result.append(tool_entry)
 
                     content_array.append(this_content_block)
                     this_content_block = {}
