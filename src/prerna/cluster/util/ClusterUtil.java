@@ -216,7 +216,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullEngine(engineId, engineType);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull engine '{}' of type '{}' from cloud storage", engineId, engineType, e);
+				classLogger.error("Failed to pull engine '{}' of type '{}' from cloud storage", engineId, engineType,
+						e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to pull engine '" + engineId + "' from cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -235,7 +236,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullEngine(engineId, engineType, engineAlreadyLoaded);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull engine '{}' of type '{}' (already loaded: {}) from cloud storage", engineId, engineType, engineAlreadyLoaded, e);
+				classLogger.error("Failed to pull engine '{}' of type '{}' (already loaded: {}) from cloud storage",
+						engineId, engineType, engineAlreadyLoaded, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to pull engine '" + engineId + "' from cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -312,7 +314,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushEngineSmss(engineId, engineType);
 			} catch (Exception e) {
-				classLogger.error("Failed to push engine '{}' of type '{}' smss to cloud storage", engineId, engineType, e);
+				classLogger.error("Failed to push engine '{}' of type '{}' smss to cloud storage", engineId, engineType,
+						e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to push engine '" + engineId + "'smss to cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -323,7 +326,8 @@ public class ClusterUtil {
 			try {
 				getClusterSynchronizer().publishEngineChange(engineId, "pullEngine", engineId);
 			} catch (Exception e) {
-				classLogger.error("Failed to publish engine '{}' of type '{}' smss change to ZK cluster", engineId, engineType, e);
+				classLogger.error("Failed to publish engine '{}' of type '{}' smss change to ZK cluster", engineId,
+						engineType, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to publish engine '" + engineId + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
@@ -360,7 +364,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().deleteEngine(engineId, engineType);
 			} catch (Exception e) {
-				classLogger.error("Failed to delete engine '{}' of type '{}' from cloud storage", engineId, engineType, e);
+				classLogger.error("Failed to delete engine '{}' of type '{}' from cloud storage", engineId, engineType,
+						e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to delete engine '" + engineId + "' from cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -437,7 +442,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull engine/project image folder for type '{}' from cloud storage", engineType, e);
+				classLogger.error("Failed to pull engine/project image folder for type '{}' from cloud storage",
+						engineType, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to pull database image folder to cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -456,7 +462,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushEngineAndProjectImage(engineType, fileName);
 			} catch (Exception e) {
-				classLogger.error("Failed to push engine/project image '{}' of type '{}' to cloud storage", fileName, engineType, e);
+				classLogger.error("Failed to push engine/project image '{}' of type '{}' to cloud storage", fileName,
+						engineType, e);
 				SemossPixelException err = new SemossPixelException("Failed to push database image to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -475,7 +482,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().deleteEngineAndProjectImage(engineType, fileName);
 			} catch (Exception e) {
-				classLogger.error("Failed to delete engine/project image '{}' of type '{}' from cloud storage", fileName, engineType, e);
+				classLogger.error("Failed to delete engine/project image '{}' of type '{}' from cloud storage",
+						fileName, engineType, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to delete database image from the cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -494,7 +502,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().deleteEngineAndProjectImageById(engineType, engineId);
 			} catch (Exception e) {
-				classLogger.error("Failed to delete engine/project image by id '{}' of type '{}' from cloud storage", engineId, engineType, e);
+				classLogger.error("Failed to delete engine/project image by id '{}' of type '{}' from cloud storage",
+						engineId, engineType, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to delete engine/project image from the cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -531,7 +540,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullProject(projectId, projectAlreadyLoaded);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull project '{}' (already loaded: {}) from cloud storage", projectId, projectAlreadyLoaded, e);
+				classLogger.error("Failed to pull project '{}' (already loaded: {}) from cloud storage", projectId,
+						projectAlreadyLoaded, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to pull project '" + projectId + "' from cloud storage");
 				err.setContinueThreadOfExecution(false);
@@ -836,7 +846,8 @@ public class ClusterUtil {
 				getCentralStorageClient().pullProjectFolder(projectId, absolutePath, remoteRelativePath);
 			} catch (Exception e) {
 				classLogger.error("Failed to pull project '{}' folder from cloud storage", projectId, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull project '" + projectId + "' folder");
+				SemossPixelException err = new SemossPixelException(
+						"Failed to pull project '" + projectId + "' folder");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -983,7 +994,8 @@ public class ClusterUtil {
 			try {
 				getClusterSynchronizer().publishProjectChange(projectId, "pullInsight", projectId, rdbmsId);
 			} catch (Exception e) {
-				classLogger.error("Failed to publish insight '{}' for project '{}' to ZK cluster", rdbmsId, projectId, e);
+				classLogger.error("Failed to publish insight '{}' for project '{}' to ZK cluster", rdbmsId, projectId,
+						e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to publish insight folder for '" + projectId + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
@@ -1002,7 +1014,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullInsight(projectId, rdbmsId);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull insight '{}' for project '{}' from cloud storage", rdbmsId, projectId, e);
+				classLogger.error("Failed to pull insight '{}' for project '{}' from cloud storage", rdbmsId, projectId,
+						e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to pull project '" + projectId + "' insight '" + rdbmsId + "' folder");
 				err.setContinueThreadOfExecution(false);
@@ -1016,7 +1029,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushInsightImage(projectId, insightId, oldImageName, imageFileName);
 			} catch (Exception e) {
-				classLogger.error("Failed to push insight image for project '{}' insight '{}' to cloud storage", projectId, insightId, e);
+				classLogger.error("Failed to push insight image for project '{}' insight '{}' to cloud storage",
+						projectId, insightId, e);
 				SemossPixelException err = new SemossPixelException("Failed to push insight image to cloud storage");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1066,7 +1080,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pushUserAssetOrWorkspace(projectId, isAsset);
 			} catch (Exception e) {
-				classLogger.error("Failed to push user/workspace project '{}' (isAsset: {}) to cloud storage", projectId, isAsset, e);
+				classLogger.error("Failed to push user/workspace project '{}' (isAsset: {}) to cloud storage",
+						projectId, isAsset, e);
 				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1077,7 +1092,8 @@ public class ClusterUtil {
 			try {
 				getClusterSynchronizer().publishProjectChange(projectId, "pullUserWorkspace", projectId, isAsset);
 			} catch (Exception e) {
-				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster", projectId, isAsset, e);
+				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster",
+						projectId, isAsset, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to publish user workspace '" + projectId + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
@@ -1096,7 +1112,8 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull user/workspace project '{}' (isAsset: {}) from cloud storage", projectId, isAsset, e);
+				classLogger.error("Failed to pull user/workspace project '{}' (isAsset: {}) from cloud storage",
+						projectId, isAsset, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
@@ -1114,7 +1131,9 @@ public class ClusterUtil {
 			try {
 				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, alreadyLoaded);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull user/workspace project '{}' (isAsset: {}, alreadyLoaded: {}) from cloud storage", projectId, isAsset, alreadyLoaded, e);
+				classLogger.error(
+						"Failed to pull user/workspace project '{}' (isAsset: {}, alreadyLoaded: {}) from cloud storage",
+						projectId, isAsset, alreadyLoaded, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
