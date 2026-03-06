@@ -165,21 +165,7 @@ public class ExcelSheetPreProcessor {
 		boolean isFirstRowOfBlock = false;
 
 		classLogger.info("Processing {} from rows {} to {}", sheetName, startRow, lastRow);
-		int rowCounter = 0;
 		for (Row thisRow : sheet) {
-			if (rowCounter < startRow) {
-				rowCounter++;
-				continue;
-			}
-			if (rowCounter >= lastRow) {
-				break;
-			}
-			// always increase counter
-			rowCounter++;
-			if (rowCounter % 1000 == 0) {
-				classLogger.info("Processing {} current row {}", sheetName, rowCounter);
-			}
-			// if i have a null row then we have a new block
 			if (thisRow == null) {
 				if (!thisBlock.isEmpty()) {
 					// add to the list of blocks
@@ -188,9 +174,20 @@ public class ExcelSheetPreProcessor {
 					thisBlock = new ExcelBlock();
 					isFirstRowOfBlock = true;
 				}
-				// continue to the next row
-				rowCounter++;
 				continue;
+			}
+
+			int rowNum = thisRow.getRowNum();
+			if (rowNum < startRow) {
+				continue;
+			}
+			if (rowNum > lastRow) {
+				break;
+			}
+			int excelRowNum = rowNum + 1;
+
+			if (excelRowNum % 1000 == 0) {
+				classLogger.info("Processing {} current row {}", sheetName, excelRowNum);
 			}
 
 			int startCol = thisRow.getFirstCellNum();
@@ -206,8 +203,6 @@ public class ExcelSheetPreProcessor {
 					thisBlock = new ExcelBlock();
 					isFirstRowOfBlock = true;
 				}
-				// continue to the next row
-				rowCounter++;
 				continue;
 			}
 
@@ -223,7 +218,7 @@ public class ExcelSheetPreProcessor {
 
 			// Cache header row (first row of each block or potential header rows)
 			if (isFirstRowOfBlock || filledInColumns == 0) {
-				cacheHeaderRow(thisRow, rowCounter, lastCol);
+				cacheHeaderRow(thisRow, rowNum, lastCol);
 			}
 
 			// loop through the row and add to the current block
@@ -247,7 +242,7 @@ public class ExcelSheetPreProcessor {
 					}
 
 					SemossDataType cellType = ExcelParsing.getTypeByCast(cellValue);
-					thisBlock.addColumnToRowIndexWithData(colIndex, rowCounter + 1, cellType, additionalFormatting);
+					thisBlock.addColumnToRowIndexWithData(colIndex, excelRowNum, cellType, additionalFormatting);
 					filledInColumns++;
 				}
 			}
@@ -257,7 +252,7 @@ public class ExcelSheetPreProcessor {
 				// add the total number of columns that have values
 				thisBlock.addTotalColumnsInRowStats(filledInColumns);
 				// add the row index that has data
-				thisBlock.addRowIndexContainingData(rowCounter);
+				thisBlock.addRowIndexContainingData(excelRowNum);
 				// set the max column
 				thisBlock.trySetLastColMaxIndex(lastCol);
 				isFirstRowOfBlock = false;
