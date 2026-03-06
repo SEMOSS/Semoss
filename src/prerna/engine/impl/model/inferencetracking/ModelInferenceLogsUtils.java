@@ -1724,27 +1724,9 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equalsIgnoreCase("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("YEAR")) {
-			// Get start and end date for the current year
-			dates = Utility.getYearStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("ALL_TIME")) {
-			// Get all time usage - from epoch to current time
-			dates = Utility.getEpochStartEndDate(currentDateTime);
-		} else {
-			// assume they want daily
-			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
-			dates.put("start", startOfTodayUtc);
-			dates.put("end", endOfTodayUtc);
-		}
+		// Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME, YEAR_ROLLING, YEAR_FEB, YEAR_MAR-02, etc.
+		Map<String, ZonedDateTime> dates = Utility.getDateRangeFromFrequency(frequency, currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1821,25 +1803,10 @@ public class ModelInferenceLogsUtils {
 			excludePSString = excludeSB.toString();
 		}
 
-		// Step 2: Get the date range based on the frequency
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equals("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equals("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else if (frequency.equals("YEAR")) {
-			// Get start and end date for the current year
-			dates = Utility.getYearStartEndDate(currentDateTime);
-		} else if (frequency.equals("ALL_TIME")) {
-			// Get all time usage - from epoch to current time
-			dates = Utility.getEpochStartEndDate(currentDateTime);
-		} else {
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-		}
+		// Step 2: Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME, YEAR_ROLLING, YEAR_FEB, YEAR_MAR-02, etc.
+		Map<String, ZonedDateTime> dates = Utility.getDateRangeFromFrequency(frequency, currentDateTime);
+
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");

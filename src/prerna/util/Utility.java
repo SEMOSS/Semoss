@@ -6100,6 +6100,358 @@ public final class Utility {
 	}
 
 	/**
+	 * Parse a frequency string and return the appropriate date range.
+	 * Supports complex frequency specifications:
+	 * - Simple: WEEK, MONTH, YEAR, ALL_TIME, DAY
+	 * - Rolling: WEEK_ROLLING, MONTH_ROLLING, YEAR_ROLLING
+	 * - Custom year: YEAR_FEB (Feb 1 start), YEAR_MAR-02 (Mar 2 start)
+	 * - Custom month: MONTH_15 (15th of month start)
+	 * - Custom week: WEEK_MON (Monday start), WEEK_TUE (Tuesday start)
+	 *
+	 * @param frequency The frequency string
+	 * @param currentDateTime The current date/time
+	 * @return Map containing "start" and "end" ZonedDateTime values
+	 */
+	public static Map<String, ZonedDateTime> getDateRangeFromFrequency(String frequency, ZonedDateTime currentDateTime) {
+		if (frequency == null || frequency.isEmpty()) {
+			// Default to daily
+			return getDayStartEndDate(currentDateTime);
+		}
+
+		String freq = frequency.toUpperCase().trim();
+
+		// Handle simple calendar-based cases
+		if (freq.equals("WEEK")) {
+			return getWeekStartEndDate(currentDateTime);
+		} else if (freq.equals("MONTH")) {
+			return getMonthStartEndDate(currentDateTime);
+		} else if (freq.equals("YEAR")) {
+			return getYearStartEndDate(currentDateTime);
+		} else if (freq.equals("ALL_TIME")) {
+			return getEpochStartEndDate(currentDateTime);
+		} else if (freq.equals("DAY")) {
+			return getDayStartEndDate(currentDateTime);
+		}
+
+		// Handle rolling periods
+		if (freq.equals("WEEK_ROLLING")) {
+			return getRollingWeekStartEndDate(currentDateTime);
+		} else if (freq.equals("MONTH_ROLLING")) {
+			return getRollingMonthStartEndDate(currentDateTime);
+		} else if (freq.equals("YEAR_ROLLING")) {
+			return getRollingYearStartEndDate(currentDateTime);
+		}
+
+		// Handle custom year starts (YEAR_FEB, YEAR_MAR-02, etc.)
+		if (freq.startsWith("YEAR_")) {
+			return getCustomYearStartEndDate(currentDateTime, freq);
+		}
+
+		// Handle custom month starts (MONTH_15 for 15th of each month)
+		if (freq.startsWith("MONTH_")) {
+			return getCustomMonthStartEndDate(currentDateTime, freq);
+		}
+
+		// Handle custom week starts (WEEK_MON, WEEK_TUE, etc.)
+		if (freq.startsWith("WEEK_")) {
+			return getCustomWeekStartEndDate(currentDateTime, freq);
+		}
+
+		// Default to daily
+		return getDayStartEndDate(currentDateTime);
+	}
+
+	/**
+	 * Get start and end of the current day in UTC.
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (00:00:00) and end (23:59:59.999999999) of the day
+	 */
+	public static Map<String, ZonedDateTime> getDayStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		ZonedDateTime startOfDay = utcDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+		ZonedDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+		dates.put("start", startOfDay);
+		dates.put("end", endOfDay);
+		return dates;
+	}
+
+	/**
+	 * Get rolling 7-day period (7 days back from current time).
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (7 days ago) and end (current time)
+	 */
+	public static Map<String, ZonedDateTime> getRollingWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", utcDateTime.minusDays(7));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 * Get rolling 30-day period (30 days back from current time).
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (30 days ago) and end (current time)
+	 */
+	public static Map<String, ZonedDateTime> getRollingMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", utcDateTime.minusDays(30));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 * Get rolling 365-day period (365 days back from current time).
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (365 days ago) and end (current time)
+	 */
+	public static Map<String, ZonedDateTime> getRollingYearStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", utcDateTime.minusDays(365));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 * Get custom year date range based on specified start month/day.
+	 * Examples: YEAR_FEB (starts Feb 1), YEAR_MAR-02 (starts Mar 2), YEAR_APR-15 (starts Apr 15)
+	 *
+	 * @param utcDateTime The current date/time
+	 * @param frequency The frequency string (e.g., "YEAR_FEB", "YEAR_MAR-02")
+	 * @return Map with start and end dates for the custom year
+	 */
+	public static Map<String, ZonedDateTime> getCustomYearStartEndDate(ZonedDateTime utcDateTime, String frequency) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+
+		// Parse the frequency string: YEAR_FEB or YEAR_MAR-02
+		String[] parts = frequency.split("_");
+		if (parts.length < 2) {
+			// Invalid format, fall back to calendar year
+			return getYearStartEndDate(utcDateTime);
+		}
+
+		String monthDayPart = parts[1]; // e.g., "FEB" or "MAR-02"
+		int startMonth;
+		int startDay = 1; // Default to 1st of the month
+
+		// Check if day is specified (e.g., "MAR-02")
+		if (monthDayPart.contains("-")) {
+			String[] monthDay = monthDayPart.split("-");
+			startMonth = parseMonth(monthDay[0]);
+			try {
+				startDay = Integer.parseInt(monthDay[1]);
+			} catch (NumberFormatException e) {
+				startDay = 1; // Default to 1st if parsing fails
+			}
+		} else {
+			// Just month (e.g., "FEB")
+			startMonth = parseMonth(monthDayPart);
+		}
+
+		// Validate month and day
+		if (startMonth < 1 || startMonth > 12) {
+			return getYearStartEndDate(utcDateTime); // Fall back to calendar year
+		}
+		if (startDay < 1 || startDay > 31) {
+			startDay = 1;
+		}
+
+		// Determine if we're before or after the custom year start in the current year
+		ZonedDateTime customYearStartThisYear;
+		try {
+			customYearStartThisYear = utcDateTime.withMonth(startMonth).withDayOfMonth(startDay)
+					.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+		} catch (Exception e) {
+			// Invalid day for the month (e.g., Feb 30), fall back to calendar year
+			return getYearStartEndDate(utcDateTime);
+		}
+
+		ZonedDateTime customYearStart;
+		ZonedDateTime customYearEnd;
+
+		if (utcDateTime.isBefore(customYearStartThisYear)) {
+			// We're before the custom year start in current year, so use previous year's start
+			customYearStart = customYearStartThisYear.minusYears(1);
+			customYearEnd = customYearStartThisYear.minusNanos(1);
+		} else {
+			// We're after the custom year start, so use this year's start
+			customYearStart = customYearStartThisYear;
+			customYearEnd = customYearStartThisYear.plusYears(1).minusNanos(1);
+		}
+
+		dates.put("start", customYearStart);
+		dates.put("end", customYearEnd);
+		return dates;
+	}
+
+	/**
+	 * Get custom month date range based on specified start day.
+	 * Examples: MONTH_15 (starts on 15th), MONTH_01 (starts on 1st)
+	 *
+	 * @param utcDateTime The current date/time
+	 * @param frequency The frequency string (e.g., "MONTH_15")
+	 * @return Map with start and end dates for the custom month
+	 */
+	public static Map<String, ZonedDateTime> getCustomMonthStartEndDate(ZonedDateTime utcDateTime, String frequency) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+
+		// Parse the frequency string: MONTH_15
+		String[] parts = frequency.split("_");
+		if (parts.length < 2) {
+			// Invalid format, fall back to calendar month
+			return getMonthStartEndDate(utcDateTime);
+		}
+
+		int startDay;
+		try {
+			startDay = Integer.parseInt(parts[1]);
+		} catch (NumberFormatException e) {
+			// Check if it's MONTH_ROLLING
+			if ("ROLLING".equalsIgnoreCase(parts[1])) {
+				return getRollingMonthStartEndDate(utcDateTime);
+			}
+			// Invalid day, fall back to calendar month
+			return getMonthStartEndDate(utcDateTime);
+		}
+
+		// Validate day
+		if (startDay < 1 || startDay > 28) { // Use 28 to be safe across all months
+			return getMonthStartEndDate(utcDateTime);
+		}
+
+		// Determine if we're before or after the custom month start in the current month
+		ZonedDateTime customMonthStartThisMonth;
+		try {
+			customMonthStartThisMonth = utcDateTime.withDayOfMonth(startDay)
+					.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+		} catch (Exception e) {
+			// Invalid day for this month
+			return getMonthStartEndDate(utcDateTime);
+		}
+
+		ZonedDateTime customMonthStart;
+		ZonedDateTime customMonthEnd;
+
+		if (utcDateTime.isBefore(customMonthStartThisMonth)) {
+			// We're before the custom month start, so use previous month's start
+			customMonthStart = customMonthStartThisMonth.minusMonths(1);
+			customMonthEnd = customMonthStartThisMonth.minusNanos(1);
+		} else {
+			// We're after the custom month start, so use this month's start
+			customMonthStart = customMonthStartThisMonth;
+			customMonthEnd = customMonthStartThisMonth.plusMonths(1).minusNanos(1);
+		}
+
+		dates.put("start", customMonthStart);
+		dates.put("end", customMonthEnd);
+		return dates;
+	}
+
+	/**
+	 * Get custom week date range based on specified start day.
+	 * Examples: WEEK_MON (Monday-Sunday), WEEK_TUE (Tuesday-Monday)
+	 *
+	 * @param utcDateTime The current date/time
+	 * @param frequency The frequency string (e.g., "WEEK_MON", "WEEK_TUE")
+	 * @return Map with start and end dates for the custom week
+	 */
+	public static Map<String, ZonedDateTime> getCustomWeekStartEndDate(ZonedDateTime utcDateTime, String frequency) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+
+		// Parse the frequency string: WEEK_MON
+		String[] parts = frequency.split("_");
+		if (parts.length < 2) {
+			// Invalid format, fall back to calendar week (Sunday start)
+			return getWeekStartEndDate(utcDateTime);
+		}
+
+		DayOfWeek startDayOfWeek = parseDayOfWeek(parts[1]);
+		if (startDayOfWeek == null) {
+			// Check if it's WEEK_ROLLING
+			if ("ROLLING".equalsIgnoreCase(parts[1])) {
+				return getRollingWeekStartEndDate(utcDateTime);
+			}
+			// Invalid day, fall back to calendar week
+			return getWeekStartEndDate(utcDateTime);
+		}
+
+		// Find the most recent occurrence of the start day (could be today)
+		ZonedDateTime weekStart = utcDateTime;
+		while (weekStart.getDayOfWeek() != startDayOfWeek) {
+			weekStart = weekStart.minusDays(1);
+		}
+		weekStart = weekStart.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+
+		// End is 7 days later minus 1 nanosecond
+		ZonedDateTime weekEnd = weekStart.plusDays(7).minusNanos(1);
+
+		dates.put("start", weekStart);
+		dates.put("end", weekEnd);
+		return dates;
+	}
+
+	/**
+	 * Parse a month name to its numeric value (1-12).
+	 *
+	 * @param monthStr Month name (JAN, FEB, MAR, etc.)
+	 * @return Month number (1-12) or 1 if invalid
+	 */
+	private static int parseMonth(String monthStr) {
+		if (monthStr == null || monthStr.isEmpty()) {
+			return 1;
+		}
+
+		switch (monthStr.toUpperCase().trim()) {
+			case "JAN": case "JANUARY": return 1;
+			case "FEB": case "FEBRUARY": return 2;
+			case "MAR": case "MARCH": return 3;
+			case "APR": case "APRIL": return 4;
+			case "MAY": return 5;
+			case "JUN": case "JUNE": return 6;
+			case "JUL": case "JULY": return 7;
+			case "AUG": case "AUGUST": return 8;
+			case "SEP": case "SEPTEMBER": return 9;
+			case "OCT": case "OCTOBER": return 10;
+			case "NOV": case "NOVEMBER": return 11;
+			case "DEC": case "DECEMBER": return 12;
+			default:
+				// Try to parse as number
+				try {
+					int month = Integer.parseInt(monthStr);
+					return (month >= 1 && month <= 12) ? month : 1;
+				} catch (NumberFormatException e) {
+					return 1;
+				}
+		}
+	}
+
+	/**
+	 * Parse a day of week name to DayOfWeek enum.
+	 *
+	 * @param dayStr Day name (MON, TUE, WED, etc.)
+	 * @return DayOfWeek or null if invalid
+	 */
+	private static DayOfWeek parseDayOfWeek(String dayStr) {
+		if (dayStr == null || dayStr.isEmpty()) {
+			return null;
+		}
+
+		switch (dayStr.toUpperCase().trim()) {
+			case "MON": case "MONDAY": return DayOfWeek.MONDAY;
+			case "TUE": case "TUESDAY": return DayOfWeek.TUESDAY;
+			case "WED": case "WEDNESDAY": return DayOfWeek.WEDNESDAY;
+			case "THU": case "THURSDAY": return DayOfWeek.THURSDAY;
+			case "FRI": case "FRIDAY": return DayOfWeek.FRIDAY;
+			case "SAT": case "SATURDAY": return DayOfWeek.SATURDAY;
+			case "SUN": case "SUNDAY": return DayOfWeek.SUNDAY;
+			default: return null;
+		}
+	}
+
+	/**
 	 *
 	 * @param size
 	 * @return

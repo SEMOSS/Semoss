@@ -813,7 +813,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	void getRoomById() throws Exception {
 		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "");
 
-		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
+		when(engine.getPreparedStatement("SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?"))
 				.thenThrow(SQLException.class).thenReturn(ps);
 		when(ps.executeQuery()).thenReturn(rs);
 		when(rs.next()).thenReturn(false).thenReturn(true);
@@ -1219,5 +1219,161 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(2)).execute();
 		verify(conn).getAutoCommit();
 		verify(conn).commit();
+	}
+
+	// ====================================================================
+	// Frequency Parsing Tests - New functionality
+	// ====================================================================
+
+	@Test
+	void testSimpleFrequencies() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Test YEAR
+		java.util.Map<String, java.time.ZonedDateTime> yearRange = prerna.util.Utility.getDateRangeFromFrequency("YEAR", testDate);
+		assertEquals(2026, yearRange.get("start").getYear());
+		assertEquals(1, yearRange.get("start").getMonthValue());
+		assertEquals(1, yearRange.get("start").getDayOfMonth());
+		assertEquals(2026, yearRange.get("end").getYear());
+		assertEquals(12, yearRange.get("end").getMonthValue());
+		assertEquals(31, yearRange.get("end").getDayOfMonth());
+
+		// Test MONTH
+		java.util.Map<String, java.time.ZonedDateTime> monthRange = prerna.util.Utility.getDateRangeFromFrequency("MONTH", testDate);
+		assertEquals(2026, monthRange.get("start").getYear());
+		assertEquals(3, monthRange.get("start").getMonthValue());
+		assertEquals(1, monthRange.get("start").getDayOfMonth());
+		assertEquals(2026, monthRange.get("end").getYear());
+		assertEquals(3, monthRange.get("end").getMonthValue());
+		assertEquals(31, monthRange.get("end").getDayOfMonth()); // March has 31 days
+
+		// Test WEEK (Sunday-Saturday)
+		java.util.Map<String, java.time.ZonedDateTime> weekRange = prerna.util.Utility.getDateRangeFromFrequency("WEEK", testDate);
+		assertEquals(java.time.DayOfWeek.SUNDAY, weekRange.get("start").getDayOfWeek());
+		assertEquals(java.time.DayOfWeek.SATURDAY, weekRange.get("end").getDayOfWeek());
+
+		// Test DAY
+		java.util.Map<String, java.time.ZonedDateTime> dayRange = prerna.util.Utility.getDateRangeFromFrequency("DAY", testDate);
+		assertEquals(6, dayRange.get("start").getDayOfMonth());
+		assertEquals(0, dayRange.get("start").getHour());
+		assertEquals(6, dayRange.get("end").getDayOfMonth());
+		assertEquals(23, dayRange.get("end").getHour());
+	}
+
+	@Test
+	void testRollingFrequencies() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Test YEAR_ROLLING (365 days back)
+		java.util.Map<String, java.time.ZonedDateTime> yearRolling = prerna.util.Utility.getDateRangeFromFrequency("YEAR_ROLLING", testDate);
+		assertEquals(testDate.minusDays(365), yearRolling.get("start"));
+		assertEquals(testDate, yearRolling.get("end"));
+
+		// Test MONTH_ROLLING (30 days back)
+		java.util.Map<String, java.time.ZonedDateTime> monthRolling = prerna.util.Utility.getDateRangeFromFrequency("MONTH_ROLLING", testDate);
+		assertEquals(testDate.minusDays(30), monthRolling.get("start"));
+		assertEquals(testDate, monthRolling.get("end"));
+
+		// Test WEEK_ROLLING (7 days back)
+		java.util.Map<String, java.time.ZonedDateTime> weekRolling = prerna.util.Utility.getDateRangeFromFrequency("WEEK_ROLLING", testDate);
+		assertEquals(testDate.minusDays(7), weekRolling.get("start"));
+		assertEquals(testDate, weekRolling.get("end"));
+	}
+
+	@Test
+	void testCustomYearFrequencies() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Test YEAR_FEB (Fiscal year starting Feb 1)
+		// Since we're in March, we're in the Feb 2026 - Jan 2027 period
+		java.util.Map<String, java.time.ZonedDateTime> yearFeb = prerna.util.Utility.getDateRangeFromFrequency("YEAR_FEB", testDate);
+		assertEquals(2026, yearFeb.get("start").getYear());
+		assertEquals(2, yearFeb.get("start").getMonthValue()); // February
+		assertEquals(1, yearFeb.get("start").getDayOfMonth());
+		assertEquals(2027, yearFeb.get("end").getYear());
+		assertEquals(1, yearFeb.get("end").getMonthValue()); // January 31st end
+
+		// Test YEAR_APR (April start)
+		// Since we're in March, we should be in the Apr 2025 - Mar 2026 period
+		java.util.Map<String, java.time.ZonedDateTime> yearApr = prerna.util.Utility.getDateRangeFromFrequency("YEAR_APR", testDate);
+		assertEquals(2025, yearApr.get("start").getYear());
+		assertEquals(4, yearApr.get("start").getMonthValue()); // April
+		assertEquals(1, yearApr.get("start").getDayOfMonth());
+
+		// Test YEAR_MAR-02 (March 2 start)
+		// Since we're on March 6, we're in the Mar 2 2026 - Mar 1 2027 period
+		java.util.Map<String, java.time.ZonedDateTime> yearMar02 = prerna.util.Utility.getDateRangeFromFrequency("YEAR_MAR-02", testDate);
+		assertEquals(2026, yearMar02.get("start").getYear());
+		assertEquals(3, yearMar02.get("start").getMonthValue());
+		assertEquals(2, yearMar02.get("start").getDayOfMonth());
+
+		// Test YEAR_JUL (US Government fiscal year)
+		java.util.Map<String, java.time.ZonedDateTime> yearJul = prerna.util.Utility.getDateRangeFromFrequency("YEAR_JUL", testDate);
+		assertEquals(2025, yearJul.get("start").getYear());
+		assertEquals(7, yearJul.get("start").getMonthValue());
+		assertEquals(1, yearJul.get("start").getDayOfMonth());
+	}
+
+	@Test
+	void testCustomMonthFrequencies() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 20, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Test MONTH_15 (starts on 15th)
+		// Since we're on March 20, we're in the Mar 15 - Apr 14 period
+		java.util.Map<String, java.time.ZonedDateTime> month15 = prerna.util.Utility.getDateRangeFromFrequency("MONTH_15", testDate);
+		assertEquals(3, month15.get("start").getMonthValue());
+		assertEquals(15, month15.get("start").getDayOfMonth());
+		assertEquals(4, month15.get("end").getMonthValue());
+		assertEquals(14, month15.get("end").getDayOfMonth());
+
+		// Test MONTH_10 (starts on 10th)
+		// Since we're on March 20, we're in the Mar 10 - Apr 9 period
+		java.util.Map<String, java.time.ZonedDateTime> month10 = prerna.util.Utility.getDateRangeFromFrequency("MONTH_10", testDate);
+		assertEquals(3, month10.get("start").getMonthValue());
+		assertEquals(10, month10.get("start").getDayOfMonth());
+	}
+
+	@Test
+	void testCustomWeekFrequencies() {
+		// March 6, 2026 is a Friday
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Test WEEK_MON (Monday start)
+		java.util.Map<String, java.time.ZonedDateTime> weekMon = prerna.util.Utility.getDateRangeFromFrequency("WEEK_MON", testDate);
+		assertEquals(java.time.DayOfWeek.MONDAY, weekMon.get("start").getDayOfWeek());
+		assertEquals(java.time.DayOfWeek.SUNDAY, weekMon.get("end").getDayOfWeek());
+
+		// Test WEEK_FRI (Friday start)
+		java.util.Map<String, java.time.ZonedDateTime> weekFri = prerna.util.Utility.getDateRangeFromFrequency("WEEK_FRI", testDate);
+		assertEquals(java.time.DayOfWeek.FRIDAY, weekFri.get("start").getDayOfWeek());
+		assertEquals(6, weekFri.get("start").getDayOfMonth()); // Should be today since today is Friday
+
+		// Test WEEK_SUN (Sunday start, same as default WEEK)
+		java.util.Map<String, java.time.ZonedDateTime> weekSun = prerna.util.Utility.getDateRangeFromFrequency("WEEK_SUN", testDate);
+		assertEquals(java.time.DayOfWeek.SUNDAY, weekSun.get("start").getDayOfWeek());
+		assertEquals(java.time.DayOfWeek.SATURDAY, weekSun.get("end").getDayOfWeek());
+	}
+
+	@Test
+	void testAllTimeFrequency() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		java.util.Map<String, java.time.ZonedDateTime> allTime = prerna.util.Utility.getDateRangeFromFrequency("ALL_TIME", testDate);
+		assertEquals(1970, allTime.get("start").getYear());
+		assertEquals(1, allTime.get("start").getMonthValue());
+		assertEquals(1, allTime.get("start").getDayOfMonth());
+		assertEquals(testDate, allTime.get("end"));
+	}
+
+	@Test
+	void testInvalidFrequencyDefaultsToDay() {
+		java.time.ZonedDateTime testDate = java.time.ZonedDateTime.of(2026, 3, 6, 14, 30, 0, 0, java.time.ZoneOffset.UTC);
+
+		// Invalid frequency should default to DAY
+		java.util.Map<String, java.time.ZonedDateTime> invalid = prerna.util.Utility.getDateRangeFromFrequency("INVALID_FREQ", testDate);
+		assertEquals(6, invalid.get("start").getDayOfMonth());
+		assertEquals(0, invalid.get("start").getHour());
+		assertEquals(6, invalid.get("end").getDayOfMonth());
+		assertEquals(23, invalid.get("end").getHour());
 	}
 }
