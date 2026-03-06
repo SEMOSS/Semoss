@@ -1,5 +1,5 @@
-from typing import Optional, Dict
-from google import genai
+from typing import Optional, Dict, Union
+from google.genai import Client as GoogleGenAIClient
 from anthropic import AnthropicVertex
 from pydantic import BaseModel, Field
 from ..utils import StringEnum
@@ -36,6 +36,8 @@ class GoogleClient:
     Use this class to load the client for text generation, embeddings, and other GenAI functionalities.
     """
 
+    client: Union[GoogleGenAIClient, AnthropicVertex]
+
     def __init__(self, config: GoogleClientConfig):
         self.config = config
 
@@ -70,7 +72,7 @@ class GoogleClient:
 
         return scoped_credentials
 
-    def _get_client(self):
+    def _get_client(self) -> Union[GoogleGenAIClient, AnthropicVertex]:
         if self.config.type == GoogleClientType.GOOGLE:
             return self._get_google_client()
         elif self.config.type == GoogleClientType.ANTHROPIC:
@@ -80,17 +82,17 @@ class GoogleClient:
 
     def _get_google_client(
         self,
-    ) -> genai.Client:
+    ) -> GoogleGenAIClient:
         """Initialize the Google Gen AI client with credentials from SMSS."""
         try:
             if self.config.api_key:
-                return genai.Client(api_key=self.config.api_key)
+                return GoogleGenAIClient(api_key=self.config.api_key)
             elif (
                 self.config.project
                 and self.config.region
                 and self.service_account_credentials
             ):
-                return genai.Client(
+                return GoogleGenAIClient(
                     credentials=self.service_account_credentials,
                     vertexai=True,
                     location=self.config.region,

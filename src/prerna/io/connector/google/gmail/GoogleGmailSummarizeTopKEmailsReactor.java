@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
 	
@@ -63,10 +62,10 @@ public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
 			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while summarizing Gmail emails", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to summarize Gmail emails", e);
 			throw new SemossPixelException("An error occurred summarizing the emails. Error message: " + e.getMessage());
 		}
 	}
