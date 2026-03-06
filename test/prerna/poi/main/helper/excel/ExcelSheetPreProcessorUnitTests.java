@@ -109,14 +109,14 @@ public class ExcelSheetPreProcessorUnitTests extends SemossUnitTest {
 
 		// test range cache headers
 		ExcelRange range = new ExcelRange("A2:E3");
-//		assertArrayEquals(new int[] { }, range.getIndices());
 		List<Integer> expected = List.of(1, 2, 3, 2);
-		List<Integer> actual = IntStream.of(range.getIndices()).boxed().toList();
-		assertEquals(expected, actual);
+		List<Integer> actualRange = IntStream.of(range.getIndices()).boxed().toList();
+		assertEquals(expected, actualRange);
 
 		// validate getRangeHeaders()
-		assertArrayEquals(new String[] { "A", "B", "C" }, sheetProcessor.getRangeHeaders(range));
-		
+		String[] headers = sheetProcessor.getRangeHeaders(range);
+		List<String> actual = Arrays.asList(headers);
+		assertEquals(sheetHeaders, actual);		
 	}
 
 	private static void createExcel(File outputPath, String sheetName, List<List<? extends Object>> data) throws Exception {
