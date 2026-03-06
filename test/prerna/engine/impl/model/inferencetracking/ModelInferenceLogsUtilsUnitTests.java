@@ -673,18 +673,40 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			staticRDBMSWrapper
 					.when(() -> RawRDBMSSelectWrapper.directExecutionPreparedStatement(eq(engine), eq(conn), eq(ps),
 							anyString(), eq(false)))
-					.thenReturn(rawRDBMSSelectWrapper).thenReturn(rawRDBMSSelectWrapper).thenThrow(Exception.class);
+					.thenReturn(rawRDBMSSelectWrapper)
+					.thenReturn(rawRDBMSSelectWrapper)
+					.thenReturn(rawRDBMSSelectWrapper)
+					.thenReturn(rawRDBMSSelectWrapper)
+					.thenReturn(rawRDBMSSelectWrapper)
+					.thenThrow(Exception.class);
 			when(rawRDBMSSelectWrapper.hasNext()).thenReturn(true);
 			when(rawRDBMSSelectWrapper.next()).thenReturn(dataRow);
-			when(dataRow.getValues()).thenReturn(new Object[] { 1 }).thenReturn(new Object[] { null });
+			when(dataRow.getValues())
+				.thenReturn(new Object[] { 0 })
+				.thenReturn(new Object[] { 0 })
+				.thenReturn(new Object[] { 1 })
+				.thenReturn(new Object[] { 1 })
+				.thenReturn(new Object[] { null });
 
-			assertEquals(1, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
+			// dataRow value returns as given
+			assertEquals(0, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
+					ZonedDateTime.now(), "DAILY"));
+			assertEquals(0, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
 					ZonedDateTime.now(), "WEEK"));
+			assertEquals(1, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
+					ZonedDateTime.now(), "YEAR"));
+			assertEquals(1, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("token", user, "engineId",
+					ZonedDateTime.now(), "ALL_TIME"));
+			
+			// null assumed as 0
 			assertEquals(0, ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("compute", user, "engineId",
 					ZonedDateTime.now(), "MONTH"));
+			
+			// exception during query generates null return
 			assertNull(ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime("compute", user, "engineId",
 					ZonedDateTime.now(), "DAILY"));
-
+			
+			// bad inputs generate thrown exception
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ModelInferenceLogsUtils
 					.getTotalTokensOrTotalResponseTime(null, user, "engineId", ZonedDateTime.now(), "freq"));
 			assertEquals("Must pass in a valid restriction mode", e.getMessage());
@@ -713,7 +735,12 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			staticSecEngineUtils.when(() -> SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, "engineId"))
 					.thenReturn(engineList);
 
-			when(engine.getPreparedStatement(anyString())).thenReturn(ps).thenReturn(ps).thenThrow(SQLException.class);
+			when(engine.getPreparedStatement(anyString()))
+				.thenReturn(ps)
+				.thenReturn(ps)
+				.thenReturn(ps)
+				.thenReturn(ps)
+				.thenThrow(SQLException.class);
 
 			when(user.getLogins()).thenReturn(logins);
 			when(user.getAccessToken(auth)).thenReturn(access);
@@ -724,12 +751,25 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 			when(rawRDBMSSelectWrapper.hasNext()).thenReturn(true);
 			when(rawRDBMSSelectWrapper.next()).thenReturn(dataRow);
-			when(dataRow.getValues()).thenReturn(new Object[] { null }).thenReturn(new Object[] { 1 });
+			when(dataRow.getValues())
+				.thenReturn(new Object[] { null })
+				.thenReturn(new Object[] { 0 })
+				.thenReturn(new Object[] { 0 })
+				.thenReturn(new Object[] { 1 });
 
+			// null treated as 0
 			assertEquals(0, ModelInferenceLogsUtils.getTotalUsageForUser("token", user, "engineId", ZonedDateTime.now(),
 					"WEEK"));
-			assertEquals(1, ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId",
+			
+			// non-null returned as-is
+			assertEquals(0, ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId",
 					ZonedDateTime.now(), "MONTH"));
+			assertEquals(0, ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId",
+					ZonedDateTime.now(), "YEAR"));
+			assertEquals(1, ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId",
+					ZonedDateTime.now(), "ALL_TIME"));
+			
+			// exception during query yields null
 			assertNull(ModelInferenceLogsUtils.getTotalUsageForUser("compute", user, "engineId", ZonedDateTime.now(),
 					"DAILY"));
 		}

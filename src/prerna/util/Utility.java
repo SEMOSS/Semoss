@@ -70,6 +70,7 @@ import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6072,7 +6073,34 @@ public final class Utility {
 	}
 
 	/**
-	 * 
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start and end of the year.
+	 */
+	public static Map<String, ZonedDateTime> getYearStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the year by setting the day to January 1.
+		dates.put("start", utcDateTime.withDayOfYear(1));
+		// Find the end of the year by setting the day to the last day of the year.
+		dates.put("end", utcDateTime.withDayOfYear(utcDateTime.toLocalDate().lengthOfYear()));
+
+		return dates;
+	}
+
+	/**
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start of epoch and current datetime.
+	 */
+	public static Map<String, ZonedDateTime> getEpochStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 *
 	 * @param size
 	 * @return
 	 */

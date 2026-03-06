@@ -1732,6 +1732,12 @@ public class ModelInferenceLogsUtils {
 		} else if (frequency.equalsIgnoreCase("MONTH")) {
 			// Get start and end date for the current month
 			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else if (frequency.equalsIgnoreCase("YEAR")) {
+			// Get start and end date for the current year
+			dates = Utility.getYearStartEndDate(currentDateTime);
+		} else if (frequency.equalsIgnoreCase("ALL_TIME")) {
+			// Get all time usage - from epoch to current time
+			dates = Utility.getEpochStartEndDate(currentDateTime);
 		} else {
 			// assume they want daily
 			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
@@ -1824,6 +1830,12 @@ public class ModelInferenceLogsUtils {
 		} else if (frequency.equals("MONTH")) {
 			// Get start and end date for the current month
 			dates = Utility.getMonthStartEndDate(currentDateTime);
+		} else if (frequency.equals("YEAR")) {
+			// Get start and end date for the current year
+			dates = Utility.getYearStartEndDate(currentDateTime);
+		} else if (frequency.equals("ALL_TIME")) {
+			// Get all time usage - from epoch to current time
+			dates = Utility.getEpochStartEndDate(currentDateTime);
 		} else {
 			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
 			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
