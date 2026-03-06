@@ -11,22 +11,35 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class GoogleSpreadsheetDeleteSheetReactor extends AbstractReactor {
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetDeleteSheetReactor.class);
 
+	private static final String TITLESHEETID = "titleSheetID";
+	private static final String SHEETID = "sheetID";
+
 	public GoogleSpreadsheetDeleteSheetReactor() {
-		this.keysToGet = new String[] { "titleSheetID", "sheetID" };
+		this.keysToGet = new String[] { TITLESHEETID, SHEETID };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		this.organizeKeys();
+		String titleSheetID = this.keyValue.get(this.keysToGet[0]);
+		if (titleSheetID == null || titleSheetID.isEmpty()) {
+			throw new SemossPixelException("Title sheet ID is required to delete sheet in spreadsheet");
+		}
+		String sheetID = this.keyValue.get(this.keysToGet[1]);
+		if (sheetID == null || sheetID.isEmpty()) {
+			throw new SemossPixelException("Sheet ID is required to delete sheet in spreadsheet");
+		}
 		try {
 			User user = this.insight.getUser();
-			this.organizeKeys();
-			String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-			String sheetID = this.keyValue.get(this.keysToGet[1]);
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			return SpreadSheetHelper.deleteSheet(titleSheetID, sheetID, accessToken);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("An error occurred in deleting sheet. Error message: " + e.getMessage());
@@ -40,12 +53,11 @@ public class GoogleSpreadsheetDeleteSheetReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("titleSheetID")) {
+		if (key.equals(TITLESHEETID)) {
 			return "TitleSheet id of the Google spread sheet";
-		} else if (key.equals("SheetID")) {
+		} else if (key.equals(SHEETID)) {
 			return "Sheet id from Google spreadsheet";
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 }
