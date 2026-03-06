@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
@@ -14,6 +41,10 @@ import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 
 public class PixelJobManager {
+
+	public enum InterruptResult {
+		NOT_FOUND, ALREADY_DONE, CANCEL_REQUESTED
+	}
 
 	/**
 	 * Inner class to hold job output data and its lock
@@ -221,7 +252,11 @@ public class PixelJobManager {
 	}
 
 	public String getStatus(String jobId) {
-		return threadPool.get(jobId).getStatus();
+		PixelJobThread job = threadPool.get(jobId);
+		if (job == null) {
+			return PixelJobStatus.UNKNOWN_JOB.getValue();
+		}
+		return job.getStatus();
 	}
 
 	public void clearJob(String jobId) {
@@ -234,19 +269,37 @@ public class PixelJobManager {
 	}
 
 	public void flagStatus(String jobId, PixelJobStatus status) {
-		threadPool.get(jobId).setStatus(status);
+		PixelJobThread job = threadPool.get(jobId);
+		if (job != null) {
+			job.setStatus(status);
+		}
 	}
 
-	public void interruptThread(String jobId) {
-		if (threadPool.get(jobId) != null) {
-			PixelJobThread pixelThread = threadPool.get(jobId);
-			pixelThread.interrupt();
-			pixelThread.setStatus(PixelJobStatus.CANCELED);
+	public InterruptResult interruptThread(String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			return InterruptResult.NOT_FOUND;
 		}
+
+		PixelJobThread pixelThread = threadPool.get(jobId);
+		if (pixelThread == null) {
+			return InterruptResult.NOT_FOUND;
+		}
+
+		PixelJobStatus curStatus = pixelThread.getPixelJobStatus();
+		if (curStatus == PixelJobStatus.COMPLETE || curStatus == PixelJobStatus.PROGRESS_COMPLETE
+				|| curStatus == PixelJobStatus.ERROR || curStatus == PixelJobStatus.CANCELED) {
+			return InterruptResult.ALREADY_DONE;
+		}
+
+		pixelThread.requestCancel();
+		return InterruptResult.CANCEL_REQUESTED;
 	}
 
 	public PixelRunner getOutput(String jobId) {
 		PixelJobThread jt = threadPool.get(jobId);
+		if (jt == null) {
+			return null;
+		}
 		return jt.getRunner();
 	}
 

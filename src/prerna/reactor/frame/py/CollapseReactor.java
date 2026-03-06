@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import java.util.HashSet;
@@ -11,8 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollapseReactor extends AbstractPyFrameReactor {
 
@@ -34,13 +59,14 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 		// group by cols
 		for (int i = 0; i < groupByCol.size(); i++) {
 			String groupCol = groupByCol.get(i);
-			if(i == 0)
+			if (i == 0) {
 				groupByColsR = groupByColsR + "'" + groupCol + "'";
-			else
-				groupByColsR = groupByColsR + ", '" + groupCol + "'";			
+			} else {
+				groupByColsR = groupByColsR + ", '" + groupCol + "'";
+			}
 		}
 		groupByColsR += "]";
-		
+
 		// main cols
 		// get columns to keep
 		// convert to a list
@@ -50,35 +76,30 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 			// merge columns
 			maintainCols.append(", [");
 			colsToKeep.addAll(groupByCol);
-			
-			Iterator  <String> maintainIterator = colsToKeep.iterator();
-			for(int maintainColIndex = 0;maintainIterator.hasNext();maintainColIndex++)
-			{
+
+			Iterator<String> maintainIterator = colsToKeep.iterator();
+			for (int maintainColIndex = 0; maintainIterator.hasNext(); maintainColIndex++) {
 				String thisCol = maintainIterator.next();
-				if(maintainColIndex > 0)
+				if (maintainColIndex > 0) {
 					maintainCols.append(", ");
+				}
 				maintainCols.append("'").append(thisCol).append("'");
 			}
-			maintainCols.append("]");			
+			maintainCols.append("]");
 		}
 
-		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
+		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim
+				+ maintainCols + ")";
 		frame.runScript(script);
 		this.addExecutedCode(script);
 
 		frame = (PandasFrame) recreateMetadata(frame);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Collapse", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
-	
+
 	private List<String> getGroupByCols() {
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getGenRowStruct(this.keysToGet[0]);
@@ -111,6 +132,4 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 		}
 		return null;
 	}
-	
-
 }

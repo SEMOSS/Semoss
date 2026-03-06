@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
 import java.util.Arrays;
@@ -17,7 +44,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class CountIfReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(CountIfReactor.class);
 
 	@Override
@@ -49,17 +76,22 @@ public class CountIfReactor extends AbstractFrameReactor {
 		}
 		// 1) first add new column name
 		String addColumnSQL = "ALTER TABLE " + table + " ADD " + newColumnName + " " + dataType + ";";
-			// 2) create a temp column to replace the matching string in the column to count with a replacement string
+		// 2) create a temp column to replace the matching string in the column to count
+		// with a replacement string
 		String tempColName = "REP_" + Utility.getRandomString(5);
 		String addTempColumn = "ALTER TABLE " + table + " ADD  " + tempColName + " varchar(800);";
 		String tempReplacementString = ";;;" + Utility.getRandomString(3) + ";;;";
-		String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount + ", '" + regex + "', '" + tempReplacementString + "');";
+		String updateTempColumn = "UPDATE " + table + " SET " + tempColName + "= REGEXP_REPLACE (" + columnToCount
+				+ ", '" + regex + "', '" + tempReplacementString + "');";
 
-		// 3) Update the count column by setting it to the length of the col - replacing the temp column with empty string
-		String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH("+tempColName+") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
+		// 3) Update the count column by setting it to the length of the col - replacing
+		// the temp column with empty string
+		String updateCountColumn = "UPDATE " + table + " SET " + newColumnName + " = " + "LENGTH(" + tempColName
+				+ ") - LENGTH(REPLACE(" + tempColName + ",'" + tempReplacementString + "',''));";
 
 		// 4) Update the count with MOD (tempColumn, tempString - 1)
-		updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + "," + (tempReplacementString.length() - 1) + " );";
+		updateCountColumn += "UPDATE " + table + " SET " + newColumnName + " = MOD(" + newColumnName + ","
+				+ (tempReplacementString.length() - 1) + " );";
 
 		// 5) Drop temp column
 		String dropTempColumn = "ALTER TABLE " + table + " DROP COLUMN " + tempColName + ";";

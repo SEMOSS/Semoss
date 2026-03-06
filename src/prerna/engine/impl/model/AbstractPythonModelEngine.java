@@ -1,32 +1,52 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.common.cache.CacheBuilder;
-
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.InstructModelEngineResponse;
-import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -58,10 +78,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
-
-	private ConcurrentMap<String, ArrayList<Map<String, Object>>> chatHistory = CacheBuilder.newBuilder()
-			.expireAfterAccess(1, TimeUnit.HOURS) // Clears entries if not accessed for 1 hour
-			.<String, ArrayList<Map<String, Object>>>build().asMap();
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -101,8 +117,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			this.checkSocketStatus();
 			return this.pyTranslator;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, "Failed to create PyTranslator for engine: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			classLogger.error("Failed to create PyTranslator for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			throw new IllegalStateException("Failed to get PyTranslator: " + e.getMessage(), e);
 		}
 	}
@@ -156,13 +172,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			}
 
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			// it has to be -- don't change this unless you can send engine calls from
+			// python
+			boolean nativePyServer = true;
 			try {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -170,9 +188,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Failed to start TCP Server for Python Model Engine = " + this.getEngineName());
+				classLogger.error("Failed to reconnect to the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine: "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 			}
 		}
 
@@ -201,11 +220,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			// finally set the cpw in the class
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to  to the python process for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for the python model engine "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
+				classLogger.warn(
+						"Able to start the python process for the python model engine {} but the start script failed",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				cpwToInit.shutdown(false);
 			}
 			throw e;
@@ -241,9 +261,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		checkSocketStatus();
 
-		boolean keepConvoHisotry = this.keepsConversationHistory();
 		final String TRIPLE_QUOTE = "\"\"\"";
-
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
 
 		// TODO fullPrompt should be removed
@@ -321,56 +339,21 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running >>> " + callMaker.toString());
+		classLogger.debug("Running model command {}", callMaker.toString());
 
 		Object output = pyTranslator.runDirectPy(insight, callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 
-		if (keepConvoHisotry) {
-			// IF ITS A tool call - then append adjust history
-			Map<String, Object> inputMap = new HashMap<>();
-			Map<String, Object> outputMap = new HashMap<>();
-
-			inputMap.put(ROLE, "user");
-			inputMap.put(MESSAGE_CONTENT, question);
-
-			outputMap.put(ROLE, "assistant");
-
-			// TODO: handle multiple tools being returned
-			// TODO: handle multiple tools being returned
-			// TODO: handle multiple tools being returned
-			if (response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
-				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
-				// Create the tool call structure
-				Map<String, Object> toolCall = new HashMap<>();
-				toolCall.put(TYPE, "function");
-				toolCall.put(ID, toolResponse.getToolCallId());
-
-				Map<String, String> functionMap = new HashMap<>();
-				functionMap.put(ARGUMENTS, toolResponse.getToolCallArgumentsAsString());
-				functionMap.put(NAME, toolResponse.getToolCallName());
-
-				toolCall.put(FUNCTION, functionMap);
-
-				// Add tool call to output map
-				outputMap.put(TOOL_CALLS, Arrays.asList(toolCall));
-				outputMap.put(MESSAGE_CONTENT, ""); // Empty content for tool
-			} else {
-				// Regular response
-				outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
-			}
-			// Update chat history
-			if (chatHistory.containsKey(insight.getInsightId())) {
-				chatHistory.get(insight.getInsightId()).add(inputMap);
-				chatHistory.get(insight.getInsightId()).add(outputMap);
-			}
+		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
+		if (response instanceof AskErrorModelEngineResponse) {
+			classLogger.warn("Model returned an error: {}", response.getStringResponse());
+			return response;
 		}
 
 		return response;
@@ -427,8 +410,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = InstructModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -464,8 +446,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		return response;
@@ -501,9 +482,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.warn("Could not create response object from output = " + output);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(e.getMessage());
+			classLogger.error("Could not create response object from output: {}", output, e);
+			throw new IllegalArgumentException(e.getMessage(), e);
 		}
 		return response;
 	}
@@ -544,86 +524,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
-	}
-
-	/**
-	 * 
-	 * @param insightId
-	 * @param userId
-	 * @return
-	 */
-	protected String getConversationHistoryFromInferenceLogs(String insightId, String userId) {
-		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId,
-				"ASC");
-		if (convoHistoryFromDb.size() > 0) {
-			for (Map<String, Object> record : convoHistoryFromDb) {
-				Object messageData = record.get("MESSAGE_DATA");
-				Map<String, Object> mapHistory = new HashMap<String, Object>();
-				if (record.get("MESSAGE_TYPE").equals(ModelEngineInferenceLogsWorker.RESPONSE)) {
-					mapHistory.put(ROLE, "assistant");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
-				} else {
-					mapHistory.put(ROLE, "user");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
-				}
-				chatHistory.get(insightId).add(mapHistory);
-			}
-			ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
-			StringBuilder convoList = new StringBuilder("[");
-			boolean isFirstElement = true;
-			for (Map<String, Object> record : convoHistory) {
-				if (!isFirstElement) {
-					convoList.append(",");
-				} else {
-					isFirstElement = false;
-				}
-				Object priorContent = PyUtils.determineStringType(record);
-				convoList.append(priorContent);
-			}
-			convoList.append("]");
-			return convoList.toString();
-		}
-		return null;
-	}
-
-	/**
-	 * 
-	 * @param userId
-	 * @param insightId
-	 * @param keepConvoHisotry
-	 * @return
-	 */
-	protected String getConversationHistory(String userId, String insightId, boolean keepConvoHisotry) {
-		if (keepConvoHisotry) {
-			if (chatHistory.containsKey(insightId)) {
-				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
-				StringBuilder convoList = new StringBuilder("[");
-				boolean isFirstElement = true;
-				for (Map<String, Object> record : convoHistory) {
-					if (!isFirstElement) {
-						convoList.append(",");
-					} else {
-						isFirstElement = false;
-					}
-					Object priorContent = PyUtils.determineStringType(record);
-					convoList.append(priorContent);
-				}
-				convoList.append("]");
-				return convoList.toString();
-			} else {
-				// we want to start a conversation
-				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
-				chatHistory.put(insightId, userNewChat);
-
-				String dbConversation = null;
-				if (Utility.isModelInferenceLogsEnabled()) {
-					dbConversation = getConversationHistoryFromInferenceLogs(insightId, userId);
-				}
-
-				return dbConversation;
-			}
-		}
-		return null;
 	}
 
 }

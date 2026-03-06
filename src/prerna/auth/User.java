@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth;
 
 import java.io.IOException;
@@ -7,9 +34,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,8 +58,9 @@ import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
+import prerna.om.LocalUserStore;
 import prerna.reactor.mgmt.MgmtUtil;
-import prerna.reactor.playwright.Session;
+import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -46,13 +74,13 @@ public class User implements Serializable {
 	protected static final String DIR_SEPARATOR = "/";
 
 	// main object storing the users access tokens
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<>();
-	private List<AuthProvider> loggedInProfiles = new Vector<>();
+	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
+	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	public Map<String, Object> roomHash = new HashMap<>();
+	private Map<String, Object> roomHash = new HashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -73,7 +101,7 @@ public class User implements Serializable {
 	private transient SymlinkHelper symlinkHelper = null;
 
 	// playwright
-	private transient Map<String, Session> playwrightSession = new ConcurrentHashMap<>();
+	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
 	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
@@ -98,6 +126,8 @@ public class User implements Serializable {
 	private boolean anonymous;
 	private String anonymousId;
 
+	private transient volatile String[] cachedTemporalAccessSecretKey = null;
+
 	public User() {
 		// transient objects should be defined in the constructor
 		// since if this is serialized we dont want these values to be null
@@ -107,6 +137,7 @@ public class User implements Serializable {
 		// set it in the mgmt utils
 		addUserMemory();
 		this.userEpoch = UUID.randomUUID().toString();
+		this.playwrightSession = new ConcurrentHashMap<>();
 	}
 
 	/**
@@ -351,7 +382,7 @@ public class User implements Serializable {
 	/**
 	 * Store the open insight
 	 * 
-	 * @param operation
+	 * @param engineId
 	 * @param rdbmsId
 	 * @param insightId
 	 */
@@ -416,7 +447,7 @@ public class User implements Serializable {
 
 	/**
 	 * 
-	 * @param timeZone
+	 * @param zoneId
 	 */
 	public void setZoneId(ZoneId zoneId) {
 		this.zoneId = zoneId;
@@ -428,6 +459,14 @@ public class User implements Serializable {
 	 */
 	public ZoneId getZoneId() {
 		return zoneId;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getRoomHash() {
+		return roomHash;
 	}
 
 	/////////////////////////////////////////////////////
@@ -597,7 +636,7 @@ public class User implements Serializable {
 	/**
 	 * 
 	 * @param create
-	 * @param venvName
+	 * @param venvEngineId
 	 * @return
 	 */
 	public SocketClient getPythonSocketClient(boolean create, String venvEngineId) {
@@ -813,9 +852,9 @@ public class User implements Serializable {
 			}
 		}
 
-		Enumeration<AuthProvider> accessKeys = accessTokens.keys();
-		if (accessKeys.hasMoreElements()) {
-			AuthProvider provider = accessKeys.nextElement();
+		Iterator<AuthProvider> accessKeysItr = accessTokens.keySet().iterator();
+		while (accessKeysItr.hasNext()) {
+			AuthProvider provider = accessKeysItr.next();
 			AccessToken tok = accessTokens.get(provider);
 			String[] creds = getUserEmail(tok);
 			if (creds[1] != null) {
@@ -824,6 +863,39 @@ public class User implements Serializable {
 		}
 
 		return new String[] { "anonymous", "anonymous@not_logged_in.com" };
+	}
+
+	public String getCachedTemporalAccessKey() {
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey[0];
+		}
+		return null;
+	}
+
+	public String[] createCachedTemporalAccessSecretKey() {
+		AccessToken loginToken = this.getPrimaryLoginToken();
+		if (loginToken == null) {
+			throw new NullPointerException("User does not have a primary login token");
+		}
+
+		if (this.cachedTemporalAccessSecretKey != null) {
+			return this.cachedTemporalAccessSecretKey;
+		}
+
+		if (this.cachedTemporalAccessSecretKey == null) {
+			synchronized (this) {
+				if (this.cachedTemporalAccessSecretKey == null) {
+					String accessKey = UUID.randomUUID().toString();
+					String secretKey = UUID.randomUUID().toString();
+					this.cachedTemporalAccessSecretKey = new String[] { accessKey, secretKey };
+					LocalUserStore.getInstance().store(accessKey,
+							new Object[] { secretKey, loginToken.getId(), loginToken.getProvider() });
+					classLogger.info("Generated temporal access/secret key for user");
+				}
+			}
+		}
+
+		return this.cachedTemporalAccessSecretKey;
 	}
 
 	public void setInsightSerialization(String insightId, Boolean serialize) {
@@ -842,19 +914,35 @@ public class User implements Serializable {
 		return userEmail;
 	}
 
-	public Session getPlaywrightSession(String id) {
-		if (playwrightSession.get(id) == null) {
+	public PlaywrightSession getPlaywrightSession(String id) {
+		PlaywrightSession session = getPlaywrightSessionStore().get(id);
+		if (session == null) {
 			throw new IllegalArgumentException("Invalid/Expired playwright session: " + id);
 		}
-		return playwrightSession.get(id);
+		return session;
 	}
 
-	public void setPlaywrightSession(String id, Session s) {
-		playwrightSession.put(id, s);
+	public void setPlaywrightSession(String id, PlaywrightSession s) {
+		getPlaywrightSessionStore().put(id, s);
 	}
 
 	public void removePlaywrightSession(String id) {
-		playwrightSession.remove(id);
+		getPlaywrightSessionStore().remove(id);
+	}
+
+	private Map<String, PlaywrightSession> getPlaywrightSessionStore() {
+		if (this.playwrightSession != null) {
+			return this.playwrightSession;
+		}
+
+		if (this.playwrightSession == null) {
+			synchronized (this) {
+				if (this.playwrightSession == null) {
+					this.playwrightSession = new ConcurrentHashMap<>();
+				}
+			}
+		}
+		return this.playwrightSession;
 	}
 
 	public BrowserContext getSharedPlaywrightContext() {

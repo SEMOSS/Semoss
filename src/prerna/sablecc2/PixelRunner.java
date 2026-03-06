@@ -1,8 +1,36 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.sablecc2;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.PushbackReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -21,6 +49,7 @@ import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.reactor.PixelPlanner;
+import prerna.sablecc2.lexer.IPushbackReader;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ARoutineConfiguration;
@@ -32,14 +61,12 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class PixelRunner extends Thread {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
+	private static final String CANCELLED_MESSAGE = "The request was cancelled by the user";
 
 	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
@@ -71,33 +98,73 @@ public class PixelRunner extends Thread {
 	protected List<String> encodingList = new ArrayList<>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 
+	/**
+	 * Wrapper class to interrupt pushback reader
+	 */
+	private static final class InterruptiblePushbackReader implements IPushbackReader {
+		private final PushbackReader pushbackReader;
+		private final PixelRunner runner;
+
+		private InterruptiblePushbackReader(PushbackReader pushbackReader, PixelRunner runner) {
+			this.pushbackReader = pushbackReader;
+			this.runner = runner;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if (runner.isCancelRequested()) {
+				throw new InterruptedIOException(CANCELLED_MESSAGE);
+			}
+			return this.pushbackReader.read();
+		}
+
+		@Override
+		public void unread(int c) throws IOException {
+			if (runner.isCancelRequested()) {
+				throw new InterruptedIOException(CANCELLED_MESSAGE);
+			}
+			this.pushbackReader.unread(c);
+		}
+	}
+
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
+		throwIfCancelRequested();
 		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
 				this.encodedTextToOriginal);
+		throwIfCancelRequested();
 
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(
+			Parser p = new Parser(new Lexer(new InterruptiblePushbackReader(new PushbackReader(
 					new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
 							StandardCharsets.UTF_8),
-					expression.length())));
+					expression.length()), this)));
 			translation = new GreedyTranslation(this, insight);
 
+			throwIfCancelRequested();
 			// parsing the pixel - this process also determines if expression is
 			// syntactically correct
 			Start tree = p.parse();
+			throwIfCancelRequested();
 			// apply the translation.
 			tree.apply(translation);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			if (isCancellationException(e)) {
+				classLogger.info("Pixel execution canceled while running expression");
+			} else {
+				classLogger.error("Error occurred running pixel: {} with detailed error: {}", expression,
+						e.getMessage(), e);
+			}
 			if (!e.isContinueThreadOfExecution()) {
 				throw e;
 			}
+		} catch (InterruptedIOException e) {
+			throwCancellationException();
 		} catch (ParserException | LexerException | IOException e) {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
 			trackInvalidSyntaxError(expression, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Invalid pixel command: {}", expression, e);
 			String eMessage = e.getMessage();
 			if (eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -133,10 +200,6 @@ public class PixelRunner extends Thread {
 	 * @param ex
 	 */
 	private void trackInvalidSyntaxError(String pixel, Exception ex) {
-		IUserTracker tracker = UserTrackerFactory.getInstance();
-		if (tracker.isActive()) {
-			tracker.trackError(this.insight, pixel, "INVALID_SYNTAX", "INVALID_SYNTAX", false, ex);
-		}
 	}
 
 	/**
@@ -248,6 +311,24 @@ public class PixelRunner extends Thread {
 				}
 			}
 		}
+	}
+
+	private void throwIfCancelRequested() {
+		if (isCancelRequested()) {
+			throwCancellationException();
+		}
+	}
+
+	private boolean isCancelRequested() {
+		return this.isInterrupted() || Thread.currentThread().isInterrupted();
+	}
+
+	private void throwCancellationException() {
+		throw new SemossPixelException(CANCELLED_MESSAGE, false);
+	}
+
+	private boolean isCancellationException(SemossPixelException ex) {
+		return ex != null && !ex.isContinueThreadOfExecution() && CANCELLED_MESSAGE.equals(ex.getMessage());
 	}
 
 	public List<NounMetadata> getResults() {

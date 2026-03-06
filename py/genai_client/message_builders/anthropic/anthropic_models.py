@@ -9,38 +9,30 @@ class AnthropicRoles(StringEnum):
     ASSISTANT = "assistant"
 
 
-class AnthropicImageType(StringEnum):
+class AnthropicMediaType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
 
-class AnthropicImageMediaType(StringEnum):
-    JPEG = "image/jpeg"
-    PNG = "image/png"
-    WEBP = "image/webp"
-    GIF = "image/gif"
+class AnthropicMediaSourceBase64(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.BASE64
+    media_type: str
+    data: str
 
 
-class AnthropicImageSourceURL(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.URL
+class AnthropicURLMediaSource(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.URL
     url: str
-
-
-class AnthropicImageSourceBase64(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.BASE64
-    media_type: AnthropicImageMediaType
-    data: Optional[str] = None
 
 
 class AnthropicImageContentPart(BaseModel):
     type: str = "image"
-    source: Union[AnthropicImageSourceURL, AnthropicImageSourceBase64]
+    source: AnthropicMediaSourceBase64
 
 
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    media_type: str
-    data: Optional[str] = None
+    source: AnthropicMediaSourceBase64
 
 
 # FOR HISTORY

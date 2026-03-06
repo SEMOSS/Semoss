@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl.model.message;
 
 import java.io.File;
@@ -9,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,6 +49,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -31,6 +60,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
@@ -81,6 +111,7 @@ public class MessageUtils {
 	// For DB: skips "room", "insight", "socket", and "base64Data"
 	private static final Gson GSON_FOR_DB = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -98,6 +129,7 @@ public class MessageUtils {
 	// base64Data
 	private static final Gson GSON_FOR_PY = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -112,6 +144,89 @@ public class MessageUtils {
 			}).create();
 
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a message
+	 * JSON. This keeps FE consumers working while storage stays on parts-based
+	 * schema.
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
+		}
+		if (msg == null) {
+			return target;
+		}
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
+		}
+		String inputPrompt = msg.getInputPrompt();
+		if (inputPrompt != null) {
+			target.put("inputPrompt", inputPrompt);
+		}
+		String inputUIPrompt = msg.getInputUIPrompt();
+		if (inputUIPrompt != null) {
+			target.put("inputUIPrompt", inputUIPrompt);
+		}
+		String systemPrompt = msg.getSystemPrompt();
+		if (systemPrompt != null && !systemPrompt.isEmpty()) {
+			target.put("systemPrompt", systemPrompt);
+		}
+		String toolCallId = msg.getToolCallId();
+		if (toolCallId != null) {
+			target.put("tool_call_id", toolCallId);
+		}
+		String toolName = msg.getToolName();
+		if (toolName != null) {
+			target.put("tool_name", toolName);
+		}
+		String toolStatus = msg.getToolStatus();
+		if (toolStatus != null) {
+			target.put("tool_status", toolStatus);
+		}
+		Map<String, Object> toolParams = msg.getToolParameterValues();
+		if (toolParams != null) {
+			target.put("tool_parameter_values", toolParams);
+		}
+		List<MessageInputMedia> mediaInputs = msg.getMediaInfos();
+		if (mediaInputs == null) {
+			mediaInputs = new ArrayList<>();
+		}
+		target.put("mediaInputs", mediaInputs);
+		return target;
+	}
+
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a response
+	 * JSON.
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
+		}
+		if (msg == null) {
+			return target;
+		}
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
+		}
+		String content = msg.getContent();
+		if (content != null) {
+			target.put("content", content);
+		}
+		String thinking = msg.getThinking();
+		if (thinking != null) {
+			target.put("thinking", thinking);
+		}
+		List<Map<String, Object>> toolResponses = msg.getToolResponses();
+		if (toolResponses == null) {
+			toolResponses = new ArrayList<>();
+		}
+		target.put("tool_responses", toolResponses);
+		return target;
+	}
 
 	/**
 	 * Converts a JSON object string to a Map<String, Object>
@@ -130,41 +245,79 @@ public class MessageUtils {
 	// Deserialize a single message from JSON
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
-		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
-		AbstractMessage message = null;
-		switch (type) {
-		case RESPONSE_TEXT:
-		case RESPONSE_TOOL:
-			message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
-			break;
-		case INPUT_MEDIA:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			// re-encode the base64 from file.
-			for (ImageInfo imageInfo : ((InputMessage) message).getImageInfos()) {
-				imageInfo.setRoomFolder(room.getRoomFolderPath());
-				imageInfo.getBase64Data();
+
+		// Prefer explicit discriminator first (new format), then legacy type prefix.
+		MessageIO io = null;
+		if (jsonObj.has("io") && !jsonObj.get("io").isJsonNull()) {
+			try {
+				io = MessageIO.valueOf(jsonObj.get("io").getAsString());
+			} catch (IllegalArgumentException ignore) {
+				io = null;
 			}
-			break;
-		case INPUT_TEXT:
-		case INPUT_TOOL_EXEC:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			break;
-		default:
-			classLogger.error("Unhandled fromJSON for message type = " + type);
 		}
+
+		String rawType = null;
+		if (io == null && jsonObj.has("type") && !jsonObj.get("type").isJsonNull()) {
+			rawType = jsonObj.get("type").getAsString();
+			if (rawType != null) {
+				rawType = rawType.trim();
+			}
+		}
+
+		boolean isResponse = false;
+		if (io != null) {
+			isResponse = (io == MessageIO.OUTPUT);
+		} else if (rawType != null) {
+			isResponse = rawType.startsWith("RESPONSE_");
+		} else if (jsonObj.has("parts") && jsonObj.get("parts").isJsonArray()) {
+			// Minimal parts-only inference: tool calls / thinking belong to assistant
+			// outputs,
+			// tool results / system prompt belong to user inputs.
+			for (JsonElement p : jsonObj.getAsJsonArray("parts")) {
+				if (p == null || !p.isJsonObject()) {
+					continue;
+				}
+				JsonObject partObj = p.getAsJsonObject();
+				if (!partObj.has("type") || partObj.get("type").isJsonNull()) {
+					continue;
+				}
+				String partType = partObj.get("type").getAsString();
+				if ("TOOL_CALL".equals(partType) || "THINKING".equals(partType)) {
+					isResponse = true;
+					break;
+				}
+				if ("TOOL_RESULT".equals(partType) || "SYSTEM".equals(partType)) {
+					isResponse = false;
+					break;
+				}
+			}
+		} else {
+			// Legacy fallback
+			isResponse = jsonObj.has("content") || jsonObj.has("thinking") || jsonObj.has("tool_responses");
+		}
+
+		AbstractMessage message = isResponse ? GSON_FOR_DB.fromJson(json, ResponseMessage.class)
+				: GSON_FOR_DB.fromJson(json, InputMessage.class);
+
 		if (message != null) {
-			message.setRoom(room);
+			message.normalizeAfterLoad(room);
 		}
 		return message;
 	}
 
 	// Serialize any message to JSON (for DB)
 	public static String toJson(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_DB.toJson(msg);
 	}
-	
+
 	// Serialize any message to JSON (for DB)
 	public static String toJsonWithImage(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_PY.toJson(msg);
 	}
 
@@ -184,6 +337,77 @@ public class MessageUtils {
 		return result;
 	}
 
+	/**
+	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room
+	 * folder.
+	 * <p>
+	 * This is used for model-generated media (e.g., Gemini inline images) that
+	 * arrive as base64.
+	 */
+	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
+		if (message == null || room == null || room.getRoomFolderPath() == null) {
+			return;
+		}
+		if (!message.hasMediaPart()) {
+			return;
+		}
+
+		String roomFolder = room.getRoomFolderPath();
+		try {
+			Files.createDirectories(Paths.get(roomFolder));
+		} catch (IOException e) {
+			classLogger.warn("Unable to create room folder: " + roomFolder, e);
+			return;
+		}
+
+		for (MessagePart part : message.getParts()) {
+			if (!(part instanceof MediaMessagePart)) {
+				continue;
+			}
+			MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
+			if (media == null || media.getMediaInputType() == null) {
+				continue;
+			}
+			if (media.getMediaInputType() != MessageInputMedia.MEDIA_INPUT_TYPE.FILE) {
+				continue;
+			}
+
+			String base64Data = media.getBase64Data();
+			if (base64Data == null || base64Data.isEmpty()) {
+				continue;
+			}
+
+			String fileName = media.getFileName();
+			fileName = MessageInputMedia.extractFileName(fileName);
+			if (fileName == null || fileName.trim().isEmpty()) {
+				String ext = media.getFileFormat();
+				if (ext == null || ext.trim().isEmpty()) {
+					ext = "bin";
+				}
+				fileName = GUID.v7().toUUID().toString() + "." + ext;
+			}
+
+			Path target = Paths.get(roomFolder).resolve(fileName).normalize();
+			if (!target.startsWith(Paths.get(roomFolder))) {
+				classLogger.warn("Skipping unsafe media filename: " + fileName);
+				continue;
+			}
+
+			if (!Files.exists(target)) {
+				try {
+					byte[] bytes = Base64.getDecoder().decode(base64Data);
+					Files.write(target, bytes);
+				} catch (Exception e) {
+					classLogger.warn("Unable to persist media part to " + target, e);
+					continue;
+				}
+			}
+
+			media.setRoomFolder(roomFolder);
+			ClusterUtil.pushRoom(room.getId());
+		}
+	}
+
 	// --- Core two serialization methods ---
 
 	// For DB: JSON array string of messages, with NO base64
@@ -191,11 +415,20 @@ public class MessageUtils {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
+		}
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
-	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
-		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
+	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
+	}
+
+	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
 
 	// For Python: JSON array string WITH base64 image data in ImageInfo
@@ -203,12 +436,17 @@ public class MessageUtils {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
+		}
 		// Ensure base64Data is loaded for all images
 		for (AbstractMessage msg : msgs) {
 			if (msg instanceof InputMessage) {
 				InputMessage input = (InputMessage) msg;
-				if (input.hasImages()) {
-					for (ImageInfo img : input.getImageInfos()) {
+				if (input.hasMediaInputs()) {
+					for (MessageInputMedia img : input.getMediaInfos()) {
 						// Populate the field (it will actually load the file if needed)
 						img.setBase64Data(img.getBase64Data());
 					}
@@ -218,7 +456,14 @@ public class MessageUtils {
 		return GSON_FOR_PY.toJson(msgs);
 	}
 
-	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
+	/**
+	 * 
+	 * @param messages
+	 * @param newMessage
+	 * @return
+	 */
+	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
+			AbstractMessage newMessage) {
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
 		for (AbstractMessage m : messages) {
@@ -228,7 +473,47 @@ public class MessageUtils {
 		}
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
-		String currentId = latestMessageId;
+		if (newMessage != null) {
+			history.add(newMessage);
+		} else {
+			history.add(messages.getLast());
+		}
+		String currentId = history.getLast().getParentMessageId();
+		while (currentId != null) {
+			AbstractMessage m = idMap.get(currentId);
+			if (m == null) {
+				break;
+			}
+			history.add(m);
+			// parentMessageId may be null/empty String
+			currentId = m.getParentMessageId();
+			if (currentId == null || currentId.isEmpty()) {
+				break;
+			}
+		}
+		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
+		Collections.reverse(history);
+		return history;
+	}
+
+	/**
+	 * 
+	 * @param messages
+	 * @param parentMessageId
+	 * @return
+	 */
+	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
+			String parentMessageId) {
+		// 1. Build lookup map (messageId to message)
+		Map<String, AbstractMessage> idMap = new HashMap<>();
+		for (AbstractMessage m : messages) {
+			if (m.getMessageId() != null) {
+				idMap.put(m.getMessageId(), m);
+			}
+		}
+		// 2. Climb up parent chain
+		List<AbstractMessage> history = new ArrayList<>();
+		String currentId = parentMessageId;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
@@ -266,7 +551,8 @@ public class MessageUtils {
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
 			String role = asStringOrNull(map.get("role"));
-			String content = asStringOrNull(map.get("content"));
+			Object contentObj = map.get("content");
+			String content = parseContentMap(contentObj);
 
 			// -------- SYSTEM --------
 			if ("system".equals(role)) {
@@ -277,10 +563,9 @@ public class MessageUtils {
 
 			// -------- USER (TEXT and/or IMAGE) --------
 			if ("user".equals(role)) {
-				List<String> imageList = new ArrayList<>();
+				List<String> mediaInputList = new ArrayList<>();
 				String textPart = "";
 				// OpenAI-style: content is a list of dicts with type text/image_url
-				Object contentObj = map.get("content");
 				if (contentObj instanceof List<?>) {
 					for (Object part : (List<?>) contentObj) {
 						if (!(part instanceof Map)) {
@@ -296,7 +581,7 @@ public class MessageUtils {
 							if (imgURLObj instanceof Map) {
 								String url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
 								if (url != null) {
-									imageList.add(url);
+									mediaInputList.add(url);
 								}
 							}
 						}
@@ -305,11 +590,11 @@ public class MessageUtils {
 					textPart = (String) contentObj;
 				}
 
-				InputMessage.Builder builder = InputMessage.builder(room).withInputUIPrompt(textPart)
-						.withInputPrompt(textPart).withModelType(modelEngine.getModelType());
+				InputMessage.Builder builder = InputMessage.builder(room).withText(textPart)
+						.withModelType(modelEngine.getModelType());
 
-				if (!imageList.isEmpty()) {
-					builder.withImageUrls(imageList);
+				if (!mediaInputList.isEmpty()) {
+					builder.withMediaUrls(mediaInputList);
 				}
 
 				// If you receive extra tools for this turn:
@@ -373,7 +658,8 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null,
+						null);
 				result.add(toolExecMsg);
 				continue;
 			}
@@ -429,6 +715,21 @@ public class MessageUtils {
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
 		List<Map<String, Object>> newTools = new ArrayList<>();
 		for (Map<String, Object> tool : inputTools) {
+			String type = (String) tool.get("type");
+
+			// Built-in tools (from OpenAI) (web_search, code_interpreter, file_search,
+			// etc.)
+			// have a non-"function" type and no nested function/inputSchema/parameters
+			// definition.
+			// Pass these through unchanged
+			// Maybe a better way to identify these eventually? But I have to pass these on
+			// as is..
+			if (type != null && !"function".equals(type) && !tool.containsKey("function")
+					&& !tool.containsKey("inputSchema") && !tool.containsKey("parameters")) {
+				newTools.add(new LinkedHashMap<>(tool));
+				continue;
+			}
+
 			Map<String, Object> result = new LinkedHashMap<>();
 			String name = null, description = null, title = null;
 			Map<String, Object> inputSchema = null;
@@ -456,7 +757,6 @@ public class MessageUtils {
 				}
 			}
 
-			// Use provided title, or generate from name
 			if (title == null || title.trim().isEmpty()) {
 				title = MCPUtility.formatToTitleCase(name);
 			}
@@ -533,6 +833,27 @@ public class MessageUtils {
 		return (o instanceof String) ? (String) o : null;
 	}
 
+	private static String parseContentMap(Object o) {
+		if (o instanceof List<?>) {
+			// OpenAI-style: content is a list of dicts with type text, ignore images
+			StringBuilder textBuilder = new StringBuilder();
+			for (Object part : (List<?>) o) {
+				if (!(part instanceof Map)) {
+					continue;
+				}
+				Map<?, ?> partMap = (Map<?, ?>) part;
+				String type = asStringOrNull(partMap.get("type"));
+				if ("text".equals(type)) {
+					textBuilder.append(asStringOrNull(partMap.get("text")));
+				}
+			}
+			return textBuilder.toString();
+		} else {
+			// Regular string
+			return asStringOrNull(o);
+		}
+	}
+
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
 	// These can alias to above or be retained for backwards compatibility
@@ -597,6 +918,13 @@ public class MessageUtils {
 			return copiedFileNames;
 		}
 		for (String relPath : relativePathToFiles) {
+			if (isBase64MediaDataUri(relPath)) {
+				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
+				if (fileName != null) {
+					copiedFileNames.add(fileName);
+				}
+				continue;
+			}
 			File srcFile = new File(insightFolder, relPath);
 			if (!srcFile.exists() || !srcFile.isFile()) {
 				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
@@ -612,6 +940,101 @@ public class MessageUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+
+	private static boolean isBase64MediaDataUri(String value) {
+		if (value == null) {
+			return false;
+		}
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
+		String trimmed = value.trim();
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
+	}
+
+	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+		try {
+			Files.createDirectories(targetDir);
+
+			String trimmed = dataUri.trim();
+			int commaIdx = trimmed.indexOf(',');
+			if (commaIdx < 0) {
+				classLogger.info("Invalid data URI (no comma separator)");
+				return null;
+			}
+
+			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
+			String base64 = trimmed.substring(commaIdx + 1);
+			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			int colonIdx = meta.indexOf(':');
+			int semiIdx = meta.indexOf(';');
+			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
+				classLogger.info("Unsupported data URI mime type: " + mimeType);
+				return null;
+			}
+
+			String ext = extensionFromMimeType(mimeType);
+			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+
+			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+			Files.write(destination, decoded);
+			return fileName;
+		} catch (IllegalArgumentException e) {
+			// base64 decoder throws IllegalArgumentException on bad input
+			classLogger.warn("Failed to decode base64 data URI image", e);
+			return null;
+		} catch (IOException e) {
+			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
+			return null;
+		}
+	}
+
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
+		if (mimeType == null || !mimeType.startsWith("image/")) {
+			return "png";
+		}
+		switch (mimeType) {
+		case "image/jpg":
+		case "image/jpeg":
+			return "jpeg";
+		case "image/png":
+			return "png";
+		case "image/gif":
+			return "gif";
+		case "image/webp":
+			return "webp";
+		case "image/bmp":
+			return "bmp";
+		case "image/svg+xml":
+			return "svg";
+		case "image/x-icon":
+		case "image/vnd.microsoft.icon":
+			return "ico";
+		default:
+			String subtype = mimeType.substring("image/".length());
+			int plusIdx = subtype.indexOf('+');
+			if (plusIdx > 0) {
+				subtype = subtype.substring(0, plusIdx);
+			}
+			subtype = subtype.replaceAll("[^a-z0-9]", "");
+			return subtype.isEmpty() ? "png" : subtype;
+		}
 	}
 
 	// Method to parse markdown code blocks
@@ -635,12 +1058,9 @@ public class MessageUtils {
 			if (title == "") {
 				HashMap<String, Object> paramMap = new HashMap<String, Object>();
 				paramMap.put("use_history", "false");
-				InputMessage msg = InputMessage.builder(room)
-						.withInputUIPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withInputPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				String prompt = "Given the following code block, give it a title: " + code + " Just give me the title";
+				InputMessage msg = InputMessage.builder(room).withText(prompt).withModelType(modelEngine.getModelType())
+						.withParamMap(paramMap).build();
 
 				ResponseMessage response = room.ask(msg, modelEngine);
 				title = response.getContent();

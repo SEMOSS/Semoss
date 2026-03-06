@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.tcp.client;
 
 import java.io.Closeable;
@@ -48,6 +75,7 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, PayloadStruct> requestMap = new HashMap<>();
 	Map<String, PayloadStruct> responseMap = new HashMap<>();
 	Map<String, Set<String>> insightToEpoc = new HashMap<>();
+	Map<String, Set<String>> jobToEpoc = new HashMap<>();
 	Set<String> cancelledEpocs = new HashSet<>();
 
 	boolean ready = false;
@@ -354,6 +382,9 @@ public class SocketClient implements Runnable, Closeable {
 		if (this.insightToEpoc != null) {
 			this.insightToEpoc.clear();
 		}
+		if (this.jobToEpoc != null) {
+			this.jobToEpoc.clear();
+		}
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
@@ -389,16 +420,77 @@ public class SocketClient implements Runnable, Closeable {
 		}
 	}
 
+	void addEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = null;
+		if (this.jobToEpoc.containsKey(jobId)) {
+			epocs = this.jobToEpoc.get(jobId);
+		} else {
+			epocs = new HashSet<>();
+			this.jobToEpoc.put(jobId, epocs);
+		}
+		epocs.add(epoc);
+	}
+
+	void removeEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = this.jobToEpoc.get(jobId);
+		if (epocs != null) {
+			epocs.remove(epoc);
+		}
+	}
+
 	/**
 	 * 
-	 * @param jobId
+	 * @param insightId
 	 */
 	public void interruptInsight(String insightId) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if (epocs != null) {
-			this.cancelledEpocs.addAll(epocs);
+		Set<String> epocs = new HashSet<>();
+		if (insightId != null) {
+			Set<String> insightEpocs = this.insightToEpoc.get(insightId);
+			if (insightEpocs != null) {
+				epocs.addAll(insightEpocs);
+			}
 		}
-		if (epocs != null) {
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Interrupt a specific job execution. If {@code jobId} is null/blank, this will
+	 * interrupt all jobs for the insight.
+	 * 
+	 * @param insightId
+	 * @param jobId
+	 */
+	public void interruptInsightJob(String insightId, String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			interruptInsight(insightId);
+			return;
+		}
+
+		Set<String> epocs = new HashSet<>();
+		Set<String> jobEpocs = this.jobToEpoc.get(jobId);
+		if (jobEpocs != null) {
+			epocs.addAll(jobEpocs);
+		}
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Backward-compatible overload. Prefer
+	 * {@link #interruptInsightJob(String, String)}.
+	 */
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	private void interruptEpocs(Set<String> epocs) {
+		if (!epocs.isEmpty()) {
+			this.cancelledEpocs.addAll(epocs);
 			for (String epoc : epocs) {
 				PayloadStruct lock = this.requestMap.remove(epoc);
 				if (lock != null) {

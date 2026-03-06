@@ -11,13 +11,15 @@ Helpers
  digit = ['0' .. '9'];
  underscore = '_';
  
- dqescape = '\' all;
- sqescape = '\' all;
-    
- dqchar = [all - ['"' + '\']] | dqescape;
- sqchar = [all - [''' + '\']] | sqescape;
- dqword = '"' dqchar* '"';
- sqword = ''' sqchar* ''';
+ double_quote = '"';
+ escaped_double_quote = '\"';
+ not_double_quote = [all - '"'] | escaped_double_quote;
+ double_quote_word = double_quote not_double_quote* double_quote;
+ 
+ single_quote = ''';
+ escaped_single_quote = '\' ''';
+ not_single_quote = [all - '''] | escaped_single_quote;
+ single_quote_word = single_quote not_single_quote* single_quote;
  
  not_hash = [all - '#'];
  not_star = [all - '*'];
@@ -39,7 +41,7 @@ Tokens
  minus = '-';
  mod = '%';
  pow = '^';
- word = (dqword | sqword);
+ word = double_quote_word | single_quote_word;
  comment = traditional_comment | documentation_comment | hash_comment;
  mult = '*';
  comma = ',';
@@ -190,14 +192,16 @@ Productions
  
  // col def is an expression, a prop, or a relationship
  col_def = {expr} master_expr 
-		| {prop} prop 
+		| {prop_scalar} prop_scalar
+		| {prop_map} prop_map 
 		| {relation} relationship
 		;
   
  // NOUN ::: id = [gen_row, gen_row, gen_row...]
  noun = id equal gen_row;
  // SHORTHAND NOTATION FOR NOUN
- prop = id equal scalar;
+ prop_scalar = id equal scalar;
+ prop_map = id equal map;
  
  // operation used for aliasing columns
  asop = as_op l_par gen_row r_par;

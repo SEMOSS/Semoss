@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r.analytics;
 
 import java.util.List;
@@ -16,14 +43,15 @@ import prerna.util.Utility;
 public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 
 	public RunSimilarityHeatReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(),
+				ReactorKeysEnum.OVERRIDE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String[] packages  = new String[] {"data.table", "plyr"};
+		String[] packages = new String[] { "data.table", "plyr" };
 		this.rJavaTranslator.checkPackages(packages);
 		// get Pixel inputs
 		RDataTable frame = (RDataTable) this.getFrame();
@@ -31,7 +59,7 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		String instanceCol = this.keyValue.get(this.keysToGet[0]);
 		List<String> comparisonColumn = getComparisonColumns();
 		boolean override = overrideFrame();
-		
+
 		// create R syntax to get similarity heat value
 		StringBuilder rsb = new StringBuilder();
 		String tempFrame = "SimHeatFrame" + Utility.getRandomString(8);
@@ -42,12 +70,16 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		rsb.append(tempFrame + "<-unique(" + tempFrame + ");");
 		String mergeBy = RSyntaxHelper.createStringRColVec(comparisonColumn.toArray());
 		// combine with self
-		rsb.append(tempFrame + " <- merge(" + tempFrame + "," + tempFrame + ", by=" + mergeBy + ", all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE);");
+		rsb.append(tempFrame + " <- merge(" + tempFrame + "," + tempFrame + ", by=" + mergeBy
+				+ ", all.x = TRUE, all.y = FALSE, allow.cartesian = TRUE);");
 		// remove where systems are the same
-		rsb.append(tempFrame + " <- " + tempFrame + "[" + tempFrame + "$" + instanceCol + ".x != " + tempFrame + "$" + instanceCol + ".y,];");
-		//# drop opposites i.e. a=b and b=a
-		rsb.append(tempFrame + " <- " + tempFrame + "[!duplicated(apply(" + tempFrame + ",1,function(x) paste(sort(x),collapse=''))),];");
-		rsb.append(tempFrame + " <- plyr::count(" + tempFrame + ", c('" + instanceCol + ".x', '" + instanceCol + ".y')); ");
+		rsb.append(tempFrame + " <- " + tempFrame + "[" + tempFrame + "$" + instanceCol + ".x != " + tempFrame + "$"
+				+ instanceCol + ".y,];");
+		// # drop opposites i.e. a=b and b=a
+		rsb.append(tempFrame + " <- " + tempFrame + "[!duplicated(apply(" + tempFrame
+				+ ",1,function(x) paste(sort(x),collapse=''))),];");
+		rsb.append(tempFrame + " <- plyr::count(" + tempFrame + ", c('" + instanceCol + ".x', '" + instanceCol
+				+ ".y')); ");
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".x", instanceCol + "_1"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, instanceCol + ".y", instanceCol + "_2"));
 		rsb.append(RSyntaxHelper.alterColumnName(tempFrame, "freq", "Heat"));
@@ -62,19 +94,18 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		RDataTable returnTable = createNewFrameFromVariable(tempFrame);
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		retNoun.addAdditionalReturn(
-				new NounMetadata("You've successfully completed running similarity heat and generated a new frame", 
+				new NounMetadata("You've successfully completed running similarity heat and generated a new frame",
 						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+
 		// replace existing frame
 		if (override) {
 			this.insight.setDataMaker(returnTable);
 			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 					PixelOperationType.FRAME_HEADERS_CHANGE);
 		}
-
 		return retNoun;
 	}
-		
-	
+
 	private List<String> getComparisonColumns() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		Vector<String> columns = new Vector<String>();
@@ -92,10 +123,10 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 		}
 		return columns;
 	}
-	
+
 	private boolean overrideFrame() {
 		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
-		if(overrideGrs != null && !overrideGrs.isEmpty()) {
+		if (overrideGrs != null && !overrideGrs.isEmpty()) {
 			return (boolean) overrideGrs.get(0);
 		}
 		// default is to override

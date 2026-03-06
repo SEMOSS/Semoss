@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.py;
 
 import prerna.algorithm.api.SemossDataType;
@@ -7,21 +34,18 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CountIfReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor creates a new column based on the count of regex matches of
-	 * an existing column The inputs to the reactor are: 
-	 * 1) the column to count regex instances in 
-	 * 2) the regex 
-	 * 3) the new column name
+	 * This reactor creates a new column based on the count of regex matches of an
+	 * existing column The inputs to the reactor are: 1) the column to count regex
+	 * instances in 2) the regex 3) the new column name
 	 */
-	
+
 	public CountIfReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(),
+				ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -54,17 +78,19 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		// TODO: doesn't this need to be updated/fixed?
 		// TODO: doesn't this need to be updated/fixed?
 		// TODO: doesn't this need to be updated/fixed?
-		
+
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
-		boolean numeric = (boolean)frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
-		if(!numeric) {
-			String script = wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')";
+		boolean numeric = (boolean) frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
+		if (!numeric) {
+			String script = wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName
+					+ "')";
 			frame.runScript(script);
 			this.addExecutedCode(script);
 		}
-		//else
-			// return an error ?
+
+		// else
+		// return an error ?
 
 		// update the metadata
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
@@ -73,14 +99,8 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		metaData.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.DOUBLE.toString());
 		this.getFrame().syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"CountIf", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -112,5 +132,5 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		String column = noun.getValue().toString();
 		return column;
 	}
-	
+
 }

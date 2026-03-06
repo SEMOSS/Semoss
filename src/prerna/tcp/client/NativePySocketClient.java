@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.tcp.client;
 
 import java.io.ByteArrayOutputStream;
@@ -32,6 +59,8 @@ import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobStatus;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -167,8 +196,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							classLogger.debug("incoming payload " + ps);
 							classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
+							// cancelled operations
+							if (ps.operation == PayloadStruct.OPERATION.CANCELLED) {
+								classLogger.debug("User cancelled request for epoc: {}", ps.epoc);
+							}
 							// std out no questions
-							if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response) {
+							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null
+									&& !ps.response) {
 								String logMessage = (String) ps.payload[0];
 								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
@@ -202,18 +236,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 										lock != null);
 
 								// try to convert it into a full object
-								// need to check if it is primitive before converting
-								// try to convert it into a full object
 								try {
-									if (ps.payload[0] != null) {
-										if (ps.payload[0] instanceof String) {
-											Object obj = gson.fromJson((String) ps.payload[0], Object.class);
-											ps.payload[0] = obj;
-										}
+									if (ps.payload[0] != null && ps.payload[0] instanceof String
+											&& !((String) ps.payload[0]).isBlank()) {
+										Object obj = gson.fromJson((String) ps.payload[0], Object.class);
+										ps.payload[0] = obj;
 									}
 								} catch (Exception ignored) {
-									classLogger.warn("Ignoring unable to gson.fromJson() of " + ps.payload[0]);
+									classLogger.warn("Ignoring unable to gson.fromJson() of {}", ps.payload[0]);
 								}
+
 								// put it in response
 								responseMap.put(ps.epoc, ps);
 								classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
@@ -433,6 +465,43 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 	@Override
+	public void interruptInsight(String insightId) {
+		interruptInsightJob(insightId, null);
+	}
+
+	@Override
+	public void interruptInsightJob(String insightId, String jobId) {
+		// Always cancel local waiters first.
+		super.interruptInsightJob(insightId, jobId);
+
+		if ((insightId == null || insightId.isBlank()) && (jobId == null || jobId.isBlank())) {
+			return;
+		}
+		if (!this.connected || this.killAll) {
+			return;
+		}
+
+		// Best-effort remote interrupt so the Python process can stop the currently
+		// running execution without killing the socket server process.
+		PayloadStruct ps = new PayloadStruct();
+		ps.epoc = "pi" + count.getAndIncrement();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.methodName = "interruptInsight";
+		ps.payload = new Object[] { "INTERRUPT_INSIGHT" };
+		ps.hasReturn = false;
+		ps.longRunning = false;
+		ps.insightId = insightId;
+		ps.executionInsightId = insightId;
+		ps.jobId = jobId;
+		writePayload(ps);
+	}
+
+	@Override
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	@Override
 	public Object executeCommand(PayloadStruct ps) {
 		String threadName = Thread.currentThread().getName();
 		long threadId = Thread.currentThread().threadId();
@@ -453,6 +522,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 		if (ps.insightId != null) {
 			addEpocForInsight(ps.insightId, ps.epoc);
+		}
+		if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+			addEpocForInsight(ps.executionInsightId, ps.epoc);
+		}
+		if (ps.jobId != null) {
+			addEpocForJob(ps.jobId, ps.epoc);
 		}
 		ps.longRunning = true;
 
@@ -484,7 +559,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (pollNum < maxWait) {
 								ps.wait(this.averageMillis);
 							} else {
-								classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
+								classLogger.debug("Im about to wait eternally for epoc {}", ps.epoc);
 								// wait eternally - we dont know how long some of the load operations would take
 								// besides
 								// I am not sure if the null gets us anything
@@ -492,7 +567,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							}
 							pollNum++;
 						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							boolean cancelled = cancelledEpocs.contains(ps.epoc);
+							if (!cancelled && ps.jobId != null) {
+								PixelJobThread jt = PixelJobManager.getManager().getJob(ps.jobId);
+								cancelled = jt != null && jt.getPixelJobStatus() == PixelJobStatus.CANCELED;
+							}
+
+							if (cancelled) {
+								classLogger.debug("Interrupted due to cancel for epoc {}", ps.epoc);
+								break; // let existing cancelledEpocs/job handling throw cancel response
+							}
+
+							classLogger.warn("Interrupted while waiting for epoc {}", ps.epoc, e);
 						}
 					}
 					if (cancelledEpocs.contains(ps.epoc)) {
@@ -508,6 +594,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			}
 		} finally {
 			removeEpocForInsight(ps.insightId, ps.epoc);
+			if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+				removeEpocForInsight(ps.executionInsightId, ps.epoc);
+			}
+			removeEpocForJob(ps.jobId, ps.epoc);
 		}
 	}
 
@@ -615,7 +705,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted or execution failure during stop server", e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -669,7 +760,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			classLogger.warn("Not able to release the payload structs within a timely fashion");
 			future.cancel(true);
 		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted or execution failure during crash", e);
 		} finally {
 			executor.shutdown();
 		}

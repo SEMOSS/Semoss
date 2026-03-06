@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.engine.impl;
 
 import java.io.File;
@@ -164,18 +191,32 @@ public class InternalMCP implements IMCP {
 		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
 		String pixelJsonFileLoc = assetsFolder + "/mcp/pixel_mcp.json";
 
-		JSONObject toolProperties = getFunction(toolName, pythonJsonFileLoc);
+		JSONObject toolDefinition = getFunction(toolName, pythonJsonFileLoc);
 		Object output = null;
-		if (toolProperties != null) {
-			// this is a python mcp tool
-			output = MCPUtility.runPythonTool(this.engine, insight, toolName, toolProperties, params);
+		if (toolDefinition != null) {
+			// this is a python mcp
+			JSONObject toolProperties = ((JSONObject) toolDefinition.get("inputSchema")).getJSONObject("properties");
+			// check if we have an aliased name pointing to a function
+			// this is so we can have the same tool/function exposed more than once with
+			// different parameters exposed as multiple tools
+			String functionName = ((JSONObject) toolDefinition.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
+			functionName = (functionName != null && !functionName.isBlank()) ? functionName : toolName;
+
+			output = MCPUtility.runPythonTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
 
-		toolProperties = getFunction(toolName, pixelJsonFileLoc);
-		if (toolProperties != null) {
+		toolDefinition = getFunction(toolName, pixelJsonFileLoc);
+		if (toolDefinition != null) {
 			// this is a pixel mcp tool
-			output = MCPUtility.runPixelTool(this.engine, insight, toolName, toolProperties, params);
+			JSONObject toolProperties = ((JSONObject) toolDefinition.get("inputSchema")).getJSONObject("properties");
+			// check if we have an aliased name pointing to a function
+			// this is so we can have the same tool/function exposed more than once with
+			// different parameters exposed as multiple tools
+			String functionName = ((JSONObject) toolDefinition.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
+			functionName = (functionName != null && !functionName.isBlank()) ? functionName : toolName;
+
+			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
 
@@ -184,11 +225,11 @@ public class InternalMCP implements IMCP {
 
 	/**
 	 * 
-	 * @param functionName
+	 * @param inputName
 	 * @param jsonFileLoc
 	 * @return
 	 */
-	private JSONObject getFunction(String functionName, String jsonFileLoc) {
+	private JSONObject getFunction(String inputName, String jsonFileLoc) {
 		File jsonFile = new File(jsonFileLoc);
 		if (jsonFile.exists()) {
 			try {
@@ -201,11 +242,9 @@ public class InternalMCP implements IMCP {
 					for (int toolIndex = 0; toolIndex < toolObj.length(); toolIndex++) {
 						JSONObject thisTool = toolObj.getJSONObject(toolIndex);
 						String toolName = thisTool.getString("name");
-						if (toolName.contains(functionName)) {
-							// get everything else
-							JSONObject properties = ((JSONObject) thisTool.get("inputSchema"))
-									.getJSONObject("properties");
-							return properties;
+						if (toolName.contains(inputName)) {
+							// return the full tool
+							return thisTool;
 						}
 					}
 				}

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.frame.r;
 
 import java.util.Arrays;
@@ -11,24 +38,20 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class UnpivotReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor unpivots columns so that the columns selected will
-	 * be removed and combined to generate 2 new columns "variable" and "value"
-	 * "variable" - original column headers
-	 * "value" - value for original column header
-	 * The inputs to the reactor are: 
-	 * 1) the columns to unpivot
+	 * This reactor unpivots columns so that the columns selected will be removed
+	 * and combined to generate 2 new columns "variable" and "value" "variable" -
+	 * original column headers "value" - value for original column header The inputs
+	 * to the reactor are: 1) the columns to unpivot
 	 */
-	
+
 	public UnpivotReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// initialize the rJavaTranslator
@@ -41,7 +64,7 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 
 		// get column inputs in an array
 		String[] columns = getStringArray();
-		
+
 		// makes the columns and converts them into rows
 		// melt(dat, id.vars = "FactorB", measure.vars = c("Group1", "Group2"))
 		String concatString = "";
@@ -51,12 +74,13 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 			concatString = ", measure.vars = c(";
 			for (int colIndex = 0; colIndex < numColsToUnPivot; colIndex++) {
 				concatString = concatString + "\"" + columns[colIndex] + "\"";
-				if (colIndex + 1 < numColsToUnPivot)
+				if (colIndex + 1 < numColsToUnPivot) {
 					concatString = concatString + ", ";
+				}
 			}
 			concatString = concatString + ")";
 		}
-		
+
 		// we want to make sure the new columns that we add
 		// are in fact unique
 		// so we will loop through and ensure that
@@ -67,10 +91,11 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		String[] newColumns = headerChecker.cleanAndMatchColumnNumbers("variable_1", "value_1", allColumns);
 		String varName = newColumns[0];
 		String valueName = newColumns[1];
-		
+
 		// now that we have unique values
 		// we can proceed with the script
-		String script = tempName + "<- melt(" + table + ", variable.name = \"" + varName + "\", value.name = \"" + valueName + "\"" + concatString + ");";
+		String script = tempName + "<- melt(" + table + ", variable.name = \"" + varName + "\", value.name = \""
+				+ valueName + "\"" + concatString + ");";
 
 		// run the first script to unpivot into the temp frame
 		frame.executeRScript(script);
@@ -80,13 +105,6 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		frame.executeRScript(script);
 		this.addExecutedCode(script);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Unpivot", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		frame.recreateMeta();
 		StringBuilder cleanUpScript = new StringBuilder();
 		cleanUpScript.append("rm(" + tempName + ");");
@@ -94,35 +112,35 @@ public class UnpivotReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(cleanUpScript.toString());
 		this.addExecutedCode(cleanUpScript.toString());
 
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String getColumn(int i) {
 		NounMetadata input = this.getCurRow().getNoun(i);
 		String column = input.getValue() + "";
 		return column;
 	}
-	
+
 	private String[] getStringArray() {
 		// get columns from key
 		String[] columns = null;
 		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if(colGrs != null && !colGrs.isEmpty()) {
+		if (colGrs != null && !colGrs.isEmpty()) {
 			columns = new String[colGrs.size()];
 			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
 				String column = colGrs.get(selectIndex) + "";
 				columns[selectIndex] = column;
 			}
 			return columns;
-		} else{
-		
-		
+		} else {
+
 			// get columns from index
 			GenRowStruct inputsGRS = this.getCurRow();
 			columns = new String[inputsGRS.size()];
