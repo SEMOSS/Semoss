@@ -75,6 +75,7 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, PayloadStruct> requestMap = new HashMap<>();
 	Map<String, PayloadStruct> responseMap = new HashMap<>();
 	Map<String, Set<String>> insightToEpoc = new HashMap<>();
+	Map<String, Set<String>> jobToEpoc = new HashMap<>();
 	Set<String> cancelledEpocs = new HashSet<>();
 
 	boolean ready = false;
@@ -381,6 +382,9 @@ public class SocketClient implements Runnable, Closeable {
 		if (this.insightToEpoc != null) {
 			this.insightToEpoc.clear();
 		}
+		if (this.jobToEpoc != null) {
+			this.jobToEpoc.clear();
+		}
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
@@ -416,16 +420,77 @@ public class SocketClient implements Runnable, Closeable {
 		}
 	}
 
+	void addEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = null;
+		if (this.jobToEpoc.containsKey(jobId)) {
+			epocs = this.jobToEpoc.get(jobId);
+		} else {
+			epocs = new HashSet<>();
+			this.jobToEpoc.put(jobId, epocs);
+		}
+		epocs.add(epoc);
+	}
+
+	void removeEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = this.jobToEpoc.get(jobId);
+		if (epocs != null) {
+			epocs.remove(epoc);
+		}
+	}
+
 	/**
 	 * 
-	 * @param jobId
+	 * @param insightId
 	 */
 	public void interruptInsight(String insightId) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if (epocs != null) {
-			this.cancelledEpocs.addAll(epocs);
+		Set<String> epocs = new HashSet<>();
+		if (insightId != null) {
+			Set<String> insightEpocs = this.insightToEpoc.get(insightId);
+			if (insightEpocs != null) {
+				epocs.addAll(insightEpocs);
+			}
 		}
-		if (epocs != null) {
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Interrupt a specific job execution. If {@code jobId} is null/blank, this will
+	 * interrupt all jobs for the insight.
+	 * 
+	 * @param insightId
+	 * @param jobId
+	 */
+	public void interruptInsightJob(String insightId, String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			interruptInsight(insightId);
+			return;
+		}
+
+		Set<String> epocs = new HashSet<>();
+		Set<String> jobEpocs = this.jobToEpoc.get(jobId);
+		if (jobEpocs != null) {
+			epocs.addAll(jobEpocs);
+		}
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Backward-compatible overload. Prefer
+	 * {@link #interruptInsightJob(String, String)}.
+	 */
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	private void interruptEpocs(Set<String> epocs) {
+		if (!epocs.isEmpty()) {
+			this.cancelledEpocs.addAll(epocs);
 			for (String epoc : epocs) {
 				PayloadStruct lock = this.requestMap.remove(epoc);
 				if (lock != null) {
