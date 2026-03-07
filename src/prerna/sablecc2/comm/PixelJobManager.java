@@ -42,6 +42,10 @@ import prerna.sablecc2.PixelRunner;
 
 public class PixelJobManager {
 
+	public enum InterruptResult {
+		NOT_FOUND, ALREADY_DONE, CANCEL_REQUESTED
+	}
+
 	/**
 	 * Inner class to hold job output data and its lock
 	 * 
@@ -248,7 +252,11 @@ public class PixelJobManager {
 	}
 
 	public String getStatus(String jobId) {
-		return threadPool.get(jobId).getStatus();
+		PixelJobThread job = threadPool.get(jobId);
+		if (job == null) {
+			return PixelJobStatus.UNKNOWN_JOB.getValue();
+		}
+		return job.getStatus();
 	}
 
 	public void clearJob(String jobId) {
@@ -261,19 +269,37 @@ public class PixelJobManager {
 	}
 
 	public void flagStatus(String jobId, PixelJobStatus status) {
-		threadPool.get(jobId).setStatus(status);
+		PixelJobThread job = threadPool.get(jobId);
+		if (job != null) {
+			job.setStatus(status);
+		}
 	}
 
-	public void interruptThread(String jobId) {
-		if (threadPool.get(jobId) != null) {
-			PixelJobThread pixelThread = threadPool.get(jobId);
-			pixelThread.interrupt();
-			pixelThread.setStatus(PixelJobStatus.CANCELED);
+	public InterruptResult interruptThread(String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			return InterruptResult.NOT_FOUND;
 		}
+
+		PixelJobThread pixelThread = threadPool.get(jobId);
+		if (pixelThread == null) {
+			return InterruptResult.NOT_FOUND;
+		}
+
+		PixelJobStatus curStatus = pixelThread.getPixelJobStatus();
+		if (curStatus == PixelJobStatus.COMPLETE || curStatus == PixelJobStatus.PROGRESS_COMPLETE
+				|| curStatus == PixelJobStatus.ERROR || curStatus == PixelJobStatus.CANCELED) {
+			return InterruptResult.ALREADY_DONE;
+		}
+
+		pixelThread.requestCancel();
+		return InterruptResult.CANCEL_REQUESTED;
 	}
 
 	public PixelRunner getOutput(String jobId) {
 		PixelJobThread jt = threadPool.get(jobId);
+		if (jt == null) {
+			return null;
+		}
 		return jt.getRunner();
 	}
 

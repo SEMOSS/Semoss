@@ -106,7 +106,7 @@ public class AdminMyProjectsReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
@@ -142,7 +142,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -180,7 +180,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -213,7 +213,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			// noMeta=true and includeUserT=false → skip metadata and usertracking blocks
