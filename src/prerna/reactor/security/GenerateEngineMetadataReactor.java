@@ -49,6 +49,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.poi.hwpf.HWPFDocument;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
@@ -56,7 +58,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -68,7 +69,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -92,17 +92,18 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		String engineId = keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String modelEngineId = keyValue.get(ReactorKeysEnum.MODEL.getKey());
 
-		if (engineId == null || engineId.isEmpty()) {
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
-
-		if (modelEngineId == null || modelEngineId.isEmpty()) {
+		if (modelEngineId == null || (modelEngineId = modelEngineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Model engineId is required");
 		}
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("User does not have permission to edit engine");
+		}
+		if (!SecurityEngineUtils.userCanViewEngine(user, modelEngineId)) {
+			throw new IllegalArgumentException("User does not have permission to model engine");
 		}
 
 		try {
@@ -118,12 +119,6 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			Map<String, Object> currentMetadata = SecurityEngineUtils.getAggregateEngineMetadata(engineId, metaKeys,
 					false);
 
-			// target fields
-			Set<String> targetFields = new LinkedHashSet<>();
-			for (String key : metaKeys) {
-				targetFields.add(key);
-			}
-
 			Map<String, Object> options = getMap(ReactorKeysEnum.OPTIONS.getKey());
 
 			if (options == null) {
@@ -131,7 +126,20 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			}
 			boolean enhanceExistingDescription = Boolean.TRUE.equals(options.get("useExistingDescription"));
 
-			if (targetFields.isEmpty() && !enhanceExistingDescription) {
+			// Only generate fields that are currently empty, unless user explicitly asked
+			// to enhance an existing description.
+			Set<String> targetFields = new LinkedHashSet<>();
+			for (String key : metaKeys) {
+				if ("description".equals(key) && enhanceExistingDescription) {
+					targetFields.add(key);
+					continue;
+				}
+				if (isEmpty(currentMetadata.get(key))) {
+					targetFields.add(key);
+				}
+			}
+
+			if (targetFields.isEmpty()) {
 				return new NounMetadata(
 						"Nothing to generate or enhance; all requested metadata fields are already populated",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -146,10 +154,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 			// Call LLM
 			IModelEngine modelEngine = Utility.getModel(modelEngineId);
-			Map<String, Object> response = modelEngine
-					.ask(prompt, null, insight, Map.of("temperature", 0.3, "max_completion_tokens", 4000)).toMap();
+			Map<String, Object> llmParams = new HashMap<>();
+			llmParams.put("temperature", 0.3);
+			llmParams.put("max_completion_tokens", 4000);
+			llmParams.put("response_format", buildResponseSchema(targetFields));
 
-			Map<String, Object> generated = parseResponse(response.get("response"));
+			Map<String, Object> response = modelEngine.ask(prompt, null, insight, llmParams).toMap();
+
+			Map<String, Object> generated = parseResponse(response.get("response"), targetFields);
 
 			Map<String, Object> returnPayload = new HashMap<>();
 			returnPayload.put("generated_metadata", generated);
@@ -158,11 +170,11 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			returnPayload.put("engine_type", engine.getCatalogType().toString());
 			returnPayload.put("engine_name", engine.getEngineName());
 			returnPayload.put("data_sent_summary", buildDataSentSummary(llmPayload));
-
-			EngineSyncUtility.clearEngineCache(engineId);
+			if (!isEmpty(generated.get("explanation"))) {
+				returnPayload.put("explanation", generated.get("explanation"));
+			}
 
 			return new NounMetadata(returnPayload, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
-
 		} catch (Exception e) {
 			classLogger.error("Engine metadata generation failed", e);
 			return new NounMetadata("Failed to generate engine metadata: " + e.getMessage(), PixelDataType.CONST_STRING,
@@ -172,6 +184,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build the LLM input payload with context-aware data for each catalog type
+	 * 
+	 * @param engine
+	 * @param options
+	 * @param currentMetadata
+	 * @param engineId
+	 * @param enhanceExistingDescription
+	 * @return
+	 * @throws Exception
 	 */
 	private Map<String, Object> buildLLMInput(IEngine engine, Map<String, Object> options,
 			Map<String, Object> currentMetadata, String engineId, boolean enhanceExistingDescription) throws Exception {
@@ -239,7 +259,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		// VECTOR context
-		if (engine.getCatalogType() == IEngine.CATALOG_TYPE.VECTOR) {
+		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.VECTOR) {
 			IVectorDatabaseEngine vector = Utility.getVectorDatabase(engineId);
 
 			if (Boolean.TRUE.equals(options.get("includeVectorFileNames"))) {
@@ -298,7 +318,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		// STORAGE context
-		if (engine.getCatalogType() == IEngine.CATALOG_TYPE.STORAGE) {
+		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.STORAGE) {
 			IStorageEngine storage = Utility.getStorage(engineId);
 
 			String storagePath = keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
@@ -383,7 +403,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		// MODEL context
-		if (engine.getCatalogType() == IEngine.CATALOG_TYPE.MODEL) {
+		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.MODEL) {
 			IModelEngine modelEngine = Utility.getModel(engineId);
 
 			if (Boolean.TRUE.equals(options.get("includeModelSmssInfo"))) {
@@ -410,7 +430,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		// FUNCTION context
-		if (engine.getCatalogType() == IEngine.CATALOG_TYPE.FUNCTION) {
+		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.FUNCTION) {
 			if (Boolean.TRUE.equals(options.get("includeFunctionSmssInfo"))) {
 				try {
 					Properties funcSmssInfo = engine.getOrigSmssProp();
@@ -436,6 +456,13 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build context-aware, specific prompts for each catalog type
+	 * 
+	 * @param targetFields
+	 * @param llmPayload
+	 * @param catalogType
+	 * @param options
+	 * @param enhance
+	 * @return
 	 */
 	private String buildPrompt(Set<String> targetFields, Map<String, Object> llmPayload,
 			IEngine.CATALOG_TYPE catalogType, Map<String, Object> options, boolean enhance) {
@@ -446,8 +473,8 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		prompt.append(String.format(
 				"""
 						### ROLE
-						You are an expert Data Catalog Specialist specialized in %s systems.
-						Your objective is to generate professional, context-aware metadata that accurately reflects the source's content and business utility.
+						You are a senior enterprise metadata strategist specialized in %s systems.
+						Your objective is to produce concrete metadata that explains what this asset contains and the business outcomes it enables.
 
 							""",
 				catalogType.toString()));
@@ -458,6 +485,16 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 				- **Type**: %s
 				- **Tone**: %s
 				""", catalogType.toString(), tone));
+
+		prompt.append(
+				"""
+						### NON-NEGOTIABLE RULES
+						1. BUSINESS-FIRST: Focus on business utility before technical implementation details.
+						2. EVIDENCE-BASED: Every claim must be grounded in the provided context (table names, columns, files, excerpts, model/function metadata, or user context).
+						3. NO GENERIC FILLER: Avoid empty phrases like "contains data", "collection of files", "knowledge base", "can be queried with SQL", or "stores information" unless tied to specific business use.
+						4. ADMIT GAPS: If business intent is unclear, state the uncertainty explicitly and provide the best evidence-backed interpretation.
+						5. OUTCOME LANGUAGE: Describe decisions, workflows, or operational actions this asset supports.
+						""");
 
 		// Add catalog-type-specific context
 		switch (catalogType) {
@@ -503,10 +540,11 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			prompt.append(String.format(
 					"""
 							Enhance the existing description by following these requirements:
-							1. SPECIFICITY: Incorporate exact table names, file patterns, or specific data topics identified above.
-							2. DEPTH: Detail the business purpose and how this data source enables specific user workflows.
-							3. CLARITY: Use active voice and avoid generic phrases like 'this contains data' or 'this is a collection'.
+							1. SPECIFICITY: Incorporate concrete entities from context (tables, columns, filenames, document topics, identifiers).
+							2. BUSINESS UTILITY: Explain who uses this asset and what workflows or decisions it enables.
+							3. CLARITY: Use active voice and remove generic statements that only describe technology.
 							4. ALIGNMENT: Ensure the tone remains %s throughout.
+							5. EVIDENCE: Keep only claims that can be justified by provided context.
 
 							""",
 					tone));
@@ -518,15 +556,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 				prompt.append(
 						"""
 								#### Description Requirements:
-								1. Be SPECIFIC: Reference concrete entities from the context such as exact table names, column patterns, document titles, model identifiers, or named concepts.
-								2. Be ACTIONABLE: Clearly state what a user can do with this source in practical workflows (e.g., analysis, lookup, generation, validation).
-								3. AVOID VAGUENESS: Do not use generic or abstract phrases such as 'various files', 'information', 'data collection', or high-level summaries.
-								4. AVOID generic phrases like 'This is a database that stores information', 'A collection of data', 'Contains various files', 'The knowledge base',etc
-								EXAMPLES OF EXCELLENCE must:
-								- Contain named entities, dates, or identifiers
-								- Avoid phrases like "provides information" or "human-like"
-								- Describe outcomes, not technology
-								- Remain valid even if the catalog type label is hidden
+								1. STRUCTURE: Write 3-5 sentences that cover:
+								   - what content/domain is inside this asset,
+								   - what business workflows/decisions it supports,
+								   - who would use it and why it is valuable.
+								2. EVIDENCE: Reference concrete entities from context (table/column names, file names, excerpt themes, model/function identifiers).
+								3. BUSINESS VALUE: Describe practical outcomes (reporting, compliance, forecasting, triage, customer operations, finance ops, etc.) not just storage/query mechanics.
+								4. NO GENERIC TECHNOLOGY LANGUAGE: Avoid descriptions such as "relational database you can query with SQL", "contains data", "collection of files", or "knowledge base" unless followed by specific business purpose.
+								5. PRECISION: If context is limited, say what is known and what is uncertain instead of inventing details.
+								6. QUALITY BAR: The description must still make sense if words like "database", "vector", or "storage" are removed.
 
 								""");
 			}
@@ -543,32 +581,45 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		// Output Format
-		prompt.append("""
-				### OUTPUT FORMAT
-				Return ONLY a valid JSON object. No conversational text or markdown explanation outside the JSON block.
-				```json
-				{
-				""");
+		prompt.append(
+				"""
+						### OUTPUT FORMAT
+						Return ONLY a valid JSON object. No conversational text or markdown explanation outside the JSON block.
+						If context is insufficient, still return valid JSON using the same keys; put the limitation reason in an "explanation" field and do not return any values to the other fields (empty string or empty array).
+						```json
+						{
+						""");
 
+		List<String> outputLines = new ArrayList<>();
 		if (targetFields.contains("description")) {
-			prompt.append("  \"description\": \"Your specific, detailed description here\",\n");
+			outputLines.add("\"description\": \"Your specific, detailed description here\"");
 		}
 		if (targetFields.contains("tags")) {
-			prompt.append("  \"tags\": [\"tag1\", \"tag2\", \"tag3\"]\n");
+			outputLines.add("\"tags\": [\"tag1\", \"tag2\", \"tag3\"]");
 		}
 
 		// Handle custom fields
-		for (String field : targetFields) {
-			if (!field.equals("description") && !field.equals("tags")) {
-				prompt.append("  \"").append(field).append("\": \"value\",\n");
+		List<String> customFields = targetFields.stream()
+				.filter(field -> !field.equals("description") && !field.equals("tags")).collect(Collectors.toList());
+		for (String field : customFields) {
+			outputLines.add("\"" + field + "\": \"value\"");
+		}
+		// add explanation
+		outputLines.add("\"explanation\": \"Optional field in case of issues or context to return to the user\"");
+
+		for (int i = 0; i < outputLines.size(); i++) {
+			prompt.append("  ").append(outputLines.get(i));
+			if (i < outputLines.size() - 1) {
+				prompt.append(",");
 			}
+			prompt.append("\n");
 		}
 
 		prompt.append("""
 				}
 				```
 
-				Remember: Be specific, be accurate, avoid generic language. Use the actual data provided above.
+				Remember: prioritize business utility, stay evidence-grounded, and avoid generic language.
 				""");
 
 		return prompt.toString();
@@ -576,12 +627,17 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build DATABASE-specific prompt context
+	 * 
+	 * @param prompt
+	 * @param llmPayload
 	 */
 	private void buildDatabasePromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### Relational Data Scope\n");
+		prompt.append(
+				"Infer likely business processes from the table and column semantics, not just schema structure.\n");
 
 		if (llmPayload.containsKey("schema")) {
-			@SuppressWarnings("unchecked")
+
 			Map<String, List<String>> schema = (Map<String, List<String>>) llmPayload.get("schema");
 
 			prompt.append("Key tables and representative columns:\n");
@@ -605,12 +661,17 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build VECTOR-specific prompt context
+	 * 
+	 * @param prompt
+	 * @param llmPayload
 	 */
 	private void buildVectorPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### Knowledge Base Content\n");
+		prompt.append(
+				"Identify dominant business topics, recurring entities, and likely enterprise use cases from the excerpts.\n");
 
 		if (llmPayload.containsKey("vectorFiles")) {
-			@SuppressWarnings("unchecked")
+
 			List<String> files = (List<String>) llmPayload.get("vectorFiles");
 
 			prompt.append("Referenced documents:\n");
@@ -620,16 +681,18 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		if (llmPayload.containsKey("vectorChunkSamples")) {
-			@SuppressWarnings("unchecked")
+
 			List<String> chunks = (List<String>) llmPayload.get("vectorChunkSamples");
+			int excerptCount = Math.min(3, chunks.size());
 
 			prompt.append("\nContent excerpts (analyze ALL excerpts below):\n");
-			for (int i = 0; i < Math.min(3, chunks.size()); i++) {
+			for (int i = 0; i < excerptCount; i++) {
 				prompt.append("Excerpt ").append(i + 1).append(": \"").append(chunks.get(i)).append("\"\n");
 			}
 
-			prompt.append("\n**CRITICAL INSTRUCTION**: Your description MUST synthesize information from ALL ");
-
+			prompt.append("\n**CRITICAL INSTRUCTION**: Your description MUST synthesize information from ALL ")
+					.append(excerptCount)
+					.append(" excerpts above. Identify recurring themes and business purpose across all excerpts, not just the first.\n");
 		}
 	}
 
@@ -638,9 +701,11 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	 */
 	private void buildStoragePromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### File Repository Content\n");
+		prompt.append(
+				"Infer what business operations these files support based on file names, structure, and content snippets.\n");
 
 		if (llmPayload.containsKey("storageFiles")) {
-			@SuppressWarnings("unchecked")
+
 			List<String> files = (List<String>) llmPayload.get("storageFiles");
 
 			prompt.append("Sample filenames and paths:\n");
@@ -650,7 +715,7 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 
 		if (llmPayload.containsKey("storageFileSamples")) {
-			@SuppressWarnings("unchecked")
+
 			List<Map<String, String>> samples = (List<Map<String, String>>) llmPayload.get("storageFileSamples");
 
 			prompt.append("\nContent samples from files (analyze ALL files below):\n");
@@ -667,12 +732,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build MODEL-specific prompt context
+	 * 
+	 * @param prompt
+	 * @param llmPayload
 	 */
 	private void buildModelPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### Model Capability Context\n");
 
 		if (llmPayload.containsKey("modelSmssInfo")) {
-			@SuppressWarnings("unchecked")
+
 			Map<String, Object> modelSmssInfo = (Map<String, Object>) llmPayload.get("modelSmssInfo");
 
 			if (modelSmssInfo.containsKey("MODEL_TYPE")) {
@@ -687,12 +755,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build FUNCTION-specific prompt context
+	 * 
+	 * @param prompt
+	 * @param llmPayload
 	 */
 	private void buildFunctionPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### Functional Logic Scope\n");
 
 		if (llmPayload.containsKey("funcSmssInfo")) {
-			@SuppressWarnings("unchecked")
+
 			Map<String, Object> funcSmssInfo = (Map<String, Object>) llmPayload.get("funcSmssInfo");
 
 			if (funcSmssInfo.containsKey("FUNCTION_DESCRIPTION")) {
@@ -707,6 +778,9 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Build generic prompt context for other catalog types
+	 * 
+	 * @param prompt
+	 * @param llmPayload
 	 */
 	private void buildGenericPromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### General Context\n");
@@ -716,14 +790,28 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Parse LLM response and extract JSON metadata
+	 * 
+	 * @param response
+	 * @param targetFields
+	 * @return
 	 */
-	private Map<String, Object> parseResponse(Object response) {
+	private Map<String, Object> parseResponse(Object response, Set<String> targetFields) {
 		if (response == null) {
-			return new HashMap<>();
+			return buildFallbackMetadata(targetFields,
+					"Metadata generation could not be completed because the model returned no response.");
+		}
+
+		if (response instanceof Map<?, ?>) {
+			Map<String, Object> parsedResponse = (Map<String, Object>) response;
+			return cleanParsedResponse(parsedResponse, targetFields);
 		}
 
 		try {
-			String responseStr = response.toString();
+			String responseStr = response.toString().trim();
+			if (responseStr.isEmpty()) {
+				return buildFallbackMetadata(targetFields,
+						"Metadata generation could not be completed because the model returned an empty response.");
+			}
 
 			// Try to extract JSON from response (handle markdown code blocks)
 			int jsonStart = responseStr.indexOf("{");
@@ -731,57 +819,153 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 			if (jsonStart >= 0 && jsonEnd > jsonStart) {
 				String jsonStr = responseStr.substring(jsonStart, jsonEnd);
-
-				// Parse JSON
-				@SuppressWarnings("unchecked")
 				Map<String, Object> parsed = MAPPER.readValue(jsonStr, Map.class);
-
-				// Validate and clean the response
-				Map<String, Object> cleaned = new HashMap<>();
-
-				if (parsed.containsKey("description")) {
-					String desc = String.valueOf(parsed.get("description"));
-					if (!isEmpty(desc)) {
-						cleaned.put("description", desc.trim());
-					}
-				}
-
-				if (parsed.containsKey("tags")) {
-					Object tagsObj = parsed.get("tags");
-					if (tagsObj instanceof List) {
-						@SuppressWarnings("unchecked")
-						List<String> tags = ((List<?>) tagsObj).stream()
-								.filter(t -> t != null && !isEmpty(t.toString())).map(Object::toString)
-								.map(String::trim).collect(Collectors.toList());
-
-						if (!tags.isEmpty()) {
-							cleaned.put("tags", tags);
-						}
-					}
-				}
-
-				// Include any other custom fields
-				for (Map.Entry<String, Object> entry : parsed.entrySet()) {
-					String key = entry.getKey();
-					if (!key.equals("description") && !key.equals("tags") && entry.getValue() != null) {
-						cleaned.put(key, entry.getValue());
-					}
-				}
-
-				return cleaned;
+				return cleanParsedResponse(parsed, targetFields);
 			}
 
 			classLogger.warn("No JSON found in LLM response");
-			return new HashMap<>();
+			return buildFallbackMetadata(targetFields, responseStr);
 
 		} catch (Exception e) {
 			classLogger.error("Failed to parse LLM response as JSON", e);
-			return new HashMap<>();
+			return buildFallbackMetadata(targetFields, String.valueOf(response));
 		}
 	}
 
 	/**
+	 * 
+	 * @param parsed
+	 * @param targetFields
+	 * @return
+	 */
+	private Map<String, Object> cleanParsedResponse(Map<String, Object> parsed, Set<String> targetFields) {
+		Map<String, Object> cleaned = new LinkedHashMap<>();
+
+		if (targetFields.contains("description")) {
+			Object descObj = parsed.get("description");
+			String desc = descObj == null ? "" : String.valueOf(descObj).trim();
+			cleaned.put("description", desc);
+		}
+
+		if (targetFields.contains("tags")) {
+			Object tagsObj = parsed.get("tags");
+			List<String> tags = new ArrayList<>();
+
+			if (tagsObj instanceof List<?>) {
+				tags = ((List<?>) tagsObj).stream().filter(t -> t != null && !isEmpty(t.toString()))
+						.map(Object::toString).map(String::trim).collect(Collectors.toList());
+			}
+
+			cleaned.put("tags", tags);
+		}
+
+		for (String field : targetFields) {
+			if ("description".equals(field) || "tags".equals(field)) {
+				continue;
+			}
+
+			Object value = parsed.get(field);
+			cleaned.put(field, value == null ? "" : value);
+		}
+
+		if (parsed.containsKey("explanation")) {
+			Object explanationObj = parsed.get("explanation");
+			String explanation = explanationObj == null ? "" : String.valueOf(explanationObj).trim();
+			if (!explanation.isEmpty()) {
+				cleaned.put("explanation", explanation);
+			}
+		}
+
+		return cleaned;
+	}
+
+	/**
+	 * 
+	 * @param targetFields
+	 * @param fallbackDescription
+	 * @return
+	 */
+	private Map<String, Object> buildFallbackMetadata(Set<String> targetFields, String fallbackDescription) {
+		Map<String, Object> fallback = new LinkedHashMap<>();
+
+		String message = fallbackDescription == null ? "" : fallbackDescription.trim();
+		if (message.isEmpty()) {
+			message = "Metadata generation could not produce structured JSON output.";
+		}
+
+		if (targetFields.contains("description")) {
+			fallback.put("description", "");
+		}
+
+		if (targetFields.contains("tags")) {
+			fallback.put("tags", new ArrayList<String>());
+		}
+
+		fallback.put("explanation", message);
+
+		for (String field : targetFields) {
+			if (!"description".equals(field) && !"tags".equals(field)) {
+				fallback.put(field, "");
+			}
+		}
+
+		return fallback;
+	}
+
+	/**
+	 * 
+	 * @param targetFields
+	 * @return
+	 */
+	private Map<String, Object> buildResponseSchema(Set<String> targetFields) {
+		Map<String, Object> properties = new LinkedHashMap<>();
+		List<String> required = new ArrayList<>();
+
+		for (String field : targetFields) {
+			Map<String, Object> property = new LinkedHashMap<>();
+
+			if ("description".equals(field)) {
+				property.put("type", "string");
+			} else if ("tags".equals(field)) {
+				Map<String, Object> items = new LinkedHashMap<>();
+				items.put("type", "string");
+				property.put("type", "array");
+				property.put("items", items);
+			} else {
+				property.put("type", "string");
+			}
+
+			properties.put(field, property);
+			required.add(field);
+		}
+
+		Map<String, Object> explanationProperty = new LinkedHashMap<>();
+		explanationProperty.put("type", "string");
+		properties.put("explanation", explanationProperty);
+		required.add("explanation");
+
+		Map<String, Object> schema = new LinkedHashMap<>();
+		schema.put("type", "object");
+		schema.put("properties", properties);
+		schema.put("required", required);
+		schema.put("additionalProperties", false);
+
+		Map<String, Object> jsonSchema = new LinkedHashMap<>();
+		jsonSchema.put("name", "engine_metadata_output");
+		jsonSchema.put("schema", schema);
+		jsonSchema.put("strict", true);
+
+		Map<String, Object> responseFormat = new LinkedHashMap<>();
+		responseFormat.put("type", "json_schema");
+		responseFormat.put("json_schema", jsonSchema);
+		return responseFormat;
+	}
+
+	/**
 	 * Build summary of what data was sent to LLM for transparency
+	 * 
+	 * @param llmPayload
+	 * @return
 	 */
 	private Map<String, Object> buildDataSentSummary(Map<String, Object> llmPayload) {
 		Map<String, Object> summary = new LinkedHashMap<>();
@@ -800,6 +984,11 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Helper method to get integer option with default
+	 * 
+	 * @param options
+	 * @param key
+	 * @param defaultVal
+	 * @return
 	 */
 	private int getIntOption(Map<String, Object> options, String key, int defaultVal) {
 		Object value = options.get(key);
@@ -818,6 +1007,9 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	/**
 	 * Helper method to check if value is empty
+	 * 
+	 * @param value
+	 * @return
 	 */
 	private boolean isEmpty(Object value) {
 		if (value == null) {
@@ -835,12 +1027,23 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		return false;
 	}
 
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 */
 	private boolean isReadableFile(File file) {
 		String name = file.getName().toLowerCase();
 		return name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md") || name.endsWith(".pdf")
 				|| name.endsWith(".doc") || name.endsWith(".docx");
 	}
 
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 * @throws Exception
+	 */
 	private String readFileContent(File file) throws Exception {
 		String name = file.getName().toLowerCase();
 
@@ -852,13 +1055,23 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			return readPdf(file);
 		}
 
-		if (name.endsWith(".doc") || name.endsWith(".docx")) {
-			return readWord(file);
+		if (name.endsWith(".docx")) {
+			return readDocX(file);
+		}
+
+		if (name.endsWith(".doc")) {
+			return readDoc(file);
 		}
 
 		throw new IllegalArgumentException("Unsupported file type: " + file.getName());
 	}
 
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
 	private String readPdf(File file) throws IOException {
 		try (PDDocument document = Loader.loadPDF(file)) {
 			PDFTextStripper stripper = new PDFTextStripper();
@@ -866,13 +1079,33 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		}
 	}
 
-	private String readWord(File file) throws IOException {
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	private String readDocX(File file) throws IOException {
 		try (FileInputStream fis = new FileInputStream(file); XWPFDocument doc = new XWPFDocument(fis)) {
 			StringBuilder sb = new StringBuilder();
 			for (XWPFParagraph p : doc.getParagraphs()) {
 				sb.append(p.getText()).append("\n");
 			}
 			return sb.toString();
+		}
+	}
+
+	/**
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	private String readDoc(File file) throws IOException {
+		try (FileInputStream fis = new FileInputStream(file);
+				HWPFDocument doc = new HWPFDocument(fis);
+				WordExtractor extractor = new WordExtractor(doc)) {
+			return extractor.getText();
 		}
 	}
 
@@ -954,5 +1187,4 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 		return super.getDescriptionForKey(key);
 	}
-
 }
