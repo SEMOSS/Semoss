@@ -31,9 +31,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -69,7 +71,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class GenerateEngineMetadataReactor extends AbstractReactor {
@@ -79,9 +80,8 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 	public GenerateEngineMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MODEL.getKey(),
-				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.OPTIONS.getKey(),
-				ReactorKeysEnum.STORAGE_PATH.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -237,7 +237,6 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 					String tableName = Utility.getInstanceName(conceptUri);
 					List<String> columns = new ArrayList<>();
-
 					List<String> propertyUris = owlEngine.getPropertyUris4PhysicalUri(conceptUri);
 
 					int columnCount = 0;
@@ -321,9 +320,13 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.STORAGE) {
 			IStorageEngine storage = Utility.getStorage(engineId);
 
-			String storagePath = keyValue.get(ReactorKeysEnum.STORAGE_PATH.getKey());
-			if (storagePath == null || storagePath.isEmpty()) {
-				throw new IllegalArgumentException("Storage path is required for STORAGE engines");
+			String storagePath = null;
+			Object storagePathOption = options.get("storagePath");
+			if (storagePathOption != null) {
+				storagePath = storagePathOption.toString().trim();
+			}
+			if (storagePath == null || (storagePath = storagePath.trim()).isEmpty()) {
+				storagePath = "/";
 			}
 
 			if (Boolean.TRUE.equals(options.get("includeStorageFileNames"))) {
@@ -353,42 +356,64 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 				int fileLimit = getIntOption(options, "storageFileLimit", 3);
 				int charLimit = getIntOption(options, "storageCharLimit", 500);
 
-				String fileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-				File localDir = new File(fileLocation);
+				String baseFileLocation = Utility.normalizePath(this.insight.getInsightFolder());
+				File baseLocalDir = new File(baseFileLocation);
+				if (!baseLocalDir.exists()) {
+					baseLocalDir.mkdirs();
+				}
+				File localDir = new File(baseLocalDir, "engine_metadata_" + Utility.getRandomString(8));
 				if (!localDir.exists()) {
 					localDir.mkdirs();
 				}
+
 				try {
-					storage.copyToLocal(storagePath, fileLocation);
+					List<String> candidatePaths = getStorageCandidateFilePaths(storage, storagePath, fileLimit);
+					for (String candidatePath : candidatePaths) {
+						try {
+							storage.copyToLocal(candidatePath, localDir.getAbsolutePath());
+						} catch (Exception e) {
+							classLogger.warn("Could not copy storage file for metadata sampling: " + candidatePath, e);
+						}
+					}
 
 					List<Map<String, String>> fileContents = new ArrayList<>();
-					File[] localFiles = localDir.listFiles();
+					List<File> localFiles = new ArrayList<>();
+					collectReadableFiles(localDir, localFiles, fileLimit);
 
-					if (localFiles != null) {
-						int count = 0;
+					int count = 0;
+					for (File f : localFiles) {
+						if (count >= fileLimit) {
+							break;
+						}
 
-						for (File f : localFiles) {
-							if (!f.isFile() || count >= fileLimit || !isReadableFile(f)) {
-								continue;
+						try {
+							String content = null;
+							String name = f.getName().toLowerCase();
+							if (name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md")) {
+								content = FileUtils.readFileToString(f, StandardCharsets.UTF_8);
+							} else if (name.endsWith(".pdf")) {
+								content = readPdf(f);
+							} else if (name.endsWith(".docx")) {
+								content = readDocX(f);
+							} else if (name.endsWith(".doc")) {
+								content = readDoc(f);
+							} else {
+								throw new IllegalArgumentException("Unsupported file type: " + f.getName());
 							}
 
-							try {
-								String content = readFileContent(f);
-
-								if (content != null && content.length() > charLimit) {
-									content = content.substring(0, charLimit) + "...";
-								}
-
-								Map<String, String> fileData = new HashMap<>();
-								fileData.put("fileName", f.getName());
-								fileData.put("content", content == null ? "" : content);
-
-								fileContents.add(fileData);
-								count++;
-
-							} catch (Exception e) {
-								classLogger.warn("Error reading file: " + f.getName(), e);
+							if (content != null && content.length() > charLimit) {
+								content = content.substring(0, charLimit) + "...";
 							}
+
+							Map<String, String> fileData = new HashMap<>();
+							fileData.put("fileName", getRelativePath(localDir, f));
+							fileData.put("content", content == null ? "" : content);
+
+							fileContents.add(fileData);
+							count++;
+
+						} catch (Exception e) {
+							classLogger.warn("Error reading file: " + f.getName(), e);
 						}
 					}
 
@@ -539,12 +564,12 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 			prompt.append(String.format(
 					"""
-							Enhance the existing description by following these requirements:
-							1. SPECIFICITY: Incorporate concrete entities from context (tables, columns, filenames, document topics, identifiers).
-							2. BUSINESS UTILITY: Explain who uses this asset and what workflows or decisions it enables.
-							3. CLARITY: Use active voice and remove generic statements that only describe technology.
-							4. ALIGNMENT: Ensure the tone remains %s throughout.
-							5. EVIDENCE: Keep only claims that can be justified by provided context.
+								Enhance the existing description by following these requirements:
+								1. SPECIFICITY: Incorporate concrete entities from context (tables, columns, document topics/types, identifiers).
+								2. BUSINESS UTILITY: Explain who uses this asset and what workflows or decisions it enables.
+								3. CLARITY: Use active voice and remove generic statements that only describe technology.
+								4. ALIGNMENT: Ensure the tone remains %s throughout.
+								5. EVIDENCE: Keep only claims that can be justified by provided context.
 
 							""",
 					tone));
@@ -556,15 +581,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 				prompt.append(
 						"""
 								#### Description Requirements:
-								1. STRUCTURE: Write 3-5 sentences that cover:
-								   - what content/domain is inside this asset,
-								   - what business workflows/decisions it supports,
-								   - who would use it and why it is valuable.
-								2. EVIDENCE: Reference concrete entities from context (table/column names, file names, excerpt themes, model/function identifiers).
-								3. BUSINESS VALUE: Describe practical outcomes (reporting, compliance, forecasting, triage, customer operations, finance ops, etc.) not just storage/query mechanics.
-								4. NO GENERIC TECHNOLOGY LANGUAGE: Avoid descriptions such as "relational database you can query with SQL", "contains data", "collection of files", or "knowledge base" unless followed by specific business purpose.
-								5. PRECISION: If context is limited, say what is known and what is uncertain instead of inventing details.
-								6. QUALITY BAR: The description must still make sense if words like "database", "vector", or "storage" are removed.
+									1. STRUCTURE: Write 3-5 sentences that cover:
+									   - what content/domain is inside this asset,
+									   - what business workflows/decisions it supports,
+									   - who would use it and why it is valuable.
+									2. EVIDENCE: Reference concrete entities from context (table/column names, file content themes, document types, excerpt themes, model/function identifiers).
+									3. BUSINESS VALUE: Describe practical outcomes (reporting, compliance, forecasting, triage, customer operations, finance ops, etc.) not just storage/query mechanics.
+									4. NO GENERIC TECHNOLOGY LANGUAGE: Avoid descriptions such as "relational database you can query with SQL", "contains data", "collection of files", or "knowledge base" unless followed by specific business purpose.
+									5. PRECISION: If context is limited, say what is known and what is uncertain instead of inventing details.
+									6. QUALITY BAR: The description must still make sense if words like "database", "vector", or "storage" are removed.
 
 								""");
 			}
@@ -702,16 +727,16 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	private void buildStoragePromptContext(StringBuilder prompt, Map<String, Object> llmPayload) {
 		prompt.append("#### File Repository Content\n");
 		prompt.append(
-				"Infer what business operations these files support based on file names, structure, and content snippets.\n");
+				"Infer what business operations these files support based on structure and content snippets. Treat filenames as weak signals only.\n");
+		prompt.append(
+				"Do not quote or enumerate literal filenames in the final description or tags unless explicitly required for business meaning.\n");
 
 		if (llmPayload.containsKey("storageFiles")) {
 
 			List<String> files = (List<String>) llmPayload.get("storageFiles");
 
-			prompt.append("Sample filenames and paths:\n");
-			for (String file : files) {
-				prompt.append("- ").append(file).append("\n");
-			}
+			prompt.append("Filename context provided for ").append(files.size())
+					.append(" files (use only as supporting hints, not as the main basis of the description).\n");
 		}
 
 		if (llmPayload.containsKey("storageFileSamples")) {
@@ -719,13 +744,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			List<Map<String, String>> samples = (List<Map<String, String>>) llmPayload.get("storageFileSamples");
 
 			prompt.append("\nContent samples from files (analyze ALL files below):\n");
-			for (Map<String, String> sample : samples) {
-				prompt.append("File: ").append(sample.get("fileName")).append("\n");
-				prompt.append("Content Snippet: \"").append(sample.get("content")).append("\"\n\n");
+			for (int i = 0; i < samples.size(); i++) {
+				Map<String, String> sample = samples.get(i);
+				prompt.append("Sample ").append(i + 1).append(" Content Snippet: \"").append(sample.get("content"))
+						.append("\"\n\n");
 			}
 			prompt.append("**CRITICAL INSTRUCTION**: Your description MUST synthesize information from ALL "
 					+ samples.size()
-					+ " file samples above. Identify the data format, structure, and business purpose across all provided files. Do not describe only the first file.\n");
+					+ " file samples above. Identify recurring topics, document types, structure, and business purpose across all provided samples. Do not describe only the first sample and do not anchor the description to literal filenames.\n");
 		}
 
 	}
@@ -763,7 +789,6 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		prompt.append("#### Functional Logic Scope\n");
 
 		if (llmPayload.containsKey("funcSmssInfo")) {
-
 			Map<String, Object> funcSmssInfo = (Map<String, Object>) llmPayload.get("funcSmssInfo");
 
 			if (funcSmssInfo.containsKey("FUNCTION_DESCRIPTION")) {
@@ -1006,6 +1031,165 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	}
 
 	/**
+	 * 
+	 * @param storage
+	 * @param storagePath
+	 * @param fileLimit
+	 * @return
+	 */
+	private List<String> getStorageCandidateFilePaths(IStorageEngine storage, String storagePath, int fileLimit) {
+		Set<String> candidatePaths = new LinkedHashSet<>();
+		Set<String> visitedDirectories = new LinkedHashSet<>();
+		Deque<String> pendingDirectories = new ArrayDeque<>();
+		String rootPath = storagePath == null ? "/" : storagePath.trim().replace("\\", "/");
+		if (rootPath.isEmpty()) {
+			rootPath = "/";
+		}
+		if (!rootPath.startsWith("/")) {
+			rootPath = "/" + rootPath;
+		}
+		while (rootPath.contains("//")) {
+			rootPath = rootPath.replace("//", "/");
+		}
+		if (rootPath.length() > 1 && rootPath.endsWith("/")) {
+			rootPath = rootPath.substring(0, rootPath.length() - 1);
+		}
+		pendingDirectories.add(rootPath);
+
+		while (!pendingDirectories.isEmpty() && candidatePaths.size() < fileLimit) {
+			String currentDirectory = pendingDirectories.poll();
+			if (isEmpty(currentDirectory) || visitedDirectories.contains(currentDirectory)) {
+				continue;
+			}
+			visitedDirectories.add(currentDirectory);
+
+			List<Map<String, Object>> details;
+			try {
+				details = storage.listDetails(currentDirectory);
+			} catch (Exception e) {
+				classLogger.warn("Could not fetch storage details for metadata sampling at " + currentDirectory, e);
+				continue;
+			}
+
+			if (details == null || details.isEmpty()) {
+				continue;
+			}
+
+			for (Map<String, Object> detail : details) {
+				if (candidatePaths.size() >= fileLimit) {
+					break;
+				}
+
+				Object rawPath = detail.get("Path");
+				if (rawPath == null) {
+					continue;
+				}
+
+				String detailPath = rawPath.toString().trim().replace("\\", "/");
+				if (detailPath.isEmpty()) {
+					continue;
+				}
+
+				boolean isDirectory = Boolean.TRUE.equals(detail.get("IsDir"));
+
+				while (detailPath.endsWith("/")) {
+					detailPath = detailPath.substring(0, detailPath.length() - 1);
+				}
+
+				String fullPath;
+				if (detailPath.startsWith("/")) {
+					fullPath = detailPath;
+				} else if ("/".equals(currentDirectory)) {
+					fullPath = "/" + detailPath;
+				} else {
+					fullPath = currentDirectory + "/" + detailPath;
+				}
+				while (fullPath.contains("//")) {
+					fullPath = fullPath.replace("//", "/");
+				}
+
+				if (isDirectory) {
+					if (!visitedDirectories.contains(fullPath)) {
+						pendingDirectories.add(fullPath);
+					}
+					continue;
+				}
+
+				if (isSupportedReadablePath(fullPath)) {
+					candidatePaths.add(fullPath);
+				}
+			}
+		}
+
+		return new ArrayList<>(candidatePaths);
+	}
+
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 */
+	private boolean isSupportedReadablePath(String path) {
+		if (path == null) {
+			return false;
+		}
+
+		String normalized = path.trim().toLowerCase();
+		if (normalized.isEmpty() || normalized.endsWith("/")) {
+			return false;
+		}
+
+		return normalized.endsWith(".txt") || normalized.endsWith(".csv") || normalized.endsWith(".md")
+				|| normalized.endsWith(".pdf") || normalized.endsWith(".doc") || normalized.endsWith(".docx");
+	}
+
+	/**
+	 * 
+	 * @param root
+	 * @param files
+	 * @param limit
+	 */
+	private void collectReadableFiles(File root, List<File> files, int limit) {
+		if (root == null || files.size() >= limit || !root.exists()) {
+			return;
+		}
+
+		File[] children = root.listFiles();
+		if (children == null) {
+			return;
+		}
+
+		for (File child : children) {
+			if (files.size() >= limit) {
+				return;
+			}
+
+			if (child.isDirectory()) {
+				collectReadableFiles(child, files, limit);
+				continue;
+			}
+
+			if (child.isFile() && isSupportedReadablePath(child.getName())) {
+				files.add(child);
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param root
+	 * @param child
+	 * @return
+	 */
+	private String getRelativePath(File root, File child) {
+		try {
+			return root.toPath().relativize(child.toPath()).toString().replace("\\", "/");
+		} catch (Exception e) {
+			return child.getName();
+		}
+	}
+
+	/**
 	 * Helper method to check if value is empty
 	 * 
 	 * @param value
@@ -1025,45 +1209,6 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 			return ((Map<?, ?>) value).isEmpty();
 		}
 		return false;
-	}
-
-	/**
-	 * 
-	 * @param file
-	 * @return
-	 */
-	private boolean isReadableFile(File file) {
-		String name = file.getName().toLowerCase();
-		return name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md") || name.endsWith(".pdf")
-				|| name.endsWith(".doc") || name.endsWith(".docx");
-	}
-
-	/**
-	 * 
-	 * @param file
-	 * @return
-	 * @throws Exception
-	 */
-	private String readFileContent(File file) throws Exception {
-		String name = file.getName().toLowerCase();
-
-		if (name.endsWith(".txt") || name.endsWith(".csv") || name.endsWith(".md")) {
-			return FileUtils.readFileToString(file, StandardCharsets.UTF_8);
-		}
-
-		if (name.endsWith(".pdf")) {
-			return readPdf(file);
-		}
-
-		if (name.endsWith(".docx")) {
-			return readDocX(file);
-		}
-
-		if (name.endsWith(".doc")) {
-			return readDoc(file);
-		}
-
-		throw new IllegalArgumentException("Unsupported file type: " + file.getName());
 	}
 
 	/**
@@ -1155,6 +1300,8 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 					  Maximum number of vector text chunks to include (default: 3).
 
 					3) Storages
+					- storagePath (string):
+					  Path in storage to inspect (default to /)
 					- includeStorageFileNames (boolean):
 					  Include storage file names.
 					- storageFileNameLimit (number):
