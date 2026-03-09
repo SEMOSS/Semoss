@@ -80,7 +80,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	public Map<String, Object> roomHash = new HashMap<>();
+	private Map<String, Object> roomHash = new HashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -459,6 +459,14 @@ public class User implements Serializable {
 	 */
 	public ZoneId getZoneId() {
 		return zoneId;
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getRoomHash() {
+		return roomHash;
 	}
 
 	/////////////////////////////////////////////////////

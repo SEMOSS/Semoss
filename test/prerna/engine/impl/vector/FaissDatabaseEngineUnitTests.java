@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.vector;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,7 +58,6 @@ import java.util.Vector;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -145,6 +146,33 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 					assertTrue(engineProps.containsValue(testProp.getValue()));
 				}
 			}
+		}
+	}
+	
+	@Test
+	void testSearcherVarStateDuringOpensAndCloses() throws Exception {
+		Field searcherField = FaissDatabaseEngine.class.getDeclaredField("vectorDatabaseSearcher");
+		boolean accessible = searcherField.canAccess(engine);
+		
+		try {
+			searcherField.setAccessible(true);
+			
+			String prevValue = (String) searcherField.get(engine);
+			assertNull(prevValue);
+			
+			openEngine(tempDir, engine, null);
+			String afterOpenValue = (String) searcherField.get(engine);
+			assertNotNull(afterOpenValue);
+			
+			openEngine(tempDir, engine, null);
+			String afterReopenValue = (String) searcherField.get(engine);
+			assertEquals(afterOpenValue, afterReopenValue);
+			
+			engine.close();
+			String afterCloseValue = (String) searcherField.get(engine);
+			assertNull(afterCloseValue);
+		} finally {
+			searcherField.setAccessible(accessible);
 		}
 	}
 	

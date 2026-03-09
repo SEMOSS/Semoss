@@ -37,35 +37,34 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
-public class EncodeURIReactor extends AbstractPyFrameReactor{
-	
+public class EncodeURIReactor extends AbstractPyFrameReactor {
+
 	/**
-	 * This reactor encodes special characters in columns to conform to URI standards
+	 * This reactor encodes special characters in columns to conform to URI
+	 * standards
 	 */
-	
+
 	public EncodeURIReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		
+
 		// get frame name
 		String table = frame.getName();
-		
+
 		// get wrapper name
 		String wrapperFrameName = frame.getWrapperName();
 
 		// get inputs
 		List<String> columnNames = getColumns();
-		
+
 		// iterate through all passed columns
 		for (String col : columnNames) {
 			if (col.contains("__")) {
@@ -82,17 +81,10 @@ public class EncodeURIReactor extends AbstractPyFrameReactor{
 				this.addExecutedCode(script);
 			}
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"EncodeURI", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
