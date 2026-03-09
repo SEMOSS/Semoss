@@ -131,11 +131,13 @@ public class ModelInferenceLogsUtils {
 			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
 
-//      boolean primaryKeysAdded =
-//          addAllPrimaryKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBPrimaryKeys());
-//      if (primaryKeysAdded) {
-//        addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
-//      }
+			// boolean primaryKeysAdded =
+			// addAllPrimaryKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBPrimaryKeys());
+			// if (primaryKeysAdded) {
+			// addAllForeignKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBForeignKeys());
+			// }
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -163,7 +165,6 @@ public class ModelInferenceLogsUtils {
 
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
-		boolean messageTokenColumnWasSplit = false;
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
@@ -201,11 +202,6 @@ public class ModelInferenceLogsUtils {
 					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
 						modelIdColumnWasAdded = true;
 					}
-
-					// was INPUT_MESSAGE_TOKENS just added? 2026-02-16 addition. If so, migrate old message_tokens
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("INPUT_MESSAGE_TOKENS")) {
-						messageTokenColumnWasSplit = true;
-					}
 				}
 			}
 		}
@@ -219,11 +215,6 @@ public class ModelInferenceLogsUtils {
 		// was modelId just added
 		if (modelIdColumnWasAdded) {
 			migrateAgentAndModelIds(conn);
-		}
-
-		// were the new token columns just added? migrate old MESSAGE_TOKENS
-		if (messageTokenColumnWasSplit) {
-			migrateMessageTokens(engine, conn, database, schema);
 		}
 
 		if (allowIfExistsIndexs) {
@@ -443,60 +434,6 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
-	/**
-	 * Migrate the old MESSAGE_TOKENS column into INPUT_MESSAGE_TOKENS / OUTPUT_MESSAGE_TOKENS
-	 * based on MESSAGE_TYPE, then drop the legacy column.
-	 * @param engine
-	 * @param conn
-	 * @param database
-	 * @param schema
-	 */
-	private static void migrateMessageTokens(IRDBMSEngine engine, Connection conn, String database, String schema) {
-		try {
-			AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-			List<String> messageCols = queryUtil.getTableColumns(conn, "MESSAGE", database, schema);
-			
-			// check if the old MESSAGE_TOKENS column still exists
-			boolean oldColumnExists = messageCols.contains("MESSAGE_TOKENS") 
-					|| messageCols.contains("message_tokens");
-			
-			if (!oldColumnExists) {
-				classLogger.info("No legacy MESSAGE_TOKENS column found, skipping token migration.");
-				return;
-			}
-			
-			classLogger.info("Starting MESSAGE_TOKENS migration...");
-			
-			try (Statement stmt = conn.createStatement()) {
-				// for input messages, move tokens to INPUT_MESSAGE_TOKENS
-				int inputCount = stmt.executeUpdate(
-						"UPDATE MESSAGE SET INPUT_MESSAGE_TOKENS = MESSAGE_TOKENS "
-						+ "WHERE MESSAGE_TOKENS IS NOT NULL AND INPUT_MESSAGE_TOKENS IS NULL "
-						+ "AND LOWER(MESSAGE_TYPE) = 'input'");
-				
-				// for response messages, move tokens to OUTPUT_MESSAGE_TOKENS
-				int outputCount = stmt.executeUpdate(
-						"UPDATE MESSAGE SET OUTPUT_MESSAGE_TOKENS = MESSAGE_TOKENS "
-						+ "WHERE MESSAGE_TOKENS IS NOT NULL AND OUTPUT_MESSAGE_TOKENS IS NULL "
-						+ "AND LOWER(MESSAGE_TYPE) = 'response'");
-				
-				classLogger.info("MESSAGE_TOKENS migration: updated " + inputCount
-						+ " input rows and " + outputCount + " response/output rows.");
-				
-				// drop the legacy column
-				String dropColumnSql = queryUtil.alterTableDropColumn("MESSAGE", "MESSAGE_TOKENS");
-				try {
-					executeSql(conn, dropColumnSql);
-					classLogger.info("Dropped legacy MESSAGE_TOKENS column.");
-				} catch (SQLException dropEx) {
-					classLogger.warn("Could not drop legacy MESSAGE_TOKENS column: " + dropEx.getMessage());
-				}
-			}
-		} catch (SQLException ex) {
-			classLogger.error("Failed to migrate legacy MESSAGE_TOKENS", ex);
-		}
-	}
-
 	private static void dropRoomMessageConstraints(Connection conn) {
 		String dropMessageFK = "ALTER TABLE MESSAGE DROP CONSTRAINT MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY";
 		String dropRoomPK = "ALTER TABLE ROOM DROP CONSTRAINT ROOM_KEY";
@@ -703,12 +640,7 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
-		QueryFunctionSelector messageTokensSelector = new QueryFunctionSelector();
-		messageTokensSelector.setFunction(QueryFunctionHelper.COALESCE);
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.INPUT.getDbColumnName()));
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.OUTPUT.getDbColumnName()));
-		messageTokensSelector.setAlias("MESSAGE_TOKENS");
-		qs.addSelector(messageTokensSelector);
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_METHOD"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
@@ -742,14 +674,7 @@ public class ModelInferenceLogsUtils {
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-
-		QueryFunctionSelector messageTokensSelector = new QueryFunctionSelector();
-		messageTokensSelector.setFunction(QueryFunctionHelper.COALESCE);
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.INPUT.getDbColumnName()));
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.OUTPUT.getDbColumnName()));
-		messageTokensSelector.setAlias("MESSAGE_TOKENS");
-
-		sumTokenSelector.addInnerSelector(messageTokensSelector);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
 
 		QueryFunctionSelector countNumberRequestSelector = new QueryFunctionSelector();
@@ -799,18 +724,11 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
-		
+
 		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
 		sumTokenSelector.setAlias("TOTAL_NUMBER_OF_TOKENS");
 		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-
-		QueryFunctionSelector messageTokensSelector = new QueryFunctionSelector();
-		messageTokensSelector.setFunction(QueryFunctionHelper.COALESCE);
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.INPUT.getDbColumnName()));
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.OUTPUT.getDbColumnName()));
-		messageTokensSelector.setAlias("MESSAGE_TOKENS");
-
-		sumTokenSelector.addInnerSelector(messageTokensSelector);
+		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokenSelector);
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
@@ -1191,10 +1109,11 @@ public class ModelInferenceLogsUtils {
 			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, reponseTime, dateCreated,
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, null,
+				reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
-//		TODO: for tests, change method signature to pass in necessary counts
+		// TODO: for tests, change method signature to pass in necessary counts
 	}
 
 	/**
@@ -1203,6 +1122,7 @@ public class ModelInferenceLogsUtils {
 	 * @param messageType
 	 * @param messageData
 	 * @param messageMethod
+	 * @param tokenSize default token count, not split per message or token type
 	 * @param inputTokenSize
 	 * @param outputTokenSize
 	 * @param thinkingTokens
@@ -1218,7 +1138,8 @@ public class ModelInferenceLogsUtils {
 	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
-			String messageMethod, Integer inputTokenSize, Integer outputTokenSize, Integer thinkingTokens, Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
+			String messageMethod, Integer tokenSize, Integer inputTokenSize, Integer outputTokenSize, Integer thinkingTokens,
+			Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
@@ -1226,7 +1147,7 @@ public class ModelInferenceLogsUtils {
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
-				+ " INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
+				+ " MESSAGE_TOKENS, INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
 				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -1246,6 +1167,11 @@ public class ModelInferenceLogsUtils {
 				ps.setNull(index++, java.sql.Types.NULL);
 			}
 			ps.setString(index++, messageMethod);
+			if (tokenSize != null) {
+				ps.setInt(index++, tokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
 			if (inputTokenSize != null) {
 				ps.setInt(index++, inputTokenSize);
 			} else {
@@ -1828,7 +1754,7 @@ public class ModelInferenceLogsUtils {
 
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(COALESCE(" + TokenTypeEnum.INPUT.getDbColumnName() + ", " + TokenTypeEnum.OUTPUT.getDbColumnName() + ")) ";
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -1918,7 +1844,7 @@ public class ModelInferenceLogsUtils {
 		// restrictionMode
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
-			sumColumn = " SUM(COALESCE(" + TokenTypeEnum.INPUT.getDbColumnName() + ", " + TokenTypeEnum.OUTPUT.getDbColumnName() + ")) ";
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
 		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
 			sumColumn = " SUM(RESPONSE_TIME) ";
 		}
@@ -2769,25 +2695,17 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-
-		QueryFunctionSelector messageTokensSelector = new QueryFunctionSelector();
-		messageTokensSelector.setFunction(QueryFunctionHelper.COALESCE);
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.INPUT.getDbColumnName()));
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.OUTPUT.getDbColumnName()));
-		messageTokensSelector.setAlias("MESSAGE_TOKENS");
-
-		sumTokenSelector.addInnerSelector(messageTokensSelector);
-		qs.addSelector(sumTokenSelector);
-
-		QueryFunctionSelector avgTokenSelector = new QueryFunctionSelector();
-		avgTokenSelector.setAlias("avg_tokens");
-		avgTokenSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
-
-		avgTokenSelector.addInnerSelector(messageTokensSelector);
-		qs.addSelector(avgTokenSelector);
+		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
+		sumTokens.setAlias("tokens");
+		sumTokens.setFunction(QueryFunctionHelper.SUM);
+		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokens);
+		
+		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
+		avgTokens.setAlias("avg_tokens");
+		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(avgTokens);
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");
@@ -2830,25 +2748,17 @@ public class ModelInferenceLogsUtils {
 		msgCount.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(msgCount);
 
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("tokens");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
+		sumTokens.setAlias("tokens");
+		sumTokens.setFunction(QueryFunctionHelper.SUM);
+		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokens);
 
-		QueryFunctionSelector messageTokensSelector = new QueryFunctionSelector();
-		messageTokensSelector.setFunction(QueryFunctionHelper.COALESCE);
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.INPUT.getDbColumnName()));
-		messageTokensSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + TokenTypeEnum.OUTPUT.getDbColumnName()));
-		messageTokensSelector.setAlias("MESSAGE_TOKENS");
-
-		sumTokenSelector.addInnerSelector(messageTokensSelector);
-		qs.addSelector(sumTokenSelector);
-
-		QueryFunctionSelector avgTokenSelector = new QueryFunctionSelector();
-		avgTokenSelector.setAlias("avg_tokens");
-		avgTokenSelector.setFunction(QueryFunctionHelper.AVERAGE_2);
-
-		avgTokenSelector.addInnerSelector(messageTokensSelector);
-		qs.addSelector(avgTokenSelector);
+		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
+		avgTokens.setAlias("avg_tokens");
+		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
+		avgTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(avgTokens);
 
 		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
 		lastUsed.setAlias("last_utilized_date");

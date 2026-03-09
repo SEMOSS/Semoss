@@ -31,8 +31,6 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import com.google.gson.GsonBuilder;
 
@@ -222,6 +220,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.prompt,
 				this.messageMethod,
 				this.promptTokens,
+				this.promptTokens,
 				null,
 				null,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHED),				
@@ -241,6 +240,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				RESPONSE,
 				this.response,
 				this.messageMethod,
+				this.responseTokens,
 				null,
 				this.responseTokens,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.THINKING),
@@ -263,6 +263,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null,
 				this.messageMethod,
 				this.promptTokens,
+				this.promptTokens,
 				null,
 				null,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHED),
@@ -282,6 +283,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				RESPONSE,
 				null,
 				this.messageMethod,
+				this.responseTokens,
 				null,
 				this.responseTokens,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.THINKING),
