@@ -1149,7 +1149,7 @@ public class ModelInferenceLogsUtils {
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
 				+ " MESSAGE_TOKENS, INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -2700,7 +2700,7 @@ public class ModelInferenceLogsUtils {
 		sumTokens.setFunction(QueryFunctionHelper.SUM);
 		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
 		qs.addSelector(sumTokens);
-		
+
 		QueryFunctionSelector avgTokens = new QueryFunctionSelector();
 		avgTokens.setAlias("avg_tokens");
 		avgTokens.setFunction(QueryFunctionHelper.AVERAGE_2);
