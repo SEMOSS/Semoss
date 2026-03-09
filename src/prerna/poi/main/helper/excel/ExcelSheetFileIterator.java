@@ -103,9 +103,8 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.range = new ExcelRange(this.sheetRange);
 		this.rangeIndex = range.getIndices();
 
-		// this will be the first row of data
-		// since excel is 1 based and java is 0
-		this.curRow = this.rangeIndex[1];
+		// range start row contains the headers; data starts on the following row
+		this.curRow = this.rangeIndex[1] + 1;
 		this.startCol = this.rangeIndex[0];
 		this.endCol = this.rangeIndex[2];
 
@@ -118,9 +117,12 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 		Row headerRow = null;
 		int counter = 0;
-		while (counter < curRow - 1) {
+		while (counter < this.rangeIndex[1]) {
 			headerRow = this.sheetIterator.next();
 			counter++;
+		}
+		if (headerRow == null) {
+			throw new IllegalArgumentException("Unable to locate header row for range " + this.sheetRange);
 		}
 		// minus 1 because startCol will be 1 above
 		this.numHeaders = endCol - (startCol - 1);
@@ -399,7 +401,13 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 	 * Sets the data types
 	 */
 	private void setUnknownTypes() {
-		Object[][] prediction = ExcelParsing.predictTypes(this.sheet, this.sheetRange);
+		int startRowForTypes = this.rangeIndex[1] + 1;
+		if (startRowForTypes > this.rangeIndex[3]) {
+			startRowForTypes = this.rangeIndex[3];
+		}
+		ExcelRange dataRange = new ExcelRange(this.rangeIndex[0], this.rangeIndex[2], startRowForTypes,
+				this.rangeIndex[3]);
+		Object[][] prediction = ExcelParsing.predictTypes(this.sheet, dataRange.getRangeSyntax());
 		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(this.headers, prediction);
 		this.dataTypeMap = predictionMaps[0];
 		this.additionalTypesMap = predictionMaps[1];
