@@ -128,6 +128,19 @@ public class ClaudeCodeManager {
 	        if (!Files.exists(skillsDir)) {
 	            Files.createDirectories(skillsDir);
 	        }
+	        
+	        Path logsDir = claudeDir.resolve("logs");
+	        if (!Files.exists(logsDir)) {
+	            Files.createDirectories(logsDir);
+	            Path changeLogPath = claudeDir.resolve("logs/change_log.txt");
+	            Files.createFile(changeLogPath);
+	        }
+	        
+	        Path claudeFile = Paths.get(projectPath, "CLAUDE.md");
+	        if (!Files.exists(claudeFile)) {
+	        	Files.createFile(claudeFile);
+	        }
+	        
 	    } catch (IOException e) {
 	    	classLogger.error("Failed to create .claude directory structure at: " + projectPath, e);
 	    }
