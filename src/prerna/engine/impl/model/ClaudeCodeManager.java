@@ -28,6 +28,11 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,26 +70,71 @@ public class ClaudeCodeManager {
 
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
-
-	private String createInitScript(String engineId, String projectPath, String roomId, String accessKey,
-			String secretKey, List<String> allowedTools, String permissionMode) {
-		String allowedToolsString = "allowed_tools=["
-				+ allowedTools.stream().map(tool -> "'" + tool + "'").collect(Collectors.joining(",")) + "]";
+	
+	private String createInitScript(String engineId, String projectPath, String roomId, String accessKey, String secretKey, List<String> allowedTools, String permissionMode, String projectId, List<Map<String, String>> mcps) {
+		String allowedToolsString = "allowed_tools=[" + allowedTools.stream()
+	    .map(tool -> "'" + tool + "'")
+	    .collect(Collectors.joining(",")) + "]";
 		Integer localPort = ThreadStore.getLocalPort();
 		String localHostname = ThreadStore.getLocalHostname();
-		String localProtocol = ThreadStore.getLocalProtocol();
-		String baseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/model/anthropic";
-		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s')",
-				engineId, projectPath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl);
+    	String localProtocol = ThreadStore.getLocalProtocol();
+        String baseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/model/anthropic";
+        String mcpBaseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/ext/mcp/";
+        List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
+        if (mcps != null) {
+	        for (Map<String, String >mcp : mcps) {
+	            Map<String, String> mcpConfig = new HashMap<>();
+	            mcpConfig.put("name", mcp.get("name"));
+	            String mcpProjectId = mcp.get("id");
+	            String fullMcpUrl = mcpBaseUrl + mcpProjectId + "/comms";
+	            mcpConfig.put("url", fullMcpUrl);
+	            mcpUrlsAndNames.add(mcpConfig);
+	        }
+        }
+        String mcpsString = mcpUrlsAndNames.stream()
+        	    .map(mcp -> "{'name':'" + mcp.get("name") + "', 'url': '" + mcp.get("url") + "'}")
+        	    .collect(Collectors.joining(",", "[", "]"));
+        
+	    return String.format(
+	        "import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s)",
+	        engineId,
+	        projectPath,
+	        roomId,
+	        accessKey,
+	        secretKey,
+	        allowedToolsString,
+	        permissionMode,
+	        baseUrl,
+	        mcpsString
+	    );
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
-		return String.format("claude_code.query_cc(prompt='%s', system_prompt='%s')", prompt, systemPrompt);
-	}
+		return String.format(
+				"claude_code.query_cc(prompt='%s', system_prompt='%s')",
+				prompt,
+				systemPrompt
+				);
+		}
+	
+	private void createClaudeDir(String projectPath) {
+	    try {
+	        Path claudeDir = Paths.get(projectPath, ".claude");
+	        if (!Files.exists(claudeDir)) {
+	            Files.createDirectories(claudeDir);
+	        }
 
-	public String query(Insight insight, User user, String engineId, String projectId, String prompt,
-			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode) {
+	        Path skillsDir = claudeDir.resolve("skills");
+	        if (!Files.exists(skillsDir)) {
+	            Files.createDirectories(skillsDir);
+	        }
+	    } catch (IOException e) {
+	    	classLogger.error("Failed to create .claude directory structure at: " + projectPath, e);
+	    }
+	}
+	
+	
+	public String query(Insight insight, User user, String engineId, String projectId, String prompt, String systemPrompt, String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps) {
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");
@@ -97,13 +147,17 @@ public class ClaudeCodeManager {
 		String projectName = project.getProjectName();
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
+		createClaudeDir(projectPath);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
+//		Map<String, Object> roomOptions = new HashMap<>();
+//		roomOptions.put("mcps", mcps);
+//		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+//		room.setOptionsMap(roomOptions);
 		String finalRoomId = room.getId();
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(engineId, projectPath, finalRoomId, accessKey, secretKey, allowedTools,
-				permissionMode);
+		String initScript = createInitScript(engineId, projectPath, finalRoomId, accessKey, secretKey, allowedTools, permissionMode, projectId, mcps);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
