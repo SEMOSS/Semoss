@@ -28,6 +28,10 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -77,14 +81,15 @@ public class ClaudeCodeManager {
         String baseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/model/anthropic";
         String mcpBaseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/ext/mcp/";
         List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
-
-        for (Map<String, String >mcp : mcps) {
-            Map<String, String> mcpConfig = new HashMap<>();
-            mcpConfig.put("name", mcp.get("name"));
-            String mcpProjectId = mcp.get("id");
-            String fullMcpUrl = mcpBaseUrl + mcpProjectId + "/comms";
-            mcpConfig.put("url", fullMcpUrl);
-            mcpUrlsAndNames.add(mcpConfig);
+        if (mcps != null) {
+	        for (Map<String, String >mcp : mcps) {
+	            Map<String, String> mcpConfig = new HashMap<>();
+	            mcpConfig.put("name", mcp.get("name"));
+	            String mcpProjectId = mcp.get("id");
+	            String fullMcpUrl = mcpBaseUrl + mcpProjectId + "/comms";
+	            mcpConfig.put("url", fullMcpUrl);
+	            mcpUrlsAndNames.add(mcpConfig);
+	        }
         }
         String mcpsString = mcpUrlsAndNames.stream()
         	    .map(mcp -> "{'name':'" + mcp.get("name") + "', 'url': '" + mcp.get("url") + "'}")
@@ -112,6 +117,22 @@ public class ClaudeCodeManager {
 				);
 		}
 	
+	private void createClaudeDir(String projectPath) {
+	    try {
+	        Path claudeDir = Paths.get(projectPath, ".claude");
+	        if (!Files.exists(claudeDir)) {
+	            Files.createDirectories(claudeDir);
+	        }
+
+	        Path skillsDir = claudeDir.resolve("skills");
+	        if (!Files.exists(skillsDir)) {
+	            Files.createDirectories(skillsDir);
+	        }
+	    } catch (IOException e) {
+	    	classLogger.error("Failed to create .claude directory structure at: " + projectPath, e);
+	    }
+	}
+	
 	
 	public String query(Insight insight, User user, String engineId, String projectId, String prompt, String systemPrompt, String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps) {
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -126,6 +147,7 @@ public class ClaudeCodeManager {
 		String projectName = project.getProjectName();
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
+		createClaudeDir(projectPath);
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
 //		Map<String, Object> roomOptions = new HashMap<>();
 //		roomOptions.put("mcps", mcps);
