@@ -31,125 +31,246 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.File;
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.IntStream;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import prerna.SemossUnitTest;
-
-public class ExcelSheetPreProcessorUnitTests extends SemossUnitTest {
-	private static String excelFilePath = null;
-	private static String sheetName = "TestData";
-	private static String sheetRange = "A1:E3";
-	private static List<String> sheetHeaders = List.of("UserID", "Name", "Active", "DateCreated", "Score");
-
-	@BeforeEach
-	void setUp() throws IOException {
-		FileUtils.cleanDirectory(tempDir.toFile());
-		List<List<? extends Object>> data = List.of(sheetHeaders,
-				List.of(1, "user1", true, LocalDate.of(2026, 3, 1), 98.5),
-				List.of(2, "user2", false, LocalDate.of(2026, 3, 5), 87));
-
-		File excelFile = new File(tempDir.toFile(), "test.xlsx");
-		excelFilePath= excelFile.getAbsolutePath();
-		
-		try {
-			createExcel(excelFile, sheetName, data);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail("unable to create excel file");
-		}
-	}
-	
+public class ExcelSheetPreProcessorUnitTests {
 
 	@Test
 	void testGetRangeHeaders() {
-		// create pre processor
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(excelFilePath);
-		Sheet sheet = helper.getSheet(sheetName);
-		ExcelSheetPreProcessor sheetProcessor = new ExcelSheetPreProcessor(sheet);
-		
-		// test range
-		ExcelRange range = new ExcelRange(sheetRange);
-		try {
-			sheetProcessor.getRangeHeaders(range);
-			fail("");
-		}
-		catch (IllegalStateException ise) {
-			assertEquals("Must call determineSheetRanges() before getRangeHeaders()", ise.getMessage());
-		}
-		sheetProcessor.determineSheetRanges();
-		
+		// create sheet
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+
+		// add headers
+		int row = 0;
+		int col = 0;
+		Row header = sheet.createRow(row++);
+		header.createCell(col++).setCellValue("H1");
+		header.createCell(col++).setCellValue("H2");
+		header.createCell(col++).setCellValue("H3");
+
+		// add data
+		col = 0;
+		Row data = sheet.createRow(row++);
+		data.createCell(col++).setCellValue("v1");
+		data.createCell(col++).setCellValue("v2");
+		data.createCell(col++).setCellValue("v3");
+
+		// create preprocessor
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+		p.determineSheetRanges();
+
+		ExcelRange range = new ExcelRange("A1:C4");
+
 		// validate getRangeHeaders()
-		String[] headers = sheetProcessor.getRangeHeaders(range);
+		String[] headers = p.getRangeHeaders(range);
 		List<String> actual = Arrays.asList(headers);
-		assertEquals(sheetHeaders, actual);
+		List<String> expectedHeaders = List.of("H1", "H2", "H3");
+		assertEquals(expectedHeaders, actual);
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	@Test
-	void testGetRangeHeaders_cacheHeaders() {
-		// create pre processor
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		helper.parse(excelFilePath);
-		Sheet sheet = helper.getSheet(sheetName);
-		ExcelSheetPreProcessor sheetProcessor = new ExcelSheetPreProcessor(sheet);
-		sheetProcessor.determineSheetRanges();
+	void testGetRangeHeaders_throwsDetermineSheetRangesError() {
+		// create sheet
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
 
-		// test range cache headers
-		ExcelRange range = new ExcelRange("A2:E3");
-		List<Integer> expected = List.of(1, 2, 3, 2);
-		List<Integer> actualRange = IntStream.of(range.getIndices()).boxed().toList();
-		assertEquals(expected, actualRange);
+		// create preprocessor
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
 
-		// validate getRangeHeaders()
-		String[] headers = sheetProcessor.getRangeHeaders(range);
-		List<String> actual = Arrays.asList(headers);
-		assertEquals(sheetHeaders, actual);		
-	}
+		ExcelRange range = new ExcelRange("A1:C4");
+		try {
+			p.getRangeHeaders(range);
+			fail("must call determinSheetRanges() required method call");
+		} catch (IllegalStateException ise) {
+			assertEquals("Must call determineSheetRanges() before getRangeHeaders()", ise.getMessage());
+		}
 
-	private static void createExcel(File outputPath, String sheetName, List<List<? extends Object>> data) throws Exception {
-		try (XSSFWorkbook wb = new XSSFWorkbook()) {
-			Sheet sheet = wb.createSheet(sheetName);
-
-			for (int r = 0; r < data.size(); r++) {
-				Row row = sheet.createRow(r);
-				List<Object> rowData = (List<Object>) data.get(r);
-
-				for (int c = 0; c < rowData.size(); c++) {
-					Cell cell = row.createCell(c);
-					Object v = rowData.get(c);
-
-					if (v == null) {
-						cell.setBlank();
-					} else if (v instanceof Number n) {
-						cell.setCellValue(n.doubleValue());
-					} else if (v instanceof Boolean b) {
-						cell.setCellValue(b);
-					} else if (v instanceof LocalDate d) {
-						cell.setCellValue(java.sql.Date.valueOf(d));
-					} else {
-						cell.setCellValue(v.toString());
-					}
-				}
-			}
-
-			int maxCols = data.stream().mapToInt(List::size).max().orElse(0);
-			for (int c = 0; c < Math.min(maxCols, 50); c++)
-				sheet.autoSizeColumn(c);
-
-			ExcelUtility.writeToFile(wb, outputPath.getAbsolutePath());
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
+
+	@Test
+	void testGetRangeHeaders_emptyHeader() {
+		// create sheet
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+
+		// add headers
+		int row = 0;
+		int col = 0;
+		Row header = sheet.createRow(row++);
+		header.createCell(col++).setCellValue("H1");
+		header.createCell(col++).setCellValue("H2");
+		header.createCell(col++).setCellValue("H3");
+
+		// add data
+		col = 0;
+		Row data = sheet.createRow(row++);
+		data.createCell(col++).setCellValue("v1");
+		data.createCell(col++).setCellValue("v2");
+		data.createCell(col++).setCellValue("v3");
+		data.createCell(col++).setCellValue("v3");
+
+		// create preprocessor
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+		p.determineSheetRanges();
+
+		ExcelRange range = new ExcelRange("A1:D4");
+
+		// validate getRangeHeaders()
+		List<String> actual = Arrays.asList(p.getRangeHeaders(range));
+		List<String> expected = List.of("H1", "H2", "H3", "");
+		assertEquals(expected, actual);
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testGetRangeHeaders_badRange_returnsEmptyArray() {
+		// create pre processor
+		// create sheet
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+		p.determineSheetRanges();
+
+		// test range
+		ExcelRange range = new ExcelRange("A10:D40");
+		assertArrayEquals(new String[0], p.getRangeHeaders(range));
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testGetSheet() {
+		// create pre processor
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+
+		Sheet actualSheet = p.getSheet();
+		assertEquals("TestSheet", actualSheet.getSheetName());
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testGetAllBlocks() {
+		String actualSheetRange = "A1:C2";
+		// create sheet
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+
+		// add headers
+		int row = 0;
+		int col = 0;
+		Row header = sheet.createRow(row++);
+		header.createCell(col++).setCellValue("H1");
+		header.createCell(col++).setCellValue("H2");
+		header.createCell(col++).setCellValue("H3");
+
+		// add data
+		col = 0;
+		Row data = sheet.createRow(row++);
+		data.createCell(col++).setCellValue("v1");
+		data.createCell(col++).setCellValue("v2");
+		data.createCell(col++).setCellValue("v3");
+
+		// create preprocessor
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+		p.determineSheetRanges();
+
+		List<ExcelBlock> blocks = p.getAllBlocks();
+		assertEquals(1, blocks.size());
+
+		ExcelBlock bl = blocks.get(0);
+		List<ExcelRange> ranges = bl.getRanges();
+		assertEquals(1, ranges.size());
+		ExcelRange r = ranges.get(0);
+		assertEquals(actualSheetRange, r.getRangeSyntax());
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testGetCleanedRangeHeaders() {
+		XSSFWorkbook wb = new XSSFWorkbook();
+		XSSFSheet sheet = wb.createSheet("TestSheet");
+		// add headers
+		int row = 0;
+		int col = 0;
+		Row header = sheet.createRow(row++);
+		header.createCell(col++).setCellValue("H1");
+		header.createCell(col++).setCellValue("H2");
+		header.createCell(col++).setCellValue("H3");
+
+		// add data
+		col = 0;
+		Row data = sheet.createRow(row++);
+		data.createCell(col++).setCellValue("v1");
+		data.createCell(col++).setCellValue("v2");
+		data.createCell(col++).setCellValue("v3");
+		data.createCell(col++).setCellValue("v3");
+		data.createCell(col++).setCellValue("v3");
+
+		ExcelSheetPreProcessor p = new ExcelSheetPreProcessor(sheet);
+		p.determineSheetRanges();
+		ExcelRange range = new ExcelRange("A1:E5");
+
+		// validate getRangeHeaders()
+		List<String> actual = Arrays.asList(p.getCleanedRangeHeaders(range));
+		List<String> expected = List.of("H1", "H2", "H3", "BLANK_HEADER", "BLANK_HEADER_1");
+		assertEquals(expected, actual);
+
+		try {
+			wb.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	void testGetCleanedRangeHeaders_FromStrArr() {
+		List<String> actual = Arrays
+				.asList(ExcelSheetPreProcessor.getCleanedRangeHeaders(new String[] { "test", "", "" }));
+		List<String> expected = List.of("test", "BLANK_HEADER", "BLANK_HEADER_1");
+		assertEquals(expected, actual);
+
+	}
+
 }
