@@ -62,6 +62,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
+import prerna.notifications.NotificationDbUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -83,7 +84,9 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -1386,8 +1389,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermission(User user, String existingUserId, String projectId,
-			String newPermission, String endDate) throws IllegalAccessException {
+	public static void editProjectUserPermission(User user, String existingUserId, String existingUserType,
+			String projectId, String newPermission, String endDate) throws IllegalAccessException {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the app
@@ -1445,6 +1448,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
+			}
+
+			// Adding Notification
+			// Check notificationDb (conditional)
+			if (Utility.isNotificationDatabaseEnabled()) {
+				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
+				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId,
+						NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+						NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1522,6 +1534,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?");
 			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
+
+				String newUserId = requests.get(i).get("userid");
+				String newUserType = requests.get(i).get("type");
+				String existingPermission = AccessPermissionEnum
+						.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
@@ -1532,6 +1549,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
+
+				// Adding Notification
+				if (Utility.isNotificationDatabaseEnabled()) {
+					NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId,
+							NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+							NotificationConstants.Priority.MEDIUM, existingPermission,
+							requests.get(i).get("permission"));
+				}
 			}
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -2375,8 +2400,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			engineTagsAggregator.addInnerSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 			engineTagsAggregator.setAlias("TAGS");
 			engineTagsQs.addSelector(engineTagsAggregator);
-			engineTagsQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
+			engineTagsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
 			engineTagsQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
 
 			SubqueryRelationship engineTagsRel = new SubqueryRelationship(engineTagsQs, "ET", "left.outer.join",
@@ -2391,8 +2415,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			projectTagsAggregator.addInnerSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
 			projectTagsAggregator.setAlias("TAGS");
 			projectTagsQs.addSelector(projectTagsAggregator);
-			projectTagsQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "tag"));
+			projectTagsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "tag"));
 			projectTagsQs.addGroupBy(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
 
 			SubqueryRelationship projectTagsRel = new SubqueryRelationship(projectTagsQs, "PT", "left.outer.join",
@@ -2402,8 +2425,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Use conditional selector for tags
 			QueryIfSelector tagsSelector = QueryIfSelector.makeQueryIfSelector(
 					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
-					new QueryColumnSelector("PT__TAGS"), new QueryColumnSelector("ET__TAGS"),
-					"tags");
+					new QueryColumnSelector("PT__TAGS"), new QueryColumnSelector("ET__TAGS"), "tags");
 			qs.addSelector(tagsSelector);
 		}
 
@@ -2590,12 +2612,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
 					if (isEngine) {
-						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, dependentEngineId,
-								requestedPermission, endDate, usageRestriction, usageFrequency, maxTokens,
-								maxResponseTime);
+						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType,
+								dependentEngineId, requestedPermission, endDate, usageRestriction, usageFrequency,
+								maxTokens, maxResponseTime);
 					} else {
-						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, dependentEngineId,
-								requestedPermission, endDate);
+						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, newUserType,
+								dependentEngineId, requestedPermission, endDate);
 					}
 
 					accessGranted.add(dependentEngineId);
@@ -4352,6 +4374,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < requests.size(); i++) {
+					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+							requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							requests.get(i).get("permission"));
+					// Adding email notification
+					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
+							projectId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.PROJECT);
+				}
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -4407,6 +4442,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < requestIdList.size(); i++) {
+					String requestId = requestIdList.get(i);
+					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
+					String permission = AccessPermissionEnum
+							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
+					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+							(String) deniedUserDetails.get(i).get("type"), projectId,
+							NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
+							NotificationConstants.Priority.MEDIUM, null, permission);
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -4482,6 +4532,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < permission.size(); i++) {
+					NotificationDbUtils.createNotification(user, permission.get(i).get("userid"),
+							permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							permission.get(i).get("permission"));
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -4545,4 +4606,64 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
+
+	/**
+	 * Get userDetails by using user's project access request
+	 * 
+	 * @param requestId
+	 * @return List of user details
+	 */
+	public static List<Map<String, Object>> getUserDetailsFromProjectAccessRequest(String projectRequestId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID", "userId"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION", "permission"));
+		qs.addRelation("PROJECTACCESSREQUEST__PERMISSION", "PERMISSION__ID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__ID", "==", projectRequestId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get all authors for a specific project (for app-related notifications)
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectAuthors(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1));
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param projectIds
+	 * @return
+	 */
+	public static Map<String, String> getProjectNamesByIds(Collection<String> projectIds) {
+		Map<String, String> projectMap = new HashMap<>();
+		if (projectIds == null || projectIds.isEmpty()) {
+			return projectMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				projectMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return projectMap;
+	}
+
 }

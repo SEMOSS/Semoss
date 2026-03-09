@@ -1038,6 +1038,10 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// notification db
+	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
+	public static final String NOTIFICATION_DB = "Notification";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";

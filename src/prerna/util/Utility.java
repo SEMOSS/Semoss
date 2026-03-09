@@ -6124,6 +6124,21 @@ public final class Utility {
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
 	}
+	
+	/**
+	 * Determine if notification db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isNotificationDatabaseEnabled() {
+		String notificationDb = Utility.getDIHelperProperty(Constants.NOTIFICATION_DATABASE_ENABLED);
+		if (notificationDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(notificationDb);
+	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
