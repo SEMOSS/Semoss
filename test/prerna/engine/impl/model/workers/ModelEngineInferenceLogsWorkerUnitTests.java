@@ -37,6 +37,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Properties;
 
 import org.json.JSONObject;
@@ -55,9 +56,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.om.Insight;
+import prerna.engine.api.TokenTypeEnum;
 import prerna.project.api.IProject;
-import prerna.sablecc2.om.VarStore;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class ModelEngineInferenceLogsWorkerUnitTests {
@@ -66,8 +66,6 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
     private Insight insight;
     private IProject project;
     private AccessToken token;
-    private VarStore varStore;
-    private NounMetadata metadata;
     ModelEngineInferenceLogsWorker reactor;
 
     @BeforeEach
@@ -76,46 +74,47 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         insight = mock(Insight.class);
         project = mock(IProject.class);
         token = mock(AccessToken.class);
-        varStore = mock(VarStore.class);
-        metadata = mock(NounMetadata.class);
     }
 
     @Test
     void test() {
         engine = mock(AbstractModelEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
-            "id",
-            "transactionId",
-            "method",
-            engine,
-            insight.getInsightId(),
-			insight.getContextProjectId(),
-			insight.getProjectId(),
-			user,
-            "sessionId",
-			"roomId",
-            "context",
-            "",
-            new ArrayList(){{add("full prompt");}},
-            0,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
-            "response",
-            1,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
-        );
+                "id",
+                "transactionId",
+                "method",
+                engine,
+                insight.getInsightId(),
+                insight.getContextProjectId(),
+                insight.getProjectId(),
+                user,
+                "sessionId",
+                "roomId",
+                "context",
+                "",
+                new ArrayList<String>() {
+                    {
+                        add("full prompt");
+                    }
+                },
+                0,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                "response",
+                1,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                new HashMap<TokenTypeEnum, Integer>());
 
         CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
         when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-            MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+                MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
             util.when(() -> Utility.getProject(projectId)).thenReturn(project);
 
             when(project.getProjectName()).thenReturn("porjectName");
@@ -128,69 +127,76 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             when(token.getName()).thenReturn(null);
             when(token.getUsername()).thenReturn("userUsername");
             when(token.getEmail()).thenReturn("userEmail");
-            
+
             String engineId = "engineId";
             String engineName = "engineName";
-			String userEmail= "userEmail";
+            String userEmail = "userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
-            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
 
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
-                insightId,
-                "full prompt",
-                null,
-                "userId",
-                userEmail,
-                "tokenUsername",
-                "",
-                engineId,
-                true,
-                projectId,
-                "porjectName"
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
-            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
-            
+                    insightId,
+                    "full prompt",
+                    null,
+                    "userId",
+                    userEmail,
+                    "tokenUsername",
+                    "",
+                    engineId,
+                    true,
+                    projectId,
+                    "porjectName")).thenAnswer((Answer<Void>) invocation -> null);
+
+            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
+
             when(((AbstractModelEngine) engine).keepInputOutput()).thenReturn(true);
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id 
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
+                    eq("messageId"),
+                    eq("transactionId"),
+                    eq("INPUT"),
+                    eq("full prompt"),
+                    eq("method"),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Double.class),
+                    any(ZonedDateTime.class),
+                    eq(engineId),
+                    eq(insightId),
+                    eq(sessionId),
+                    eq(insightId), // room id
+                    eq("userId"),
+                    eq("userUserName"),
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("RESPONSE"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
+                    eq("messageId"),
+                    eq("transactionId"),
+                    eq("RESPONSE"),
+                    eq("full prompt"),
+                    eq("method"),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Double.class),
+                    any(ZonedDateTime.class),
+                    eq(engineId),
+                    eq(insightId),
+                    eq(sessionId),
+                    eq(insightId), // room id
+                    eq("userId"),
+                    eq("userUserName"),
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
+
             /////////////////////
             /// Method to Run ///
             /////////////////////
@@ -205,56 +211,61 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
-                    insightId,
-                    "full prompt",
-                    null,
-                    "userId",
-                    userEmail,
-                    "tokenUsername",
-                    "",
-                    engineId,
-                    true,
-                    projectId,
-                    "porjectName"
-                );
+                        insightId,
+                        "full prompt",
+                        null,
+                        "userId",
+                        userEmail,
+                        "tokenUsername",
+                        "",
+                        engineId,
+                        true,
+                        projectId,
+                        "porjectName");
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
 
                 ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            );
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("INPUT"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
 
                 ModelInferenceLogsUtils.doRecordMessage(
-                    eq("messageId"),
-                    eq("transactionId"),
-                    eq("RESPONSE"),
-                    eq("full prompt"),
-                    eq("method"),
-                    eq(0),
-                    any(Double.class),
-                    any(ZonedDateTime.class),
-                    eq(engineId),
-                    eq(insightId),
-                    eq(sessionId),
-					eq(insightId), //room id
-                    eq("userId"),
-                    eq("userUserName"),
-                    eq(userEmail)
-                );
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("RESPONSE"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
             });
         }
     }
@@ -263,25 +274,29 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
     void testAbstractVectorDatabaseEngine() {
         engine = mock(AbstractVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
-            "id",
-            "transactionId",
-            "method",
-            engine,
-            insight.getInsightId(),
-			insight.getContextProjectId(),
-			insight.getProjectId(),
-            user,
-            "sessionId",
-			"roomId",
-            "context",
-            "",
-            new ArrayList(){{add(new JSONObject());}},
-            0,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
-            "response",
-            1,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
-        );
+                "id",
+                "transactionId",
+                "method",
+                engine,
+                insight.getInsightId(),
+                insight.getContextProjectId(),
+                insight.getProjectId(),
+                user,
+                "sessionId",
+                "roomId",
+                "context",
+                "",
+                new ArrayList<JSONObject>() {
+                    {
+                        add(new JSONObject());
+                    }
+                },
+                0,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                "response",
+                1,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                new HashMap<TokenTypeEnum, Integer>());
 
         when(insight.getUser()).thenReturn(user);
         CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
@@ -289,13 +304,12 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-            MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+                MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
             util.when(() -> Utility.getProject(projectId)).thenReturn(project);
 
             when(project.getProjectName()).thenReturn("porjectName");
@@ -308,73 +322,80 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             when(token.getName()).thenReturn(null);
             when(token.getUsername()).thenReturn(null);
             when(token.getEmail()).thenReturn("userEmail");
-            
+
             String engineId = "engineId";
             String engineName = "engineName";
-			String userEmail="userEmail";
+            String userEmail = "userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
-            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
 
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
-                insightId,
-                "full prompt",
-                null,
-                "userId",
-                userEmail,
-                "tokenUsername",
-                "",
-                engineId,
-                true,
-                projectId,
-                "porjectName"
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
-            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
-            
+                    insightId,
+                    "full prompt",
+                    null,
+                    "userId",
+                    userEmail,
+                    "tokenUsername",
+                    "",
+                    engineId,
+                    true,
+                    projectId,
+                    "porjectName")).thenAnswer((Answer<Void>) invocation -> null);
+
+            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
+
             when(((AbstractVectorDatabaseEngine) engine).keepInputOutput()).thenReturn(false);
 
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
+                    eq("messageId"),
+                    eq("transactionId"),
+                    eq("INPUT"),
+                    eq("full prompt"),
+                    eq("method"),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Double.class),
+                    any(ZonedDateTime.class),
+                    eq(engineId),
+                    eq(insightId),
+                    eq(sessionId),
+                    eq(insightId), // room id
+                    eq("userId"),
+                    eq("userUserName"),
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
             milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("RESPONSE"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
+                    eq("messageId"),
+                    eq("transactionId"),
+                    eq("RESPONSE"),
+                    eq("full prompt"),
+                    eq("method"),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Double.class),
+                    any(ZonedDateTime.class),
+                    eq(engineId),
+                    eq(insightId),
+                    eq(sessionId),
+                    eq(insightId), // room id
+                    eq("userId"),
+                    eq("userUserName"),
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
+
             /////////////////////
             /// Method to Run ///
             /////////////////////
-            
+
             reactor.run();
 
             milUtils.verify(() -> {
@@ -385,56 +406,61 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                 ModelInferenceLogsUtils.doCheckRoomExists(insightId);
 
                 ModelInferenceLogsUtils.doCreateNewConversation(
-                    insightId,
-                    "full prompt",
-                    null,
-                    "userId",
-                    "tokenUsername",
-                    userEmail,
-                    "",
-                    engineId,
-                    true,
-                    projectId,
-                    "porjectName"
-                );
+                        insightId,
+                        "full prompt",
+                        null,
+                        "userId",
+                        "tokenUsername",
+                        userEmail,
+                        "",
+                        engineId,
+                        true,
+                        projectId,
+                        "porjectName");
 
                 ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
 
                 ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            );
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("INPUT"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
 
                 ModelInferenceLogsUtils.doRecordMessage(
-                    eq("messageId"),
-                    eq("transactionId"),
-                    eq("RESPONSE"),
-                    eq("full prompt"),
-                    eq("method"),
-                    eq(0),
-                    any(Double.class),
-                    any(ZonedDateTime.class),
-                    eq(engineId),
-                    eq(insightId),
-                    eq(sessionId),
-					eq(insightId), //room id
-                    eq("userId"),
-                    eq("userUserName"),
-                    eq(userEmail)
-                );
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("RESPONSE"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
             });
         }
     }
@@ -443,38 +469,37 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
     void testPGVectorDatabaseEngine() {
         engine = mock(PGVectorDatabaseEngine.class);
         reactor = new ModelEngineInferenceLogsWorker(
-            "id",
-            "transactionId",
-            "method",
-            engine,
-            insight.getInsightId(),
-			insight.getContextProjectId(),
-			insight.getProjectId(),
-			user,
-            "sessionId",
-			"roomId",
-            "context",
-            "",
-            new JSONObject(),
-            0,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
-            "response",
-            1,
-            ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault())
-        );
+                "id",
+                "transactionId",
+                "method",
+                engine,
+                insight.getInsightId(),
+                insight.getContextProjectId(),
+                insight.getProjectId(),
+                user,
+                "sessionId",
+                "roomId",
+                "context",
+                "",
+                new JSONObject(),
+                0,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                "response",
+                1,
+                ZonedDateTime.of(LocalDate.now(), LocalTime.now(), ZoneId.systemDefault()),
+                new HashMap<TokenTypeEnum, Integer>());
 
         when(engine.getSmssProp()).thenReturn(new CaseInsensitiveProperties());
         when(engine.getCatalogSubType(new Properties())).thenReturn("");
 
         String sessionId = "sessionId";
-		String roomId = "roomId";
         String projectId = "projectId";
         when(insight.getContextProjectId()).thenReturn(null);
         when(insight.getProjectId()).thenReturn(projectId);
         when(insight.getUser()).thenReturn(user);
 
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-            MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+                MockedStatic<ModelInferenceLogsUtils> milUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
             util.when(() -> Utility.getProject(projectId)).thenReturn(project);
 
             when(project.getProjectName()).thenReturn("porjectName");
@@ -487,83 +512,18 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
             when(token.getName()).thenReturn(null);
             when(token.getUsername()).thenReturn(null);
             when(token.getEmail()).thenReturn("userEmail");
-            
+
             String engineId = "engineId";
             String engineName = "engineName";
-			String userEmail="userEmail";
+            String userEmail = "userEmail";
             when(engine.getEngineId()).thenReturn(engineId);
             when(engine.getEngineName()).thenReturn(engineName);
             milUtils.when(() -> ModelInferenceLogsUtils.doModelIsRegistered(engineId)).thenReturn(false);
-            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId")).thenAnswer((Answer<Void>) invocation -> null);
+            milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
 
             milUtils.when(() -> ModelInferenceLogsUtils.doCheckRoomExists(insightId)).thenReturn(false);
             milUtils.when(() -> ModelInferenceLogsUtils.doCreateNewConversation(
-                insightId,
-                "full prompt",
-                null,
-                "userId",
-                userEmail,
-                "tokenUsername",
-                "",
-                engineId,
-                true,
-                projectId,
-                "porjectName"
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
-            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername")).thenAnswer((Answer<Void>) invocation -> null);
-            
-            when(((PGVectorDatabaseEngine) engine).keepInputOutput()).thenReturn(false);
-
-            milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("RESPONSE"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            )).thenAnswer((Answer<Void>) invocation -> null);
-            
-            /////////////////////
-            /// Method to Run ///
-            /////////////////////
-            
-            reactor.run();
-
-            milUtils.verify(() -> {
-                ModelInferenceLogsUtils.doModelIsRegistered(engineId);
-
-                ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
-
-                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
-
-                ModelInferenceLogsUtils.doCreateNewConversation(
                     insightId,
                     "full prompt",
                     null,
@@ -574,46 +534,123 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
                     engineId,
                     true,
                     projectId,
-                    "porjectName"
-                );
+                    "porjectName")).thenAnswer((Answer<Void>) invocation -> null);
 
-                ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
+            milUtils.when(() -> ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername"))
+                    .thenAnswer((Answer<Void>) invocation -> null);
 
-                ModelInferenceLogsUtils.doRecordMessage(
-                eq("messageId"),
-                eq("transactionId"),
-                eq("INPUT"),
-                eq("full prompt"),
-                eq("method"),
-                eq(0),
-                any(Double.class),
-                any(ZonedDateTime.class),
-                eq(engineId),
-                eq(insightId),
-                eq(sessionId),
-				eq(insightId), //room id
-                eq("userId"),
-                eq("userUserName"),
-                eq(userEmail)
-            );
+            when(((PGVectorDatabaseEngine) engine).keepInputOutput()).thenReturn(false);
 
-                ModelInferenceLogsUtils.doRecordMessage(
+            milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
                     eq("messageId"),
                     eq("transactionId"),
-                    eq("RESPONSE"),
+                    eq("INPUT"),
                     eq("full prompt"),
                     eq("method"),
-                    eq(0),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
                     any(Double.class),
                     any(ZonedDateTime.class),
                     eq(engineId),
                     eq(insightId),
                     eq(sessionId),
-					eq(insightId), //room id
+                    eq(insightId), // room id
                     eq("userId"),
                     eq("userUserName"),
-                    eq(userEmail)
-                );
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
+            milUtils.when(() -> ModelInferenceLogsUtils.doRecordMessage(
+                    eq("messageId"),
+                    eq("transactionId"),
+                    eq("RESPONSE"),
+                    eq("full prompt"),
+                    eq("method"),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Integer.class),
+                    any(Double.class),
+                    any(ZonedDateTime.class),
+                    eq(engineId),
+                    eq(insightId),
+                    eq(sessionId),
+                    eq(insightId), // room id
+                    eq("userId"),
+                    eq("userUserName"),
+                    eq(userEmail))).thenAnswer((Answer<Void>) invocation -> null);
+
+            /////////////////////
+            /// Method to Run ///
+            /////////////////////
+
+            reactor.run();
+
+            milUtils.verify(() -> {
+                ModelInferenceLogsUtils.doModelIsRegistered(engineId);
+
+                ModelInferenceLogsUtils.doCreateNewAgent(engineId, engineName, null, "", "tokenId");
+
+                ModelInferenceLogsUtils.doCheckRoomExists(insightId);
+
+                ModelInferenceLogsUtils.doCreateNewConversation(
+                        insightId,
+                        "full prompt",
+                        null,
+                        "userId",
+                        userEmail,
+                        "tokenUsername",
+                        "",
+                        engineId,
+                        true,
+                        projectId,
+                        "porjectName");
+
+                ModelInferenceLogsUtils.setRoomContext(insightId, "userId", "userUsername");
+
+                ModelInferenceLogsUtils.doRecordMessage(
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("INPUT"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
+
+                ModelInferenceLogsUtils.doRecordMessage(
+                        eq("messageId"),
+                        eq("transactionId"),
+                        eq("RESPONSE"),
+                        eq("full prompt"),
+                        eq("method"),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Integer.class),
+                        any(Double.class),
+                        any(ZonedDateTime.class),
+                        eq(engineId),
+                        eq(insightId),
+                        eq(sessionId),
+                        eq(insightId), // room id
+                        eq("userId"),
+                        eq("userUserName"),
+                        eq(userEmail));
             });
         }
 
