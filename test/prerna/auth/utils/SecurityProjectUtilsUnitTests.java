@@ -1895,7 +1895,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         User user = UnitTestSecurityAuthUtils.createUser("admin", true);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencies("testProjectId");
+        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencies("testProjectId", true);
         assertNotNull(deps);
         assertTrue(deps.isEmpty());
     }
@@ -1905,7 +1905,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         User user = UnitTestSecurityAuthUtils.createUser("admin", true);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencyDetails("testProjectId");
+        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencyDetails("testProjectId", false);
         assertNotNull(deps);
         assertTrue(deps.isEmpty());
     }
