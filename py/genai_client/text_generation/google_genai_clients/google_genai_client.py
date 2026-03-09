@@ -25,21 +25,6 @@ from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
 
 
-class UsageMetadata(BaseModel):
-    candidates_token_count: int
-    prompt_token_count: int
-    thoughts_token_count: int
-    cached_content_token_count: int
-
-
-class StreamingResponse(BaseModel):
-    text: str
-    usage_metadata: Optional[UsageMetadata] = None
-
-    class Config:
-        arbitrary_types_allowed = True
-
-
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
     client: GoogleGenAIClient
 

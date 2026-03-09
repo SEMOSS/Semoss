@@ -34,7 +34,6 @@ class AbstractModelEngineResponse(BaseModel):
     )
     usage_map: Optional[Any] = Field(default=None, serialization_alias="providerUsageMap")
     
-    # TODO: find a better way to do this
     @field_serializer('usage_map')
     def serialize_usage_map(self, value: Any, _info):
         """Convert arbitrary usage objects to dict for serialization"""
