@@ -74,6 +74,9 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 						throw new IllegalArgumentException("Project id = '" + eId + "' does not exist");
 					}
 				}
+				if (eId.equals(projectId)) {
+					throw new IllegalArgumentException("Cannot add current project as a dependency");
+				}
 				Map<String, Object> dependencyEntry = new HashMap<>();
 				dependencyEntry.put("ENGINEID", eId);
 				dependencyEntry.put("ENGINETYPE", eType);
