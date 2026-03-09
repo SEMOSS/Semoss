@@ -955,7 +955,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             # Handle empty code
             if not code.strip():
-                return '""', False
+                return '""', False, False
 
             parsed_code = ast.parse(code)
 
@@ -976,7 +976,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # Evaluate print arguments to be the return value of this function
                 print_args = last_node.value.args
                 if len(print_args) == 1:
-                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                    return eval(ast.unparse(print_args[0]), insight_globals), False, False
                 else:
                     # Return a tuple of evaluated arguments
                     return (
