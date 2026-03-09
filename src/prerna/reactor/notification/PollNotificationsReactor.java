@@ -13,7 +13,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class PollNotificationReactor extends AbstractReactor {
+public class PollNotificationsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
