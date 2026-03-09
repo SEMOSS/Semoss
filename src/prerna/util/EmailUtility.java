@@ -47,8 +47,11 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -56,6 +59,39 @@ import prerna.usertracking.UserTrackingUtils;
 public class EmailUtility {
 
 	private static final Logger logger = LogManager.getLogger(EmailUtility.class);
+
+	private static final String PROJECT_ACCESS_APPROVAL_TEMPLATE = "projectAccessApproval.html";
+	private static final String ENGINE_ACCESS_APPROVAL_TEMPLATE = "engineAccessApproval.html";
+	private static final String SMSS_UPDATE_TEMPLATE = "smssFileUpdate.html";
+	private static final String PROJECT_ACCESS_REQUEST_TEMPLATE = "requestProject.html";
+	private static final String ENGINE_ACCESS_REQUEST_TEMPLATE = "requestEngine.html";
+	private static final String INSIGHT_ACCESS_REQUEST_TEMPLATE = "requestInsight.html";
+
+	private static final String PROJECT_ACCESS_APPROVAL_SUBJECT = "Project Access Request";
+	private static final String ENGINE_ACCESS_APPROVAL_SUBJECT = "Engine Access Request";
+	private static final String PROJECT_SMSS_UPDATE_SUBJECT = "Project SMSS File Updated";
+	private static final String ENGINE_SMSS_UPDATE_SUBJECT = "Engine SMSS File Updated";
+	private static final String PROJECT_ACCESS_REQUEST_SUBJECT = "Project Access Request";
+	private static final String ENGINE_ACCESS_REQUEST_SUBJECT = "Database Access Request";
+	private static final String INSIGHT_ACCESS_REQUEST_SUBJECT = "Insight Access Request";
+
+	private static final String PROJECT_NAME_REPLACEMENT = "$projectName$";
+	private static final String ENGINE_NAME_REPLACEMENT = "$engineName$";
+	private static final String INSIGHT_NAME_REPLACEMENT = "$insightName$";
+	private static final String ENGINE_TYPE_REPLACEMENT = "$engineType$";
+	private static final String PERMISSION_REPLACEMENT = "$permission$";
+	private static final String USER_NAME_REPLACEMENT = "$userName$";
+	private static final String USER_EMAIL_REPLACEMENT = "$userEmail$";
+	private static final String REQUEST_REASON_REPLACEMENT = "$requestReason$";
+	private static final String ACTION_CREATEDBY_USERNAME_REPLACEMENT = "$actionCreatedBy$";
+	private static final String ENGINE_BLOCK_REPLACEMENT = "$engineBlock$";
+	private static final String PROJECT_BLOCK_REPLACEMENT = "$projectBlock$";
+
+	private static final String DEFAULT_REQUEST_REASON = "I'd like access, please.";
+
+	public enum RESOURCE_TYPE {
+		PROJECT, ENGINE
+	}
 
 	/**
 	 * 
@@ -205,196 +241,284 @@ public class EmailUtility {
 	}
 
 	/**
-	 * Creates email template and send email notification for smss file update
+	 * Creates access request email and sends notification for project/engine
+	 * resources.
 	 * 
-	 * @param member
-	 * @param templateName
-	 * @param engineId
-	 * @param projectId
-	 * @param subject
+	 * @param requestingUser
+	 * @param resourceId
+	 * @param requestedPermission
+	 * @param requestComment
+	 * @param accessRequestType
 	 */
-	public static void sendEngineSmssUpdateEmail(User member, String templateName, String engineId, String subject) {
-		if (SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
-			String template = getTemplateString(templateName);
-
-			if (template == null || template.isEmpty()) {
-				return;
-			}
-
-			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
-			Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-
-			Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-			emailReplacements.put("$actionCreatedBy$", createdBy);
-			if (engineId != null && !engineId.isEmpty()) {
-				List<String> engineOwners = SecurityEngineUtils.getEngineOwners(engineId);
-				if (engineOwners == null || engineOwners.isEmpty()) {
-					return;
-				}
-				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-				String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
-
-				// Prepare engine block text
-				String engineBlock = "The SMSS file of the <strong>" + engineType + "</strong> engine <strong>"
-						+ engineName + "</strong> has been updated by <strong>" + createdBy + "</strong>.";
-
-				emailReplacements.put("$engineBlock$", engineBlock);
-
-				// Hide project section
-				emailReplacements.put("$projectBlock$", "");
-				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-				EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
-						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
-				return;
-			}
+	public static void sendAccessRequestEmailNotification(User requestingUser, String resourceId,
+			String requestedPermission, String requestComment, RESOURCE_TYPE accessRequestType) {
+		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+			return;
 		}
+
+		if (resourceId == null || resourceId.isEmpty()) {
+			return;
+		}
+
+		final String templateName;
+		final String subject;
+		switch (accessRequestType) {
+		case PROJECT:
+			templateName = PROJECT_ACCESS_REQUEST_TEMPLATE;
+			subject = PROJECT_ACCESS_REQUEST_SUBJECT;
+			break;
+		case ENGINE:
+			templateName = ENGINE_ACCESS_REQUEST_TEMPLATE;
+			subject = ENGINE_ACCESS_REQUEST_SUBJECT;
+			break;
+		default:
+			return;
+		}
+
+		String template = getTemplateString(templateName);
+		if (template == null || template.isEmpty()) {
+			return;
+		}
+
+		AccessToken token = requestingUser.getAccessToken(requestingUser.getPrimaryLogin());
+		String userName = token.getName() != null ? token.getName() : "";
+		String userEmail = token.getEmail() != null ? token.getEmail() : "";
+
+		String permission = requestedPermission;
+		if (permission != null && permission.length() == 1) {
+			permission = AccessPermissionEnum.getPermissionValueById(permission);
+		}
+		if (requestComment == null || requestComment.isEmpty()) {
+			requestComment = DEFAULT_REQUEST_REASON;
+		}
+
+		Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+		emailReplacements.put(PERMISSION_REPLACEMENT, permission);
+		emailReplacements.put(USER_NAME_REPLACEMENT, userName);
+		emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+		emailReplacements.put(REQUEST_REASON_REPLACEMENT, requestComment);
+
+		List<String> recipients;
+		if (accessRequestType == RESOURCE_TYPE.PROJECT) {
+			recipients = SecurityProjectUtils.getProjectOwners(resourceId);
+			if (recipients == null || recipients.isEmpty()) {
+				return;
+			}
+			String projectName = SecurityProjectUtils.getProjectAliasForId(resourceId);
+			emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
+		} else {
+			recipients = SecurityEngineUtils.getEngineOwners(resourceId);
+			if (recipients == null || recipients.isEmpty()) {
+				return;
+			}
+			String engineName = SecurityEngineUtils.getEngineAliasForId(resourceId);
+			emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
+		}
+
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
 	/**
-	 * Creates email template and send email notification for smss file update
+	 * Creates insight access request email and sends notification.
 	 * 
-	 * @param member
-	 * @param templateName
-	 * @param engineId
+	 * @param requestingUser
 	 * @param projectId
-	 * @param subject
+	 * @param insightId
+	 * @param requestedPermission
+	 * @param requestComment
 	 */
-	public static void sendProjectSmssUpdateEmail(User member, String templateName, String projectId, String subject) {
-		if (SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
-			String template = getTemplateString(templateName);
+	public static void sendInsightAccessRequestEmailNotification(User requestingUser, String projectId,
+			String insightId, String requestedPermission, String requestComment) {
+		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+			return;
+		}
 
-			if (template == null || template.isEmpty()) {
+		if (projectId == null || projectId.isEmpty() || insightId == null || insightId.isEmpty()) {
+			return;
+		}
+
+		String template = getTemplateString(INSIGHT_ACCESS_REQUEST_TEMPLATE);
+		if (template == null || template.isEmpty()) {
+			return;
+		}
+
+		AccessToken token = requestingUser.getAccessToken(requestingUser.getPrimaryLogin());
+		String userName = token.getName() != null ? token.getName() : "";
+		String userEmail = token.getEmail() != null ? token.getEmail() : "";
+
+		String permission = requestedPermission;
+		if (permission != null && permission.length() == 1) {
+			permission = AccessPermissionEnum.getPermissionValueById(permission);
+		}
+		if (requestComment == null || requestComment.isEmpty()) {
+			requestComment = DEFAULT_REQUEST_REASON;
+		}
+
+		List<String> recipients = SecurityInsightUtils.getInsightOwners(projectId, insightId);
+		if (recipients == null || recipients.isEmpty()) {
+			return;
+		}
+
+		String insightName = SecurityInsightUtils.getInsightAliasForId(projectId, insightId);
+		Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+		emailReplacements.put(INSIGHT_NAME_REPLACEMENT, insightName);
+		emailReplacements.put(PERMISSION_REPLACEMENT, permission);
+		emailReplacements.put(USER_NAME_REPLACEMENT, userName);
+		emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+		emailReplacements.put(REQUEST_REASON_REPLACEMENT, requestComment);
+
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+				SocialPropertiesUtil.getInstance().getSmtpSender(), INSIGHT_ACCESS_REQUEST_SUBJECT, message, true,
+				null);
+	}
+
+	/**
+	 * Creates access request approval email and sends notification for
+	 * project/engine resources.
+	 * 
+	 * @param currentUser
+	 * @param affectedUserId
+	 * @param engineId
+	 * @param affectedUserPermission
+	 * @param accessRequestType
+	 */
+	public static void sendAccessRequestApprovalEmailNotification(User currentUser, String affectedUserId,
+			String engineId, String affectedUserPermission, RESOURCE_TYPE accessRequestType) {
+		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+			return;
+		}
+
+		final String templateName;
+		final String subject;
+		switch (accessRequestType) {
+		case PROJECT:
+			templateName = PROJECT_ACCESS_APPROVAL_TEMPLATE;
+			subject = PROJECT_ACCESS_APPROVAL_SUBJECT;
+			break;
+		case ENGINE:
+			templateName = ENGINE_ACCESS_APPROVAL_TEMPLATE;
+			subject = ENGINE_ACCESS_APPROVAL_SUBJECT;
+			break;
+		default:
+			return;
+		}
+
+		String template = getTemplateString(templateName);
+		if (template == null || template.isEmpty()) {
+			return;
+		}
+
+		List<Map<String, Object>> userInfo = SecurityUserUtils.getUserNameEmailByUserId(affectedUserId);
+		String userName = (String) userInfo.get(0).get("userName");
+		String userEmail = (String) userInfo.get(0).get("userEmail");
+		String createdBy = currentUser.getAccessToken(currentUser.getLogins().get(0)).getName();
+
+		Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+		emailReplacements.put(PERMISSION_REPLACEMENT, affectedUserPermission);
+		emailReplacements.put(USER_NAME_REPLACEMENT, userName);
+		emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
+		emailReplacements.put(ACTION_CREATEDBY_USERNAME_REPLACEMENT, createdBy);
+
+		List<String> recipients;
+		if (accessRequestType == RESOURCE_TYPE.PROJECT) {
+			recipients = SecurityProjectUtils.getProjectOwners(engineId);
+			if (recipients == null || recipients.isEmpty()) {
 				return;
 			}
-
-			String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
-			Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-
-			Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-			emailReplacements.put("$actionCreatedBy$", createdBy);
-			if (projectId != null && !projectId.isEmpty()) {
-				// project owners
-				List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
-				if (projectOwners == null || projectOwners.isEmpty()) {
-					return;
-				}
-
-				// Prepare project block text
-				String projectBlock = "The SMSS file of project <strong>" + projectId
-						+ "</strong> has been updated by <strong>" + createdBy + "</strong>.";
-
-				emailReplacements.put("$projectBlock$", projectBlock);
-
-				// Hide engine section
-				emailReplacements.put("$engineBlock$", "");
-
-				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-
-				EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
-						SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
+			String projectName = SecurityProjectUtils.getProjectAliasForId(engineId);
+			emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
+		} else {
+			recipients = SecurityEngineUtils.getEngineOwners(engineId);
+			if (recipients == null || recipients.isEmpty()) {
+				return;
 			}
+			String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+			String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
+			emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
+			emailReplacements.put(ENGINE_TYPE_REPLACEMENT, engineType);
 		}
+
+		if (!recipients.contains(userEmail)) {
+			recipients.add(userEmail);
+		}
+
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
 	/**
-	 * Creates email template and send email notification for project
+	 * Creates SMSS update email and sends notification for project/engine
+	 * resources.
 	 * 
-	 * @param user
-	 * @param userId
-	 * @param emailTemplate
-	 * @param projectId
-	 * @param permission
-	 * @param emailSubject
-	 * @return
-	 */
-	public static void sendEmailProjectNotification(User member, String userId, String templateName, String projectId,
-			String permission, String subject) {
-		if (SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
-			String template = getTemplateString(templateName);
-
-			if (template != null && !template.isEmpty()) {
-				List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
-				List<Map<String, Object>> userInfo = SecurityUserUtils.getUserNameEmailByUserId(userId);
-				String userName = (String) userInfo.get(0).get("userName");
-				String userEmail = (String) userInfo.get(0).get("userEmail");
-				String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
-
-				if (!projectOwners.contains(userEmail)) {
-					projectOwners.add(userEmail);
-				}
-
-				if (projectOwners != null && !projectOwners.isEmpty()) {
-					String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-					Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-					final String PROJECT_NAME_REPLACEMENT = "$projectName$";
-					final String PERMISSION_REPLACEMENT = "$permission$";
-					final String USER_NAME_REPLACEMENT = "$userName$";
-					final String USER_EMAIL_REPLACEMENT = "$userEmail$";
-					final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
-					Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-					emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
-					emailReplacements.put(PERMISSION_REPLACEMENT, permission);
-					emailReplacements.put(USER_NAME_REPLACEMENT, userName);
-					emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
-					emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
-					String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-					EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
-							SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Creates email template and send email notification for engine
-	 * 
-	 * @param user
-	 * @param userId
-	 * @param emailTemplate
+	 * @param currentUser
 	 * @param engineId
-	 * @param permission
-	 * @param emailSubject
-	 * @return
+	 * @param accessRequestType
 	 */
-	public static void sendEmailEngineNotification(User member, String userId, String templateName, String engineId,
-			String permission, String subject) {
-		if (SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
-			String template = getTemplateString(templateName);
-
-			if (template != null && !template.isEmpty()) {
-				List<String> engineOwners = SecurityEngineUtils.getEngineOwners(engineId);
-				List<Map<String, Object>> userInfo = SecurityUserUtils.getUserNameEmailByUserId(userId);
-				String userName = (String) userInfo.get(0).get("userName");
-				String userEmail = (String) userInfo.get(0).get("userEmail");
-				String createdBy = member.getAccessToken(member.getLogins().get(0)).getName();
-				String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
-
-				if (!engineOwners.contains(userEmail)) {
-					engineOwners.add(userEmail);
-				}
-
-				if (engineOwners != null && !engineOwners.isEmpty()) {
-					String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-					Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-					final String ENGINE_NAME_REPLACEMENT = "$engineName$";
-					final String ENGINE_TYPE_REPLACEMENT = "$engineType$";
-					final String PERMISSION_REPLACEMENT = "$permission$";
-					final String USER_NAME_REPLACEMENT = "$userName$";
-					final String USER_EMAIL_REPLACEMENT = "$userEmail$";
-					final String ACTION_CREATEDBY_USERNAME = "$actionCreatedBy$";
-					Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-					emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
-					emailReplacements.put(ENGINE_TYPE_REPLACEMENT, engineType);
-					emailReplacements.put(PERMISSION_REPLACEMENT, permission);
-					emailReplacements.put(USER_NAME_REPLACEMENT, userName);
-					emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
-					emailReplacements.put(ACTION_CREATEDBY_USERNAME, createdBy);
-					String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-					EmailUtility.sendEmail(emailSession, engineOwners.toArray(new String[0]), null, null,
-							SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
-				}
-			}
+	public static void sendSmssUpdateEmailNotification(User currentUser, String engineId,
+			RESOURCE_TYPE accessRequestType) {
+		if (!SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
+			return;
 		}
+
+		if (engineId == null || engineId.isEmpty()) {
+			return;
+		}
+
+		final String subject;
+		switch (accessRequestType) {
+		case PROJECT:
+			subject = PROJECT_SMSS_UPDATE_SUBJECT;
+			break;
+		case ENGINE:
+			subject = ENGINE_SMSS_UPDATE_SUBJECT;
+			break;
+		default:
+			return;
+		}
+
+		String template = getTemplateString(SMSS_UPDATE_TEMPLATE);
+		if (template == null || template.isEmpty()) {
+			return;
+		}
+
+		String createdBy = currentUser.getAccessToken(currentUser.getLogins().get(0)).getName();
+		Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
+		emailReplacements.put(ACTION_CREATEDBY_USERNAME_REPLACEMENT, createdBy);
+
+		List<String> recipients;
+		if (accessRequestType == RESOURCE_TYPE.PROJECT) {
+			recipients = SecurityProjectUtils.getProjectOwners(engineId);
+			if (recipients == null || recipients.isEmpty()) {
+				return;
+			}
+			String projectBlock = "The SMSS file of project <strong>" + engineId
+					+ "</strong> has been updated by <strong>" + createdBy + "</strong>.";
+			emailReplacements.put(PROJECT_BLOCK_REPLACEMENT, projectBlock);
+			emailReplacements.put(ENGINE_BLOCK_REPLACEMENT, "");
+		} else {
+			recipients = SecurityEngineUtils.getEngineOwners(engineId);
+			if (recipients == null || recipients.isEmpty()) {
+				return;
+			}
+			String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+			String engineType = String.valueOf(SecurityEngineUtils.getEngineType(engineId)).toLowerCase();
+			String engineBlock = "The SMSS file of the <strong>" + engineType + "</strong> engine <strong>" + engineName
+					+ "</strong> has been updated by <strong>" + createdBy + "</strong>.";
+			emailReplacements.put(ENGINE_BLOCK_REPLACEMENT, engineBlock);
+			emailReplacements.put(PROJECT_BLOCK_REPLACEMENT, "");
+		}
+
+		Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
+		String message = EmailUtility.fillEmailComponents(template, emailReplacements);
+		EmailUtility.sendEmail(emailSession, recipients.toArray(new String[0]), null, null,
+				SocialPropertiesUtil.getInstance().getSmtpSender(), subject, message, true, null);
 	}
 
 	/**
@@ -403,7 +527,7 @@ public class EmailUtility {
 	 * @param emailTemplate
 	 * @return
 	 */
-	public static String getTemplateString(String templateName) {
+	private static String getTemplateString(String templateName) {
 		String template = null;
 		String templatePath = Utility.getDIHelperProperty(Constants.EMAIL_TEMPLATES);
 		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {

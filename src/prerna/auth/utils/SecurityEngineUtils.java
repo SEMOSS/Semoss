@@ -557,9 +557,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 							requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
 							engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"));
 					// Adding email notification
-					EmailUtility.sendEmailEngineNotification(user, requests.get(i).get("userid"),
-							"engineAccessApproval.html", engineId, requests.get(i).get("permission"),
-							"SEMOSS - Engine Access Request");
+					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
+							engineId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.ENGINE);
 				}
 			}
 		} catch (Exception e) {

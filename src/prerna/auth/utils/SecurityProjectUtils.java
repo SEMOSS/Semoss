@@ -4059,9 +4059,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
 							requests.get(i).get("permission"));
 					// Adding email notification
-					EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
-							"projectAccessApproval.html", projectId, requests.get(i).get("permission"),
-							"SEMOSS - Project Access Request");
+					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
+							projectId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.PROJECT);
 				}
 			}
 		} catch (Exception e) {

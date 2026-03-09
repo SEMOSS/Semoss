@@ -27,13 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.engine;
 
-import java.util.List;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import jakarta.mail.Session;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -48,12 +41,9 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EmailUtility;
 import prerna.util.NotificationConstants;
-import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class RequestEngineReactor extends AbstractReactor {
-
-	private static final String REQUEST_ENGINE_EMAIL_TEMPLATE = "requestEngine.html";
-	private static final Logger classLogger = LogManager.getLogger(RequestEngineReactor.class);
 
 	public RequestEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PERMISSION.getKey(),
@@ -112,60 +102,20 @@ public class RequestEngineReactor extends AbstractReactor {
 			String userType = token.getProvider().toString();
 			SecurityEngineUtils.setUserAccessRequest(userId, userType, engineId, requestComment, requestPermission,
 					user);
-			sendEmail(user, engineId, permission, requestComment);
 
-			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, userType, engineId,
-					NotificationConstants.Type.USER_REQUEST, engineType, NotificationConstants.Priority.HIGH, null,
-					permission);
+			if (Utility.isNotificationDatabaseEnabled()) {
+				String priority = AccessPermissionEnum.isOwner(requestPermission) ? NotificationConstants.Priority.HIGH
+						: NotificationConstants.Priority.MEDIUM;
+				NotificationDbUtils.createNotification(user, userId, userType, engineId,
+						NotificationConstants.Type.USER_REQUEST, engineType, priority, null, permission);
+
+				EmailUtility.sendAccessRequestEmailNotification(user, engineId, permission, requestComment,
+						EmailUtility.RESOURCE_TYPE.ENGINE);
+			}
 			return NounMetadata.getSuccessNounMessage("Successfully requested access to engine '" + engineId + "'");
 		}
 
 		return NounMetadata.getErrorNounMessage("Engine '" + engineId + "' is not requestable");
-	}
-
-	/**
-	 * 
-	 * @param user
-	 * @param databaseId
-	 * @param permission
-	 */
-	private void sendEmail(User user, String databaseId, String permission, String requestComment) {
-		if (SocialPropertiesUtil.getInstance().isEmailSessionActive()) {
-			String template = EmailUtility.getTemplateString(REQUEST_ENGINE_EMAIL_TEMPLATE);
-			if (template != null && !template.isEmpty()) {
-				List<String> databaseOwners = SecurityEngineUtils.getEngineOwners(databaseId);
-				AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-				String userName = token.getName() != null ? token.getName() : "";
-				String userEmail = token.getEmail() != null ? token.getEmail() : "";
-				// clean up permission
-				if (permission.length() == 1) {
-					permission = AccessPermissionEnum.getPermissionValueById(permission);
-				}
-				if (requestComment == null || requestComment.isEmpty()) {
-					requestComment = "I'd like access, please.";
-				}
-				if (databaseOwners != null && !databaseOwners.isEmpty()) {
-					String engineName = SecurityEngineUtils.getEngineAliasForId(databaseId);
-					Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-					final String ENGINE_NAME_REPLACEMENT = "$engineName$";
-					final String PERMISSION_REPLACEMENT = "$permission$";
-					final String USER_NAME_REPLACEMENT = "$userName$";
-					final String USER_EMAIL_REPLACEMENT = "$userEmail$";
-					final String REQUEST_REASON_COMMENT = "$requestReason$";
-					Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-					emailReplacements.put(ENGINE_NAME_REPLACEMENT, engineName);
-					emailReplacements.put(PERMISSION_REPLACEMENT, permission);
-					emailReplacements.put(USER_NAME_REPLACEMENT, userName);
-					emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
-					emailReplacements.put(REQUEST_REASON_COMMENT, requestComment);
-					String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-					EmailUtility.sendEmail(emailSession, databaseOwners.toArray(new String[0]), null, null,
-							SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Database Access Request",
-							message, true, null);
-				}
-			}
-		}
 	}
 
 }

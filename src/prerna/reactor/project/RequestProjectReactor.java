@@ -27,16 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import jakarta.mail.Session;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -49,16 +39,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.NotificationConstants;
-import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class RequestProjectReactor extends AbstractReactor {
-	private static final String REQUEST_PROJECT_EMAIL_TEMPLATE = "requestProject.html";
-	private static final Logger classLogger = LogManager.getLogger(RequestProjectReactor.class);
-
 	public RequestProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey(),
 				ReactorKeysEnum.COMMENT_KEY.getKey() };
@@ -114,73 +99,21 @@ public class RequestProjectReactor extends AbstractReactor {
 			String userType = token.getProvider().toString();
 			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission,
 					user);
-			sendEmail(user, projectId, permission, requestComment);
 
-			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, userType, projectId,
-					NotificationConstants.Type.USER_REQUEST, NotificationConstants.APP_CATALOG,
-					NotificationConstants.Priority.HIGH, null, permission);
+			if (Utility.isNotificationDatabaseEnabled()) {
+				String priority = AccessPermissionEnum.isOwner(requestPermission) ? NotificationConstants.Priority.HIGH
+						: NotificationConstants.Priority.MEDIUM;
+				NotificationDbUtils.createNotification(user, userId, userType, projectId,
+						NotificationConstants.Type.USER_REQUEST, NotificationConstants.APP_CATALOG, priority, null,
+						permission);
 
-			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
+				EmailUtility.sendAccessRequestEmailNotification(user, projectId, permission, requestComment,
+						EmailUtility.RESOURCE_TYPE.PROJECT);
+			}
+			return NounMetadata.getSuccessNounMessage("Successfully requested the project '" + projectId + "'");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the project");
 		}
-	}
-
-	private void sendEmail(User user, String projectId, String permission, String requestComment) {
-		String template = getTemplateString();
-		if (template != null && !template.isEmpty()) {
-			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
-			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-			String userName = token.getName() != null ? token.getName() : "";
-			String userEmail = token.getEmail() != null ? token.getEmail() : "";
-			// clean up permission
-			if (permission.length() == 1) {
-				permission = AccessPermissionEnum.getPermissionValueById(permission);
-			}
-			if (requestComment == null || requestComment.isEmpty()) {
-				requestComment = "I'd like access, please.";
-			}
-			if (projectOwners != null && !projectOwners.isEmpty()) {
-				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-				Session emailSession = SocialPropertiesUtil.getInstance().getEmailSession();
-				final String PROJECT_NAME_REPLACEMENT = "$projectName$";
-				final String PERMISSION_REPLACEMENT = "$permission$";
-				final String USER_NAME_REPLACEMENT = "$userName$";
-				final String USER_EMAIL_REPLACEMENT = "$userEmail$";
-				final String REQUEST_REASON_COMMENT = "$requestReason$";
-				Map<String, String> emailReplacements = SocialPropertiesUtil.getInstance().getEmailStaticProps();
-				emailReplacements.put(PROJECT_NAME_REPLACEMENT, projectName);
-				emailReplacements.put(PERMISSION_REPLACEMENT, permission);
-				emailReplacements.put(USER_NAME_REPLACEMENT, userName);
-				emailReplacements.put(USER_EMAIL_REPLACEMENT, userEmail);
-				emailReplacements.put(REQUEST_REASON_COMMENT, requestComment);
-				String message = EmailUtility.fillEmailComponents(template, emailReplacements);
-				EmailUtility.sendEmail(emailSession, projectOwners.toArray(new String[0]), null, null,
-						SocialPropertiesUtil.getInstance().getSmtpSender(), "SEMOSS - Project Access Request", message,
-						true, null);
-			}
-		}
-
-	}
-
-	private String getTemplateString() {
-		String template = null;
-		String templatePath = DIHelper.getInstance().getProperty(Constants.EMAIL_TEMPLATES);
-		if (templatePath.endsWith("\\") || templatePath.endsWith("/")) {
-			templatePath += REQUEST_PROJECT_EMAIL_TEMPLATE;
-		} else {
-			templatePath += "/" + REQUEST_PROJECT_EMAIL_TEMPLATE;
-		}
-		File templateFile = new File(templatePath);
-		if (templateFile.exists() && templateFile.isFile()) {
-			try {
-				template = FileUtils.readFileToString(templateFile);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return template;
 	}
 
 }
