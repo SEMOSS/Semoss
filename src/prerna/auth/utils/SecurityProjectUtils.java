@@ -1442,10 +1442,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			// Check notificationDb (conditional)
 			if (Utility.isNotificationDatabaseEnabled()) {
-//			String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserProjectPermission(existingUserId, projectId));
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
 				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId,
-						NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG,
+						NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
 						NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
 			}
 		} catch (Exception e) {
@@ -1543,10 +1542,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
 					NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId,
-							NotificationConstants.Type.PERMISSION_CHANGE, Constants.APP_CATALOG,
+							NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
 							NotificationConstants.Priority.MEDIUM, existingPermission,
 							requests.get(i).get("permission"));
-
 				}
 			}
 			ps.executeBatch();
@@ -4058,7 +4056,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				for (int i = 0; i < requests.size(); i++) {
 					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
 							requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,
-							Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
 							requests.get(i).get("permission"));
 					// Adding email notification
 					EmailUtility.sendEmailProjectNotification(user, requests.get(i).get("userid"),
@@ -4131,7 +4129,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
 					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
 							(String) deniedUserDetails.get(i).get("type"), projectId,
-							NotificationConstants.Type.REQUEST_DENIAL, Constants.APP_CATALOG,
+							NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
 							NotificationConstants.Priority.MEDIUM, null, permission);
 				}
 			}
@@ -4217,7 +4215,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				for (int i = 0; i < permission.size(); i++) {
 					NotificationDbUtils.createNotification(user, permission.get(i).get("userid"),
 							permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION,
-							Constants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
 							permission.get(i).get("permission"));
 				}
 			}
@@ -4305,8 +4303,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all authors for a specific project (for app-related notifications)
+	 * 
+	 * @param projectId
+	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectAuthors(String projectId, String userId) {
+	public static List<Map<String, Object>> getProjectAuthors(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
@@ -4315,7 +4316,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-
 	}
 
 	/**
@@ -4342,4 +4342,5 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		return projectMap;
 	}
+
 }

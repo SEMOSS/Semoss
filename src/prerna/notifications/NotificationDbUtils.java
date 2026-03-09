@@ -11,11 +11,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+
+import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -29,6 +30,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -72,7 +74,8 @@ public class NotificationDbUtils {
 			// notification
 			colNames = new String[] { "NOTIFICATIONID", "RECIPIENTID", "RECIPIENTTYPE", "NOTIFICATIONTITLE", "MESSAGE",
 					"ACTIONTYPE", "ACTIONTARGET", "ISREAD", "PRIORITY", "NOTIFICATIONTYPE", "CATALOGID", "CREATEDBY",
-					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USERTYPE", "USEREXISTINGROLE", "USERNEWROLE" };
+					"CREATEDDATE", "READDATE", "NOTIFICATIONSOURCE", "USERID", "USERTYPE", "USEREXISTINGROLE",
+					"USERNEWROLE" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
 					"VARCHAR(50)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(20)", "VARCHAR(255)", "VARCHAR(255)",
 					"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
@@ -144,28 +147,27 @@ public class NotificationDbUtils {
 	/**
 	 * Add notification into database
 	 * 
-	 * @param createdUser          - The logged-in user performing the action
-	 * @param initiatorUserId     - The user whose role or permission changed
+	 * @param loggedInUser             - The logged-in user performing the action
+	 * @param affectedUserId           - The user whose role or permission changed
 	 * @param catalogId
-	 * @param notificationType   - e.g. USER_REQUEST, REQUEST_APPROVAL
+	 * @param notificationType         - e.g. USER_REQUEST, REQUEST_APPROVAL
 	 * @param notificationSource
-	 * @param priority           - e.g. HIGH, MEDIUM, LOW
-	 * @param userExistingRole
-	 * @param userNewRole
+	 * @param priority                 - e.g. HIGH, MEDIUM, LOW
+	 * @param affectedUserPreviousRole
+	 * @param affectedUserNewRole
 	 */
-	public static void createNotification(User createdUser, String initiatorUserId, String initiatorUserType, String catalogId,
-			String notificationType, String notificationSource, String priority, String userExistingRole,
-			String userNewRole) {
+	public static void createNotification(User loggedInUser, String affectedUserId, String affectedUserType,
+			String catalogId, String notificationType, String notificationSource, String priority,
+			String affectedUserPreviousRole, String affectedUserNewRole) {
 		// Fetch all authors based on source
-		List<Map<String, Object>> authors = Constants.APP_CATALOG.equalsIgnoreCase(notificationSource)
-				? SecurityProjectUtils.getProjectAuthors(catalogId, initiatorUserId)
-				: SecurityEngineUtils.getEngineAuthors(catalogId, initiatorUserId);
+		List<Map<String, Object>> authors = NotificationConstants.APP_CATALOG.equalsIgnoreCase(notificationSource)
+				? SecurityProjectUtils.getProjectAuthors(catalogId)
+				: SecurityEngineUtils.getEngineAuthors(catalogId);
 
 		// Check if initiator already present
 		boolean initiatorFound = false;
 
-		if (initiatorUserId != null && authors != null && !authors.isEmpty()) {
-
+		if (affectedUserId != null && authors != null && !authors.isEmpty()) {
 			for (int i = 0; i < authors.size(); i++) {
 				Map<String, Object> user = authors.get(i);
 				if (user == null) {
@@ -176,39 +178,39 @@ public class NotificationDbUtils {
 					continue;
 				}
 
-				if (initiatorUserId.equals(userId)) {
+				if (affectedUserId.equals(userId)) {
 					initiatorFound = true;
 					break;
 				}
 			}
 		}
 
-		if (!initiatorFound && initiatorUserId != null) {
+		if (!initiatorFound && affectedUserId != null) {
 			Map<String, Object> initiatorMap = new HashMap<>();
-			initiatorMap.put("userId", initiatorUserId);
-			initiatorMap.put("userType", initiatorUserType);
+			initiatorMap.put("userId", affectedUserId);
+			initiatorMap.put("userType", affectedUserType);
 			authors.add(initiatorMap);
 		}
-	    String createdBy = createdUser.getAccessToken(createdUser.getLogins().get(0)).getId();
+
+		String createdBy = loggedInUser.getAccessToken(loggedInUser.getLogins().get(0)).getId();
 		Timestamp createdDate = Utility.getCurrentSqlTimestampUTC();
-		String actionTarget = "In-app";
-		
+
 		for (Map<String, Object> author : authors) {
 			String recipientId = (String) author.get("userId");
 			String recipientType = (String) author.get("userType");
-			
+
 			String query = "INSERT INTO NOTIFICATION (NOTIFICATIONID,RECIPIENTID,RECIPIENTTYPE,NOTIFICATIONTITLE,MESSAGE,ACTIONTYPE,ACTIONTARGET,ISREAD,PRIORITY,NOTIFICATIONTYPE,CATALOGID,CREATEDBY,CREATEDDATE,READDATE,NOTIFICATIONSOURCE,USERID,USERTYPE,USEREXISTINGROLE,USERNEWROLE) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 			PreparedStatement ps = null;
 			try {
 				ps = notificationDb.getPreparedStatement(query);
 				int parameterIndex = 1;
-				ps.setString(parameterIndex++, UUID.randomUUID().toString()); // notificationId
+				ps.setString(parameterIndex++, GUID.v7().toUUID().toString()); // notificationId
 				ps.setString(parameterIndex++, recipientId);
 				ps.setString(parameterIndex++, recipientType);
 				ps.setString(parameterIndex++, "NOTIFICATION"); // notificationTitle
 				ps.setString(parameterIndex++, null); // message
 				ps.setString(parameterIndex++, "NEW"); // actionType
-				ps.setString(parameterIndex++, actionTarget);
+				ps.setString(parameterIndex++, "IN-APP");
 				ps.setBoolean(parameterIndex++, false); // isRead
 				ps.setString(parameterIndex++, priority);
 				ps.setString(parameterIndex++, notificationType);
@@ -217,10 +219,10 @@ public class NotificationDbUtils {
 				ps.setTimestamp(parameterIndex++, createdDate);
 				ps.setTimestamp(parameterIndex++, null); // readDate
 				ps.setString(parameterIndex++, notificationSource);
-				ps.setString(parameterIndex++, initiatorUserId);
-				ps.setString(parameterIndex++, initiatorUserType);//userType
-				ps.setString(parameterIndex++, userExistingRole);
-				ps.setString(parameterIndex++, userNewRole);
+				ps.setString(parameterIndex++, affectedUserId);
+				ps.setString(parameterIndex++, affectedUserType);// userType
+				ps.setString(parameterIndex++, affectedUserPreviousRole);
+				ps.setString(parameterIndex++, affectedUserNewRole);
 
 				ps.execute();
 				if (!ps.getConnection().getAutoCommit()) {
@@ -243,10 +245,10 @@ public class NotificationDbUtils {
 	 * @return list of notifications
 	 */
 	public static List<Map<String, Object>> fetchAllNotifications(User user, String limit, String offset) {
-		 List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
-		    if (userIdAndTypeList.isEmpty()) {
-		        return new ArrayList<>();
-		    }
+		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
+		if (userIdAndTypeList.isEmpty()) {
+			return new ArrayList<>();
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__NOTIFICATIONID", "notification_id"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__RECIPIENTID", "recipient_id"));
@@ -268,7 +270,6 @@ public class NotificationDbUtils {
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__CREATEDBY", "notification_createdby"));
 		qs.addSelector(new QueryColumnSelector("NOTIFICATION__USERTYPE", "notification_usertype"));
 
-		
 		Pair<String, String> userPair = userIdAndTypeList.get(0);
 		String userId = userPair.getValue0();
 		String userType = userPair.getValue1();
@@ -311,7 +312,7 @@ public class NotificationDbUtils {
 			}
 			if (row.get("notification_createdby") != null) {
 				userIds.add(String.valueOf(row.get("notification_createdby")));
-		    }
+			}
 		}
 		// bulk fetch
 		Map<String, String> userIdToNameMap = SecurityUserUtils.getUserNamesByIds(userIds);
@@ -323,7 +324,7 @@ public class NotificationDbUtils {
 			String notificationSource = String.valueOf(row.get("notification_source")).trim();
 
 			// user name from cached map
-	        row.put("recipient_user_name", userIdToNameMap.getOrDefault((String) row.get("recipient_user_id"), "Unknown User"));
+			row.put("recipient_user_name", userIdToNameMap.getOrDefault(row.get("recipient_user_id"), "Unknown User"));
 
 			// project and engine names from cached maps
 			String projectName = projectIdToNameMap.get(catalogId);
@@ -331,7 +332,7 @@ public class NotificationDbUtils {
 
 			// final catalog name
 			String finalCatalogName;
-			if (Constants.APP_CATALOG.equalsIgnoreCase(notificationSource)) {
+			if (NotificationConstants.APP_CATALOG.equalsIgnoreCase(notificationSource)) {
 				finalCatalogName = (projectName != null && !projectName.isEmpty()) ? projectName
 						: ((engineName != null && !engineName.isEmpty()) ? engineName : null);
 			} else {
@@ -354,35 +355,35 @@ public class NotificationDbUtils {
 	public static int deleteNotification(String recipientId, String recipientType, String notificationId) {
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM NOTIFICATION WHERE ");
 		List<String> conditions = new ArrayList<>();
-	    List<Object> parameters = new ArrayList<>();
+		List<Object> parameters = new ArrayList<>();
 
-		 if (notificationId != null) {
-		        conditions.add("NOTIFICATIONID = ?");
-		        parameters.add(notificationId);
-		    } else if (recipientId != null && recipientType != null) {
-		        conditions.add("RECIPIENTID = ?");
-		        parameters.add(recipientId);
-		        conditions.add("RECIPIENTTYPE = ?");
-		        parameters.add(recipientType);
-		    } else {
-		        return 0; // nothing to delete
-		    }
+		if (notificationId != null) {
+			conditions.add("NOTIFICATIONID = ?");
+			parameters.add(notificationId);
+		} else if (recipientId != null && recipientType != null) {
+			conditions.add("RECIPIENTID = ?");
+			parameters.add(recipientId);
+			conditions.add("RECIPIENTTYPE = ?");
+			parameters.add(recipientType);
+		} else {
+			return 0; // nothing to delete
+		}
 
-		 deleteQuery.append(String.join(" AND ", conditions));
+		deleteQuery.append(String.join(" AND ", conditions));
 		PreparedStatement ps = null;
 		int deletedCount = 0;
 		try {
-			 ps = notificationDb.getPreparedStatement(deleteQuery.toString());
-		        int index = 1;
-		        for (Object param : parameters) {
-		            ps.setObject(index++, param);
-		        }
+			ps = notificationDb.getPreparedStatement(deleteQuery.toString());
+			int index = 1;
+			for (Object param : parameters) {
+				ps.setObject(index++, param);
+			}
 
-		        deletedCount = ps.executeUpdate();
+			deletedCount = ps.executeUpdate();
 
-		        if (!ps.getConnection().getAutoCommit()) {
-		            ps.getConnection().commit();
-		        }
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
 		} catch (SQLException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -459,8 +460,8 @@ public class NotificationDbUtils {
 	 */
 	public static int fetchNewNotificationCount(String recipientId, String recipientType) {
 		PreparedStatement ps = null;
-		String query = "SELECT COUNT(NOTIFICATIONID) FROM NOTIFICATION " +
-                "WHERE RECIPIENTID = ? AND RECIPIENTTYPE = ? AND ACTIONTYPE = 'NEW'";
+		String query = "SELECT COUNT(NOTIFICATIONID) FROM NOTIFICATION "
+				+ "WHERE RECIPIENTID = ? AND RECIPIENTTYPE = ? AND ACTIONTYPE = 'NEW'";
 		try {
 			ps = notificationDb.getPreparedStatement(query);
 			int parameterIndex = 1;
@@ -478,4 +479,5 @@ public class NotificationDbUtils {
 		}
 		return 0;
 	}
+
 }

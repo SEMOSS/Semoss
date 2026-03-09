@@ -13,18 +13,18 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class FetchNotificationReactor extends AbstractReactor{
+public class FetchNotificationsReactor extends AbstractReactor {
 
-	public FetchNotificationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
-		this.keyRequired = new int[] {0, 0};
+	public FetchNotificationsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey() };
+		this.keyRequired = new int[] { 0, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String limit = this.keyValue.get( ReactorKeysEnum.LIMIT.getKey());
+		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
@@ -37,18 +37,18 @@ public class FetchNotificationReactor extends AbstractReactor{
 		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
 			throwAnonymousUserError();
 		}
-		
+
 		List<Map<String, Object>> allNotifications = null;
-		   allNotifications = NotificationDbUtils.fetchAllNotifications(user, limit, offset);
-        if(!allNotifications.isEmpty()){ 
-        	NotificationDbUtils.resetNotificationActionType(user);
-        }
-		
+		allNotifications = NotificationDbUtils.fetchAllNotifications(user, limit, offset);
+		if (!allNotifications.isEmpty()) {
+			NotificationDbUtils.resetNotificationActionType(user);
+		}
+
 		return new NounMetadata(allNotifications, PixelDataType.MAP);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Fetches all the notifications for logged-in user";
+		return "Fetch all user notifications";
 	}
 }

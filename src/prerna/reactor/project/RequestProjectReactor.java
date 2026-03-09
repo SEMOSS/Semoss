@@ -60,7 +60,8 @@ public class RequestProjectReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(RequestProjectReactor.class);
 
 	public RequestProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey(),  ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PERMISSION.getKey(),
+				ReactorKeysEnum.COMMENT_KEY.getKey() };
 	}
 
 	@Override
@@ -91,28 +92,35 @@ public class RequestProjectReactor extends AbstractReactor {
 		int requestPermission = -1;
 		try {
 			requestPermission = Integer.parseInt(permission);
-		} catch(NumberFormatException ignore) {
+		} catch (NumberFormatException ignore) {
 			requestPermission = AccessPermissionEnum.getPermissionByValue(permission).getId();
 		}
-		if(currentUserPermission != null && requestPermission == currentUserPermission) {
-			throw new IllegalArgumentException("This user already has access to this project with the given permission level");
+		if (currentUserPermission != null && requestPermission == currentUserPermission) {
+			throw new IllegalArgumentException(
+					"This user already has access to this project with the given permission level");
 		}
-		
-		//check user pending permission
-		Integer currentPendingUserPermission = SecurityProjectUtils.getUserAccessRequestProjectPermission(userId, projectId);
-		if(currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
-			throw new IllegalArgumentException("This user has already requested access to this project with the given permission level");
+
+		// check user pending permission
+		Integer currentPendingUserPermission = SecurityProjectUtils.getUserAccessRequestProjectPermission(userId,
+				projectId);
+		if (currentPendingUserPermission != null && requestPermission == currentPendingUserPermission) {
+			throw new IllegalArgumentException(
+					"This user has already requested access to this project with the given permission level");
 		}
 		// checking to make sure you can request access
-		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId) || SecurityProjectUtils.userHasExplicitAccess(user, projectId);
+		boolean canRequest = SecurityProjectUtils.canRequestProject(projectId)
+				|| SecurityProjectUtils.userHasExplicitAccess(user, projectId);
 		if (canRequest) {
 			String userType = token.getProvider().toString();
-			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission, user);
+			SecurityProjectUtils.setUserAccessRequest(userId, userType, projectId, requestComment, requestPermission,
+					user);
 			sendEmail(user, projectId, permission, requestComment);
-			
+
 			// Adding Notification
-			NotificationDbUtils.createNotification(user, userId, userType, projectId, NotificationConstants.Type.USER_REQUEST, Constants.APP_CATALOG, NotificationConstants.Priority.HIGH, null, permission);
-			
+			NotificationDbUtils.createNotification(user, userId, userType, projectId,
+					NotificationConstants.Type.USER_REQUEST, NotificationConstants.APP_CATALOG,
+					NotificationConstants.Priority.HIGH, null, permission);
+
 			return NounMetadata.getSuccessNounMessage("Successfully requested the project");
 		} else {
 			return NounMetadata.getErrorNounMessage("Unable to request the project");
@@ -121,16 +129,16 @@ public class RequestProjectReactor extends AbstractReactor {
 
 	private void sendEmail(User user, String projectId, String permission, String requestComment) {
 		String template = getTemplateString();
-		if (template !=null && !template.isEmpty()) {
+		if (template != null && !template.isEmpty()) {
 			List<String> projectOwners = SecurityProjectUtils.getProjectOwners(projectId);
 			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-			String userName = token.getName() != null ? token.getName(): "";	
-			String userEmail = token.getEmail() != null ? token.getEmail(): "";	
+			String userName = token.getName() != null ? token.getName() : "";
+			String userEmail = token.getEmail() != null ? token.getEmail() : "";
 			// clean up permission
 			if (permission.length() == 1) {
 				permission = AccessPermissionEnum.getPermissionValueById(permission);
 			}
-			if(requestComment == null || requestComment.isEmpty()) {
+			if (requestComment == null || requestComment.isEmpty()) {
 				requestComment = "I'd like access, please.";
 			}
 			if (projectOwners != null && !projectOwners.isEmpty()) {

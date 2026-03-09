@@ -128,8 +128,6 @@ public enum PixelDataType {
 
 	// param values on open insight
 	PARAM_VALUES_MAP("PARAM_VALUES_MAP", ReactorKeysEnum.PARAM_VALUES_MAP),
-	CONST_LIST ("CONST_LIST", null), 	
-	
 
 	MCP_TOOL_EXECUTION("MCP_TOOL_EXECUTION", null);
 

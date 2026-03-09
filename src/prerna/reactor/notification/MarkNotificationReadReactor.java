@@ -12,29 +12,28 @@ import prerna.util.Utility;
 public class MarkNotificationReadReactor extends AbstractReactor {
 
 	public MarkNotificationReadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
+		if (this.insight.getUser() == null
+				|| (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous())) {
+			throwAnonymousUserError();
+		}
+
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
-	
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
 		NotificationDbUtils.markNotificationRead(notificationId, readAt);
-		
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates the notification as read by user";
+		return "Updates the notification as read by the user";
 	}
+
 }

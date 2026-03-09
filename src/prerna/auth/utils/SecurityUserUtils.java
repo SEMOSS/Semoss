@@ -35,7 +35,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -443,42 +442,44 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
-	
+
 	/**
 	 * Get the userName and user email by using userId
 	 * 
 	 * @param userId
 	 * @return userType
 	 */
-	public static List<Map<String,Object>> getUserNameEmailByUserId(String userId) {
+	public static List<Map<String, Object>> getUserNameEmailByUserId(String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "userName"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "userEmail"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-   /**
-    * 
-    * @param userIds
-    * @return
-    */
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return
+	 */
 	public static Map<String, String> getUserNamesByIds(Collection<String> userIds) {
-		 Map<String, String> userMap = new HashMap<>();
-		    if (userIds == null || userIds.isEmpty()) {
-		        return userMap;
-		    }
+		Map<String, String> userMap = new HashMap<>();
+		if (userIds == null || userIds.isEmpty()) {
+			return userMap;
+		}
 
-		    SelectQueryStruct qs = new SelectQueryStruct();
-		    qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
-		    qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
-		    qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
 
-		    List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		    if (resultList != null) {
-		        for (Map<String, Object> row : resultList) {
-		            userMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
-		        }
-		    }
-		    return userMap;
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				userMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return userMap;
 	}
+
 }

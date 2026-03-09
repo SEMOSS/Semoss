@@ -1149,12 +1149,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-//		    String existingPermission = AccessPermissionEnum.getPermissionValueById(getUserEnginePermission(existingUserId, engineId));
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
 				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
 						NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
 						existingPermission, newPermission);
-
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -3456,8 +3454,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get all authors for a specific engine (for engine-related notifications)
+	 * 
+	 * @param engineId
+	 * @return
 	 */
-	public static List<Map<String, Object>> getEngineAuthors(String engineId, String userId) {
+	public static List<Map<String, Object>> getEngineAuthors(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
