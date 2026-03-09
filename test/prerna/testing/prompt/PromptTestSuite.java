@@ -45,7 +45,7 @@ import org.junit.platform.suite.api.Suite;
     ListPromptReactorTests.class,
     PromptAuthorizationTests.class,
     PromptMetadataFilteringTests.class,
-    PromptMetadataValidationTests.class,
+    PromptMetadataTests.class,
     UpdatePromptReactorTests.class
 })
 public class PromptTestSuite {

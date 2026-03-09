@@ -226,7 +226,6 @@ public class PromptUtils extends AbstractPromptUtils {
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails.get("metaMap");
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
-		validateSelectedMetadata(user, userSelectedMeta);
 
 		String promptId = UUID.randomUUID().toString();
 
@@ -262,7 +261,6 @@ public class PromptUtils extends AbstractPromptUtils {
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails.get("metaMap");
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
-		validateSelectedMetadata(user, userSelectedMeta);
 
 		String promptId = (String) promptDetails.get("id");
 
@@ -273,42 +271,6 @@ public class PromptUtils extends AbstractPromptUtils {
 		updatePrompt(promptId);
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		updatePromptTags(promptId, userSelectedMeta, tags);
-	}
-
-	/**
-	 * Validates that the user has permission to use the selected metadata.
-	 * For admin users, validates that all metakeys exist in the system.
-	 * For non-admin users, validates that all selected metadata is a subset of
-	 * the user's existing metadata permissions.
-	 * 
-	 * @param user The user to validate permissions for
-	 * @param userSelectedMetadata The metadata the user wants to assign to the prompt
-	 * @throws IllegalArgumentException if validation fails
-	 */
-	private static void validateSelectedMetadata(User user, Map<String, Collection<String>> userSelectedMetadata) {
-		// Deduplicate metadata values - ensure only unique values for each key
-		for (Map.Entry<String, Collection<String>> entry : userSelectedMetadata.entrySet()) {
-			entry.setValue(new HashSet<>(entry.getValue()));
-		}
-		
-		Map<String, Collection<String>> existingMeta = user.getPrimaryLoginToken().getMeta();
-		if (SecurityAdminUtils.userIsAdmin(user)) {
-//			Admins can add prompts with any existing user metakeys using any metavalue (existent or not)
-			List<Map<String, Object>> metakeyOptions = SecurityUserUtils.getMetakeyOptions(null);
-			Set<String> userMetaKeys = userSelectedMetadata.keySet();
-			Set<String> metaKeys = new HashSet<>();
-			for (Map<String, Object> metaEntry : metakeyOptions) {
-				String metaKey = (String) metaEntry.get("metakey");
-				metaKeys.add(metaKey);
-			}
-			if (!metaKeys.containsAll(userMetaKeys)) {
-				throw new IllegalArgumentException("Meta keys not found among existing metakeys options");
-			}
-		} else {
-			if (!metaKeysIsSubset(userSelectedMetadata, existingMeta)) {
-				throw new IllegalArgumentException("Meta filters not found");
-			}
-		}
 	}
 
 	/**
