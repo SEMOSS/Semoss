@@ -3,10 +3,6 @@ import json
 
 from sympy import content
 
-import logging
-
-logger = logging.getLogger("SocketServer")
-
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -104,32 +100,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             raise ValueError(
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
-        
-    def _count_thinking_tokens(self, thinking_text: str, thinking_signature: str) -> int:
-        try:
-            payload = [{
-                    "role": "assistant",
-                    "content": [
-                        {
-                            "type": "thinking",
-                            "thinking": thinking_text,
-                            "signature": thinking_signature
-                        },
-                        {
-                            "type": "text",
-                            "text": "a",  # Empty text block to satisfy API validation
-                        }
-                    ]
-                }]
-            count_response = self.client.messages.count_tokens(
-                model=self.model_name,
-                messages=payload
-            )
-            return count_response.input_tokens
-        except Exception as e:
-            logger.info(f"Request payload: {payload}")
-            logger.error(f"Failed to count thinking tokens: {e}")
-            return None
 
     def ask_call(
         self,
@@ -215,16 +185,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 elif hasattr(content, "type") and content.type == "text":
                     response_text += content.text
 
-            thinking_tokens = None
-            if thinking_text:
-                thinking_tokens = self._count_thinking_tokens(thinking_text, thinking_signature)
-
             if response.stop_reason == "tool_use":
                 return self._parse_tools_call_response(
                     response,
                     prompt_tokens=response.usage.input_tokens,
                     response_tokens=response.usage.output_tokens,
-                    thinking_tokens=thinking_tokens,
                     cached_tokens=response.usage.cache_read_input_tokens,
                 )
             
@@ -245,7 +210,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="CHAT",
-                thinking_tokens=thinking_tokens,
                 cached_tokens=response.usage.cache_read_input_tokens,
                 usage_map=response.usage
             )
@@ -255,7 +219,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = 0, response_tokens: int = 0, thinking_tokens: Optional[int] = None, cached_tokens: Optional[int] = None
+        self, response, prompt_tokens: int = 0, response_tokens: int = 0, cached_tokens: Optional[int] = None
     ) -> AskModelEngineResponse2:
         tools_result = []
         for content in response.content:
@@ -280,7 +244,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     io="OUTPUT",
                     parts=parts,
                     messageType="CHAT",
-                    thinking_tokens=thinking_tokens,
                     cached_tokens=cached_tokens,
                     usage_map=response.usage
                 )
@@ -293,7 +256,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
             messageType="TOOL",
-            thinking_tokens=thinking_tokens,
             cached_tokens=cached_tokens,
             usage_map=response.usage
         )
@@ -542,10 +504,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             final_response += f"<sup>[{citation_index}]({url})</sup>"
                             citation_index += 1
 
-        thinking_tokens = None
-        if thinking_response:
-            thinking_tokens = self._count_thinking_tokens(thinking_response, thinking_signature)
-
         if thinking_signature and self.thinking_signature is None:
             self.thinking_signature = thinking_signature
 
@@ -644,7 +602,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         io="OUTPUT",
                         parts=parts,
                         messageType="CHAT",
-                        thinking_tokens=thinking_tokens,
                         cached_tokens=cached_tokens,
                         usage_map=usage_map
                     )
@@ -657,7 +614,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 io="OUTPUT",
                 parts=parts,
                 messageType="TOOL",
-                thinking_tokens=thinking_tokens,
                 cached_tokens=cached_tokens,
                 usage_map=usage_map
             )
@@ -670,7 +626,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             io="OUTPUT",
             parts=parts,
             messageType="CHAT",
-            thinking_tokens=thinking_tokens,
             cached_tokens=cached_tokens,
             usage_map=usage_map
         )
