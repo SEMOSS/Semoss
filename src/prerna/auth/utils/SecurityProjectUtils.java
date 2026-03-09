@@ -208,8 +208,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		Timestamp timeStamp = Utility.getCurrentSqlTimestampUTC();
 
-//		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
+		// String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT,
+		// HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
+		// IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne,
+		// query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(
@@ -234,7 +236,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
+		// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT",
+		// "==", false, PixelDataType.BOOLEAN));
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs)) {
 			while (wrapper.hasNext()) {
@@ -296,7 +299,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					// need to determine if our input is a clob
 					// and if the database allows a clob data type
 					// use the utility method generated
-//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
+					// RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps,
+					// parameterIndex++, pixelObject, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, pixelObject, parameterIndex++,
 							securityGson);
 
@@ -381,7 +385,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					// and if the database allows a clob data type
 					// use the utility method generated
 					Object metaValue = raw[2];
-//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
+					// RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps,
+					// parameterIndex++, metaValue, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, metaValue, parameterIndex++,
 							securityGson);
 
@@ -778,12 +783,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static String testUserProjectIdForAlias(User user, String potentialId) {
 		List<String> ids = new ArrayList<String>();
 
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
-//				+ "FROM PROJECTPERMISSION INNER JOIN PROJECT ON PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
-//				+ "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECTPERMISSION.USERID IN " + userFilters;
-//		
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
+		// + "FROM PROJECTPERMISSION INNER JOIN PROJECT ON
+		// PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
+		// + "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND
+		// PROJECTPERMISSION.USERID IN " + userFilters;
+		//
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
@@ -794,7 +802,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		ids = QueryExecutionUtility.flushToListString(securityDb, qs);
 		if (ids.isEmpty()) {
-//			query = "SELECT DISTINCT PROJECT.PROJECTID FROM PROJECT WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECT.GLOBAL=TRUE";
+			// query = "SELECT DISTINCT PROJECT.PROJECTID FROM PROJECT WHERE
+			// PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECT.GLOBAL=TRUE";
 
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -821,8 +830,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getProjectAliasForId(String id) {
-//		String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id +
+		// "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
@@ -1914,26 +1925,137 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get project dependencies
 	 * 
-	 * @param user
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return getProjectDependencies(projectId, false);
 	}
 
 	/**
+	 * Get project dependencies with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencies(String projectId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependenciesRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependencies
+	 * 
+	 * @param projectId
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependenciesRecursive(String projectId, Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+
+		List<Map<String, Object>> directDependencies = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependenciesRecursive(engineId, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Get project dependency details
 	 * 
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
+		return getProjectDependencyDetails(projectId, false);
+	}
+
+	/**
+	 * Get project dependency details with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsQuery(projectId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details
+	 * 
+	 * @param projectId
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsRecursive(String projectId, Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsQuery(projectId);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependencyDetailsRecursive(engineId, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Query to get project dependency details for a single project
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsQuery(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 
@@ -1983,7 +2105,194 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
+		return getProjectDependencyDetails(projectId, userId, false);
+	}
+
+	/**
+	 * Get project dependency details with user permissions and optional
+	 * subdependencies
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId,
+			boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsWithUserRecursive(projectId, userId, visited, allDependencies);
+
+			// Calculate can_view_dependencies for each dependency
+			calculateCanViewDependencies(allDependencies, userId);
+
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsWithUserQuery(projectId, userId);
+		}
+	}
+
+	/**
+	 * Calculate can_view_dependencies field for each dependency by checking if user
+	 * has view access
+	 * to all subdependencies. Works from leaf nodes up the tree.
+	 * 
+	 * @param allDependencies List of all dependencies (flat structure)
+	 * @param userId          User ID to check permissions for
+	 */
+	private static void calculateCanViewDependencies(List<Map<String, Object>> allDependencies, String userId) {
+		// Build a map of engineId -> dependency for quick lookup
+		Map<String, Map<String, Object>> dependencyMap = new HashMap<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			dependencyMap.put(engineId, dep);
+		}
+
+		// Build a map of parent -> list of children directly from allDependencies
+		// Since we already recursively fetched everything, we have all the parent-child
+		// relationships
+		Map<String, List<String>> childrenMap = new HashMap<>();
+
+		for (Map<String, Object> dep : allDependencies) {
+			String parentId = (String) dep.get("parent_id");
+			String engineId = (String) dep.get("engine_id");
+
+			// Add this engine as a child of its parent (skip self-references to prevent
+			// infinite loops)
+			if (parentId != null && !parentId.equals(engineId)) {
+				childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(engineId);
+			}
+		}
+
+		// Calculate can_view_dependencies from leaf nodes up
+		Map<String, Boolean> canViewCache = new HashMap<>();
+		Set<String> visiting = new HashSet<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			boolean canView = calculateCanViewRecursive(engineId, userId, dependencyMap, childrenMap, canViewCache,
+					visiting);
+			dep.put("can_view_dependencies", canView);
+		}
+	}
+
+	/**
+	 * Recursively calculate if user can view all subdependencies for a given engine
+	 * 
+	 * @param engineId      The engine ID to check
+	 * @param userId        The user ID
+	 * @param dependencyMap Map of engineId -> dependency data
+	 * @param childrenMap   Map of engineId -> list of child engine IDs
+	 * @param canViewCache  Cache to avoid recalculating
+	 * @param visiting      Set of engine IDs currently being processed (to detect
+	 *                      circular dependencies)
+	 * @return true if user has view access to this engine and all its
+	 *         subdependencies
+	 */
+	private static boolean calculateCanViewRecursive(String engineId, String userId,
+			Map<String, Map<String, Object>> dependencyMap,
+			Map<String, List<String>> childrenMap,
+			Map<String, Boolean> canViewCache,
+			Set<String> visiting) {
+		// Check cache first
+		if (canViewCache.containsKey(engineId)) {
+			return canViewCache.get(engineId);
+		}
+
+		// Detect circular dependency - if we're already visiting this node, there's a
+		// cycle
+		if (visiting.contains(engineId)) {
+			// Return false for circular dependencies as we cannot determine permissions
+			canViewCache.put(engineId, false);
+			return false;
+		}
+
+		Map<String, Object> dependency = dependencyMap.get(engineId);
+		if (dependency == null) {
+			canViewCache.put(engineId, false);
+			return false;
+		}
+
+		// Check if user has view permission for this engine
+		boolean hasViewPermission = false;
+		Integer permission = (Integer) dependency.get("permission");
+		Boolean isGlobal = (Boolean) dependency.get("engine_global");
+
+		// User has view permission if they have any permission or if engine is global
+		hasViewPermission = (permission != null) || (isGlobal != null && isGlobal);
+
+		// If this is a leaf node (no children), return the permission status
+		List<String> children = childrenMap.get(engineId);
+		if (children == null || children.isEmpty()) {
+			canViewCache.put(engineId, hasViewPermission);
+			return hasViewPermission;
+		}
+
+		// Mark this node as being visited to detect cycles
+		visiting.add(engineId);
+
+		try {
+			// If this has children, check all subdependencies
+			boolean allChildrenViewable = true;
+			for (String childId : children) {
+				if (!calculateCanViewRecursive(childId, userId, dependencyMap, childrenMap, canViewCache, visiting)) {
+					allChildrenViewable = false;
+					break;
+				}
+			}
+
+			// User can view dependencies if they have permission for this node AND all
+			// children are viewable
+			boolean result = hasViewPermission && allChildrenViewable;
+			canViewCache.put(engineId, result);
+			return result;
+		} finally {
+			// Remove from visiting set after processing
+			visiting.remove(engineId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details with user
+	 * permissions
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, String userId,
+			Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsWithUserQuery(projectId, userId);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependencyDetailsWithUserRecursive(engineId, userId, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Query to get project dependency details with user permissions for a single
+	 * project
+	 * 
+	 * @param projectId
+	 * @param userId
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 
@@ -3318,54 +3627,69 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 
-//	/**
-//	 * Get the list of the projects with an optional filter
-//	 * @param userId
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllProjectList(String projectFilter, String limit, String offset) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
-//		// dont forget reactors/portal information
-//		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-//		// back to the others
-//		QueryFunctionSelector fun = new QueryFunctionSelector();
-//		fun.setFunction(QueryFunctionHelper.LOWER);
-//		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-//		fun.setAlias("low_project_name");
-//		qs.addSelector(fun);
-//		if(projectFilter != null && !projectFilter.isEmpty()) { 
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-//		}
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-//		
-//		Long long_limit = -1L;
-//		Long long_offset = -1L;
-//		if(limit != null && !limit.trim().isEmpty()) {
-//			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-//		}
-//		if(offset != null && !offset.trim().isEmpty()) {
-//			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-//		}
-//		qs.setLimit(long_limit);
-//		qs.setOffSet(long_offset);
-//		
-//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//	}
+	// /**
+	// * Get the list of the projects with an optional filter
+	// * @param userId
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllProjectList(String
+	// projectFilter, String limit, String offset) {
+	// SelectQueryStruct qs = new SelectQueryStruct();
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME",
+	// "project_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME",
+	// "project_catalog_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY",
+	// "project_created_by"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE",
+	// "project_created_by_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED",
+	// "project_date_created"));
+	// // dont forget reactors/portal information
+	// qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL",
+	// "project_has_portal"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME",
+	// "project_portal_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED",
+	// "project_portal_published_date"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER",
+	// "project_published_user"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE",
+	// "project_published_user_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED",
+	// "project_reactors_compiled_date"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER",
+	// "project_reactors_compiled_user"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE",
+	// "project_reactors_compiled_user_type"));
+	// // back to the others
+	// QueryFunctionSelector fun = new QueryFunctionSelector();
+	// fun.setFunction(QueryFunctionHelper.LOWER);
+	// fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+	// fun.setAlias("low_project_name");
+	// qs.addSelector(fun);
+	// if(projectFilter != null && !projectFilter.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID",
+	// "==", projectFilter));
+	// }
+	// qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+	//
+	// Long long_limit = -1L;
+	// Long long_offset = -1L;
+	// if(limit != null && !limit.trim().isEmpty()) {
+	// long_limit = ((Number) Double.parseDouble(limit)).longValue();
+	// }
+	// if(offset != null && !offset.trim().isEmpty()) {
+	// long_offset = ((Number) Double.parseDouble(offset)).longValue();
+	// }
+	// qs.setLimit(long_limit);
+	// qs.setOffSet(long_offset);
+	//
+	// return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	// }
 
 	/**
 	 * Change the user visibility (show/hide) for a project. Without removing its
