@@ -32,7 +32,7 @@ import org.junit.platform.suite.api.Suite;
 
 /**
  * Test suite that runs all prompt-related tests.
- * Includes tests for authorization, metadata validation, filtering, and reactor functionality.
+ * Includes tests for crud operations and metadata filtering
  */
 @Suite
 @SelectClasses({

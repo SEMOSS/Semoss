@@ -66,7 +66,7 @@ import prerna.util.Utility;
 public class PromptUtils extends AbstractPromptUtils {
 
 	private static Logger classLogger = LogManager.getLogger(PromptUtils.class);
-	
+
 	private final static String PROMPT = "PROMPT";
 
 	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST, GLOBAL) "
@@ -81,17 +81,18 @@ public class PromptUtils extends AbstractPromptUtils {
 			"CREATED_BY",
 			"DATE_CREATED",
 			"IS_LATEST",
-			"GLOBAL"
-			);
+			"GLOBAL");
 
 	/**
-	 * Checks if a prompt with the specified title exists and is accessible to the user.
-	 * Queries the PROMPT table and applies user metadata filters to ensure the prompt
-	 * is visible to the requesting user based on their permissions.
+	 * Checks if a prompt with the specified title exists and is accessible to the
+	 * user.
+	 * Only returns true for prompts that are either global or created by the
+	 * requesting user.
 	 * 
 	 * @param promptTitle The title of the prompt to check for existence
-	 * @param user The user making the request, used for metadata-based access control
-	 * @return true if a prompt with the given title exists and is accessible to the user, false otherwise
+	 * @param user        The user making the request, used for access control
+	 * @return true if a prompt with the given title exists and is accessible to the
+	 *         user, false otherwise
 	 */
 	public static Boolean checkPromptTitle(String promptTitle, User user) {
 
@@ -99,20 +100,20 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addSelector(new QueryColumnSelector("PROMPT__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__TITLE", "==", promptTitle));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
-		
+
 		// Apply appropriate visibility filters based on user role
 		applyPromptVisibilityFilters(user, qs);
-		
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -125,8 +126,9 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Creates a filter that allows prompts that are either global or created by the user.
-	 * Returns an OR filter: GLOBAL = true OR CREATED_BY = userId
+	 * Creates a filter that allows prompts that are either global or created by the
+	 * user.
+	 * Returns an OR query filter: GLOBAL = true OR CREATED_BY = userId
 	 * 
 	 * @param user The user to create the filter for
 	 * @return OrQueryFilter combining global and created_by conditions
@@ -140,40 +142,46 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Applies appropriate prompt visibility filters based on user role.
-	 * - Admins: See all global prompts and prompts they created (no metadata filtering)
-	 * - Non-admins: See prompts matching their metadata that are global, plus any prompts they created
+	 * Applies the filter GLOBAL = true OR CREATED_BY = userId to the
+	 * SelectQueryStruct
 	 * 
 	 * @param user The user to apply filters for
-	 * @param qs The SelectQueryStruct to add filters to
+	 * @param qs   The SelectQueryStruct to add filters to
 	 */
 	private static void applyPromptVisibilityFilters(User user, SelectQueryStruct qs) {
 		qs.addExplicitFilter(createGlobalOrCreatedByFilter(user));
 	}
 
 	/**
-	 * Retrieves a list of prompts accessible to the user, filtered by user metadata permissions.
+	 * Retrieves a list of prompts accessible to the user, with optional filtering.
 	 * Each prompt is returned as a Map containing:
-	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED)
+	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY,
+	 * DATE_CREATED, GLOBAL)
 	 * - tags: List of String values where METAKEY equals "tag"
-	 * - metaKeys: Map<String, List<String>> containing all other metadata organized by metakey
+	 * - metaKeys: Map<String, Collection<String>> containing all other metadata
+	 * organized by metakey
 	 * 
-	 * The method applies user metadata filtering to ensure only prompts with matching metadata
-	 * values are returned.
+	 * Only returns prompts that are either global or created by the requesting
+	 * user.
 	 * 
-	 * @param user The user requesting prompts, used for metadata-based filtering
-	 * @param filters Optional GenRowFilters for additional filtering criteria
-	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs to filter by
-	 * @param limit Optional limit on the number of results returned
-	 * @param offset Optional offset for pagination
-	 * @return List of prompt maps, each containing prompt details, tags, and metadata
+	 * @param user                 The user requesting prompts, used for access
+	 *                             control
+	 * @param filters              Optional GenRowFilters for additional filtering
+	 *                             criteria
+	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs
+	 *                             to filter by
+	 * @param limit                Optional limit on the number of results returned
+	 * @param offset               Optional offset for pagination
+	 * @return List of prompt maps, each containing prompt details, tags, and
+	 *         metadata
 	 */
-	public static List<Map<String, Object>> getPrompts(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
+	public static List<Map<String, Object>> getPrompts(User user, GenRowFilters filters,
+			Map<String, Object> promptMetadataFilter, String limit, String offset) {
 		List<Map<String, Object>> promptDetails = appendPromptInfo(user, filters, promptMetadataFilter, limit, offset);
 		Map<String, Integer> listIndexPromptMapping = new HashMap<>();
 		List<String> promptIdList = new ArrayList<>();
 		Integer i = 0;
-		for(Map<String, Object> prompt: promptDetails) {
+		for (Map<String, Object> prompt : promptDetails) {
 			String promptId = (String) prompt.get("id");
 			promptIdList.add(promptId);
 			listIndexPromptMapping.put(promptId, i++);
@@ -183,48 +191,31 @@ public class PromptUtils extends AbstractPromptUtils {
 		return promptDetails;
 
 	}
-	
-	/**
-	 * Checks if one metadata map is a subset of another.
-	 * For map 'a' to be a subset of map 'b', every key in 'a' must exist in 'b',
-	 * and the collection of values in 'b' must contain all values from 'a' for that key.
-	 * 
-	 * @param a The metadata map to check if it's a subset
-	 * @param b The metadata map to check against
-	 * @return true if 'a' is a subset of 'b', false otherwise
-	 */
-	private static boolean metaKeysIsSubset(Map<String, Collection<String>> a, Map<String, Collection<String>> b) {
-		return a.entrySet().parallelStream().allMatch(entry -> {
-			Collection<String> bValues = b.get(entry.getKey());
-			return bValues != null && bValues.containsAll(entry.getValue());
-		});
-	}
-
 
 	/**
-	 * Creates a new prompt with the provided details.
-	 * Validates all input data, ensures user has permission to use selected metadata,
-	 * and inserts records into PROMPT and PROMPTMETA tables. Also ensures referenced
-	 * metakeys exist in PROMPTMETAKEYS table.
+	 * Creates a new prompt with the provided details and inserts records into
+	 * PROMPT and PROMPTMETA tables.
 	 * 
 	 * Expected promptDetails map keys:
 	 * - title: String (required)
 	 * - context: String (required)
 	 * - intent: String (optional)
+	 * - global: Boolean (optional, defaults to false)
 	 * - tags: List<String> (optional)
 	 * - metaMap: Map<String, Collection<String>> (optional)
 	 * 
 	 * @param promptDetails Map containing all prompt information
-	 * @param user The user creating the prompt, used for validation
-	 * @param userId The ID of the user creating the prompt
+	 * @param user          The user creating the prompt
+	 * @param userId        The ID of the user creating the prompt
 	 * @return The UUID of the newly created prompt
-	 * @throws IllegalArgumentException if validation fails or user lacks permissions
+	 * @throws IllegalArgumentException if validation fails
 	 */
 	public static String addPrompt(Map<String, Object> promptDetails, User user, String userId) {
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
-		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails.get("metaMap");
+		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
+				.get("metaMap");
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
 
 		String promptId = UUID.randomUUID().toString();
@@ -233,14 +224,12 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		insertPrompt(promptDetails, userId, allowClob, promptId);
 		insertTagsAndMeta(tags, userSelectedMeta, promptId);
-		
+
 		return promptId;
 	}
 
 	/**
-	 * Updates an existing prompt with new details.
-	 * Marks the previous version as not latest, validates all input data,
-	 * creates a new version of the prompt, and updates associated metadata.
+	 * Updates an existing prompt with new details by creating a new version.
 	 * 
 	 * Expected promptDetails map keys:
 	 * - id: String (required) - The ID of the prompt to update
@@ -250,21 +239,25 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * - tags: List<String> (optional)
 	 * - metaMap: Map<String, Collection<String>> (optional)
 	 * 
-	 * @param promptDetails Map containing updated prompt information, must include "id"
-	 * @param user The user updating the prompt, used for validation and authorization
-	 * @throws IllegalArgumentException if validation fails or user lacks permissions
+	 * @param promptDetails Map containing updated prompt information, must include
+	 *                      "id"
+	 * @param user          The user updating the prompt, used for authorization
+	 * @throws IllegalArgumentException if validation fails or user lacks
+	 *                                  permissions
 	 */
 	public static void editPrompt(Map<String, Object> promptDetails, User user) {
 		String userId = user.getPrimaryLoginToken().getId();
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
-		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails.get("metaMap");
+		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
+				.get("metaMap");
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
 
 		String promptId = (String) promptDetails.get("id");
 
-		// Check authorization: user can only update their own prompts or global prompts unless they're admin
+		// Check authorization: user can only update their own prompts or global prompts
+		// unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);
 
 		promptDetailsValidation(promptDetails);
@@ -276,51 +269,53 @@ public class PromptUtils extends AbstractPromptUtils {
 	/**
 	 * Validates that a user has permission to update a specific prompt.
 	 * Authorization rules:
-	 * - Regular users can only update prompts they created (regardless of global status)
+	 * - Regular users can only update prompts they created (regardless of global
+	 * status)
 	 * - Admins can update any global prompt OR any prompt they created
 	 * 
 	 * @param promptId The ID of the prompt to validate update permission for
-	 * @param user The user object for authorization checks
-	 * @throws IllegalArgumentException if user lacks permission to update the prompt
+	 * @param user     The user object for authorization checks
+	 * @throws IllegalArgumentException if user lacks permission to update the
+	 *                                  prompt
 	 */
 	private static void validatePromptUpdateAuthorization(String promptId, User user) {
 		String userId = user.getPrimaryLoginToken().getId();
-		
+
 		// Query to get prompt details (CREATED_BY and GLOBAL fields)
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__CREATED_BY"));
 		qs.addSelector(new QueryColumnSelector("PROMPT__GLOBAL"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
-		
+
 		try {
 			List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 			if (results.isEmpty()) {
 				throw new IllegalArgumentException("Prompt not found with ID: " + promptId);
 			}
-			
+
 			Map<String, Object> promptData = results.get(0);
 			String createdBy = (String) promptData.get("CREATED_BY");
 			Boolean isGlobal = (Boolean) promptData.get("GLOBAL");
-			
+
 			if (isGlobal == null) {
 				isGlobal = false;
 			}
-			
+
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			boolean isCreator = userId.equals(createdBy);
-			
+
 			// Regular users can only update their own prompts
 			if (!isAdmin && !isCreator) {
 				throw new IllegalArgumentException(
-					"User does not have permission to update this prompt. " +
-					"Only the prompt creator can make changes.");
+						"User does not have permission to update this prompt. " +
+								"Only the prompt creator can make changes.");
 			}
-			
+
 			// Admins can update their own prompts or any global prompt
 			if (isAdmin && !isCreator && !isGlobal) {
 				throw new IllegalArgumentException(
-					"Admin users can only update global prompts or prompts they created.");
+						"Admin users can only update global prompts or prompts they created.");
 			}
 		} catch (Exception e) {
 			if (e instanceof IllegalArgumentException) {
@@ -333,15 +328,15 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Marks an existing prompt as no longer the latest version.
-	 * Sets IS_LATEST flag to false for the specified prompt ID.
-	 * This is called before inserting a new version of the prompt.
+	 * Sets IS_LATEST = false for the specified prompt ID.
 	 * 
 	 * @param promptId The ID of the prompt to mark as not latest
 	 */
 	private static void updatePrompt(String promptId) {
-		String[] colToUpdate = {"IS_LATEST"};
-		String[] whereCol = {"ID"};
-		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT", colToUpdate, whereCol);
+		String[] colToUpdate = { "IS_LATEST" };
+		String[] whereCol = { "ID" };
+		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT",
+				colToUpdate, whereCol);
 
 		PreparedStatement ps = null;
 		try {
@@ -361,15 +356,14 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Updates prompt metadata by replacing all existing metadata entries.
-	 * Deletes all existing PROMPTMETA entries for the prompt, then performs
-	 * a bulk insert of the new tags and metadata values.
+	 * Replaces all metadata for a prompt with new tags and metadata values.
 	 * 
-	 * @param promptId The ID of the prompt to update metadata for
+	 * @param promptId         The ID of the prompt to update metadata for
 	 * @param userSelectedMeta Map of metadata keys to collections of values
-	 * @param tags List of tag values to associate with the prompt
+	 * @param tags             List of tag values to associate with the prompt
 	 */
-	public static void updatePromptTags(String promptId, Map<String, Collection<String>> userSelectedMeta, List<String> tags) {
+	public static void updatePromptTags(String promptId, Map<String, Collection<String>> userSelectedMeta,
+			List<String> tags) {
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
 		PreparedStatement deletePs = null;
@@ -378,31 +372,29 @@ public class PromptUtils extends AbstractPromptUtils {
 			int parameterIndex = 1;
 			deletePs.setString(parameterIndex++, promptId);
 			deletePs.execute();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
-		if(tags != null && !tags.isEmpty()) {
+		if (tags != null && !tags.isEmpty()) {
 			insertTagsAndMeta(tags, userSelectedMeta, promptId);
 		}
 	}
 
 	/**
 	 * Queries PROMPTMETA table and appends tags and metadata to prompt details.
-	 * Separates metadata entries into two categories:
-	 * - Entries with METAKEY="tag" are added to a "tags" list
-	 * - All other entries are added to a "metaKeys" map organized by metakey
+	 * Entries with METAKEY="tag" are added to a "tags" list.
+	 * All other entries are added to a "metaKeys" map organized by metakey.
 	 * 
-	 * Only processes metadata for prompts in the listIndexPromptMapping to avoid
-	 * null pointer errors when metadata exists for filtered-out prompts.
-	 * 
-	 * @param promptDetails List of prompt detail maps to append metadata to
-	 * @param listIndexPromptMapping Map of prompt IDs to their index in promptDetails list
-	 * @param promptIdList List of prompt IDs to query metadata for
+	 * @param promptDetails          List of prompt detail maps to append metadata
+	 *                               to
+	 * @param listIndexPromptMapping Map of prompt IDs to their index in
+	 *                               promptDetails list
+	 * @param promptIdList           List of prompt IDs to query metadata for
 	 */
 	private static void appendPromptTags(List<Map<String, Object>> promptDetails,
 			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
@@ -411,15 +403,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
 		metakeySelector.setAlias("metakey");
 		qs.addSelector(metakeySelector);
-		
+
 		QueryColumnSelector metavalueSelector = new QueryColumnSelector("PROMPTMETA__METAVALUE");
 		metavalueSelector.setAlias("metavalue");
 		qs.addSelector(metavalueSelector);
-		
+
 		QueryColumnSelector metaorderSelector = new QueryColumnSelector("PROMPTMETA__METAORDER");
 		metaorderSelector.setAlias("metaorder");
 		qs.addSelector(metaorderSelector);
-		
+
 		QueryColumnSelector promptIdSelector = new QueryColumnSelector("PROMPTMETA__PROMPT_ID");
 		promptIdSelector.setAlias("prompt_id");
 		qs.addSelector(promptIdSelector);
@@ -431,22 +423,22 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addOrderBy("PROMPTMETA__METAORDER");
 
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
-		for(Map<String, Object> ret: retList) {
+		for (Map<String, Object> ret : retList) {
 			String promptId = (String) ret.get("prompt_id");
 			String metaKey = (String) ret.get("metakey");
 			String metaValue = (String) ret.get("metavalue");
 			Integer loc = listIndexPromptMapping.get(promptId);
 			// Skip if this prompt is not in our filtered result set
-			if(loc == null) {
+			if (loc == null) {
 				continue;
 			}
-			
+
 			Map<String, Object> promptDetail = promptDetails.get(loc);
-			
-			if("tag".equals(metaKey)) {
+
+			if ("tag".equals(metaKey)) {
 				// Handle tags
 				List<String> tagList = (List<String>) promptDetail.get("tags");
-				if(tagList == null) {
+				if (tagList == null) {
 					tagList = new ArrayList<>();
 					promptDetail.put("tags", tagList);
 				}
@@ -454,12 +446,12 @@ public class PromptUtils extends AbstractPromptUtils {
 			} else {
 				// Handle other metadata in metaKeys
 				Map<String, List<String>> metaKeys = (Map<String, List<String>>) promptDetail.get("metaKeys");
-				if(metaKeys == null) {
+				if (metaKeys == null) {
 					metaKeys = new HashMap<>();
 					promptDetail.put("metaKeys", metaKeys);
 				}
 				List<String> valueList = metaKeys.get(metaKey);
-				if(valueList == null) {
+				if (valueList == null) {
 					valueList = new ArrayList<>();
 					metaKeys.put(metaKey, valueList);
 				}
@@ -470,25 +462,25 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Queries the PROMPT table and returns basic prompt information.
-	 * Applies multiple layers of filtering:
-	 * - User metadata filters (ensures user has permission to see the prompt)
-	 * - Optional specific metadata filters
-	 * - Optional generic filters
-	 * - IS_LATEST = true (only returns current versions)
-	 * - Optional limit and offset for pagination
+	 * Applies access control (only global prompts or prompts created by the user),
+	 * optional metadata filters, and pagination.
 	 * 
-	 * @param user The user requesting prompts, used for metadata-based access control
-	 * @param filters Optional additional filters to apply
-	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs to filter by
-	 * @param limit Optional limit on number of results (as string)
-	 * @param offset Optional offset for pagination (as string)
-	 * @return List of maps containing prompt information (ID, TITLE, CONTEXT, etc.)
+	 * @param user                 The user requesting prompts, used for access
+	 *                             control
+	 * @param filters              Optional additional filters to apply
+	 * @param promptMetadataFilter Optional map of specific metadata key-value pairs
+	 *                             to filter by
+	 * @param limit                Optional limit on number of results (as string)
+	 * @param offset               Optional offset for pagination (as string)
+	 * @return List of maps containing prompt information (ID, TITLE, CONTEXT,
+	 *         VERSION, INTENT, CREATED_BY, DATE_CREATED, GLOBAL)
 	 */
-	private static List<Map<String, Object>> appendPromptInfo(User user, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
-		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs 
+	private static List<Map<String, Object>> appendPromptInfo(User user, GenRowFilters filters,
+			Map<String, Object> promptMetadataFilter, String limit, String offset) {
+		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
-			if(pc != "IS_LATEST") {
+			if (pc != "IS_LATEST") {
 				// Add selector with lowercase alias for consistent API response keys
 				QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
 				selector.setAlias(pc.toLowerCase());
@@ -496,31 +488,32 @@ public class PromptUtils extends AbstractPromptUtils {
 			}
 		}
 
-		if(promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
-			for(String k: promptMetadataFilter.keySet()) {
+		if (promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
+			for (String k : promptMetadataFilter.keySet()) {
 				SelectQueryStruct subMetaQs = new SelectQueryStruct();
 				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
 				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", k));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", promptMetadataFilter.get(k)));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==",
+						promptMetadataFilter.get(k)));
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
 			}
 		}
-		
+
 		// Apply appropriate visibility filters based on user role
 		applyPromptVisibilityFilters(user, qs);
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 
-		if(filters != null && !filters.isEmpty()) {
+		if (filters != null && !filters.isEmpty()) {
 			qs.mergeExplicitFilters(filters);
 		}
 		Long long_limit = -1L;
 		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
+		if (limit != null && !limit.trim().isEmpty()) {
 			long_limit = Long.parseLong(limit);
 			qs.setLimit(long_limit);
 		}
-		if(offset != null && !offset.trim().isEmpty()) {
+		if (offset != null && !offset.trim().isEmpty()) {
 			long_offset = Long.parseLong(offset);
 			qs.setOffSet(long_offset);
 		}
@@ -530,8 +523,9 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Validates all prompt details before insertion.
-	 * Checks required base details (title, context) and validates tags if present.
+	 * Validates prompt details before insertion or update.
+	 * Ensures title and context are present and non-empty. Validates tags if
+	 * provided.
 	 * 
 	 * @param promptDetails Map containing prompt information to validate
 	 * @throws IllegalArgumentException if validation fails
@@ -552,16 +546,15 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @throws IllegalArgumentException if any tag is null or empty
 	 */
 	private static void validatePromptTags(List<String> tags) {
-		for(String tag: tags) {
-			if(tag == null || tag.isEmpty()) {
+		for (String tag : tags) {
+			if (tag == null || tag.isEmpty()) {
 				throw new IllegalArgumentException("Tag must be string and not empty");
 			}
 		}
 	}
 
 	/**
-	 * Validates the base required fields of a prompt.
-	 * Ensures title and context are present and non-empty.
+	 * Validates the required fields of a prompt (title and context).
 	 * 
 	 * @param promptDetails Map containing prompt details to validate
 	 * @throws IllegalArgumentException if required fields are missing or invalid
@@ -573,26 +566,26 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Validates a string field in the prompt details map.
-	 * Checks if the value is null (when not nullable) and if it's empty (when not allowed).
 	 * 
 	 * @param promptDetails Map containing the field to validate
-	 * @param mapKey The key of the field to validate
-	 * @param nullable Whether null values are allowed
-	 * @param allowEmpty Whether empty strings are allowed
+	 * @param mapKey        The key of the field to validate
+	 * @param nullable      Whether null values are allowed
+	 * @param allowEmpty    Whether empty strings are allowed
 	 * @throws IllegalArgumentException if validation fails
 	 */
-	private static void validateString(Map<String, Object> promptDetails, String mapKey, boolean nullable, boolean allowEmpty) {
+	private static void validateString(Map<String, Object> promptDetails, String mapKey, boolean nullable,
+			boolean allowEmpty) {
 		String value = null;
 		try {
 			value = (String) promptDetails.get(mapKey);
-			value = value != null ? value.trim(): value;
-			if(value == null && !nullable) {
+			value = value != null ? value.trim() : value;
+			if (value == null && !nullable) {
 				throw new IllegalArgumentException(mapKey + " cannot be null when adding a new prompt.");
 			}
-			if(value != null && value.isEmpty() && !allowEmpty) {
+			if (value != null && value.isEmpty() && !allowEmpty) {
 				throw new IllegalArgumentException(mapKey + " cannot be null when adding a new prompt.");
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
@@ -600,20 +593,20 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Inserts tags and metadata entries into the PROMPTMETA table.
-	 * First ensures all referenced metakeys exist in PROMPTMETAKEYS table.
-	 * Tags are inserted with METAKEY="tag", other metadata uses the actual metakey.
-	 * Each set of values maintains an order index (METAORDER).
+	 * Tags are stored with METAKEY="tag", other metadata uses the actual metakey.
 	 * 
-	 * @param tags List of tag values to insert (stored with METAKEY="tag")
+	 * @param tags             List of tag values to insert (stored with
+	 *                         METAKEY="tag")
 	 * @param userSelectedMeta Map of metadata keys to collections of values
-	 * @param promptId The ID of the prompt to associate metadata with
+	 * @param promptId         The ID of the prompt to associate metadata with
 	 */
-	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userSelectedMeta, String promptId) {
+	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userSelectedMeta,
+			String promptId) {
 		// First ensure all metakeys exist in PROMPTMETAKEYS
 		for (String metaKey : userSelectedMeta.keySet()) {
 			ensureUserMetaKeyExistsInPromptMetaKeys(metaKey);
 		}
-		
+
 		// now we do the new insert with the order of the tags
 		String promptMetaQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
 				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
@@ -629,7 +622,7 @@ public class PromptUtils extends AbstractPromptUtils {
 				ps.setInt(parameterIndex++, i++);
 				ps.addBatch();
 			}
-//			Now add for every meta value
+			// Now add for every meta value
 			for (Map.Entry<String, Collection<String>> entry : userSelectedMeta.entrySet()) {
 				int order = 0;
 				String metaKey = entry.getKey();
@@ -657,7 +650,6 @@ public class PromptUtils extends AbstractPromptUtils {
 	/**
 	 * Ensures that a metakey exists in PROMPTMETAKEYS table.
 	 * If it doesn't exist, copies it from security.USERMETAKEYS table.
-	 * This allows prompts to use the same metadata structure as users.
 	 * 
 	 * @param metaKey The metakey to ensure exists
 	 */
@@ -677,7 +669,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPTMETAKEYS__METAKEY"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETAKEYS__METAKEY", "==", metaKey));
-		
+
 		try {
 			List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 			return !results.isEmpty();
@@ -688,16 +680,16 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Copies a metakey entry from security.USERMETAKEYS to PROMPTMETAKEYS.
-	 * Copies METAKEY, SINGLEMULTI, DISPLAYOPTIONS, and DEFAULTVALUES columns.
-	 * Excludes DISPLAYORDER column during the copy.
+	 * Copies a metakey from the security database USERMETAKEYS table to
+	 * PROMPTMETAKEYS.
+	 * Copies METAKEY, SINGLEMULTI, DISPLAYOPTIONS, and DEFAULTVALUES.
 	 * 
 	 * @param metaKey The metakey to copy from USERMETAKEYS to PROMPTMETAKEYS
 	 */
 	private static void copyMetaKeyFromUserMetaKeys(String metaKey) {
 		// Get the security database
 		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
-		
+
 		// Query USERMETAKEYS for the metakey
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY"));
@@ -705,7 +697,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__DISPLAYOPTIONS"));
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__DEFAULTVALUES"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERMETAKEYS__METAKEY", "==", metaKey));
-		
+
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
@@ -715,7 +707,7 @@ public class PromptUtils extends AbstractPromptUtils {
 				String singleMulti = (String) values[1];
 				String displayOptions = (String) values[2];
 				String defaultValues = (String) values[3];
-				
+
 				// Insert into PROMPTMETAKEYS (excluding DISPLAYORDER)
 				String insertQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETAKEYS",
 						new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYOPTIONS", "DEFAULTVALUES" });
@@ -740,7 +732,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -751,25 +743,28 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Inserts basic prompt details into the PROMPT table.
-	 * Inserts: ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST.
+	 * Inserts a prompt record into the PROMPT table.
 	 * Uses CLOB for CONTEXT field if database supports it, otherwise uses String.
-	 * Automatically retrieves and increments version number for the prompt.
+	 * Automatically determines and increments the version number.
 	 * 
-	 * @param promptDetails Map containing prompt information (title, context, intent)
-	 * @param userId The ID of the user creating/updating the prompt
-	 * @param allowClob Whether the database supports CLOB objects for the context field
-	 * @param promptId The UUID for the prompt (generated for new prompts, reused for updates)
+	 * @param promptDetails Map containing prompt information (title, context,
+	 *                      intent, global)
+	 * @param userId        The ID of the user creating/updating the prompt
+	 * @param allowClob     Whether the database supports CLOB objects for the
+	 *                      context field
+	 * @param promptId      The UUID for the prompt (generated for new prompts,
+	 *                      reused for updates)
 	 * @throws IllegalArgumentException if insertion fails
 	 */
-	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob, String promptId) {
+	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob,
+			String promptId) {
 		PreparedStatement promptPS = null;
 		try {
 			promptPS = promptDb.getPreparedStatement(promptQuery);
 			int index = 1;
 			promptPS.setString(index++, promptId);
 			promptPS.setString(index++, (String) promptDetails.get("title"));
-			if(allowClob) {
+			if (allowClob) {
 				Clob toclob = promptDb.getConnection().createClob();
 				toclob.setString(1, (String) promptDetails.get("context"));
 				promptPS.setClob(index++, toclob);
@@ -790,7 +785,7 @@ public class PromptUtils extends AbstractPromptUtils {
 			if (!promptPS.getConnection().getAutoCommit()) {
 				promptPS.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
@@ -800,11 +795,11 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Retrieves the next version number for a prompt.
-	 * Queries for the most recent version of the prompt by ID and DATE_CREATED,
-	 * then increments it by 1. Returns 0 for new prompts with no existing versions.
+	 * Returns the most recent version + 1, or 0 for new prompts.
 	 * 
 	 * @param promptId The ID of the prompt to get the version number for
-	 * @return The next version number (existing version + 1, or 0 if no versions exist)
+	 * @return The next version number (existing version + 1, or 0 if no versions
+	 *         exist)
 	 */
 	private static Integer getVersionNumber(String promptId) {
 		Integer version = 0;
@@ -818,15 +813,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				version = (Integer) wrapper.next().getValues()[0];
-				version+=1;
+				version += 1;
 				return version;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -842,24 +837,25 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * Removes entries from PROMPT and PROMPTMETA tables.
 	 * 
 	 * @param promptId The ID of the prompt to delete
-	 * @param user The user object for authorization checks
+	 * @param user     The user object for authorization checks
 	 * @return The UUID of the deleted prompt
 	 */
 	public static String deletePrompt(String promptId, User user) {
-		// Check authorization: user can only delete their own prompts or global prompts unless they're admin
+		// Check authorization: user can only delete their own prompts or global prompts
+		// unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);
-		
+
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROMPT WHERE ID=?");
 		deletes.add("DELETE FROM PROMPTMETA WHERE PROMPT_ID=?");
 
-		for(String deleteQuery : deletes) {
+		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
 			try {
 				ps = promptDb.getPreparedStatement(deleteQuery);
 				ps.setString(1, promptId);
 				ps.execute();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
@@ -868,17 +864,17 @@ public class PromptUtils extends AbstractPromptUtils {
 				ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 			}
 		}
-				
+
 		return promptId;
 	}
 
 	/**
-	 * Retrieves all available metadata values for specified metakeys along with usage counts.
-	 * Returns METAKEY, METAVALUE, and a count of how many prompts use each value.
+	 * Retrieves all available metadata values for specified metakeys with usage
+	 * counts.
 	 * Results are grouped by METAKEY and METAVALUE.
 	 * 
 	 * @param metaKeys List of metakeys to retrieve values for
-	 * @return List of maps containing METAKEY, METAVALUE, and count for each metadata entry
+	 * @return List of maps containing metakey, metavalue, and count for each entry
 	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -901,23 +897,25 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Retrieves a specific prompt by ID with user metadata filtering.
-	 * Returns the prompt only if the user has permission to access it based on their metadata.
+	 * Retrieves a specific prompt by ID with access control.
+	 * Returns the prompt only if it is global or created by the requesting user.
 	 * The returned map includes:
-	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED)
+	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY,
+	 * DATE_CREATED, GLOBAL)
 	 * - tags: List of String values where METAKEY equals "tag"
-	 * - metaKeys: Map<String, List<String>> containing all other metadata organized by metakey
+	 * - metaKeys: Map<String, List<String>> containing all other metadata organized
+	 * by metakey
 	 * 
 	 * @param promptID The ID of the prompt to retrieve
-	 * @param user The user requesting the prompt, used for metadata-based access control
-	 * @return Map containing prompt details, tags, and metadata
-	 * @throws IndexOutOfBoundsException if no prompt is found or user lacks access
+	 * @param user     The user requesting the prompt, used for access control
+	 * @return Map containing prompt details, tags, and metadata (empty map if not
+	 *         found or no access)
 	 */
 	public static Map<String, Object> getPrompt(String promptID, User user) {
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
-			if(pc != "IS_LATEST") {
+			if (pc != "IS_LATEST") {
 				// Add selector with lowercase alias for consistent API response keys
 				QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
 				selector.setAlias(pc.toLowerCase());
@@ -933,22 +931,22 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
 
-		Map<String, Object> promptDetail = promptDetails.isEmpty() ? new HashMap<String, Object>() : promptDetails.get(0);
+		Map<String, Object> promptDetail = promptDetails.isEmpty() ? new HashMap<String, Object>()
+				: promptDetails.get(0);
 
-		//Append Tags
-		if (!promptDetail.isEmpty()) {			
+		// Append Tags
+		if (!promptDetail.isEmpty()) {
 			getPromptTags(promptID, promptDetail);
 		}
 		return promptDetail;
 	}
 
 	/**
-	 * Queries PROMPTMETA for a specific prompt and appends tags and metadata to the prompt details.
-	 * Separates metadata entries into two categories:
-	 * - Entries with METAKEY="tag" are added to a "tags" list
-	 * - All other entries are added to a "metaKeys" map organized by metakey
+	 * Queries PROMPTMETA for a specific prompt and appends tags and metadata.
+	 * Entries with METAKEY="tag" are added to a "tags" list.
+	 * All other entries are added to a "metaKeys" map organized by metakey.
 	 * 
-	 * @param promptID The ID of the prompt to retrieve metadata for
+	 * @param promptID      The ID of the prompt to retrieve metadata for
 	 * @param promptDetails Map to append tags and metaKeys to
 	 */
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
@@ -957,15 +955,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
 		metakeySelector.setAlias("metakey");
 		qs.addSelector(metakeySelector);
-		
+
 		QueryColumnSelector metavalueSelector = new QueryColumnSelector("PROMPTMETA__METAVALUE");
 		metavalueSelector.setAlias("metavalue");
 		qs.addSelector(metavalueSelector);
-		
+
 		QueryColumnSelector metaorderSelector = new QueryColumnSelector("PROMPTMETA__METAORDER");
 		metaorderSelector.setAlias("metaorder");
 		qs.addSelector(metaorderSelector);
-		
+
 		QueryColumnSelector promptIdSelector = new QueryColumnSelector("PROMPTMETA__PROMPT_ID");
 		promptIdSelector.setAlias("prompt_id");
 		qs.addSelector(promptIdSelector);
@@ -973,85 +971,85 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptID));
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
-		
+
 		List<String> tagList = new ArrayList<>();
 		Map<String, List<String>> metaKeys = new HashMap<>();
-		
+
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
-		for(Map<String, Object> ret: retList) {
+		for (Map<String, Object> ret : retList) {
 			String metaKey = (String) ret.get("metakey");
 			String metaValue = (String) ret.get("metavalue");
-			
-			if("tag".equals(metaKey)) {
+
+			if ("tag".equals(metaKey)) {
 				// Handle tags
 				tagList.add(metaValue);
 			} else {
 				// Handle other metadata in metaKeys
 				List<String> valueList = metaKeys.get(metaKey);
-				if(valueList == null) {
+				if (valueList == null) {
 					valueList = new ArrayList<>();
 					metaKeys.put(metaKey, valueList);
 				}
 				valueList.add(metaValue);
 			}
 		}
-		
+
 		promptDetails.put("tags", tagList);
 		promptDetails.put("metaKeys", metaKeys);
 	}
 
-
 	/**
 	 * Updates specific metadata fields for a prompt.
-	 * Deletes existing entries for the specified metakeys, then inserts new values.
+	 * Replaces existing entries for the specified metakeys with new values.
 	 * Preserves other metadata fields not included in the update.
-	 * Handles both single values and collections (List/Collection) for metadata values.
 	 * 
 	 * @param promptId The ID of the prompt to update metadata for
-	 * @param metadata Map of metakeys to values (can be String, List, or Collection)
-	 * @param user The user object for authorization checks
+	 * @param metadata Map of metakeys to values (String, List, or Collection)
+	 * @param user     The user object for authorization checks
 	 */
 	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata, User user) {
-		// Check authorization: user can only update metadata for their own prompts or global prompts unless they're admin
+		// Check authorization: user can only update metadata for their own prompts or
+		// global prompts unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = promptDb.getPreparedStatement(deleteQ);
-			for(String field : metadata.keySet()) {
+			for (String field : metadata.keySet()) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, field);
 				deletePs.setString(parameterIndex++, promptId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
 
 		// now we do the new insert with the order of the tags
-		String query = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA", new String[]{"PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER"});
+		String query = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
+				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
 		PreparedStatement ps = null;
 		try {
 			ps = promptDb.getPreparedStatement(query);
-			for(String field : metadata.keySet()) {
+			for (String field : metadata.keySet()) {
 				Object val = metadata.get(field);
 				List<Object> values = new ArrayList<>();
-				if(val instanceof List) {
+				if (val instanceof List) {
 					values = (List<Object>) val;
-				} else if(val instanceof Collection) {
-					values.addAll( (Collection<Object>) val);
+				} else if (val instanceof Collection) {
+					values.addAll((Collection<Object>) val);
 				} else {
 					values.add(val);
 				}
 
-				for(int i = 0; i < values.size(); i++) {
+				for (int i = 0; i < values.size(); i++) {
 					int parameterIndex = 1;
 					Object fieldVal = values.get(i);
 
@@ -1063,15 +1061,14 @@ public class PromptUtils extends AbstractPromptUtils {
 				}
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 		}
 	}
-
 
 }
