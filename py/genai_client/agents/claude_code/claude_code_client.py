@@ -9,13 +9,6 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
     PermissionMode,
 )
-from genai_client.debug_logger.debug_logger import DebugLogger
-
-logger = DebugLogger(
-    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
-    log_file_name="claude_code_client.txt",
-    class_name=__name__,
-).logger
 
 
 class MCP(BaseModel):
@@ -37,7 +30,6 @@ class CCInitArgs(BaseModel):
 
 class ClaudeCodeClient:
     def __init__(self, **kwargs):
-        logger.info(f"Initializing ClaudeCodeClient with args: {kwargs}")
         self.configuration = CCInitArgs(**kwargs)
         (mcps, allowed_tools) = self._resolve_mcps(
             self.configuration.mcps or [],
@@ -46,7 +38,7 @@ class ClaudeCodeClient:
             self.configuration.secret_key,
         )
         self.agent_options = ClaudeAgentOptions(
-            # permission_mode=self.configuration.permission_mode,
+            permission_mode=self.configuration.permission_mode,
             model=self.configuration.model,
             cwd=self.configuration.cwd_path,
             allowed_tools=allowed_tools
@@ -112,10 +104,11 @@ class ClaudeCodeClient:
     ) -> tuple[dict, list[str]]:
         mcp_dict = {}
         for mcp in mcps:
-            mcp_dict[mcp.name] = {
+            safe_name = mcp.name.replace(" ", "_").lower()
+            mcp_dict[safe_name] = {
                 "url": mcp.url,
                 "type": "http",
                 "headers": {"Authorization": f"Bearer {access_key}:{secret_key}"},
             }
-            allowed_tools.append(f"mcp__{mcp.name}__*")
+            allowed_tools.append(f"mcp__{safe_name}__*")
         return (mcp_dict, allowed_tools)

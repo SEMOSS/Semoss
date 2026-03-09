@@ -43,7 +43,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -82,7 +81,8 @@ public class ClaudeCodeManager {
         for (Map<String, String >mcp : mcps) {
             Map<String, String> mcpConfig = new HashMap<>();
             mcpConfig.put("name", mcp.get("name"));
-            String fullMcpUrl = mcpBaseUrl + projectId + "/comms";
+            String mcpProjectId = mcp.get("id");
+            String fullMcpUrl = mcpBaseUrl + mcpProjectId + "/comms";
             mcpConfig.put("url", fullMcpUrl);
             mcpUrlsAndNames.add(mcpConfig);
         }
