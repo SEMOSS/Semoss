@@ -211,11 +211,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		Timestamp timeStamp = Utility.getCurrentSqlTimestampUTC();
 
-		// String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT,
-		// HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
-		// IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne,
-		// query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_ID_COL));
@@ -239,8 +234,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
-		// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT",
-		// "==", false, PixelDataType.BOOLEAN));
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs)) {
 			while (wrapper.hasNext()) {
@@ -296,14 +289,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					ps.setBoolean(parameterIndex++, cacheEncrypt);
-
-					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A
-					// CLOB
-					// need to determine if our input is a clob
-					// and if the database allows a clob data type
-					// use the utility method generated
-					// RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps,
-					// parameterIndex++, pixelObject, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, pixelObject, parameterIndex++,
 							securityGson);
 
@@ -388,8 +373,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					// and if the database allows a clob data type
 					// use the utility method generated
 					Object metaValue = raw[2];
-					// RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps,
-					// parameterIndex++, metaValue, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, metaValue, parameterIndex++,
 							securityGson);
 
@@ -445,12 +428,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// need to remove existing insights w/ permissions that do not exist anymore
 			if (existingInsightPermissions && !insightPermissionIds.isEmpty()) {
-
-				// TODO:
-				// TODO:
-				// TODO:
-				// TODO:
-
 				classLogger.info("Removing insights with permissions that no longer exist");
 				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION " + "WHERE PROJECTID='"
 						+ projectId + "'" + " AND INSIGHTID " + createFilter(insightPermissionIds);
@@ -2160,8 +2137,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Calculate can_view_dependencies field for each dependency by checking if user
-	 * has view access
-	 * to all subdependencies. Works from leaf nodes up the tree.
+	 * has view access to all subdependencies. Works from leaf nodes up the tree.
 	 * 
 	 * @param allDependencies List of all dependencies (flat structure)
 	 * @param userId          User ID to check permissions for
@@ -2215,10 +2191,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 *         subdependencies
 	 */
 	private static boolean calculateCanViewRecursive(String engineId, String userId,
-			Map<String, Map<String, Object>> dependencyMap,
-			Map<String, List<String>> childrenMap,
-			Map<String, Boolean> canViewCache,
-			Set<String> visiting) {
+			Map<String, Map<String, Object>> dependencyMap, Map<String, List<String>> childrenMap,
+			Map<String, Boolean> canViewCache, Set<String> visiting) {
 		// Check cache first
 		if (canViewCache.containsKey(engineId)) {
 			return canViewCache.get(engineId);
@@ -2288,8 +2262,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param allDependencies Accumulated list of all dependencies
 	 */
 	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, String userId,
-			Set<String> visited,
-			List<Map<String, Object>> allDependencies) {
+			Set<String> visited, List<Map<String, Object>> allDependencies) {
 		// Avoid circular dependencies
 		if (visited.contains(projectId)) {
 			return;
