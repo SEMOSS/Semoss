@@ -29,26 +29,27 @@ package prerna.engine.impl.storage;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
-import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -58,16 +59,20 @@ import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
+
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
 public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
+
 	private static final Logger classLogger = LogManager.getLogger(AzureNativeBlobStorageEngine.class);
 
-	public static final String AZ_CONN_STRING = "AZ_CONN_STRING";
+	private static final String AZ_CONN_STRING = "AZ_CONN_STRING";
+
 	private transient String connectionString = null;
 	private transient BlobServiceClient blobServiceClient;
 
+	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		this.connectionString = smssProp.getProperty(AZ_CONN_STRING);
@@ -87,33 +92,76 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 	public StorageTypeEnum getStorageType() {
 		return StorageTypeEnum.MICROSOFT_AZURE_NATIVE_BLOB_STORAGE;
 	}
-	
+
 	@Override
-	public List<String> list(String containerName) throws BlobStorageException {
-	    List<String> fileList = new ArrayList<>();
-	    BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
-	    // List blobs inside the container
-	    for (BlobItem blobItem : containerClient.listBlobs()) {
-	    	fileList.add(blobItem.getName());
-	    }
-	    return fileList;
+	public List<String> list(String storagePath) throws BlobStorageException {
+		List<Map<String, Object>> details = listDetails(storagePath);
+		List<String> fileList = new ArrayList<>(details.size());
+		for (Map<String, Object> item : details) {
+			Object nameObj = item.get("Name");
+			if (nameObj == null) {
+				continue;
+			}
+			String name = nameObj.toString();
+			boolean isDir = Boolean.TRUE.equals(item.get("IsDir"));
+			fileList.add(isDir ? name + "/" : name);
+		}
+		return fileList;
 	}
-	
+
 	@Override
-	public List<Map<String, Object>> listDetails(String containerName) throws BlobStorageException {
-	    List<Map<String, Object>> detailsList = new ArrayList<>();
-	    BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
-	    // List blobs and fetch their details
-	    for (BlobItem blobItem : containerClient.listBlobs()) {
-	        Map<String, Object> blobMap = new HashMap<>();
-	        blobMap.put("name", blobItem.getName());
-	        // Fetch metadata separately
-	        BlobClient blobClient = containerClient.getBlobClient(blobItem.getName());
-	        Map<String, String> metadata = blobClient.getProperties().getMetadata();
-	        blobMap.put("metadata", metadata.isEmpty() ? Collections.emptyMap() : metadata);
-	        detailsList.add(blobMap);
-	    }
-	    return detailsList;
+	public List<Map<String, Object>> listDetails(String storagePath) throws BlobStorageException {
+		List<Map<String, Object>> detailsList = new ArrayList<>();
+		String[] containerAndPath = extractContainerAndPath(storagePath);
+		String containerName = containerAndPath[0];
+		String blobDirectory = Utility.normalizePath(containerAndPath[1]).replace("\\", "/");
+		while (blobDirectory.startsWith("/")) {
+			blobDirectory = blobDirectory.substring(1);
+		}
+		while (blobDirectory.endsWith("/")) {
+			blobDirectory = blobDirectory.substring(0, blobDirectory.length() - 1);
+		}
+		String prefix = blobDirectory.isEmpty() ? "" : blobDirectory + "/";
+
+		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+		ListBlobsOptions listBlobsOptions = new ListBlobsOptions().setPrefix(prefix.isEmpty() ? null : prefix);
+		for (BlobItem blobItem : containerClient.listBlobsByHierarchy("/", listBlobsOptions, null)) {
+			String itemPath = blobItem.getName();
+			if (itemPath == null || itemPath.equals(prefix)) {
+				continue;
+			}
+			String name = prefix.isEmpty() ? itemPath : itemPath.substring(prefix.length());
+			if (name.endsWith("/")) {
+				name = name.substring(0, name.length() - 1);
+			}
+			if (name.isEmpty() || name.contains("/")) {
+				continue;
+			}
+
+			boolean isDir = blobItem.isPrefix();
+			Map<String, Object> blobMap = new HashMap<>();
+			blobMap.put("Path", blobDirectory.isEmpty() ? "/" + name : "/" + blobDirectory + "/" + name);
+			blobMap.put("Name", name);
+			blobMap.put("IsDir", isDir);
+
+			if (isDir) {
+				blobMap.put("Size", 0L);
+				blobMap.put("MimeType", "inode/directory");
+				blobMap.put("ModTime", null);
+				blobMap.put("Metadata", Collections.emptyMap());
+			} else {
+				BlobClient blobClient = containerClient.getBlobClient(itemPath);
+				BlobProperties properties = blobClient.getProperties();
+				Map<String, String> metadata = properties.getMetadata();
+				blobMap.put("Size", properties.getBlobSize());
+				blobMap.put("MimeType", properties.getContentType());
+				blobMap.put("ModTime",
+						properties.getLastModified() == null ? null : properties.getLastModified().toString());
+				blobMap.put("Metadata", (metadata == null || metadata.isEmpty()) ? Collections.emptyMap() : metadata);
+			}
+			detailsList.add(blobMap);
+		}
+		return detailsList;
 	}
 
 	@Override
@@ -175,9 +223,9 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		Files.createDirectories(localDirectory); // Ensure local directory exists
 		if (blobDirectory.startsWith("/")) {
-	        blobDirectory = blobDirectory.substring(1);
-	    }
-		
+			blobDirectory = blobDirectory.substring(1);
+		}
+
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
@@ -259,38 +307,39 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		List<Path> paths = parseLocalPaths(localFilePath);
-		 for (Path filePath : paths) {
-	            if (!Files.exists(filePath)) {
-	                classLogger.error("File not found: " + filePath);
-	                failedFiles.add(filePath.toString());
-	                continue;
-	            }
-		// Delete empty directories before upload
-		deleteEmptyDirectories(filePath);
-
-		if (Files.isDirectory(filePath)) {
-			try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
-				fileStream.forEach(file -> {
-					try {
-						uploadedFiles.add(uploadFile(containerClient, filePath, file, blobDirectory, metadata));
-					} catch (Exception e) {
-						failedFiles.add(file.toString());
-						classLogger.error("Failed to upload file: " + file, e);
-						rollbackUploads(containerClient, failedFiles);
-					}
-				});
-				found = true;
-			}
-		} else {
-			try {
-				uploadedFiles.add(uploadFile(containerClient, filePath.getParent(), filePath, blobDirectory, metadata));
-				found = true;
-			} catch (Exception e) {
+		for (Path filePath : paths) {
+			if (!Files.exists(filePath)) {
+				classLogger.error("File not found: " + filePath);
 				failedFiles.add(filePath.toString());
-				classLogger.error("Failed to upload file: " + filePath, e);
-				rollbackUploads(containerClient, failedFiles);
+				continue;
 			}
-		  }
+			// Delete empty directories before upload
+			deleteEmptyDirectories(filePath);
+
+			if (Files.isDirectory(filePath)) {
+				try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
+					fileStream.forEach(file -> {
+						try {
+							uploadedFiles.add(uploadFile(containerClient, filePath, file, blobDirectory, metadata));
+						} catch (Exception e) {
+							failedFiles.add(file.toString());
+							classLogger.error("Failed to upload file: " + file, e);
+							rollbackUploads(containerClient, failedFiles);
+						}
+					});
+					found = true;
+				}
+			} else {
+				try {
+					uploadedFiles
+							.add(uploadFile(containerClient, filePath.getParent(), filePath, blobDirectory, metadata));
+					found = true;
+				} catch (Exception e) {
+					failedFiles.add(filePath.toString());
+					classLogger.error("Failed to upload file: " + filePath, e);
+					rollbackUploads(containerClient, failedFiles);
+				}
+			}
 		}
 		// Delete empty folder from azure storage (zero-byte blob)
 		deleteEmptyBlobs(containerClient);
@@ -315,30 +364,30 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
 		for (String path : paths) {
-		Iterable<BlobItem> getBlobItems = paths.isEmpty() ? containerClient.listBlobs()
-				: containerClient.listBlobs(new ListBlobsOptions().setPrefix(path), null);
+			Iterable<BlobItem> getBlobItems = paths.isEmpty() ? containerClient.listBlobs()
+					: containerClient.listBlobs(new ListBlobsOptions().setPrefix(path), null);
 
-		for (BlobItem blobItem : getBlobItems) {
-			String blobName = blobItem.getName();
-			BlobClient blobClient = containerClient.getBlobClient(blobName);
+			for (BlobItem blobItem : getBlobItems) {
+				String blobName = blobItem.getName();
+				BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-			// Delete empty folder from azure storage (zero-byte blob)
-			deleteEmptyBlobs(containerClient);
+				// Delete empty folder from azure storage (zero-byte blob)
+				deleteEmptyBlobs(containerClient);
 
-			Path localFilePath = localDirectory
-					.resolve(blobName.substring(path.length()).replace("/", File.separator));
-			try {
-				Files.createDirectories(localFilePath.getParent());
-				retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
-						"Downloading file: " + blobName);
-				downloadedFiles.add(blobName);
-				classLogger.info("Downloaded file: " + localFilePath);
-				found = true;
-			} catch (Exception e) {
-				failedFiles.add(blobName);
-				classLogger.error("Failed to download: " + blobName, e);
+				Path localFilePath = localDirectory
+						.resolve(blobName.substring(path.length()).replace("/", File.separator));
+				try {
+					Files.createDirectories(localFilePath.getParent());
+					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
+							"Downloading file: " + blobName);
+					downloadedFiles.add(blobName);
+					classLogger.info("Downloaded file: " + localFilePath);
+					found = true;
+				} catch (Exception e) {
+					failedFiles.add(blobName);
+					classLogger.error("Failed to download: " + blobName, e);
+				}
 			}
-		  }
 		}
 
 		// Delete empty directories after download
@@ -359,8 +408,8 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		String containerName = containerAndPath[0];
 		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
 		if (blobDirectory.startsWith("/")) {
-	        blobDirectory = blobDirectory.substring(1);
-	    }
+			blobDirectory = blobDirectory.substring(1);
+		}
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -375,14 +424,15 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		for (BlobItem blobItem : blobItems) {
 			String blobName = blobItem.getName();
-	        if (blobDirectory.isEmpty() || (!blobName.equals(blobDirectory) && !blobName.substring(blobDirectory.length()).contains("/"))) {
-	            hasFilesToDelete = true;
-	            if (deleteBlob(containerClient, blobName)) {
-	                deletedFiles.add(blobName);
-	            } else {
-	                failedFiles.add(blobName);
-	            }
-	        }
+			if (blobDirectory.isEmpty()
+					|| (!blobName.equals(blobDirectory) && !blobName.substring(blobDirectory.length()).contains("/"))) {
+				hasFilesToDelete = true;
+				if (deleteBlob(containerClient, blobName)) {
+					deletedFiles.add(blobName);
+				} else {
+					failedFiles.add(blobName);
+				}
+			}
 		}
 
 		if (!hasFilesToDelete) {
@@ -407,8 +457,8 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		String containerName = containerAndPath[0];
 		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
 		if (blobDirectory.startsWith("/")) {
-	        blobDirectory = blobDirectory.substring(1);
-	    }
+			blobDirectory = blobDirectory.substring(1);
+		}
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -574,7 +624,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			Map<String, Object> metadata) throws IOException {
 
 		String relativePath = Utility.normalizePath(rootPath.relativize(file).toString()).trim();
-		
+
 		String blobName = blobDirectory.isEmpty() ? relativePath
 				: Utility.normalizePath(blobDirectory + "/" + relativePath);
 		BlobClient blobClient = containerClient.getBlobClient(blobName);
@@ -742,7 +792,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Use the utility method for normalization
-	    String normalizedPath = Utility.normalizePath(storagePath).trim();
+		String normalizedPath = Utility.normalizePath(storagePath).trim();
 
 		// Remove leading slash if present
 		if (normalizedPath.startsWith("/")) {
