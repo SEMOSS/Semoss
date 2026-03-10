@@ -155,19 +155,17 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	}
 
 	/**
-	 * Recursively traverse and collect reachable engines based on access rules.
-	 * - Direct children of accessible parents are always visible
-	 * - Children's dependencies are only explored if user has access to the child
+	 * Recursively traverse and collect reachable engines based on access rules. -
+	 * Direct children of accessible parents are always visible - Children's
+	 * dependencies are only explored if user has access to the child
 	 * 
 	 * @param parentId         The current parent engine ID
 	 * @param allEnginesMap    Map of all engine IDs to their full data
 	 * @param childrenByParent Map of parent ID to set of child engine IDs
 	 * @param reachableEngines Accumulator for reachable engines
 	 */
-	private void traverseReachable(String parentId,
-			Map<String, Map<String, Object>> allEnginesMap,
-			Map<String, Set<String>> childrenByParent,
-			Map<String, Map<String, Object>> reachableEngines) {
+	private void traverseReachable(String parentId, Map<String, Map<String, Object>> allEnginesMap,
+			Map<String, Set<String>> childrenByParent, Map<String, Map<String, Object>> reachableEngines) {
 		Set<String> children = childrenByParent.get(parentId);
 		if (children == null || children.isEmpty()) {
 			return;
