@@ -43,9 +43,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
 
 public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
-	
+
 	public SetProjectDependenciesReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey(), "dependencies" };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "dependencies" };
 	}
 
 	@Override
@@ -55,17 +55,18 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 
-		if(!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException("The user does not have access to edit this project or project id is invalid");
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"The user does not have access to edit this project or project id is invalid");
 		}
-		
+
 		List<Map<String, Object>> depEngines = getDependentEnginesList();
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
-		for(Map<String, Object> depEngine : depEngines) {
+		for (Map<String, Object> depEngine : depEngines) {
 			if (depEngine.containsKey("id") && depEngine.containsKey("type")) {
 				String eType = ((String) depEngine.get("type")).toUpperCase();
 				String eId = (String) depEngine.get("id");
-				if(IEngine.CATALOG_TYPE.valueOf(eType) != IEngine.CATALOG_TYPE.PROJECT) {
+				if (IEngine.CATALOG_TYPE.valueOf(eType) != IEngine.CATALOG_TYPE.PROJECT) {
 					if (!SecurityEngineUtils.containsEngineId(eId)) {
 						throw new IllegalArgumentException("Engine id = '" + eId + "' does not exist");
 					}
@@ -74,6 +75,9 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 						throw new IllegalArgumentException("Project id = '" + eId + "' does not exist");
 					}
 				}
+				if (eId.equals(projectId)) {
+					throw new IllegalArgumentException("Cannot add current project as a dependency");
+				}
 				Map<String, Object> dependencyEntry = new HashMap<>();
 				dependencyEntry.put("ENGINEID", eId);
 				dependencyEntry.put("ENGINETYPE", eType);
@@ -81,28 +85,28 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			} else {
 				throw new IllegalArgumentException("Engine is missing id or type");
 			}
-			
 		}
+
 		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependencyList);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new dependencies"));
 		return noun;
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Set the engine dependencies for a project";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals("dependencies")) {
+		if (key.equals("dependencies")) {
 			return "The list of engineid's that this project depends on for full functionality";
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getDependentEnginesList() {
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
