@@ -119,7 +119,8 @@ public abstract class AbstractEngine implements IEngine {
 				this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			}
 			String smssDisplayName = smssProp.getProperty(Constants.ENGINE_DISPLAY_NAME);
-			this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName : this.engineName;
+			this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+					: this.engineName;
 			return;
 		}
 
@@ -127,7 +128,8 @@ public abstract class AbstractEngine implements IEngine {
 		this.engineId = smssProp.getProperty(Constants.ENGINE);
 		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 		String smssDisplayName = smssProp.getProperty(Constants.ENGINE_DISPLAY_NAME);
-		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName : this.engineName;
+		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+				: this.engineName;
 
 		String engineIdAndName = SmssUtilities.getUniqueName(engineName, engineId);
 

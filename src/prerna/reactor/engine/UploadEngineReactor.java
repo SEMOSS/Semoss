@@ -292,8 +292,8 @@ public class UploadEngineReactor extends AbstractReactor {
 			String displayName = prop.getProperty(Constants.ENGINE_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(),
-							Constants.ENGINE_DISPLAY_NAME, engineName);
+					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
+							engineName);
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}

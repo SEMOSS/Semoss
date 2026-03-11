@@ -60,6 +60,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	public static String testUserEngineIdForAlias(User user, String potentialId) {
 		List<String> ids = new ArrayList<String>();
 
@@ -74,7 +75,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		OrQueryFilter nameOrDisplayFilter1 = new OrQueryFilter();
 		nameOrDisplayFilter1.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
-		nameOrDisplayFilter1.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+		nameOrDisplayFilter1
+				.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
 		qs.addExplicitFilter(nameOrDisplayFilter1);
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
@@ -87,8 +89,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 			OrQueryFilter nameOrDisplayFilter2 = new OrQueryFilter();
-			nameOrDisplayFilter2.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
-			nameOrDisplayFilter2.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+			nameOrDisplayFilter2
+					.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+			nameOrDisplayFilter2
+					.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
 			qs.addExplicitFilter(nameOrDisplayFilter2);
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));

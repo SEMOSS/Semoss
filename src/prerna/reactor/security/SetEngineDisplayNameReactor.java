@@ -48,11 +48,8 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SetEngineDisplayNameReactor.class);
 
-	
 	public SetEngineDisplayNameReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(), "name"
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "name" };
 	}
 
 	@Override
@@ -78,14 +75,15 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 			try {
 				Utility.changePropertiesFileValue(smssFilePath, Constants.ENGINE_DISPLAY_NAME, displayName);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error occurred updating the engine smss file for display name", e);
 			}
 			engine.setDisplayName(displayName);
 			ClusterUtil.pushEngineSmss(engineId);
 		}
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the display name for the engine"));
+		noun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully set the display name for the engine"));
 		return noun;
 	}
 

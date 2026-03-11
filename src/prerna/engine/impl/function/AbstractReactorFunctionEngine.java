@@ -437,11 +437,11 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	public boolean keepInputOutput() {
 		return true;
 	}
-	
+
 	@Override
 	public void setDisplayName(String displayName) {
 		// no display name for engine
-		
+
 	}
 
 	@Override
