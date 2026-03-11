@@ -30,6 +30,7 @@ package prerna.reactor.codeexec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,47 +43,60 @@ import prerna.util.UploadInputUtility;
 public class LoadPyFromFileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(LoadPyFromFileReactor.class);
-	
+
 	public LoadPyFromFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(), ReactorKeysEnum.SPACE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(),
+				ReactorKeysEnum.SPACE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		// this also validates
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		
+
 		String appFolder = null;
-		
-		if(keyValue.containsKey(keysToGet[2]))
-		{
+		if (keyValue.containsKey(keysToGet[2])) {
 			String space = keyValue.get(keysToGet[2]);
-			if(space != AssetUtility.INSIGHT_SPACE_KEY && space != AssetUtility.USER_SPACE_KEY)
-			{
+			if (space != AssetUtility.INSIGHT_SPACE_KEY && space != AssetUtility.USER_SPACE_KEY) {
 				appFolder = AssetUtility.getProjectAssetsFolder(space) + "/" + Constants.PY_BASE_FOLDER;
 				appFolder = appFolder.replace("\\", "/");
 			}
 		}
 
 		String alias = keyValue.get(keysToGet[1]);
-		
+		if (!PyUtils.isValidPythonVariableName(alias)) {
+			throw new IllegalArgumentException("Provided alias " + alias + " is not a valid python variable name");
+		}
 		try {
-			if(appFolder != null)
-			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search='" + appFolder + "')";
+			if (appFolder != null) {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search='" + appFolder + "')";
+				this.insight.getPyTranslator().runScript(script);
+			} else {
+				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='"
+						+ filePath + "', search=None)";
 				this.insight.getPyTranslator().runScript(script);
 			}
-			else
-			{
-				String script = alias + " = smssutil.load_module_from_file(module_name='" + alias + "', file_path='" + filePath +"', search=None)";
-				this.insight.getPyTranslator().runScript(script);
-				
-			}
+
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("Unable to load python file as module");
+			classLogger.error("Unable to load python file as module. Error: " + e.getMessage(), e);
+			throw new SemossPixelException("Unable to load python file as module. Error: " + e.getMessage(), e);
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Load a python file as a variable (alias input) to reference as a class object into the user's python process";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ALIAS.getKey())) {
+			return "A valid string input for a python variable name";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

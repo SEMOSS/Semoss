@@ -32,8 +32,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 
@@ -68,7 +66,7 @@ public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 		rsb.append(matchesTable + " <- self_match(" + col1 + ");");
 		rsb.append(matchesTable + "<-" + matchesTable + "[order(unique(" + matchesTable + ")$distance),] ;");
 //		rsb.append(RSyntaxHelper.asDataTable(matchesTable, matchesTable));
-		
+
 		// garbage collection
 		rsb.append("rm(" + col1 + ")");
 		this.rJavaTranslator.runR(rsb.toString());
@@ -78,7 +76,8 @@ public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 
 		// get count of exact matches
-		String exactMatchCount = this.rJavaTranslator.getString("as.character(nrow(" + matchesTable + "[" + matchesTable + "$distance == 0,]))");
+		String exactMatchCount = this.rJavaTranslator
+				.getString("as.character(nrow(" + matchesTable + "[" + matchesTable + "$distance == 0,]))");
 		if (exactMatchCount != null) {
 			int val = Integer.parseInt(exactMatchCount);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
@@ -86,13 +85,6 @@ public class MatchColumnValuesReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("No matches found.");
 		}
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"PredictSimilarColumnValues", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		this.insight.getVarStore().put(matchesTable, retNoun);
 		return retNoun;
 	}

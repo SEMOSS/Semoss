@@ -42,27 +42,20 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 
 	/**
 	 * This reactor updates row values to a new value based on a filter condition
-	 * (where a column equals a specified value)
-	 * The inputs to the reactor are: 
-	 * 1) the column to update
-	 * 2) the new value
-	 * 3) the filter condition
+	 * (where a column equals a specified value) The inputs to the reactor are: 1)
+	 * the column to update 2) the new value 3) the filter condition
 	 */
 
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 	private static final String QUOTE = "\"";
 
 	public UpdateRowValuesReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.VALUE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(),
 				ReactorKeysEnum.QUERY_STRUCT.getKey() };
 	}
 
@@ -89,8 +82,9 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		// use method to retrieve a single column type
 		String columnSelect = table + "$" + column;
 		String colDataType = getColumnType(table, column);
-		if(colDataType == null)
+		if (colDataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
 		SemossDataType sType = SemossDataType.convertStringToDataType(colDataType);
 
@@ -113,57 +107,62 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		if (rFilterBuilder.length() <= 0) {
 			throw new IllegalArgumentException("Must define a filter criteria");
 		}
-		
+
 		String script = null;
-		
-		if(sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
+
+		if (sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
 			// make sure the new value can be properly casted to a number
-			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+			if (newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na")
+					|| newValue.equalsIgnoreCase("nan")) {
 				newValue = "NaN";
-			} else if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+			} else if (!NUMERIC_PATTERN.matcher(newValue).matches()) {
 				throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
 			}
 			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + newValue + ";";
 
-			
-		} else if(sType == SemossDataType.DATE) {
+		} else if (sType == SemossDataType.DATE) {
 			// make sure the new value can be properly casted to a date
-			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+			if (newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na")
+					|| newValue.equalsIgnoreCase("nan")) {
 				newValue = "NaN";
 			} else {
 				SemossDate newD = SemossDate.genDateObj(newValue);
-				if(newD == null) {
+				if (newD == null) {
 					throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd");
 			}
-			
-			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.Date(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d');";
-						
-		} else if(sType == SemossDataType.TIMESTAMP) {
+
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.Date(" + QUOTE + newValue + QUOTE
+					+ ", format='%Y-%m-%d');";
+
+		} else if (sType == SemossDataType.TIMESTAMP) {
 			// make sure the new value can be properly casted to a timestamp
-			if(newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na") || newValue.equalsIgnoreCase("nan")) {
+			if (newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na")
+					|| newValue.equalsIgnoreCase("nan")) {
 				newValue = "NaN";
 			} else {
 				SemossDate newD = SemossDate.genTimeStampDateObj(newValue);
-				if(newD == null) {
+				if (newD == null) {
 					newD = SemossDate.genDateObj(newValue);
-					if(newD == null) {
+					if (newD == null) {
 						throw new IllegalArgumentException("Unable to parse new date value = " + newValue);
 					}
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
 			}
 
-			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d %H:%M:%S');";
-			
-		} else if(sType == SemossDataType.STRING) {
+			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- as.POSIXct(" + QUOTE + newValue + QUOTE
+					+ ", format='%Y-%m-%d %H:%M:%S');";
+
+		} else if (sType == SemossDataType.STRING) {
 			// escape and update
 			String escapedNewValue = newValue.replace("\"", "\\\"");
 			script = columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + escapedNewValue + QUOTE + ";";
 
-		} else if(sType == SemossDataType.FACTOR) {
-			// need to convert factor to string since factor is defined as a predefined list of values
+		} else if (sType == SemossDataType.FACTOR) {
+			// need to convert factor to string since factor is defined as a predefined list
+			// of values
 			script = columnSelect + "<- as.character(" + columnSelect + ")";
 			// this is same as string now
 			// escape and update
@@ -171,21 +170,14 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 			script += columnSelect + "[" + rFilterBuilder.toString() + "] <- " + QUOTE + escapedNewValue + QUOTE + ";";
 			// turn back to factor
 			script += columnSelect + "<- as.factor(" + columnSelect + ")";
-			
+
 			// TODO: account for ordered factor ...
 			// TODO: account for ordered factor ...
 		}
-		
+
 		// execute the r scripts
 		this.rJavaTranslator.runR(script);
 		this.addExecutedCode(script);
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"UpdateRowValues", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

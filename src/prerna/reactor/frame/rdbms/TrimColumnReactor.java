@@ -40,7 +40,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class TrimColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(TrimColumnReactor.class);
 
 	@Override
@@ -54,7 +54,7 @@ public class TrimColumnReactor extends AbstractFrameReactor {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
 				String columnName = input.getValue() + "";
-				
+
 				String table = frame.getName();
 				String column = columnName;
 				if (columnName.contains("__")) {
@@ -62,7 +62,7 @@ public class TrimColumnReactor extends AbstractFrameReactor {
 					table = split[0];
 					column = split[1];
 				}
-				
+
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equals("STRING")) {
 					// execute update table set column = UPPER(column);
@@ -77,7 +77,7 @@ public class TrimColumnReactor extends AbstractFrameReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 }

@@ -114,7 +114,7 @@ public class PixelStreamUtility {
 
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					if (jt != null) {
+					if (jt != null && jt.getPixelJobStatus() != PixelJobStatus.CANCELED) {
 						jt.setStatus(PixelJobStatus.STREAMING);
 					}
 					try {
@@ -133,14 +133,14 @@ public class PixelStreamUtility {
 						}
 						ThreadStore.remove();
 					}
-					if (jt != null) {
+					if (jt != null && jt.getPixelJobStatus() != PixelJobStatus.CANCELED) {
 						jt.setStatus(PixelJobStatus.COMPLETE);
 					}
 				}
 			};
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			if (jt != null) {
+			if (jt != null && jt.getPixelJobStatus() != PixelJobStatus.CANCELED) {
 				jt.setStatus(PixelJobStatus.ERROR);
 			}
 		}

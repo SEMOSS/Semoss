@@ -50,6 +50,8 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
@@ -708,5 +710,25 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get number of groups that have access to an engine
+	 * 
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static Long getNumGroupsWithAccessToEngine(User user, String engineId) throws IllegalAccessException {
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Input engineId must not be null or blank");
+		}
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+			throw new IllegalAccessException("The user does not have access to view this engine");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"GROUPENGINEPERMISSION__ID", "numGroups"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 }
