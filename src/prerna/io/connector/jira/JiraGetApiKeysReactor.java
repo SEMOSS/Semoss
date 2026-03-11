@@ -2,6 +2,7 @@ package prerna.io.connector.jira;
 
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 
@@ -24,6 +25,14 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 	private static final String JIRA_UNIQUE_ID = "ID";
 	private static final String TABLE = "JIRA_USER";
 
+	private static final String CREATED_BY = "CREATED_BY";
+	private static final String DATE_CREATED = "DATE_CREATED";
+	private static final String DATE_LAST_USED = "DATE_LAST_USED";
+	private static final String USER_ID = "USER_ID";
+	private static final String URL = "URL";
+	private static final String KEY_NAME = "KEY_NAME";
+	private static final String PROJECT = "PROJECT";
+
 	@Override
 	public NounMetadata execute() {
 		ResultSet rs = null;
@@ -37,20 +46,21 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 			String query = "SELECT * FROM " + tableName;
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object rsObj = hashmap.get("RESULTSET_OBJECT");
-			List<JiraDetails> resultList = new ArrayList<>();
+			List<Map<String, Object>> resultList = new ArrayList<>();
 
 			if (rsObj instanceof ResultSet) {
 				rs = (ResultSet) rsObj;
 				while (rs.next()) {
-					JiraDetails jiraDetails = new JiraDetails();
-					jiraDetails.setCreatedBy(rs.getString("CREATED_BY"));
-					jiraDetails.setDateCreated(rs.getString("DATE_CREATED"));
-					jiraDetails.setDateLastUsed(rs.getString("DATE_LAST_USED"));
-					jiraDetails.setPrimaryId(rs.getString(JIRA_UNIQUE_ID));
-					jiraDetails.setUrl(rs.getString("URL"));
-					jiraDetails.setUserId(rs.getString("USER_ID"));
-					jiraDetails.setKeyName(rs.getString("KEY_NAME"));
-					jiraDetails.setProject(rs.getString("PROJECT"));
+					Map<String, Object> jiraDetails = new HashMap<>();
+					jiraDetails.put("createdBy", rs.getString(CREATED_BY));
+					jiraDetails.put("dateCreated", rs.getString(DATE_CREATED));
+					jiraDetails.put("dateLastUsed", rs.getString(DATE_LAST_USED));
+					jiraDetails.put("primaryId", rs.getString(JIRA_UNIQUE_ID));
+					jiraDetails.put("url", rs.getString(URL));
+					jiraDetails.put("userId", rs.getString(USER_ID));
+					jiraDetails.put("keyName", rs.getString(KEY_NAME));
+					jiraDetails.put("project", rs.getString(PROJECT));
+					
 					resultList.add(jiraDetails);
 				}
 			} else {
@@ -69,7 +79,7 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 				if (rs != null)
 					rs.close();
 			} catch (Exception ex) {
-				classLogger.error("Error closing ResultSet in JiraGetReactor", ex);
+				classLogger.error("Error closing ResultSet in JiraGetApiKeysReactor", ex);
 				throw new SemossPixelException("An error occurred while closing database resources. Error message: " + ex.getMessage());
 			}
 		}

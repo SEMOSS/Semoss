@@ -160,6 +160,40 @@ public class JiraHelper {
 		return null;
 	}
 
+	public static Map<String, Object> getCredentials(String keyName) {
+		if (!userExists(keyName)) {
+			throw new SemossPixelException("User '" + keyName + "' is not present in DB");
+		}
+		Map<String, Object> creds = new HashMap<>();
+		String apiKey = getFieldFromDB(keyName, API_KEY);
+		String username = getFieldFromDB(keyName, USER_ID);
+		String urlBase = getFieldFromDB(keyName, URL);
+		String projectName = getFieldFromDB(keyName, PROJECT);
+
+		if (apiKey == null || username == null || urlBase == null || projectName == null) {
+			throw new SemossPixelException("User credentials, URL, or project missing in DB");
+		}
+
+
+		String normalizedUsername = username.trim();
+		String normalizedApiKey = apiKey.trim();
+		if (!urlBase.matches("^https?://.*")) {
+			throw new SemossPixelException("Invalid JIRA URL format in DB");
+		}
+		if (!projectName.matches("^[A-Za-z0-9_-]+$")) {
+			throw new SemossPixelException("Invalid project name format in DB");
+		}
+
+		String auth = normalizedUsername + ":" + normalizedApiKey;
+		String encodeToString = Base64.getEncoder()
+				.encodeToString(auth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+				
+		creds.put("projectName", projectName);
+		creds.put("urlBase", urlBase);
+		creds.put("encodeToString", encodeToString);
+		return creds;
+	}
+
 	/**
 	 * 
 	 * @param keyName 
@@ -167,6 +201,7 @@ public class JiraHelper {
 	 */
 	public static NounMetadata listIssue(String keyName) {
 		final String ACCEPT = "Accept";
+		final String LINK = "link";
 		final String APPLICATION_JSON = "application/json";
 		final String JQL = "jql";
 		final String FIELDS = "fields";
@@ -174,30 +209,11 @@ public class JiraHelper {
 		final String PROJECT_QUERY_PREFIX = "project=";
 
 		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException("User '" + keyName + "' is not present in DB");
-			}
-			String apiKey = getFieldFromDB(keyName, API_KEY);
-			String username = getFieldFromDB(keyName, USER_ID);
-			String urlBase = getFieldFromDB(keyName, URL);
-			String projectName = getFieldFromDB(keyName, PROJECT);
+			Map<String, Object> creds = getCredentials(keyName);
+			String projectName = (String) creds.get("projectName");
+			String urlBase = (String) creds.get("urlBase");
+			String encodeToString = (String) creds.get("encodeToString");
 
-			if (apiKey == null || username == null || urlBase == null || projectName == null) {
-				throw new SemossPixelException("User credentials, URL, or project missing in DB");
-			}
-
-			String normalizedUsername = username.trim();
-			String normalizedApiKey = apiKey.trim();
-			if (!urlBase.matches("^https?://.*")) {
-				throw new SemossPixelException("Invalid JIRA URL format in DB");
-			}
-			if (!projectName.matches("^[A-Za-z0-9_-]+$")) {
-				throw new SemossPixelException("Invalid project name format in DB");
-			}
-
-			String auth = normalizedUsername + ":" + normalizedApiKey;
-			String encodeToString = Base64.getEncoder()
-					.encodeToString(auth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			Map<String, String> header = new HashMap<>();
 			header.put(AUTHORIZATION, BASIC_PREFIX + encodeToString);
 			header.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -216,17 +232,19 @@ public class JiraHelper {
 			JsonNode root = objectMapper.readTree(response);
 			JsonNode issues = root.path(ISSUES);
 
-			List<JiraTicketDetails> jiraIssueDetails = new ArrayList<>();
+			List<Map<String, Object>> jiraIssueDetails = new ArrayList<>();
 			for (JsonNode issue : issues) {
 				String id = issue.path(ID).asText();
 				String link = issue.path(SELF).asText();
 				String summary = issue.path(FIELDS).path(SUMMARY).asText();
-				jiraIssueDetails.add(new JiraTicketDetails(id, link, summary));
+				Map<String, Object> ticket = new HashMap<>();
+				ticket.put(ID, id);
+				ticket.put(LINK, link);
+				ticket.put(SUMMARY, summary);
+				jiraIssueDetails.add(ticket);
 			}
-
 			return new NounMetadata(jiraIssueDetails, PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.OPERATION);
-
 		} catch (Exception e) {
 			classLogger.error("Error in listIssue for user '{}': {}", keyName, e.getMessage(), e);
 			throw new SemossPixelException("Failed to list issues for project associated with '" + keyName + "'. Error message: " + e.getMessage());
@@ -242,50 +260,40 @@ public class JiraHelper {
 	 * @return 
 	 */
 	public static NounMetadata createIssue(String summary, String description, String istype, String keyName) {
+		final String FIELDS_KEY = "fields";
+		final String PROJECT_KEY = "project";
+		final String DESCRIPTION_KEY = "description";
+		final String ISSUE_TYPE_KEY = "issuetype";
+		final String NAME_KEY = "name";
+		final String LINK = "link";
+
 		try {
-			if (!userExists(keyName)) {
-				throw new SemossPixelException("User id " + keyName + " is not present in DB");
-			}
-			String apiKey = getFieldFromDB(keyName, API_KEY);
-			String username = getFieldFromDB(keyName, USER_ID);
-			String urlBase = getFieldFromDB(keyName, URL);
-			String projectName = getFieldFromDB(keyName, PROJECT);
+			Map<String, Object> creds = getCredentials(keyName);
+			String projectName = (String) creds.get("projectName");
+			String urlBase = (String) creds.get("urlBase");
+			String encodeToString = (String) creds.get("encodeToString");
 
-			if (apiKey == null || username == null || urlBase == null || projectName == null) {
-				throw new SemossPixelException("User credentials, URL, or project missing in DB");
-			}
-
-			String normalizedUsername = username.trim();
-			String normalizedApiKey = apiKey.trim();
-			if (!urlBase.matches("^https?://.*")) {
-				throw new SemossPixelException("Invalid JIRA URL format in DB");
-			}
-			if (!projectName.matches("^[A-Za-z0-9_-]+$")) {
-				throw new SemossPixelException("Invalid project name format in DB");
-			}
-
-			String auth = normalizedUsername + ":" + normalizedApiKey;
-			String encodeToString = Base64.getEncoder()
-					.encodeToString(auth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			Map<String, String> map = new HashMap<>();
 			map.put(AUTHORIZATION, BASIC_PREFIX + encodeToString);
 
 			String requestUrl = urlBase + JIRA_CREATE_DELETE_ISSUE_URL;
 
-			Project project = new Project();
-			project.setKey(projectName);
-			IssueType issuetype = new IssueType();
-			issuetype.setName(istype);
-			Fields fields = new Fields();
-			fields.setProject(project);
-			fields.setSummary(summary);
-			fields.setDescription(description);
-			fields.setIssuetype(issuetype);
+			Map<String, Object> project = new HashMap<>();
+			project.put(KEY, projectName);
 
-			JiraRequestBodyModel jiraRequestBodyModel = new JiraRequestBodyModel();
-			jiraRequestBodyModel.setFields(fields);
+			Map<String, Object> issueType = new HashMap<>();
+			issueType.put(NAME_KEY, istype);
 
-			String body = GSON.toJson(jiraRequestBodyModel);
+			Map<String, Object> fields = new HashMap<>();
+			fields.put(PROJECT_KEY, project);
+			fields.put(SUMMARY, summary);
+			fields.put(DESCRIPTION_KEY, description);
+			fields.put(ISSUE_TYPE_KEY, issueType);
+
+			Map<String, Object> jiraRequestBody = new HashMap<>();
+			jiraRequestBody.put(FIELDS_KEY, fields);
+
+			String body = GSON.toJson(jiraRequestBody);
 
 			String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(requestUrl, map, body,
 					ContentType.APPLICATION_JSON, null, null, null);
@@ -293,11 +301,12 @@ public class JiraHelper {
 			Object id = responseMap.get(ID);
 			Object link = responseMap.get(SELF);
 
-			JiraTicketDetails jiraDetail = new JiraTicketDetails(id != null ? id.toString() : null,
-					link != null ? link.toString() : null, null);
+			Map<String, Object> jiraDetail = new HashMap<>();
+			jiraDetail.put(ID, id != null ? id.toString() : null);
+			jiraDetail.put(LINK, link != null ? link.toString() : null);
+			jiraDetail.put(SUMMARY, null);
 
 			return new NounMetadata(jiraDetail, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-
 		} catch (Exception e) {
 			classLogger.error("Error in createIssue for user '{}': {}", keyName, e.getMessage(), e);
 			throw new SemossPixelException("Failed to create issue for project associated with '" + keyName + "'. Error message: " + e.getMessage());
@@ -317,30 +326,11 @@ public class JiraHelper {
 		try {
 			ObjectMapper objectMapper = new ObjectMapper();
 
-			if (!userExists(keyName)) {
-				throw new SemossPixelException("User id " + keyName + " is not present in DB");
-			}
-			String apiKey = getFieldFromDB(keyName, API_KEY);
-			String username = getFieldFromDB(keyName, USER_ID);
-			String urlBase = getFieldFromDB(keyName, URL);
-			String project = getFieldFromDB(keyName, PROJECT);
+			Map<String, Object> creds = getCredentials(keyName);
+			String project = (String) creds.get("projectName");
+			String urlBase = (String) creds.get("urlBase");
+			String encodeToString = (String) creds.get("encodeToString");
 
-			if (apiKey == null || username == null || urlBase == null || project == null) {
-				throw new SemossPixelException("User credentials, URL, or project missing in DB");
-			}
-
-			String normalizedUsername = username.trim();
-			String normalizedApiKey = apiKey.trim();
-			if (!urlBase.matches("^https?://.*")) {
-				throw new SemossPixelException("Invalid JIRA URL format in DB");
-			}
-			if (!project.matches("^[A-Za-z0-9_-]+$")) {
-				throw new SemossPixelException("Invalid project name format in DB");
-			}
-
-			String auth = normalizedUsername + ":" + normalizedApiKey;
-			String encodeToString = Base64.getEncoder()
-					.encodeToString(auth.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			Map<String, String> map = new HashMap<>();
 			map.put(AUTHORIZATION, BASIC_PREFIX + encodeToString);
 
@@ -359,7 +349,6 @@ public class JiraHelper {
 			Map<String, Object> response = new HashMap<>();
 			response.put(SUCCESS, true);
 			return new NounMetadata(response, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-
 		} catch (Exception e) {
 			classLogger.error("Error in deleteIssue for user '{}', issue '{}': {}", keyName, jiraId, e.getMessage(), e);
 			String project = null;
