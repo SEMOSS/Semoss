@@ -51,7 +51,6 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
@@ -59,7 +58,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		}
 
 		// Get all dependencies with subdependencies
-		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId,
+		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, user,
 				true);
 
 		// Build graph structure with unique nodes and their direct dependencies

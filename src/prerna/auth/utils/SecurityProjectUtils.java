@@ -2101,48 +2101,49 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get project dependency details with user and group permissions
 	 * 
 	 * @param projectId
-	 * @param userId
+	 * @param user
 	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
-		return getProjectDependencyDetails(projectId, userId, false);
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, User user) {
+		return getProjectDependencyDetails(projectId, user, false);
 	}
 
 	/**
-	 * Get project dependency details with user permissions and optional
+	 * Get project dependency details with user and group permissions and optional
 	 * subdependencies
 	 * 
 	 * @param projectId
-	 * @param userId
+	 * @param user
 	 * @param subdependencies if true, recursively fetch subdependencies
 	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId,
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, User user,
 			boolean subdependencies) {
 		if (subdependencies) {
 			Set<String> visited = new HashSet<>();
 			List<Map<String, Object>> allDependencies = new ArrayList<>();
-			getProjectDependencyDetailsWithUserRecursive(projectId, userId, visited, allDependencies);
+			getProjectDependencyDetailsWithUserRecursive(projectId, user, visited, allDependencies);
 
 			// Calculate can_view_dependencies for each dependency
-			calculateCanViewDependencies(allDependencies, userId);
+			calculateCanViewDependencies(allDependencies);
 
 			return allDependencies;
 		} else {
-			return getProjectDependencyDetailsWithUserQuery(projectId, userId);
+			return getProjectDependencyDetailsWithUserQuery(projectId, user);
 		}
 	}
 
 	/**
 	 * Calculate can_view_dependencies field for each dependency by checking if user
 	 * has view access to all subdependencies. Works from leaf nodes up the tree.
+	 * Now accounts for both user permissions and group permissions.
 	 * 
 	 * @param allDependencies List of all dependencies (flat structure)
-	 * @param userId          User ID to check permissions for
 	 */
-	private static void calculateCanViewDependencies(List<Map<String, Object>> allDependencies, String userId) {
+	private static void calculateCanViewDependencies(List<Map<String, Object>> allDependencies) {
 		// Build a map of engineId -> dependency for quick lookup
 		Map<String, Map<String, Object>> dependencyMap = new HashMap<>();
 		for (Map<String, Object> dep : allDependencies) {
@@ -2171,7 +2172,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		Set<String> visiting = new HashSet<>();
 		for (Map<String, Object> dep : allDependencies) {
 			String engineId = (String) dep.get("engine_id");
-			boolean canView = calculateCanViewRecursive(engineId, userId, dependencyMap, childrenMap, canViewCache,
+			boolean canView = calculateCanViewRecursive(engineId, dependencyMap, childrenMap, canViewCache,
 					visiting);
 			dep.put("can_view_dependencies", canView);
 		}
@@ -2181,7 +2182,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Recursively calculate if user can view all subdependencies for a given engine
 	 * 
 	 * @param engineId      The engine ID to check
-	 * @param userId        The user ID
 	 * @param dependencyMap Map of engineId -> dependency data
 	 * @param childrenMap   Map of engineId -> list of child engine IDs
 	 * @param canViewCache  Cache to avoid recalculating
@@ -2190,7 +2190,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return true if user has view access to this engine and all its
 	 *         subdependencies
 	 */
-	private static boolean calculateCanViewRecursive(String engineId, String userId,
+	private static boolean calculateCanViewRecursive(String engineId,
 			Map<String, Map<String, Object>> dependencyMap, Map<String, List<String>> childrenMap,
 			Map<String, Boolean> canViewCache, Set<String> visiting) {
 		// Check cache first
@@ -2213,12 +2213,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// Check if user has view permission for this engine
+		// Account for both user permissions and group permissions
 		boolean hasViewPermission = false;
 		Integer permission = (Integer) dependency.get("permission");
+		Integer groupPermission = (Integer) dependency.get("group_permission");
 		Boolean isGlobal = (Boolean) dependency.get("engine_global");
 
-		// User has view permission if they have any permission or if engine is global
-		hasViewPermission = (permission != null) || (isGlobal != null && isGlobal);
+		// User has view permission if they have any user permission, group permission,
+		// or if engine is global
+		hasViewPermission = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
 
 		// If this is a leaf node (no children), return the permission status
 		List<String> children = childrenMap.get(engineId);
@@ -2234,7 +2237,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// If this has children, check all subdependencies
 			boolean allChildrenViewable = true;
 			for (String childId : children) {
-				if (!calculateCanViewRecursive(childId, userId, dependencyMap, childrenMap, canViewCache, visiting)) {
+				if (!calculateCanViewRecursive(childId, dependencyMap, childrenMap, canViewCache, visiting)) {
 					allChildrenViewable = false;
 					break;
 				}
@@ -2256,12 +2259,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * permissions
 	 * 
 	 * @param projectId
-	 * @param userId
+	 * @param user
 	 * @param visited         Set to track visited projects to avoid circular
 	 *                        dependencies
 	 * @param allDependencies Accumulated list of all dependencies
 	 */
-	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, String userId,
+	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, User user,
 			Set<String> visited, List<Map<String, Object>> allDependencies) {
 		// Avoid circular dependencies
 		if (visited.contains(projectId)) {
@@ -2270,25 +2273,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		visited.add(projectId);
 
 		// Query direct dependencies
-		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsWithUserQuery(projectId, userId);
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsWithUserQuery(projectId, user);
 
 		// Add direct dependencies and recurse for PROJECT type dependencies
 		for (Map<String, Object> dependency : directDependencies) {
 			allDependencies.add(dependency);
 			String engineId = (String) dependency.get("engine_id");
-			getProjectDependencyDetailsWithUserRecursive(engineId, userId, visited, allDependencies);
+			getProjectDependencyDetailsWithUserRecursive(engineId, user, visited, allDependencies);
 		}
 	}
 
 	/**
-	 * Query to get project dependency details with user permissions for a single
+	 * Query to get project dependency details with user and group permissions for a
+	 * single
 	 * project
 	 * 
 	 * @param projectId
-	 * @param userId
+	 * @param user
 	 * @return
 	 */
-	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, String userId) {
+	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, User user) {
+		String userId = user.getPrimaryLoginToken().getId();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
@@ -2448,6 +2453,113 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					new QueryColumnSelector("PP__PERMISSION_NAME"), new QueryColumnSelector("EP__PERMISSION_NAME"),
 					"permission_name");
 			qs.addSelector(permissionNameSelector);
+		}
+
+		// GROUP PERMISSION sub-query - conditional based on type (GROUPENGINEPERMISSION
+		// vs
+		// GROUPPROJECTPERMISSION)
+		{
+			// Build the group filter once for reuse
+			OrQueryFilter groupOrFilters = new OrQueryFilter();
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider login : logins) {
+					AccessToken accessToken = user.getAccessToken(login);
+					Collection<String> userGroups = accessToken.getUserGroups();
+					String userGroupType = accessToken.getUserGroupType();
+					Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+					if (!userCustomGroups.isEmpty()) {
+						AndQueryFilter customAndFilter = new AndQueryFilter();
+						customAndFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__ID", "==", userCustomGroups));
+						groupOrFilters.addFilter(customAndFilter);
+					}
+					if (!userGroups.isEmpty()) {
+						AndQueryFilter andFilter = new AndQueryFilter();
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__TYPE", "==", userGroupType));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__ID", "==", userGroups));
+						groupOrFilters.addFilter(andFilter);
+					}
+				}
+			}
+
+			// ENGINE group permissions sub-query
+			SelectQueryStruct engineGroupPermQs = new SelectQueryStruct();
+			engineGroupPermQs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			engineGroupPermQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					"GROUPENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			engineGroupPermQs.addGroupBy(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
+			if (!groupOrFilters.isEmpty()) {
+				engineGroupPermQs.addExplicitFilter(groupOrFilters);
+			} else {
+				AndQueryFilter nullFilter = new AndQueryFilter();
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", null));
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", null));
+				engineGroupPermQs.addExplicitFilter(nullFilter);
+			}
+
+			SubqueryRelationship engineGroupPermRel = new SubqueryRelationship(engineGroupPermQs, "EGP",
+					"left.outer.join",
+					new String[] { "EGP__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs.addRelation(engineGroupPermRel);
+
+			// PROJECT group permissions sub-query
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider login : logins) {
+					AccessToken accessToken = user.getAccessToken(login);
+					Collection<String> userGroups = accessToken.getUserGroups();
+					String userGroupType = accessToken.getUserGroupType();
+					Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+					if (!userCustomGroups.isEmpty()) {
+						AndQueryFilter customAndFilter = new AndQueryFilter();
+						customAndFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__ID", "==", userCustomGroups));
+						groupProjectOrFilters.addFilter(customAndFilter);
+					}
+					if (!userGroups.isEmpty()) {
+						AndQueryFilter andFilter = new AndQueryFilter();
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__TYPE", "==", userGroupType));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__ID", "==", userGroups));
+						groupProjectOrFilters.addFilter(andFilter);
+					}
+				}
+			}
+
+			SelectQueryStruct projectGroupPermQs = new SelectQueryStruct();
+			projectGroupPermQs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			projectGroupPermQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					"GROUPPROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			projectGroupPermQs.addGroupBy(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID"));
+			if (!groupProjectOrFilters.isEmpty()) {
+				projectGroupPermQs.addExplicitFilter(groupProjectOrFilters);
+			} else {
+				AndQueryFilter nullFilter = new AndQueryFilter();
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", null));
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", null));
+				projectGroupPermQs.addExplicitFilter(nullFilter);
+			}
+
+			SubqueryRelationship projectGroupPermRel = new SubqueryRelationship(projectGroupPermQs, "PGP",
+					"left.outer.join",
+					new String[] { "PGP__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectGroupPermRel);
+
+			// Use conditional selector for group permission based on engine type
+			QueryIfSelector groupPermissionSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PGP__PERMISSION"), new QueryColumnSelector("EGP__PERMISSION"),
+					"group_permission");
+			qs.addSelector(groupPermissionSelector);
 		}
 
 		// ACCESS REQUEST sub-query - conditional based on type (ENGINEACCESSREQUEST vs
