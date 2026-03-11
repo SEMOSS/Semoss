@@ -41,7 +41,7 @@ public class SalesforceDeleteRecordReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a record from a salesforce object given its record Id.";
+		return "Deletes a record from a salesforce object given its record Id. This reactor is executed after Salesforce Login.";
 	}
 	
 	@Override

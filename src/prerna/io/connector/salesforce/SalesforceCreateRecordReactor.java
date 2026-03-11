@@ -68,7 +68,7 @@ public class SalesforceCreateRecordReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates a record for a Salesforce object using a user-supplied map of fields and values.";
+		return "Creates a record for a Salesforce object using a user-supplied map of fields and values. This reactor is executed after Salesforce Login. Also, specify the object and fields using SalesforceObjectSchema Reactor before performing this create operation.";
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public class SalesforceCreateRecordReactor extends AbstractReactor {
 		if (key.equals(SOBJECT_NAME)) {
 			return "This field specifies the name of the Salesforce object " + SOBJECT_NAME;
 		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return "A map of input fields and their values " + ReactorKeysEnum.MAP.getKey();
+			return "This is a required field. A map of input fields and their values " + ReactorKeysEnum.MAP.getKey();
 		}
 		return super.getDescriptionForKey(key);
 	}

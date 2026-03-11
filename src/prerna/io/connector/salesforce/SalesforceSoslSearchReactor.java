@@ -40,7 +40,7 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Executes a Salesforce SOSL search against the org, returning records that match the query.";
+		return "Executes a Salesforce SOSL search against the org, returning records that match the query. This reactor is executed after Salesforce Login.";
 	}
 	
 	@Override

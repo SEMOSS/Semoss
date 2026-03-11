@@ -40,7 +40,7 @@ public class SalesforceObjectSchemaReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Fetches all Salesforce object API names when no sObject is specified, or fetches field API names for a specified sObject using the REST API.";
+		return "Fetches all Salesforce object API names when no sObject is specified, or fetches field API names for a specified sObject using the REST API. This reactor is executed after Salesforce Login.";
 	}
 	
 	@Override

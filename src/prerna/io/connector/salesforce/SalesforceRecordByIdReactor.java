@@ -42,7 +42,7 @@ public class SalesforceRecordByIdReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Fetches a Salesforce record by sObject name and record Id using the REST API.";
+		return "Fetches a Salesforce record by sObject name and record Id using the REST API. This reactor is executed after Salesforce Login.";
 	}
 
 	@Override

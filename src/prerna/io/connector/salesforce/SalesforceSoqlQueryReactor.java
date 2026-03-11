@@ -40,7 +40,7 @@ public class SalesforceSoqlQueryReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Executes an arbitrary SOQL query on Salesforce via the REST API and returns the result records.";
+		return "Executes an arbitrary SOQL query on Salesforce via the REST API and returns the result records. This reactor is executed after Salesforce Login.";
 	}
 
 	@Override

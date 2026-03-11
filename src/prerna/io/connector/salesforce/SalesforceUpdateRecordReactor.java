@@ -70,7 +70,7 @@ public class SalesforceUpdateRecordReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "Update a record for a Salesforce object using a user-supplied map of updated fields and values.";
+		return "Update a record for a Salesforce object using a user-supplied map of updated fields and values. This reactor is executed after Salesforce Login. Also, specify the object and fields using SalesforceObjectSchema Reactor before performing this update operation.";
 	}
 
 	@Override
