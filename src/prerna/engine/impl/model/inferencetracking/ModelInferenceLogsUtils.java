@@ -2776,4 +2776,44 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
+	/**
+	 * Get total token usage for a user across specified engines within a date range
+	 * 
+	 * @param userId
+	 * @param engineId
+	 * @param startDate The start date of the period
+	 * @param endDate   The end date of the period
+	 * @return Total number of tokens used, or 0 if no usage found
+	 */
+	public static int getUserTokenUsageForPeriod(String userId, String engineId, java.time.ZonedDateTime startDate,
+			java.time.ZonedDateTime endDate) {
+		String query = "SELECT SUM(MESSAGE_TOKENS) AS current_usage FROM MESSAGE "
+				+ "WHERE USER_ID=? AND AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?";
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, userId);
+			ps.setString(psIndex++, engineId);
+			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
+			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					modelInferenceLogsDb.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				// If null, treat as 0 usage
+				return (retNum == null) ? 0 : retNum.intValue();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return 0;
+	}
+
 }
