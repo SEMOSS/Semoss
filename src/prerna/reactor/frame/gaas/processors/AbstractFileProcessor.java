@@ -114,6 +114,14 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 			processor = new PPTProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 			processor = new PDFProcessor(file.getAbsolutePath(), writer);
+		} else if (mimeType.equalsIgnoreCase("message/rfc822")
+				|| (filetype.equals("eml"))) {
+			// eml email
+			processor = new EMLProcessor(file.getAbsolutePath(), writer);
+		} else if (mimeType.equalsIgnoreCase("application/vnd.ms-outlook")
+				|| (filetype.equals("msg"))) {
+			// msg email
+			processor = new MSGProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 				|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
 				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
