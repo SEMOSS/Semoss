@@ -106,6 +106,7 @@ override-dependencies = [
     "marshmallow==4.1.2",
     "protobuf>=6.33.5",
     "numpy>=2.2.6",
+    "langchain-classic>=1.0.2",
 ]
 
 [[tool.uv.index]]
