@@ -36,19 +36,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 
-	
 	@Override
 	public NounMetadata execute() {
+		// we are replacing any current project input with the default playground system
+		// project id
 		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if(projectGRS != null) {
+		if (projectGRS != null) {
 			projectGRS.clear();
 		} else {
 			projectGRS = new GenRowStruct();
 		}
 		projectGRS.add(new NounMetadata(PlaygroundUtils.PLAYGROUND_PROJECT_ID, PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
+		// then we call the normal create room logic
 		return super.execute();
 	}
-	
-	
+
 }

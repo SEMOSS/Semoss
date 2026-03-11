@@ -89,7 +89,18 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
-		this.vectorDatabaseSearcher = Utility.getRandomString(6);
+
+		// if we've already opened don't automatically drop the searcher variable
+		if (this.vectorDatabaseSearcher == null
+				|| (this.vectorDatabaseSearcher = this.vectorDatabaseSearcher.trim()).isEmpty()) {
+			this.vectorDatabaseSearcher = Utility.getRandomString(6);
+		}
+	}
+
+	@Override
+	public void close() throws IOException {
+		this.vectorDatabaseSearcher = null;
+		super.close();
 	}
 
 	@Override
@@ -599,7 +610,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			callMaker.append(", ").append("use_hybrid_search").append(" = ").append(PyUtils
 					.determineStringType(parameters.get(VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey())));
 		}
-		
+
 		if (parameters.containsKey(VectorDatabaseParamOptionsEnum.COLUMNS_TO_RETURN.getKey())) {
 			// add the columns based in the vector db query
 			callMaker.append(", ").append("columns_to_return").append(" = ").append(PyUtils
