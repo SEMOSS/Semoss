@@ -78,8 +78,8 @@ public class ClaudeCodeManager {
 		Integer localPort = ThreadStore.getLocalPort();
 		String localHostname = ThreadStore.getLocalHostname();
     	String localProtocol = ThreadStore.getLocalProtocol();
-        String baseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/model/anthropic";
-        String mcpBaseUrl = localProtocol + "://" + localHostname + ":" + localPort + "/Monolith/api/ext/mcp/";
+        String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
+        String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
         List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
         if (mcps != null) {
 	        for (Map<String, String >mcp : mcps) {
