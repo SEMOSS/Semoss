@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -113,6 +114,15 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			// Create engine object with all metadata except parent_id
 			Map<String, Object> engine = new HashMap<>(originalEngine);
 			engine.remove("parent_id");
+
+			// If there is no direct permission_name but a group_permission exists, derive
+			// it
+			if (engine.get("permission_name") == null) {
+				Integer gp = (Integer) engine.get("group_permission");
+				if (gp != null) {
+					engine.put("permission_name", AccessPermissionEnum.getPermissionValueById(gp));
+				}
+			}
 
 			// Check if user has access to this engine
 			Integer permission = (Integer) originalEngine.get("permission");

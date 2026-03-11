@@ -2199,11 +2199,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// Detect circular dependency - if we're already visiting this node, there's a
-		// cycle
+		// cycle. Every node in the visiting set has already had its own
+		// hasViewPermission
+		// checked, so the back-edge doesn't introduce any new permission requirement.
+		// Return true to avoid poisoning the result for all nodes in the cycle.
 		if (visiting.contains(engineId)) {
-			// Return false for circular dependencies as we cannot determine permissions
-			canViewCache.put(engineId, false);
-			return false;
+			return true;
 		}
 
 		Map<String, Object> dependency = dependencyMap.get(engineId);
