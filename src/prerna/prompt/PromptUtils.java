@@ -43,6 +43,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -54,11 +55,12 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 public class PromptUtils extends AbstractPromptUtils {
 
 	private static Logger classLogger = LogManager.getLogger(PromptUtils.class);
-	
+
 	private final static String PROMPT = "PROMPT";
 	private final static String PROMPT_INPUT = "PROMPT_INPUT";
 	private final static String PROMPT_VARIABLE = "PROMPT_VARIABLE";
@@ -66,36 +68,34 @@ public class PromptUtils extends AbstractPromptUtils {
 	private final static String promptQuery = "INSERT INTO PROMPT (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY, DATE_CREATED, IS_LATEST) "
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-	//	private final static String promptInputQuery = "INSERT INTO PROMPT_INPUT (ID, PROMPT_ID, INDEX, KEY, DISPLAY, TYPE, IS_HIDDEN_PHRASE_INPUT_TOKEN, LINKED_INPUT_TOKEN) "
-	//			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-	//	
-	//	private final static String promptVaraibleQuery = "INSERT INTO PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
-	//			+ "VALUES (?, ?, ?, ?, ?)";
+	// private final static String promptInputQuery = "INSERT INTO PROMPT_INPUT (ID,
+	// PROMPT_ID, INDEX, KEY, DISPLAY, TYPE, IS_HIDDEN_PHRASE_INPUT_TOKEN,
+	// LINKED_INPUT_TOKEN) "
+	// + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+	//
+	// private final static String promptVaraibleQuery = "INSERT INTO
+	// PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
+	// + "VALUES (?, ?, ?, ?, ?)";
 
 	private final static String promptMetaQuery = "INSERT INTO PROMPT_VARIABLE (ID, PROMPT_ID, PROMPT_INPUT_ID, TYPE, META) "
 			+ "VALUES (?, ?, ?, ?, ?)";
 
-	private final static List<String> PROMPT_COLUMNS = Arrays.asList(
-			"ID",
-			"TITLE",
-			"CONTEXT",
-			"VERSION",
-			"INTENT"
-			,			"CREATED_BY",
-			"DATE_CREATED",
-			"IS_LATEST"
-			);
+	private final static List<String> PROMPT_COLUMNS = Arrays.asList("ID", "TITLE", "CONTEXT", "VERSION", "INTENT",
+			"CREATED_BY", "DATE_CREATED", "IS_LATEST");
 
 	/**
-	 * MAIN PROMPT REACTOR FUNCTIONS 
+	 * MAIN PROMPT REACTOR FUNCTIONS
 	 */
 
 	/**
-	 * Returns a boolean after querying the Prompt table to see if a public prompt with the input title exsists. 
+	 * Returns a boolean after querying the Prompt table to see if a public prompt
+	 * with the input title exsists.
+	 * 
 	 * @param promptTitle
 	 * @return
 	 */
 	public static Boolean checkPromptTitle(String promptTitle) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__ID"));
@@ -104,13 +104,13 @@ public class PromptUtils extends AbstractPromptUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				return true;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -123,11 +123,11 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Returns a list of Prompts that are created by the signed in user or are public 
-	 * Formatted to be a Map that includes the following
-	 * inputs -> List<Map<String, Object>>
-	 * inputTypes -> Map<String, Map<String, Object>>
-	 * tags -> List<String> 
+	 * Returns a list of Prompts that are created by the signed in user or are
+	 * public Formatted to be a Map that includes the following inputs ->
+	 * List<Map<String, Object>> inputTypes -> Map<String, Map<String, Object>> tags
+	 * -> List<String>
+	 * 
 	 * @param userId
 	 * @param filters
 	 * @param promptMetadataFilter
@@ -135,12 +135,14 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getPrompts(String userId, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
-		List<Map<String, Object>> promptDetails = appendPromptInfo(userId, filters, promptMetadataFilter, limit, offset);
+	public static List<Map<String, Object>> getPrompts(String userId, GenRowFilters filters,
+			Map<String, Object> promptMetadataFilter, String limit, String offset) {
+		List<Map<String, Object>> promptDetails = appendPromptInfo(userId, filters, promptMetadataFilter, limit,
+				offset);
 		Map<String, Integer> listIndexPromptMapping = new HashMap<>();
 		List<String> promptIdList = new ArrayList<>();
 		Integer i = 0;
-		for(Map<String, Object> prompt: promptDetails) {
+		for (Map<String, Object> prompt : promptDetails) {
 			String promptId = (String) prompt.get("ID");
 			promptIdList.add(promptId);
 			listIndexPromptMapping.put(promptId, i++);
@@ -152,13 +154,14 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Main Function to add in prompt
-	 * Handles validation for every required input 
+	 * Main Function to add in prompt Handles validation for every required input
 	 * Inserts into PROMPT, PROMPTMETA, PROMPTMETAKEYS, PROMPTPERMISSION
+	 * 
 	 * @param promptDetails
 	 * @param userId
 	 */
 	public static void addPrompt(Map<String, Object> promptDetails, String userId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -172,6 +175,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	public static void editPrompt(Map<String, Object> promptDetails, String userId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -189,9 +193,11 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 
 	private static void updatePrompt(String promptId) {
-		String[] colToUpdate = {"IS_LATEST"};
-		String[] whereCol = {"ID"};
-		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT", colToUpdate, whereCol);
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
+		String[] colToUpdate = { "IS_LATEST" };
+		String[] whereCol = { "ID" };
+		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT",
+				colToUpdate, whereCol);
 
 		PreparedStatement ps = null;
 		try {
@@ -211,13 +217,15 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Update the engine metadata
-	 * Will delete existing values and then perform a bulk insert
+	 * Update the engine metadata Will delete existing values and then perform a
+	 * bulk insert
+	 * 
 	 * @param promptId
 	 * @param insightId
 	 * @param tags
 	 */
 	public static void updatePromptTags(String promptId, List<String> tags) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
 		PreparedStatement deletePs = null;
@@ -226,27 +234,29 @@ public class PromptUtils extends AbstractPromptUtils {
 			int parameterIndex = 1;
 			deletePs.setString(parameterIndex++, promptId);
 			deletePs.execute();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
-		if(tags != null && !tags.isEmpty()) {
+		if (tags != null && !tags.isEmpty()) {
 			insertTags(tags, promptId);
 		}
 	}
 
 	/**
-	 * Queries PROMPTMETA and creates the correct formatted return 
+	 * Queries PROMPTMETA and creates the correct formatted return
+	 * 
 	 * @param promptDetails
 	 * @param listIndexPromptMapping
 	 * @param promptIdList
 	 */
 	private static void appendPromptTags(List<Map<String, Object>> promptDetails,
 			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
@@ -255,15 +265,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptIdList));
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
-		// Loop through get tags 
+		// Loop through get tags
 
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
-		for(Map<String, Object> ret: retList) {
+		for (Map<String, Object> ret : retList) {
 			String promptId = (String) ret.get("PROMPT_ID");
 			String tag = (String) ret.get("METAVALUE");
 			Integer loc = listIndexPromptMapping.get(promptId);
 			List<String> tagList = (List<String>) promptDetails.get(loc).get("tags");
-			if(tagList == null) {
+			if (tagList == null) {
 				tagList = new ArrayList<>();
 			}
 			tagList.add(tag);
@@ -273,6 +283,7 @@ public class PromptUtils extends AbstractPromptUtils {
 
 	/**
 	 * Queries and appends Prompt info from PROMPT table
+	 * 
 	 * @param userId
 	 * @param filters
 	 * @param promptMetadataFilter
@@ -280,37 +291,40 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param offset
 	 * @return
 	 */
-	private static List<Map<String, Object>> appendPromptInfo(String userId, GenRowFilters filters, Map<String, Object> promptMetadataFilter, String limit, String offset) {
-		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs 
+	private static List<Map<String, Object>> appendPromptInfo(String userId, GenRowFilters filters,
+			Map<String, Object> promptMetadataFilter, String limit, String offset) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
+		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
-			if(pc != "IS_LATEST") {
+			if (pc != "IS_LATEST") {
 				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
 			}
 		}
 
-		if(promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
-			for(String k: promptMetadataFilter.keySet()) {
+		if (promptMetadataFilter != null && !promptMetadataFilter.isEmpty()) {
+			for (String k : promptMetadataFilter.keySet()) {
 				SelectQueryStruct subMetaQs = new SelectQueryStruct();
 				subMetaQs.addSelector(new QueryColumnSelector("PROMPTMETA__PROMPT_ID"));
 				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAKEY", "==", k));
-				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==", promptMetadataFilter.get(k)));
+				subMetaQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__METAVALUE", "==",
+						promptMetadataFilter.get(k)));
 				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROMPT__ID", "==", subMetaQs));
 			}
 		}
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__IS_LATEST", "==", true));
 
-		if(filters != null && !filters.isEmpty()) {
+		if (filters != null && !filters.isEmpty()) {
 			qs.mergeExplicitFilters(filters);
 		}
 		Long long_limit = -1L;
 		Long long_offset = -1L;
-		if(limit != null && !limit.trim().isEmpty()) {
+		if (limit != null && !limit.trim().isEmpty()) {
 			long_limit = Long.parseLong(limit);
 			qs.setLimit(long_limit);
 		}
-		if(offset != null && !offset.trim().isEmpty()) {
+		if (offset != null && !offset.trim().isEmpty()) {
 			long_offset = Long.parseLong(offset);
 			qs.setOffSet(long_offset);
 		}
@@ -320,7 +334,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * HELPER FUNCTIONS FOR INPUT VALIDATION WHEN ADDING PROMPT 
+	 * HELPER FUNCTIONS FOR INPUT VALIDATION WHEN ADDING PROMPT
 	 * 
 	 */
 
@@ -334,8 +348,8 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	private static void validatePromptTags(List<String> tags) {
-		for(String tag: tags) {
-			if(tag == null || tag.isEmpty()) {
+		for (String tag : tags) {
+			if (tag == null || tag.isEmpty()) {
 				throw new IllegalArgumentException("Tag must be string and not empty");
 			}
 		}
@@ -346,34 +360,37 @@ public class PromptUtils extends AbstractPromptUtils {
 		validateString(promptDetails, "context", false, false);
 	}
 
-	private static void validateString(Map<String, Object> promptDetails, String mapKey, boolean nullable, boolean allowEmpty) {
+	private static void validateString(Map<String, Object> promptDetails, String mapKey, boolean nullable,
+			boolean allowEmpty) {
 		String value = null;
 		try {
 			value = (String) promptDetails.get(mapKey);
-			value = value != null ? value.trim(): value;
-			if(value == null && !nullable) {
+			value = value != null ? value.trim() : value;
+			if (value == null && !nullable) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Prompt");
 			}
-			if(value != null && value.isEmpty() && !allowEmpty) {
+			if (value != null && value.isEmpty() && !allowEmpty) {
 				throw new IllegalArgumentException(mapKey + " cannot be null, when adding in a new Prompt");
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
 
 	/**
-	 * HELPER METHODS FOR INSERT PROMPT INTO ALL SEPERATE TABLES 
+	 * HELPER METHODS FOR INSERT PROMPT INTO ALL SEPERATE TABLES
 	 */
 
 	/**
-	 * Inserts Prompt info about user favorites into PROMPTPERMISSION Table. 
+	 * Inserts Prompt info about user favorites into PROMPTPERMISSION Table.
+	 * 
 	 * @param userId
 	 * @param isFavorite
 	 * @param promptId
 	 */
 	private static void insertPromptPermission(String userId, Boolean isFavorite, String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String promptPermissionQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTPERMISSION",
 				new String[] { "PROMPT_ID", "USERID", "FAVORITE", "DATEADDED" });
 		PreparedStatement ps = null;
@@ -399,11 +416,13 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	/**
-	 * Inserts Prompt Tags per prompt into the PROMPTMETA table 
+	 * Inserts Prompt Tags per prompt into the PROMPTMETA table
+	 * 
 	 * @param tags
 	 * @param promptId
 	 */
 	private static void insertTags(List<String> tags, String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// now we do the new insert with the order of the tags
 		String promptMetaQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
 				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
@@ -430,26 +449,27 @@ public class PromptUtils extends AbstractPromptUtils {
 		}
 	}
 
-
-
 	/**
-	 * Inserts basic prompt details in to Prompt table. 
-	 * Basic details include - title, context, is_public, date_created, id, created_by
+	 * Inserts basic prompt details in to Prompt table. Basic details include -
+	 * title, context, is_public, date_created, id, created_by
+	 * 
 	 * @param promptDetails
 	 * @param userId
 	 * @param allowClob
 	 * @param promptId
 	 */
-	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob, String promptId) {
+	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob,
+			String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		PreparedStatement promptPS = null;
 		try {
 			promptPS = promptDb.getPreparedStatement(promptQuery);
 			int index = 1;
 			promptPS.setString(index++, promptId);
 			promptPS.setString(index++, String.valueOf(promptDetails.get("title")));
-			if(allowClob) {
+			if (allowClob) {
 				Clob toclob = promptDb.getConnection().createClob();
-				toclob.setString(1,  String.valueOf(promptDetails.get("context")));
+				toclob.setString(1, String.valueOf(promptDetails.get("context")));
 				promptPS.setClob(index++, toclob);
 			} else {
 				promptPS.setString(index++, String.valueOf(promptDetails.get("context")));
@@ -465,7 +485,7 @@ public class PromptUtils extends AbstractPromptUtils {
 			if (!promptPS.getConnection().getAutoCommit()) {
 				promptPS.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
@@ -474,6 +494,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	private static Integer getVersionNumber(String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		Integer version = 0;
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__VERSION"));
@@ -485,15 +506,15 @@ public class PromptUtils extends AbstractPromptUtils {
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(promptDb, qs);
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				version = (Integer) wrapper.next().getValues()[0];
-				version+=1;
+				version += 1;
 				return version;
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(wrapper != null) {
+			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
@@ -505,17 +526,18 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	public static void deletePrompt(String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROMPT WHERE ID=?");
 		deletes.add("DELETE FROM PROMPTMETA WHERE PROMPT_ID=?");
 
-		for(String deleteQuery : deletes) {
+		for (String deleteQuery : deletes) {
 			PreparedStatement ps = null;
 			try {
 				ps = promptDb.getPreparedStatement(deleteQuery);
 				ps.setString(1, promptId);
 				ps.execute();
-				if(!ps.getConnection().getAutoCommit()) {
+				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
@@ -527,6 +549,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY"));
@@ -547,9 +570,10 @@ public class PromptUtils extends AbstractPromptUtils {
 	}
 
 	public static Map<String, Object> getPrompt(String promptID) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
-			if(pc != "IS_LATEST") {
+			if (pc != "IS_LATEST") {
 				qs.addSelector(new QueryColumnSelector(PROMPT + "__" + pc));
 			}
 		}
@@ -559,12 +583,13 @@ public class PromptUtils extends AbstractPromptUtils {
 
 		Map<String, Object> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs).get(0);
 
-		//Append Tags
+		// Append Tags
 		getPromptTags(promptID, promptDetails);
 		return promptDetails;
 	}
 
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAVALUE"));
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAORDER"));
@@ -573,56 +598,57 @@ public class PromptUtils extends AbstractPromptUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETA__PROMPT_ID", "==", promptID));
 		qs.addOrderBy("PROMPTMETA__PROMPT_ID");
 		qs.addOrderBy("PROMPTMETA__METAORDER");
-		// Loop through get tags 
+		// Loop through get tags
 		List<String> tagList = new ArrayList<>();
 		List<Map<String, Object>> retList = QueryExecutionUtility.flushRsToMap(promptDb, qs);
-		for(Map<String, Object> ret: retList) {
+		for (Map<String, Object> ret : retList) {
 			String tag = (String) ret.get("METAVALUE");
 			tagList.add(tag);
 		}
 		promptDetails.put("tags", tagList);
 	}
 
-
 	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
 		PreparedStatement deletePs = null;
 		try {
 			deletePs = promptDb.getPreparedStatement(deleteQ);
-			for(String field : metadata.keySet()) {
+			for (String field : metadata.keySet()) {
 				int parameterIndex = 1;
 				deletePs.setString(parameterIndex++, field);
 				deletePs.setString(parameterIndex++, promptId);
 				deletePs.addBatch();
 			}
 			deletePs.executeBatch();
-			if(!deletePs.getConnection().getAutoCommit()) {
+			if (!deletePs.getConnection().getAutoCommit()) {
 				deletePs.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
 
 		// now we do the new insert with the order of the tags
-		String query = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA", new String[]{"PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER"});
+		String query = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
+				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
 		PreparedStatement ps = null;
 		try {
 			ps = promptDb.getPreparedStatement(query);
-			for(String field : metadata.keySet()) {
+			for (String field : metadata.keySet()) {
 				Object val = metadata.get(field);
 				List<Object> values = new ArrayList<>();
-				if(val instanceof List) {
+				if (val instanceof List) {
 					values = (List<Object>) val;
-				} else if(val instanceof Collection) {
-					values.addAll( (Collection<Object>) val);
+				} else if (val instanceof Collection) {
+					values.addAll((Collection<Object>) val);
 				} else {
 					values.add(val);
 				}
 
-				for(int i = 0; i < values.size(); i++) {
+				for (int i = 0; i < values.size(); i++) {
 					int parameterIndex = 1;
 					Object fieldVal = values.get(i);
 
@@ -634,15 +660,14 @@ public class PromptUtils extends AbstractPromptUtils {
 				}
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 		}
 	}
-
 
 }

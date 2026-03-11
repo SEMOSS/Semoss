@@ -2037,6 +2037,13 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		String engineId = smssProp.getProperty(Constants.ENGINE);
+		if (SystemEngineRegistry.isSystemEngine(engineId)) {
+			classLogger.error("Blocked attempt to load system engine '{}' through Utility.loadEngine(). "
+					+ "Use SystemEngineRegistry.loadSystemEngine() instead.", engineId);
+			return null;
+		}
+
 		// trim all the values the SMSS file
 		for (String name : smssProp.stringPropertyNames()) {
 			String value = smssProp.getProperty(name);
@@ -2048,7 +2055,7 @@ public final class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
-			String engineId = smssProp.getProperty(Constants.ENGINE);
+			engineId = smssProp.getProperty(Constants.ENGINE);
 			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
@@ -6124,7 +6131,7 @@ public final class Utility {
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
 	}
-	
+
 	/**
 	 * Determine if notification db is enabled
 	 * 

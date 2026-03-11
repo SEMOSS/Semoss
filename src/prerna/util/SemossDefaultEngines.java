@@ -49,6 +49,7 @@ public class SemossDefaultEngines {
 		DATABASE_GENERATED_OWL.add(Constants.MODEL_INFERENCE_LOGS_DB);
 		DATABASE_GENERATED_OWL.add(Constants.PROMPT_DB);
 		DATABASE_GENERATED_OWL.add(Constants.AUDIT_LOGS_DB);
+		DATABASE_GENERATED_OWL.add(Constants.NOTIFICATION_DB);
 	}
 
 	private static final List<String> DATABASE_IGNORE_LOCALMASTER = new ArrayList<>();
@@ -77,6 +78,7 @@ public class SemossDefaultEngines {
 		DATABASE_IGNORE_AUDIT.add(Constants.THEMING_DB);
 		DATABASE_IGNORE_AUDIT.add(Constants.USER_TRACKING_DB);
 		DATABASE_IGNORE_AUDIT.add(Constants.AUDIT_LOGS_DB);
+		DATABASE_IGNORE_AUDIT.add(Constants.NOTIFICATION_DB);
 	}
 
 	public static List<String> getIgnoreDatabaseOwlList() {

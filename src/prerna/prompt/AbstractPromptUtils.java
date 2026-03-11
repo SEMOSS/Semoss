@@ -44,7 +44,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AbstractPromptUtils {
@@ -52,7 +52,6 @@ public class AbstractPromptUtils {
 	private static final Logger classLogger = LogManager.getLogger(AbstractPromptUtils.class);
 
 	static boolean initialized = false;
-	static IRDBMSEngine promptDb;
 
 	/**
 	 * Only used for static references
@@ -62,7 +61,7 @@ public class AbstractPromptUtils {
 	}
 
 	public static void loadPromptDatabase() throws Exception {
-		promptDb = (IRDBMSEngine) Utility.getDatabase(Constants.PROMPT_DB);
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -72,6 +71,7 @@ public class AbstractPromptUtils {
 	}
 
 	private static void initialize() throws Exception {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String database = promptDb.getDatabase();
 		String schema = promptDb.getSchema();
 		String[] colNames = null;

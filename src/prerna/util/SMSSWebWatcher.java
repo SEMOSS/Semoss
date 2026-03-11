@@ -170,14 +170,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// find the local master
 		String localMasterDBName = Constants.LOCAL_MASTER_DB + this.extension;
 		int localMasterIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, localMasterDBName);
-		loadExistingEngine(fileNames[localMasterIndex]);
-		// initialize the local master
 		try {
+			SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[localMasterIndex]);
 			MasterDatabaseUtility.initLocalMaster();
 		} catch (Exception e) {
-			// we couldn't initialize the db
-			// remove it from DIHelper
-			DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB);
 			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -185,14 +181,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		// also need to load the security db
 		String securityDBName = Constants.SECURITY_DB + this.extension;
 		int securityIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, securityDBName);
-		loadExistingEngine(fileNames[securityIndex]);
-		// initialize the security database
 		try {
+			SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[securityIndex]);
 			AbstractSecurityUtils.loadSecurityDatabase();
 		} catch (Exception e) {
-			// we couldn't initialize the db
-			// remove it from DIHelper
-			DIHelper.getInstance().removeEngineProperty(Constants.SECURITY_DB);
 			classLogger.error(Constants.STACKTRACE, e);
 			return;
 		}
@@ -201,13 +193,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			String auditLogsName = Constants.AUDIT_LOGS_DB + this.extension;
 			int auditLogsIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, auditLogsName);
 			if (auditLogsIndex > -1) {
-				loadExistingEngine(fileNames[auditLogsIndex]);
 				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[auditLogsIndex]);
 					AuditLogsDbUtils.loadAuditLogsDatabase();
 				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.AUDIT_LOGS_DATABASE_ENABLED);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -217,15 +206,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		if (Utility.isUserTrackingEnabled()) {
 			String userTrackerDBName = Constants.USER_TRACKING_DB + this.extension;
 			int userTrackerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, userTrackerDBName);
-
 			if (userTrackerDbNameIndex > -1) {
-				loadExistingEngine(fileNames[userTrackerDbNameIndex]);
 				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[userTrackerDbNameIndex]);
 					UserTrackingUtils.initUserTrackerDatabase();
 				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -234,13 +219,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String themingDbName = Constants.THEMING_DB + this.extension;
 		int themingDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, themingDbName);
 		if (themingDbNameIndex > -1) {
-			loadExistingEngine(fileNames[themingDbNameIndex]);
 			try {
+				SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[themingDbNameIndex]);
 				AbstractThemeUtils.loadThemingDatabase();
 			} catch (Exception e) {
-				// we couldn't initialize the db
-				// remove it from DIHelper
-				DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB);
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -250,13 +232,11 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			String schedulerDbName = Constants.SCHEDULER_DB + this.extension;
 			int schedulerDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, schedulerDbName);
 			if (schedulerDbNameIndex > -1) {
-				loadExistingEngine(fileNames[schedulerDbNameIndex]);
 				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[schedulerDbNameIndex]);
 					SchedulerDatabaseUtility.startServer();
-				} catch (Exception sqe) {
-					// we couldn't initialize the db remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB);
-					classLogger.error(Constants.STACKTRACE, sqe);
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -266,15 +246,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			String modelInferenceLogsDBName = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
 			int modelInferenceLogsDBNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames,
 					modelInferenceLogsDBName);
-
 			if (modelInferenceLogsDBNameIndex > -1) {
-				loadExistingEngine(fileNames[modelInferenceLogsDBNameIndex]);
 				try {
+					SystemEngineRegistry
+							.loadSystemEngine(folderToWatch + "/" + fileNames[modelInferenceLogsDBNameIndex]);
 					ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.MODEL_INFERENCE_LOGS_DB);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
@@ -284,29 +261,23 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			String promptDbName = Constants.PROMPT_DB + this.extension;
 			int promptDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, promptDbName);
 			if (promptDbNameIndex > -1) {
-				loadExistingEngine(fileNames[promptDbNameIndex]);
 				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[promptDbNameIndex]);
 					AbstractPromptUtils.loadPromptDatabase();
 				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.PROMPT_DB);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
-		
+
 		if (Utility.isNotificationDatabaseEnabled()) {
 			String notificationDbName = Constants.NOTIFICATION_DB + this.extension;
 			int notificationDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, notificationDbName);
 			if (notificationDbNameIndex > -1) {
-				loadExistingEngine(fileNames[notificationDbNameIndex]);
 				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[notificationDbNameIndex]);
 					NotificationDbUtils.loadNotificationDatabase();
 				} catch (Exception e) {
-					// we couldn't initialize the db
-					// remove it from DIHelper
-					DIHelper.getInstance().removeEngineProperty(Constants.NOTIFICATION_DB);
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
