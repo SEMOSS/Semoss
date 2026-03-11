@@ -136,6 +136,7 @@ public enum ReactorKeysEnum {
 	HF_MODEL_ID("hfModelId", 									"The model id for the HF model"),
 	HOST("host",                    	                        "The host URL"),
 	HTML("html",                        	                    "The html"),
+	MARKDOWN("markdown",                	                    "The markdown content to convert to PDF"),
 	ID("id", 													"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
 	ID_TYPE("id_type", 											"Type of the id for setting param. colum / column_table / column_table_operator"),
 	IMAGE("image",		 										"The location of the image file or the encoding of the image as a png"),
