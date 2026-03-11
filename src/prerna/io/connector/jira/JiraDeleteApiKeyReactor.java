@@ -12,8 +12,10 @@ public class JiraDeleteApiKeyReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraDeleteApiKeyReactor.class);
 
+	private static final String KEYNAME = "keyname";
+
 	public JiraDeleteApiKeyReactor() {
-		this.keysToGet = new String[] { "keyname" };
+		this.keysToGet = new String[] { KEYNAME };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -21,12 +23,14 @@ public class JiraDeleteApiKeyReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String keyName = this.keyValue.get(this.keysToGet[0]);
+			String keyName = this.keyValue.get(KEYNAME);
 			return JiraHelper.deleteRecordForUser(keyName);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"An error occurred while deleting api key from JIRA DB. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred while deleting api key from JIRA DB. Error message: " + e.getMessage());
 		}
 	}
 
@@ -37,7 +41,7 @@ public class JiraDeleteApiKeyReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("keyname")) {
+		if (key.equals(KEYNAME)) {
 			return "The unique key name identifying the database user to delete.";
 		}
 		return super.getDescriptionForKey(key);

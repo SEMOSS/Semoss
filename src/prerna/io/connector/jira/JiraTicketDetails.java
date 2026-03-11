@@ -1,6 +1,5 @@
 package prerna.io.connector.jira;
 
-//This pojo is to return id and link of Jira issues after creation
 public class JiraTicketDetails {
 
 	private String id;

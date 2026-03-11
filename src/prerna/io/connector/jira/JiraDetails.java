@@ -1,6 +1,5 @@
 package prerna.io.connector.jira;
 
-//POJO to insert data in Jira user related data in DB
 public class JiraDetails {
 
 	private String url;

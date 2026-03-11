@@ -13,8 +13,10 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
 
+	private static final String KEYNAME = "keyname";
+
 	public JiraGetProjectsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), "keyname", ReactorKeysEnum.API_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), KEYNAME, ReactorKeysEnum.API_KEY.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -22,14 +24,16 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String url = this.keyValue.get(this.keysToGet[0]);
-			String userId = this.keyValue.get(this.keysToGet[1]);
-			String apiKey = this.keyValue.get(this.keysToGet[2]);
-			return JiraHelper.getAllProjects(url, userId, apiKey);
+			String url = this.keyValue.get(ReactorKeysEnum.URL.getKey());
+			String keyname = this.keyValue.get(KEYNAME);
+			String apiKey = this.keyValue.get(ReactorKeysEnum.API_KEY.getKey());
+			return JiraHelper.getAllProjects(url, keyname, apiKey);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"An error occurred while getting project details. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred while getting project details. Error message: " + e.getMessage());
 		}
 	}
 
@@ -40,7 +44,7 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("keyname")) {
+		if (key.equals(KEYNAME)) {
 			return "The keyname of the connection from DB through which details can be fetched of a user.";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "The Jira URL on which all projects are present and tickets can be created";

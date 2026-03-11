@@ -19,25 +19,10 @@ import prerna.util.Utility;
 
 public class JiraGetApiKeysReactor extends AbstractReactor {
 
-	public static final String JIRA_UNIQUE_ID = "ID";
-	private static final String TABLE = "JIRA_USER";
 	private static final Logger classLogger = LogManager.getLogger(JiraGetApiKeysReactor.class);
 
-	// Centralized method to get table name
-	private String getTableName(IDatabaseEngine database) {
-		try {
-			List<String> tables = database.getPixelConcepts();
-			for (String tableName : tables) {
-				if (TABLE.equals(tableName)) {
-					return tableName;
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
-		}
-		return null;
-	}
+	private static final String JIRA_UNIQUE_ID = "ID";
+	private static final String TABLE = "JIRA_USER";
 
 	@Override
 	public NounMetadata execute() {
@@ -47,10 +32,8 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 			String tableName = getTableName(database);
 			if (tableName == null) {
 				classLogger.error("Jira user table not found in database.");
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("Jira user table not found in database."));
+				throw new SemossPixelException("Jira user table not found in database.");
 			}
-
 			String query = "SELECT * FROM " + tableName;
 			HashMap<String, String> hashmap = (HashMap<String, String>) database.execQuery(query);
 			Object rsObj = hashmap.get("RESULTSET_OBJECT");
@@ -72,25 +55,39 @@ public class JiraGetApiKeysReactor extends AbstractReactor {
 				}
 			} else {
 				classLogger.error("No ResultSet returned from database query.");
-				throw new SemossPixelException(
-						NounMetadata.getErrorNounMessage("No ResultSet returned from database query."));
+				throw new SemossPixelException("No ResultSet returned from database query.");
 			}
-
 			return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"An error occurred while getting API KEYs from JIRA DB. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred while getting API KEYs from JIRA DB. Error message: " + e.getMessage());
 		} finally {
 			try {
 				if (rs != null)
 					rs.close();
 			} catch (Exception ex) {
 				classLogger.error("Error closing ResultSet in JiraGetReactor", ex);
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
+				throw new SemossPixelException("An error occurred while closing database resources. Error message: " + ex.getMessage());
 			}
 		}
+	}
+
+	private String getTableName(IDatabaseEngine database) {
+		try {
+			List<String> tables = database.getPixelConcepts();
+			for (String tableName : tables) {
+				if (TABLE.equals(tableName)) {
+					return tableName;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+		}
+		return null;
 	}
 
 	@Override

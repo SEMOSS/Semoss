@@ -12,8 +12,10 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraGetTicketsReactor.class);
 
+	private static final String KEYNAME = "keyname";
+
 	public JiraGetTicketsReactor() {
-		this.keysToGet = new String[] { "keyname" };
+		this.keysToGet = new String[] { KEYNAME };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -21,12 +23,14 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String keyName = this.keyValue.get(this.keysToGet[0]);
+			String keyName = this.keyValue.get(KEYNAME);
 			return JiraHelper.listIssue(keyName);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"An error occurred while getting tickets and its details. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred while getting tickets and its details. Error message: " + e.getMessage());
 		}
 	}
 
@@ -37,7 +41,7 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("keyname")) {
+		if (key.equals(KEYNAME)) {
 			return "The keyname of the connection from DB through which details can be fetched of a user.";
 		}
 		return super.getDescriptionForKey(key);

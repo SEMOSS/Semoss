@@ -26,18 +26,74 @@ import prerna.util.Utility;
 
 public class JiraInsertApikeyReactor extends AbstractReactor {
 
-	public static final String JIRA_UNIQUE_ID = "ID";
-	private static final String TABLE = "JIRA_USER";
 	private static final Logger classLogger = LogManager.getLogger(JiraInsertApikeyReactor.class);
+
+	private static final String JIRA_UNIQUE_ID = "ID";
+	private static final String TABLE = "JIRA_USER";
+	private static final String USER_ID = "userid";
+	private static final String KEY_NAME = "keyname";
+
 	static IRDBMSEngine jiraDB;
 
 	public JiraInsertApikeyReactor() {
-		this.keysToGet = new String[] { "userid", ReactorKeysEnum.API_KEY.getKey(), ReactorKeysEnum.URL.getKey(),
-				"keyname", ReactorKeysEnum.PROJECT.getKey() };
+		this.keysToGet = new String[] { USER_ID, ReactorKeysEnum.API_KEY.getKey(), ReactorKeysEnum.URL.getKey(),
+				KEY_NAME, ReactorKeysEnum.PROJECT.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
-	// Centralized table name lookup
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+		String userId = this.keyValue.get(USER_ID);
+		String apiToken = this.keyValue.get(ReactorKeysEnum.API_KEY.getKey());
+		String url = this.keyValue.get(ReactorKeysEnum.URL.getKey());
+		String keyName = this.keyValue.get(KEY_NAME);
+		String project = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+
+		long now = System.currentTimeMillis();
+		Timestamp date = new Timestamp(now);
+		Timestamp lused = new Timestamp(now);
+
+		User user = this.insight.getUser();
+		String insightusername = user.getPrimaryLoginToken().getUsername();
+
+		HashMap<Object, Object> responseMap = new HashMap<>();
+		String profileId = null;
+		String msg = null;
+
+		try {
+			IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
+			String tableName = getTableName(database);
+			if (tableName == null) {
+				throw new SemossPixelException("Jira user table not found in database.");
+			}
+
+			UUID id = UUID.randomUUID();
+			HashMap<String, Object> insertResult = insertData(jiraDB, tableName, userId, apiToken, url, date, lused, insightusername, keyName, id, project);
+
+			if (insertResult.containsKey("Data inserted successfully") && (boolean) insertResult.get("Data inserted successfully")) {
+				profileId = readData(jiraDB, tableName, userId, apiToken, url, date, lused, keyName, project);
+				if (profileId != null && !profileId.isEmpty()) {
+					responseMap.put("id", profileId);
+					responseMap.put("success", true);
+				} else {
+					responseMap.put("id", null);
+					responseMap.put("success", false);
+				}
+			} else {
+				classLogger.error("Failed to insert data into database.");
+				throw new SemossPixelException("Failed to insert data into database.");
+			}
+			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException("An error occurred while inserting API KEY details in JIRA DB. Error message: " + e.getMessage());
+		}
+	}
+
 	private String getTableName(IDatabaseEngine database) {
 		try {
 			List<String> tables = database.getPixelConcepts();
@@ -53,63 +109,6 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 		return null;
 	}
 
-	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-		String userId = this.keyValue.get(this.keysToGet[0]);
-		String apiToken = this.keyValue.get(this.keysToGet[1]);
-		String url = this.keyValue.get(this.keysToGet[2]);
-		String keyName = this.keyValue.get(this.keysToGet[3]);
-		String project = this.keyValue.get(this.keysToGet[4]);
-		long now = System.currentTimeMillis();
-		Timestamp date = new Timestamp(now);
-		Timestamp lused = new Timestamp(now);
-		HashMap<Object, Object> responseMap = new HashMap<>();
-		User user = this.insight.getUser();
-		String insightusername = user.getPrimaryLoginToken().getUsername();
-		String profileId = null;
-		String msg = null;
-
-		try {
-			IDatabaseEngine database = Utility.getDatabase(Constants.SECURITY_DB);
-			String tableName = getTableName(database);
-			if (tableName == null) {
-				msg = "Jira user table not found in database.";
-				responseMap.put("Data inserted successfully", false);
-				responseMap.put("Error", msg);
-				return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-			}
-
-			UUID id = UUID.randomUUID();
-			HashMap<String, Object> insertResult = insertData(jiraDB, tableName, userId, apiToken, url, date, lused,
-					insightusername, keyName, id, project);
-
-			if (Boolean.FALSE.equals(insertResult.get("Data inserted successfully"))) {
-				msg = (String) insertResult.get("Error");
-				throw new SemossPixelException(NounMetadata.getErrorNounMessage(msg));
-			}
-
-			profileId = readData(jiraDB, tableName, userId, apiToken, url, date, lused, keyName, project);
-			if (profileId != null && !profileId.isEmpty()) {
-				responseMap.put("id", profileId);
-				responseMap.put("success", true);
-			} else {
-				responseMap.put("id", null);
-				responseMap.put("Success", false);
-			}
-			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException(
-					"An error occurred while inserting API KEY details in JIRA DB. Error message: " + e.getMessage());
-		}
-	}
-
-	/**
-	 * To return primary key of the user after inserting data in DB, now also using
-	 * project.
-	 */
 	private String readData(IRDBMSEngine jiraDB, String tableName, String userId, String apiKey, String url,
 			Timestamp date, Timestamp lused, String keyName, String project) {
 		jiraDB = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
@@ -148,10 +147,6 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 		return TABLE.equals(tableName);
 	}
 
-	/**
-	 * To insert user data in DB, ensuring KEY_NAME is unique, and also storing
-	 * project.
-	 */
 	private HashMap<String, Object> insertData(IRDBMSEngine jiraDB, String tableName, String userId, String apiToken,
 			String url, Timestamp dateCreated, Timestamp lastUsed, String insightusername, String keyName, UUID id,
 			String project) {
@@ -161,24 +156,17 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 		ResultSet rs = null;
 
 		try (Connection conn = jiraDB.getConnection()) {
-			// Validate table name
 			if (!isValidTableName(tableName)) {
-				map.put("Data inserted successfully", false);
-				map.put("Error", "Invalid table name");
-				return map;
+				throw new IllegalArgumentException("Invalid table name");
 			}
 
-			// Check if KEY_NAME already exists for this user
 			String checkQuery = "SELECT COUNT(*) AS CNT FROM " + tableName + " WHERE KEY_NAME = ? AND USER_ID = ?";
 			try (PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
 				checkStmt.setString(1, keyName);
 				checkStmt.setString(2, userId);
 				rs = checkStmt.executeQuery();
 				if (rs.next() && rs.getInt("CNT") > 0) {
-					String msg = "Error: KEY_NAME '" + keyName + "' already exists for this user.";
-					map.put("Data inserted successfully", false);
-					map.put("Error", msg);
-					return map;
+					throw new SemossPixelException("A record with the same key name already exists for this user.");
 				}
 			} finally {
 				if (rs != null) {
@@ -186,12 +174,11 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 						rs.close();
 					} catch (Exception ex) {
 						classLogger.error(Constants.STACKTRACE, ex);
-						throw new SemossPixelException(NounMetadata.getErrorNounMessage(ex.getMessage()));
+						throw new SemossPixelException(ex.getMessage());
 					}
 				}
 			}
 
-			// Insert data using parameterized query, now including PROJECT
 			String insertQuery = "INSERT INTO " + tableName
 					+ " (ID, API_KEY, USER_ID, URL, DATE_CREATED, DATE_LAST_USED, CREATED_BY, KEY_NAME, PROJECT) "
 					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -213,9 +200,7 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			map.put("Data inserted unsuccessfully", flag);
-			map.put("Error", e.getMessage());
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			throw new SemossPixelException("An error occurred while inserting data. Error message: " + e.getMessage());
 		}
 		return map;
 	}
@@ -227,13 +212,13 @@ public class JiraInsertApikeyReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("userid")) {
+		if (key.equals(USER_ID)) {
 			return "User ID (email) of the user who intends to perform Jira operations.";
 		} else if (key.equals(ReactorKeysEnum.API_KEY.getKey())) {
 			return "The api key of the token created by user to interact with JIRA Dashboard";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "The Jira URL on which all projects are present and tickets can be created";
-		} else if (key.equals("keyname")) {
+		} else if (key.equals(KEY_NAME)) {
 			return "The keyname of the connection from DB through which details can be fetched of a user.";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "Name of the project on JIRA Dashboard";

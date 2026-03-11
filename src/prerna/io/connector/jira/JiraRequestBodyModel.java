@@ -16,5 +16,4 @@ public class JiraRequestBodyModel {
 	public String toString() {
 		return "JiraRequestBodyModel [fields=" + fields + "]";
 	}
-
 }

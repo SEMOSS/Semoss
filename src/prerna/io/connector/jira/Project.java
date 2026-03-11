@@ -16,5 +16,4 @@ public class Project {
 	public String toString() {
 		return "Project [key=" + key + "]";
 	}
-
 }

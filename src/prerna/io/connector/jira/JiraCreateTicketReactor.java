@@ -12,8 +12,13 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraCreateTicketReactor.class);
 
+	private static final String KEYNAME = "keyname";
+	private static final String SUMMARY = "summary";
+	private static final String DESCRIPTION = "description";
+	private static final String ISSUETYPE = "issuetype";
+
 	public JiraCreateTicketReactor() {
-		this.keysToGet = new String[] { "keyname", "summary", "description", "issuetype" };
+		this.keysToGet = new String[] { KEYNAME, SUMMARY, DESCRIPTION, ISSUETYPE };
 		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
@@ -21,11 +26,14 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String keyName = this.keyValue.get(this.keysToGet[0]);
-			String summary = this.keyValue.get(this.keysToGet[1]);
-			String description = this.keyValue.get(this.keysToGet[2]);
-			String issuetype = this.keyValue.get(this.keysToGet[3]);
+			String keyName = this.keyValue.get(KEYNAME);
+			String summary = this.keyValue.get(SUMMARY);
+			String description = this.keyValue.get(DESCRIPTION);
+			String issuetype = this.keyValue.get(ISSUETYPE);
 			return JiraHelper.createIssue(summary, description, issuetype, keyName);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("An error occurred while creating ticket. Error message: " + e.getMessage());
@@ -39,13 +47,13 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("keyname")) {
+		if (key.equals(KEYNAME)) {
 			return "The unique key name for the Jira issue.";
-		} else if (key.equals("summary")) {
+		} else if (key.equals(SUMMARY)) {
 			return "A brief summary/title for the Jira issue.";
-		} else if (key.equals("description")) {
+		} else if (key.equals(DESCRIPTION)) {
 			return "A detailed description of the Jira issue.";
-		} else if (key.equals("issuetype")) {
+		} else if (key.equals(ISSUETYPE)) {
 			return "The type of Jira issue (e.g., Bug, Task, Story).";
 		} 
 		return super.getDescriptionForKey(key);

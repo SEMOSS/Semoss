@@ -41,8 +41,6 @@ public class Fields {
 
 	@Override
 	public String toString() {
-		return "Fields [project=" + project + ", summary=" + summary + ", description=" + description + ", issuetype="
-				+ issuetype + "]";
+		return "Fields [project=" + project + ", summary=" + summary + ", description=" + description + ", issuetype=" + issuetype + "]";
 	}
-
 }

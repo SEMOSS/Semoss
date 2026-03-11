@@ -16,5 +16,4 @@ public class IssueType {
 	public String toString() {
 		return "IssueType [name=" + name + "]";
 	}
-
 }

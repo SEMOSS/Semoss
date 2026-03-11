@@ -12,8 +12,11 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(JiraDeleteTicketReactor.class);
 
+	private static final String KEYNAME = "keyname";
+	private static final String JIRAID = "jiraid";
+
 	public JiraDeleteTicketReactor() {
-		this.keysToGet = new String[] { "keyname", "jiraid" };
+		this.keysToGet = new String[] { KEYNAME, JIRAID };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -21,9 +24,12 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String keyName = this.keyValue.get(this.keysToGet[0]);
-			String jiraId = this.keyValue.get(this.keysToGet[1]);
+			String keyName = this.keyValue.get(KEYNAME);
+			String jiraId = this.keyValue.get(JIRAID);
 			return JiraHelper.deleteIssue(jiraId, keyName);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException("An error occurred while deleting ticket. Error message: " + e.getMessage());
@@ -37,9 +43,9 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("keyname")) {
+		if (key.equals(KEYNAME)) {
 			return "The unique key name for the Jira issue to be deleted.";
-		} else if (key.equals("jiraid")) {
+		} else if (key.equals(JIRAID)) {
 			return "The Jira ID of the ticket/issue to be deleted.";
 		}
 		return super.getDescriptionForKey(key);
