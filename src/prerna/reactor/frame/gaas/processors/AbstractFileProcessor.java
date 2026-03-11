@@ -44,7 +44,7 @@ import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 import prerna.util.Constants;
 
 public abstract class AbstractFileProcessor implements IFileProcessor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AbstractFileProcessor.class);
 
 	protected String filePath = null;
@@ -64,7 +64,7 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 		File file = new File(filePath);
 		return file.getName();
 	}
-	
+
 	/**
 	 * 
 	 * @param file
@@ -91,7 +91,7 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
 		}
 
-		if(mimeType == null) {
+		if (mimeType == null) {
 			throw new NullPointerException("Unable to determine the mimType for file " + file.getName());
 		}
 
@@ -114,11 +114,20 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 			processor = new PPTProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 			processor = new PDFProcessor(file.getAbsolutePath(), writer);
+		} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+				|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
+				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
+						&& (filetype.equals("xls") || filetype.equals("xlsx")))) {
+			// excel
+			processor = new ExcelProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("text/plain")
 				|| mimeType.equalsIgnoreCase("application/rtf")
 				|| mimeType.equalsIgnoreCase("text/txt")
 				|| mimeType.equalsIgnoreCase("text/rtf")
-				|| mimeType.equalsIgnoreCase("text/richtext")) {
+				|| mimeType.equalsIgnoreCase("text/richtext")
+				|| mimeType.equalsIgnoreCase("application/json")
+				|| mimeType.equalsIgnoreCase("application/xml")) {
 			// basic text
 			processor = new TextFileProcessor(file.getAbsolutePath(), writer);
 		} else {
@@ -130,8 +139,8 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
 			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
 		}
-		
+
 		return processor;
 	}
-	
+
 }
