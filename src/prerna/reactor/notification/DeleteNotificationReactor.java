@@ -25,69 +25,58 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.security;
+package prerna.reactor.notification;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
-import prerna.project.impl.notebook.INotebookHelper;
+import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-public class ValidateProjectDependenciesReactor extends AbstractReactor {
-	
-	private static final Logger classLogger = LogManager.getLogger(ValidateProjectDependenciesReactor.class);
-	
-	public ValidateProjectDependenciesReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] {1};
+public class DeleteNotificationReactor extends AbstractReactor {
+
+	public DeleteNotificationReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey() };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
 		User user = this.insight.getUser();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
-			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
+			throwAnonymousUserError();
 		}
-		
-		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId, true);
-		Map<String, Object> dependencyMap = new HashMap<>();
-		for (Map<String, Object> dep : projectDependencies) {
-			String engineId = (String) dep.get("engine_id");
-			String engineType = (String) dep.get("engine_type");
 
-			boolean canView = false;
-			if (engineType == null || IEngine.CATALOG_TYPE.valueOf(engineType) != IEngine.CATALOG_TYPE.PROJECT) {
-				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
-			} else {	
-				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
-			}
-			dependencyMap.put(engineId, canView);
+		organizeKeys();
+		String notificationId = this.keyValue.get(this.keysToGet[0]);
+
+		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
+		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
+			throw new SemossPixelException(new NounMetadata("Unable to determine user type for deletion",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		}
-		
-		NounMetadata noun = new NounMetadata(dependencyMap, PixelDataType.MAP);
-		return noun;
+
+		String recipientId = userIdAndTypeList.get(0).getValue0();
+		String recipientType = userIdAndTypeList.get(0).getValue1();
+		int deleteCount;
+		if (notificationId != null) {
+			deleteCount = NotificationDbUtils.deleteNotification(null, null, notificationId);
+		} else {
+			deleteCount = NotificationDbUtils.deleteNotification(recipientId, recipientType, null);
+		}
+		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Return true if the user has access to all engine dependencies listed in this project";
+		return "Deletes a user's notification. Takes in a notificatioinId for a single notification or no value for all notifications";
 	}
-	
 }

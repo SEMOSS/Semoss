@@ -2114,36 +2114,6 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// 2022-04-01
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "API_KEY", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if (allCols.contains("LIMIT") || allCols.contains("limit")) {
-					securityDb.removeData(queryUtil.dropTable("API_KEY"));
-				}
-			}
-
-			// apikey
-			// I am in dual mind whether to create this in security db or in
-			// allows api keys to be set on insight
-			// consumerid is optional - the idea is you can have one api key per consumer if
-			// you choose to
-			// replace time with timestamp
-			colNames = new String[] { "CREATOR_ID", "PROJECT_ID", "INSIGHT_ID", "API_KEY", "CREATED_ON", "API_LIMIT",
-					"COUNT", "DISABLED", "EXPIRES_ON", "DISABLED_ON", "CONSUMER_ID" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "DATE", "BIGINT",
-					"BIGINT", BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				securityDb.insertData(queryUtil.createTableIfNotExists("API_KEY", colNames, types));
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "API_KEY", database, schema)) {
-					// make the table
-					securityDb.insertData(queryUtil.createTable("API_KEY", colNames, types));
-				}
-			}
-
 			// USERMETA
 			colNames = new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME,
