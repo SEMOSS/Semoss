@@ -116,8 +116,9 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
 			// Check if user has access to this engine
 			Integer permission = (Integer) originalEngine.get("permission");
+			Integer groupPermission = (Integer) originalEngine.get("group_permission");
 			Boolean isGlobal = (Boolean) originalEngine.get("engine_global");
-			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
+			boolean hasAccess = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
 
 			// Only show dependencies if user has access to this engine
 			if (hasAccess) {
@@ -181,8 +182,9 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
 			// Only traverse into child's dependencies if user has access to the child
 			Integer permission = (Integer) childEngine.get("permission");
+			Integer groupPermission = (Integer) childEngine.get("group_permission");
 			Boolean isGlobal = (Boolean) childEngine.get("engine_global");
-			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
+			boolean hasAccess = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
 
 			if (hasAccess) {
 				traverseReachable(childId, allEnginesMap, childrenByParent, reachableEngines);
