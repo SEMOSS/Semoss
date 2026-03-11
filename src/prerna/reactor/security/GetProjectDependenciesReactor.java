@@ -115,13 +115,20 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			Map<String, Object> engine = new HashMap<>(originalEngine);
 			engine.remove("parent_id");
 
-			// If there is no direct permission_name but a group_permission exists, derive
-			// it
-			if (engine.get("permission_name") == null) {
-				Integer gp = (Integer) engine.get("group_permission");
-				if (gp != null) {
-					engine.put("permission_name", AccessPermissionEnum.getPermissionValueById(gp));
-				}
+			// Derive permission_name from the highest permission (lowest integer id) the
+			// user holds, considering both direct and group permissions
+			Integer directPerm = (Integer) engine.get("permission");
+			Integer groupPerm = (Integer) engine.get("group_permission");
+			Integer bestPermission = null;
+			if (directPerm != null && groupPerm != null) {
+				bestPermission = Math.min(directPerm, groupPerm);
+			} else if (directPerm != null) {
+				bestPermission = directPerm;
+			} else if (groupPerm != null) {
+				bestPermission = groupPerm;
+			}
+			if (bestPermission != null) {
+				engine.put("permission_name", AccessPermissionEnum.getPermissionValueById(bestPermission));
 			}
 
 			// Check if user has access to this engine
