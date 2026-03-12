@@ -75,13 +75,13 @@ class SEMOSSMessageBuilder:
                     elif p.get("type") == "MEDIA":
                         media_part = self._parse_media_from_part_dict(p)
                         process_parts.append(
-                            SEMOSSMediaMessagePart(mediaInfo=media_part)
+                            SEMOSSMediaMessagePart(media_info=media_part)
                         )
 
                     elif p.get("type") == "TOOL_CALL":
-                        tc = p.get("toolCall")
+                        tc = p.get("toolCall") or p.get("tool_call")
                         tool_call_part = SEMOSSToolCallMessagePart(
-                            toolCall=SEMOSSToolCall(
+                            tool_call=SEMOSSToolCall(
                                 function=SEMOSSToolFunction(
                                     name=tc.get("name"),
                                     parameters=tc.get("arguments", {}),
@@ -95,10 +95,10 @@ class SEMOSSMessageBuilder:
                         process_parts.append(tool_call_part)
 
                     elif p.get("type") == "TOOL_RESULT":
-                        tr = p.get("toolResult")
+                        tr = p.get("toolResult") or p.get("tool_result")
                         tool_result_part = SEMOSSToolResultMessagePart(
-                            toolResult=SEMOSSToolExecution(
-                                id=tr.get("toolCallId"),
+                            tool_result=SEMOSSToolExecution(
+                                id=tr.get("id") or tr.get("toolCallId"),
                                 output=tr.get("output"),
                             )
                         )
@@ -177,7 +177,7 @@ class SEMOSSMessageBuilder:
         text_parts = []
         for part in parts:
             if isinstance(part, dict) and part.get("type") == "TEXT":
-                text = part.get("text") or part.get("uiText") or ""
+                text = part.get("text") or part.get("uiText") or part.get("ui_text") or ""
                 if text:
                     text_parts.append(text)
         return "\n".join(text_parts) if text_parts else ""
@@ -197,7 +197,7 @@ class SEMOSSMessageBuilder:
     def _parse_media_from_part_dict(self, part: Dict) -> SEMOSSMediaContent | None:
         """Extract media content from schemaVersion 2 parts array."""
         if isinstance(part, dict) and part.get("type") == "MEDIA":
-            media_info = part.get("mediaInfo", {})
+            media_info = part.get("mediaInfo") or part.get("media_info") or {}
             if not media_info:
                 return None
 

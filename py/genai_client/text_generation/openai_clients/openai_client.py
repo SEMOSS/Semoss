@@ -345,7 +345,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             if aggregated_thinking
                             else []
                         )
-                        + [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
+                        + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
                     ),
                     usage_map=usage_map
                 )

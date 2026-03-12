@@ -298,7 +298,7 @@ class BedrockClient(AbstractTextGenerationClient):
                     "arguments": arguments,
                     "type": "function",
                 }
-                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+                parts.append({"type": "TOOL_CALL", "tool_call": tool_call})
 
             elif content_type == "tool_result":
                 tool_use_id = content.get("tool_use_id")
@@ -307,9 +307,9 @@ class BedrockClient(AbstractTextGenerationClient):
                 parts.append(
                     {
                         "type": "TOOL_RESULT",
-                        "toolResult": {
-                            "toolCallId": tool_use_id,
-                            "toolName": tool_name,
+                        "tool_result": {
+                            "id": tool_use_id,
+                            "tool_name": tool_name,
                             "output": json.dumps(tool_content, ensure_ascii=False),
                         },
                     }
@@ -386,11 +386,13 @@ class BedrockClient(AbstractTextGenerationClient):
             except Exception:
                 pass
 
-        parts = (
-            [{"type": "TOOL_CALL", "toolCall": t} for t in final_response]
-            if message_type == "TOOL"
-            else ([{"type": "TEXT", "text": final_response}] if final_response else [])
-        )
+        parts = []
+        text_combined = "\n".join(texts) if texts else ""
+        if text_combined:
+            parts.append({"type": "TEXT", "text": text_combined})
+        if tool_uses:
+            for t in tool_uses:
+                parts.append({"type": "TOOL_CALL", "tool_call": t})
         return AskModelEngineResponse2(
             response=final_response,
             prompt_tokens=response["usage"]["inputTokens"],
