@@ -25,28 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.model.message;
+package prerna.reactor.model;
 
-import java.util.Map;
+import prerna.reactor.AbstractReactor;
+import prerna.auth.User;
+import prerna.engine.impl.model.ClaudeCodeManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-import com.google.gson.annotations.SerializedName;
+public class ClaudeCodeDeleteSkillReactor extends AbstractReactor {
 
-public class ToolCallMessagePart extends MessagePart {
-
-	@SerializedName(value = "toolCall", alternate = { "tool_call" })
-	private Map<String, Object> toolCall;
-
-	public ToolCallMessagePart() {
-		super(MessagePartType.TOOL_CALL);
+	public ClaudeCodeDeleteSkillReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
-	public ToolCallMessagePart(Map<String, Object> toolCall) {
-		this();
-		this.toolCall = toolCall;
-	}
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String skillName = this.keyValue.get("skillName");
+		User user = this.insight.getUser();
+		ClaudeCodeManager manager = new ClaudeCodeManager();
 
-	public Map<String, Object> getToolCall() {
-		return toolCall;
-	}
+		Boolean response = manager.deleteSkill(user, projectId, skillName);
 
+		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	}
 }

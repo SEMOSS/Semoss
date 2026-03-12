@@ -287,6 +287,18 @@ public class UploadEngineReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 			step++;
 
+			// ensure ENGINE_DISPLAY_NAME is present in the smss file
+			// if not present, seed it from ENGINE_ALIAS so the file stays consistent
+			String displayName = prop.getProperty(Constants.ENGINE_DISPLAY_NAME);
+			if (displayName == null || displayName.trim().isEmpty()) {
+				try {
+					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
+							engineName);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
 			// see if we have any dependencies or metadata to load
 			{
 				File metadataFile = new File(Utility.normalizePath(

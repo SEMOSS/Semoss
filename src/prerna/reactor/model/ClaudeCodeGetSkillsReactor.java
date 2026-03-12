@@ -25,28 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.model.message;
+package prerna.reactor.model;
 
 import java.util.Map;
+import prerna.auth.User;
+import prerna.engine.impl.model.ClaudeCodeManager;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-import com.google.gson.annotations.SerializedName;
+public class ClaudeCodeGetSkillsReactor extends AbstractReactor {
 
-public class ToolCallMessagePart extends MessagePart {
-
-	@SerializedName(value = "toolCall", alternate = { "tool_call" })
-	private Map<String, Object> toolCall;
-
-	public ToolCallMessagePart() {
-		super(MessagePartType.TOOL_CALL);
+	public ClaudeCodeGetSkillsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
-	public ToolCallMessagePart(Map<String, Object> toolCall) {
-		this();
-		this.toolCall = toolCall;
-	}
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		User user = this.insight.getUser();
+		ClaudeCodeManager manager = new ClaudeCodeManager();
 
-	public Map<String, Object> getToolCall() {
-		return toolCall;
-	}
+		Map<String, String> response = manager.getSkills(user, projectId);
 
+		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
 }
