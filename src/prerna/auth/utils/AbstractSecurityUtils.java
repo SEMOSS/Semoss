@@ -889,6 +889,10 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+
+				// backfill display name from canonical name for existing rows
+				securityDb.insertData(
+						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");
