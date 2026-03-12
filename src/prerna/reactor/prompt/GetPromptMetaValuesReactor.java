@@ -42,7 +42,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Returns distinct metadata values with usage counts for the specified
  * metakeys.
- * Admin only — non-admin users receive a SecurityException.
  *
  * Pixel usage:
  * GetPromptMetaValues(metaKeys=["department", "region"]);
@@ -70,10 +69,6 @@ public class GetPromptMetaValuesReactor extends AbstractReactor {
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
-		}
-		User user = this.insight.getUser();
-		if (!SecurityAdminUtils.userIsAdmin(user)) {
-			throw new SecurityException("User does not have sufficient privileges to access prompt meta values.");
 		}
 		List<Map<String, Object>> ret = PromptUtils
 				.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));

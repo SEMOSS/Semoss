@@ -48,8 +48,8 @@ import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestUserUtils;
 
 /**
- * Tests GetPromptMetaValuesReactor functionality
- * Verifies admin-only access to prompt metadata values
+ * Tests GetPromptMetaValuesReactor functionality.
+ * Verifies that logged-in users can retrieve prompt metadata values.
  */
 public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests {
 
@@ -61,15 +61,14 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 	}
 
 	@Test
-	public void testAdminCanGetPromptMetaValues() {
-		// Create admin user
+	public void testCanGetPromptMetaValues() {
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
-		
+
 		// Insert test metadata into PROMPTMETA table
 		Map<String, Collection<String>> testMetadata = new HashMap<>();
 		testMetadata.put("department", Arrays.asList("Engineering", "Sales", "Marketing"));
 		testMetadata.put("region", Arrays.asList("North America", "Europe", "Asia"));
-		
+
 		List<Map<String, Object>> mockMetakeyOptions = new ArrayList<>();
 		Map<String, Object> departmentOption = new HashMap<>();
 		departmentOption.put("metakey", "department");
@@ -77,25 +76,26 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 		regionOption.put("metakey", "region");
 		mockMetakeyOptions.add(departmentOption);
 		mockMetakeyOptions.add(regionOption);
-		
+
 		try (MockedStatic<SecurityUserUtils> mockedSecurityUtils = mockStatic(SecurityUserUtils.class)) {
 			mockedSecurityUtils.when(() -> SecurityUserUtils.getMetakeyOptions(null))
-				.thenReturn(mockMetakeyOptions);
-		
+					.thenReturn(mockMetakeyOptions);
+
 			PromptTestUtils.insertPromptMetadata(testMetadata);
-			
+
 			// Request metakey values
 			List<String> metaKeys = Arrays.asList("department", "region");
-			
+
 			// Admin should be able to get metadata values
 			List<Map<String, Object>> metaValuesMap = PromptTestUtils.getPromptMetaValues(metaKeys);
 			assertNotNull(metaValuesMap);
-			
+
 			// Verify results contain the expected values
-			assertEquals(6, metaValuesMap.size(), "Should return all 6 unique metadata values (3 departments + 3 regions)");
-			
+			assertEquals(6, metaValuesMap.size(),
+					"Should return all 6 unique metadata values (3 departments + 3 regions)");
+
 			List<Object> metaValues = metaValuesMap.parallelStream().map(entry -> entry.get("metavalue")).toList();
-			
+
 			// Verify specific values are present
 			assertTrue(metaValues.contains("Engineering"), "Should contain Engineering department");
 			assertTrue(metaValues.contains("Sales"), "Should contain Sales department");
@@ -107,29 +107,13 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 	}
 
 	@Test
-	public void testRegularUserCannotGetPromptMetaValues() {
-		// Create regular user
-		ApiSemossTestUserUtils.addAndSetNewNativeUser("regularuser", "regular@test.com", false);
-		
-		// Request metakey values
-		List<String> metaKeys = Arrays.asList("department", "region");
-		
-		// Regular user should NOT be able to get metadata values (admin-only)
-		String errorMsg = PromptTestUtils.getPromptMetaValuesExpectError(metaKeys);
-		
-		// Should return an error indicating insufficient permissions
-		assertNotNull(errorMsg);
-		assertTrue(errorMsg.contains("User does not have sufficient privileges to access prompt meta values."));
-	}
-
-	@Test
 	public void testGetMetaValuesWithEmptyList() {
 		// Create admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
-		
+
 		// Request with empty metakey list
 		List<String> emptyMetaKeys = Arrays.asList();
-		
+
 		List<Map<String, Object>> metaValues = PromptTestUtils.getPromptMetaValues(emptyMetaKeys);
 		assertNotNull(metaValues);
 		assertTrue(metaValues.isEmpty());
@@ -139,10 +123,10 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 	public void testGetMetaValuesWithNonExistentKey() {
 		// Create admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
-		
+
 		// Request values for non-existent metakey
 		List<String> nonExistentKeys = Arrays.asList("nonexistent_key");
-		
+
 		List<Map<String, Object>> metaValues = PromptTestUtils.getPromptMetaValues(nonExistentKeys);
 		assertNotNull(metaValues);
 		assertTrue(metaValues.isEmpty());
@@ -150,46 +134,40 @@ public class GetPromptMetaValuesReactorTests extends AbstractBaseSemossApiTests 
 
 	@Test
 	public void testGetMetaValuesReturnsAllUniqueValues() {
-		// Create admin user
 		ApiSemossTestUserUtils.addAndSetNewNativeUser("admin", "admin@test.com", true);
-		
-		// Register the metakeys that will be used
-		Map<String, Collection<String>> metakeys = new HashMap<>();
-		metakeys.put("department", List.of("Engineering", "Sales", "Marketing"));
-		
-		PromptTestUtils.setUserWithMetadata("admin", "admin@test.com", null);
-		
+
 		// Mock SecurityUserUtils.getMetakeyOptions to return the department metakey
 		List<Map<String, Object>> mockMetakeyOptions = new ArrayList<>();
 		Map<String, Object> departmentOption = new HashMap<>();
 		departmentOption.put("metakey", "department");
 		mockMetakeyOptions.add(departmentOption);
-		
+
 		try (MockedStatic<SecurityUserUtils> mockedSecurityUtils = mockStatic(SecurityUserUtils.class)) {
 			mockedSecurityUtils.when(() -> SecurityUserUtils.getMetakeyOptions(null))
-				.thenReturn(mockMetakeyOptions);
-			
+					.thenReturn(mockMetakeyOptions);
+
 			// Insert test data with intentional duplicates across multiple prompts
 			// This ensures the reactor properly deduplicates values from PROMPTMETA
 			Map<String, Collection<String>> testMetadata = new HashMap<>();
 			// Insert duplicate "Engineering" values across multiple prompts
 			testMetadata.put("department", Arrays.asList("Engineering", "Sales", "Engineering", "Marketing", "Sales"));
 			PromptTestUtils.insertPromptMetadata(testMetadata);
-			
+
 			List<String> metaKeys = Arrays.asList("department");
-			
+
 			List<Map<String, Object>> metaValuesMap = PromptTestUtils.getPromptMetaValues(metaKeys);
 			assertNotNull(metaValuesMap);
-			
+
 			// Values should be unique (no duplicates) - should only return 3 unique values
 			long uniqueCount = metaValuesMap.stream().distinct().count();
 			assertEquals(uniqueCount, metaValuesMap.size(), "Returned values should not contain duplicates");
-			
+
 			// Verify we get exactly 3 unique department values
-			assertEquals(3, metaValuesMap.size(), "Should return 3 unique department values (Engineering, Sales, Marketing)");
-			
+			assertEquals(3, metaValuesMap.size(),
+					"Should return 3 unique department values (Engineering, Sales, Marketing)");
+
 			List<Object> metaValues = metaValuesMap.parallelStream().map(entry -> entry.get("metavalue")).toList();
-			
+
 			// Verify specific values are present
 			assertTrue(metaValues.contains("Engineering"), "Should contain Engineering");
 			assertTrue(metaValues.contains("Sales"), "Should contain Sales");
