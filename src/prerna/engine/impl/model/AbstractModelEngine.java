@@ -37,8 +37,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -51,7 +49,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -294,6 +291,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
 	 * 
+<<<<<<< token-types
 	 * @param task
 	 * @param context
 	 * @param insight
@@ -361,6 +359,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
 	 * 
+=======
+>>>>>>> dev
 	 * @param stringsToEmbed
 	 * @param insight
 	 * @param parameters
