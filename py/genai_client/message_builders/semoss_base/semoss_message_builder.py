@@ -132,6 +132,7 @@ class SEMOSSMessageBuilder:
                 type=SEMOSSMessageType(message_type),
                 content=content,
                 param_map=updated_param_map,
+                io=message.get("io"),
             )
 
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
