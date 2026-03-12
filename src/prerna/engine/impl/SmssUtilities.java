@@ -917,115 +917,241 @@ public class SmssUtilities {
 	}
 
 	/**
-	 * 
-	 * @param currentSmssContent
-	 * @return
-	 */
-	public static String concealSmssSensitiveInfo(String currentSmssContent) {
-		StringBuilder concealedSmssContent = new StringBuilder();
-		String[] currentSmssLines = currentSmssContent.split("\n");
+     * Conceal sensitive information in SMSS content.
+     * Properly handles multi-line property values with escape sequences.
+     *
+     * @param currentSmssContent The current SMSS content as a string
+     * @return SMSS content with sensitive values concealed
+     */
+    public static String concealSmssSensitiveInfo(String currentSmssContent) {
+        // Parse the content into Properties to properly handle multi-line values
+        Properties props = Utility.loadPropertiesString(currentSmssContent);
+        if (props == null) {
+            throw new IllegalArgumentException("SMSS content is not a valid properties file format");
+        }
 
-		for (String curLine : currentSmssLines) {
-			String curLineUpperMatch = curLine.toUpperCase();
+        CaseInsensitiveProperties caseInsensitiveProps = new CaseInsensitiveProperties(props);
 
-			// loop through all the keys to find
-			boolean found = false;
-			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
-						|| curLineUpperMatch.startsWith(key + "=")) {
-					concealedSmssContent.append(key).append("\t").append(Constants.SENSITIVE_INFO_MASK);
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				concealedSmssContent.append(curLine);
-			}
-			concealedSmssContent.append("\n");
-		}
+        // Replace sensitive values with mask
+        for (String sensitiveKey : SmssUtilities.SENSITIVE_KEYWORDS) {
+            if (caseInsensitiveProps.containsKey(sensitiveKey)) {
+                caseInsensitiveProps.put(sensitiveKey, Constants.SENSITIVE_INFO_MASK);
+            }
+        }
 
-		return concealedSmssContent.toString();
-	}
+        // Convert back to string using tab-separated format
+        return propertiesToString(caseInsensitiveProps);
+    }
+
+    /**
+     * Unconceal sensitive information in SMSS content by restoring original values.
+     * Ensures output matches proper escape format with tab separators.
+     *
+     * @param newSmssContent New SMSS content with potentially masked values
+     * @param currentSmssProperties Current properties with original sensitive values
+     * @return SMSS content with sensitive values restored from current properties
+     */
+    public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
+        return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
+    }
+
+    /**
+     * Unconceal sensitive information in SMSS content by restoring original values.
+     * Ensures output matches proper escape format with tab separators.
+     *
+     * @param newSmssContent New SMSS content with potentially masked values
+     * @param currentSmssProperties Current properties with original sensitive values
+     * @param secretStoreValues Additional secrets from secret store
+     * @return SMSS content with sensitive values restored
+     */
+    public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
+            Map<String, Object> secretStoreValues) {
+
+        // Parse the new content
+        Properties newProperties = Utility.loadPropertiesString(newSmssContent);
+        if (newProperties == null) {
+            throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
+        }
+
+        CaseInsensitiveProperties newProps = new CaseInsensitiveProperties(newProperties);
+        CaseInsensitiveProperties currentProps = new CaseInsensitiveProperties(currentSmssProperties);
+
+        // Add any secrets from secret store
+        if (secretStoreValues != null) {
+            currentProps.putAll(secretStoreValues);
+        }
+
+        // Check if any processing is needed
+        boolean requireProcessing = false;
+        for (String sensitiveKey : SmssUtilities.SENSITIVE_KEYWORDS) {
+            if (newProps.containsKey(sensitiveKey) &&
+                Constants.SENSITIVE_INFO_MASK.equals(newProps.get(sensitiveKey))) {
+                requireProcessing = true;
+                break;
+            }
+        }
+
+        if (!requireProcessing) {
+            // No masked values found, but still format consistently with tab separators
+            return propertiesToString(newProps);
+        }
+
+        // Restore masked values from current properties
+        for (String sensitiveKey : SmssUtilities.SENSITIVE_KEYWORDS) {
+            if (newProps.containsKey(sensitiveKey)) {
+                String newValue = (String) newProps.get(sensitiveKey);
+                if (Constants.SENSITIVE_INFO_MASK.equals(newValue)) {
+                    // Restore the original value
+                    Object originalValue = currentProps.get(sensitiveKey);
+                    if (originalValue != null) {
+                        newProps.put(sensitiveKey, originalValue);
+                    } else {
+                        // If original was null or empty, use empty string
+                        newProps.put(sensitiveKey, "");
+                    }
+                }
+                // Otherwise the value was changed, keep the new value as-is
+            }
+        }
+
+        // Convert back to string using tab-separated format
+        return propertiesToString(newProps);
+    }
 
 	/**
-	 * 
-	 * @param newSmssContent
-	 * @param currentSmssProperties
-	 * @return
-	 */
-	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
-		return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
-	}
+     * Store properties to a BufferedWriter using tab-separated format.
+     * Public wrapper for use in resource classes.
+     *
+     * @param properties Properties to store
+     * @param bw BufferedWriter to write to
+     * @throws IOException if writing fails
+     */
+    public static void storeWithTabSeparator(Properties properties, BufferedWriter bw) throws IOException {
+        synchronized (properties) {
+            for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+                String key = (String) entry.getKey();
+                String val = entry.getValue() != null ? (String) entry.getValue() : "";
 
-	/**
-	 * 
-	 * @param newSmssContent
-	 * @param currentSmssProperties
-	 * @param secretStoreValues
-	 * @return
-	 */
-	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
-			Map<String, Object> secretStoreValues) {
-		Properties newProperties = Utility.loadPropertiesString(newSmssContent);
-		if (newProperties == null) {
-			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
-		}
-		CaseInsensitiveProperties allUpperProps = new CaseInsensitiveProperties(newProperties);
+                // Escape the key (spaces should be escaped)
+                key = saveConvert(key, true);
 
-		boolean requireProcessing = false;
-		for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-			if (allUpperProps.containsKey(key) && allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
-				requireProcessing = true;
-				break;
-			}
-		}
+                // Escape the value (don't escape leading/trailing spaces in values)
+                val = saveConvert(val, false);
 
-		if (!requireProcessing) {
-			return newSmssContent;
-		}
+                // Write as key<TAB>value
+                bw.write(key + "\t" + val);
+                bw.newLine();
+            }
+        }
+        bw.flush();
+    }
 
-		// okay, we found a key that is all sensitive info
-		// lets fix it
+    /**
+     * Converts special characters to escaped format.
+     * Based on java.util.Properties.saveConvert() implementation.
+     *
+     * Escapes:
+     * - Backslashes (\)
+     * - Newlines (\n)
+     * - Carriage returns (\r)
+     * - Tabs (\t)
+     * - Form feeds (\f)
+     * - Special characters (=, :, #, !)
+     * - Leading spaces (if escapeSpace is true)
+     * - Non-ASCII characters (as \uXXXX)
+     *
+     * @param theString String to escape
+     * @param escapeSpace Whether to escape spaces at the start
+     * @return Escaped string
+     */
+    private static String saveConvert(String theString, boolean escapeSpace) {
+        if (theString == null) {
+            return "";
+        }
 
-		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
-		// add any secrets that might be there
-		if (secretStoreValues != null) {
-			allUpperCurrentSmss.putAll(secretStoreValues);
-		}
-		StringBuilder constructedSmssContent = new StringBuilder();
-		String[] currentSmssLines = newSmssContent.split("\n");
+        int len = theString.length();
+        int bufLen = len * 2;
+        if (bufLen < 0) {
+            bufLen = Integer.MAX_VALUE;
+        }
+        StringBuilder outBuffer = new StringBuilder(bufLen);
+        HexFormat hex = HexFormat.of().withUpperCase();
 
-		for (String curLine : currentSmssLines) {
-			String curLineUpperMatch = curLine.toUpperCase();
+        for (int x = 0; x < len; x++) {
+            char aChar = theString.charAt(x);
 
-			// loop through all the keys to find
-			boolean found = false;
-			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
-						|| curLineUpperMatch.startsWith(key + "=")) {
-					// check if we are still the concealed value or not
-					if (allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
-						// write the key with the original value in the current smss file
-						// value might be an empty string which could return a null
-						Object value = "";
-						if (allUpperCurrentSmss.get(key) != null) {
-							value = allUpperCurrentSmss.get(key);
-						}
-						constructedSmssContent.append(key).append("\t").append(value);
-					} else {
-						// the value has been changed
-						constructedSmssContent.append(curLine);
-					}
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				constructedSmssContent.append(curLine);
-			}
-			constructedSmssContent.append("\n");
-		}
-		return constructedSmssContent.toString();
-	}
+            // Handle common case first - most printable ASCII chars
+            if ((aChar > 61) && (aChar < 127)) {
+                if (aChar == '\\') {
+                    outBuffer.append('\\');
+                    outBuffer.append('\\');
+                    continue;
+                }
+                outBuffer.append(aChar);
+                continue;
+            }
+
+            // Handle special characters
+            switch (aChar) {
+                case ' ':
+                    if (x == 0 || escapeSpace) {
+                        outBuffer.append('\\');
+                    }
+                    outBuffer.append(' ');
+                    break;
+                case '\t':
+                    outBuffer.append('\\');
+                    outBuffer.append('t');
+                    break;
+                case '\n':
+                    outBuffer.append('\\');
+                    outBuffer.append('n');
+                    break;
+                case '\r':
+                    outBuffer.append('\\');
+                    outBuffer.append('r');
+                    break;
+                case '\f':
+                    outBuffer.append('\\');
+                    outBuffer.append('f');
+                    break;
+                case '=': // Fall through
+                case ':': // Fall through
+                case '#': // Fall through
+                case '!':
+                    outBuffer.append('\\');
+                    outBuffer.append(aChar);
+                    break;
+                default:
+                    // Handle non-ASCII and control characters
+                    if ((aChar < 0x0020) || (aChar > 0x007e)) {
+                        outBuffer.append("\\u");
+                        outBuffer.append(hex.toHexDigits(aChar));
+                    } else {
+                        outBuffer.append(aChar);
+                    }
+            }
+        }
+        return outBuffer.toString();
+    }
+
+    /**
+     * Convert Properties to string format with tab separators.
+     * Used internally by conceal/unconceal methods.
+     *
+     * @param properties The properties to convert
+     * @return String representation with tab-separated key-value pairs
+     */
+    private static String propertiesToString(Properties properties) {
+        StringWriter stringWriter = new StringWriter();
+        try (BufferedWriter bw = new BufferedWriter(stringWriter)) {
+            storeWithTabSeparator(properties, bw);
+        } catch (IOException e) {
+            // StringWriter doesn't actually throw IOException, but handle it anyway
+            throw new RuntimeException("Error converting properties to string", e);
+        }
+        return stringWriter.toString();
+    }
+
 
 }

@@ -571,4 +571,233 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
         assertEquals(curr, SmssUtilities.concealSmssSensitiveInfo(curr));
     }
 
+    /**
+     * Test that multi-line property values are properly concealed.
+     * The entire multi-line value should be replaced with the mask, not just the first line.
+     */
+    @Test
+    void testConcealSmssSensitiveInfo_MultiLineValue() {
+        // SMSS with multi-line PASSWORD value (escaped newlines)
+        String originalSmss =
+            "ENGINE\tMyEngine\n" +
+            "ENGINE_ALIAS\tTest Engine\n" +
+            "PASSWORD\tvalue\\nmore\\nlines\n" +  // Multi-line password with escaped newlines
+            "CONNECTION_URL\tjdbc:postgresql://localhost:5432/db\n";
+
+        String concealed = SmssUtilities.concealSmssSensitiveInfo(originalSmss);
+
+        // Verify the password is completely masked
+        Properties concealedProps = Utility.loadPropertiesString(concealed);
+        String maskedPassword = concealedProps.getProperty("PASSWORD");
+
+        assertNotNull(maskedPassword);
+        assertEquals(Constants.SENSITIVE_INFO_MASK, maskedPassword,
+            "Entire multi-line password value should be masked");
+
+        // Verify other properties remain unchanged
+        assertEquals("MyEngine", concealedProps.getProperty("ENGINE"));
+        assertEquals("Test Engine", concealedProps.getProperty("ENGINE_ALIAS"));
+    }
+
+    /**
+     * Test round-trip consistency with various escape sequences.
+     * Values with \n, \t, \r, and \\ should maintain their escaping through parse and serialize.
+     */
+    @Test
+    void testRoundTripEscapeHandling() {
+        // SMSS with various escape sequences
+        String smssWithEscapes =
+            "ENGINE\tMyEngine\n" +
+            "DESCRIPTION\tThis has\\ttabs\\nand newlines\\rand returns\n" +
+            "PATH\tC:\\\\Users\\\\path\\\\to\\\\file\n" +
+            "PASSWORD\tsecret\\npassword\\twith\\tspecial\\rchars\n";
+
+        // Parse into Properties
+        Properties original = Utility.loadPropertiesString(smssWithEscapes);
+        assertNotNull(original);
+
+        // Serialize back to string (this would use the improved methods)
+        String serialized = SmssUtilities.concealSmssSensitiveInfo(smssWithEscapes);
+
+        // Parse the serialized version
+        Properties roundTripped = Utility.loadPropertiesString(serialized);
+        assertNotNull(roundTripped);
+
+        // Verify non-sensitive values are preserved correctly
+        assertEquals(original.getProperty("ENGINE"), roundTripped.getProperty("ENGINE"));
+        assertEquals(original.getProperty("DESCRIPTION"), roundTripped.getProperty("DESCRIPTION"));
+        assertEquals(original.getProperty("PATH"), roundTripped.getProperty("PATH"));
+
+        // PASSWORD should be masked, not compared for value equality
+        assertEquals(Constants.SENSITIVE_INFO_MASK, roundTripped.getProperty("PASSWORD"));
+    }
+
+    /**
+     * Test unconceal operation with multi-line values.
+     * Verifies that masked sensitive values are restored from current properties,
+     * and changed values are kept.
+     */
+    @Test
+    void testUnconcealSmssSensitiveInfo_MultiLineAndMaskedValues() {
+        // Current SMSS with actual sensitive values (including multi-line)
+        String currentSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\tactual\\nsecret\\npassword\n" +  // Multi-line password
+            "API_KEY\tsk-1234567890abcdef\n" +
+            "CONNECTION_URL\tjdbc:postgresql://localhost:5432/db\n";
+
+        Properties currentProps = Utility.loadPropertiesString(currentSmss);
+        assertNotNull(currentProps);
+
+        // New SMSS from frontend with masked PASSWORD, modified API_KEY
+        String newSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\t" + Constants.SENSITIVE_INFO_MASK + "\n" +  // Masked - should restore
+            "API_KEY\tsk-NEWKEY9876543210\n" +  // Changed - should keep new value
+            "CONNECTION_URL\tjdbc:postgresql://localhost:5432/db\n";
+
+        // Unconceal - should restore original PASSWORD, keep new API_KEY
+        String unconcealed = SmssUtilities.unconcealSmssSensitiveInfo(newSmss, currentProps);
+
+        Properties result = Utility.loadPropertiesString(unconcealed);
+        assertNotNull(result);
+
+        // Verify PASSWORD was restored to original multi-line value
+        assertEquals(currentProps.getProperty("PASSWORD"), result.getProperty("PASSWORD"),
+            "Masked PASSWORD should be restored from current properties");
+
+        // Verify API_KEY has the new value
+        assertEquals("sk-NEWKEY9876543210", result.getProperty("API_KEY"),
+            "Changed API_KEY should have new value");
+
+        // Verify non-sensitive properties unchanged
+        assertEquals("MyEngine", result.getProperty("ENGINE"));
+        assertEquals("jdbc:postgresql://localhost:5432/db", result.getProperty("CONNECTION_URL"));
+    }
+
+    /**
+     * Test unconceal with secret store values.
+     * Secrets from secret store should be used if available.
+     */
+    @Test
+    void testUnconcealSmssSensitiveInfo_WithSecretStore() {
+        // Current SMSS
+        String currentSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\told_password\n" +
+            "API_KEY\told_api_key\n";
+
+        Properties currentProps = Utility.loadPropertiesString(currentSmss);
+
+        // Secret store values (override current)
+        java.util.Map<String, Object> secretStore = new java.util.HashMap<>();
+        secretStore.put("PASSWORD", "secret_store_password");
+        secretStore.put("API_KEY", "secret_store_api_key");
+
+        // New SMSS with masked values
+        String newSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\t" + Constants.SENSITIVE_INFO_MASK + "\n" +
+            "API_KEY\t" + Constants.SENSITIVE_INFO_MASK + "\n";
+
+        // Unconceal with secret store
+        String unconcealed = SmssUtilities.unconcealSmssSensitiveInfo(newSmss, currentProps, secretStore);
+
+        Properties result = Utility.loadPropertiesString(unconcealed);
+        assertNotNull(result);
+
+        // Verify values from secret store are used
+        assertEquals("secret_store_password", result.getProperty("PASSWORD"),
+            "Should use PASSWORD from secret store");
+        assertEquals("secret_store_api_key", result.getProperty("API_KEY"),
+            "Should use API_KEY from secret store");
+    }
+
+    /**
+     * Test that backslashes in paths are properly escaped and preserved.
+     */
+    @Test
+    void testConcealAndUnconceal_BackslashEscaping() {
+        String originalSmss =
+            "ENGINE\tMyEngine\n" +
+            "PATH\tC:\\\\Users\\\\path\\\\to\\\\file\n" +
+            "PASSWORD\tsecret\n";
+
+        Properties originalProps = Utility.loadPropertiesString(originalSmss);
+
+        // Conceal
+        String concealed = SmssUtilities.concealSmssSensitiveInfo(originalSmss);
+        Properties concealedProps = Utility.loadPropertiesString(concealed);
+
+        // Verify PATH backslashes are preserved
+        assertEquals(originalProps.getProperty("PATH"), concealedProps.getProperty("PATH"),
+            "PATH with backslashes should be preserved");
+
+        // Unconceal
+        String unconcealed = SmssUtilities.unconcealSmssSensitiveInfo(concealed, originalProps);
+        Properties unconcealedProps = Utility.loadPropertiesString(unconcealed);
+
+        // Verify PATH still correct after round-trip
+        assertEquals(originalProps.getProperty("PATH"), unconcealedProps.getProperty("PATH"),
+            "PATH should survive round-trip");
+
+        // Verify PASSWORD was restored
+        assertEquals(originalProps.getProperty("PASSWORD"), unconcealedProps.getProperty("PASSWORD"),
+            "PASSWORD should be restored");
+    }
+
+    /**
+     * Test that empty/null sensitive values are handled correctly.
+     */
+    @Test
+    void testUnconcealSmssSensitiveInfo_EmptySensitiveValue() {
+        // Current SMSS with empty password
+        String currentSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\t\n" +
+            "API_KEY\ttest_key\n";
+
+        Properties currentProps = Utility.loadPropertiesString(currentSmss);
+
+        // New SMSS with masked PASSWORD
+        String newSmss =
+            "ENGINE\tMyEngine\n" +
+            "PASSWORD\t" + Constants.SENSITIVE_INFO_MASK + "\n" +
+            "API_KEY\ttest_key\n";
+
+        String unconcealed = SmssUtilities.unconcealSmssSensitiveInfo(newSmss, currentProps);
+        Properties result = Utility.loadPropertiesString(unconcealed);
+
+        // Empty password should be restored as empty
+        assertEquals("", result.getProperty("PASSWORD", ""),
+            "Empty PASSWORD should remain empty");
+    }
+
+    /**
+     * Test that invalid SMSS content throws appropriate exception.
+     */
+    @Test
+    void testConcealSmssSensitiveInfo_InvalidFormat() {
+        String invalidSmss = "This is not a valid properties format {[}]";
+
+        assertThrows(IllegalArgumentException.class,
+            () -> SmssUtilities.concealSmssSensitiveInfo(invalidSmss),
+            "Should throw IllegalArgumentException for invalid properties format");
+    }
+
+    /**
+     * Test that invalid SMSS content in unconceal throws appropriate exception.
+     */
+    @Test
+    void testUnconcealSmssSensitiveInfo_InvalidFormat() {
+        Properties currentProps = new Properties();
+        currentProps.setProperty("ENGINE", "test");
+
+        String invalidSmss = "This is not a valid properties format {[}]";
+
+        assertThrows(IllegalArgumentException.class,
+            () -> SmssUtilities.unconcealSmssSensitiveInfo(invalidSmss, currentProps),
+            "Should throw IllegalArgumentException for invalid properties format");
+    }
+
 }
