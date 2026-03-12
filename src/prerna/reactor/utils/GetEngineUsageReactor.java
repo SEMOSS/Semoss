@@ -56,8 +56,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PIXEL = "pixel";
 
 	public GetEngineUsageReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.TYPE.getKey() };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
@@ -65,8 +65,24 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		// get the selectors
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		IEngine.CATALOG_TYPE engineType = null;
+		if (engineId != null && !engineId.isEmpty()) {
+			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+			engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		} else {
+			String engineTypeStr = this.keyValue.get(this.keysToGet[1]);
+			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
+				try {
+					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
+					engineId = "SAMPLE_" + engineTypeStr.toUpperCase() + "_ID";
+				} catch (IllegalArgumentException e) {
+					// invalid type string — fall through to default pending usage
+				}
+			}
+		}
+		if (engineType == null) {
+			return new NounMetadata(getPendingUsage(), PixelDataType.VECTOR);
+		}
 		List<Map<String, Object>> output;
 		switch (engineType) {
 		case DATABASE:
@@ -542,6 +558,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private List<Map<String, Object>> getFunctionUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		IFunctionEngine ife = Utility.getFunctionEngine(engineId);
+		if (ife == null) {
+			return getPendingUsage();
+		}
 		List<FunctionParameter> fps = ife.getParameters();
 		if (fps == null) {
 			fps = new ArrayList<>();
