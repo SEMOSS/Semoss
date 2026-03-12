@@ -256,6 +256,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "project_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
 		qs.addRelation("PROJECTPERMISSION", "PROJECT", "inner.join");
@@ -1264,6 +1265,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// selectors
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
@@ -1300,6 +1302,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
 			searchFilter.addFilter(
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTDISPLAYNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair,

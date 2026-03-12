@@ -600,10 +600,10 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// ENGINE
-			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", "CREATEDBY", "CREATEDBYTYPE",
-					"DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", "ENGINEDISPLAYNAME" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
+			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)",
 					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
@@ -905,6 +905,11 @@ public abstract class AbstractSecurityUtils {
 				sql = queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT",
+						"PROJECTDISPLAYNAME");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
 			} else {
 				// see if index exists
 				if (!queryUtil.indexExists(securityDb, "PROJECT_GLOBAL_INDEX", "PROJECT", database, schema)) {
@@ -924,6 +929,13 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", database, schema)) {
 					String sql = queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT", database,
+						schema)) {
+					String sql = queryUtil.createIndex("PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT",
+							"PROJECTDISPLAYNAME");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}

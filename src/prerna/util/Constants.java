@@ -920,6 +920,7 @@ public class Constants {
 	public static final String PROJECTS = "PROJECTS";
 	public static final String PROJECT = "PROJECT";
 	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
+	public static final String PROJECT_DISPLAY_NAME = "PROJECT_DISPLAY_NAME";
 	public static final String PROJECT_TYPE = "PROJECT_TYPE";
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
