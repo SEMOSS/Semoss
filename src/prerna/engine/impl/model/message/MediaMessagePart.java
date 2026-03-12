@@ -31,7 +31,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class MediaMessagePart extends MessagePart {
 
-	@SerializedName("mediaInfo")
+	@SerializedName(value = "mediaInfo", alternate = { "media_info" })
 	private MessageInputMedia mediaInfo;
 
 	public MediaMessagePart() {

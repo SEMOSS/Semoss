@@ -25,29 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.util;
+package prerna.reactor.model;
 
-public final class NotificationConstants {
+import prerna.auth.User;
+import prerna.engine.impl.model.ClaudeCodeManager;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-	private NotificationConstants() {
+public class ClaudeCodeUpdateSkillReactor extends AbstractReactor {
+
+	public ClaudeCodeUpdateSkillReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
-	// app catalog key
-	public static final String APP_CATALOG = "APP";
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String skillName = this.keyValue.get("skillName");
+		String skillContent = this.keyValue.get("skillContent");
 
-	public static final class Priority {
-		public static final String HIGH = "HIGH";
-		public static final String MEDIUM = "MEDIUM";
-		public static final String LOW = "LOW";
+		User user = this.insight.getUser();
+		ClaudeCodeManager manager = new ClaudeCodeManager();
+		Boolean response = manager.updateSkill(user, projectId, skillName, skillContent);
+		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
-
-	public static final class Type {
-		public static final String USER_REQUEST = "USER_REQUEST";
-		public static final String USER_ADDITION = "USER_ADDITION";
-		public static final String REQUEST_APPROVAL = "REQUEST_APPROVAL";
-		public static final String PERMISSION_CHANGE = "PERMISSION_CHANGE";
-		public static final String REQUEST_DENIAL = "REQUEST_DENIAL";
-		public static final String SMSS_UPDATE = "SMSS_UPDATE";
-	}
-
 }

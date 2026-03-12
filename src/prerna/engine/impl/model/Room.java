@@ -72,7 +72,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -497,7 +496,7 @@ public class Room {
 			ResponseMessage nextAssistant = null;
 			try {
 				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
-				nextAssistant = createResponseMessage(llmResponse);
+				nextAssistant = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -586,8 +585,8 @@ public class Room {
 	}
 
 	/**
-	 * Returns all tools for this room using the default max tool name length.
-	 * Also populates {@link #toolLookupByLLMName} for reverse-lookup in
+	 * Returns all tools for this room using the default max tool name length. Also
+	 * populates {@link #toolLookupByLLMName} for reverse-lookup in
 	 * {@link #updateToolResponseMeta(ResponseMessage)}.
 	 *
 	 * @return list of tool definition maps ready to pass to the LLM
@@ -745,22 +744,6 @@ public class Room {
 	}
 
 	/**
-	 * 
-	 * @param llmResponse
-	 * @return
-	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
-		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
-			return ResponseMessage.text(llmResponse.getStringResponse());
-		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
-			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
-			return ResponseMessage.toolResponses(toolResponse.getToolResponse());
-		}
-		// TODO: handle image, tool calls, etc.
-		return ResponseMessage.text("null");
-	}
-
-	/**
 	 * Updates the tool response with engine and tool metadata, using the per-call
 	 * reverse-lookup map ({@link #toolLookupByLLMName}) that was populated during
 	 * the most recent call to {@link #getAllToolsJsonForRoom(int)}. Falls back to
@@ -773,8 +756,8 @@ public class Room {
 	}
 
 	/**
-	 * Returns the current per-call reverse-lookup map (LLM-facing name →
-	 * enriched tool entry). The map is rebuilt each time
+	 * Returns the current per-call reverse-lookup map (LLM-facing name → enriched
+	 * tool entry). The map is rebuilt each time
 	 * {@link #getAllToolsJsonForRoom(int)} is called.
 	 *
 	 * @return unmodifiable view of the lookup map

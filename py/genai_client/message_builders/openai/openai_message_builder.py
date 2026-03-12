@@ -109,7 +109,7 @@ class OpenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_parts.append(media_content)
 
@@ -131,9 +131,9 @@ class OpenAIMessageBuilder:
 
                         openai_messages.append(
                             OpenAIResponsesToolCall(
-                                call_id=p.toolCall.id,
-                                name=p.toolCall.function.name,
-                                arguments=p.toolCall.function.parameters or {},
+                                call_id=p.tool_call.id,
+                                name=p.tool_call.function.name,
+                                arguments=p.tool_call.function.parameters or {},
                             )
                         )
 
@@ -156,8 +156,8 @@ class OpenAIMessageBuilder:
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
-                                call_id=p.toolResult.id,
-                                output=p.toolResult.output,
+                                call_id=p.tool_result.id,
+                                output=p.tool_result.output,
                             )
                         )
 
@@ -298,7 +298,7 @@ class OpenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_parts.append(media_content)
 
@@ -320,11 +320,11 @@ class OpenAIMessageBuilder:
 
                         tool_call_parts.append(
                             OpenAIToolCall(
-                                id=p.toolCall.id,
-                                type=p.toolCall.type,
+                                id=p.tool_call.id,
+                                type=p.tool_call.type,
                                 function=OpenAIToolFunctionPart(
-                                    name=p.toolCall.function.name,
-                                    arguments=p.toolCall.function.parameters or {},
+                                    name=p.tool_call.function.name,
+                                    arguments=p.tool_call.function.parameters or {},
                                 ),
                             )
                         )
@@ -348,8 +348,8 @@ class OpenAIMessageBuilder:
                         openai_messages.append(
                             OpenAIMessage(
                                 role="tool",
-                                content=p.toolResult.output,
-                                tool_call_id=p.toolResult.id,
+                                content=p.tool_result.output,
+                                tool_call_id=p.tool_result.id,
                             )
                         )
 
