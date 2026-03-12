@@ -225,10 +225,21 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	
+
 	@Override
 	public int getContextWindow() {
 		return this.getContextWindow();
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		// no display name for engine
+
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getEngineName();
 	}
 
 }
