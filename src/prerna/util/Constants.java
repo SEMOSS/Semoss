@@ -633,6 +633,7 @@ public class Constants {
 
 	// Theming
 	public static final String THEMING_DB = "themes";
+	public static final String THEME_CACHE_DURATION_MINUTES = "THEME_CACHE_DURATION_MINUTES";
 
 	// Prompt
 	public static final String PROMPT_DB = "PromptDatabase";

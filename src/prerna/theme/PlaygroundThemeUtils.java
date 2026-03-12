@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.theme;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -35,41 +36,92 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * Theme accessors intended to be safe for all users (read-only).
+ *
+ * Uses Caffeine cache with automatic time-based expiration to ensure
+ * theme changes propagate across distributed instances.
  */
 public class PlaygroundThemeUtils extends AbstractThemeUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(PlaygroundThemeUtils.class);
-	private static final Object CACHE_LOCK = new Object();
-	private static volatile String cachedGlobalSystemPrompt = null;
-	private static volatile Map<String, String> cachedSystemPromptVars = null;
-	private static volatile boolean cacheInitialized = false;
+
+	// Cache keys
+	private static final String CACHE_KEY_SYSTEM_PROMPT = "globalSystemPrompt";
+	private static final String CACHE_KEY_PROMPT_VARS = "systemPromptVars";
+
+	// Default cache duration: 10 minutes
+	private static final long DEFAULT_CACHE_DURATION_MINUTES = 10L;
+
+	/**
+	 * Caffeine cache with time-based expiration.
+	 * Automatically refreshes from database after expiration.
+	 * Duration is configured via THEME_CACHE_DURATION_MINUTES property.
+	 */
+	private static final Cache<String, Object> THEME_CACHE = initializeCache();
 
 	private PlaygroundThemeUtils() {
 	}
 
 	/**
+	 * Initialize the Caffeine cache with configured duration.
+	 */
+	private static Cache<String, Object> initializeCache() {
+		long cacheDurationMinutes = DEFAULT_CACHE_DURATION_MINUTES;
+
+		// Read from properties file (e.g., RDF_Map.prop)
+		String configuredDuration = Utility.getDIHelperProperty(Constants.THEME_CACHE_DURATION_MINUTES);
+		if (configuredDuration != null && !configuredDuration.trim().isEmpty()) {
+			try {
+				cacheDurationMinutes = Long.parseLong(configuredDuration.trim());
+				classLogger.info("Theme cache duration set to {} minutes from configuration", cacheDurationMinutes);
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid THEME_CACHE_DURATION_MINUTES value '{}', using default {} minutes",
+						configuredDuration, DEFAULT_CACHE_DURATION_MINUTES);
+			}
+		} else {
+			classLogger.info("THEME_CACHE_DURATION_MINUTES not configured, using default {} minutes",
+					DEFAULT_CACHE_DURATION_MINUTES);
+		}
+
+		return Caffeine.newBuilder()
+				.expireAfterWrite(Duration.ofMinutes(cacheDurationMinutes))
+				.maximumSize(10) // Small cache, just a few theme properties
+				.recordStats() // Enable statistics for monitoring
+				.build();
+	}
+
+	/**
 	 * Returns {@code playground.globalSystemPrompt} from the currently active theme,
 	 * or {@code null} if not defined.
+	 *
+	 * Value is cached and automatically refreshed based on configured duration.
 	 */
 	public static String getPlaygroundGlobalSystemPrompt() {
-		ensureCacheLoaded();
-		return cachedGlobalSystemPrompt;
+		String result = (String) THEME_CACHE.get(CACHE_KEY_SYSTEM_PROMPT, key -> {
+			// This function is called only when cache misses or expires
+			loadThemeIntoCache();
+			return THEME_CACHE.getIfPresent(CACHE_KEY_SYSTEM_PROMPT);
+		});
+		return result;
 	}
 
 	/**
 	 * Returns {@code playground.systemPromptVars} from the currently active theme,
 	 * or an empty map if not defined.
-	 * <p>
-	 * Expected JSON shape:
-	 * 
+	 *
+	 * Value is cached and automatically refreshed based on configured duration.
+	 *
+	 * <p>Expected JSON shape:
 	 * <pre>
 	 * {
 	 *   "playground": {
@@ -82,75 +134,116 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	 * </pre>
 	 */
 	public static Map<String, String> getPlaygroundSystemPromptVars() {
-		ensureCacheLoaded();
-		return cachedSystemPromptVars == null ? new LinkedHashMap<>() : new LinkedHashMap<>(cachedSystemPromptVars);
+		@SuppressWarnings("unchecked")
+		Map<String, String> cached = (Map<String, String>) THEME_CACHE.get(CACHE_KEY_PROMPT_VARS, key -> {
+			// This function is called only when cache misses or expires
+			loadThemeIntoCache();
+			return THEME_CACHE.getIfPresent(CACHE_KEY_PROMPT_VARS);
+		});
+
+		// Return defensive copy to prevent external modification
+		return cached == null ? new LinkedHashMap<>() : new LinkedHashMap<>(cached);
 	}
 
 	/**
-	 * Refreshes the in-memory cache from the active theme.
+	 * Manually refreshes the cache from the active theme.
+	 * Useful for immediate updates when an admin changes the theme.
 	 */
 	public static void refreshCacheFromActiveTheme() {
-		synchronized (CACHE_LOCK) {
-			parseThemeMap(extractActiveThemeMapJson());
-			cacheInitialized = true;
-		}
+		classLogger.debug("Manually refreshing theme cache");
+		invalidateCache();
+		loadThemeIntoCache();
 	}
 
-	private static void refreshCache() {
-		synchronized (CACHE_LOCK) {
-			cachedGlobalSystemPrompt = null;
-			cachedSystemPromptVars = null;
-			cacheInitialized = false;
-		}
+	/**
+	 * Invalidates the cache, forcing a reload on next access.
+	 * Use this when you know the theme has changed but don't want to load immediately.
+	 */
+	public static void invalidateCache() {
+		classLogger.debug("Invalidating theme cache");
+		THEME_CACHE.invalidateAll();
 	}
 
-	private static void ensureCacheLoaded() {
-		if (cacheInitialized) {
-			return;
-		}
-		refreshCacheFromActiveTheme();
+	/**
+	 * Get cache statistics for monitoring.
+	 * Useful for understanding cache hit/miss rates.
+	 *
+	 * @return Cache statistics string including hit rate, miss rate, etc.
+	 */
+	public static String getCacheStats() {
+		return THEME_CACHE.stats().toString();
 	}
 
-	private static void parseThemeMap(String themeMapJson) {
-		cachedGlobalSystemPrompt = null;
-		cachedSystemPromptVars = new LinkedHashMap<>();
-		if (themeMapJson == null) {
-			return;
-		}
-		try {
-			JsonObject themeMap = JsonParser.parseString(themeMapJson).getAsJsonObject();
-			JsonElement playgroundElem = themeMap.get("playground");
-			if (playgroundElem == null || !playgroundElem.isJsonObject()) {
-				return;
-			}
-			JsonObject playground = playgroundElem.getAsJsonObject();
+	/**
+	 * Logs cache statistics at INFO level.
+	 * Call this periodically to monitor cache effectiveness.
+	 */
+	public static void logCacheStats() {
+		classLogger.info("Theme cache statistics: {}", getCacheStats());
+	}
 
-			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
-			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
-				cachedGlobalSystemPrompt = StringUtils.trimToNull(globalSystemPromptElem.getAsString());
-			}
+	/**
+	 * Loads theme data from the database into the cache.
+	 * This is called automatically when cache expires or is invalidated.
+	 */
+	private static void loadThemeIntoCache() {
+		classLogger.debug("Loading theme data into cache");
+		String themeMapJson = extractActiveThemeMapJson();
+		parseAndCacheThemeMap(themeMapJson);
+	}
 
-			JsonElement varsElem = playground.get("systemPromptVars");
-			if (varsElem == null || !varsElem.isJsonObject()) {
-				return;
-			}
-			JsonObject varsObj = varsElem.getAsJsonObject();
-			for (String key : varsObj.keySet()) {
-				JsonElement valElem = varsObj.get(key);
-				if (valElem == null || !valElem.isJsonPrimitive()) {
-					continue;
+	/**
+	 * Parses the theme JSON and populates the cache.
+	 */
+	private static void parseAndCacheThemeMap(String themeMapJson) {
+		String globalSystemPrompt = null;
+		Map<String, String> systemPromptVars = new LinkedHashMap<>();
+
+		if (themeMapJson != null) {
+			try {
+				JsonObject themeMap = JsonParser.parseString(themeMapJson).getAsJsonObject();
+				JsonElement playgroundElem = themeMap.get("playground");
+
+				if (playgroundElem != null && playgroundElem.isJsonObject()) {
+					JsonObject playground = playgroundElem.getAsJsonObject();
+
+					// Extract globalSystemPrompt
+					JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
+					if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
+						globalSystemPrompt = StringUtils.trimToNull(globalSystemPromptElem.getAsString());
+					}
+
+					// Extract systemPromptVars
+					JsonElement varsElem = playground.get("systemPromptVars");
+					if (varsElem != null && varsElem.isJsonObject()) {
+						JsonObject varsObj = varsElem.getAsJsonObject();
+						for (String key : varsObj.keySet()) {
+							JsonElement valElem = varsObj.get(key);
+							if (valElem != null && valElem.isJsonPrimitive()) {
+								String val = StringUtils.trimToNull(valElem.getAsString());
+								if (val != null) {
+									systemPromptVars.put(key, val);
+								}
+							}
+						}
+					}
 				}
-				String val = StringUtils.trimToNull(valElem.getAsString());
-				if (val == null) {
-					continue;
-				}
-				cachedSystemPromptVars.put(key, val);
+			} catch (Exception e) {
+				classLogger.warn("Error parsing theme JSON, using empty values", e);
 			}
-		} catch (Exception e) {
-			classLogger.debug(Constants.STACKTRACE, e);
 		}
+
+		// Populate cache
+		THEME_CACHE.put(CACHE_KEY_SYSTEM_PROMPT, globalSystemPrompt);
+		THEME_CACHE.put(CACHE_KEY_PROMPT_VARS, systemPromptVars);
+
+		classLogger.debug("Theme cache loaded: globalSystemPrompt={}, systemPromptVars.size={}",
+				globalSystemPrompt != null, systemPromptVars.size());
 	}
 
+	/**
+	 * Extracts the active theme's JSON from the database.
+	 */
 	private static String extractActiveThemeMapJson() {
 		Map<String, Object> theme = getActiveTheme();
 		if (theme.isEmpty()) {
@@ -168,6 +261,9 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		return StringUtils.trimToNull((String) themeMapObj);
 	}
 
+	/**
+	 * Retrieves the active theme from the database.
+	 */
 	private static Map<String, Object> getActiveTheme() {
 		if (themeDb == null) {
 			return new HashMap<>();
