@@ -76,9 +76,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
 					engineId = "SAMPLE_" + engineTypeStr.toUpperCase() + "_ID";
 				} catch (IllegalArgumentException e) {
-					throw new IllegalArgumentException("Invalid engine type provided");
+					// do nothing
 				}
 			}
+		}
+		if (engineType == null) {
+			throw new IllegalArgumentException("Invalid engine type provided");
 		}
 		List<Map<String, Object>> output;
 		switch (engineType) {
