@@ -488,7 +488,7 @@ public class Room {
 			ResponseMessage nextAssistant = null;
 			try {
 				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
-				nextAssistant = createResponseMessage(llmResponse);
+				nextAssistant = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -669,15 +669,6 @@ public class Room {
 
 		// Fallback: always return an empty list if nothing found
 		return Collections.emptyList();
-	}
-
-	/**
-	 * 
-	 * @param llmResponse
-	 * @return
-	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
-		return ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 	}
 
 	public boolean isMessageAuthor(String messageId) {
