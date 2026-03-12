@@ -11,7 +11,15 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
     PermissionMode,
     HookMatcher,
+    SystemMessage,
 )
+from ...debug_logger.debug_logger import DebugLogger
+
+logger = DebugLogger(
+    log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
+    log_file_name="claude_code_client.txt",
+    class_name=__name__,
+).logger
 
 
 class MCP(BaseModel):
@@ -113,6 +121,7 @@ class ClaudeCodeClient:
             ],
             mcp_servers=mcps,
             env={
+                # "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
                 "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
@@ -146,6 +155,8 @@ class ClaudeCodeClient:
             prompt=prompt,
             options=self.agent_options,
         ):
+            logger.info(f"Received message: {message}")
+
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):

@@ -60,6 +60,8 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
@@ -1993,13 +1995,24 @@ public class ModelInferenceLogsUtils {
 			stmt.setString(2, user_id);
 			resultSet = stmt.executeQuery();
 			if (resultSet.next()) {
-				return new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
+				Room room = new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
 						resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"),
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
 						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
 						resultSet.getString("MODEL_ID"));
+				String insightId = resultSet.getString("INSIGHT_ID");
+				if (insightId != null) {
+					Insight insight = InsightStore.getInstance().get(insightId);
+					if (insight == null) {
+						insight = new Insight();
+						insight.setInsightId(insightId);
+						InsightStore.getInstance().put(insight);
+					}
+					room.setInsight(insight);
+				}
+				return room;
 			} else {
 				return null;
 			}

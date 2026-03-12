@@ -82,7 +82,7 @@ public class ClaudeCodeManager {
 				+ allowedTools.stream().map(tool -> "'" + tool + "'").collect(Collectors.joining(",")) + "]";
 		Integer localPort = ThreadStore.getLocalPort();
 		String localProtocol = ThreadStore.getLocalProtocol();
-		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
+		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic/" + roomId;
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
 		List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
 		if (mcps != null) {
