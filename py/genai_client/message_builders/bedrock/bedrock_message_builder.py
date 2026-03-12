@@ -50,15 +50,15 @@ class BedrockMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_blocks.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_use_data = {
-                            "toolUseId": p.toolCall.id or "",
-                            "name": p.toolCall.function.name,
-                            "input": p.toolCall.function.parameters,
+                            "toolUseId": p.tool_call.id or "",
+                            "name": p.tool_call.function.name,
+                            "input": p.tool_call.function.parameters,
                         }
                         tool_use_part = BedrockToolUseContentBlock(
                             toolUse=tool_use_data
@@ -67,8 +67,8 @@ class BedrockMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         tool_result_data = {
-                            "toolUseId": p.toolResult.id,
-                            "content": [{"text": p.toolResult.output}],
+                            "toolUseId": p.tool_result.id,
+                            "content": [{"text": p.tool_result.output}],
                         }
                         tool_result_part = BedrockToolResultContentBlock(
                             toolResult=tool_result_data
