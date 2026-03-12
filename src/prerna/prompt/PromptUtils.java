@@ -216,6 +216,9 @@ public class PromptUtils extends AbstractPromptUtils {
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
 				.get("metaMap");
+		if (userSelectedMeta == null) {
+			userSelectedMeta = new HashMap<>();
+		}
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
 
 		String promptId = UUID.randomUUID().toString();
@@ -252,6 +255,9 @@ public class PromptUtils extends AbstractPromptUtils {
 		List<String> tags = (List<String>) promptDetails.get("tags");
 		Map<String, Collection<String>> userSelectedMeta = (Map<String, Collection<String>>) promptDetails
 				.get("metaMap");
+		if (userSelectedMeta == null) {
+			userSelectedMeta = new HashMap<>();
+		}
 		userSelectedMeta.remove("tags"); // shouldn't be passed in the metaMap
 
 		String promptId = (String) promptDetails.get("id");
@@ -480,7 +486,7 @@ public class PromptUtils extends AbstractPromptUtils {
 		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
-			if (pc != "IS_LATEST") {
+			if (!"IS_LATEST".equals(pc)) {
 				// Add selector with lowercase alias for consistent API response keys
 				QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
 				selector.setAlias(pc.toLowerCase());

@@ -36,10 +36,23 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Deletes a prompt and all its associated metadata.
+ * Requires the caller to be the prompt creator, or an admin deleting a global
+ * prompt.
+ *
+ * Pixel usage:
+ * DeletePrompt(promptId="<uuid>");
+ *
+ * Parameters:
+ * promptId (String, required) - UUID of the prompt to delete
+ *
+ * Returns: CONST_STRING - the UUID of the deleted prompt.
+ */
 public class DeletePromptReactor extends AbstractReactor {
 
 	public DeletePromptReactor() {
-		this.keysToGet = new String[] {"promptId"};
+		this.keysToGet = new String[] { "promptId" };
 	}
 
 	@Override

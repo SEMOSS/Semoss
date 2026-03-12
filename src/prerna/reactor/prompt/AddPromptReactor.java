@@ -41,10 +41,27 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Creates a new prompt with metadata, tags, and optional global visibility.
+ *
+ * Pixel usage:
+ * AddPrompt(map=[{"title": "...", "context": "...", ...}]);
+ *
+ * Map parameters:
+ * title (String, required) - Prompt name
+ * context (String, required) - The prompt text/template
+ * intent (String, optional) - Description of the prompt's purpose
+ * global (Boolean, optional, default: false) - Whether visible to all users
+ * tags (List of String, optional) - Tags for categorization
+ * metaMap (Map of String to Collection of String, optional) - Arbitrary
+ * metadata key-value pairs
+ *
+ * Returns: CONST_STRING - the UUID of the newly created prompt.
+ */
 public class AddPromptReactor extends AbstractReactor {
-	
+
 	public AddPromptReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.MAP.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.MAP.getKey() };
 	}
 
 	@Override
@@ -65,29 +82,28 @@ public class AddPromptReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-		
+
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
 		String promptId = PromptUtils.addPrompt(promptDetails, user, userId);
 		NounMetadata nm = new NounMetadata(promptId, PixelDataType.CONST_STRING);
 		return nm;
 	}
-	
-	
+
 	private Map<String, Object> getPromptDetails() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MAP.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
+			if (mapNouns != null && !mapNouns.isEmpty()) {
 				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
-		
+
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
+		if (mapNouns != null && !mapNouns.isEmpty()) {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("Must define the prompt to store it correctly");
 	}
 }

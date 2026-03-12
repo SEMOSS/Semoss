@@ -39,10 +39,28 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Returns distinct metadata values with usage counts for the specified
+ * metakeys.
+ * Admin only — non-admin users receive a SecurityException.
+ *
+ * Pixel usage:
+ * GetPromptMetaValues(metaKeys=["department", "region"]);
+ *
+ * Parameters:
+ * metaKeys (List of String, required) - List of metakeys to retrieve values for
+ *
+ * Returns: CUSTOM_DATA_STRUCTURE - a list of maps, each containing:
+ *
+ * Per-entry fields:
+ * metakey (String) - The metadata key name
+ * metavalue (String) - A distinct value for that key
+ * count (int) - Number of prompts with this key-value pair
+ */
 public class GetPromptMetaValuesReactor extends AbstractReactor {
 
 	public GetPromptMetaValuesReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.META_KEYS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.META_KEYS.getKey() };
 	}
 
 	@Override
@@ -57,7 +75,8 @@ public class GetPromptMetaValuesReactor extends AbstractReactor {
 		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throw new SecurityException("User does not have sufficient privileges to access prompt meta values.");
 		}
-		List<Map<String, Object>> ret = PromptUtils.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));
+		List<Map<String, Object>> ret = PromptUtils
+				.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
