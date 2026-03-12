@@ -208,7 +208,7 @@ public abstract class AbstractMessage {
 	public void setModel(IModelEngine modelEngine) {
 		this.modelType = modelEngine.getModelType();
 		this.modelId = modelEngine.getEngineId();
-		setOrnament("modelName", modelEngine.getEngineName());
+		setOrnament("modelName", modelEngine.getDisplayName());
 	}
 
 	public String getModelId() {
