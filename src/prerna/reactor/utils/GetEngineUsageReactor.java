@@ -558,9 +558,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private List<Map<String, Object>> getFunctionUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		IFunctionEngine ife = Utility.getFunctionEngine(engineId);
-		if (ife == null) {
-			return getPendingUsage();
-		}
 		List<FunctionParameter> fps = ife.getParameters();
 		if (fps == null) {
 			fps = new ArrayList<>();
