@@ -439,6 +439,17 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	}
 
 	@Override
+	public void setDisplayName(String displayName) {
+		// no display name for engine
+
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getEngineName();
+	}
+
+	@Override
 	public Logger getEngineLogger(String loggerName) {
 		if (this.engineSpecificLoggerCtx != null) {
 			return this.engineSpecificLoggerCtx.getLogger(loggerName);

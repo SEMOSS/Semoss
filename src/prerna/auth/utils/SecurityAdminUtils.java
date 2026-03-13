@@ -231,6 +231,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION", "app_permission"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "app_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		if (engineTypes != null && !engineTypes.isEmpty()) {
@@ -255,6 +256,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "project_permission"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
 		qs.addRelation("PROJECTPERMISSION", "PROJECT", "inner.join");
@@ -1175,6 +1177,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
@@ -1196,6 +1199,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "database_display_name"));
 
 		if (engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
@@ -1207,6 +1212,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEDISPLAYNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
@@ -1258,6 +1265,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// selectors
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
@@ -1294,6 +1302,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
 			searchFilter.addFilter(
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTDISPLAYNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
 		// filtering by projectmeta key-value pairs (i.e. <tag>:value): for each pair,

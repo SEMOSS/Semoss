@@ -63,8 +63,6 @@ This file defines shared constants and base dataclasses for model responses.
         *   `warning` (str): Optional warning messages.
         *   `tokens` (List[str]): List of generated tokens (if available).
         *   `logprobs` (List[float]): Log probabilities for tokens (if available).
-    *   `InstructModelEngineResponse(AbstractModelEngineResponse)`: For instruction-following models.
-        *   `response` (List[str]): Typically a list of strings, where each string might represent a step or a part of a structured output.
     *   `EmbeddingsModelEngineResponse(AbstractModelEngineResponse)`: For embedding model responses.
         *   `response` (List[float]): The numerical vector embedding.
 

@@ -45,6 +45,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.AbstractPromptUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
@@ -294,6 +295,22 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				}
 			}
 		}
+		
+		if (Utility.isNotificationDatabaseEnabled()) {
+			String notificationDbName = Constants.NOTIFICATION_DB + this.extension;
+			int notificationDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, notificationDbName);
+			if (notificationDbNameIndex > -1) {
+				loadExistingEngine(fileNames[notificationDbNameIndex]);
+				try {
+					NotificationDbUtils.loadNotificationDatabase();
+				} catch (Exception e) {
+					// we couldn't initialize the db
+					// remove it from DIHelper
+					DIHelper.getInstance().removeEngineProperty(Constants.NOTIFICATION_DB);
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
 
 		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
 		// USING THE DB AND PROJECT SPLIT OF AN APP
@@ -323,6 +340,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String schedulerDBName = Constants.SCHEDULER_DB + this.extension;
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
+		String notificationDB = Constants.NOTIFICATION_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
@@ -333,7 +351,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						|| fileName.equals(themeDBName) || fileName.equals(schedulerDBName)
 						|| (fileName.equals(promptDBName) && !Utility.isPromptDatabaseEnabled())
 						|| fileName.equals(userTrackingDBName)
-						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())) {
+						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
+						|| (fileName.equals(notificationDB) && !Utility.isNotificationDatabaseEnabled())) {
 					// ignore - we have already loaded these or they are disabled and need to be
 					// ignored
 					continue;
