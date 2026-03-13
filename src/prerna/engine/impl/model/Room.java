@@ -72,7 +72,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -489,7 +488,7 @@ public class Room {
 			ResponseMessage nextAssistant = null;
 			try {
 				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
-				nextAssistant = createResponseMessage(llmResponse);
+				nextAssistant = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
@@ -670,22 +669,6 @@ public class Room {
 
 		// Fallback: always return an empty list if nothing found
 		return Collections.emptyList();
-	}
-
-	/**
-	 * 
-	 * @param llmResponse
-	 * @return
-	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
-		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
-			return ResponseMessage.text(llmResponse.getStringResponse());
-		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
-			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
-			return ResponseMessage.toolResponses(toolResponse.getToolResponse());
-		}
-		// TODO: handle image, tool calls, etc.
-		return ResponseMessage.text("null");
 	}
 
 	public boolean isMessageAuthor(String messageId) {
