@@ -41,16 +41,34 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Updates an existing prompt by creating a new version.
+ * Requires the caller to be the prompt creator, or an admin updating a global
+ * prompt.
+ *
+ * Pixel usage:
+ * UpdatePrompt(map=[{"id": "...", "title": "...", "context": "...", ...}]);
+ *
+ * Map parameters:
+ * id (String, required) - UUID of the prompt to update
+ * title (String, required) - Updated prompt name
+ * context (String, required) - Updated prompt text/template
+ * intent (String, optional) - Updated intent
+ * tags (List of String, optional) - Replacement tags
+ * metaMap (Map of String to Collection of String, optional) - Replacement
+ * metadata
+ *
+ * Returns: BOOLEAN - true on success.
+ */
 public class UpdatePromptReactor extends AbstractReactor {
-	
+
 	public UpdatePromptReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.MAP.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.MAP.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create a prompt", PixelDataType.CONST_STRING,
@@ -65,30 +83,29 @@ public class UpdatePromptReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-		
+
 		organizeKeys();
 		Map<String, Object> promptDetails = getPromptDetails();
-		PromptUtils.editPrompt(promptDetails, userId);
+		PromptUtils.editPrompt(promptDetails, user);
 		NounMetadata nm = new NounMetadata(true, PixelDataType.BOOLEAN);
 		return nm;
 	}
-	
+
 	private Map<String, Object> getPromptDetails() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MAP.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if(mapNouns != null && !mapNouns.isEmpty()) {
+			if (mapNouns != null && !mapNouns.isEmpty()) {
 				return (Map<String, Object>) mapNouns.get(0).getValue();
 			}
 		}
-		
+
 		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapNouns != null && !mapNouns.isEmpty()) {
+		if (mapNouns != null && !mapNouns.isEmpty()) {
 			return (Map<String, Object>) mapNouns.get(0).getValue();
 		}
-		
+
 		throw new NullPointerException("Must define the prompt to store it correctly");
 	}
-	
 
 }
