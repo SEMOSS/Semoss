@@ -183,7 +183,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if text_response:
                 parts.append({"type": "TEXT", "text": text_response})
             for media_info in image_data or []:
-                parts.append({"type": "MEDIA", "mediaInfo": media_info})
+                parts.append({"type": "MEDIA", "media_info": media_info})
 
             return AskModelEngineResponse2(
                 response=text_response,
@@ -250,7 +250,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _handle_streaming(
@@ -422,7 +422,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             {"type": "THINKING", "thinking": thinking_response}
                         )
                     for media_info in image_data or []:
-                        parts.append({"type": "MEDIA", "mediaInfo": media_info})
+                        parts.append({"type": "MEDIA", "media_info": media_info})
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
@@ -437,8 +437,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if thinking_response:
                 parts.append({"type": "THINKING", "thinking": thinking_response})
             for media_info in image_data or []:
-                parts.append({"type": "MEDIA", "mediaInfo": media_info})
-            parts.extend([{"type": "TOOL_CALL", "toolCall": t} for t in tool_result])
+                parts.append({"type": "MEDIA", "media_info": media_info})
+            parts.extend([{"type": "TOOL_CALL", "tool_call": t} for t in tool_result])
 
             return AskModelEngineResponse2(
                 response=tool_result,
@@ -471,7 +471,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if final_text:
             parts.append({"type": "TEXT", "text": final_text})
         for media_info in image_data or []:
-            parts.append({"type": "MEDIA", "mediaInfo": media_info})
+            parts.append({"type": "MEDIA", "media_info": media_info})
 
         return AskModelEngineResponse2(
             response=final_text,

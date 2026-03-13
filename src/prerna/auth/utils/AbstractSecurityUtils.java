@@ -600,11 +600,11 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// ENGINE
-			colNames = new String[] { "ENGINENAME", "ENGINEID", "GLOBAL", "DISCOVERABLE", "CREATEDBY", "CREATEDBYTYPE",
-					"DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)",
+					"VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -643,6 +643,9 @@ public abstract class AbstractSecurityUtils {
 
 				securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='" + IEngine.CATALOG_TYPE.DATABASE.toString()
 						+ "' WHERE ENGINETYPE IS NULL");
+				// backfill display name from canonical name for existing rows
+				securityDb.insertData(
+						"UPDATE ENGINE SET ENGINEDISPLAYNAME = ENGINENAME WHERE ENGINEDISPLAYNAME IS NULL OR ENGINEDISPLAYNAME = ''");
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
@@ -658,6 +661,10 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 
 				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("ENGINE_ENGINEDISPLAYNAME_INDEX", "ENGINE", "ENGINEDISPLAYNAME");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 			} else {
@@ -679,6 +686,11 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "ENGINE_ENGINEID_INDEX", "ENGINE", database, schema)) {
 					String sql = queryUtil.createIndex("ENGINE_ENGINEID_INDEX", "ENGINE", "ENGINEID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "ENGINE_ENGINEDISPLAYNAME_INDEX", "ENGINE", database, schema)) {
+					String sql = queryUtil.createIndex("ENGINE_ENGINEDISPLAYNAME_INDEX", "ENGINE", "ENGINEDISPLAYNAME");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
@@ -841,14 +853,15 @@ public abstract class AbstractSecurityUtils {
 			// PROJECT
 			// Type and cost are the main questions -
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
-			colNames = new String[] { "PROJECTNAME", "PROJECTID", "GLOBAL", "DISCOVERABLE", "CREATEDBY",
-					"CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST", "CATALOGNAME", "HASPORTAL",
-					"PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
-					"REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)",
-					"VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
-					"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "PROJECTID", "PROJECTNAME", "PROJECTDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST", "CATALOGNAME",
+					"HASPORTAL", "PORTALNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
+					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
+					"VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(255)" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql " + sql);
@@ -876,6 +889,10 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
+
+				// backfill display name from canonical name for existing rows
+				securityDb.insertData(
+						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");
@@ -891,6 +908,11 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 
 				sql = queryUtil.createIndexIfNotExists("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID");
+				classLogger.info("Running sql " + sql);
+				securityDb.insertData(sql);
+
+				sql = queryUtil.createIndexIfNotExists("PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT",
+						"PROJECTDISPLAYNAME");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 			} else {
@@ -912,6 +934,13 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "PROJECT_PROJECTID_INDEX", "PROJECT", database, schema)) {
 					String sql = queryUtil.createIndex("PROJECT_PROJECTID_INDEX", "PROJECT", "PROJECTID");
+					classLogger.info("Running sql " + sql);
+					securityDb.insertData(sql);
+				}
+				if (!queryUtil.indexExists(securityDb, "PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT", database,
+						schema)) {
+					String sql = queryUtil.createIndex("PROJECT_PROJECTDISPLAYNAME_INDEX", "PROJECT",
+							"PROJECTDISPLAYNAME");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
