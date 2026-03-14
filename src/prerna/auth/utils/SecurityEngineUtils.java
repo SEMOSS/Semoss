@@ -2456,7 +2456,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "database_display_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
@@ -3002,7 +3002,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "database_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
@@ -3122,7 +3122,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "database_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
@@ -3170,7 +3170,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// selectors
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "database_display_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
