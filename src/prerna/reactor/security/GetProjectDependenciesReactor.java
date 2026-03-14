@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,7 +52,6 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String userId = this.insight.getUserId();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
@@ -59,7 +59,7 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		}
 
 		// Get all dependencies with subdependencies
-		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, userId,
+		List<Map<String, Object>> dependencies = SecurityProjectUtils.getProjectDependencyDetails(projectId, user,
 				true);
 
 		// Build graph structure with unique nodes and their direct dependencies
@@ -115,10 +115,27 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 			Map<String, Object> engine = new HashMap<>(originalEngine);
 			engine.remove("parent_id");
 
+			// Derive permission_name from the highest permission (lowest integer id) the
+			// user holds, considering both direct and group permissions
+			Integer directPerm = (Integer) engine.get("permission");
+			Integer groupPerm = (Integer) engine.get("group_permission");
+			Integer bestPermission = null;
+			if (directPerm != null && groupPerm != null) {
+				bestPermission = Math.min(directPerm, groupPerm);
+			} else if (directPerm != null) {
+				bestPermission = directPerm;
+			} else if (groupPerm != null) {
+				bestPermission = groupPerm;
+			}
+			if (bestPermission != null) {
+				engine.put("permission_name", AccessPermissionEnum.getPermissionValueById(bestPermission));
+			}
+
 			// Check if user has access to this engine
 			Integer permission = (Integer) originalEngine.get("permission");
+			Integer groupPermission = (Integer) originalEngine.get("group_permission");
 			Boolean isGlobal = (Boolean) originalEngine.get("engine_global");
-			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
+			boolean hasAccess = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
 
 			// Only show dependencies if user has access to this engine
 			if (hasAccess) {
@@ -182,8 +199,9 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 
 			// Only traverse into child's dependencies if user has access to the child
 			Integer permission = (Integer) childEngine.get("permission");
+			Integer groupPermission = (Integer) childEngine.get("group_permission");
 			Boolean isGlobal = (Boolean) childEngine.get("engine_global");
-			boolean hasAccess = (permission != null) || (isGlobal != null && isGlobal);
+			boolean hasAccess = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
 
 			if (hasAccess) {
 				traverseReachable(childId, allEnginesMap, childrenByParent, reachableEngines);

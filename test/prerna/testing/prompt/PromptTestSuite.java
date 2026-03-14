@@ -25,28 +25,29 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.model.message;
+package prerna.testing.prompt;
 
-import java.util.Map;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-import com.google.gson.annotations.SerializedName;
-
-public class ToolCallMessagePart extends MessagePart {
-
-	@SerializedName(value = "toolCall", alternate = { "tool_call" })
-	private Map<String, Object> toolCall;
-
-	public ToolCallMessagePart() {
-		super(MessagePartType.TOOL_CALL);
-	}
-
-	public ToolCallMessagePart(Map<String, Object> toolCall) {
-		this();
-		this.toolCall = toolCall;
-	}
-
-	public Map<String, Object> getToolCall() {
-		return toolCall;
-	}
-
+/**
+ * Test suite that runs all prompt-related tests.
+ * Includes tests for crud operations and metadata filtering
+ */
+@Suite
+@SelectClasses({
+    AddPromptReactorTests.class,
+    CheckPromptTitleReactorTests.class,
+    DeletePromptReactorTests.class,
+    GetPromptMetaValuesReactorTests.class,
+    GetPromptReactorTests.class,
+    GlobalPromptFilteringTests.class,
+    ListPromptReactorTests.class,
+    PromptAuthorizationTests.class,
+    PromptMetadataFilteringTests.class,
+    PromptMetadataTests.class,
+    UpdatePromptReactorTests.class
+})
+public class PromptTestSuite {
+    // This class can be empty - the @SelectClasses annotation defines which tests to run
 }

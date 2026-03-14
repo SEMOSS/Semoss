@@ -67,29 +67,29 @@ class GoogleGenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_id_to_name.update(
-                            {p.toolCall.id: p.toolCall.function.name}
+                            {p.tool_call.id: p.tool_call.function.name}
                         )
                         ts_bytes = None
-                        if p.toolCall.thought_signature:
-                            ts_bytes = base64.b64decode(p.toolCall.thought_signature)
+                        if p.tool_call.thought_signature:
+                            ts_bytes = base64.b64decode(p.tool_call.thought_signature)
                         if ts_bytes:
                             fc_part = types.Part(
                                 function_call=types.FunctionCall(
-                                    name=p.toolCall.function.name,
-                                    args=p.toolCall.function.parameters,
+                                    name=p.tool_call.function.name,
+                                    args=p.tool_call.function.parameters,
                                 ),
                                 thought_signature=ts_bytes,
                             )
                         else:
                             fc_part = Part.from_function_call(
-                                name=p.toolCall.function.name,
-                                args=p.toolCall.function.parameters,
+                                name=p.tool_call.function.name,
+                                args=p.tool_call.function.parameters,
                             )
                         parts.append(fc_part)
 
@@ -97,9 +97,9 @@ class GoogleGenAIMessageBuilder:
                         parts.append(
                             Part.from_function_response(
                                 name=tool_id_to_name.get(
-                                    p.toolResult.id, "unknown_tool"
+                                    p.tool_result.id, "unknown_tool"
                                 ),
-                                response={"result": p.toolResult.output},
+                                response={"result": p.tool_result.output},
                             )
                         )
 
