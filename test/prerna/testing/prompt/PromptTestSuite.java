@@ -27,47 +27,27 @@
  *******************************************************************************/
 package prerna.testing.prompt;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-
-import prerna.testing.AbstractBaseSemossApiTests;
-
-public class CheckPromptTitleReactorTests extends AbstractBaseSemossApiTests {
-	
-	@Test
-	public void titleExsitsTest() {
-		String title = "Test-Title";
-		String context = "Translate {{question}}";
-		String intent = "Test Prompt";
-		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		
-		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
-		
-		boolean titleExsits = PromptTestUtils.checkPromptTitle(title);
-		assertTrue(titleExsits);
-		
-	}
-	
-	@Test
-	public void titleDoesNotExsitsTest() {
-		String title = "Test-Title";
-		String context = "Translate {{question}}";
-		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS");
-		String intent = "Test Prompt";
-		
-		PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
-		
-		// Changing vars for prompt 2 
-		title = "Test-Title-2";
-
-		boolean titleExsits = PromptTestUtils.checkPromptTitle(title);
-		assertFalse(titleExsits);
-		
-	}
-
+/**
+ * Test suite that runs all prompt-related tests.
+ * Includes tests for crud operations and metadata filtering
+ */
+@Suite
+@SelectClasses({
+    AddPromptReactorTests.class,
+    CheckPromptTitleReactorTests.class,
+    DeletePromptReactorTests.class,
+    GetPromptMetaValuesReactorTests.class,
+    GetPromptReactorTests.class,
+    GlobalPromptFilteringTests.class,
+    ListPromptReactorTests.class,
+    PromptAuthorizationTests.class,
+    PromptMetadataFilteringTests.class,
+    PromptMetadataTests.class,
+    UpdatePromptReactorTests.class
+})
+public class PromptTestSuite {
+    // This class can be empty - the @SelectClasses annotation defines which tests to run
 }
