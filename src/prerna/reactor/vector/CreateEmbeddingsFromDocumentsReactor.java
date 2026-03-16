@@ -122,6 +122,25 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 
 			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
+			List<String> failedFiles = new ArrayList<>();
+			for (FileEmbeddingStatus status : fileStatusList) {
+				if (status == null) {
+					continue;
+				}
+				boolean hasError = status.getError() != null && !status.getError().isEmpty();
+				String statusValue = status.getStatus();
+				boolean failed = "FAILED".equalsIgnoreCase(statusValue) || "PARTIAL".equalsIgnoreCase(statusValue);
+				if (failed || hasError) {
+					failedFiles.add(status.getFileName());
+				}
+			}
+			if (!failedFiles.isEmpty()) {
+				String message = "Embedding failed for: " + String.join(", ", failedFiles);
+				NounMetadata error = NounMetadata.getErrorNounMessage(message);
+				error.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION));
+				return error;
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
@@ -135,9 +154,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.OPERATION);
-		return noun;
+		return new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
 	/**

@@ -33,11 +33,9 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -264,7 +262,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		// we need to delete them if they fail
 		// TODO: potentially look at loading these from insight and only pushing to the
 		// vector db catalog on success
-		Set<File> fileToExtractFrom = new HashSet<File>();
+		List<File> movedDocuments = new ArrayList<>();
 		try {
 			// first we need to extract the text from the document
 			// TODO change this to json so we never have an encoding issue
@@ -287,7 +285,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 																	// can push them to the cloud
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
-			// move the documents from insight into documents folder
+			// move the documents from insight into documents folder and extract text
 			for (String fileName : filePaths) {
 				File fileInInsightFolder = new File(Utility.normalizePath(fileName));
 
@@ -310,24 +308,17 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							+ destinationFile.getName() + " or move it to the document directory");
 				}
 
-				// add it to the list of files we need to extract text from
-				fileToExtractFrom.add(destinationFile);
-
-				// add it to the list of files that need to be pushed to the cloud in a new
-				// thread
+				movedDocuments.add(destinationFile);
 				filesToCopyToCloud.add(destinationFile.getAbsolutePath());
-			}
 
-			// loop through each document and attempt to extract text
-			for (File document : fileToExtractFrom) {
-				String documentName = FilenameUtils.getBaseName(document.getName());
+				String documentName = FilenameUtils.getBaseName(destinationFile.getName());
 				File extractedFile = new File(indexFilesDir.getAbsolutePath() + FILE_SEPARATOR + documentName + ".csv");
 				String extractedFileName = extractedFile.getAbsolutePath().replace("\\", FILE_SEPARATOR);
 				try {
 					if (extractedFile.exists()) {
 						FileUtils.forceDelete(extractedFile);
 					}
-					String docLower = document.getName().toLowerCase();
+					String docLower = destinationFile.getName().toLowerCase();
 
 					if (docLower.endsWith(".csv")) {
 						classLogger.info("You are attempting to load in a structured table for " + documentName
@@ -335,7 +326,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						// validate the file is a proper csv
 						boolean validCsv = true;
 						try {
-							validCsv = VectorDatabaseCSVTable.validateCSVTable(document);
+							validCsv = VectorDatabaseCSVTable.validateCSVTable(destinationFile);
 						} catch (Exception e) {
 							classLogger.error(Constants.STACKTRACE, e);
 							validCsv = false;
@@ -351,21 +342,21 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 									.append(VectorDatabaseCSVTable.TOKENS).append("', ").append("'")
 									.append(VectorDatabaseCSVTable.CONTENT).append("'");
 							throw new IllegalArgumentException(
-									"The CSV must be the proper format with the following headers: "
-											+ headerBuilder.toString());
+										"The CSV must be the proper format with the following headers: "
+												+ headerBuilder.toString());
 						}
-						FileUtils.copyFileToDirectory(document, indexFilesDir);
+						FileUtils.copyFileToDirectory(destinationFile, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						boolean processed = false;
 						int rowsCreated = -1;
-						if (extractionMethod.equals("fitz") && document.getName().toLowerCase().endsWith(".pdf")) {
+						if (extractionMethod.equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
-									.append(document.getAbsolutePath().replace("\\", FILE_SEPARATOR))
+									.append(destinationFile.getAbsolutePath().replace("\\", FILE_SEPARATOR))
 									.append("', target_folder = '")
 									.append(this.schemaFolder.getAbsolutePath().replace("\\", FILE_SEPARATOR)
-											+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
+												+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
 									.append("', output_file_name = '").append(extractedFileName).append("')");
 							setVectorFolderPermissions();
 							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
@@ -373,22 +364,22 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							processed = true;
 						} else if (this.customDocumentProcessor) {
 							if (this.customDocumentProcessorFunctionID == null
-									|| this.customDocumentProcessorFunctionID.isEmpty()) {
+										|| this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException(
-										"Must define custom document processing function engine id in the SMSS");
+											"Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility
 									.getFunctionEngine(this.customDocumentProcessorFunctionID);
 							if (!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
 								throw new IllegalArgumentException(
-										"Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+											"Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
 							}
 							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
-							if (customEmbeddings.canProcessDocument(document)) {
+							if (customEmbeddings.canProcessDocument(destinationFile)) {
 								parameters.put(Constants.CUSTOM_DOCUMENT_PROCESSOR_USE_STORAGE,
 										this.customDocumentProcessorNeedStorage);
 								rowsCreated = customEmbeddings.processDocument(extractedFile.getAbsolutePath(),
-										document, parameters);
+										destinationFile, parameters);
 								processed = true;
 							}
 						}
@@ -396,14 +387,14 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						// default processing if haven't processed with above logic
 						if (!processed) {
 							rowsCreated = VectorDatabaseUtils.convertFilesToCSV(extractedFile.getAbsolutePath(),
-									document);
+									destinationFile);
 						}
 
 						// check to see if the file data was extracted
 						if (rowsCreated < 1) {
 							// no text was extracted so delete the file
 							FileUtils.forceDelete(extractedFile); // delete the csv
-							FileUtils.forceDelete(document); // delete the input file e.g pdf
+							FileUtils.forceDelete(destinationFile); // delete the input file e.g pdf
 							continue;
 						}
 						setVectorFolderPermissions();
@@ -420,21 +411,26 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						pyTranslator.runScript(splitTextCommand.toString());
 					}
 
-					// add it to the list of files that need to be pushed to the cloud in a new
-					// thread
-					filesToCopyToCloud.add(document.getAbsolutePath());
 					extractedFiles.add(extractedFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException(
-							"Unable to remove old or create new text extraction file for " + documentName);
+					String errorMessage = "Unable to remove old or create new text extraction file for " + documentName;
+					classLogger.error(Constants.STACKTRACE, errorMessage, e);
+					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0);
+					failedStatus.setError(buildEmbeddingError(errorMessage, e));
+					resultList.add(failedStatus);
+				} catch (Exception e) { 			
+					String errorMessage = "Unable to process document " + destinationFile.getName();
+					classLogger.error(Constants.STACKTRACE, errorMessage, e);
+					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0);
+					failedStatus.setError(buildEmbeddingError(errorMessage, e));
+					resultList.add(failedStatus);
 				}
 			}
 
 			if (extractedFiles.size() == 0) {
 				StringBuilder fileNamesAttemptedUpload = new StringBuilder("[");
 				boolean first = true;
-				for (File document : fileToExtractFrom) {
+				for (File document : movedDocuments) {
 					if (!first) {
 						fileNamesAttemptedUpload.append(",");
 					}
@@ -444,7 +440,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
 
-			resultList = addEmbeddingFiles(extractedFiles, insight, parameters);
+			resultList.addAll(addEmbeddingFiles(extractedFiles, insight, parameters));
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
@@ -455,7 +451,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			// delete files moved into vector db documents folder
-			for (File document : fileToExtractFrom) {
+			for (File document : movedDocuments) {
 				document.delete();
 			}
 			throw e;
@@ -538,14 +534,43 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			try {
 				VectorDatabaseCSVTable vectorCsvTable = VectorDatabaseCSVTable.initCSVTable(vectorCsvFile);
 				List<FileEmbeddingStatus> resultList = addEmbeddings(vectorCsvTable, insight, parameters);
+				for (FileEmbeddingStatus status : resultList) {
+					if (status == null || status.getError() != null) {
+						continue;
+					}
+					String statusValue = status.getStatus();
+					if (statusValue != null
+								&& ("FAILED".equalsIgnoreCase(statusValue) || "PARTIAL".equalsIgnoreCase(statusValue))) {
+						String errorMessage = "Embedding failed for " + status.getFileName();
+						if ("PARTIAL".equalsIgnoreCase(statusValue)) {
+							errorMessage = "Embedding partially failed for " + status.getFileName();
+						}
+						status.setError(buildEmbeddingError(errorMessage, null));
+					}
+				}
 				fileStatusList.addAll(resultList);
 			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
 				// File failed completely
 				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
+				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
+				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+					errorMessage = errorMessage + ": " + e.getMessage();
+				}
+				failedStatus.setError(buildEmbeddingError(errorMessage, e));
 				fileStatusList.add(failedStatus);
 			}
 		}
 		return fileStatusList;
+	}
+
+	private Map<String, Object> buildEmbeddingError(String message, Exception e) {
+		Map<String, Object> error = new HashMap<>();
+		error.put(Constants.ERROR_MESSAGE, message != null ? message : "Embedding failed");
+		if (e != null) {
+			error.put(Constants.TECH_ERROR_MESSAGE, e.toString());
+		}
+		return error;
 	}
 
 	@Override
