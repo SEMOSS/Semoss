@@ -30,6 +30,7 @@ package prerna.sablecc2.comm;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,14 +47,15 @@ public class PixelJobThread extends Thread {
 
 	private static final Logger logger = LogManager.getLogger(PixelJobThread.class);
 
-	private PixelJobStatus status = PixelJobStatus.CREATED;
+	private volatile PixelJobStatus status = PixelJobStatus.CREATED;
 	private String jobId;
 	private String sessionId;
 	private String routeId;
 
 	private Insight insight;
-	private PixelRunner runner;
+	private volatile PixelRunner runner;
 	private List<String> pixel;
+	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
 	private Map<String, String> log4jContextMap;
 
@@ -78,23 +80,48 @@ public class PixelJobThread extends Thread {
 			ThreadStore.setUser(insight.getUser());
 
 			this.runner = new PixelRunner();
+			if (isCancelRequested()) {
+				this.runner.interrupt();
+				setStatus(PixelJobStatus.CANCELED);
+				return;
+			}
+
 			try {
-				this.status = PixelJobStatus.IN_PROGRESS;
+				setStatus(PixelJobStatus.IN_PROGRESS);
 				this.runner = insight.runPixel(this.runner, this.pixel);
-				this.status = PixelJobStatus.PROGRESS_COMPLETE;
+				if (isCancelRequested()) {
+					setStatus(PixelJobStatus.CANCELED);
+				} else {
+					setStatus(PixelJobStatus.PROGRESS_COMPLETE);
+				}
 			} catch (Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-				this.status = PixelJobStatus.ERROR;
+				if (isCancelRequested()) {
+					setStatus(PixelJobStatus.CANCELED);
+				} else {
+					logger.error(Constants.STACKTRACE, ex);
+					setStatus(PixelJobStatus.ERROR);
+				}
 			}
 		}
 	}
 
 	@Override
 	public void interrupt() {
+		requestCancel();
+	}
+
+	public boolean requestCancel() {
+		this.cancelRequested.set(true);
+		setStatus(PixelJobStatus.CANCELED);
 		super.interrupt();
 		if (this.runner != null) {
 			this.runner.interrupt();
 		}
+		return true;
+	}
+
+	public boolean isCancelRequested() {
+		return this.cancelRequested.get() || Thread.currentThread().isInterrupted() || this.isInterrupted();
 	}
 
 	public void addPixel(String pixel) {
@@ -120,7 +147,13 @@ public class PixelJobThread extends Thread {
 		return this.status;
 	}
 
-	public void setStatus(PixelJobStatus status) {
+	public synchronized void setStatus(PixelJobStatus status) {
+		if (status == null) {
+			return;
+		}
+		if (this.status == PixelJobStatus.CANCELED && status != PixelJobStatus.CANCELED) {
+			return;
+		}
 		this.status = status;
 	}
 
