@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -45,13 +46,11 @@ import prerna.util.Utility;
  * <p>Accepts minimal inputs, resolves the Room and model engine, selects a harness from
  * {@link AgentHarnessRegistry}, and delegates execution.
  *
- * <h3>Resolution steps</h3>
+ * <h3>Model ID resolution order</h3>
  * <ol>
- *   <li>Load {@link Room} via {@link RoomUtils#getOrLoadRoom(String, Insight)}
- *   <li>Resolve {@link IModelEngine} via {@code Utility.getModel(room.getModelId())}
- *   <li>Determine harness key: {@code harnessType} if provided, otherwise {@code "room_loop"}
- *   <li>Add {@code filePath} to {@code paramMap} under key {@code "file_path"} if non-null
- *   <li>Build {@link GenericAgentContext} and call {@link IAgentHarness#execute(GenericAgentContext)}
+ *   <li>{@code room.getModelId()} — stored in the ROOM.MODEL_ID column
+ *   <li>{@code room.getOptionsMap().get("engine")} — legacy rooms that stored engine in options
+ *   <li>{@code engineIdFallback} — explicit engine param passed by the caller
  * </ol>
  */
 public final class GenericAgent {
@@ -66,20 +65,23 @@ public final class GenericAgent {
     /**
      * Run the agent loop.
      *
-     * @param roomId      Required. ROOM table ID that provides model, history, and tools.
-     * @param input       Required. Initial user message.
-     * @param harnessType Optional. Registry key for the harness; defaults to {@code "room_loop"}.
-     * @param filePath    Optional. Working directory or project ID for file-system tools.
-     * @param paramMap    Optional. Extra model parameters (temperature, max_tokens, etc.).
-     * @param insight     Required. Current insight context (user, project, etc.).
+     * @param roomId          Required. ROOM table ID that provides model, history, and tools.
+     * @param input           Required. Initial user message.
+     * @param engineIdFallback Optional. Engine/model ID to use if the room has no MODEL_ID set.
+     * @param harnessType     Optional. Registry key for the harness; defaults to {@code "room_loop"}.
+     * @param filePath        Optional. Working directory or project ID for file-system tools.
+     * @param paramMap        Optional. Extra model parameters (temperature, max_tokens, etc.).
+     * @param insight         Required. Current insight context (user, project, etc.).
      * @return Rich result containing final text, iteration count, and tool-call trace.
      * @throws Exception on unrecoverable errors during execution.
      */
     public static AgentHarnessResult run(
             String roomId,
             String input,
+            String engineIdFallback,
             String harnessType,
             String filePath,
+            int maxReflections,
             Map<String, Object> paramMap,
             Insight insight) throws Exception {
 
@@ -90,42 +92,98 @@ public final class GenericAgent {
             throw new IllegalArgumentException("input is required");
         }
 
-        // ── 1. Load Room ──────────────────────────────────────────────────────
+        // 1. Load Room
         Room room = RoomUtils.getOrLoadRoom(roomId, insight);
-        logger.info("GenericAgent: loaded room={} modelId={}", roomId, room.getModelId());
 
-        // ── 2. Resolve model engine ───────────────────────────────────────────
-        String modelId = room.getModelId();
+        // 2. Resolve model ID — room column, then options map, then caller-supplied fallback
+        String modelId = resolveModelId(room, engineIdFallback);
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalArgumentException(
-                    "Room '" + roomId + "' does not have a model engine configured");
+                    "No model engine found for room '" + roomId + "'. "
+                    + "Set MODEL_ID on the room or pass engine= to the reactor.");
         }
+        logger.info("GenericAgent: room={} resolved modelId={}", roomId, modelId);
+
         IModelEngine modelEngine = Utility.getModel(modelId);
         if (modelEngine == null) {
             throw new IllegalArgumentException(
                     "Could not load model engine '" + modelId + "' for room '" + roomId + "'");
         }
 
-        // ── 3. Build paramMap copy ────────────────────────────────────────────
+        // 3. Create a fresh Insight scoped to the room folder.
+        //    We do NOT mutate the caller's insight — that would break any subsequent pixel calls
+        //    in the same session (same pattern used in RepositoryRunAnalysisReactor).
+        Insight agentInsight = new Insight();
+        agentInsight.setUser(insight.getUser());
+
+        // Point the working directory at the room folder so that file-system MCP tools
+        // (readFile, listFiles, writeFile, etc.) default to the room's persistent folder.
+        String roomFolderPath = room.getRoomFolderPath();
+        File roomFolder = new File(roomFolderPath);
+        if (!roomFolder.exists()) {
+            roomFolder.mkdirs();
+        }
+        agentInsight.setInsightFolder(roomFolderPath);
+        logger.info("GenericAgent: agentInsight folder set to room folder={}", roomFolderPath);
+
+        // 4. Build paramMap copy and inject filePath
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
-        // ── 4. Build context ──────────────────────────────────────────────────
+        // 5. Build context — use agentInsight, not the caller's insight
         GenericAgentContext ctx = GenericAgentContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
-                .insight(insight)
+                .insight(agentInsight)
                 .userId(room.getUserId())
                 .filePath(filePath)
                 .input(input)
                 .paramMap(params)
+                .maxReflections(maxReflections)
                 .build();
 
-        // ── 5. Select harness and execute ─────────────────────────────────────
+        // 6. Select harness and execute
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("GenericAgent: using harness '{}' for room={}", harness.getName(), roomId);
         return harness.execute(ctx);
+    }
+
+    /**
+     * Resolves the model/engine ID using a three-tier priority:
+     * <ol>
+     *   <li>ROOM.MODEL_ID column value
+     *   <li>{@code "engine"} key inside room options JSON
+     *   <li>Caller-supplied {@code fallback}
+     * </ol>
+     */
+    @SuppressWarnings("unchecked")
+    private static String resolveModelId(Room room, String fallback) {
+        // Tier 1: direct column
+        String modelId = room.getModelId();
+        if (modelId != null && !modelId.trim().isEmpty()) {
+            return modelId.trim();
+        }
+
+        // Tier 2: options map — some older rooms stored it under "engine"
+        Map<String, Object> opts = room.getOptionsMap();
+        if (opts != null) {
+            for (String key : new String[]{"engine", "model", "modelId", "engineId"}) {
+                Object val = opts.get(key);
+                if (val instanceof String && !((String) val).trim().isEmpty()) {
+                    logger.info("GenericAgent: resolved modelId from options['{}']={}", key, val);
+                    return ((String) val).trim();
+                }
+            }
+        }
+
+        // Tier 3: caller-supplied fallback (e.g. engine= param from reactor)
+        if (fallback != null && !fallback.trim().isEmpty()) {
+            logger.info("GenericAgent: using caller-supplied engine fallback={}", fallback);
+            return fallback.trim();
+        }
+
+        return null;
     }
 }

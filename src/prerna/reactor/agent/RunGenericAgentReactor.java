@@ -62,31 +62,44 @@ public class RunGenericAgentReactor extends AbstractReactor {
     private static final Logger logger = LogManager.getLogger(RunGenericAgentReactor.class);
 
     // ── Custom key constants (not in ReactorKeysEnum) ─────────────────────────
-    private static final String HARNESS_TYPE_KEY = "harnessType";
-    private static final String AGENT_ID_KEY     = "agentId";
+    private static final String HARNESS_TYPE_KEY    = "harnessType";
+    private static final String AGENT_ID_KEY        = "agentId";
+    private static final String MAX_REFLECTIONS_KEY = "maxReflections";
 
     public RunGenericAgentReactor() {
         this.keysToGet = new String[] {
                 ReactorKeysEnum.ROOM_ID.getKey(),             // 0 — required
                 ReactorKeysEnum.COMMAND.getKey(),             // 1 — required
-                ReactorKeysEnum.FILE_PATH.getKey(),           // 2 — optional
-                HARNESS_TYPE_KEY,                             // 3 — optional
-                AGENT_ID_KEY,                                 // 4 — optional
-                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()     // 5 — optional
+                ReactorKeysEnum.ENGINE.getKey(),              // 2 — optional fallback engine
+                ReactorKeysEnum.FILE_PATH.getKey(),           // 3 — optional
+                HARNESS_TYPE_KEY,                             // 4 — optional
+                AGENT_ID_KEY,                                 // 5 — optional
+                MAX_REFLECTIONS_KEY,                          // 6 — optional
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()     // 7 — optional
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
     public NounMetadata execute() {
         organizeKeys();
 
-        String roomId      = getString(0);
-        String input       = getString(1);
-        String filePath    = getString(2);
-        String harnessType = getString(3);
-        // agentId read but currently reserved for future agent-config lookup
-        // String agentId  = getString(4);
+        String roomId           = getString(0);
+        String input            = getString(1);
+        String engineIdFallback = getString(2);
+        String filePath         = getString(3);
+        String harnessType      = getString(4);
+        // agentId reserved for future agent-config lookup
+        // String agentId       = getString(5);
+        String maxReflectionsStr = getString(6);
+        int maxReflections = GenericAgentContext.DEFAULT_MAX_REFLECTIONS;
+        if (maxReflectionsStr != null && !maxReflectionsStr.trim().isEmpty()) {
+            try {
+                maxReflections = Integer.parseInt(maxReflectionsStr.trim());
+            } catch (NumberFormatException ignored) {
+                // leave as default
+            }
+        }
         Map<String, Object> paramMap = getMap();
 
         if (roomId == null || roomId.trim().isEmpty()) {
@@ -96,20 +109,22 @@ public class RunGenericAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunGenericAgent");
         }
 
-        logger.info("RunGenericAgentReactor: roomId={} harnessType={} filePath={}",
-                roomId, harnessType, filePath);
+        logger.info("RunGenericAgentReactor: roomId={} engineFallback={} harnessType={} filePath={} maxReflections={}",
+                roomId, engineIdFallback, harnessType, filePath, maxReflections);
 
         try {
             AgentHarnessResult result = GenericAgent.run(
                     roomId,
                     input,
+                    engineIdFallback,
                     harnessType,
                     filePath,
+                    maxReflections,
                     paramMap,
                     this.insight);
 
-            logger.info("RunGenericAgentReactor: completed iterations={} tools={}",
-                    result.getIterations(), result.getToolCallRecords().size());
+            logger.info("RunGenericAgentReactor: completed iterations={} reflections={} tools={}",
+                    result.getIterations(), result.getReflectionsUsed(), result.getToolCallRecords().size());
 
             return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
                     PixelOperationType.OPERATION);

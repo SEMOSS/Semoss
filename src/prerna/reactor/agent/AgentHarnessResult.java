@@ -52,10 +52,20 @@ public final class AgentHarnessResult {
     /** Ordered record of every tool call made during the agentic loop. Immutable. */
     private final List<ToolCallRecord> toolCallRecords;
 
+    /** Number of reflection rounds actually executed (0 if reflection was disabled). */
+    private final int reflectionsUsed;
+
+    /** Backward-compatible constructor — sets {@code reflectionsUsed = 0}. */
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords) {
-        this.finalText       = finalText != null ? finalText : "";
-        this.iterations      = iterations;
-        this.toolCallRecords = Collections.unmodifiableList(toolCallRecords);
+        this(finalText, iterations, toolCallRecords, 0);
+    }
+
+    public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords,
+                              int reflectionsUsed) {
+        this.finalText        = finalText != null ? finalText : "";
+        this.iterations       = iterations;
+        this.toolCallRecords  = Collections.unmodifiableList(toolCallRecords);
+        this.reflectionsUsed  = reflectionsUsed;
     }
 
     /** Final text content of the model's {@code RESPONSE_TEXT} message. */
@@ -66,6 +76,11 @@ public final class AgentHarnessResult {
     /** Number of tool-call rounds the harness completed before obtaining the final text. */
     public int getIterations() {
         return iterations;
+    }
+
+    /** Number of reflection rounds executed (0 if {@code maxReflections} was 0). */
+    public int getReflectionsUsed() {
+        return reflectionsUsed;
     }
 
     /** Ordered list of all tool calls made during this run. */

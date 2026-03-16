@@ -43,7 +43,9 @@ import prerna.om.Insight;
 public final class GenericAgentContext {
 
     /** Default safety cap for tool-call rounds. */
-    public static final int DEFAULT_MAX_ITERATIONS = 30;
+    public static final int DEFAULT_MAX_ITERATIONS  = 30;
+    /** Default reflection rounds — 0 means no reflection (backward-compatible). */
+    public static final int DEFAULT_MAX_REFLECTIONS = 0;
 
     private final Room                   room;
     private final IModelEngine           modelEngine;
@@ -53,16 +55,18 @@ public final class GenericAgentContext {
     private final String                 input;
     private final Map<String, Object>    paramMap;
     private final int                    maxIterations;
+    private final int                    maxReflections;
 
     private GenericAgentContext(Builder b) {
-        this.room          = b.room;
-        this.modelEngine   = b.modelEngine;
-        this.insight       = b.insight;
-        this.userId        = b.userId;
-        this.filePath      = b.filePath;
-        this.input         = b.input;
-        this.paramMap      = Collections.unmodifiableMap(b.paramMap);
-        this.maxIterations = b.maxIterations;
+        this.room           = b.room;
+        this.modelEngine    = b.modelEngine;
+        this.insight        = b.insight;
+        this.userId         = b.userId;
+        this.filePath       = b.filePath;
+        this.input          = b.input;
+        this.paramMap       = Collections.unmodifiableMap(b.paramMap);
+        this.maxIterations  = b.maxIterations;
+        this.maxReflections = b.maxReflections;
     }
 
     // ── Accessors ─────────────────────────────────────────────────────────────
@@ -111,6 +115,11 @@ public final class GenericAgentContext {
         return maxIterations;
     }
 
+    /** Maximum self-critique rounds after the first RESPONSE_TEXT. 0 disables reflection. */
+    public int getMaxReflections() {
+        return maxReflections;
+    }
+
     // ── Builder ───────────────────────────────────────────────────────────────
 
     public static Builder builder() {
@@ -124,20 +133,22 @@ public final class GenericAgentContext {
         private String              userId;
         private String              filePath;
         private String              input;
-        private Map<String, Object> paramMap      = new HashMap<>();
-        private int                 maxIterations = DEFAULT_MAX_ITERATIONS;
+        private Map<String, Object> paramMap       = new HashMap<>();
+        private int                 maxIterations  = DEFAULT_MAX_ITERATIONS;
+        private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
 
-        public Builder room(Room room)                       { this.room = room;                 return this; }
-        public Builder modelEngine(IModelEngine modelEngine) { this.modelEngine = modelEngine;   return this; }
-        public Builder insight(Insight insight)              { this.insight = insight;           return this; }
-        public Builder userId(String userId)                 { this.userId = userId;             return this; }
-        public Builder filePath(String filePath)             { this.filePath = filePath;         return this; }
-        public Builder input(String input)                   { this.input = input;               return this; }
+        public Builder room(Room room)                       { this.room = room;                   return this; }
+        public Builder modelEngine(IModelEngine modelEngine) { this.modelEngine = modelEngine;     return this; }
+        public Builder insight(Insight insight)              { this.insight = insight;             return this; }
+        public Builder userId(String userId)                 { this.userId = userId;               return this; }
+        public Builder filePath(String filePath)             { this.filePath = filePath;           return this; }
+        public Builder input(String input)                   { this.input = input;                 return this; }
         public Builder paramMap(Map<String, Object> paramMap){
             this.paramMap = paramMap != null ? paramMap : new HashMap<>();
             return this;
         }
-        public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations; return this; }
+        public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations;   return this; }
+        public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
 
         public GenericAgentContext build() {
             if (room == null)        throw new IllegalStateException("room is required");
@@ -147,6 +158,8 @@ public final class GenericAgentContext {
                 throw new IllegalStateException("input is required");
             if (maxIterations <= 0)
                 throw new IllegalArgumentException("maxIterations must be > 0");
+            if (maxReflections < 0)
+                throw new IllegalArgumentException("maxReflections must be >= 0");
             return new GenericAgentContext(this);
         }
     }

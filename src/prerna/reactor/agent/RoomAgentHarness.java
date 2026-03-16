@@ -109,12 +109,20 @@ public class RoomAgentHarness implements IAgentHarness {
         return NAME;
     }
 
+    private static final String REFLECTION_PROMPT =
+            "Review the analysis you just produced. Are there important aspects you have not yet "
+            + "examined, or tool calls that would meaningfully improve the completeness or accuracy "
+            + "of your answer? If yes, make those tool calls now and incorporate the new findings "
+            + "into your answer. If the analysis is already thorough and complete, respond with "
+            + "your final consolidated answer.";
+
     @Override
     @SuppressWarnings({"unchecked"})
     public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
-        Room           room          = ctx.getRoom();
-        int            maxIterations = ctx.getMaxIterations();
-        Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
+        Room                room           = ctx.getRoom();
+        int                 maxIterations  = ctx.getMaxIterations();
+        int                 maxReflections = ctx.getMaxReflections();
+        Map<String, Object> paramMap       = new HashMap<>(ctx.getParamMap());
 
         List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
 
@@ -130,12 +138,68 @@ public class RoomAgentHarness implements IAgentHarness {
         ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
         // ── 2. Tool loop ──────────────────────────────────────────────────────
-        int iterations = 0;
+        int[] iterationsHolder = {0};
+        response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
+
+        // ── 3. Reflection rounds ──────────────────────────────────────────────
+        int reflectionsUsed = 0;
+        while (reflectionsUsed < maxReflections
+                && response != null
+                && response.getMessageType() == MessageType.RESPONSE_TEXT) {
+
+            reflectionsUsed++;
+            logger.info("RoomAgentHarness: reflection round {}/{}", reflectionsUsed, maxReflections);
+
+            InputMessage reflectionMsg = InputMessage.builder(room)
+                    .withSystemPrompt(systemPrompt)
+                    .withText(REFLECTION_PROMPT)
+                    .withModelType(ctx.getModelEngine().getModelType())
+                    .withParamMap(new HashMap<>(paramMap))
+                    .build();
+
+            response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+
+            // If the model decided to make more tool calls after reflection, drive the loop again.
+            if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+                response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
+            }
+        }
+
+        // ── 4. Iteration cap check ────────────────────────────────────────────
+        if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT", maxIterations);
+            throw new AgentMaxIterationsException(maxIterations);
+        }
+
+        // ── 5. Return result ──────────────────────────────────────────────────
+        String content = (response != null) ? response.getContent() : null;
+        return new AgentHarnessResult(content, iterationsHolder[0], toolCallRecords, reflectionsUsed);
+    }
+
+    /**
+     * Drives the tool-call loop from a starting response until RESPONSE_TEXT or the iteration
+     * cap is hit. Shared by the main loop and each reflection round.
+     *
+     * @param iterationsHolder single-element array accumulating iterations across rounds
+     */
+    @SuppressWarnings("unchecked")
+    private ResponseMessage driveToolLoop(
+            ResponseMessage response,
+            int[] iterationsHolder,
+            Map<String, Object> paramMap,
+            List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
+            GenericAgentContext ctx) throws Exception {
+
+        Room room          = ctx.getRoom();
+        int  maxIterations = ctx.getMaxIterations();
+
         while (response != null
                 && response.getMessageType() == MessageType.RESPONSE_TOOL
-                && iterations < maxIterations) {
+                && iterationsHolder[0] < maxIterations) {
 
-            iterations++;
+            iterationsHolder[0]++;
+            int iterations = iterationsHolder[0];
+
             String parentMessageId = response.getMessageId();
             List<Map<String, Object>> toolCalls = response.getToolResponses();
 
@@ -151,7 +215,8 @@ public class RoomAgentHarness implements IAgentHarness {
                 Map<String, Object> toolParams =
                         (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
 
-                logger.info("RoomAgentHarness executing tool: name={} callId={}", rawToolName, toolCallId);
+                logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
+                        rawToolName, toolCallId, iterations);
 
                 long startMs = System.currentTimeMillis();
                 ToolExecOutcome outcome = executeToolSafely(rawToolName, toolParams, ctx);
@@ -191,15 +256,7 @@ public class RoomAgentHarness implements IAgentHarness {
             }
         }
 
-        // ── 3. Iteration cap check ────────────────────────────────────────────
-        if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT", maxIterations);
-            throw new AgentMaxIterationsException(maxIterations);
-        }
-
-        // ── 4. Return result ──────────────────────────────────────────────────
-        String content = (response != null) ? response.getContent() : null;
-        return new AgentHarnessResult(content, iterations, toolCallRecords);
+        return response;
     }
 
     // ── Tool execution ────────────────────────────────────────────────────────
