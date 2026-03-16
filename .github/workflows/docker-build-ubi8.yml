@@ -7,7 +7,7 @@ name: Semoss UBI 8 Builder
 
 on:
   push:
-    branches: [ "dev", "main" ] #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main" , "tomcat-update" ] #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubi8' # Changed path
       - '.github/workflows/docker-build-ubi8.yml' # Changed path
@@ -74,8 +74,8 @@ jobs:
           push: true
           pull: true
           tags: |
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}-test
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}-test
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
