@@ -54,7 +54,7 @@ public class ServiceNowDeleteReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete a record from a ServiceNow table via OAuth authentication.";
+		return "This reactor is used to delete a record from a ServiceNow table via OAuth authentication. This reactor is executed after ServiceNow Login.";
 	}
 	
 	@Override

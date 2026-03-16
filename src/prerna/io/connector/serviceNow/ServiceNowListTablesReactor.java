@@ -44,7 +44,7 @@ private static final Logger classLogger = LogManager.getLogger(ServiceNowListTab
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to fetch all the tables present in a ServiceNow instance via OAuth authentication.";
+		return "This reactor is used to fetch all the tables present in a ServiceNow instance via OAuth authentication. This reactor is executed after ServiceNow Login.";
 	}
 	
 	@Override

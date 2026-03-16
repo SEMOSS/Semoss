@@ -51,7 +51,7 @@ public class ServiceNowTableMetadataReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to fetch the table metadata like fields, scheme details, etc of the specified ServiceNow table via OAuth authentication.";
+		return "This reactor is used to fetch the table metadata like fields, scheme details, etc of the specified ServiceNow table via OAuth authentication. This reactor is executed after ServiceNow Login.";
 	}
 	
 	@Override

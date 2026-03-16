@@ -54,7 +54,7 @@ public class ServiceNowRetrieveRecordsReactor extends AbstractReactor {
 	
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to retrieve records present in a ServiceNow table via OAuth authentication.";
+		return "This reactor is used to retrieve records present in a ServiceNow table via OAuth authentication. This reactor is executed after ServiceNow Login.";
 	}
 	
 	@Override
