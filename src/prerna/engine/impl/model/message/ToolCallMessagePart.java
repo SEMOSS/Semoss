@@ -33,7 +33,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class ToolCallMessagePart extends MessagePart {
 
-	@SerializedName("toolCall")
+	@SerializedName(value = "toolCall", alternate = { "tool_call" })
 	private Map<String, Object> toolCall;
 
 	public ToolCallMessagePart() {

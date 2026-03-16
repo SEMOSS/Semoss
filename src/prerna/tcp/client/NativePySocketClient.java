@@ -349,8 +349,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								}
 							}
 						} else {
-							killAll = true;
-							break;
+							crash();
+							break SOCKET_LISTENER;
 						}
 					} catch (SocketException ex1) {
 						crash();
@@ -656,7 +656,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		return finalByte;
-
 	}
 
 	/**
