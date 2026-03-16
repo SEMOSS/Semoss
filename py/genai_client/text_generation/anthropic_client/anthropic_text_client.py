@@ -257,7 +257,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
             messageType="TOOL",
         )
 
@@ -558,7 +558,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "type": "function",
                     "server_tool": content.get("server_tool", False),
                 }
-                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+                parts.append({"type": "TOOL_CALL", "tool_call": tool_call})
 
             elif content_type == "tool_result":
                 tool_use_id = content.get("tool_use_id")
@@ -567,9 +567,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 parts.append(
                     {
                         "type": "TOOL_RESULT",
-                        "toolResult": {
-                            "toolCallId": tool_use_id,
-                            "toolName": tool_name,
+                        "tool_result": {
+                            "id": tool_use_id,
+                            "tool_name": tool_name,
                             "output": json.dumps(tool_content, ensure_ascii=False),
                         },
                     }
