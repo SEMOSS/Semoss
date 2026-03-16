@@ -45,10 +45,10 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.util.Utility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class GetPlaygroundMessagesReactor extends AbstractReactor {
 
@@ -60,9 +60,6 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		/**
-		 * Organize reactor inputs
-		 */
 		organizeKeys();
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
@@ -72,9 +69,6 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		String dateSortStr = this.keyValue.get(ReactorKeysEnum.SORT.getKey());
 		String dateSort = "ASC";
 
-		/**
-		 * Get user information
-		 */
 		User user = this.insight.getUser();
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
@@ -142,12 +136,14 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		}
 		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
 
-		/**
-		 * Add messages to list
-		 */
 		Map<String, JSONObject> toolCache = new HashMap<>();
 		for (AbstractMessage m : page) {
-			if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
+			if (m.hasParts() && m.hasToolCallPart()) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
+						room.getToolLookupByLLMName());
+			}
+			// legacy check
+			else if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
 				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
 						room.getToolLookupByLLMName());
 			}

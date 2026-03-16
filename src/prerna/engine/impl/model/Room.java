@@ -114,7 +114,7 @@ public class Room {
 	private String roomFolderPath;
 
 	/**
-	 * Per-call reverse lookup map: LLM-facing tool name → enriched tool entry
+	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
 	 * (containing engine metadata and original untruncated function name).
 	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
 	 * {@link #updateToolResponseMeta(ResponseMessage)}.
@@ -172,6 +172,13 @@ public class Room {
 		return ask(msg, modelEngine, null);
 	}
 
+	/**
+	 * 
+	 * @param msg
+	 * @param modelEngine
+	 * @param parentMessageId
+	 * @return
+	 */
 	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
 		Boolean appendToHistory = true;
 		return ask(msg, modelEngine, parentMessageId, appendToHistory);
@@ -205,6 +212,7 @@ public class Room {
 					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
+		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
@@ -569,8 +577,13 @@ public class Room {
 		return false;
 	}
 
+	/**
+	 * 
+	 * @param params
+	 * @param modelEngine
+	 */
 	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
-		int maxLength = modelEngine != null ? MCPUtility.getMaxToolNameLength(modelEngine) : Integer.MAX_VALUE;
+		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
 		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
 		Object existing = params.get("tools");
 		if (existing instanceof List<?>) {
@@ -673,10 +686,13 @@ public class Room {
 			engine = Utility.getEngine(engineId);
 		} catch (Exception ex) {
 			// ignore
-		}
-		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
+		if (engine == null) {
+			throw new IllegalArgumentException(
+					"Invalid MCP toolbox " + engineId + ". Please remove the toolbox from your room.");
+		}
+
 		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
 
 		// Record original tool names (before prefix is added) so we can store them in
@@ -723,7 +739,12 @@ public class Room {
 					if (rawToolMeta instanceof Map) {
 						lookupMeta.putAll((Map<String, Object>) rawToolMeta);
 					}
-					lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
+					// the user might already have an indirection between the tool name and function
+					// name so if this key already exists keep using that
+					if (lookupMeta.containsKey(MCPUtility.SMSS_FUNCTION_NAME)) {
+						lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
+					}
+					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
 
 					Map<String, Object> lookupEntry = new HashMap<>();
 					if (toolMapEntry.containsKey("title")) {
