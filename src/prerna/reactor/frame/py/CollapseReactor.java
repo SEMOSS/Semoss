@@ -38,8 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollapseReactor extends AbstractPyFrameReactor {
 
@@ -61,13 +59,14 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 		// group by cols
 		for (int i = 0; i < groupByCol.size(); i++) {
 			String groupCol = groupByCol.get(i);
-			if(i == 0)
+			if (i == 0) {
 				groupByColsR = groupByColsR + "'" + groupCol + "'";
-			else
-				groupByColsR = groupByColsR + ", '" + groupCol + "'";			
+			} else {
+				groupByColsR = groupByColsR + ", '" + groupCol + "'";
+			}
 		}
 		groupByColsR += "]";
-		
+
 		// main cols
 		// get columns to keep
 		// convert to a list
@@ -77,35 +76,30 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 			// merge columns
 			maintainCols.append(", [");
 			colsToKeep.addAll(groupByCol);
-			
-			Iterator  <String> maintainIterator = colsToKeep.iterator();
-			for(int maintainColIndex = 0;maintainIterator.hasNext();maintainColIndex++)
-			{
+
+			Iterator<String> maintainIterator = colsToKeep.iterator();
+			for (int maintainColIndex = 0; maintainIterator.hasNext(); maintainColIndex++) {
 				String thisCol = maintainIterator.next();
-				if(maintainColIndex > 0)
+				if (maintainColIndex > 0) {
 					maintainCols.append(", ");
+				}
 				maintainCols.append("'").append(thisCol).append("'");
 			}
-			maintainCols.append("]");			
+			maintainCols.append("]");
 		}
 
-		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim + maintainCols + ")";
+		String script = frame.getName() + " = " + wrapperFrameName + ".collapse(" + groupByColsR + valueCol + delim
+				+ maintainCols + ")";
 		frame.runScript(script);
 		this.addExecutedCode(script);
 
 		frame = (PandasFrame) recreateMetadata(frame);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Collapse", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
-	
+
 	private List<String> getGroupByCols() {
 		List<String> colInputs = new Vector<String>();
 		GenRowStruct colGRS = this.store.getGenRowStruct(this.keysToGet[0]);
@@ -138,6 +132,4 @@ public class CollapseReactor extends AbstractPyFrameReactor {
 		}
 		return null;
 	}
-	
-
 }

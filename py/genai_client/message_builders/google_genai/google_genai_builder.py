@@ -1,4 +1,4 @@
-import json
+import base64, json
 from typing import List, Dict, Any, Tuple, Union
 from google.genai.types import Content, Part
 from ..semoss_base.semoss_models import (
@@ -67,28 +67,39 @@ class GoogleGenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_id_to_name.update(
-                            {p.toolCall.id: p.toolCall.function.name}
+                            {p.tool_call.id: p.tool_call.function.name}
                         )
-                        parts.append(
-                            Part.from_function_call(
-                                name=p.toolCall.function.name,
-                                args=p.toolCall.function.parameters,
+                        ts_bytes = None
+                        if p.tool_call.thought_signature:
+                            ts_bytes = base64.b64decode(p.tool_call.thought_signature)
+                        if ts_bytes:
+                            fc_part = types.Part(
+                                function_call=types.FunctionCall(
+                                    name=p.tool_call.function.name,
+                                    args=p.tool_call.function.parameters,
+                                ),
+                                thought_signature=ts_bytes,
                             )
-                        )
+                        else:
+                            fc_part = Part.from_function_call(
+                                name=p.tool_call.function.name,
+                                args=p.tool_call.function.parameters,
+                            )
+                        parts.append(fc_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         parts.append(
                             Part.from_function_response(
                                 name=tool_id_to_name.get(
-                                    p.toolResult.id, "unknown_tool"
+                                    p.tool_result.id, "unknown_tool"
                                 ),
-                                response={"result": p.toolResult.output},
+                                response={"result": p.tool_result.output},
                             )
                         )
 
@@ -144,12 +155,25 @@ class GoogleGenAIMessageBuilder:
                             if isinstance(args, str):
                                 args = json.loads(args)
 
-                            parts.append(
-                                Part.from_function_call(
+                            ts_bytes = None
+                            ts_b64 = tool_call.get("thought_signature")
+                            if ts_b64:
+                                ts_bytes = base64.b64decode(ts_b64)
+
+                            if ts_bytes:
+                                fc_part = types.Part(
+                                    function_call=types.FunctionCall(
+                                        name=tool_call.get("function").get("name"),
+                                        args=args,
+                                    ),
+                                    thought_signature=ts_bytes,
+                                )
+                            else:
+                                fc_part = Part.from_function_call(
                                     name=tool_call.get("function").get("name"),
                                     args=args,
                                 )
-                            )
+                            parts.append(fc_part)
 
                         google_messages.append(
                             Content(

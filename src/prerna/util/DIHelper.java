@@ -66,7 +66,15 @@ public final class DIHelper {
 			"PASSWORD", 
 			"SECRET", 
 			"TOKEN",
-			"CONN_STRING"
+			"CONN_STRING",
+			"AZURE_AUTHENTICATE_MODE",
+			"AZURE_KEYVAULT_NAME",
+			"AZURE_CLIENT_ID",
+			"AZURE_CLIENT_SECRET",
+			"AZURE_TENANT_ID",
+			"VAULT_ADDR",
+			"VAULT_TOKEN",
+			"PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD"
 		);
 	// @formatter:on
 

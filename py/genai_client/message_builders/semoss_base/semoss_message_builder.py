@@ -33,6 +33,7 @@ class SEMOSSMessageBuilder:
         semoss_messages = []
         param_map.pop("question", None)
 
+        last_system_part = None
         for i, message in enumerate(input_messages):
             message_type = message.get("type")
             if message_type is None:
@@ -61,23 +62,26 @@ class SEMOSSMessageBuilder:
                 process_parts = []
                 for p in parts:
                     if p.get("type") == "SYSTEM":
-                        system_part = SEMOSSSystemMessagePart(prompt=p.get("prompt"))
-                        process_parts.append(system_part)
+                        # we store at each input message what the system prompt was at that time
+                        # so we will just grab the last one and inject into the final semoss_message param map at the end of processing all messages
+                        last_system_part = SEMOSSSystemMessagePart(
+                            prompt=p.get("prompt")
+                        )
 
-                    if p.get("type") == "TEXT":
+                    elif p.get("type") == "TEXT":
                         text_part = SEMOSSTextMessagePart(text=p.get("text"))
                         process_parts.append(text_part)
 
                     elif p.get("type") == "MEDIA":
                         media_part = self._parse_media_from_part_dict(p)
                         process_parts.append(
-                            SEMOSSMediaMessagePart(mediaInfo=media_part)
+                            SEMOSSMediaMessagePart(media_info=media_part)
                         )
 
                     elif p.get("type") == "TOOL_CALL":
-                        tc = p.get("toolCall")
+                        tc = p.get("toolCall") or p.get("tool_call")
                         tool_call_part = SEMOSSToolCallMessagePart(
-                            toolCall=SEMOSSToolCall(
+                            tool_call=SEMOSSToolCall(
                                 function=SEMOSSToolFunction(
                                     name=tc.get("name"),
                                     parameters=tc.get("arguments", {}),
@@ -85,15 +89,16 @@ class SEMOSSMessageBuilder:
                                 ),
                                 id=tc.get("id"),
                                 type="function",
+                                thought_signature=tc.get("thought_signature"),
                             )
                         )
                         process_parts.append(tool_call_part)
 
                     elif p.get("type") == "TOOL_RESULT":
-                        tr = p.get("toolResult")
+                        tr = p.get("toolResult") or p.get("tool_result")
                         tool_result_part = SEMOSSToolResultMessagePart(
-                            toolResult=SEMOSSToolExecution(
-                                id=tr.get("toolCallId"),
+                            tool_result=SEMOSSToolExecution(
+                                id=tr.get("id") or tr.get("toolCallId"),
                                 output=tr.get("output"),
                             )
                         )
@@ -127,6 +132,7 @@ class SEMOSSMessageBuilder:
                 type=SEMOSSMessageType(message_type),
                 content=content,
                 param_map=updated_param_map,
+                io=message.get("io"),
             )
 
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
@@ -159,6 +165,12 @@ class SEMOSSMessageBuilder:
 
             semoss_messages.append(semoss_message)
 
+        if last_system_part:
+            # If we had a system part, we append the last message param map
+            semoss_messages[-1].param_map.update(
+                {"system_prompt": last_system_part.prompt}
+            )
+
         return semoss_messages
 
     def _get_content_from_parts(self, parts: List[Dict]) -> str:
@@ -166,7 +178,7 @@ class SEMOSSMessageBuilder:
         text_parts = []
         for part in parts:
             if isinstance(part, dict) and part.get("type") == "TEXT":
-                text = part.get("text") or part.get("uiText") or ""
+                text = part.get("text") or part.get("uiText") or part.get("ui_text") or ""
                 if text:
                     text_parts.append(text)
         return "\n".join(text_parts) if text_parts else ""
@@ -186,7 +198,7 @@ class SEMOSSMessageBuilder:
     def _parse_media_from_part_dict(self, part: Dict) -> SEMOSSMediaContent | None:
         """Extract media content from schemaVersion 2 parts array."""
         if isinstance(part, dict) and part.get("type") == "MEDIA":
-            media_info = part.get("mediaInfo", {})
+            media_info = part.get("mediaInfo") or part.get("media_info") or {}
             if not media_info:
                 return None
 
