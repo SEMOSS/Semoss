@@ -342,21 +342,22 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 									.append(VectorDatabaseCSVTable.TOKENS).append("', ").append("'")
 									.append(VectorDatabaseCSVTable.CONTENT).append("'");
 							throw new IllegalArgumentException(
-										"The CSV must be the proper format with the following headers: "
-												+ headerBuilder.toString());
+									"The CSV must be the proper format with the following headers: "
+											+ headerBuilder.toString());
 						}
 						FileUtils.copyFileToDirectory(destinationFile, indexFilesDir);
 					} else {
 						classLogger.info("Extracting text from document " + documentName);
 						boolean processed = false;
 						int rowsCreated = -1;
-						if (extractionMethod.equals("fitz") && destinationFile.getName().toLowerCase().endsWith(".pdf")) {
+						if (extractionMethod.equals("fitz")
+								&& destinationFile.getName().toLowerCase().endsWith(".pdf")) {
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
 									.append(destinationFile.getAbsolutePath().replace("\\", FILE_SEPARATOR))
 									.append("', target_folder = '")
 									.append(this.schemaFolder.getAbsolutePath().replace("\\", FILE_SEPARATOR)
-												+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
+											+ FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "extraction_files")
 									.append("', output_file_name = '").append(extractedFileName).append("')");
 							setVectorFolderPermissions();
 							Number rows = (Number) pyTranslator.runDirectPy(extractTextFromDocScript.toString());
@@ -364,15 +365,15 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							processed = true;
 						} else if (this.customDocumentProcessor) {
 							if (this.customDocumentProcessorFunctionID == null
-										|| this.customDocumentProcessorFunctionID.isEmpty()) {
+									|| this.customDocumentProcessorFunctionID.isEmpty()) {
 								throw new IllegalArgumentException(
-											"Must define custom document processing function engine id in the SMSS");
+										"Must define custom document processing function engine id in the SMSS");
 							}
 							IFunctionEngine functionEngine = Utility
 									.getFunctionEngine(this.customDocumentProcessorFunctionID);
 							if (!(functionEngine instanceof ICustomEmbeddingsFunctionEngine)) {
 								throw new IllegalArgumentException(
-											"Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
+										"Vector Database owner has incorrectly setup a custom embeddings function that is not an ICustomEmbeddingsFunctionEngine");
 							}
 							ICustomEmbeddingsFunctionEngine customEmbeddings = (ICustomEmbeddingsFunctionEngine) functionEngine;
 							if (customEmbeddings.canProcessDocument(destinationFile)) {
@@ -415,13 +416,15 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				} catch (IOException e) {
 					String errorMessage = "Unable to remove old or create new text extraction file for " + documentName;
 					classLogger.error(Constants.STACKTRACE, errorMessage, e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0);
+					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
+							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
 					resultList.add(failedStatus);
-				} catch (Exception e) { 			
+				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error(Constants.STACKTRACE, errorMessage, e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0);
+					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
+							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
 					resultList.add(failedStatus);
 				}
@@ -540,7 +543,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					}
 					String statusValue = status.getStatus();
 					if (statusValue != null
-								&& ("FAILED".equalsIgnoreCase(statusValue) || "PARTIAL".equalsIgnoreCase(statusValue))) {
+							&& ("FAILED".equalsIgnoreCase(statusValue) || "PARTIAL".equalsIgnoreCase(statusValue))) {
 						String errorMessage = "Embedding failed for " + status.getFileName();
 						if ("PARTIAL".equalsIgnoreCase(statusValue)) {
 							errorMessage = "Embedding partially failed for " + status.getFileName();
