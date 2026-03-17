@@ -1525,6 +1525,7 @@ public final class UploadUtilities {
 		bufferedWriter.write("#Base Properties" + newLine);
 		bufferedWriter.write(Constants.ENGINE + tab + engineId + newLine);
 		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + engineName + newLine);
+		bufferedWriter.write(Constants.ENGINE_DISPLAY_NAME + tab + engineName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + className + newLine);
 	}
 

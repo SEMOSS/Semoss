@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.testing.prompt;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
@@ -48,31 +51,35 @@ public class UpdatePromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test Prompt";
 		
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Capture the prompt ID from addPrompt
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId);
+		System.out.println("Created prompt with ID: " + promptId);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
 		
-		List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
-		String promptId = (String) promptList.get(0).get("ID");
-		System.out.println(promptList);
-		System.out.println(promptId);
-		
 		title = "Updated Test Title";
 		context = "Updated Context {{Location}}";
 		intent = "Updated Test intent";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the first update was applied
+		Map<String, Object> updatedPrompt1 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt1.get("title"));
+		assertEquals(context, updatedPrompt1.get("context"));
+		assertEquals(intent, updatedPrompt1.get("intent"));
 		
 		title = "Updated Test Title2";
 		context = "Updated Context {{Location}}2";
 		intent = "Updated Test intent2";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the second update was applied
+		Map<String, Object> updatedPrompt2 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt2.get("title"));
+		assertEquals(context, updatedPrompt2.get("context"));
+		assertEquals(intent, updatedPrompt2.get("intent"));
 	}
 	
 	
@@ -83,31 +90,69 @@ public class UpdatePromptReactorTests extends AbstractBaseSemossApiTests {
 		String intent = "Test Prompt";
 		
 		List<String> tags = Arrays.asList("World", "GAMING", "PLANTS"); 
-		PromptTestUtils.addPrompt(title, context, intent, tags);
+		// Capture the prompt ID from addPrompt
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId);
+		System.out.println("Created prompt with ID: " + promptId);
 
 		NounMetadata listPrompts = PromptTestUtils.listPrompts();
 		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
 		
-		List<Map<String, Object>> promptList = (List<Map<String, Object>>) listPrompts.getValue();
-		String promptId = (String) promptList.get(0).get("ID");
-		System.out.println(promptList);
-		System.out.println(promptId);
-		
 		title = "Updated Test Title";
 		context = "Updated Context {{Location}}";
 		intent = "Updated Test intent";
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, null);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, null, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the first update was applied
+		Map<String, Object> updatedPrompt1 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt1.get("title"));
+		assertEquals(context, updatedPrompt1.get("context"));
 		
 		title = "Updated Test Title2";
 		context = "Updated Context {{Location}}2";
 		intent = "Updated Test intent2";
 		tags = Arrays.asList("Parth");
-		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags);
+		PromptTestUtils.updatePrompt(promptId, title, context, intent, tags, false, null);
 		
-		listPrompts = PromptTestUtils.listPrompts();
-		assertNotEquals(PixelDataType.ERROR, listPrompts.getValue());
+		// Verify the second update was applied
+		Map<String, Object> updatedPrompt2 = PromptTestUtils.getPrompt(promptId);
+		assertEquals(title, updatedPrompt2.get("title"));
+		assertEquals(context, updatedPrompt2.get("context"));
+	}
+
+	@Test
+	public void updatePromptWithNullFieldTest() {
+		// Create a prompt with all fields populated
+		String title = "Initial Title";
+		String context = "Initial context {{question}}";
+		String intent = "Initial Intent";
+		List<String> tags = Arrays.asList("tag1", "tag2");
+		
+		String promptId = PromptTestUtils.addPrompt(title, context, intent, tags, false, null);
+		assertNotEquals(null, promptId);
+		
+		// Verify initial prompt has intent
+		Map<String, Object> initialPrompt = PromptTestUtils.getPrompt(promptId);
+		assertEquals(intent, initialPrompt.get("intent"));
+		
+		// Update the prompt and set intent to null
+		String updatedTitle = "Updated Title";
+		String updatedContext = "Updated context {{answer}}";
+		PromptTestUtils.updatePrompt(promptId, updatedTitle, updatedContext, null, tags, false, null);
+		
+		// Verify the updated prompt
+		Map<String, Object> updatedPrompt = PromptTestUtils.getPrompt(promptId);
+		assertEquals(updatedTitle, updatedPrompt.get("title"));
+		assertEquals(updatedContext, updatedPrompt.get("context"));
+		
+		// Verify that intent is either null or not the string "null"
+		Object intentValue = updatedPrompt.get("intent");
+		assertTrue(intentValue == null || !intentValue.equals("null"), 
+			"Intent should be null or not present, not the string 'null'");
+		
+		// More explicit check: if the key exists, it should be null, not the string "null"
+		if (updatedPrompt.containsKey("intent")) {
+			assertNull(intentValue, "Intent value should be null, not the string 'null'");
+		}
 	}
 }
