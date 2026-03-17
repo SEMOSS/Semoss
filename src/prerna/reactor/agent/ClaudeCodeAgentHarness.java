@@ -45,12 +45,12 @@ import prerna.engine.impl.model.Room;
  *
  * <p>Resolves:
  * <ul>
- *   <li>{@code projectId} — from {@code ctx.getFilePath()} or from {@code paramMap} under
+ *   <li>{@code projectId} from {@code ctx.getFilePath()} or from {@code paramMap} under
  *       key {@code "project_id"}
- *   <li>MCP list — from {@code room.getOptionsMap()} under key {@code "mcp"}
- *   <li>{@code allowedTools} — from {@code paramMap} under key {@code "allowed_tools"};
+ *   <li>MCP list from {@code room.getOptionsMap()} under key {@code "mcp"}
+ *   <li>{@code allowedTools} from {@code paramMap} under key {@code "allowed_tools"};
  *       defaults to {@code ["*"]}
- *   <li>{@code permissionMode} — from {@code paramMap} under key {@code "permission_mode"};
+ *   <li>{@code permissionMode} from {@code paramMap} under key {@code "permission_mode"};
  *       defaults to {@code "default"}
  * </ul>
  *
@@ -80,7 +80,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         Map<String, Object> params = ctx.getParamMap();
         String             input   = ctx.getInput();
 
-        // ── Resolve projectId ────────────────────────────────────────────────
+        // Resolve projectId
         String projectId = ctx.getFilePath();
         if (projectId == null || projectId.trim().isEmpty()) {
             projectId = params.containsKey(PARAM_PROJECT_ID)
@@ -89,21 +89,21 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         }
         if (projectId == null || projectId.trim().isEmpty()) {
             throw new IllegalArgumentException(
-                    "ClaudeCodeAgentHarness requires a projectId — pass it via filePath or paramMap[\"project_id\"]");
+                    "ClaudeCodeAgentHarness requires a projectId pass it via filePath or paramMap[\"project_id\"]");
         }
 
-        // ── Resolve model engine ID ──────────────────────────────────────────
+        //Resolve model engine ID
         String engineId = room.getModelId();
         if (engineId == null || engineId.trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "ClaudeCodeAgentHarness: room does not have a modelId set");
         }
 
-        // ── Resolve system prompt ────────────────────────────────────────────
+        //Resolve system prompt
         String systemPrompt = room.getEffectiveSystemPrompt();
         if (systemPrompt == null) systemPrompt = "";
 
-        // ── Resolve allowed tools ────────────────────────────────────────────
+        //Resolve allowed tools
         List<String> allowedTools;
         Object allowedToolsObj = params.get(PARAM_ALLOWED_TOOLS);
         if (allowedToolsObj instanceof List) {
@@ -112,21 +112,21 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
             allowedTools = Collections.singletonList("*");
         }
 
-        // ── Resolve permission mode ──────────────────────────────────────────
+        // Resolve permission mode
         String permissionMode = params.containsKey(PARAM_PERMISSION_MODE)
                 ? String.valueOf(params.get(PARAM_PERMISSION_MODE))
                 : "default";
 
-        // ── Build MCP list from room options ─────────────────────────────────
+        // Build MCP list from room options
         List<Map<String, String>> mcps = buildMcpList(room);
 
-        // ── Resolve User ─────────────────────────────────────────────────────
+        // Resolve User
         User user = ctx.getInsight().getUser();
         if (user == null) {
             throw new IllegalArgumentException("ClaudeCodeAgentHarness: insight has no user");
         }
 
-        // ── Delegate to ClaudeCodeManager ────────────────────────────────────
+        // Delegate to ClaudeCodeManager
         logger.info("ClaudeCodeAgentHarness: engine={} projectId={} mcps={}", engineId, projectId, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
         String output = manager.query(
@@ -144,7 +144,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         return new AgentHarnessResult(output, 0, new ArrayList<>());
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // Helpers
 
     @SuppressWarnings("unchecked")
     private List<Map<String, String>> buildMcpList(Room room) {
