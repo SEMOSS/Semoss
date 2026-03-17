@@ -502,14 +502,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		try (XSSFWorkbook wb = new XSSFWorkbook()) {
 			sheet = wb.createSheet(sheetName);
 
-			// Styles for date/timestamp columns (important for
-			// DateUtil.isCellDateFormatted)
-//			CellStyle dateStyle = wb.createCellStyle();
-//			dateStyle.setDataFormat(wb.createDataFormat().getFormat(DATE_FORMAT));
-//
-//			CellStyle tsStyle = wb.createCellStyle();
-//			tsStyle.setDataFormat(wb.createDataFormat().getFormat(TS_FORMAT));
-
 			// Header row (optional)
 			Row h = sheet.createRow(0);
 			h.createCell(0).setCellValue(STRING_COL_NAME);
@@ -685,6 +677,485 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			assertEquals("03/15/2025", dateVal.getFormatted(DATE_FORMAT));
 			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
 			assertEquals("03/10/2025 15:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		excelIt.close();
+	}
+	
+	@Test
+	void test_addFormatTypes() throws IOException {
+		String fileLocation = this.tempDir + "\\test2.xlsx";
+		
+        DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		try (XSSFWorkbook wb = new XSSFWorkbook()) {
+			sheet = wb.createSheet(sheetName);
+
+			// Header row (optional)
+			Row h = sheet.createRow(0);
+			h.createCell(0).setCellValue(STRING_COL_NAME);
+			h.createCell(1).setCellValue(INT_COL_NAME);
+			h.createCell(2).setCellValue(DOUBLE_COL_NAME);
+			h.createCell(3).setCellValue(BOOL_COL_NAME);
+			h.createCell(4).setCellValue(DATE_COL_NAME);
+			h.createCell(5).setCellValue(TS_COL_NAME);
+			h.createCell(6).setCellValue(NULL_COL_NAME);
+
+			LocalDate ld = LocalDate.of(2025, 3, 10);
+			LocalDateTime time = LocalDateTime.of(2025, 3, 10, 10, 30);
+
+			// Data rows
+			for (int r = 1; r <= 5; r++) {
+				Row row = sheet.createRow(r);
+
+				// A: STRING
+				row.createCell(0).setCellValue("row" + r);
+
+				// B: INT-like numeric
+				row.createCell(1).setCellValue(r + "");
+
+				// C: DOUBLE
+				row.createCell(2).setCellValue(r + 0.25 + "");
+
+				// D: BOOLEAN
+				row.createCell(3).setCellValue(r % 2 == 0);
+
+				// create dates
+				Calendar cal = Calendar.getInstance();
+
+				// E: DATE
+				Cell dateCell = row.createCell(4);
+				ld = ld.plusDays(1);
+				dateCell.setCellValue(ld.toString());
+
+				// F: TIMESTAMP
+				time = time.plusHours(1);
+				String s1 = time.format(f1);
+
+				Cell tsCell = row.createCell(5);
+				tsCell.setCellValue(s1);
+			}
+
+			ExcelUtility.writeToFile(wb, fileLocation);
+		}
+		
+		ExcelQueryStruct qs = new ExcelQueryStruct();
+		qs.setSheetName(sheetName);
+		qs.setSheetRange(sheetRange);
+		qs.addSelector(null, STRING_COL_NAME);
+		qs.addSelector(null, INT_COL_NAME);
+		qs.addSelector(null, DOUBLE_COL_NAME);
+		qs.addSelector(null, BOOL_COL_NAME);
+		qs.addSelector(null, DATE_COL_NAME);
+		qs.addSelector(null, TS_COL_NAME);
+		qs.addSelector(null, NULL_COL_NAME);
+		
+		Map<String, String> dataTypes = new HashMap<>();
+		dataTypes.put(STRING_COL_NAME, "String");
+		dataTypes.put(INT_COL_NAME, "INT");
+		dataTypes.put(DOUBLE_COL_NAME, "double");
+		dataTypes.put(BOOL_COL_NAME, "bit");
+		dataTypes.put(DATE_COL_NAME, "date");
+		dataTypes.put(TS_COL_NAME, "timestamp");
+		dataTypes.put(NULL_COL_NAME, "varchar");
+		qs.setColumnTypes(dataTypes);
+		
+		Map<String, String> addTypes = new HashMap<>();
+		addTypes.put(DATE_COL_NAME, "yyyy-MM-dd");
+		addTypes.put(TS_COL_NAME, "yyyy-MM-dd HH:mm:ss");
+		qs.setAdditionalTypes(addTypes);
+		
+
+		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
+		// validate SEMOSS types
+		SemossDataType[] smssTypes = excelIt.getTypes();
+		List<SemossDataType> actual = Arrays.asList(smssTypes);
+		List<SemossDataType> expectedHeaders = List.of(SemossDataType.STRING, SemossDataType.INT, SemossDataType.DOUBLE,
+				SemossDataType.BOOLEAN, SemossDataType.DATE, SemossDataType.TIMESTAMP, SemossDataType.STRING);
+		assertEquals(expectedHeaders, actual);
+		
+		// validate row 1
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row1", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(1, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(1.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/11/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 11:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 2
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row2", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(2, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(2.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(true, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/12/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 12:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 3
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row3", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(3, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(3.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/13/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 13:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 4
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row4", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(4, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(4.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(true, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/14/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 14:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 5
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row5", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(5, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(5.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/15/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 15:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		excelIt.close();
+	}
+	
+	@Test
+	void test_inconsistent_datatypes() throws IOException {
+		String fileLocation = this.tempDir + "\\test2.xlsx";
+		
+        DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		try (XSSFWorkbook wb = new XSSFWorkbook()) {
+			sheet = wb.createSheet(sheetName);
+
+			// Header row (optional)
+			Row h = sheet.createRow(0);
+			h.createCell(0).setCellValue(STRING_COL_NAME);
+			h.createCell(1).setCellValue(INT_COL_NAME);
+			h.createCell(2).setCellValue(DOUBLE_COL_NAME);
+			h.createCell(3).setCellValue(BOOL_COL_NAME);
+			h.createCell(4).setCellValue(DATE_COL_NAME);
+			h.createCell(5).setCellValue(TS_COL_NAME);
+			h.createCell(6).setCellValue(NULL_COL_NAME);
+
+
+			LocalDate ld = LocalDate.of(2025, 3, 10);
+			LocalDateTime time = LocalDateTime.of(2025, 3, 10, 10, 30);
+
+			// Data rows
+			int r = 1;
+			{
+				Row row = sheet.createRow(r);
+
+				// A: STRING
+				row.createCell(0).setCellValue("row" + r);
+
+				// B: INT-like numeric
+				row.createCell(1).setCellValue(r + "");
+
+				// C: DOUBLE
+				row.createCell(2).setCellValue(r + 0.25 + "");
+
+				// D: BOOLEAN
+				row.createCell(3).setCellValue(true);
+
+				// create dates
+				Calendar cal = Calendar.getInstance();
+
+				// E: DATE (midnight UTC)
+				Cell dateCell = row.createCell(4);
+				ld = ld.plusDays(1);
+				dateCell.setCellValue(ld.toString());
+
+				// F: TIMESTAMP (non-midnight UTC)
+				time = time.plusHours(1);
+				String s1 = time.format(f1);
+				Cell tsCell = row.createCell(5);
+				tsCell.setCellValue(s1);
+			}
+			r++;
+			{
+				// empty row
+				Row row = sheet.createRow(r);
+			}
+			r++;
+			{
+				Row row = sheet.createRow(r);
+
+				// A: STRING
+				row.createCell(0).setCellValue("row" + r);
+
+				// B: Negative int
+				row.createCell(1).setCellValue("-"+r + "");
+
+				// C: negative DOUBLE
+				row.createCell(2).setCellValue("-"+(r + 0.25) + "");
+
+				// D: BOOLEAN
+				row.createCell(3).setCellValue(false);
+
+				// create dates
+				Calendar cal = Calendar.getInstance();
+
+				// E: DATE (midnight UTC)
+				Cell dateCell = row.createCell(4);
+				ld = ld.plusDays(1);
+				dateCell.setCellValue(ld.toString());
+
+				// F: TIMESTAMP (non-midnight UTC)
+				time = time.plusHours(1);
+				String s1 = time.format(f1);
+				Cell tsCell = row.createCell(5);
+				tsCell.setCellValue(s1);
+			}
+			r++;
+			{
+				Row row = sheet.createRow(r);
+
+				// A: STRING
+				row.createCell(0).setCellValue("row" + r);
+
+				// B: Negative int
+				row.createCell(1).setCellValue("("+r + "");
+
+				// C: negative DOUBLE
+				row.createCell(2).setCellValue("("+(r + 0.25) + "");
+
+				// D: BOOLEAN
+				row.createCell(3).setCellValue(false);
+
+				// create dates
+				Calendar cal = Calendar.getInstance();
+
+				// E: DATE (midnight UTC)
+				Cell dateCell = row.createCell(4);
+				ld = ld.plusDays(1);
+				dateCell.setCellValue(ld.toString());
+
+				// F: TIMESTAMP (non-midnight UTC)
+				time = time.plusHours(1);
+				String s1 = time.format(f1);
+				Cell tsCell = row.createCell(5);
+				tsCell.setCellValue(s1);
+			}
+			r++;
+			// test bad data
+			{
+				Row row = sheet.createRow(r);
+
+				// A: STRING
+				row.createCell(0).setCellValue("row" + r);
+
+				// B: Negative int
+				row.createCell(1).setCellValue(".2.3.42");
+
+				// C: number format exception DOUBLE
+				row.createCell(2).setCellValue("-");
+
+				// D: BOOLEAN
+				row.createCell(3).setCellValue(false);
+
+				// create dates
+				Calendar cal = Calendar.getInstance();
+
+				// E: DATE (midnight UTC)
+				Cell dateCell = row.createCell(4);
+				ld = ld.plusDays(1);
+				dateCell.setCellValue(ld.toString());
+
+				// F: TIMESTAMP (non-midnight UTC)
+				time = time.plusHours(1);
+				String s1 = time.format(f1);
+				Cell tsCell = row.createCell(5);
+				tsCell.setCellValue(s1);
+			}
+
+
+			ExcelUtility.writeToFile(wb, fileLocation);
+		}
+		
+		ExcelQueryStruct qs = new ExcelQueryStruct();
+		qs.setSheetName(sheetName);
+		qs.setSheetRange(sheetRange);
+
+		// only define headers in datatypes
+		Map<String, String> dataTypes = new HashMap<>();
+		dataTypes.put(STRING_COL_NAME, "String");
+		dataTypes.put(INT_COL_NAME, "INT");
+		dataTypes.put(DOUBLE_COL_NAME, "double");
+		dataTypes.put(BOOL_COL_NAME, "bit");
+		dataTypes.put(DATE_COL_NAME, "date");
+		dataTypes.put(TS_COL_NAME, "timestamp");
+		dataTypes.put(NULL_COL_NAME, "varchar");
+		qs.setColumnTypes(dataTypes);
+		
+
+		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
+		// validate SEMOSS types
+		SemossDataType[] smssTypes = excelIt.getTypes();
+		List<SemossDataType> actual = Arrays.asList(smssTypes);
+		List<SemossDataType> expectedHeaders = List.of(SemossDataType.STRING, SemossDataType.INT, SemossDataType.DOUBLE,
+				SemossDataType.BOOLEAN, SemossDataType.DATE, SemossDataType.TIMESTAMP, SemossDataType.STRING);
+		assertEquals(expectedHeaders, actual);
+		
+		// validate row 1
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row1", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(1, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(1.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(true, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/11/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 11:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 2
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals(null, strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertEquals(null, ((Integer) raw));
+			assertEquals(null, info.get(DOUBLE_COL_NAME));
+			assertEquals(null, info.get(BOOL_COL_NAME));
+			assertEquals(null,  info.get(DATE_COL_NAME));
+			assertEquals(null,  info.get(TS_COL_NAME));
+			assertEquals(null, info.get(NULL_COL_NAME));
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 3
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row3", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(-3, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(-3.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/12/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 12:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 4
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row4", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertInstanceOf(Integer.class, raw);
+			assertEquals(-4, ((Integer) raw).intValue());
+			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
+			assertEquals(-4.25, doubleValue);
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/13/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 13:30:00", tsVal.getFormatted(TS_FORMAT));
+			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
+			assertEquals(null, nullVal);
+			assertEquals(7, info.keySet().size());
+		}
+		// validate row 5
+		{
+			Map<String, Object> info = excelIt.next().flushRowToMap();
+			String strVal = (String) info.get(STRING_COL_NAME);
+			assertEquals("row5", strVal);
+			// validate int
+			Object raw = info.get(INT_COL_NAME);
+			assertEquals(null, raw);
+			assertEquals(null, info.get(DOUBLE_COL_NAME));
+			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
+			assertEquals(false, boolVal);
+			SemossDate dateVal = (SemossDate) info.get(DATE_COL_NAME);
+			assertEquals("03/14/2025", dateVal.getFormatted(DATE_FORMAT));
+			SemossDate tsVal = (SemossDate) info.get(TS_COL_NAME);
+			assertEquals("03/10/2025 14:30:00", tsVal.getFormatted(TS_FORMAT));
 			Object nullVal = (SemossDate) info.get(NULL_COL_NAME);
 			assertEquals(null, nullVal);
 			assertEquals(7, info.keySet().size());
