@@ -35,8 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -80,9 +79,8 @@ public class RoomAgentHarness implements IAgentHarness {
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "room_loop";
 
-    /** Pattern to extract UUID from SEMOSS-prefixed tool name: {@code "a<UUID>_toolName"}. */
-    private static final Pattern UUID_PREFIX_PATTERN = Pattern.compile(
-            "^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
+    private static final String TOOL_STATUS_SUCCESS = "success";
+    private static final String TOOL_STATUS_ERROR   = "error";
 
     /** How MCP tools are executed inside the harness. */
     public enum McpCallMode {
@@ -119,11 +117,11 @@ public class RoomAgentHarness implements IAgentHarness {
     @SuppressWarnings({"unchecked"})
     public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
         Room                room           = ctx.getRoom();
-        int                 maxIterations  = ctx.getMaxIterations();
         int                 maxReflections = ctx.getMaxReflections();
         Map<String, Object> paramMap       = new HashMap<>(ctx.getParamMap());
 
         List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
+        AtomicInteger iterationsCounter = new AtomicInteger(0);
 
         // 1. Initial ask
         String systemPrompt = room.getEffectiveSystemPrompt();
@@ -139,8 +137,7 @@ public class RoomAgentHarness implements IAgentHarness {
         ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
         // 2. Tool loop
-        int[] iterationsHolder = {0};
-        response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
+        response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
 
         // 3. Reflection rounds
         int reflectionsUsed = 0;
@@ -161,19 +158,20 @@ public class RoomAgentHarness implements IAgentHarness {
             response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
 
             if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-                response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
+                response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
             }
         }
 
         // 4. Iteration cap check
         if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT", maxIterations);
-            throw new AgentMaxIterationsException(maxIterations);
+            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
+                    ctx.getMaxIterations());
+            throw new AgentMaxIterationsException(ctx.getMaxIterations());
         }
 
         // 5. Return result
         String content = (response != null) ? response.getContent() : null;
-        return new AgentHarnessResult(content, iterationsHolder[0], toolCallRecords, reflectionsUsed);
+        return new AgentHarnessResult(content, iterationsCounter.get(), toolCallRecords, reflectionsUsed);
     }
 
     /**
@@ -183,12 +181,12 @@ public class RoomAgentHarness implements IAgentHarness {
      * <p>When the model returns multiple tool calls in one response they are executed in parallel.
      * Single-tool responses use the fast path without thread overhead.
      *
-     * @param iterationsHolder single-element array accumulating iterations across rounds
+     * @param iterationsCounter accumulates iteration count across multiple driveToolLoop calls
      */
     @SuppressWarnings("unchecked")
     private ResponseMessage driveToolLoop(
             ResponseMessage response,
-            int[] iterationsHolder,
+            AtomicInteger iterationsCounter,
             Map<String, Object> paramMap,
             List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
             GenericAgentContext ctx) throws Exception {
@@ -198,10 +196,9 @@ public class RoomAgentHarness implements IAgentHarness {
 
         while (response != null
                 && response.getMessageType() == MessageType.RESPONSE_TOOL
-                && iterationsHolder[0] < maxIterations) {
+                && iterationsCounter.get() < maxIterations) {
 
-            iterationsHolder[0]++;
-            int iterations = iterationsHolder[0];
+            int iterations = iterationsCounter.incrementAndGet();
 
             String parentMessageId = response.getMessageId();
             List<Map<String, Object>> toolCalls = response.getToolResponses();
@@ -210,81 +207,41 @@ public class RoomAgentHarness implements IAgentHarness {
 
             if (toolCalls.size() == 1) {
                 // Fast path: single tool — no thread overhead.
-                Map<String, Object> toolCall = toolCalls.get(0);
-                String toolCallId  = String.valueOf(toolCall.get("id"));
-                String rawToolName = String.valueOf(toolCall.get("name"));
-                Object argsObj     = toolCall.get("arguments");
-                if (argsObj == null) argsObj = toolCall.get("input");
-                Map<String, Object> toolParams =
-                        (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
-
-                logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
-                        rawToolName, toolCallId, iterations);
-                long startMs = System.currentTimeMillis();
-                ToolExecOutcome outcome = executeToolSafely(rawToolName, toolParams, ctx);
-                long durationMs = System.currentTimeMillis() - startMs;
-                logger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
-                        rawToolName, durationMs, outcome.success);
-
-                toolCallRecords.add(new AgentHarnessResult.ToolCallRecord(
-                        rawToolName, toolCallId, outcome.content, durationMs, outcome.success));
-
-                // IMPORTANT: pass a fresh copy of paramMap — Room.appendToolsToParams() mutates it.
-                nextModelResponse = room.addToolExecutionResult(
-                        toolCallId, rawToolName, outcome.content, toolParams,
-                        new HashMap<>(paramMap), parentMessageId,
-                        ctx.getModelEngine(), ctx.getInsight(),
-                        outcome.success ? "success" : "error");
+                ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
+                ToolExecResult result = executeOneTool(tc, iterations, paramMap, parentMessageId, ctx);
+                toolCallRecords.add(result.record);
+                nextModelResponse = result.modelResponse;
 
             } else {
                 // Parallel path: execute all tools concurrently.
                 // Room.addToolExecutionResult() is synchronized and only triggers the next model
-                // call once every tool ID in the batch has been answered (allIds.containsAll check
-                // in Room), so concurrent submissions from multiple threads are safe.
+                // call once every tool ID in the batch has been answered, so concurrent
+                // submissions from multiple threads are safe.
                 logger.info("RoomAgentHarness executing {} tools in parallel iter={}",
                         toolCalls.size(), iterations);
                 ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size());
                 try {
                     @SuppressWarnings("unchecked")
-                    CompletableFuture<AskModelEngineResponse<?>>[] futures =
-                            new CompletableFuture[toolCalls.size()];
+                    CompletableFuture<ToolExecResult>[] futures = new CompletableFuture[toolCalls.size()];
 
                     for (int i = 0; i < toolCalls.size(); i++) {
-                        final Map<String, Object> toolCall = toolCalls.get(i);
-                        final String toolCallId  = String.valueOf(toolCall.get("id"));
-                        final String rawToolName = String.valueOf(toolCall.get("name"));
-                        Object argsObj = toolCall.get("arguments");
-                        if (argsObj == null) argsObj = toolCall.get("input");
-                        final Map<String, Object> toolParams =
-                                (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
-
-                        futures[i] = CompletableFuture.supplyAsync(() -> {
-                            logger.info("RoomAgentHarness executing tool (parallel): name={} callId={} iter={}",
-                                    rawToolName, toolCallId, iterations);
-                            long startMs = System.currentTimeMillis();
-                            ToolExecOutcome outcome = executeToolSafely(rawToolName, toolParams, ctx);
-                            long durationMs = System.currentTimeMillis() - startMs;
-                            logger.info("RoomAgentHarness tool result (parallel): name={} durationMs={} success={}",
-                                    rawToolName, durationMs, outcome.success);
-                            synchronized (toolCallRecords) {
-                                toolCallRecords.add(new AgentHarnessResult.ToolCallRecord(
-                                        rawToolName, toolCallId, outcome.content, durationMs, outcome.success));
-                            }
-                            // IMPORTANT: fresh paramMap copy per call to avoid mutation.
-                            return room.addToolExecutionResult(
-                                    toolCallId, rawToolName, outcome.content, toolParams,
-                                    new HashMap<>(paramMap), parentMessageId,
-                                    ctx.getModelEngine(), ctx.getInsight(),
-                                    outcome.success ? "success" : "error");
-                        }, pool);
+                        final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
+                        futures[i] = CompletableFuture.supplyAsync(
+                                () -> executeOneTool(tc, iterations, paramMap, parentMessageId, ctx),
+                                pool);
                     }
 
-                    // Wait for all tools, then pick up the non-null model response.
-                    // Only the last result submission to Room returns non-null.
+                    // Wait for all tools to finish, then collect results from the main thread
+                    // (no synchronization needed on toolCallRecords since we add after allOf).
                     CompletableFuture.allOf(futures).join();
-                    for (CompletableFuture<AskModelEngineResponse<?>> f : futures) {
-                        AskModelEngineResponse<?> r = f.get();
-                        if (r != null) nextModelResponse = r;
+                    for (CompletableFuture<ToolExecResult> f : futures) {
+                        try {
+                            ToolExecResult r = f.get();
+                            toolCallRecords.add(r.record);
+                            if (r.modelResponse != null) nextModelResponse = r.modelResponse;
+                        } catch (ExecutionException e) {
+                            logger.error("RoomAgentHarness: tool execution threw unexpectedly", e.getCause());
+                        }
                     }
                 } finally {
                     pool.shutdown();
@@ -308,6 +265,64 @@ public class RoomAgentHarness implements IAgentHarness {
         return response;
     }
 
+    // Tool parsing
+
+    /** Tool call fields parsed from the model response map. */
+    @SuppressWarnings("unchecked")
+    private static final class ParsedToolCall {
+        final String toolCallId;
+        final String rawToolName;
+        final Map<String, Object> toolParams;
+
+        ParsedToolCall(Map<String, Object> toolCall) {
+            this.toolCallId  = String.valueOf(toolCall.get("id"));
+            this.rawToolName = String.valueOf(toolCall.get("name"));
+            // Some model providers use "input" instead of "arguments"
+            Object argsObj = toolCall.get("arguments");
+            if (argsObj == null) argsObj = toolCall.get("input");
+            this.toolParams = (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
+        }
+    }
+
+    /** Paired result from executing one tool: the tracking record and the model response (if any). */
+    private static final class ToolExecResult {
+        final AgentHarnessResult.ToolCallRecord record;
+        final AskModelEngineResponse<?> modelResponse;
+
+        ToolExecResult(AgentHarnessResult.ToolCallRecord record, AskModelEngineResponse<?> modelResponse) {
+            this.record = record;
+            this.modelResponse = modelResponse;
+        }
+    }
+
+    /**
+     * Executes one tool call and submits the result to the Room.
+     * Called from both the single-tool fast path and each parallel future.
+     */
+    private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, Map<String, Object> paramMap,
+                                          String parentMessageId, GenericAgentContext ctx) {
+        Room room = ctx.getRoom();
+        logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
+                tc.rawToolName, tc.toolCallId, iter);
+        long startMs = System.currentTimeMillis();
+        ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
+        long durationMs = System.currentTimeMillis() - startMs;
+        logger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
+                tc.rawToolName, durationMs, outcome.success);
+
+        AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
+                tc.rawToolName, tc.toolCallId, outcome.content, durationMs, outcome.success);
+
+        // IMPORTANT: pass a fresh copy of paramMap — Room.appendToolsToParams() mutates it.
+        AskModelEngineResponse<?> modelResponse = room.addToolExecutionResult(
+                tc.toolCallId, tc.rawToolName, outcome.content, tc.toolParams,
+                new HashMap<>(paramMap), parentMessageId,
+                ctx.getModelEngine(), ctx.getInsight(),
+                outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+
+        return new ToolExecResult(record, modelResponse);
+    }
+
     // Tool execution
 
     /** Outcome of a single tool execution. */
@@ -322,13 +337,14 @@ public class RoomAgentHarness implements IAgentHarness {
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
                                               GenericAgentContext ctx) {
-        String engineId = extractEngineId(rawToolName);
-        if (engineId == null) {
+        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
+        if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
                     + rawToolName + "'";
             logger.warn("RoomAgentHarness: {}", msg);
             return new ToolExecOutcome(msg, false);
         }
+        String engineId = parsed[0];
         try {
             String result = mcpCallMode == McpCallMode.REACTOR
                     ? callMcpToolViaReactor(rawToolName, engineId, params, ctx)
@@ -392,15 +408,5 @@ public class RoomAgentHarness implements IAgentHarness {
         } catch (Exception e) {
             return "Tool execution error: " + e.getMessage();
         }
-    }
-
-    // Utility
-
-    private static String extractEngineId(String rawToolName) {
-        if (rawToolName == null) return null;
-        Matcher m = UUID_PREFIX_PATTERN.matcher(rawToolName);
-        if (!m.find()) return null;
-        String prefix = m.group();
-        return prefix.substring(1, prefix.length() - 1); // strip leading "a" and trailing "_"
     }
 }

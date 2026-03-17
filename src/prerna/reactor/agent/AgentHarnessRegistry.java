@@ -56,17 +56,14 @@ public final class AgentHarnessRegistry {
 
     static {
         Map<String, IAgentHarness> m = new HashMap<>();
-        register(m, new RoomAgentHarness());
-        register(m, new ClaudeCodeAgentHarness());
+        IAgentHarness roomLoop   = new RoomAgentHarness();
+        IAgentHarness claudeCode = new ClaudeCodeAgentHarness();
+        m.put(roomLoop.getName(),   roomLoop);
+        m.put(claudeCode.getName(), claudeCode);
         REGISTRY = Collections.synchronizedMap(m);
     }
 
     private AgentHarnessRegistry() { /* static utility */ }
-
-    // Private initializer helper
-    private static void register(Map<String, IAgentHarness> map, IAgentHarness harness) {
-        map.put(harness.getName(), harness);
-    }
 
     // Public API
     /**

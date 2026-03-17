@@ -60,6 +60,9 @@ public final class GenericAgent {
     /** Key under which {@code filePath} is injected into {@code paramMap}. */
     public static final String FILE_PATH_PARAM_KEY = "file_path";
 
+    /** Options-map keys checked (in order) when room.getModelId() is not set. */
+    private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
+
     private GenericAgent() { /* static utility */ }
 
     /**
@@ -182,7 +185,7 @@ public final class GenericAgent {
         // Tier 2: options map — some older rooms stored it under "engine"
         Map<String, Object> opts = room.getOptionsMap();
         if (opts != null) {
-            for (String key : new String[]{"engine", "model", "modelId", "engineId"}) {
+            for (String key : MODEL_ID_OPTION_KEYS) {
                 Object val = opts.get(key);
                 if (val instanceof String && !((String) val).trim().isEmpty()) {
                     logger.info("GenericAgent: resolved modelId from options['{}']={}", key, val);

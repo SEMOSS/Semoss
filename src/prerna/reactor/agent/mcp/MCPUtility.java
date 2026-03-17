@@ -383,7 +383,7 @@ public final class MCPUtility {
 	 * @return String array [prefix, remainingString] if prefix found, null
 	 *         otherwise
 	 */
-	private static String[] parseEngineIdFromFunctionName(String input) {
+	public static String[] parseEngineIdFromFunctionName(String input) {
 		if (input == null) {
 			return null;
 		}
