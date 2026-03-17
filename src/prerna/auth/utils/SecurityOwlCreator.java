@@ -357,13 +357,6 @@ public class SecurityOwlCreator {
         owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
         owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
         owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
-        
-        //USERAPIPERMISSION
-        owler.addConcept("USERAPIPERMISSION", null, null);
-        owler.addProp("USERAPIPERMISSION", "ID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "USERID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "API_ID", "VARCHAR(255)");
-        owler.addProp("USERAPIPERMISSION", "TYPE", "VARCHAR(255)");
 		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
