@@ -63,14 +63,12 @@ public final class AgentHarnessRegistry {
 
     private AgentHarnessRegistry() { /* static utility */ }
 
-    // ── Private initializer helper ────────────────────────────────────────────
-
+    // Private initializer helper
     private static void register(Map<String, IAgentHarness> map, IAgentHarness harness) {
         map.put(harness.getName(), harness);
     }
 
-    // ── Public API ────────────────────────────────────────────────────────────
-
+    // Public API
     /**
      * Register a custom harness. Overwrites any existing harness with the same name.
      *

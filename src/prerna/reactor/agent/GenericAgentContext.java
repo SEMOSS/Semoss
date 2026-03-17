@@ -69,8 +69,7 @@ public final class GenericAgentContext {
         this.maxReflections = b.maxReflections;
     }
 
-    // ── Accessors ─────────────────────────────────────────────────────────────
-
+    // Accessors
     /** Pre-loaded SEMOSS Room supplying system prompt, history, and MCP tools. */
     public Room getRoom() {
         return room;
@@ -120,8 +119,7 @@ public final class GenericAgentContext {
         return maxReflections;
     }
 
-    // ── Builder ───────────────────────────────────────────────────────────────
-
+    // Builder
     public static Builder builder() {
         return new Builder();
     }
