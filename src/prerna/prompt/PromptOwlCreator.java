@@ -79,7 +79,8 @@ public class PromptOwlCreator {
 				Pair.with("INTENT", "VARCHAR(255)"),
 				Pair.with("CREATED_BY", "VARCHAR(255)"),
 				Pair.with("DATE_CREATED", "TIMESTAMP"),
-				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME)
+				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME),
+				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME)
 			);
 		
 		this.promptMetaColumns = Arrays.asList(
