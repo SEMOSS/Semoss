@@ -135,6 +135,8 @@ public class RoomAgentHarness implements IAgentHarness {
                 .withParamMap(paramMap)
                 .build();
 
+        logger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}",
+                room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
         ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
         // ── 2. Tool loop ──────────────────────────────────────────────────────

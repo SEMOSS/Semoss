@@ -118,13 +118,26 @@ public final class GenericAgent {
 
         // Point the working directory at the room folder so that file-system MCP tools
         // (readFile, listFiles, writeFile, etc.) default to the room's persistent folder.
-        String roomFolderPath = room.getRoomFolderPath();
-        File roomFolder = new File(roomFolderPath);
-        if (!roomFolder.exists()) {
-            roomFolder.mkdirs();
+        // Use setRoomForInsight() which sets both roomId and insightFolder — the same
+        // pattern used by SetInsightForRoomReactor. Plain setInsightFolder() alone is
+        // insufficient because getInsightFolder() lazily recomputes the path if roomId
+        // is not set, causing files to land in InsightCache instead of the room folder.
+        agentInsight.setRoomForInsight(room);
+
+        // If an explicit filePath was provided (e.g. from RunSubAgent passing the
+        // orchestrator's working directory), override the insight folder so the sub-agent
+        // operates on the same file workspace as its caller.
+        if (filePath != null && !filePath.trim().isEmpty()) {
+            agentInsight.setInsightFolder(filePath.trim());
+            logger.info("GenericAgent: agentInsight folder overridden by filePath={}", filePath);
+        } else {
+            String roomFolderPath = room.getRoomFolderPath();
+            File roomFolder = new File(roomFolderPath);
+            if (!roomFolder.exists()) {
+                roomFolder.mkdirs();
+            }
+            logger.info("GenericAgent: agentInsight folder set to room folder={}", roomFolderPath);
         }
-        agentInsight.setInsightFolder(roomFolderPath);
-        logger.info("GenericAgent: agentInsight folder set to room folder={}", roomFolderPath);
 
         // 4. Build paramMap copy and inject filePath
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
