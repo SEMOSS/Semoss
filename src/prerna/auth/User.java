@@ -688,6 +688,12 @@ public class User implements Serializable {
 				// unique user is just for testing so when i ls on R, I can see it is me and not
 				// someone else
 				symlinkHelper = new SymlinkHelper(chrootPath);
+				// symlink the user asset folder into the chroot on boot
+				try {
+					symlinkHelper.symlinkUserAsset(this);
+				} catch (Exception e) {
+					classLogger.warn("Unable to symlink user asset folder into chroot", e);
+				}
 			}
 			return symlinkHelper;
 		}
