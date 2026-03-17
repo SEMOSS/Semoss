@@ -510,7 +510,6 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
@@ -558,6 +557,14 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+
+		// JIRA_CONNECTIONS
+        owler.addConcept("JIRA_CONNECTIONS", null, null);
+        owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
+        owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,

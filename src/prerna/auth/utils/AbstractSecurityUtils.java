@@ -1988,6 +1988,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// JIRA_CONNECTIONS
+            colNames = new String[] { "ID", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(1000)", "VARCHAR(255)" };
+
+            if (allowIfExistsTable) {
+                securityDb.insertData(queryUtil.createTableIfNotExists("JIRA_CONNECTIONS", colNames, types));
+            } else {
+                // see if table exists
+                if (!queryUtil.tableExists(conn, "JIRA_CONNECTIONS", database, schema)) {
+                    // make the table
+                    securityDb.insertData(queryUtil.createTable("JIRA_CONNECTIONS", colNames, types));
+                }
+            }
+            {
+                List<String> allCols = queryUtil.getTableColumns(conn, "JIRA_CONNECTIONS", database, schema);
+                for (int i = 0; i < colNames.length; i++) {
+                    String col = colNames[i];
+                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+                        String addColumnSql = queryUtil.alterTableAddColumn("JIRA_CONNECTIONS", col, types[i]);
+                        securityDb.insertData(addColumnSql);
+                    }
+                }
+            }
+
 			// SESSION SHARE
 			colNames = new String[] { "SHARE_VAL", "SESSION_VAL", "ROUTE_VAL", "IS_SESSION_SHARE", "IS_AUTH_SHARE",
 					"DATE_ADDED", "DATE_USED", "USE_VALID", "USERID", "TYPE" };
