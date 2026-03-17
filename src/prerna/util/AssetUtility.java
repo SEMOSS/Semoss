@@ -81,9 +81,9 @@ public class AssetUtility {
 				String projectName = "Asset";
 				assetFolder = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
 				// Symlink user asset folder into chroot so it persists across sessions
-				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE)) && user != null) {
+				if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 					try {
-						user.getUserSymlinkHelper().symlinkFolder(assetFolder);
+						user.getUserSymlinkHelper().symlinkUserAsset(user);
 					} catch (Exception e) {
 						classLogger.warn("Unable to symlink user asset folder into chroot", e);
 					}
