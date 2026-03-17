@@ -31,6 +31,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +67,11 @@ import prerna.util.Utility;
  * <p>Tool execution uses {@link McpCallMode#REACTOR} by default (delegates to
  * {@link RunMCPToolReactor}) which inherits all SEMOSS engine-resolution and security changes
  * automatically.
+ *
+ * <p>When the model returns multiple tool calls in a single response, they are executed in
+ * parallel via a thread pool. {@code Room.addToolExecutionResult()} is synchronized and only
+ * triggers the next model call once every tool ID in the batch has reported in, so concurrent
+ * submissions are safe.
  */
 public class RoomAgentHarness implements IAgentHarness {
 
@@ -71,25 +80,15 @@ public class RoomAgentHarness implements IAgentHarness {
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "room_loop";
 
-    /**
-     * Pattern to extract UUID from SEMOSS-prefixed tool name: {@code "a<UUID>_toolName"}.
-     */
+    /** Pattern to extract UUID from SEMOSS-prefixed tool name: {@code "a<UUID>_toolName"}. */
     private static final Pattern UUID_PREFIX_PATTERN = Pattern.compile(
             "^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
 
-    /**
-     * How MCP tools are executed inside the harness.
-     */
+    /** How MCP tools are executed inside the harness. */
     public enum McpCallMode {
-        /**
-         * Delegates to {@link RunMCPToolReactor} — picks up all SEMOSS internal changes
-         * (engine resolution logic, security checks) automatically.
-         */
+        /** Delegates to {@link RunMCPToolReactor} — picks up all SEMOSS engine-resolution and security changes. */
         REACTOR,
-        /**
-         * Calls the MCP API directly: resolves engine/project from the tool-name prefix,
-         * then calls {@link IMCP#callTool}. No security check overhead.
-         */
+        /** Calls the MCP API directly via {@link IMCP#callTool}. No security check overhead. */
         DIRECT_API
     }
 
@@ -126,7 +125,7 @@ public class RoomAgentHarness implements IAgentHarness {
 
         List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
 
-        // ── 1. Initial ask ────────────────────────────────────────────────────
+        // 1. Initial ask
         String systemPrompt = room.getEffectiveSystemPrompt();
         InputMessage firstMsg = InputMessage.builder(room)
                 .withSystemPrompt(systemPrompt)
@@ -139,11 +138,11 @@ public class RoomAgentHarness implements IAgentHarness {
                 room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
         ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
-        // ── 2. Tool loop ──────────────────────────────────────────────────────
+        // 2. Tool loop
         int[] iterationsHolder = {0};
         response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
 
-        // ── 3. Reflection rounds ──────────────────────────────────────────────
+        // 3. Reflection rounds
         int reflectionsUsed = 0;
         while (reflectionsUsed < maxReflections
                 && response != null
@@ -161,19 +160,18 @@ public class RoomAgentHarness implements IAgentHarness {
 
             response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
 
-            // If the model decided to make more tool calls after reflection, drive the loop again.
             if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
                 response = driveToolLoop(response, iterationsHolder, paramMap, toolCallRecords, ctx);
             }
         }
 
-        // ── 4. Iteration cap check ────────────────────────────────────────────
+        // 4. Iteration cap check
         if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
             logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT", maxIterations);
             throw new AgentMaxIterationsException(maxIterations);
         }
 
-        // ── 5. Return result ──────────────────────────────────────────────────
+        // 5. Return result
         String content = (response != null) ? response.getContent() : null;
         return new AgentHarnessResult(content, iterationsHolder[0], toolCallRecords, reflectionsUsed);
     }
@@ -181,6 +179,9 @@ public class RoomAgentHarness implements IAgentHarness {
     /**
      * Drives the tool-call loop from a starting response until RESPONSE_TEXT or the iteration
      * cap is hit. Shared by the main loop and each reflection round.
+     *
+     * <p>When the model returns multiple tool calls in one response they are executed in parallel.
+     * Single-tool responses use the fast path without thread overhead.
      *
      * @param iterationsHolder single-element array accumulating iterations across rounds
      */
@@ -206,42 +207,88 @@ public class RoomAgentHarness implements IAgentHarness {
             List<Map<String, Object>> toolCalls = response.getToolResponses();
 
             AskModelEngineResponse<?> nextModelResponse = null;
-            for (Map<String, Object> toolCall : toolCalls) {
+
+            if (toolCalls.size() == 1) {
+                // Fast path: single tool — no thread overhead.
+                Map<String, Object> toolCall = toolCalls.get(0);
                 String toolCallId  = String.valueOf(toolCall.get("id"));
                 String rawToolName = String.valueOf(toolCall.get("name"));
-
-                Object argsObj = toolCall.get("arguments");
-                if (argsObj == null) {
-                    argsObj = toolCall.get("input");
-                }
+                Object argsObj     = toolCall.get("arguments");
+                if (argsObj == null) argsObj = toolCall.get("input");
                 Map<String, Object> toolParams =
                         (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
 
                 logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
                         rawToolName, toolCallId, iterations);
-
                 long startMs = System.currentTimeMillis();
                 ToolExecOutcome outcome = executeToolSafely(rawToolName, toolParams, ctx);
                 long durationMs = System.currentTimeMillis() - startMs;
-
                 logger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
                         rawToolName, durationMs, outcome.success);
 
                 toolCallRecords.add(new AgentHarnessResult.ToolCallRecord(
                         rawToolName, toolCallId, outcome.content, durationMs, outcome.success));
 
-                // IMPORTANT: pass a FRESH copy of paramMap on every call.
-                // Room.appendToolsToParams() mutates the map; reusing it doubles the tools list.
+                // IMPORTANT: pass a fresh copy of paramMap — Room.appendToolsToParams() mutates it.
                 nextModelResponse = room.addToolExecutionResult(
-                        toolCallId,
-                        rawToolName,
-                        outcome.content,
-                        toolParams,
-                        new HashMap<>(paramMap),
-                        parentMessageId,
-                        ctx.getModelEngine(),
-                        ctx.getInsight(),
+                        toolCallId, rawToolName, outcome.content, toolParams,
+                        new HashMap<>(paramMap), parentMessageId,
+                        ctx.getModelEngine(), ctx.getInsight(),
                         outcome.success ? "success" : "error");
+
+            } else {
+                // Parallel path: execute all tools concurrently.
+                // Room.addToolExecutionResult() is synchronized and only triggers the next model
+                // call once every tool ID in the batch has been answered (allIds.containsAll check
+                // in Room), so concurrent submissions from multiple threads are safe.
+                logger.info("RoomAgentHarness executing {} tools in parallel iter={}",
+                        toolCalls.size(), iterations);
+                ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size());
+                try {
+                    @SuppressWarnings("unchecked")
+                    CompletableFuture<AskModelEngineResponse<?>>[] futures =
+                            new CompletableFuture[toolCalls.size()];
+
+                    for (int i = 0; i < toolCalls.size(); i++) {
+                        final Map<String, Object> toolCall = toolCalls.get(i);
+                        final String toolCallId  = String.valueOf(toolCall.get("id"));
+                        final String rawToolName = String.valueOf(toolCall.get("name"));
+                        Object argsObj = toolCall.get("arguments");
+                        if (argsObj == null) argsObj = toolCall.get("input");
+                        final Map<String, Object> toolParams =
+                                (argsObj instanceof Map) ? (Map<String, Object>) argsObj : new HashMap<>();
+
+                        futures[i] = CompletableFuture.supplyAsync(() -> {
+                            logger.info("RoomAgentHarness executing tool (parallel): name={} callId={} iter={}",
+                                    rawToolName, toolCallId, iterations);
+                            long startMs = System.currentTimeMillis();
+                            ToolExecOutcome outcome = executeToolSafely(rawToolName, toolParams, ctx);
+                            long durationMs = System.currentTimeMillis() - startMs;
+                            logger.info("RoomAgentHarness tool result (parallel): name={} durationMs={} success={}",
+                                    rawToolName, durationMs, outcome.success);
+                            synchronized (toolCallRecords) {
+                                toolCallRecords.add(new AgentHarnessResult.ToolCallRecord(
+                                        rawToolName, toolCallId, outcome.content, durationMs, outcome.success));
+                            }
+                            // IMPORTANT: fresh paramMap copy per call to avoid mutation.
+                            return room.addToolExecutionResult(
+                                    toolCallId, rawToolName, outcome.content, toolParams,
+                                    new HashMap<>(paramMap), parentMessageId,
+                                    ctx.getModelEngine(), ctx.getInsight(),
+                                    outcome.success ? "success" : "error");
+                        }, pool);
+                    }
+
+                    // Wait for all tools, then pick up the non-null model response.
+                    // Only the last result submission to Room returns non-null.
+                    CompletableFuture.allOf(futures).join();
+                    for (CompletableFuture<AskModelEngineResponse<?>> f : futures) {
+                        AskModelEngineResponse<?> r = f.get();
+                        if (r != null) nextModelResponse = r;
+                    }
+                } finally {
+                    pool.shutdown();
+                }
             }
 
             if (nextModelResponse != null) {
@@ -261,7 +308,7 @@ public class RoomAgentHarness implements IAgentHarness {
         return response;
     }
 
-    // ── Tool execution ────────────────────────────────────────────────────────
+    // Tool execution
 
     /** Outcome of a single tool execution. */
     private static final class ToolExecOutcome {
@@ -347,7 +394,7 @@ public class RoomAgentHarness implements IAgentHarness {
         }
     }
 
-    // ── Utility ───────────────────────────────────────────────────────────────
+    // Utility
 
     private static String extractEngineId(String rawToolName) {
         if (rawToolName == null) return null;

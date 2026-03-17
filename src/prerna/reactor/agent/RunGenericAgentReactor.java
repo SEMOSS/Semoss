@@ -61,7 +61,7 @@ public class RunGenericAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunGenericAgentReactor.class);
 
-    // ── Custom key constants (not in ReactorKeysEnum) ─────────────────────────
+    // Custom key constants (not in ReactorKeysEnum)
     private static final String HARNESS_TYPE_KEY    = "harnessType";
     private static final String AGENT_ID_KEY        = "agentId";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
@@ -142,7 +142,7 @@ public class RunGenericAgentReactor extends AbstractReactor {
         return "Run a generic agent loop using a pluggable harness (room_loop or claude_code)";
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // Helpers
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> getMap() {

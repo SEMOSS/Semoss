@@ -88,7 +88,7 @@ public final class AgentHarnessResult {
         return toolCallRecords;
     }
 
-    // ── ToolCallRecord ─────────────────────────────────────────────────────────
+    // ToolCallRecord
 
     /**
      * Immutable record of a single MCP tool invocation inside the agentic loop.
