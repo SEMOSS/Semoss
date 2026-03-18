@@ -27,8 +27,6 @@ The `py/gaas_gpt_model.py` module provides classes for interacting with various 
         *   Constructs a Pixel script: `LLM(engine="<engine_id>", command="<question>", useHistory=<use_history>, context=["<context>"], paramValues=[<param_dict>]);`.
         *   Executes this Pixel script via `super().callReactor()`.
         *   Returns the response from the LLM, typically including the generated text and token counts.
-    *   `instruct(task: str, context: Optional[str] = None, param_dict: Optional[Dict] = None, insight_id: Optional[str] = None) -> List[Dict]`:
-        *   Similar to `ask`, but constructs an `LLMInstruct(...)` Pixel command.
     *   `ner(text: str, entities: List[str], mask_entities: List[str] = [], param_dict: Optional[Dict] = None, insight_id: Optional[str] = None)`:
         *   Executes an `NER(...)` Pixel command for Named Entity Recognition.
     *   `get_conversation_history(insight_id: Optional[str] = None) -> List[Dict]`:
