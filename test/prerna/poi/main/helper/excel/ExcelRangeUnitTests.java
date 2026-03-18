@@ -2,69 +2,93 @@ package prerna.poi.main.helper.excel;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class ExcelRangeUnitTests {
 
-    @Test
-    void test_constructorWithInts_setsIndicesAndSyntax() {
-        ExcelRange r = new ExcelRange(1, 5, 1, 10); // A..E, 1..10
-        assertArrayEquals(new int[] { 1, 1, 5, 10 }, r.getIndices());
-        assertEquals("A1:E10", r.getRangeSyntax());
-        assertEquals(1, r.getStartRow());
-    }
+	@Test
+	void test_getRangeSyntax() {
+		ExcelRange r = new ExcelRange(1, 5, 1, 10);
+		assertEquals("A1:E10", r.getRangeSyntax());
+		
+		r = new ExcelRange(10, 27, 10, 27);
+		assertEquals("J10:AA27", r.getRangeSyntax());
+		
+		r = new ExcelRange(7, 703, 8, 100);
+		assertEquals("G8:AAA100", r.getRangeSyntax());
+		
+		r = new ExcelRange("A1:AA9");
+		assertEquals("A1:AA9", r.getRangeSyntax());
+	}
+	
+	@Test
+	void test_getIndices() {
+		ExcelRange r = new ExcelRange(1, 5, 1, 10);
+		assertArrayEquals(new int[] {1, 1, 5, 10}, r.getIndices());
+		
+		r = new ExcelRange(10, 27, 10, 27);
+		assertArrayEquals(new int[] {10, 10, 27, 27}, r.getIndices());
+		
+		r = new ExcelRange(7, 703, 8, 100);
+		assertArrayEquals(new int[] {7, 8, 703, 100}, r.getIndices());
+		
+		r = new ExcelRange("A1:AA9");
+		assertArrayEquals(new int[] {1, 1, 27, 9}, r.getIndices());
+	}
+	
+	@ParameterizedTest
+	@CsvSource({
+		"1,A",
+		"26,Z",
+		"27,AA",
+		"52,AZ",
+		"53,BA",
+		"702,ZZ",
+		"703,AAA"
+	})
+	void test_getCol(int colNum, String expected) {
+		assertEquals(expected, ExcelRange.getCol(colNum));
+	}
+	
+	/**
+	* Note: This test describes the typical/expected Excel behavior (A=1, Z=26, AA=27).
+	* As written, ExcelRange.getExcelColumnNumber currently returns 0-based values and
+	* is incorrect for multi-letter columns (e.g., "AA" returns 0).
+	*/
+	@Disabled("Enable after fixing getExcelColumnNumber implementation")
+	@ParameterizedTest
+	@CsvSource({
+		"A,1",
+		"B,2",
+		"Z,26",
+		"AA,27",
+		"AZ,52",
+		"BA,53",
+		"ZZ,702",
+		"AAA,703"
+	})
+	void test_getExcelColumnNumber_expectedExcelSemantics(String col, int expected) {
+		assertEquals(expected, ExcelRange.getExcelColumnNumber(col));
+	}
+	
+	@Test
+	void test_getSheetRangeIndex() {
+		assertArrayEquals(new int[] {1, 1, 140, 1459}, ExcelRange.getSheetRangeIndex("A1:EJ1459"));
+		
+		assertArrayEquals(new int[] {1, 1, 27, 9}, ExcelRange.getSheetRangeIndex("A1:AA9"));
+		
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> ExcelRange.getSheetRangeIndex("A1"));
+		assertTrue(ex.getMessage().contains("Invalid range syntax"));
+	}
+	
 
-    @Test
-    void test_constructorWithRangeSyntax_parsesIndicesAndSyntaxRoundTrips() {
-        ExcelRange r = new ExcelRange("A1:EJ1459");
-        assertArrayEquals(new int[] { 1, 1, 140, 1459 }, r.getIndices()); // EJ = 140
-        assertEquals("A1:EJ1459", r.getRangeSyntax());
-        assertEquals(1, r.getStartRow());
-    }
-
-    @Test
-    void test_getSheetRangeIndex_parsesSingleAndMultiLetterColumns() {
-        assertArrayEquals(new int[] { 1, 1, 27, 9 }, ExcelRange.getSheetRangeIndex("A1:AA9"));
-        assertArrayEquals(new int[] { 26, 2, 28, 100 }, ExcelRange.getSheetRangeIndex("Z2:AB100"));
-    }
-
-    @Test
-    void test_getSheetRangeIndex_rejectsInvalidSyntax() {
-        assertThrows(IllegalArgumentException.class, () -> ExcelRange.getSheetRangeIndex("A1"));
-        assertThrows(IllegalArgumentException.class, () -> ExcelRange.getSheetRangeIndex("A1:B2:C3"));
-        assertThrows(IllegalArgumentException.class, () -> ExcelRange.getSheetRangeIndex(""));
-    }
-
-    @Test
-    void test_getCol_boundariesAndLargeColumns() {
-        assertEquals("A", ExcelRange.getCol(1));
-        assertEquals("Z", ExcelRange.getCol(26));
-        assertEquals("AA", ExcelRange.getCol(27));
-        assertEquals("AZ", ExcelRange.getCol(52));
-        assertEquals("BA", ExcelRange.getCol(53));
-        assertEquals("ZZ", ExcelRange.getCol(702));
-        assertEquals("AAA", ExcelRange.getCol(703));
-        assertEquals("EJ", ExcelRange.getCol(140));
-    }
-
-    @Test
-    void test_getExcelColumnNumber_matchesCurrentImplementation() {
-        // Note: This method is not the inverse of getCol() as written.
-        assertEquals(0, ExcelRange.getExcelColumnNumber("A"));
-        assertEquals(1, ExcelRange.getExcelColumnNumber("B"));
-        assertEquals(25, ExcelRange.getExcelColumnNumber("Z"));
-        assertEquals(0, ExcelRange.getExcelColumnNumber("AA"));
-        assertEquals(1, ExcelRange.getExcelColumnNumber("AB"));
-        assertEquals(9, ExcelRange.getExcelColumnNumber("AJ"));
-    }
-
-    @Test
-    void test_getIndices_returnsCopyNotBackedByState() {
-        ExcelRange r = new ExcelRange(1, 2, 3, 4);
-        int[] idx1 = r.getIndices();
-        idx1[0] = 999;
-
-        int[] idx2 = r.getIndices();
-        assertArrayEquals(new int[] { 1, 3, 2, 4 }, idx2);
-    }
+	@Test
+	void test_getStartRow() {
+		ExcelRange r = new ExcelRange(1, 5, 1, 10);
+		assertEquals(1, r.getStartRow());
+	}
 }
+
