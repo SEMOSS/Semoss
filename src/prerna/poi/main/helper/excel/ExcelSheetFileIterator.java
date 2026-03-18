@@ -262,7 +262,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 						cleanRow[i] = SemossDate.genTimeStampDateObj(strVal);
 					}
 				}
+			} else if (type == SemossDataType.BOOLEAN) {
+				cleanRow[i] = Boolean.parseBoolean(val.toString());
 			}
+
 		}
 
 		return cleanRow;

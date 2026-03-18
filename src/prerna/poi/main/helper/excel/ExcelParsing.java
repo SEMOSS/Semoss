@@ -327,10 +327,10 @@ public class ExcelParsing {
 			return SemossDataType.STRING;
 		} else if (value instanceof Number) {
 			// check if actually a number
-			if (((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue())) {
-				return SemossDataType.INT;
-			}
-			return SemossDataType.DOUBLE;
+	        if (value instanceof Float || value instanceof Double) {
+	            return SemossDataType.DOUBLE;
+	        }
+	        return SemossDataType.INT;
 		} else if (value instanceof SemossDate) {
 			// not a perfect check by any means
 			// but quick and easy to do
