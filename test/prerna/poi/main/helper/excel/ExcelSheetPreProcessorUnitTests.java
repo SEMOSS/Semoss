@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
-import static org.assert.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

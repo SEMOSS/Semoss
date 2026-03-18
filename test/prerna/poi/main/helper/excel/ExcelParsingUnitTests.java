@@ -2,7 +2,6 @@ package prerna.poi.main.helper.excel;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -204,9 +203,12 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 
 		testValue = null;
 		assertEquals(SemossDataType.STRING, ExcelParsing.getTypeByCast(testValue));
+		
+		testValue = 1.25;
+		assertEquals(SemossDataType.DOUBLE, ExcelParsing.getTypeByCast(testValue));
 
 		testValue = 1.0;
-		assertEquals(SemossDataType.DOUBLE, ExcelParsing.getTypeByCast(testValue));
+		assertEquals(SemossDataType.INT, ExcelParsing.getTypeByCast(testValue));
 
 		testValue = 1;
 		assertEquals(SemossDataType.INT, ExcelParsing.getTypeByCast(testValue));
@@ -283,7 +285,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 
 			// validate string type
 			Object[][] predicted = ExcelParsing.predictTypes(sheet, "A1:A4");
-			assertEquals(SemossDataType.DOUBLE, predicted[0][0]);
+			assertEquals(SemossDataType.INT, predicted[0][0]);
 		}
 	}
 
@@ -349,7 +351,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 
 			// validate double type
 			Object[][] predicted = ExcelParsing.predictTypes(sheet, "A1:A2");
-			assertEquals(SemossDataType.DOUBLE, predicted[0][0]);
+			assertEquals(SemossDataType.INT, predicted[0][0]);
 		}
 	}
 	

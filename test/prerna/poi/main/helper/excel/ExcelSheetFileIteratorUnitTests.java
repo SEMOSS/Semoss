@@ -209,8 +209,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			Map<String, Object> info = excelIt.next().flushRowToMap();
 			String strVal = (String) info.get(STRING_COL_NAME);
 			assertEquals("row1", strVal);
-			Double intVal = (Double) info.get(INT_COL_NAME);
-			assertEquals(1.0, intVal);
+			int intVal = (int) info.get(INT_COL_NAME);
+			assertEquals(1, intVal);
 			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
 			assertEquals(1.25, doubleValue);
 			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
@@ -228,8 +228,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			Map<String, Object> info = excelIt.next().flushRowToMap();
 			String strVal = (String) info.get(STRING_COL_NAME);
 			assertEquals("row2", strVal);
-			Double intVal = (Double) info.get(INT_COL_NAME);
-			assertEquals(2.0, intVal);
+			int intVal = (int) info.get(INT_COL_NAME);
+			assertEquals(2, intVal);
 			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
 			assertEquals(2.25, doubleValue);
 			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
@@ -247,8 +247,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			Map<String, Object> info = excelIt.next().flushRowToMap();
 			String strVal = (String) info.get(STRING_COL_NAME);
 			assertEquals("row3", strVal);
-			Double intVal = (Double) info.get(INT_COL_NAME);
-			assertEquals(3.0, intVal);
+			int intVal = (int) info.get(INT_COL_NAME);
+			assertEquals(3, intVal);
 			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
 			assertEquals(3.25, doubleValue);
 			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
@@ -266,8 +266,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			Map<String, Object> info = excelIt.next().flushRowToMap();
 			String strVal = (String) info.get(STRING_COL_NAME);
 			assertEquals("row4", strVal);
-			Double intVal = (Double) info.get(INT_COL_NAME);
-			assertEquals(4.0, intVal);
+			int intVal = (int) info.get(INT_COL_NAME);
+			assertEquals(4, intVal);
 			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
 			assertEquals(4.25, doubleValue);
 			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
@@ -285,8 +285,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			Map<String, Object> info = excelIt.next().flushRowToMap();
 			String strVal = (String) info.get(STRING_COL_NAME);
 			assertEquals("row5", strVal);
-			Double intVal = (Double) info.get(INT_COL_NAME);
-			assertEquals(5.0, intVal);
+			int intVal = (int) info.get(INT_COL_NAME);
+			assertEquals(5, intVal);
 			double doubleValue = (double) info.get(DOUBLE_COL_NAME);
 			assertEquals(5.25, doubleValue);
 			boolean boolVal = (boolean) info.get(BOOL_COL_NAME);
