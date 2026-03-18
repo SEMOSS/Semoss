@@ -2795,18 +2795,49 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
 
-		// Sum total tokens
-		QueryFunctionSelector sumTokenSelector = new QueryFunctionSelector();
-		sumTokenSelector.setAlias("TOTAL_TOKENS");
-		sumTokenSelector.setFunction(QueryFunctionHelper.SUM);
-		sumTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
-		qs.addSelector(sumTokenSelector);
+		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// INPUT_TOKENS
+		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"),
+				new QueryConstantSelector(0),
+				"INPUT_IF");
+		QueryFunctionSelector inputTokenSelector = new QueryFunctionSelector();
+		inputTokenSelector.setAlias("INPUT_TOKENS");
+		inputTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		inputTokenSelector.addInnerSelector(inputIf);
+		qs.addSelector(inputTokenSelector);
 
-		// Count number of requests
+		// SUM(CASE WHEN MESSAGE_TYPE='RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// RESPONSE_TOKENS
+		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"),
+				new QueryConstantSelector(0),
+				"RESPONSE_IF");
+		QueryFunctionSelector responseTokenSelector = new QueryFunctionSelector();
+		responseTokenSelector.setAlias("RESPONSE_TOKENS");
+		responseTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		responseTokenSelector.addInnerSelector(responseIf);
+		qs.addSelector(responseTokenSelector);
+
+		// Sum total tokens
+		QueryFunctionSelector totalTokenSelector = new QueryFunctionSelector();
+		totalTokenSelector.setAlias("TOTAL_TOKENS");
+		totalTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		totalTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(totalTokenSelector);
+
+		// Count number of requests (INPUT messages only)
+		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"),
+				new QueryConstantSelector(null),
+				"REQUEST_IF");
 		QueryFunctionSelector countRequestSelector = new QueryFunctionSelector();
 		countRequestSelector.setAlias("TOTAL_REQUESTS");
 		countRequestSelector.setFunction(QueryFunctionHelper.COUNT);
-		countRequestSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		countRequestSelector.addInnerSelector(requestIf);
 		qs.addSelector(countRequestSelector);
 
 		// Join to AGENT table to get agent name
