@@ -102,26 +102,4 @@ class Driver:
             "payload": l3,
         }
         server.send_request(payload)
-
-    def get_file_pickle(self):
-        from gaas_tcp_server_handler import TCPServerHandler
-
-        server = TCPServerHandler.da_server
-        epoc = "abc125"
-        engine_type = "pickler"
-
-        f = open(
-            "c:/users/pkapaleeswaran/workspacej3/SemossDev/Py/sampleResponse.pkl", "rb"
-        )
-        import pickle
-
-        p = pickle.load(f)
-        payload = {
-            "epoc": epoc,
-            "response": False,
-            "engineType": engine_type,
-            "interim": False,
-            # all the method stuff will come here
-            "payload": p,
-        }
-        server.send_request(payload)
+        
