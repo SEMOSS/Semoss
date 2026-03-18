@@ -42,7 +42,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 
 	public GetSpecificConceptPropertiesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.DATABASE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.DATABASE.getKey() };
 	}
 
 	@Override
@@ -62,12 +62,14 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 		String engineId = engineFilterGrs.get(0).toString();
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		List<String> dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
-		if(!dbFilters.contains(engineId)) {
-			throw new IllegalArgumentException("Databases " + engineId + " does not exist or user does not have access");
+		if (!dbFilters.contains(engineId)) {
+			throw new IllegalArgumentException(
+					"Databases " + engineId + " does not exist or user does not have access");
 		}
-		
+
 		List<String> conceptProperties = MasterDatabaseUtility.getSpecificConceptProperties(conceptLogicals, engineId);
-		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
+		return new NounMetadata(conceptProperties, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.DATABASE_CONCEPT_PROPERTIES);
 	}
 
 	@Override

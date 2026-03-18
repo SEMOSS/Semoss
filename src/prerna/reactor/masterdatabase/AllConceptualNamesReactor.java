@@ -38,10 +38,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AllConceptualNamesReactor extends AbstractReactor {
 
-	/**
-	 * Return all the conceptual names
-	 */
-
 	@Override
 	public NounMetadata execute() {
 		// need to take into consideration security
@@ -52,7 +48,7 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns all conceptual names (table/concept names) from all databases accessible to the current user";
+		return "Returns all conceptual names across all databases accessible to the current user";
 	}
 
 }

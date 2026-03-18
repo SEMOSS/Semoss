@@ -40,9 +40,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetDatabaseListReactor extends AbstractReactor {
-	
+
 	public GetDatabaseListReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey() };
 	}
 
 	@Override
@@ -50,26 +50,27 @@ public class GetDatabaseListReactor extends AbstractReactor {
 		organizeKeys();
 		String strLimit = this.keyValue.get(this.keysToGet[0]);
 		String strOffset = this.keyValue.get(this.keysToGet[1]);
-		
+
 		Integer limit = null;
 		Integer offset = null;
-		if(strLimit != null && !(strLimit=strLimit.trim()).isEmpty()) {
+		if (strLimit != null && !(strLimit = strLimit.trim()).isEmpty()) {
 			try {
 				limit = Integer.parseInt(strLimit);
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 				throw new IllegalArgumentException("Could not parse limit value as integer. Input was: " + strLimit);
 			}
 		}
-		if(strOffset != null && !(strOffset=strOffset.trim()).isEmpty()) {
+		if (strOffset != null && !(strOffset = strOffset.trim()).isEmpty()) {
 			try {
 				offset = Integer.parseInt(strOffset);
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 				throw new IllegalArgumentException("Could not parse offset value as integer. Input was: " + strOffset);
 			}
 		}
-		
+
 		List<String> engineTypeFilter = Arrays.asList(IEngine.CATALOG_TYPE.DATABASE.name());
-		List<Map<String, Object>> retList = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineTypeFilter, limit, offset);
+		List<Map<String, Object>> retList = SecurityEngineUtils.getUserEngineList(this.insight.getUser(),
+				engineTypeFilter, limit, offset);
 		return new NounMetadata(retList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_LIST);
 	}
 
@@ -98,5 +99,5 @@ public class GetDatabaseListReactor extends AbstractReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-	
+
 }
