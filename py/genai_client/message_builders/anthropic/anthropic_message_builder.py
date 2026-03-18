@@ -95,22 +95,22 @@ class AnthropicMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_use_part = AnthropicToolUseContentPart(
-                            id=p.toolCall.id,
-                            name=p.toolCall.function.name,
-                            input=p.toolCall.function.parameters,
+                            id=p.tool_call.id,
+                            name=p.tool_call.function.name,
+                            input=p.tool_call.function.parameters,
                         )
                         content_parts.append(tool_use_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         tool_result_part = AnthropicToolResultContentPart(
-                            tool_use_id=p.toolResult.id,
-                            content=p.toolResult.output,
+                            tool_use_id=p.tool_result.id,
+                            content=p.tool_result.output,
                         )
                         content_parts.append(tool_result_part)
 

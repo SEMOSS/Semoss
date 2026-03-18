@@ -161,6 +161,7 @@ public class Constants {
 	public static final String SHOW_PLAYSHEETS_LIST = "btnShowPlaySheets";
 	public static final String ENGINE = "ENGINE";
 	public static final String ENGINE_ALIAS = "ENGINE_ALIAS";
+	public static final String ENGINE_DISPLAY_NAME = "ENGINE_DISPLAY_NAME";
 	@Deprecated
 	public static final String HIDDEN_DATABASE = "HIDDEN_DATABASE";
 	public static final String ENGINES = "ENGINES";
@@ -919,6 +920,7 @@ public class Constants {
 	public static final String PROJECTS = "PROJECTS";
 	public static final String PROJECT = "PROJECT";
 	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
+	public static final String PROJECT_DISPLAY_NAME = "PROJECT_DISPLAY_NAME";
 	public static final String PROJECT_TYPE = "PROJECT_TYPE";
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
@@ -1037,6 +1039,10 @@ public class Constants {
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
+
+	// notification db
+	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
+	public static final String NOTIFICATION_DB = "Notification";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

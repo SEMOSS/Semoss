@@ -31,7 +31,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class ToolResultMessagePart extends MessagePart {
 
-	@SerializedName("toolResult")
+	@SerializedName(value = "toolResult", alternate = { "tool_result" })
 	private ToolResultPart toolResult;
 
 	public ToolResultMessagePart() {

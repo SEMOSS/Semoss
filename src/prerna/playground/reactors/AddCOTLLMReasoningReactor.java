@@ -44,7 +44,6 @@ import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -84,8 +83,8 @@ public class AddCOTLLMReasoningReactor extends AbstractReactor {
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withText(userPrompt, "Continuing with the next step")
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				.withText(userPrompt, "Continuing with the next step").withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap).build();
 		inputMsg.setPlatformGenerated(true);
 
 		// Run LLM (not saving in history for now)
@@ -99,7 +98,7 @@ public class AddCOTLLMReasoningReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MCPUtility.updateToolResponseWithProjectMeta(response);
+			room.updateToolResponseMeta(response);
 		}
 
 		// ---- Return both messages as a Map
