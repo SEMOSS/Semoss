@@ -54,6 +54,9 @@ __pycache__/
 RDF_Map.prop
 social.properties
 
+# ignore sablecc
+/src/org/sablecc/**
+
 # log4j plugin - created in maven build
 /src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat
 
