@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -99,7 +101,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
             // Parse and validate start date
             try {
-                start = ZonedDateTime.parse(startDate.trim());
+                start = LocalDate.parse(startDate.trim()).atStartOfDay(ZoneOffset.UTC);
             } catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(
                         "Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
@@ -107,7 +109,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
             // Parse and validate end date
             try {
-                end = ZonedDateTime.parse(endDate.trim());
+                end = LocalDate.parse(endDate.trim()).atStartOfDay(ZoneOffset.UTC);
             } catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(
                         "Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
