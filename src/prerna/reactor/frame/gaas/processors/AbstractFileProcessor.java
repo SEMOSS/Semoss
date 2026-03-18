@@ -122,13 +122,6 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 				|| (filetype.equals("msg"))) {
 			// msg email
 			processor = new MSGProcessor(file.getAbsolutePath(), writer);
-		} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-				|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
-				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-						|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
-						&& (filetype.equals("xls") || filetype.equals("xlsx")))) {
-			// excel
-			processor = new ExcelProcessor(file.getAbsolutePath(), writer);
 		} else if (mimeType.equalsIgnoreCase("text/plain")
 				|| mimeType.equalsIgnoreCase("application/rtf")
 				|| mimeType.equalsIgnoreCase("text/txt")
