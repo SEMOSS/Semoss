@@ -163,9 +163,13 @@ public class ClusterSynchronizer {
 
 								if (pull) {
 									try {
-										List<Object> params = (List<Object>) dataMap.get("params");
-										String methodName = dataMap.get("methodName").toString();
-										Method method = findMethod(methodName, params);
+										List<String> params = (List<String>) dataMap.get("params");
+										Class<?>[] paramTypes = new Class[params.size()];
+										for (int i = 0; i < params.size(); i++) {
+											paramTypes[i] = params.get(i).getClass();
+										}
+										Method method = ClusterUtil.class
+												.getMethod(dataMap.get("methodName").toString(), paramTypes);
 										method.invoke(null, params.toArray());
 									} catch (Exception e) {
 										classLogger.error(Constants.STACKTRACE, e);
@@ -182,50 +186,6 @@ public class ClusterSynchronizer {
 		cache.start();
 
 		return cache;
-	}
-
-	/**
-	 * Finds a public static method on ClusterUtil by name and parameter
-	 * compatibility.
-	 * Handles primitive/boxed type mismatches (e.g. boolean vs Boolean).
-	 */
-	private static Method findMethod(String methodName, List<Object> params) {
-		for (Method method : ClusterUtil.class.getMethods()) {
-			if (!method.getName().equals(methodName)) {
-				continue;
-			}
-			Class<?>[] methodParamTypes = method.getParameterTypes();
-			if (methodParamTypes.length != params.size()) {
-				continue;
-			}
-			boolean match = true;
-			for (int i = 0; i < methodParamTypes.length; i++) {
-				Class<?> paramType = methodParamTypes[i];
-				Class<?> argType = params.get(i).getClass();
-				if (!paramType.isAssignableFrom(argType) && !isBoxedMatch(paramType, argType)) {
-					match = false;
-					break;
-				}
-			}
-			if (match) {
-				return method;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Checks if a primitive type matches its boxed equivalent.
-	 */
-	private static boolean isBoxedMatch(Class<?> paramType, Class<?> argType) {
-		return (paramType == boolean.class && argType == Boolean.class)
-				|| (paramType == int.class && argType == Integer.class)
-				|| (paramType == long.class && argType == Long.class)
-				|| (paramType == double.class && argType == Double.class)
-				|| (paramType == float.class && argType == Float.class)
-				|| (paramType == short.class && argType == Short.class)
-				|| (paramType == byte.class && argType == Byte.class)
-				|| (paramType == char.class && argType == Character.class);
 	}
 
 	private static boolean projectLoaded(String projectId) {

@@ -1091,7 +1091,8 @@ public class ClusterUtil {
 
 		if (ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishUserChange(projectId, "pullUserWorkspace", projectId, isAsset);
+				getClusterSynchronizer().publishUserChange(projectId, "pullUserWorkspaceString", projectId,
+						String.valueOf(isAsset));
 			} catch (Exception e) {
 				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster",
 						projectId, isAsset, e);
@@ -1101,6 +1102,16 @@ public class ClusterUtil {
 				throw err;
 			}
 		}
+	}
+
+	/**
+	 * String-param bridge for ZK cluster listener reflection.
+	 * 
+	 * @param projectId
+	 * @param isAsset
+	 */
+	public static void pullUserWorkspaceString(String projectId, String isAsset) {
+		pullUserWorkspace(projectId, Boolean.parseBoolean(isAsset));
 	}
 
 	/**
