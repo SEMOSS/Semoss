@@ -25,28 +25,29 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground.reactors;
+package prerna.testing.prompt;
 
-import prerna.engine.impl.model.inferencetracking.reactors.GetUserConversationRoomsReactor;
-import prerna.playground.PlaygroundUtils;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
-
-	@Override
-	public NounMetadata execute() {
-		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if (projectGRS != null) {
-			projectGRS.clear();
-		} else {
-			projectGRS = new GenRowStruct();
-		}
-		projectGRS.add(new NounMetadata(PlaygroundUtils.PLAYGROUND_PROJECT_ID, PixelDataType.CONST_STRING));
-		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
-		return super.execute();
-	}
-
+/**
+ * Test suite that runs all prompt-related tests.
+ * Includes tests for crud operations and metadata filtering
+ */
+@Suite
+@SelectClasses({
+    AddPromptReactorTests.class,
+    CheckPromptTitleReactorTests.class,
+    DeletePromptReactorTests.class,
+    GetPromptMetaValuesReactorTests.class,
+    GetPromptReactorTests.class,
+    GlobalPromptFilteringTests.class,
+    ListPromptReactorTests.class,
+    PromptAuthorizationTests.class,
+    PromptMetadataFilteringTests.class,
+    PromptMetadataTests.class,
+    UpdatePromptReactorTests.class
+})
+public class PromptTestSuite {
+    // This class can be empty - the @SelectClasses annotation defines which tests to run
 }
