@@ -129,6 +129,7 @@ LOG_ENCODING false
 #GOOGLE_CHROME_BINARY C:\\Users\\mahkhalil\\Desktop\\GoogleChromePortable\\GoogleChromePortable.exe
 #SEMOSS logo used for exporting files
 EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
+PLAYWRIGHT_EXPORT true
 
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
 SCHEDULER_ENDPOINT	http://localhost:8080/Monolith
@@ -247,6 +248,7 @@ USER_TRACKING_METHOD	GEOIP2
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
 AUDIT_LOGS_DATABASE_ENABLED true
+NOTIFICATION_DATABASE_ENABLED true
 
 ##################################################
 ##################################################

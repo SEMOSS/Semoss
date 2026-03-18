@@ -39,18 +39,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.nounmeta.RemoveHeaderNounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class DropColumnReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor drops columns from the frame. The inputs to the reactor are:
-	 * 1) list of columns to drop
+	 * This reactor drops columns from the frame. The inputs to the reactor are: 1)
+	 * list of columns to drop
 	 */
-	
+
 	public DropColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMNS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
@@ -65,7 +63,7 @@ public class DropColumnReactor extends AbstractPyFrameReactor {
 
 		// store the list of names being removed
 		List<String> remCols = new Vector<String>();
-		
+
 		// get inputs
 		List<String> columns = getColumns();
 		String[] remCommands = new String[columns.size()];
@@ -79,28 +77,22 @@ public class DropColumnReactor extends AbstractPyFrameReactor {
 			// define the script to be executed
 			remCommands[i] = wrapperFrameName + ".drop_col('" + col + "')";
 			remCols.add(col);
-			
+
 			metaData.dropProperty(frame.getName() + "__" + col, frame.getName());
 			// drop filters with this column
 			frame.getFrameFilters().removeColumnFilter(col);
 		}
 		// run the script
 		insight.getPyTranslator().runEmptyPy(remCommands);
-		for(String script : remCommands) {
+		for (String script : remCommands) {
 			this.addExecutedCode(script);
 		}
 
 		// reset the frame headers
 		frame.syncHeaders();
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"DropColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new RemoveHeaderNounMetadata(remCols));
 		return retNoun;
 	}
@@ -110,7 +102,7 @@ public class DropColumnReactor extends AbstractPyFrameReactor {
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private List<String> getColumns() {
 		List<String> columns = new ArrayList<String>();
 

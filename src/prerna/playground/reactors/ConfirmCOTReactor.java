@@ -93,8 +93,8 @@ public class ConfirmCOTReactor extends AbstractReactor {
 		final String inputPrompt = PlaygroundUtils.CONFIRM_COT_PLAN.formatted(cotPlanStr);
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputUIPrompt(inputUIPrompt).withInputPrompt(inputPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				.withText(inputPrompt, inputUIPrompt).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.build();
 
 		// IMPORTANT: Use your COT_SYSTEM_PROMPT as system prompt
 		ResponseMessage response = room.ask(inputMsg, modelEngine);

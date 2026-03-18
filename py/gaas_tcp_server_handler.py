@@ -68,6 +68,10 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     return dataframe
 
 
+class ExecutionCancelled(Exception):
+    """Raised when a running python execution is cancelled by a remote request."""
+
+
 class TCPServerHandler(socketserver.BaseRequestHandler):
     """
     This class is the request handler for the Native Python Server.
@@ -91,6 +95,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     # Class attribute to hold a singleton instance
     da_server = None
+    CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     def log_level_mapper(self, log_level_name: str) -> int:
         """
@@ -156,8 +161,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         TCPServerHandler.da_server = self
 
+        # a lock to serialise all socket writes. HuggingFace (and similar libraries)
+        # download files in parallel worker threads that all write tqdm progress to
+        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # concurrent sendall() calls interleave bytes on the wire, which corrupts the
+        # 4-byte size header that Java uses to frame messages. Java then tries to read
+        # an astronomically large payload, its receive buffer fills up, sendall()
+        # blocks on the Python side, and both ends deadlock.
+        self.send_lock = threading.Lock()
+
         # cache where the link between payload id and monitor is kept
         self.monitors = {}
+        # cache insight cancellation flags so a secondary request can interrupt
+        # currently running execution while keeping the process alive
+        self.insight_cancel_events = {}
+        self.insight_cancel_events_lock = threading.Lock()
 
         # add the storage
         # LLM
@@ -436,6 +454,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     operation=payload["operation"],
                     response=True,
                 )
+            elif command == "INTERRUPT_INSIGHT" and payload["operation"] == "INSIGHT":
+                interrupted = self.interrupt_insight_execution(payload)
+                message = (
+                    "Interrupt signal received"
+                    if interrupted
+                    else "No insight id provided for interrupt request"
+                )
+                self.send_output(
+                    message,
+                    operation=payload["operation"],
+                    response=True,
+                )
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
@@ -619,8 +649,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — acquire the lock so concurrent calls from parallel
+        # download worker threads cannot interleave bytes and corrupt the protocol
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def send_request(self, payload: dict):
         """
@@ -658,8 +690,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — use the same lock as send_output() to prevent interleaving
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def stop_request(self):
         """Stops the request and closes the connection."""
@@ -694,6 +727,87 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
+    def _resolve_execution_cancel_keys(
+        self, payload: dict, insight_id: Optional[str] = None
+    ):
+        keys = []
+        if payload is not None:
+            payload_job_id = payload.get("jobId")
+            execution_insight_id = payload.get("executionInsightId")
+            payload_insight_id = payload.get("insightId")
+            if payload_job_id:
+                keys.append(f"job::{payload_job_id}")
+            if execution_insight_id:
+                keys.append(f"insight::{execution_insight_id}")
+            if payload_insight_id:
+                insight_key = f"insight::{payload_insight_id}"
+                if insight_key not in keys:
+                    keys.append(insight_key)
+
+        if insight_id:
+            insight_key = f"insight::{insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+
+        return keys
+
+    def _resolve_interrupt_target_keys(self, payload: dict):
+        keys = []
+        if payload is None:
+            return keys
+
+        payload_job_id = payload.get("jobId")
+        if payload_job_id:
+            return [f"job::{payload_job_id}"]
+
+        execution_insight_id = payload.get("executionInsightId")
+        payload_insight_id = payload.get("insightId")
+        if execution_insight_id:
+            keys.append(f"insight::{execution_insight_id}")
+        if payload_insight_id:
+            insight_key = f"insight::{payload_insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+        return keys
+
+    def _get_or_create_cancel_event(self, insight_id: str) -> threading.Event:
+        with self.insight_cancel_events_lock:
+            event = self.insight_cancel_events.get(insight_id)
+            if event is None:
+                event = threading.Event()
+                self.insight_cancel_events[insight_id] = event
+            return event
+
+    def interrupt_insight_execution(self, payload: dict) -> bool:
+        keys = self._resolve_interrupt_target_keys(payload)
+        if not keys:
+            return False
+
+        for key in keys:
+            self._get_or_create_cancel_event(key).set()
+        return True
+
+    def _prepare_execution_cancel_events(
+        self, payload: dict, insight_id: Optional[str]
+    ) -> List[threading.Event]:
+        keys = self._resolve_execution_cancel_keys(payload, insight_id)
+        events = []
+        for key in keys:
+            event = self._get_or_create_cancel_event(key)
+            # reset any stale interrupt so new work starts cleanly
+            event.clear()
+            events.append(event)
+        return events
+
+    def _build_cancel_trace(self, cancel_events: List[threading.Event]):
+        def _cancel_trace(frame, event, arg):
+            for cancel_event in cancel_events:
+                if cancel_event.is_set():
+                    raise ExecutionCancelled(self.CANCELLED_MESSAGE)
+            return _cancel_trace
+
+        return _cancel_trace
+
     def handle_python(self, command: str, insight_id: str):
         """
         Execute python code within the proper globals object
@@ -707,6 +821,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
+        cancel_trace = self._build_cancel_trace(cancel_events)
 
         # If asset paths are provided, prepend the logic to set the sys.path
         if asset_paths:
@@ -751,9 +867,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             break
 
                     if not is_correct_path:
-                        reload_mcp_func = insight_globals.get("reload_mcp")
-                        if reload_mcp_func:
-                            reload_mcp_func()
+                        reload_mcp_function = insight_globals.get("reload_mcp_function")
+                        if reload_mcp_function:
+                            reload_mcp_function()
             except Exception:
                 # If anything goes wrong during the check, do nothing and proceed
                 pass
@@ -797,18 +913,26 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             try:
                 is_exception = False
+                user_cancelled = False
                 output = None
                 with contextlib.redirect_stdout(
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
-                    output, is_exception = self.execute_and_capture(
-                        command, insight_globals
-                    )
+                    previous_trace = sys.gettrace()
+                    try:
+                        sys.settrace(cancel_trace)
+                        output, is_exception, user_cancelled = self.execute_and_capture(
+                            command, insight_globals
+                        )
+                    finally:
+                        sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
-                        operation=payload["operation"],
+                        operation=(
+                            payload["operation"] if not user_cancelled else "CANCELLED"
+                        ),
                         response=True,
                         exception=is_exception,
                     )
@@ -822,7 +946,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             if process_cwd is not None:
                 os.chdir(process_cwd)
 
-    def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
+    def execute_and_capture(
+        self, code: str, insight_globals: dict
+    ) -> Tuple[str, bool, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
 
@@ -836,11 +962,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
                                 The first element is the eval output of the last expression. If last expression is not evaluable, then it will exec and return an empty string.
                                 The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
+                                The third element is a boolean indicatiing if the code was cancelled by the user (True) or not (False).
         """
         try:
             # Handle empty code
             if not code.strip():
-                return '""', False
+                return '""', False, False
 
             parsed_code = ast.parse(code)
 
@@ -861,7 +988,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # Evaluate print arguments to be the return value of this function
                 print_args = last_node.value.args
                 if len(print_args) == 1:
-                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                    return (
+                        eval(ast.unparse(print_args[0]), insight_globals),
+                        False,
+                        False,
+                    )
                 else:
                     # Return a tuple of evaluated arguments
                     return (
@@ -869,6 +1000,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             eval(ast.unparse(arg), insight_globals)
                             for arg in print_args
                         ),
+                        False,
                         False,
                     )
 
@@ -902,12 +1034,14 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
             if can_eval:
-                return eval(ast.unparse(last_node), insight_globals), False
+                return (eval(ast.unparse(last_node), insight_globals), False, False)
             else:
                 # It's a statement or a non-evaluatable expression, so just execute it
                 exec(ast.unparse(last_node), insight_globals)
-                return '""', False
+                return ('""', False, False)
 
+        except ExecutionCancelled as e:
+            return (str(e), True, True)
         except Exception as e:
             # if we fail all attempts then send back the traceback
             traceback = sys.exc_info()[2]
@@ -918,7 +1052,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 + tb.format_exception_only(type(e), e)
             )
 
-            return "".join(full_trace), True
+            return ("".join(full_trace), True, False)
 
     def handle_response(self):
         """Handles a response from the client."""
@@ -1274,12 +1408,14 @@ class InsightGlobalStore:
                 """
                 Reloads the mcp_driver module
                 """
-                # Delete from the shared sys.modules cache to force a true reload
-                if "mcp_driver" in sys.modules:
-                    del sys.modules["mcp_driver"]
+                import importlib
 
-                # Use the secure_import to load the module
-                mcp_module = secure_import("mcp_driver", globals=globals_dict)
+                if "mcp_driver" in sys.modules:
+                    # Use importlib.reload for a proper reload
+                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                else:
+                    # First-time import
+                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
@@ -1304,7 +1440,9 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
+            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
+                globals_dict
+            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1324,7 +1462,7 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp",
+                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",

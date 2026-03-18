@@ -48,7 +48,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -103,9 +102,9 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
-				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				// .withTools(tools)
 				.build();
 
@@ -118,14 +117,19 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MCPUtility.updateToolResponseWithProjectMeta(response);
+			room.updateToolResponseMeta(response);
 		}
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
+		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
+		pixelReturn.put("inputMessage", inputMap);
+
+		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		pixelReturn.put("responseMessage", responseMap);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}

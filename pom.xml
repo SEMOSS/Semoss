@@ -68,6 +68,13 @@
 					<exclude>**/*.java</exclude>
 				</excludes>
 			</resource>
+			<resource>
+				<directory>.</directory>
+				<includes>
+					<include>docx4j.properties</include>
+					<include>docx4j-ImportXHTML.properties</include>
+				</includes>
+			</resource>
 		</resources>
 		<testResources>
 			<testResource>
@@ -684,6 +691,236 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Docx4J Deps --> 
+		<!-- https://mvnrepository.com/artifact/org.docx4j/docx4j-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-core</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-ImportXHTML-core -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-ImportXHTML-core</artifactId>
+		    <version>11.5.6</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-core</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-pml</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-sml</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.docx4j/docx4j-JAXB-ReferenceImpl -->
+		<dependency>
+		    <groupId>org.docx4j</groupId>
+		    <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
+		    <version>11.5.9</version>
+		    <scope>compile</scope>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-core</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.docx4j</groupId>
+		            <artifactId>docx4j-openxml-objects-pml</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.checkerframework</groupId>
+		            <artifactId>checker-qual</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-logging</groupId>
+		            <artifactId>commons-logging</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-io</groupId>
+		            <artifactId>commons-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>pdfbox-io</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.pdfbox</groupId>
+		            <artifactId>fontbox</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.slf4j</groupId>
+		            <artifactId>slf4j-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>commons-codec</groupId>
+		            <artifactId>commons-codec</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-lang3</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.activation</groupId>
+		            <artifactId>jakarta.activation-api</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.errorprone</groupId>
+		            <artifactId>error_prone_annotations</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>org.apache.commons</groupId>
+		            <artifactId>commons-compress</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>jakarta.xml.bind</groupId>
+		            <artifactId>jakarta.xml.bind-api</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime -->
+		<dependency>
+		    <groupId>org.glassfish.jaxb</groupId>
+		    <artifactId>jaxb-runtime</artifactId>
+		    <version>4.0.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/jakarta.xml.bind/jakarta.xml.bind-api -->
+		<dependency>
+		    <groupId>jakarta.xml.bind</groupId>
+		    <artifactId>jakarta.xml.bind-api</artifactId>
+		    <version>4.0.2</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api -->
+		<dependency>
+		    <groupId>javax.xml.bind</groupId>
+		    <artifactId>jaxb-api</artifactId>
+		    <version>2.3.1</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- WebP ImageIO Plugin for reading WebP images -->
+		<!-- Source: https://mvnrepository.com/artifact/org.sejda.imageio/webp-imageio -->
+		<dependency>
+		    <groupId>org.sejda.imageio</groupId>
+		    <artifactId>webp-imageio</artifactId>
+		    <version>0.1.6</version>
+		    <scope>compile</scope>
+		</dependency>
+		<!-- End Docx4J Deps --> 
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -768,7 +1005,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.0</version>
 		</dependency>
 		<dependency>
 			<groupId>commons-lang</groupId>
@@ -1027,6 +1264,17 @@
 			</exclusions>
 		</dependency>
 		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.22.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
 			<artifactId>jsqlparser</artifactId>
 			<version>3.1</version>
@@ -1104,7 +1352,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1122,7 +1370,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1142,7 +1390,7 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
-			<version>1.27.1</version>
+			<version>1.28.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1154,19 +1402,19 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>5.4.0</version>
+			<version>5.5.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1179,6 +1427,19 @@
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
 			<version>4.0.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- streaming poi -->
+		<!-- https://mvnrepository.com/artifact/com.github.pjfanning/excel-streaming-reader -->
+		<dependency>
+			<groupId>com.github.pjfanning</groupId>
+			<artifactId>excel-streaming-reader</artifactId>
+			<version>5.2.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2884,7 +3145,7 @@
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.14.1</version>
+			<version>0.18.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>

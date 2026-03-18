@@ -37,8 +37,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -48,14 +46,13 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
-import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -184,23 +181,20 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
 				parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
-		
-		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
-		    AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
-		    classLogger.error("An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}", 
-			        errorDetails.getClient(), 
-			        errorDetails.getCode(), 
-			        errorDetails.getModel(), 
-			        errorDetails.getStringResponse(),
-			        errorDetails.getTraceback()
-			    );
 
-		    askModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		    askModelResponse.setRoomId(room.getId());
-		    
-		    throw new SemossModelEngineException(askModelResponse);
+		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+			AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+			classLogger.error(
+					"An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}",
+					errorDetails.getClient(), errorDetails.getCode(), errorDetails.getModel(),
+					errorDetails.getStringResponse(), errorDetails.getTraceback());
+
+			askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+			askModelResponse.setRoomId(room.getId());
+
+			throw new SemossModelEngineException(askModelResponse);
 		}
-		
+
 		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 		askModelResponse.setRoomId(room.getId());
 
@@ -210,6 +204,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (projectId == null) {
 			projectId = room.getProjectId();
 		}
+
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
@@ -231,7 +226,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
-			));
+					));
 			inferenceRecorder.start();
 		}
 		// @formatter:on
@@ -275,7 +270,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					room.getInsight().getUser().getPrimaryLoginToken().getId(),
 					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
-
 		}
 
 		return askModelResponse;
@@ -286,76 +280,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public AskModelEngineResponse ask(String question, String context, Insight insight,
 			Map<String, Object> parameters) {
 		Room room = RoomUtils.createRoomIfNotExists(null, insight, this, question);
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question)
-				.withInputPrompt(question).withModelType(this.getModelType()).withParamMap(parameters).build();
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
+				.withModelType(this.getModelType()).withParamMap(parameters).build();
 		ResponseMessage response = room.ask(msg, this);
 		return response.getModelEngineResponse();
-	}
-
-	/**
-	 * This is an abstract method for the implementation class such that tracking
-	 * occurs
-	 * 
-	 * @param task
-	 * @param context
-	 * @param insight
-	 * @param hyperParameters
-	 * @return
-	 */
-	protected abstract InstructModelEngineResponse instructCall(String task, String context,
-			List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters);
-
-	@Override
-	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData,
-			Insight insight, Map<String, Object> parameters) {
-		// do we have any usage restriction on the user
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		if (parameters == null) {
-			parameters = new HashMap<String, Object>();
-		}
-
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight,
-				parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-
-		instructModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		instructModelResponse.setRoomId(insight.getInsightId());
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/instructModelResponse.getMessageId(),
-					/*transactionId*/instructModelResponse.getMessageId(), 
-					/*messageMethod*/"instruct", 
-					/*engine*/this, 
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/context,
-					/*prompt*/null,
-					/*fullPrompt*/task,
-					/*promptTokens*/instructModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
-					/*response*/gson.toJson(instructModelResponse.getResponse()),
-					/*responseTokens*/instructModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-			));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, instructModelResponse,
-				inputTime, outputTime);
-
-		return instructModelResponse;
 	}
 
 	/**
@@ -403,7 +331,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
-			));
+					));
 			inferenceRecorder.start();
 		}
 		// @formatter:on
@@ -459,7 +387,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
-			));
+					));
 			inferenceRecorder.start();
 		}
 		// @formatter:on
@@ -494,7 +422,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
+
+	@Override
 	public int getContextWindow() {
 		return this.contextWindow;
 	}

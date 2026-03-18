@@ -43,7 +43,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -70,7 +69,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response, // 8
 				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), // 9
-			};
+		};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
 		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
@@ -134,9 +133,11 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 						insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta(lastMessage);
+				room.updateToolResponseMeta(lastMessage);
 			}
-			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
+			Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
+//			MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+			pixelReturn.put("responseMessage", responseMap);
 			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
 	}

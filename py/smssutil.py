@@ -1168,6 +1168,7 @@ def generate_mcp(
                     "generated_on": todays_date_utc.strftime(date_format),
                     "SMSS_MCP_EXECUTION": mcp_execution_mode,
                     "SMSS_MCP_UI": cleaned_mcp_ui_map,
+                    "SMSS_FUNCTION_NAME": this_function,
                 }
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
@@ -1182,12 +1183,12 @@ def generate_mcp(
 
 
 @deprecated(
-    reason="Use @mcp_metadata({'execution':'auto'|'ask_user'|'disabled'}) instead",
+    reason="Use @mcp_metadata({'execution':'auto'|'ask'|'disabled'}) instead",
     version="5.1.0",
 )
 def mcp_execution(arg: str):
     """
-    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask'|'disabled')
     """
 
     def _decorator(func):
@@ -1205,7 +1206,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
     """
 
     def _decorator(func):

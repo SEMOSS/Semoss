@@ -96,8 +96,8 @@ public class COTConfirmationReactor extends AbstractReactor {
 
 		// we will now mock the input and response
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputUIPrompt("Confirmed Plan").withInputPrompt(inputPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				.withText(inputPrompt, "Confirmed Plan").withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap).build();
 		inputMsg.setParentMessageId(room.getMessages().getLast().getMessageId());
 		inputMsg.setTransactionId(inputMsg.getMessageId());
 
