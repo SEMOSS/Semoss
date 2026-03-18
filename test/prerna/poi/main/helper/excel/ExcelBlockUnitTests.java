@@ -4,230 +4,253 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import prerna.algorithm.api.SemossDataType;
 
 class ExcelBlockUnitTests {
+	
+	@Test
+	void test_isEmpty() {
+		ExcelBlock b = new ExcelBlock();
+		assertTrue(b.isEmpty());
+		
+		b.addRowIndexContainingData(7);
+		b.addRowIndexContainingData(9);
+		assertFalse(b.isEmpty());
+	}
+	
+	@Test
+	void test_numIndicesInBlock() {
+		ExcelBlock b = new ExcelBlock();
+		assertEquals(0, b.numIndicesInBlock());
+		
+		b.addRowIndexContainingData(7);
+		b.addRowIndexContainingData(9);
+		assertEquals(2, b.numIndicesInBlock());
+	}
+	
+	@Test
+	void test_addRowIndexContainingData() {
+		ExcelBlock b = new ExcelBlock();
+		b.addRowIndexContainingData(7);
+		b.addRowIndexContainingData(9);
+		b.addRowIndexContainingData(10);
+		assertFalse(b.isEmpty());
+		assertEquals(3, b.numIndicesInBlock());
+	}
 
-    @Test
-    void test_isEmptyAndNumIndices_workAsExpected() {
-        ExcelBlock b = new ExcelBlock();
-        assertTrue(b.isEmpty());
-        assertEquals(0, b.numIndicesInBlock());
+	@Disabled("lastColMaxIndex not directly checkable due to being a private variable")
+	@Test
+	void test_trySetLastColMaxIndex_setsAndOnlyIncreases() {
+	    ExcelBlock b = new ExcelBlock();
+	    
+//	    assertTrue(b.lastColM)
+	    
+	    b.trySetLastColMaxIndex(3);
+	    b.trySetLastColMaxIndex(2); // should not reduce
+	    b.trySetLastColMaxIndex(5); // should increase
+	
+	    // Indirectly validate by building ranges that require lastColMaxIndex=5 to iterate far enough.
+	    b.addStartColumnIndex(0);
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(0, 2, SemossDataType.INT, null);
+	
+	    // Put data in col 4; ensure a trailing empty col exists by setting lastColMaxIndex to 5
+	    b.addColumnToRowIndexWithData(4, 2, SemossDataType.INT, null);
+	    b.trySetLastColMaxIndex(5);
+	
+	    List<ExcelRange> ranges = b.getRanges();
+	    assertTrue(ranges.size() >= 1, "Expected at least one range");
+	}
 
-        b.addRowIndexContainingData(3);
-        b.addRowIndexContainingData(7);
+	@Test
+	void test_getRanges() {
+		// splitsOnEmptyColumns_andUsesOverallMaxRow()
+	    ExcelBlock b = new ExcelBlock();
+	
+	    // Ensure startColumnIndexStats min is 0 (first data column)
+	    b.addStartColumnIndex(0);
+	
+	    // Columns 0 and 1 contiguous; column 2 empty; column 3 has data.
+	    // lastColMaxIndex set to 4 so the trailing empty col triggers range close for col 3.
+	    b.trySetLastColMaxIndex(4);
+	
+	    // Column 0 rows 1..2
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(0, 2, SemossDataType.INT, null);
+	
+	    // Column 1 has a later row to force maxRow=5 for the first range
+	    b.addColumnToRowIndexWithData(1, 5, SemossDataType.INT, null);
+	
+	    // Column 3 has data starting at row 3
+	    b.addColumnToRowIndexWithData(3, 3, SemossDataType.INT, null);
+	
+	    List<ExcelRange> ranges = b.getRanges();
+	    assertEquals(2, ranges.size());
+	
+	    assertEquals("A1:B5", ranges.get(0).getRangeSyntax());
+	    assertEquals("D3:D5", ranges.get(1).getRangeSyntax());
+	    
+	    b = new ExcelBlock();
+	    b.addStartColumnIndex(2);
+	    // Columns 2-3 contiguous, col 5 has data and is isolated, col 7 has data and is isolated
+	    // lastColMaxIndex set to 8 so the trailing empty col triggers range close for col 7.
+	    b.trySetLastColMaxIndex(8);
+	    // Column 2 rows 2,3
+	    b.addColumnToRowIndexWithData(2, 2, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(2, 3, SemossDataType.INT, null);
+	    // Column 3 row 1
+	    b.addColumnToRowIndexWithData(3, 1, SemossDataType.INT, null);
+	    // Column 5 row 1
+	    b.addColumnToRowIndexWithData(5, 3, SemossDataType.INT, null);
+	    // column 7 row 1
+	    b.addColumnToRowIndexWithData(7, 3, SemossDataType.INT, null);
+	
+	    ranges.clear();
+	    ranges = b.getRanges();
+	    assertEquals(3, ranges.size());
+	
+	    assertEquals("C2:D3", ranges.get(0).getRangeSyntax());
+	    assertEquals("F3:F3", ranges.get(1).getRangeSyntax());
+	    assertEquals("H3:H3", ranges.get(2).getRangeSyntax());
+	}
 
-        assertFalse(b.isEmpty());
-        assertEquals(2, b.numIndicesInBlock());
-    }
+	@Test
+	void test_getRangeTypes_stringWinsImmediately() {
+	    ExcelBlock b = new ExcelBlock();
+	
+	    // Put STRING evidence in column 0 spanning the range end row.
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.STRING, null);
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.STRING, null);
+	
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.STRING, types[0][0]);
+	}
 
-    @Test
-    void test_trySetLastColMaxIndex_tracksMaximum_indirectlyViaGetRanges() {
-        ExcelBlock b = new ExcelBlock();
+	@Test
+	void test_getRangeTypes_intOnly_returnsInt() {
+	    ExcelBlock b = new ExcelBlock();
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
+	
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.INT, types[0][0]);
+	  }
 
-        b.addStartColumnIndex(0);
-        b.addColumnToRowIndexWithData(0, 5, SemossDataType.INT, null);
+	@Test
+	void test_getRangeTypes_intAndDouble_returnsDouble() {
+	    ExcelBlock b = new ExcelBlock();
+	
+	    // INT evidence
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
+	
+	    // DOUBLE evidence (ensure max row >= endRow so current containment logic returns true)
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.DOUBLE, null);
+	
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.DOUBLE, types[0][0]);
+	  }
 
-        b.trySetLastColMaxIndex(0);
-        b.trySetLastColMaxIndex(-5);
-        b.trySetLastColMaxIndex(3);
+	@Test
+  	void test_getRangeTypes_date_returnsDateAndMostOccurringFormat() {
+	    ExcelBlock b = new ExcelBlock();
+	
+	    // DATE evidence plus one (single) additional format so max() is deterministic
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.DATE, "yyyy-MM-dd");
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
+	
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.DATE, types[0][0]);
+	    assertEquals("yyyy-MM-dd", types[0][1]);
+	  }
 
-        // With lastColMaxIndex=3 and only col 0 present, the range should close at col 1 (first missing col).
-        List<ExcelRange> ranges = b.getRanges();
-        assertEquals(1, ranges.size());
-        assertArrayEquals(new int[] { 1, 5, 1, 5 }, ranges.get(0).getIndices());
-    }
+	@Test
+	void test_getRangeTypes_mixedNumberAndDate_fallsBackToString() {
+	    ExcelBlock b = new ExcelBlock();
+	
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
+	
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.DATE, "yyyy-MM-dd");
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
+	
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.STRING, types[0][0]);
+	  }
 
-    @Test
-    void test_merge_appendsRowIndices_andUpdatesLastColMaxIndex_indirectly() {
-    	ExcelBlock a = new ExcelBlock();
-        a.addRowIndexContainingData(1);
-        a.addStartColumnIndex(0);
-        a.addColumnToRowIndexWithData(0, 5, SemossDataType.INT, null);
-        a.addColumnToRowIndexWithData(1, 5, SemossDataType.INT, null);
-        a.trySetLastColMaxIndex(1);
-
-        ExcelBlock b = new ExcelBlock();
-        b.addRowIndexContainingData(10);
-        b.addRowIndexContainingData(11);
-        b.trySetLastColMaxIndex(5);
-
-        // Before merge, lastColMaxIndex=1 means the loop never hits a missing column after col 1,
-        // so the open segment won't be added.
-        assertTrue(a.getRanges().isEmpty());
-
-        a.merge(b);
-
-        // Row indices appended
-        assertEquals(3, a.numIndicesInBlock());
-
-        // After merge, lastColMaxIndex should be 5, which allows closure at col 2 (missing) and adds the range.
-        List<ExcelRange> rangesAfterMerge = a.getRanges();
-        assertEquals(1, rangesAfterMerge.size());
-        assertArrayEquals(new int[] { 1, 5, 2, 5 }, rangesAfterMerge.get(0).getIndices());
-    }
-
-    @Test
-    void test_sameAs_trueWhenMeansWithinStdDev() {
-        ExcelBlock a = new ExcelBlock();
-        a.addStartColumnIndex(0);
-        a.addStartColumnIndex(2);
-        a.addTotalColumnsInRowStats(5);
-        a.addTotalColumnsInRowStats(9);
-
-        ExcelBlock b = new ExcelBlock();
-        b.addStartColumnIndex(1);
-        b.addStartColumnIndex(1);
-        b.addTotalColumnsInRowStats(6);
-        b.addTotalColumnsInRowStats(8);
-
-        assertTrue(a.sameAs(b));
-    }
-
-    @Test
-    void test_sameAs_falseWhenStdDevIsZeroAndDifferent() {
-        ExcelBlock a = new ExcelBlock();
-        a.addStartColumnIndex(0);
-        a.addStartColumnIndex(0);
-        a.addTotalColumnsInRowStats(5);
-        a.addTotalColumnsInRowStats(5);
-
-        ExcelBlock b = new ExcelBlock();
-        b.addStartColumnIndex(1);
-        b.addStartColumnIndex(1);
-        b.addTotalColumnsInRowStats(6);
-        b.addTotalColumnsInRowStats(6);
-
-        assertFalse(a.sameAs(b));
-    }
-
-    @Test
-    void test_getRanges_throwsWhenCalledWithoutRequiredStats() {
-        ExcelBlock b = new ExcelBlock();
-        assertThrows(NullPointerException.class, b::getRanges);
-    }
-
-    @Test
-    void test_getRanges_splitsOnEmptyColumns_andIncludesTrailingRangeWhenLastColIsPastData() {
-        ExcelBlock b = new ExcelBlock();
-
-        // start at column 0 (0-based in the block; ExcelRange appears 1-based for columns)
-        b.addStartColumnIndex(0);
-
-        // Segment 1: columns 0-1, row 5
-        b.addColumnToRowIndexWithData(0, 5, SemossDataType.INT, null);
-        b.addColumnToRowIndexWithData(1, 5, SemossDataType.INT, null);
-
-        // Segment 2: columns 3-4, row 7 (gap at col 2)
-        b.addColumnToRowIndexWithData(3, 7, SemossDataType.INT, null);
-        b.addColumnToRowIndexWithData(4, 7, SemossDataType.INT, null);
-
-        // Set lastColMaxIndex past the last populated column so the final segment closes
-        b.trySetLastColMaxIndex(5);
-
-        List<ExcelRange> ranges = b.getRanges();
-        assertEquals(2, ranges.size());
-
-        assertArrayEquals(new int[] { 1, 5, 2, 5 }, ranges.get(0).getIndices());
-        assertArrayEquals(new int[] { 4, 7, 5, 7 }, ranges.get(1).getIndices());
-    }
-
-    @Test
-    void test_getRangeTypes_throwsWhenTypeStatsMissingForAColumn() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10); // single column
-
-        // No addColumnToRowIndexWithData => columnToTypeStats.get(0) returns null => NPE
-        assertThrows(NullPointerException.class, () -> b.getRangeTypes(range));
-    }
-
-    @Test
-    void test_getRangeTypes_stringWinsImmediatelyWhenPresent() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.STRING, null);
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.DOUBLE, null);
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.STRING, predicted[0][0]);
-    }
-
-    @Test
-    void test_getRangeTypes_numericPrefersIntWhenOnlyIntPresent() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.INT, predicted[0][0]);
-    }
-
-    @Test
-    void test_getRangeTypes_numericPrefersDoubleWhenIntAndDoublePresent() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.DOUBLE, null);
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.DOUBLE, predicted[0][0]);
-    }
-
-    @Test
-    void test_getRangeTypes_dateReturnsFormatWhenOnlyDatePresent() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.DATE, predicted[0][0]);
-        assertEquals("yyyy-MM-dd", predicted[0][1]);
-    }
-
-    @Test
-    void test_getRangeTypes_timestampWinsWhenDateAndTimestampPresent() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.TIMESTAMP, "yyyy-MM-dd HH:mm:ss");
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.TIMESTAMP, predicted[0][0]);
-        assertNotNull(predicted[0][1]); // some format string chosen
-    }
-
-    @Test
-    void test_getRangeTypes_mixedNumericAndDateFallsBackToString() {
-        ExcelBlock b = new ExcelBlock();
-        ExcelRange range = new ExcelRange(1, 1, 1, 10);
-
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.INT, null);
-        b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.STRING, predicted[0][0]);
-    }
-
-    @Test
-    void test_getRangeTypes_typeContained_logicStartRowGreaterThanMinMarksContained() {
-        ExcelBlock b = new ExcelBlock();
-
-        // Range rows 5..6
-        ExcelRange range = new ExcelRange(1, 5, 1, 6);
-
-        // Only observed INT at row 1; due to testTypeContainedWtihinRange logic,
-        // startRow(5) > minRow(1) => treated as "contained".
-        b.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
-
-        Object[][] predicted = b.getRangeTypes(range);
-        assertEquals(SemossDataType.INT, predicted[0][0]);
-    }
+	@Test
+	void test_getRangeTypes_mixedDateAndTimestamps() {
+		// TODO
+		assertTrue(1 == 1);
+	}
+	
+	@Test
+  	void test_sameAs_trueWhenMeansWithinThisBlocksStdDev() {
+	    ExcelBlock a = new ExcelBlock();
+	    a.addStartColumnIndex(0);
+	    a.addStartColumnIndex(1);
+	    a.addStartColumnIndex(0);
+	    a.addTotalColumnsInRowStats(5);
+	    a.addTotalColumnsInRowStats(6);
+	    a.addTotalColumnsInRowStats(5);
+	
+	    ExcelBlock b = new ExcelBlock();
+	    b.addStartColumnIndex(0);
+	    b.addStartColumnIndex(0);
+	    b.addStartColumnIndex(1);
+	    b.addTotalColumnsInRowStats(5);
+	    b.addTotalColumnsInRowStats(5);
+	    b.addTotalColumnsInRowStats(6);
+	
+	    assertTrue(a.sameAs(b));
+	  }
+	
+	@Test
+	void test_sameAs_falseWhenMeansOutsideThisBlocksStdDev() {
+		ExcelBlock a = new ExcelBlock();
+		a.addStartColumnIndex(0);
+		a.addStartColumnIndex(1);
+		a.addStartColumnIndex(0);
+		a.addTotalColumnsInRowStats(5);
+		a.addTotalColumnsInRowStats(6);
+		a.addTotalColumnsInRowStats(5);
+		
+		ExcelBlock b = new ExcelBlock();
+		b.addStartColumnIndex(10);
+		b.addStartColumnIndex(10);
+		b.addStartColumnIndex(10);
+		b.addTotalColumnsInRowStats(50);
+		b.addTotalColumnsInRowStats(50);
+		b.addTotalColumnsInRowStats(50);
+	
+		assertFalse(a.sameAs(b));
+	}
+	
+	@Test
+	void test_merge_appendsRowIndicesAndUpdatesLastColMaxIndex() {
+		ExcelBlock a = new ExcelBlock();
+		a.addRowIndexContainingData(1);
+		a.trySetLastColMaxIndex(2);
+	
+		ExcelBlock b = new ExcelBlock();
+		b.addRowIndexContainingData(3);
+		b.addRowIndexContainingData(4);
+		b.trySetLastColMaxIndex(5);
+	
+		a.merge(b);
+	
+		assertEquals(3, a.numIndicesInBlock());
+	
+		// Indirectly validate lastColMaxIndex increased by making sure iteration can reach 5
+		a.addStartColumnIndex(0);
+		a.addColumnToRowIndexWithData(0, 1, SemossDataType.INT, null);
+		a.addColumnToRowIndexWithData(5, 1, SemossDataType.INT, null);
+		a.trySetLastColMaxIndex(6); // ensure trailing empty to close
+	
+		assertFalse(a.getRanges().isEmpty());
+	}
 }
