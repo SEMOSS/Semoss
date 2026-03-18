@@ -146,26 +146,25 @@ public class ClusterUtil {
 
 			// finally dynamic
 
-			// String hostName = System.getenv("HOSTNAME");
-			// logger.info("pod host name is " + hostName);
-			//
-			// if(hostName == null || hostName.isEmpty()) {
-			// throw new IllegalArgumentException("Hostname is null or empty along with no
-			// reference to scheduler execution in RDF_Map or env vars");
-			// }
-			// try {
-			// // TODO make this dynamic url instead of hard coded
-			// JSONObject json = readJsonFromUrl("http://localhost:4040/");
-			// String electedLeader = json.get("name").toString();
-			// logger.info("elected leader is " + electedLeader);
-			//
-			// return hostName.equals(electedLeader);
-			// } catch (JSONException e) {
-			// logger.error(STACKTRACE, e);
-			// } catch (IOException e) {
-			// logger.error(STACKTRACE, e);
-			// }
-			// return false;
+//			String hostName = System.getenv("HOSTNAME");
+//			logger.info("pod host name is " + hostName);
+//
+//			if(hostName == null || hostName.isEmpty()) {
+//				throw new IllegalArgumentException("Hostname is null or empty along with no reference to scheduler execution in RDF_Map or env vars");
+//			}
+//		    try {
+//		    	// TODO make this dynamic url instead of hard coded
+//				JSONObject json = readJsonFromUrl("http://localhost:4040/");
+//			    String electedLeader = json.get("name").toString();
+//				logger.info("elected leader is " + electedLeader);
+//
+//				return hostName.equals(electedLeader);
+//			} catch (JSONException e) {
+//				logger.error(STACKTRACE, e);
+//			} catch (IOException e) {
+//				logger.error(STACKTRACE, e);
+//			}
+//		    return false;
 		} else {
 			// if its not clustered, return true to say its a executor
 			return true;
@@ -1091,7 +1090,7 @@ public class ClusterUtil {
 
 		if (ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishUserChange(projectId, "pullUserWorkspace", projectId, isAsset);
+				getClusterSynchronizer().publishProjectChange(projectId, "pullUserWorkspace", projectId, isAsset);
 			} catch (Exception e) {
 				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster",
 						projectId, isAsset, e);
