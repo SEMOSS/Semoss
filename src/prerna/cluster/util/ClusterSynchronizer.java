@@ -31,12 +31,12 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
@@ -163,14 +163,13 @@ public class ClusterSynchronizer {
 
 								if (pull) {
 									try {
-										List<String> params = (List<String>) dataMap.get("params");
-										Class<?>[] paramTypes = new Class[params.size()];
-										for (int i = 0; i < params.size(); i++) {
-											paramTypes[i] = params.get(i).getClass();
-										}
-										Method method = ClusterUtil.class
-												.getMethod(dataMap.get("methodName").toString(), paramTypes);
-										method.invoke(null, params.toArray());
+										
+										// actual method param types could be primitives or wrappers
+										// params are all Objects (wrappers)
+										// invoke method with utility to handle primitive lookups
+										@SuppressWarnings("unchecked")
+										List<Object> params = (List<Object>) dataMap.get("params");
+										MethodUtils.invokeStaticMethod(ClusterUtil.class, dataMap.get("methodName").toString(), params.toArray());
 									} catch (Exception e) {
 										classLogger.error(Constants.STACKTRACE, e);
 									}
