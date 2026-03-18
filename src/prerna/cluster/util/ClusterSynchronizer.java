@@ -313,62 +313,58 @@ public class ClusterSynchronizer {
 		client.setData().forPath(projectPath, byteOut.toByteArray());
 
 	}
-
-	//
-	// //TODO - break this out smarter to be for all different pushes
-	// public void publishEngineChange(String engineId, String methodName) throws
-	// Exception {
-	//
-	// String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
-	//
-	// //this creates the path if it doesnt exist
-	// if (client.checkExists().forPath(enginePath) == null) {
-	// client.create().creatingParentsIfNeeded().forPath(enginePath);
-	// }
-	//
-	// Map<String, String> dataMap = new HashMap<>();
-	// dataMap.put("nodeId", host);
-	// dataMap.put("methodName", methodName);
-	//
-	// ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-	// ObjectOutputStream out = new ObjectOutputStream(byteOut);
-	// out.writeObject(dataMap);
-	//
-	// // this updates the path and the watcher is watching for updates
-	// //TODO - pass a full map as the data where host will be a key along with the
-	// function used - ex. pushOwl, pushInsightDB
-	// //client.setData().forPath(enginePath, host.getBytes());
-	// client.setData().forPath(enginePath, byteOut.toByteArray());
-	//
-	// }
-	//
-	// //TODO - break this out smarter to be for all different pushes
-	// public void publishProjectChange(String projectId, String methodName) throws
-	// Exception {
-	//
-	// String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
-	//
-	// //this creates the path if it doesnt exist
-	// if (client.checkExists().forPath(projectPath) == null) {
-	// client.create().creatingParentsIfNeeded().forPath(projectPath);
-	// }
-	//
-	// Map<String, String> dataMap = new HashMap<>();
-	// dataMap.put("nodeId", host);
-	// dataMap.put("methodName", methodName);
-	//
-	// ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-	// ObjectOutputStream out = new ObjectOutputStream(byteOut);
-	// out.writeObject(dataMap);
-	//
-	// // this updates the path and the watcher is watching for updates
-	// //TODO - pass a full map as the data where host will be a key along with the
-	// function used - ex. pushOwl, pushInsightDB
-	// //client.setData().forPath(enginePath, host.getBytes());
-	// client.setData().forPath(projectPath, byteOut.toByteArray());
-	//
-	// }
-	//
+	
+//	
+//	//TODO - break this out smarter to be for all different pushes
+//	public void publishEngineChange(String engineId, String methodName) throws Exception {
+//		
+//		String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
+//		
+//		//this creates the path if it doesnt exist
+//		if (client.checkExists().forPath(enginePath) == null) {
+//		    client.create().creatingParentsIfNeeded().forPath(enginePath);
+//		}
+//		
+//	   Map<String, String> dataMap = new HashMap<>();
+//       dataMap.put("nodeId", host);
+//       dataMap.put("methodName", methodName);
+//       
+//       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+//       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+//       out.writeObject(dataMap);
+//	
+//		// this updates the path and the watcher is watching for updates
+//		//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushOwl, pushInsightDB
+//		 //client.setData().forPath(enginePath, host.getBytes());
+//       client.setData().forPath(enginePath, byteOut.toByteArray());
+//
+//	}
+//	
+//	//TODO - break this out smarter to be for all different pushes
+//	public void publishProjectChange(String projectId, String methodName) throws Exception {
+//		
+//		String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
+//		
+//		//this creates the path if it doesnt exist
+//		if (client.checkExists().forPath(projectPath) == null) {
+//		    client.create().creatingParentsIfNeeded().forPath(projectPath);
+//		}
+//		
+//		   Map<String, String> dataMap = new HashMap<>();
+//	       dataMap.put("nodeId", host);
+//	       dataMap.put("methodName", methodName);
+//	       
+//	       ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+//	       ObjectOutputStream out = new ObjectOutputStream(byteOut);
+//	       out.writeObject(dataMap);
+//		
+//			// this updates the path and the watcher is watching for updates
+//			//TODO - pass a full map as the data where host will be a key along with the function used - ex. pushOwl, pushInsightDB
+//			 //client.setData().forPath(enginePath, host.getBytes());
+//	       client.setData().forPath(projectPath, byteOut.toByteArray());
+//		
+//	}
+//	
 
 	public static void main(String[] args) {
 
