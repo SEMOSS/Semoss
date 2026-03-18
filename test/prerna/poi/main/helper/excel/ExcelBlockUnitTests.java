@@ -1,11 +1,10 @@
 package prerna.poi.main.helper.excel;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -185,8 +184,32 @@ class ExcelBlockUnitTests {
 
 	@Test
 	void test_getRangeTypes_mixedDateAndTimestamps() {
-		// TODO
-		assertTrue(1 == 1);
+	    ExcelBlock b = new ExcelBlock();
+
+	    // DATE evidence across the range
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.DATE, "yyyy-MM-dd");
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.DATE, "yyyy-MM-dd");
+
+	    // TIMESTAMP evidence across the range
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.TIMESTAMP, "yyyy-MM-dd HH:mm:ss");
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.TIMESTAMP, "yyyy-MM-dd HH:mm:ss");
+
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.TIMESTAMP, types[0][0]);
+	    // Not asserting types[0][1] here because the current ExcelBlock implementation
+	    // can make "most occurring format" nondeterministic when multiple formats exist.
+	}
+	
+	@Test
+	void test_getRangeTypes_timestampOnly_returnsTimestampAndMostOccurringFormat() {
+	    ExcelBlock b = new ExcelBlock();
+
+	    b.addColumnToRowIndexWithData(0, 1, SemossDataType.TIMESTAMP, "yyyy-MM-dd HH:mm:ss");
+	    b.addColumnToRowIndexWithData(0, 10, SemossDataType.TIMESTAMP, "yyyy-MM-dd HH:mm:ss");
+
+	    Object[][] types = b.getRangeTypes(new ExcelRange("A1:A10"));
+	    assertEquals(SemossDataType.TIMESTAMP, types[0][0]);
+	    assertEquals("yyyy-MM-dd HH:mm:ss", types[0][1]);
 	}
 	
 	@Test
