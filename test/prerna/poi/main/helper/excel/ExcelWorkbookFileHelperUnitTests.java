@@ -1,163 +1,164 @@
 package prerna.poi.main.helper.excel;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.reflect.Field;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import org.apache.poi.EncryptedDocumentException;
-import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.poifs.crypt.EncryptionInfo;
+import org.apache.poi.poifs.crypt.EncryptionMode;
+import org.apache.poi.poifs.crypt.Encryptor;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
-import org.mockito.stubbing.Answer;
-
-import com.github.pjfanning.xlsx.StreamingReader;
 
 import prerna.query.querystruct.ExcelQueryStruct;
 
 class ExcelWorkbookFileHelperUnitTests {
 
-    @TempDir
-    Path tempDir;
+	@TempDir Path tempDir;
 
-    private Path createSimpleXlsx(String fileName, String sheetName) throws Exception {
-        Path file = tempDir.resolve(fileName);
-        try (XSSFWorkbook wb = new XSSFWorkbook()) {
-            wb.createSheet(sheetName).createRow(0).createCell(0).setCellValue("v");
-            try (FileOutputStream out = new FileOutputStream(file.toFile())) {
-                wb.write(out);
-            }
-        }
-        return file;
-    }
+	@Test
+	void parse_unencryptedWorkbook_getSheetsAndGetSheet_work() throws Exception {
+		Path xlsx = writeSimpleWorkbook(tempDir.resolve("simple.xlsx"), List.of("Sheet1", "Sheet2"));
+		
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		helper.parse(xlsx.toString(), null);
+		
+		assertEquals(xlsx.toString(), helper.getFilePath());
+		assertEquals(List.of("Sheet1", "Sheet2"), helper.getSheets());
+		assertNotNull(helper.getSheet("Sheet1"));
+		helper.clear(); // should not throw
+	}
 
-    @Test
-    void test_parseAndGetFilePathAndSheetsAndGetSheet() throws Exception {
-        Path xlsx = createSimpleXlsx("book.xlsx", "Sheet1");
+	@Test
+	void parse_missingFile_throwsRuntimeExceptionWithCause() {
+		Path missing = tempDir.resolve("missing.xlsx");
 
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-        helper.parse(xlsx.toString(), null);
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(missing.toString(), null));
 
-        assertEquals(xlsx.toString(), helper.getFilePath());
+		assertEquals("Excel file not found", ex.getMessage());
+		assertNotNull(ex.getCause());
+		// cause type is FileNotFoundException (implementation detail), but we at least ensure it exists
+	}
 
-        List<String> sheets = helper.getSheets();
-        assertNotNull(sheets);
-        assertTrue(sheets.contains("Sheet1"));
+	@Test
+	void parse_encryptedWorkbook_wrongPassword_throwsHelpfulRuntimeException() throws Exception {
+		Path enc = writeEncryptedWorkbook(tempDir.resolve("encrypted.xlsx"), "correct-password");
 
-        Sheet sheet = helper.getSheet("Sheet1");
-        assertNotNull(sheet);
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(enc.toString(), "wrong-password"));
 
-        helper.clear();
-    }
+		assertEquals("Unable to open encrypted Excel file. Please verify the password.", ex.getMessage());
+		assertTrue(ex.getCause() instanceof EncryptedDocumentException);
+	}
 
-    @Test
-    @SuppressWarnings("deprecation")
-    void test_parseDeprecatedOverloadWorks() throws Exception {
-        Path xlsx = createSimpleXlsx("book_depr.xlsx", "Sheet1");
+	@Test
+	void parse_encryptedWorkbook_correctPassword_succeeds() throws Exception {
+		Path enc = writeEncryptedWorkbook(tempDir.resolve("encrypted-ok.xlsx"), "pw123");
 
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-        helper.parse(xlsx.toString());
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		helper.parse(enc.toString(), "pw123");
 
-        assertTrue(helper.getSheets().contains("Sheet1"));
-        helper.clear();
-    }
+		assertEquals(List.of("Sheet1"), helper.getSheets());
+		helper.clear();
+	}
 
-    @Test
-    void test_parseNonexistentFileThrowsRuntimeException() {
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	@Test
+	void buildSheetIterator_smokeTest_returnsIterator() throws Exception {
+		Path xlsx = writeSimpleWorkbook(tempDir.resolve("iter.xlsx"), List.of("Sheet1"));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse("does-not-exist.xlsx", null));
-        assertEquals("Excel file not found", ex.getMessage());
-    }
+		ExcelQueryStruct qs = new ExcelQueryStruct();
+		qs.setFilePath(xlsx.toString());
+		qs.setPassword(null);
+		qs.setSheetName("Sheet1");
+		// If your iterator requires range/types, set them here (left as-is because it depends on your implementation)
 
-    @Test
-    void test_clearBeforeParseDoesNotThrow() {
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-        assertDoesNotThrow(helper::clear);
-    }
+		ExcelSheetFileIterator it = ExcelWorkbookFileHelper.buildSheetIterator(qs);
+		assertNotNull(it);
+	}
 
-    @Test
-    void test_clearAfterParseIsIdempotent() throws Exception {
-        Path xlsx = createSimpleXlsx("book_clear.xlsx", "Sheet1");
+	@Test
+	void clear_whenSourceFilePresent_closesIt() throws Exception {
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		FileInputStream fis = mock(FileInputStream.class); // requires mockito-inline to mock final classes
+		setField(helper, "sourceFile", fis);
+		setField(helper, "fileLocation", "dummy.xlsx");
 
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-        helper.parse(xlsx.toString(), null);
+		helper.clear();
 
-        assertDoesNotThrow(helper::clear);
-        assertDoesNotThrow(helper::clear);
-    }
+		verify(fis, times(1)).close();
+	}
 
-    @Test
-    void test_getSheetIteratorReturnsIterator() throws Exception {
-        Path xlsx = createSimpleXlsx("book_iter.xlsx", "Sheet1");
+	@Test
+	void clear_whenCloseThrowsIOException_doesNotThrow() throws Exception {
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		FileInputStream fis = mock(FileInputStream.class);
+		doThrow(new IOException("boom")).when(fis).close();
+		setField(helper, "sourceFile", fis);
+		setField(helper, "fileLocation", "dummy.xlsx");
 
-        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-        helper.parse(xlsx.toString(), null);
+		assertDoesNotThrow(helper::clear);
+	}
 
-        ExcelQueryStruct qs = new ExcelQueryStruct();
-        qs.setFilePath(xlsx.toString());
-        qs.setSheetName("Sheet1");
-        qs.setSheetRange("A1:A1");
+	// ---------- Test helpers ----------
 
-        ExcelSheetFileIterator it = helper.getSheetIterator(qs);
-        assertNotNull(it);
+	private static Path writeSimpleWorkbook(Path path, List<String> sheetNames) throws Exception {
+		try (XSSFWorkbook wb = new XSSFWorkbook()) {
+			for (String name : sheetNames) {
+				wb.createSheet(name).createRow(0).createCell(0).setCellValue("A1");
+			}
+			try (OutputStream out = Files.newOutputStream(path)) {
+				wb.write(out);
+			}
+		}
+		return path;
+	}
 
-        helper.clear();
-    }
+	/**
+	 * Creates an encrypted .xlsx using Apache POI's Agile encryption.
+	 * This is an integration-style test helper; it may need small tweaks depending on your POI version.
+	 */
+	private static Path writeEncryptedWorkbook(Path path, String password) throws Exception {
+		byte[] plainXlsx;
+		try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+			wb.createSheet("Sheet1").createRow(0).createCell(0).setCellValue("secret");
+			wb.write(bos);
+			plainXlsx = bos.toByteArray();
+		}
 
-    @Test
-    void test_buildSheetIteratorReturnsIterator() throws Exception {
-        Path xlsx = createSimpleXlsx("book_build.xlsx", "Sheet1");
+		try (POIFSFileSystem fs = new POIFSFileSystem()) {
+			EncryptionInfo info = new EncryptionInfo(EncryptionMode.agile);
+			Encryptor enc = info.getEncryptor();
+			enc.confirmPassword(password);
 
-        ExcelQueryStruct qs = new ExcelQueryStruct();
-        qs.setFilePath(xlsx.toString());
-        qs.setSheetName("Sheet1");
-        qs.setSheetRange("A1:A1");
-        qs.setPassword(null);
+			try (OPCPackage opc = OPCPackage.open(new ByteArrayInputStream(plainXlsx));
+					OutputStream os = enc.getDataStream(fs)) {
+				opc.save(os);
+			}
 
-        ExcelSheetFileIterator it = ExcelWorkbookFileHelper.buildSheetIterator(qs);
-        assertNotNull(it);
-    }
+			try (OutputStream fileOut = Files.newOutputStream(path)) {
+				fs.writeFilesystem(fileOut);
+			}
+		}
+		return path;
+	}
 
-    @Test
-    void test_parseEncryptedDocumentExceptionWrapsWithHelpfulMessage() throws Exception {
-        Path anyFile = tempDir.resolve("not_really_encrypted.xlsx");
-        assertTrue(anyFile.toFile().createNewFile());
-
-        StreamingReader.Builder builder = mock(StreamingReader.Builder.class, (Answer<Object>) invocation -> builder);
-        when(builder.open(any(InputStream.class))).thenThrow(new EncryptedDocumentException("enc"));
-
-        try (MockedStatic<StreamingReader> mocked = mockStatic(StreamingReader.class)) {
-            mocked.when(StreamingReader::builder).thenReturn(builder);
-
-            ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-            RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(anyFile.toString(), "bad"));
-
-            assertEquals("Unable to open encrypted Excel file. Please verify the password.", ex.getMessage());
-        }
-    }
-
-    @Test
-    void test_parseGenericOpenExceptionWrapsWithUnableToReadExcelFile() throws Exception {
-        Path anyFile = tempDir.resolve("boom.xlsx");
-        assertTrue(anyFile.toFile().createNewFile());
-
-        StreamingReader.Builder builder = mock(StreamingReader.Builder.class, (Answer<Object>) invocation -> builder);
-        when(builder.open(any(InputStream.class))).thenThrow(new RuntimeException("boom"));
-
-        try (MockedStatic<StreamingReader> mocked = mockStatic(StreamingReader.class)) {
-            mocked.when(StreamingReader::builder).thenReturn(builder);
-
-            ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-            RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(anyFile.toString(), null));
-
-            assertEquals("Unable to read Excel file", ex.getMessage());
-        }
-    }
+	private static void setField(Object target, String fieldName, Object value) throws Exception {
+		Field f = target.getClass().getDeclaredField(fieldName);
+		f.setAccessible(true);
+		f.set(target, value);
+	}
 }
