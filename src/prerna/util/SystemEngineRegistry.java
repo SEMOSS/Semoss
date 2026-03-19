@@ -237,7 +237,7 @@ public final class SystemEngineRegistry {
 	 * @param engineId
 	 * @return
 	 */
-	static boolean isSystemEngine(String engineId) {
+	public static boolean isSystemEngine(String engineId) {
 		return engineId != null && SYSTEM_ENGINE_IDS.contains(engineId);
 	}
 
@@ -334,6 +334,45 @@ public final class SystemEngineRegistry {
 				throw new IllegalStateException("ModelInferenceLogsDb is already registered");
 			}
 			modelInferenceLogsDbHolder = () -> engine;
+		}
+		default -> throw new IllegalArgumentException("Not a known system engine ID: " + engineId);
+		}
+	}
+
+	/**
+	 * Get a system engine id via its id
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static IRDBMSEngine getSystemEngine(String engineId) {
+		switch (engineId) {
+		case Constants.SECURITY_DB -> {
+			return getSecurityDb();
+		}
+		case Constants.LOCAL_MASTER_DB -> {
+			return getLocalMasterDb();
+		}
+		case Constants.SCHEDULER_DB -> {
+			return getSchedulerDb();
+		}
+		case Constants.THEMING_DB -> {
+			return getThemesDb();
+		}
+		case Constants.USER_TRACKING_DB -> {
+			return getUserTrackingDb();
+		}
+		case Constants.PROMPT_DB -> {
+			return getPromptDb();
+		}
+		case Constants.NOTIFICATION_DB -> {
+			return getNotificationDb();
+		}
+		case Constants.AUDIT_LOGS_DB -> {
+			return getAuditLogsDb();
+		}
+		case Constants.MODEL_INFERENCE_LOGS_DB -> {
+			return getModelInferenceLogsDb();
 		}
 		default -> throw new IllegalArgumentException("Not a known system engine ID: " + engineId);
 		}

@@ -2111,7 +2111,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
 				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+					if (!SystemDefaultDatabases.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -2124,7 +2124,7 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if (hasAssetsFolder) {
-					if (SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
+					if (SystemDefaultDatabases.getDatabasesWithGeneratedOwl().contains(engineId)) {
 						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
 								+ " assets directory exists. This enigne will not be synced to cloud");
 					} else {
@@ -2710,8 +2710,8 @@ public final class Utility {
 					}
 
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SemossDefaultEngines.valueStartsWith(engineId,
-							SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
+					if (!SystemDefaultDatabases.valueStartsWith(engineId,
+							SystemDefaultDatabases.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {

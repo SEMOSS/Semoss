@@ -88,7 +88,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.SemossDefaultEngines;
+import prerna.util.SystemDefaultDatabases;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
@@ -177,7 +177,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)
-				|| SemossDefaultEngines.getDatabaseIgnoreAudit().contains(this.engineId)) {
+				|| SystemDefaultDatabases.getDatabaseIgnoreAudit().contains(this.engineId)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
 			} catch (InvocationTargetException e) {

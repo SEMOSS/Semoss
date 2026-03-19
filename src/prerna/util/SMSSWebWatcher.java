@@ -28,7 +28,6 @@
 package prerna.util;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -55,11 +54,6 @@ import prerna.usertracking.UserTrackingUtils;
  * This class opens a thread and watches a specific SMSS file.
  */
 public class SMSSWebWatcher extends AbstractFileWatcher {
-
-	private static List<String> ignoreSmssList = new ArrayList<>();
-	static {
-		ignoreSmssList.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
-	}
 
 	private static final Logger classLogger = LogManager.getLogger(SMSSWebWatcher.class);
 
@@ -102,17 +96,12 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 //			OwlSeparatePixelFromConceptual.fixOwl(prop);
 
 			engineId = prop.getProperty(Constants.ENGINE);
-			if (ignoreSmssList.contains(engineId)) {
-				String filePath = folderToWatch + "/" + newFile;
-				Utility.loadDatabase(filePath, prop);
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
+				classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
 			} else {
-				if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-						|| engines.endsWith(";" + engineId)) {
-					classLogger.debug("DB " + folderToWatch + "<>" + newFile + " is already loaded...");
-				} else {
-					String filePath = folderToWatch + "/" + newFile;
-					Utility.catalogEngineByType(filePath, prop, engineId);
-				}
+				String filePath = folderToWatch + "/" + newFile;
+				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
