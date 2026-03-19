@@ -25,54 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.masterdatabase;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
+import prerna.ds.rdbms.h2.H2Frame;
+import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.reactor.imports.RdbmsImporter;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.SystemEngineRegistry;
 
-public class ClaudeCodeReactor extends AbstractReactor {
-	public ClaudeCodeReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey(),
-				"allowedTools",
-				"permissionMode",
-		};
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0};
-	}
+public class GetPhysicalToLogicalMappingReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		String command = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String permissionMode = this.keyValue.get("permissionMode");
-	    GenRowStruct grs = this.store.getGenRowStruct("allowedTools");
-	    List<String> allowedTools = (grs != null && !grs.isEmpty()) 
-	        ? grs.getAllStrValues() 
-	        : new ArrayList<>();
-		
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-		try {
-			String response = manager.query(this.insight, user, projectId, command, roomId, allowedTools, permissionMode);
-			return new NounMetadata(response, PixelDataType.CONST_STRING,
-					PixelOperationType.OPERATION);
-		} catch(Exception e){
-			throw new SemossPixelException("Unable to load python file as module. Error: " + e.getMessage(), e);
-		}
+		String query = "SELECT e.engineName, ec.physicalName, c.logicalName from Engine e INNER JOIN EngineConcept ec ON e.id=ec.engine INNER JOIN Concept c on ec.localConceptID = c.localConceptID";
+		HardSelectQueryStruct qs = new HardSelectQueryStruct();
+		qs.setQuery(query);
+		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setEngine(SystemEngineRegistry.getLocalMasterDb());
+
+		H2Frame frame = new H2Frame();
+		RdbmsImporter importer = new RdbmsImporter(frame, qs);
+		importer.insertData();
+		this.insight.setDataMaker(frame);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
 	}
+
 }
