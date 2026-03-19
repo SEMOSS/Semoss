@@ -2850,8 +2850,7 @@ public class ModelInferenceLogsUtils {
 		// INPUT_TOKENS
 		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
-				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"),
-				new QueryConstantSelector(0),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
 				"INPUT_IF");
 		QueryFunctionSelector inputTokenSelector = new QueryFunctionSelector();
 		inputTokenSelector.setAlias("INPUT_TOKENS");
@@ -2863,8 +2862,7 @@ public class ModelInferenceLogsUtils {
 		// RESPONSE_TOKENS
 		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
-				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"),
-				new QueryConstantSelector(0),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
 				"RESPONSE_IF");
 		QueryFunctionSelector responseTokenSelector = new QueryFunctionSelector();
 		responseTokenSelector.setAlias("RESPONSE_TOKENS");
@@ -2882,8 +2880,7 @@ public class ModelInferenceLogsUtils {
 		// Count number of requests (INPUT messages only)
 		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
-				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"),
-				new QueryConstantSelector(null),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"), new QueryConstantSelector(null),
 				"REQUEST_IF");
 		QueryFunctionSelector countRequestSelector = new QueryFunctionSelector();
 		countRequestSelector.setAlias("TOTAL_REQUESTS");
