@@ -93,24 +93,49 @@ public class SemossClassloader extends ClassLoader {
 				return c;
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read class file for '{}' from folder '{}'", name, folder, e);
 		}
 		return null;
 	}
 
 	/**
-	 * Overrides the default class loading strategy. It first attempts to load the
-	 * class using the parent class loader (the standard behavior). If the class is
-	 * not found, it falls back to loading it from the custom folder location
-	 * specified for this loader.
+	 * Returns true if the given class name belongs to a JDK API that provides
+	 * private reflective access to fields or objects. Custom project reactor code
+	 * must not be able to use these APIs to bypass the SystemEngineRegistry access
+	 * controls.
+	 *
+	 * Blocked: - java.lang.reflect.* direct Field/Method/Constructor reflection -
+	 * java.lang.invoke.MethodHandles privateLookupIn() gives equivalent access -
+	 * java.lang.invoke.MethodHandles$Lookup the lookup object itself -
+	 * sun.misc.Unsafe objectFieldOffset+getObject reads any field -
+	 * jdk.internal.misc.Unsafe same capability, internal variant
+	 *
+	 * @param name fully-qualified class name
+	 * @return true if this class must not be loaded by project reactor code
+	 */
+	static boolean isReflectionApiBlocked(String name) {
+		return name.startsWith("java.lang.reflect.") || name.equals("java.lang.invoke.MethodHandles")
+				|| name.equals("java.lang.invoke.MethodHandles$Lookup") || name.equals("sun.misc.Unsafe")
+				|| name.equals("jdk.internal.misc.Unsafe");
+	}
+
+	/**
+	 * Overrides the default class loading strategy. Blocks access to reflection
+	 * APIs that could be used to bypass SystemEngineRegistry access controls, then
+	 * attempts the parent class loader (standard delegation), and falls back to
+	 * loading from the custom folder location if not found.
 	 *
 	 * @param name The fully qualified name of the class.
 	 * @return The resulting Class object.
-	 * @throws ClassNotFoundException If the class could not be found in either the
-	 *                                parent loader or the custom path.
+	 * @throws ClassNotFoundException If the class is blocked, or could not be found
+	 *                                in either the parent loader or the custom
+	 *                                path.
 	 */
 	@Override
 	public Class<?> loadClass(String name) throws ClassNotFoundException {
+		if (isReflectionApiBlocked(name)) {
+			throw new ClassNotFoundException("Access to '" + name + "' is not permitted in project reactors");
+		}
 		Class retClass = null;
 		// see if it is already loaded or in the classpath
 		try {
@@ -121,6 +146,13 @@ public class SemossClassloader extends ClassLoader {
 		}
 
 		if (retClass == null) {
+			if (name != null && name.startsWith("prerna.")) {
+				classLogger.warn(
+						"Project reactor requested prerna.* class '{}' - not found in application classpath, denying load from project folder",
+						name);
+				throw new ClassNotFoundException(
+						"Classes in 'prerna.*' packages cannot be loaded from project reactor folders: " + name);
+			}
 			classLogger.info("Project Specific Class " + name);
 			retClass = getClass(name);
 		}
@@ -153,14 +185,16 @@ public class SemossClassloader extends ClassLoader {
 					stream.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close FileInputStream for class file '{}' in folder '{}'", name, folder,
+						e);
 			}
 			try {
 				if (in != null) {
 					in.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close DataInputStream for class file '{}' in folder '{}'", name, folder,
+						e);
 			}
 		}
 		return buff;

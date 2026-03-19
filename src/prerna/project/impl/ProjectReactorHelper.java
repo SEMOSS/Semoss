@@ -49,7 +49,6 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
 
 import io.github.classgraph.ClassGraph;
@@ -64,9 +63,11 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
+import prerna.reactor.task.TaskBuilderReactor;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.SemossClassloader;
+import prerna.util.SemossJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
@@ -88,7 +89,7 @@ public class ProjectReactorHelper {
 	 */
 	private static final String PROTECTED_PACKAGE_PREFIX = "prerna.";
 
-	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+	private static final Logger classLogger = LogManager.getLogger(ProjectReactorHelper.class);
 	private static final String DIR_SEPARATOR = "/";
 
 	private SemossClassloader projectClassLoader = null;
@@ -97,7 +98,7 @@ public class ProjectReactorHelper {
 	private URLClassLoader urlClassLoader;
 	// for pom
 	private boolean mvnDefined = false;
-	private JarClassLoader mvnClassLoader = null;
+	private SemossJarClassLoader mvnClassLoader = null;
 
 	private IProject project = null;
 
@@ -192,7 +193,8 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load reactors from folder '{}' for project '{}'", folder,
+					project.getProjectId(), ex);
 		}
 
 		return reactorMap;
@@ -238,7 +240,7 @@ public class ProjectReactorHelper {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				classLogger.error("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -283,7 +285,8 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load reactors from pom '{}' for project '{}'", folder, project.getProjectId(),
+					ex);
 		}
 
 		return reactors;
@@ -347,7 +350,7 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load reactors from JARs for project '{}'", project.getProjectId(), e);
 		}
 
 		return reactorsMap;
@@ -376,7 +379,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new JarClassLoader();
+			mvnClassLoader = new SemossJarClassLoader();
 
 			// classes are in
 			// appRoot / classes
@@ -470,17 +473,20 @@ public class ProjectReactorHelper {
 
 			return finalCP;
 		} catch (MavenInvocationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Maven invocation failed while resolving dependencies for pom '{}'",
+					pomFile.getAbsolutePath(), e);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Maven dependency output file not found for pom '{}'", pomFile.getAbsolutePath(), e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("IO error while reading Maven dependency output for pom '{}'", pomFile.getAbsolutePath(),
+					e);
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close Maven dependency output reader for pom '{}'",
+							pomFile.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -506,7 +512,7 @@ public class ProjectReactorHelper {
 			try {
 				urlClassLoader.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close URL classloader for project '{}'", project.getProjectId(), e);
 			}
 		}
 
@@ -537,6 +543,7 @@ public class ProjectReactorHelper {
 		if (className.equals(AbstractRFrameReactor.class.getName())
 				|| className.equals(AbstractPyFrameReactor.class.getName())
 				|| className.equals(AbstractFrameReactor.class.getName())
+				|| className.equals(TaskBuilderReactor.class.getName())
 				|| className.equals(AbstractReactor.class.getName()) || className.equals(IReactor.class.getName())
 				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())) {
 			return true;
