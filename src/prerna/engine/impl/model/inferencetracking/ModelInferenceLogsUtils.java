@@ -2845,7 +2845,7 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// Select engine ID and name
-		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
 		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
 		// INPUT_TOKENS
@@ -2904,7 +2904,6 @@ public class ModelInferenceLogsUtils {
 
 		// Group by engine
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
-
 		// Order by engine ID
 		qs.addOrderBy(MESSAGE_TABLE_NAME + "AGENT_ID", "ASC");
 

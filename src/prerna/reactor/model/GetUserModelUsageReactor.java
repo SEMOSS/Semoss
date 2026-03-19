@@ -35,6 +35,8 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -46,140 +48,116 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetUserModelUsageReactor extends AbstractReactor {
 
-    public GetUserModelUsageReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.START_DATE.getKey(),
-                ReactorKeysEnum.END_DATE.getKey() };
-        this.keyRequired = new int[] { 1, 0, 0 }; // engines required, dates optional
-    }
+	public GetUserModelUsageReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.START_DATE.getKey(),
+				ReactorKeysEnum.END_DATE.getKey() };
+		this.keyRequired = new int[] { 1, 0, 0 };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        User user = insight.getUser();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = insight.getUser();
 
-        if (user == null) {
-            throw new IllegalArgumentException("You are not properly logged in");
-        }
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
 
-        // Get the parameters
-        List<String> engineIds = getEngineIds();
-        String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
-        String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+		// Get the parameters
+		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
+		// Validate we have at least one engine
+		if (engineIds == null || engineIds.isEmpty()) {
+			throw new IllegalArgumentException("At least one engine ID must be provided");
+		}
 
-        // Validate date parameters
-        validateDateParameters(startDate, endDate);
+		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
+		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+		// Validate date parameters
+		validateDateParameters(startDate, endDate);
 
-        // Validate we have at least one engine
-        if (engineIds == null || engineIds.isEmpty()) {
-            throw new IllegalArgumentException("At least one engine ID must be provided");
-        }
+		// Get usage data per engine
+		List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
+				startDate, endDate);
 
-        // Get usage data per engine
-        List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
-                startDate, endDate);
+		// Append engine name from the security engine database
+		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(usageData.stream()
+				.map(map -> (String) map.get("ENGINE_ID")).filter(Objects::nonNull).collect(Collectors.toList()));
+		for (Map<String, Object> entry : usageData) {
+			String engineId = (String) entry.get("ENGINE_ID");
+			if (engineId != null) {
+				String engineName = (String) idToAlias.get(engineId);
+				entry.put("ENGINE_NAME", engineName);
+			}
+		}
 
-        // Append engine name from the security engine database
-        for (Map<String, Object> entry : usageData) {
-            String engineId = (String) entry.get("AGENT_ID");
-            if (engineId != null) {
-                String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-                entry.put("ENGINE_NAME", engineName);
-            }
-        }
+		return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
 
-        return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
-    }
+	/**
+	 * Validates that if one date is provided, both must be provided, that dates are
+	 * valid, and that start date is before or equal to end date
+	 * 
+	 * @param startDate
+	 * @param endDate
+	 */
+	private void validateDateParameters(String startDate, String endDate) {
+		boolean hasStartDate = startDate != null && !startDate.trim().isEmpty();
+		boolean hasEndDate = endDate != null && !endDate.trim().isEmpty();
 
-    /**
-     * Validates that if one date is provided, both must be provided,
-     * that dates are valid, and that start date is before or equal to end date
-     * 
-     * @param startDate
-     * @param endDate
-     */
-    private void validateDateParameters(String startDate, String endDate) {
-        boolean hasStartDate = startDate != null && !startDate.trim().isEmpty();
-        boolean hasEndDate = endDate != null && !endDate.trim().isEmpty();
+		if (hasStartDate != hasEndDate) {
+			throw new IllegalArgumentException(
+					"Both startDate and endDate must be provided together, or neither should be provided");
+		}
 
-        if (hasStartDate != hasEndDate) {
-            throw new IllegalArgumentException(
-                    "Both startDate and endDate must be provided together, or neither should be provided");
-        }
+		// If both dates are provided, validate them
+		if (hasStartDate && hasEndDate) {
+			DateTimeFormatter formatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd")
+					.parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+					.parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter().withZone(ZoneOffset.UTC);
+			ZonedDateTime start;
+			ZonedDateTime end;
 
-        // If both dates are provided, validate them
-        if (hasStartDate && hasEndDate) {
-            DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-                    .appendPattern("yyyy-MM-dd")
-                    .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-                    .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-                    .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
-                    .toFormatter()
-                    .withZone(ZoneOffset.UTC);
-            ZonedDateTime start;
-            ZonedDateTime end;
+			// Parse and validate start date
+			try {
+				start = ZonedDateTime.parse(startDate.trim(), formatter);
+			} catch (DateTimeParseException e) {
+				throw new IllegalArgumentException(
+						"Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
+			}
 
-            // Parse and validate start date
-            try {
-                start = ZonedDateTime.parse(startDate.trim(), formatter);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException(
-                        "Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
-            }
+			// Parse and validate end date
+			try {
+				end = ZonedDateTime.parse(endDate.trim(), formatter);
+			} catch (DateTimeParseException e) {
+				throw new IllegalArgumentException(
+						"Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
+			}
 
-            // Parse and validate end date
-            try {
-                end = ZonedDateTime.parse(endDate.trim(), formatter);
-            } catch (DateTimeParseException e) {
-                throw new IllegalArgumentException(
-                        "Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
-            }
+			// Validate start date is before or equal to end date
+			if (start.isAfter(end)) {
+				throw new IllegalArgumentException("startDate must be before or equal to endDate. Provided: startDate="
+						+ startDate + ", endDate=" + endDate);
+			}
+		}
+	}
 
-            // Validate start date is before or equal to end date
-            if (start.isAfter(end)) {
-                throw new IllegalArgumentException(
-                        "startDate must be before or equal to endDate. Provided: startDate=" + startDate
-                                + ", endDate=" + endDate);
-            }
-        }
-    }
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns model usage (tokens used) for the current user over a specified time period. \
+				Requires a list of engine IDs and optionally accepts a date range
+				""";
+	}
 
-    /**
-     * Gets the list of engine IDs from the reactor parameters
-     * 
-     * @return List of engine IDs or null if not provided
-     */
-    private List<String> getEngineIds() {
-        // Try to get as a list first
-        List<String> engineIds = null;
-
-        // Also check keyValue
-        if (this.keyValue.containsKey(ReactorKeysEnum.ENGINE.getKey())) {
-            Object enginesObj = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-            if (enginesObj instanceof List) {
-                engineIds = (List<String>) enginesObj;
-            } else if (enginesObj instanceof String) {
-                engineIds = List.of((String) enginesObj);
-            }
-        }
-
-        return engineIds;
-    }
-
-    @Override
-    public String getReactorDescription() {
-        return "Returns model usage (tokens used) for the current user over a specified time period. "
-                + "Requires a list of engine IDs and optionally accepts a date range.";
-    }
-
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-            return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
-        } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-            return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
-        } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-            return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
+		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+			return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
+		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+			return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
