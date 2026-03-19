@@ -2904,7 +2904,6 @@ public class ModelInferenceLogsUtils {
 
 		// Group by engine
 		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
-		qs.addGroupBy(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
 
 		// Order by engine ID
 		qs.addOrderBy(MESSAGE_TABLE_NAME + "AGENT_ID", "ASC");

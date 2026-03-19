@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -76,6 +77,15 @@ public class GetUserModelUsageReactor extends AbstractReactor {
         // Get usage data per engine
         List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(user, engineIds,
                 startDate, endDate);
+
+        // Append engine name from the security engine database
+        for (Map<String, Object> entry : usageData) {
+            String engineId = (String) entry.get("AGENT_ID");
+            if (engineId != null) {
+                String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+                entry.put("ENGINE_NAME", engineName);
+            }
+        }
 
         return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
