@@ -27,10 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
-import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoField;
 import java.util.List;
 import java.util.Map;
 
@@ -96,12 +98,19 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
         // If both dates are provided, validate them
         if (hasStartDate && hasEndDate) {
+            DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+                    .appendPattern("yyyy-MM-dd")
+                    .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
+                    .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+                    .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0)
+                    .toFormatter()
+                    .withZone(ZoneOffset.UTC);
             ZonedDateTime start;
             ZonedDateTime end;
 
             // Parse and validate start date
             try {
-                start = LocalDate.parse(startDate.trim()).atStartOfDay(ZoneOffset.UTC);
+                start = ZonedDateTime.parse(startDate.trim(), formatter);
             } catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(
                         "Invalid startDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");
@@ -109,7 +118,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
             // Parse and validate end date
             try {
-                end = LocalDate.parse(endDate.trim()).atStartOfDay(ZoneOffset.UTC);
+                end = ZonedDateTime.parse(endDate.trim(), formatter);
             } catch (DateTimeParseException e) {
                 throw new IllegalArgumentException(
                         "Invalid endDate format. Expected format: YYYY-MM-DD (e.g., 2026-01-15)");

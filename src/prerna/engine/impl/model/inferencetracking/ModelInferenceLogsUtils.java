@@ -128,11 +128,13 @@ public class ModelInferenceLogsUtils {
 			conn = modelInferenceLogsDb.getConnection();
 			executeInitModelInferenceDatabase(modelInferenceLogsDb, conn, modelInfCreator.getDBSchema());
 
-//      boolean primaryKeysAdded =
-//          addAllPrimaryKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBPrimaryKeys());
-//      if (primaryKeysAdded) {
-//        addAllForeignKeys(modelInferenceLogsDb, conn, modelInfCreator.getDBForeignKeys());
-//      }
+			// boolean primaryKeysAdded =
+			// addAllPrimaryKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBPrimaryKeys());
+			// if (primaryKeysAdded) {
+			// addAllForeignKeys(modelInferenceLogsDb, conn,
+			// modelInfCreator.getDBForeignKeys());
+			// }
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -2844,7 +2846,6 @@ public class ModelInferenceLogsUtils {
 
 		// Select engine ID and name
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
-		qs.addSelector(new QueryColumnSelector(AGENT_TABLE_NAME + "AGENT_NAME"));
 
 		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
 		// INPUT_TOKENS
@@ -2888,22 +2889,14 @@ public class ModelInferenceLogsUtils {
 		countRequestSelector.addInnerSelector(requestIf);
 		qs.addSelector(countRequestSelector);
 
-		// Join to AGENT table to get agent name
-		qs.addRelation(MESSAGE_TABLE_NAME + "AGENT_ID", AGENT_TABLE_NAME + "AGENT_ID", "left.join");
-
 		// Filter by user ID
-		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		String userId = user.getPrimaryLoginToken().getId();
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
 
 		// Filter by engine IDs
 		if (engineIds != null && !engineIds.isEmpty()) {
-			if (engineIds.size() == 1) {
-				qs.addExplicitFilter(
-						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds.get(0)));
-			} else {
-				qs.addExplicitFilter(
-						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
-			}
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
 		}
 
 		// Filter by date range if provided
