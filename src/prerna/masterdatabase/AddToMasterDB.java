@@ -60,6 +60,7 @@ import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.LocalMasterConceptIdHash;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -117,7 +118,7 @@ public class AddToMasterDB {
 		}
 
 		// grab the local master engine
-		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine localMaster = SystemEngineRegistry.getLocalMasterDb();
 		// establish the connection
 		Connection conn = null;
 		PreparedStatement conceptPs = null;
@@ -752,7 +753,7 @@ public class AddToMasterDB {
 		// make statements
 		// create table to local master
 		// check if fileName exists
-		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine localMaster = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		PreparedStatement ps = null;
 		try {
@@ -797,7 +798,7 @@ public class AddToMasterDB {
 				Constants.LM_META_VALUE };
 		String localConceptID = MasterDatabaseUtility.getPhysicalConceptId(engineId, concept);
 
-		IRDBMSEngine localMaster = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine localMaster = SystemEngineRegistry.getLocalMasterDb();
 		AbstractSqlQueryUtil queryUtil = localMaster.getQueryUtil();
 		Connection conn = null;
 		PreparedStatement stmt = null;

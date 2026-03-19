@@ -41,6 +41,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 
 public class BupdReactor extends AbstractReactor {
 
@@ -53,7 +54,7 @@ public class BupdReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = engine.getConnection();

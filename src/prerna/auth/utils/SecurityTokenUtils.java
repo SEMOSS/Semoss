@@ -36,6 +36,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -43,6 +44,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityTokenUtils extends AbstractSecurityUtils {
@@ -62,6 +64,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @param expirationMinutes
 	 */
 	public static void clearExpiredTokens(long expirationMinutes) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC")).minusMinutes(expirationMinutes);
 		String query = "DELETE FROM TOKEN WHERE DATEADDED <= ?";
 		PreparedStatement ps = null;
@@ -84,6 +87,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] generateToken(String ipAddr, String clientId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "INSERT INTO TOKEN (IPADDR, VAL, DATEADDED, CLIENTID) VALUES (?,?,?,?)";
 		String tokenValue = UUID.randomUUID().toString();
 		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -113,6 +117,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] getToken(String ipAddr) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("TOKEN__VAL"));
 		qs.addSelector(new QueryColumnSelector("TOKEN__IPADDR"));
