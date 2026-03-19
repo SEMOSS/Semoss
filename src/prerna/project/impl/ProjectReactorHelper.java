@@ -79,6 +79,15 @@ import prerna.util.git.GitAssetUtils;
  */
 public class ProjectReactorHelper {
 
+	/**
+	 * Custom reactors must never declare a package inside the core prerna.*
+	 * namespace. A class that does so could spoof the StackWalker package check in
+	 * SystemEngineRegistry and gain access to system engines it is not authorised
+	 * to touch. Any class whose fully-qualified name starts with this prefix is
+	 * rejected at load time.
+	 */
+	private static final String PROTECTED_PACKAGE_PREFIX = "prerna.";
+
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
 	private static final String DIR_SEPARATOR = "/";
 
@@ -163,6 +172,10 @@ public class ProjectReactorHelper {
 				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
 					String className = classObject.getName();
+					if (isProtectedPackage(className)) {
+						classLogger.warn("Blocked custom reactor with protected package name: {}", className);
+						continue;
+					}
 
 					if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 							&& isValidReactor(classObject)) {
@@ -248,11 +261,16 @@ public class ProjectReactorHelper {
 					pool.insertClassPath(classesFolder);
 
 					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+						String mvnClassName = classes.get(classIndex).getName();
+						if (isProtectedPackage(mvnClassName)) {
+							classLogger.warn("Blocked custom reactor with protected package name: {}", mvnClassName);
+							continue;
+						}
 						// this will load the reactor with everything
 						JclObjectFactory factory = JclObjectFactory.getInstance();
 
 						// Create object of loaded class
-						Object loadedObject = factory.create(this.mvnClassLoader, classes.get(classIndex).getName());
+						Object loadedObject = factory.create(this.mvnClassLoader, mvnClassName);
 
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
@@ -313,6 +331,10 @@ public class ProjectReactorHelper {
 
 				if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 						&& isValidReactor(classObject)) {
+					if (isProtectedPackage(className)) {
+						classLogger.warn("Blocked custom reactor with protected package name: {}", className);
+						continue;
+					}
 					Class<IReactor> actualClass = (Class<IReactor>) urlClassLoader.loadClass(className);
 
 					String reactorName = classes.get(classIndex).getSimpleName();
@@ -494,13 +516,23 @@ public class ProjectReactorHelper {
 	}
 
 	/**
+	 * Returns true if the fully-qualified class name falls inside the protected
+	 * prerna.* namespace. Custom reactors must not declare themselves in this
+	 * namespace because doing so would spoof the StackWalker package check in
+	 * SystemEngineRegistry and grant them unauthorised access to system engines.
+	 */
+	private static boolean isProtectedPackage(String className) {
+		return className.startsWith(PROTECTED_PACKAGE_PREFIX);
+	}
+
+	/**
 	 * Checks if a given class is a valid reactor. A valid reactor is a class that
 	 * implements the IReactor interface or extends a known reactor base class.
 	 *
 	 * @param classObject The ClassInfo object representing the class to check.
 	 * @return true if the class is a valid reactor, false otherwise.
 	 */
-	public static boolean isValidReactor(ClassInfo classObject) {
+	private static boolean isValidReactor(ClassInfo classObject) {
 		String className = classObject.getName();
 		if (className.equals(AbstractRFrameReactor.class.getName())
 				|| className.equals(AbstractPyFrameReactor.class.getName())

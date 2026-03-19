@@ -68,7 +68,8 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.SemossDefaultEngines;
+import prerna.util.SystemDefaultDatabases;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -76,7 +77,6 @@ public abstract class AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractSecurityUtils.class);
 
-	static IRDBMSEngine securityDb;
 	@Deprecated
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
@@ -141,8 +141,8 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static void loadSecurityDatabase() throws Exception {
-		securityDb = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
-		SecurityOwlCreator owlCreator = new SecurityOwlCreator(securityDb);
+		IRDBMSEngine loadedSecurityDb = SystemEngineRegistry.getSecurityDb();
+		SecurityOwlCreator owlCreator = new SecurityOwlCreator(loadedSecurityDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
 		}
@@ -510,6 +510,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static void initialize() throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String database = securityDb.getDatabase();
 		String schema = securityDb.getSchema();
 		Connection conn = securityDb.getConnection();
@@ -2244,22 +2245,28 @@ public abstract class AbstractSecurityUtils {
 		// colNames, types));
 		//
 		// // FOREIGN KEYS FOR CASCASDE DELETE
-		// wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select
+		// wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb,
+		// "select
 		// count(*) from INFORMATION_SCHEMA.CONSTRAINTS where
 		// constraint_name='FK_GROUPENGINEPERMISSION'");
 		// if(wrapper.hasNext()) {
 		// if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-		// securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
+		// securityDb.insertData("ALTER TABLE
+		// ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
 		// FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES
 		// GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
 		// }
 		// }
-		// wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, "select
+		// wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb,
+		// "select
 		// count(*) from INFORMATION_SCHEMA.CONSTRAINTS where
 		// constraint_name='FK_GROUPMEMBERSID'");
 		// if(wrapper.hasNext()) {
 		// if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-		// securityDb.insertData("ALTER TABLE ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
+		// securityDb.insertData("ALTER TABLE
+		// ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
 		// FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS
 		// (GROUPMEMBERSID) ON DELETE CASCADE;");
 		// }
@@ -2284,7 +2291,8 @@ public abstract class AbstractSecurityUtils {
 		// "columnname", "rlsvalue", "rlsjavacode", "owner" };
 		// types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)",
 		// "varchar(255)", "varchar(255)", CLOB_DATATYPE_NAME, "varchar(255)" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED", colNames,
+		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED",
+		// colNames,
 		// types));
 
 		// // USERSEEDPERMISSION
@@ -2301,6 +2309,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	private static void updateUserTypeEnum() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String[]> allValues = new HashMap<>();
 		allValues.put("ASSETENGINE", new String[] { "TYPE" });
 		allValues.put("CUSTOMGROUPASSIGNMENT", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
@@ -2514,6 +2523,7 @@ public abstract class AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean containsEngineName(String engineName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (ignoreDatabase(engineName)) {
 			// dont add local master or security db to security db
 			return true;
@@ -2539,6 +2549,7 @@ public abstract class AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean containsProjectName(String projectName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
@@ -2554,6 +2565,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static boolean containsEngineId(String databaseId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (ignoreDatabase(databaseId)) {
 			// dont add local master or security db to security db
 			return true;
@@ -2574,13 +2586,15 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	public static boolean containsProjectId(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (ignoreDatabase(projectId)) {
 			// dont add local master or security db to security db
 			return true;
 		}
 		// String query = "SELECT ENGINEID FROM ENGINE WHERE ENGINEID='" + appId + "'";
 		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// WrapperManager.getInstance().getRawWrapper(securityDb,
+		// query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -2598,7 +2612,7 @@ public abstract class AbstractSecurityUtils {
 
 	public static boolean ignoreDatabase(String databaseId) {
 		// dont add default semoss databases to security
-		if (SemossDefaultEngines.getDatabaseIgnoreSecurity().contains(databaseId)) {
+		if (SystemDefaultDatabases.getDatabaseIgnoreSecurity().contains(databaseId)) {
 			return true;
 		}
 		// engine is an asset
@@ -2624,13 +2638,15 @@ public abstract class AbstractSecurityUtils {
 	 * @return
 	 */
 	public static File getStockImage(String databaseId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String imageDir = Utility.getBaseFolder() + "/images/stock/";
 		String layout = null;
 
 		// String query = "SELECT LAYOUT FROM INSIGHT WHERE INSIGHT.ENGINEID='" + appId
 		// + "' AND INSIGHT.INSIGHTID='" + insightId + "'";
 		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// WrapperManager.getInstance().getRawWrapper(securityDb,
+		// query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LAYOUT"));
@@ -2842,6 +2858,7 @@ public abstract class AbstractSecurityUtils {
 	 * @return
 	 */
 	static List<Map<String, Object>> getSimpleQuery(SelectQueryStruct qs) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> ret = new ArrayList<Map<String, Object>>();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {

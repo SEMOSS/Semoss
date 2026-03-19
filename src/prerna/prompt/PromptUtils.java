@@ -62,6 +62,8 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 public class PromptUtils extends AbstractPromptUtils {
 
@@ -95,6 +97,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 *         user, false otherwise
 	 */
 	public static Boolean checkPromptTitle(String promptTitle, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__ID"));
@@ -211,6 +214,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @throws IllegalArgumentException if validation fails
 	 */
 	public static String addPrompt(Map<String, Object> promptDetails, User user, String userId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
 		List<String> tags = (List<String>) promptDetails.get("tags");
@@ -249,6 +253,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 *                                  permissions
 	 */
 	public static void editPrompt(Map<String, Object> promptDetails, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String userId = user.getPrimaryLoginToken().getId();
 		boolean allowClob = promptDb.getQueryUtil().allowClobJavaObject();
 
@@ -285,6 +290,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 *                                  prompt
 	 */
 	private static void validatePromptUpdateAuthorization(String promptId, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String userId = user.getPrimaryLoginToken().getId();
 
 		// Query to get prompt details (CREATED_BY and GLOBAL fields)
@@ -339,6 +345,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param promptId The ID of the prompt to mark as not latest
 	 */
 	private static void updatePrompt(String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String[] colToUpdate = { "IS_LATEST" };
 		String[] whereCol = { "ID" };
 		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT",
@@ -370,6 +377,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	public static void updatePromptTags(String promptId, Map<String, Collection<String>> userSelectedMeta,
 			List<String> tags) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
 		PreparedStatement deletePs = null;
@@ -404,6 +412,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	private static void appendPromptTags(List<Map<String, Object>> promptDetails,
 			Map<String, Integer> listIndexPromptMapping, List<String> promptIdList) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// Add selectors with lowercase aliases for consistent API response keys
 		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
@@ -483,6 +492,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	private static List<Map<String, Object>> appendPromptInfo(User user, GenRowFilters filters,
 			Map<String, Object> promptMetadataFilter, String limit, String offset) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// QUERY PROMPT get ID, TITLE, CONTEXT, IS Public, other small thigngs
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
@@ -608,6 +618,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	private static void insertTagsAndMeta(List<String> tags, Map<String, Collection<String>> userSelectedMeta,
 			String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// First ensure all metakeys exist in PROMPTMETAKEYS
 		for (String metaKey : userSelectedMeta.keySet()) {
 			ensureUserMetaKeyExistsInPromptMetaKeys(metaKey);
@@ -672,6 +683,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @return true if the metakey exists in PROMPTMETAKEYS, false otherwise
 	 */
 	private static boolean metaKeyExistsInPromptMetaKeys(String metaKey) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPTMETAKEYS__METAKEY"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPTMETAKEYS__METAKEY", "==", metaKey));
@@ -693,8 +705,9 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param metaKey The metakey to copy from USERMETAKEYS to PROMPTMETAKEYS
 	 */
 	private static void copyMetaKeyFromUserMetaKeys(String metaKey) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// Get the security database
-		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		// Query USERMETAKEYS for the metakey
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -764,6 +777,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 */
 	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob,
 			String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		PreparedStatement promptPS = null;
 		try {
 			promptPS = promptDb.getPreparedStatement(promptQuery);
@@ -808,6 +822,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 *         exist)
 	 */
 	private static Integer getVersionNumber(String promptId) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		Integer version = 0;
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROMPT__VERSION"));
@@ -847,6 +862,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @return The UUID of the deleted prompt
 	 */
 	public static String deletePrompt(String promptId, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// Check authorization: user can only delete their own prompts or global prompts
 		// unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);
@@ -883,6 +899,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @return List of maps containing metakey, metavalue, and count for each entry
 	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> metaKeys) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("PROMPTMETA__METAKEY", "metakey"));
@@ -918,6 +935,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 *         found or no access)
 	 */
 	public static Map<String, Object> getPrompt(String promptID, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		for (String pc : PROMPT_COLUMNS) {
@@ -956,6 +974,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param promptDetails Map to append tags and metaKeys to
 	 */
 	private static void getPromptTags(String promptID, Map<String, Object> promptDetails) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// Add selectors with lowercase aliases for consistent API response keys
 		QueryColumnSelector metakeySelector = new QueryColumnSelector("PROMPTMETA__METAKEY");
@@ -1014,6 +1033,7 @@ public class PromptUtils extends AbstractPromptUtils {
 	 * @param user     The user object for authorization checks
 	 */
 	public static void updatePromptMetadata(String promptId, Map<String, Object> metadata, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		// Check authorization: user can only update metadata for their own prompts or
 		// global prompts unless they're admin
 		validatePromptUpdateAuthorization(promptId, user);

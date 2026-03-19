@@ -31,72 +31,47 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-public class SemossDefaultEngines {
+public class SystemDefaultDatabases {
 
-	private static final List<String> IGNORE_DATABASE_OWL = new ArrayList<>();
-	static {
-		IGNORE_DATABASE_OWL.add(Constants.LOCAL_MASTER_DB);
-		IGNORE_DATABASE_OWL.add(Constants.SECURITY_DB);
-		IGNORE_DATABASE_OWL.add(Constants.THEMING_DB);
-		IGNORE_DATABASE_OWL.add(Constants.SCHEDULER_DB);
-		IGNORE_DATABASE_OWL.add(Constants.USER_TRACKING_DB);
-	}
+	private static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
+			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
+			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
 
-	private static final List<String> DATABASE_GENERATED_OWL = new ArrayList<>();
-	static {
-		DATABASE_GENERATED_OWL.addAll(IGNORE_DATABASE_OWL);
-		DATABASE_GENERATED_OWL.add(Constants.MODEL_INFERENCE_LOGS_DB);
-		DATABASE_GENERATED_OWL.add(Constants.PROMPT_DB);
-		DATABASE_GENERATED_OWL.add(Constants.AUDIT_LOGS_DB);
-	}
+	private static final List<String> IGNORE_DATABASE_OWL = Collections
+			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> DATABASE_IGNORE_LOCALMASTER = new ArrayList<>();
-	static {
-		DATABASE_IGNORE_LOCALMASTER.add(Constants.LOCAL_MASTER_DB);
-		DATABASE_IGNORE_LOCALMASTER.add(Constants.SECURITY_DB);
-		DATABASE_IGNORE_LOCALMASTER.add(Constants.SCHEDULER_DB);
-		DATABASE_IGNORE_LOCALMASTER.add(Constants.THEMING_DB);
-		DATABASE_IGNORE_LOCALMASTER.add(Constants.USER_TRACKING_DB);
-	}
+	private static final List<String> DATABASE_GENERATED_OWL = Collections
+			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> DATABASE_IGNORE_SECURITY = new ArrayList<>();
-	static {
-		DATABASE_IGNORE_SECURITY.add(Constants.LOCAL_MASTER_DB);
-		DATABASE_IGNORE_SECURITY.add(Constants.SECURITY_DB);
-		DATABASE_IGNORE_SECURITY.add(Constants.SCHEDULER_DB);
-		DATABASE_IGNORE_SECURITY.add(Constants.THEMING_DB);
-		DATABASE_IGNORE_SECURITY.add(Constants.USER_TRACKING_DB);
-	}
+	private static final List<String> DATABASE_IGNORE_LOCALMASTER = Collections
+			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> DATABASE_IGNORE_AUDIT = new ArrayList<>();
-	static {
-		DATABASE_IGNORE_AUDIT.add(Constants.LOCAL_MASTER_DB);
-		DATABASE_IGNORE_AUDIT.add(Constants.SECURITY_DB);
-		DATABASE_IGNORE_AUDIT.add(Constants.SCHEDULER_DB);
-		DATABASE_IGNORE_AUDIT.add(Constants.THEMING_DB);
-		DATABASE_IGNORE_AUDIT.add(Constants.USER_TRACKING_DB);
-		DATABASE_IGNORE_AUDIT.add(Constants.AUDIT_LOGS_DB);
-	}
+	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
+			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
+
+	private static final List<String> DATABASE_IGNORE_AUDIT = Collections
+			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
 	public static List<String> getIgnoreDatabaseOwlList() {
-		return Collections.unmodifiableList(IGNORE_DATABASE_OWL);
+		return IGNORE_DATABASE_OWL;
 	}
 
 	public static List<String> getDatabasesWithGeneratedOwl() {
-		return Collections.unmodifiableList(DATABASE_GENERATED_OWL);
+		return DATABASE_GENERATED_OWL;
 	}
 
 	public static List<String> getDatabaseIgnoreLocalMaster() {
-		return Collections.unmodifiableList(DATABASE_IGNORE_LOCALMASTER);
+		return DATABASE_IGNORE_LOCALMASTER;
 	}
 
 	public static List<String> getDatabaseIgnoreSecurity() {
-		return Collections.unmodifiableList(DATABASE_IGNORE_SECURITY);
+		return DATABASE_IGNORE_SECURITY;
 	}
 
 	public static List<String> getDatabaseIgnoreAudit() {
-		return Collections.unmodifiableList(DATABASE_IGNORE_AUDIT);
+		return DATABASE_IGNORE_AUDIT;
 	}
 
 	/**

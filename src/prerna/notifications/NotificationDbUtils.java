@@ -59,6 +59,7 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -66,7 +67,6 @@ public class NotificationDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(NotificationDbUtils.class);
 
-	static IRDBMSEngine notificationDb;
 	static boolean initialized = false;
 
 	private NotificationDbUtils() {
@@ -74,7 +74,7 @@ public class NotificationDbUtils {
 	}
 
 	public static void loadNotificationDatabase() throws Exception {
-		notificationDb = (IRDBMSEngine) Utility.getDatabase(Constants.NOTIFICATION_DB);
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		NotificationOwlCreator owlCreator = new NotificationOwlCreator(notificationDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -84,6 +84,7 @@ public class NotificationDbUtils {
 	}
 
 	private static void initialize() throws Exception {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String database = notificationDb.getDatabase();
 		String schema = notificationDb.getSchema();
 		Connection conn = notificationDb.getConnection();
@@ -186,6 +187,7 @@ public class NotificationDbUtils {
 	public static void createNotification(User loggedInUser, String affectedUserId, String affectedUserType,
 			String catalogId, String notificationType, String notificationSource, String priority,
 			String affectedUserPreviousRole, String affectedUserNewRole) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		// Fetch all authors based on source
 		List<Map<String, Object>> authors = NotificationConstants.APP_CATALOG.equalsIgnoreCase(notificationSource)
 				? SecurityProjectUtils.getProjectAuthors(catalogId)
@@ -272,6 +274,7 @@ public class NotificationDbUtils {
 	 * @return list of notifications
 	 */
 	public static List<Map<String, Object>> fetchAllNotifications(User user, String limit, String offset) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
 		if (userIdAndTypeList.isEmpty()) {
 			return new ArrayList<>();
@@ -380,6 +383,7 @@ public class NotificationDbUtils {
 	 * @return
 	 */
 	public static int deleteNotification(String recipientId, String recipientType, String notificationId) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		StringBuilder deleteQuery = new StringBuilder("DELETE FROM NOTIFICATION WHERE ");
 		List<String> conditions = new ArrayList<>();
 		List<Object> parameters = new ArrayList<>();
@@ -425,6 +429,7 @@ public class NotificationDbUtils {
 	 * @param user the user whose notifications need to be updated
 	 */
 	public static void resetNotificationActionType(User user) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
 		if (userIdAndTypeList.isEmpty()) {
 			return;
@@ -460,6 +465,7 @@ public class NotificationDbUtils {
 	 * @param readDate       -the timestamp when the notification was read
 	 */
 	public static void markNotificationRead(String notificationId, Timestamp readDate) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String query = "UPDATE NOTIFICATION SET ISREAD = TRUE, READDATE=? WHERE NOTIFICATIONID=?";
 		PreparedStatement ps = null;
 		try {
@@ -486,6 +492,7 @@ public class NotificationDbUtils {
 	 * @return the count of new notifications
 	 */
 	public static int fetchNewNotificationCount(String recipientId, String recipientType) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		PreparedStatement ps = null;
 		String query = "SELECT COUNT(NOTIFICATIONID) FROM NOTIFICATION "
 				+ "WHERE RECIPIENTID = ? AND RECIPIENTTYPE = ? AND ACTIONTYPE = 'NEW'";

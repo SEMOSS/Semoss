@@ -42,6 +42,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -180,6 +182,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static IEngine.CATALOG_TYPE getEngineType(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
@@ -199,6 +202,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] getEngineTypeAndSubtype(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE"));
@@ -229,6 +233,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	public static void addEngine(String engineId, String engineName, String engineDisplayName, IEngine.CATALOG_TYPE engineType,
 			String engineSubType, String engineCost, boolean global, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, ENGINEDISPLAYNAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
@@ -283,6 +288,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
 			String engineSubType) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
 
 		PreparedStatement ps = null;
@@ -304,6 +310,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static void addEngineOwner(String engineId, String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user doesn't already exist for this database
 		if (getUserEnginePermission(userId, engineId) != null) {
 			// that means there is already a value
@@ -338,6 +345,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getEngineAliasForId(String id) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -359,6 +367,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getEngineDisplayNameForId(String id) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -387,6 +396,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setEngineDisplayName(User user, String engineId, String newDisplayName)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to change the engine display name. Only the owner can perform this action.");
@@ -442,6 +452,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllEngineIds(List<String> engineTypes) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -461,6 +472,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getEngineMarkdown(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", Constants.MARKDOWN));
@@ -503,6 +515,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserAccessRequestEnginePermission(String userId, String databaseId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEACCESSREQUEST__REQUEST_USERID", "==", userId));
@@ -522,6 +535,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void approveEngineUserAccessRequests(User user, String engineId, List<Map<String, String>> requests,
 			String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -659,6 +673,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void denyEngineUserAccessRequests(User user, String engineId, List<String> requestIds)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user has right permission level to approve acces requests
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -728,6 +743,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessRequestsByEngine(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_USERID"));
@@ -757,6 +773,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean engineExists(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
@@ -776,6 +793,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean engineIsGlobal(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + databaseId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -888,6 +906,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static long getEngineUsersCount(User user, String engineId, String searchParam, String permission)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException("The user does not have access to view this engine");
 		}
@@ -933,6 +952,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void addEngineUser(User user, String newUserId, String engineId, String permission, String endDate,
 			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1021,6 +1041,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void addEngineUserPermissions(User user, String engineId, List<Map<String, Object>> permission)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1145,6 +1166,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType,
 			String engineId, String newPermission, String endDate, String usageRestriction, String usageFrequency,
 			int maxTokens, double maxResponseTime) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1251,6 +1273,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void editEngineUserPermissions(User user, String engineId, List<Map<String, Object>> permission)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1382,6 +1405,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public static void deleteEngine(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
@@ -1415,6 +1439,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeEngineUser(User user, String existingUserId, String engineId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)
@@ -1468,6 +1493,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeEngineUsers(User user, List<String> existingUserIds, String engineId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1519,6 +1545,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static void removeExpiredEngineUser(String userId, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1548,6 +1575,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static boolean setEngineGlobal(User user, String engineId, boolean global) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this engine as global. Only the owner can perform this action.");
@@ -1577,6 +1605,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public static void setEngineCompletelyGlobal(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		{
 			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 			PreparedStatement ps = null;
@@ -1608,6 +1637,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setEngineDiscoverable(User user, String engineId, boolean discoverable)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this engine as discoverable. Only the owner or an admin can perform this action.");
@@ -1642,6 +1672,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void setEngineVisibility(User user, String engineId, boolean visibility)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1727,6 +1758,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static void setEngineFavorite(User user, String engineId, boolean isFavorite) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
@@ -1813,6 +1845,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setEngineName(User user, String engineId, String newEngineName)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to change the engine name. Only the owner can perform this action.");
@@ -1852,6 +1885,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllMetakeys() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY"));
 		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -1867,6 +1901,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param tags
 	 */
 	public static void updateEngineMetadata(String engineId, Map<String, Object> metadata) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM ENGINEMETA WHERE METAKEY=? AND ENGINEID=?";
 		PreparedStatement deletePs = null;
@@ -1938,6 +1973,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getEngineMetadataWrapper(Collection<String> engineIds, List<String> metaKeys,
 			boolean ignoreMarkdown) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
@@ -2037,6 +2073,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static void copyEnginePermissions(String sourceEngineId, String targetEngineId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		String insertTargetEnginePermissionSql = "INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION, VISIBILITY, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement insertTargetEnginePermissionStatement = securityDb
@@ -2123,6 +2160,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsersNoCredentials(User user, String engineId, String searchTerm,
 			long limit, long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * Security check to make sure that the user can view the application provided.
 		 */
@@ -2181,6 +2219,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Set<String> getEngineUserHasExplicitAccess(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -2210,6 +2249,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean engineIsDiscoverable(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(
@@ -2248,6 +2288,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String engineId,
 			String requestReasonComment, int permission, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first mark previously undecided requests as old
 		String updateQ = "UPDATE ENGINEACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND ENGINEID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
@@ -2314,6 +2355,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static int getUserPendingAccessRequest(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// grab user info who is submitting request
 		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -2359,6 +2401,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static List<Map<String, Object>> getUserRequestableEngines(Collection<String> allUserEngines) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -2370,6 +2413,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static List<Map<String, Object>> getEngineInfo(Collection<String> engineFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -2388,6 +2432,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<String> getEngineOwners(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -2405,6 +2450,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Set<String> getGlobalEngineIds() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
@@ -2437,6 +2483,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		String enginePrefix = "ENGINE__";
 		String groupEnginePermission = "GROUPENGINEPERMISSION__";
@@ -2724,6 +2771,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getUserEngineIdList(User user, List<String> engineTypes, boolean includeGlobal,
 			boolean includeDiscoverable, boolean includeExistingAccess) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String enginePrefix = "ENGINE__";
 		String enginePermissionPrefix = "ENGINEPERMISSION__";
 		String groupEnginePermissionPrefix = "GROUPENGINEPERMISSION__";
@@ -2801,6 +2849,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return a map with the author and date added
 	 */
 	public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
@@ -2827,6 +2876,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> engineFilters, List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("ENGINEMETA__METAKEY"));
@@ -2855,6 +2905,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllUserDatabaseList(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
@@ -2983,6 +3034,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, String engineFilter,
 			List<String> engineTypeFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String userFilters = getUserFilters(user);
 //		String filter = createFilter(engineFilter); 
 //		String query = "SELECT DISTINCT "
@@ -3057,6 +3109,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypeFilter, Integer limit,
 			Integer offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3119,6 +3172,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getDiscoverableEngineList(String engineFilter,
 			List<String> engineTypeFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
@@ -3162,6 +3216,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserDiscoverableEngineList(User user, List<String> engineTypes,
 			List<String> engineFilters, Map<String, Object> engineMetadataFilter, String searchTerm, String limit,
 			String offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -3269,6 +3324,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getFullUserEngineIds(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -3289,6 +3345,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getVisibleUserDatabaseIds(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3322,6 +3379,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions(String metakey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__METAKEY", "metakey"));
 		qs.addSelector(new QueryColumnSelector("ENGINEMETAKEYS__SINGLEMULTI", "single_multi"));
@@ -3340,6 +3398,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean valid = false;
 		PreparedStatement insertPs = null;
 		String tableName = "ENGINEMETAKEYS";
@@ -3378,6 +3437,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getEngineUsagePermissionMap(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null || engineId == null || engineId.trim().isEmpty()) {
 			return null;
 		}
@@ -3422,6 +3482,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getModelEngineIdsWithRestrictions(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null || engineId == null || engineId.trim().isEmpty()) {
 			return null;
 		}
@@ -3448,6 +3509,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> updateEngineUserPermissions(User user,
 			List<Map<String, Object>> enginePermissions) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> newEngines = new ArrayList<>();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		PreparedStatement deletePs = null;
@@ -3506,6 +3568,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static void updateEngineToolApp(String engineId, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
@@ -3531,6 +3594,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return List of user details
 	 */
 	public static List<Map<String, Object>> getUserDetailsFromEngineAccessRequest(String engineRequestId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_USERID", "userId"));
 		qs.addSelector(new QueryColumnSelector("ENGINEACCESSREQUEST__REQUEST_TYPE", "type"));
@@ -3548,6 +3612,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getEngineAuthors(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
@@ -3564,6 +3629,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, String> getEngineNamesByIds(Collection<String> engineIds) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String> engineMap = new HashMap<>();
 		if (engineIds == null || engineIds.isEmpty()) {
 			return engineMap;
