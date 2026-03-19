@@ -1402,6 +1402,13 @@ class InsightGlobalStore:
                                 # Failsafe in case the attribute is not removable
                                 pass
 
+                # Auto-inject path vars into mcp_driver on import
+                if name == "mcp_driver":
+                    for _k in ("ROOT", "APP_ROOT", "USER_ROOT"):
+                        _v = globals_dict.get(_k)
+                        if _v is not None:
+                            setattr(module, _k, _v)
+
                 return module
 
             def reload_mcp_function(globals_dict):
@@ -1419,6 +1426,13 @@ class InsightGlobalStore:
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
+
+                # Inject path vars into the freshly loaded module
+                for _k in ("ROOT", "APP_ROOT", "USER_ROOT"):
+                    _v = globals_dict.get(_k)
+                    if _v is not None:
+                        setattr(mcp_module, _k, _v)
+
                 return mcp_module
 
             # First-time initialization: build the globals dict
