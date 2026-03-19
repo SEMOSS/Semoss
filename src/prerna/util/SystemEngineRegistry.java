@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -79,29 +81,31 @@ public final class SystemEngineRegistry {
 	 */
 
 	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.security",
-			"prerna.web.conf", "prerna.semoss.web.services.config");
+			"prerna.util", "prerna.web.conf", "prerna.semoss.web.services.config");
 
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.scheduler",
-			"prerna.web.conf");
+			"prerna.util", "prerna.web.conf");
 
-	private static final Set<String> THEMING_DB_ALLOWED = Set.of("prerna.auth", "prerna.theme", "prerna.web.conf");
+	private static final Set<String> THEMING_DB_ALLOWED = Set.of("prerna.auth", "prerna.theme", "prerna.util",
+			"prerna.web.conf");
 
 	private static final Set<String> USER_TRACKING_DB_ALLOWED = Set.of("prerna.auth", "prerna.usertracking",
-			"prerna.web.conf");
+			"prerna.util", "prerna.web.conf");
 
-	private static final Set<String> PROMPT_DB_ALLOWED = Set.of("prerna.auth", "prerna.prompt", "prerna.web.conf");
+	private static final Set<String> PROMPT_DB_ALLOWED = Set.of("prerna.auth", "prerna.prompt", "prerna.util",
+			"prerna.web.conf");
 
 	private static final Set<String> NOTIFICATION_DB_ALLOWED = Set.of("prerna.auth", "prerna.notifications",
-			"prerna.web.conf");
+			"prerna.util", "prerna.web.conf");
 
 	private static final Set<String> AUDIT_LOGS_DB_ALLOWED = Set.of("prerna.auth", "prerna.engine.logging",
-			"prerna.logging", "prerna.web.conf");
+			"prerna.logging", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> MODEL_INFERENCE_LOGS_DB_ALLOWED = Set.of("prerna.auth",
-			"prerna.engine.impl.model.inferencetracking", "prerna.web.conf");
+			"prerna.engine.impl.model.inferencetracking", "prerna.util", "prerna.web.conf");
 
 	/**
 	 * Registration allowlist - the startup/init classes that can register an engine
@@ -116,6 +120,13 @@ public final class SystemEngineRegistry {
 	static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
 			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+
+	/**
+	 * Cache of proxy-verified callers. The classloader check result is stable for
+	 * any given caller Class, so a positive result is cached permanently. Only
+	 * positive results are cached; denied accesses always throw immediately.
+	 */
+	private static final java.util.concurrent.ConcurrentHashMap<Class<?>, Boolean> ACCESS_CACHE = new java.util.concurrent.ConcurrentHashMap<>();
 
 	private static volatile Supplier<IRDBMSEngine> securityDbHolder;
 	private static volatile Supplier<IRDBMSEngine> localMasterDbHolder;
@@ -255,12 +266,6 @@ public final class SystemEngineRegistry {
 		if (smssProp == null) {
 			throw new IllegalArgumentException("Unable to load SMSS file: " + smssFilePath);
 		}
-		for (String name : smssProp.stringPropertyNames()) {
-			String value = smssProp.getProperty(name);
-			if (value != null) {
-				smssProp.setProperty(name, value.trim());
-			}
-		}
 		String engineId = smssProp.getProperty(Constants.ENGINE);
 		checkAccess(REGISTRATION_ALLOWED, engineId + " registration");
 		String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
@@ -285,55 +290,64 @@ public final class SystemEngineRegistry {
 			if (securityDbHolder != null) {
 				throw new IllegalStateException("SecurityDb is already registered");
 			}
-			securityDbHolder = () -> engine;
+			IRDBMSEngine guardedSecurityDb = wrapWithGuard(engine, "SecurityDb");
+			securityDbHolder = () -> guardedSecurityDb;
 		}
 		case Constants.LOCAL_MASTER_DB -> {
 			if (localMasterDbHolder != null) {
 				throw new IllegalStateException("LocalMasterDb is already registered");
 			}
-			localMasterDbHolder = () -> engine;
+			IRDBMSEngine guardedLocalMasterDb = wrapWithGuard(engine, "LocalMasterDb");
+			localMasterDbHolder = () -> guardedLocalMasterDb;
 		}
 		case Constants.SCHEDULER_DB -> {
 			if (schedulerDbHolder != null) {
 				throw new IllegalStateException("SchedulerDb is already registered");
 			}
-			schedulerDbHolder = () -> engine;
+			IRDBMSEngine guardedSchedulerDb = wrapWithGuard(engine, "SchedulerDb");
+			schedulerDbHolder = () -> guardedSchedulerDb;
 		}
 		case Constants.THEMING_DB -> {
 			if (themesDbHolder != null) {
 				throw new IllegalStateException("ThemesDb is already registered");
 			}
-			themesDbHolder = () -> engine;
+			IRDBMSEngine guardedThemesDb = wrapWithGuard(engine, "ThemesDb");
+			themesDbHolder = () -> guardedThemesDb;
 		}
 		case Constants.USER_TRACKING_DB -> {
 			if (userTrackingDbHolder != null) {
 				throw new IllegalStateException("UserTrackingDb is already registered");
 			}
-			userTrackingDbHolder = () -> engine;
+			IRDBMSEngine guardedUserTrackingDb = wrapWithGuard(engine, "UserTrackingDb");
+			userTrackingDbHolder = () -> guardedUserTrackingDb;
 		}
 		case Constants.PROMPT_DB -> {
 			if (promptDbHolder != null) {
 				throw new IllegalStateException("PromptDb is already registered");
 			}
-			promptDbHolder = () -> engine;
+			IRDBMSEngine guardedPromptDb = wrapWithGuard(engine, "PromptDb");
+			promptDbHolder = () -> guardedPromptDb;
 		}
 		case Constants.NOTIFICATION_DB -> {
 			if (notificationDbHolder != null) {
 				throw new IllegalStateException("NotificationDb is already registered");
 			}
-			notificationDbHolder = () -> engine;
+			IRDBMSEngine guardedNotificationDb = wrapWithGuard(engine, "NotificationDb");
+			notificationDbHolder = () -> guardedNotificationDb;
 		}
 		case Constants.AUDIT_LOGS_DB -> {
 			if (auditLogsDbHolder != null) {
 				throw new IllegalStateException("AuditLogsDb is already registered");
 			}
-			auditLogsDbHolder = () -> engine;
+			IRDBMSEngine guardedAuditLogsDb = wrapWithGuard(engine, "AuditLogsDb");
+			auditLogsDbHolder = () -> guardedAuditLogsDb;
 		}
 		case Constants.MODEL_INFERENCE_LOGS_DB -> {
 			if (modelInferenceLogsDbHolder != null) {
 				throw new IllegalStateException("ModelInferenceLogsDb is already registered");
 			}
-			modelInferenceLogsDbHolder = () -> engine;
+			IRDBMSEngine guardedModelInferenceLogsDb = wrapWithGuard(engine, "ModelInferenceLogsDb");
+			modelInferenceLogsDbHolder = () -> guardedModelInferenceLogsDb;
 		}
 		default -> throw new IllegalArgumentException("Not a known system engine ID: " + engineId);
 		}
@@ -379,6 +393,77 @@ public final class SystemEngineRegistry {
 	}
 
 	/**
+	 * Wraps an engine in a dynamic proxy that blocks access from untrusted
+	 * classloaders on every method invocation. This is a second line of defence:
+	 * even if an attacker obtains the Supplier via reflection and calls get(),
+	 * every subsequent method call on the returned object is still checked.
+	 *
+	 * The package allowlist is enforced at the getter level. The proxy only
+	 * performs the classloader check, which is the one defence getters cannot
+	 * provide (a reflected reference bypasses the getter entirely).
+	 *
+	 * InvocationTargetException is unwrapped so callers receive the original
+	 * exception rather than a wrapped one.
+	 *
+	 * @param real the real engine instance
+	 * @param name engine name used in security exception messages
+	 * @return a proxy that implements IRDBMSEngine and guards every call
+	 */
+	private static IRDBMSEngine wrapWithGuard(IRDBMSEngine real, String name) {
+		return (IRDBMSEngine) Proxy.newProxyInstance(SystemEngineRegistry.class.getClassLoader(),
+				new Class<?>[] { IRDBMSEngine.class }, (proxy, method, args) -> {
+					checkAccessFromProxy(name);
+					try {
+						return method.invoke(real, args);
+					} catch (InvocationTargetException e) {
+						throw e.getCause();
+					}
+				});
+	}
+
+	/**
+	 * Variant of checkAccess used from inside the proxy InvocationHandler. The call
+	 * stack contains extra JDK proxy frames between this method and the real
+	 * caller, so we filter those out in addition to the usual SystemEngineRegistry
+	 * frames.
+	 *
+	 * Stack layout (approximate): frame 0 - checkAccessFromProxy frame 1 -
+	 * lambda$wrapWithGuard (InvocationHandler body, inside SystemEngineRegistry)
+	 * frame 2+ - com.sun.proxy.$ProxyN / java.lang.reflect internals frame N - the
+	 * actual external caller
+	 *
+	 * @param allowedPackages per-engine access allowlist
+	 * @param context         engine name used in security exception messages
+	 */
+	private static void checkAccessFromProxy(String context) {
+		Class<?> caller = WALKER.walk(frames -> frames.map(StackWalker.StackFrame::getDeclaringClass).filter(c -> {
+			String n = c.getName();
+			return !n.startsWith("prerna.util.SystemEngineRegistry") && !n.startsWith("com.sun.proxy.")
+					&& !n.startsWith("jdk.proxy") && !n.startsWith("java.lang.reflect.");
+		}).findFirst().orElse(null));
+
+		if (caller == null) {
+			throw new SecurityException("Unable to determine caller for " + context);
+		}
+
+		// Fast path: classloader check already passed for this caller class.
+		if (ACCESS_CACHE.containsKey(caller)) {
+			return;
+		}
+
+		if (isLoadedByUntrustedClassLoader(caller)) {
+			classLogger.error("Unauthorized access to {} attempted from untrusted classloader: {}", context,
+					caller.getName());
+			throw new SecurityException("Unauthorized access to " + context
+					+ " from class loaded by untrusted classloader: " + caller.getName());
+		}
+
+		// Cache the positive result so subsequent calls from this class skip the
+		// classloader check entirely.
+		ACCESS_CACHE.put(caller, Boolean.TRUE);
+	}
+
+	/**
 	 * Walks the call stack to find the first frame outside this class, then applies
 	 * two independent checks:
 	 *
@@ -395,7 +480,7 @@ public final class SystemEngineRegistry {
 	 * Stack layout when called from a public getter/register method: frame 0 -
 	 * checkAccess (this method) frame 1 - getXyzDb / registerXyzDb frame 2 - the
 	 * actual external caller (what we verify)
-	 * 
+	 *
 	 * @param allowedPackages
 	 * @param context
 	 */

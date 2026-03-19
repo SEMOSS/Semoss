@@ -51,9 +51,6 @@ public class SystemDefaultDatabases {
 	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> DATABASE_IGNORE_AUDIT = Collections
-			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
-
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
 	}
@@ -68,10 +65,6 @@ public class SystemDefaultDatabases {
 
 	public static List<String> getDatabaseIgnoreSecurity() {
 		return DATABASE_IGNORE_SECURITY;
-	}
-
-	public static List<String> getDatabaseIgnoreAudit() {
-		return DATABASE_IGNORE_AUDIT;
 	}
 
 	/**
