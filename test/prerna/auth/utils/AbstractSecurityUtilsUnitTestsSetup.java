@@ -93,10 +93,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 		Path secSmss = UnitTestSecurityAuthUtils.createSmssFileFromProps(securityProps, dbFolder.getAbsolutePath(),
 				"security.smss");
 
-		RDBMSNativeEngine securityDB = new RDBMSNativeEngine();
-		securityDB.setEngineId("security");
-		securityDB.open(secSmss.toString());
-		SystemEngineRegistry.registerSecurityDb(securityDB);
+		SystemEngineRegistry.loadSystemEngine(secSmss.toString());
 
 		securityOwlFile = securityFolder.toPath().resolve("app_root").resolve("version").resolve("assets")
 				.resolve("security_OWL.OWL");

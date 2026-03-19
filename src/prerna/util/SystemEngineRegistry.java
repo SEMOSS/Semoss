@@ -229,78 +229,6 @@ public final class SystemEngineRegistry {
 		return modelInferenceLogsDbHolder != null;
 	}
 
-	public static void registerSecurityDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "SecurityDb registration");
-		if (securityDbHolder != null) {
-			throw new IllegalStateException("SecurityDb is already registered");
-		}
-		securityDbHolder = () -> engine;
-	}
-
-	public static void registerLocalMasterDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "LocalMasterDb registration");
-		if (localMasterDbHolder != null) {
-			throw new IllegalStateException("LocalMasterDb is already registered");
-		}
-		localMasterDbHolder = () -> engine;
-	}
-
-	public static void registerSchedulerDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "SchedulerDb registration");
-		if (schedulerDbHolder != null) {
-			throw new IllegalStateException("SchedulerDb is already registered");
-		}
-		schedulerDbHolder = () -> engine;
-	}
-
-	public static void registerThemesDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "ThemesDb registration");
-		if (themesDbHolder != null) {
-			throw new IllegalStateException("ThemesDb is already registered");
-		}
-		themesDbHolder = () -> engine;
-	}
-
-	public static void registerUserTrackingDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "UserTrackingDb registration");
-		if (userTrackingDbHolder != null) {
-			throw new IllegalStateException("UserTrackingDb is already registered");
-		}
-		userTrackingDbHolder = () -> engine;
-	}
-
-	public static void registerPromptDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "PromptDb registration");
-		if (promptDbHolder != null) {
-			throw new IllegalStateException("PromptDb is already registered");
-		}
-		promptDbHolder = () -> engine;
-	}
-
-	public static void registerNotificationDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "NotificationDb registration");
-		if (notificationDbHolder != null) {
-			throw new IllegalStateException("NotificationDb is already registered");
-		}
-		notificationDbHolder = () -> engine;
-	}
-
-	public static void registerAuditLogsDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "AuditLogsDb registration");
-		if (auditLogsDbHolder != null) {
-			throw new IllegalStateException("AuditLogsDb is already registered");
-		}
-		auditLogsDbHolder = () -> engine;
-	}
-
-	public static void registerModelInferenceLogsDb(IRDBMSEngine engine) {
-		checkAccess(REGISTRATION_ALLOWED, "ModelInferenceLogsDb registration");
-		if (modelInferenceLogsDbHolder != null) {
-			throw new IllegalStateException("ModelInferenceLogsDb is already registered");
-		}
-		modelInferenceLogsDbHolder = () -> engine;
-	}
-
 	/**
 	 * Returns true if the given engine ID belongs to one of the known system
 	 * engines. Used by Utility.loadEngine() to block the normal load path for these
@@ -334,6 +262,7 @@ public final class SystemEngineRegistry {
 			}
 		}
 		String engineId = smssProp.getProperty(Constants.ENGINE);
+		checkAccess(REGISTRATION_ALLOWED, engineId + " registration");
 		String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 		IEngine engine = (IEngine) Class.forName(engineClass).getDeclaredConstructor().newInstance();
 		engine.setEngineId(engineId);
