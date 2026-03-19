@@ -42,8 +42,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import prerna.engine.api.IRDBMSEngine;
-import prerna.util.SystemEngineRegistry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,6 +54,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.notifications.NotificationDbUtils;
@@ -79,6 +78,7 @@ import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -231,8 +231,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		addEngine(engineId, engineName, engineName, engineType, engineSubType, engineCost, global, user);
 	}
 
-	public static void addEngine(String engineId, String engineName, String engineDisplayName, IEngine.CATALOG_TYPE engineType,
-			String engineSubType, String engineCost, boolean global, User user) {
+	public static void addEngine(String engineId, String engineName, String engineDisplayName,
+			IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, ENGINEDISPLAYNAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
@@ -360,8 +360,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get the display name for an engine id.
-	 * Falls back to canonical name (ENGINENAME) if display name is null or blank.
+	 * Get the database alias for a id
+	 * 
+	 * @return
+	 */
+	public static Map<Object, Object> getEngineAliasForIds(Collection<String> ids) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", ids));
+		return QueryExecutionUtility.flushRsToKeyValueMap(securityDb, qs);
+	}
+
+	/**
+	 * Get the display name for an engine id. Falls back to canonical name
+	 * (ENGINENAME) if display name is null or blank.
 	 *
 	 * @param id
 	 * @return
@@ -386,7 +400,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Set the display name for an engine. Only the engine owner can perform this action.
+	 * Set the display name for an engine. Only the engine owner can perform this
+	 * action.
 	 *
 	 * @param user
 	 * @param engineId
@@ -2670,7 +2685,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEDISPLAYNAME", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEDISPLAYNAME", searchTerm));
 			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
@@ -3284,7 +3300,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINENAME", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEID", searchTerm));
-			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEDISPLAYNAME", searchTerm));
+			searchFilter
+					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("ENGINE__ENGINEDISPLAYNAME", searchTerm));
 			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
