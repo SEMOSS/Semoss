@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.f4b6a3.uuid.alt.GUID;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -74,35 +72,37 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
 				try {
 					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
-					engineId = "SAMPLE_" + engineTypeStr.toUpperCase() + "_ID";
+					engineId = "SAMPLE_ENGINE_ID";
 				} catch (IllegalArgumentException e) {
 					// do nothing
 				}
 			}
 		}
+
 		if (engineType == null) {
-			throw new IllegalArgumentException("Invalid engine type provided");
+			throw new IllegalArgumentException("Must provide a valid engine id or a valid engine type");
 		}
+
 		List<Map<String, Object>> output;
 		switch (engineType) {
-			case DATABASE:
-				output = getDatabaseUsage(engineId);
-				break;
-			case STORAGE:
-				output = getStorageUsage(engineId);
-				break;
-			case MODEL:
-				output = getModelUsage(engineId);
-				break;
-			case VECTOR:
-				output = getVectorUsage(engineId);
-				break;
-			case FUNCTION:
-				output = getFunctionUsage(engineId);
-				break;
-			default:
-				output = getPendingUsage();
-				break;
+		case DATABASE:
+			output = getDatabaseUsage(engineId);
+			break;
+		case STORAGE:
+			output = getStorageUsage(engineId);
+			break;
+		case MODEL:
+			output = getModelUsage(engineId);
+			break;
+		case VECTOR:
+			output = getVectorUsage(engineId);
+			break;
+		case FUNCTION:
+			output = getFunctionUsage(engineId);
+			break;
+		default:
+			output = getPendingUsage();
+			break;
 		}
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
@@ -684,4 +684,27 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		usageMap.put(PARAM_INFO, paramInfo);
 		return usageMap;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Retrieves sample usage code for a specific engine by ID or by engine type. \
+				If passing in the engine type, the ID in the sample code will be shown as SAMPLE_ENGINE_ID. \
+				Either the engine ID or the engine type must be provided.
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine ID to retrieve sample usage code for.";
+		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+			return "The engine type to retrieve sample usage code for. Valid values: "
+					+ String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
+							IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
+							IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }
