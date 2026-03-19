@@ -281,13 +281,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        stream_method = (
-            self.client.beta.messages.stream
-            if self.use_beta_header
-            else self.client.messages.stream
-        )
+        use_beta_stream = self.use_beta_header and hasattr(self.client.beta.messages, "stream")
+        stream_method = self.client.beta.messages.stream if use_beta_stream else self.client.messages.stream
 
-        with stream_method(**request_config.model_dump(exclude_none=True)) as stream:
+        stream_kwargs = request_config.model_dump(exclude_none=True)
+        if self.use_beta_header and not use_beta_stream:
+            # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
+            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            stream_kwargs.pop("betas", None)
+            stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
+
+        with stream_method(**stream_kwargs) as stream:
             final_message = None
             for event in stream:
                 if event.type == "message_start":
