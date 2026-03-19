@@ -2707,17 +2707,8 @@ public final class Utility {
 					} else {
 						classLogger.info(
 								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
 
-					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-					// TODO >>>timb: remove node exists error or catch it
-					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
 					if (!SemossDefaultEngines.valueStartsWith(engineId,
 							SemossDefaultEngines.getDatabaseIgnoreSecurity())) {

@@ -59,12 +59,20 @@ public final class SystemEngineRegistry {
 	/**
 	 * The JVM's two built-in trusted classloaders. Any class whose loader is
 	 * exactly one of these (or null = bootstrap) was loaded from the application
-	 * classpath and is considered trusted. Anything else — SemossClassloader,
-	 * URLClassLoader, JarClassLoader, or any other user-defined loader — is
-	 * untrusted regardless of the package name it declares.
+	 * classpath and is considered trusted. Anything else like SemossClassloader,
+	 * URLClassLoader, JarClassLoader, or any other user-defined loader is untrusted
+	 * regardless of the package name it declares.
 	 */
 	private static final ClassLoader PLATFORM_CL = ClassLoader.getPlatformClassLoader();
 	private static final ClassLoader SYSTEM_CL = ClassLoader.getSystemClassLoader();
+
+	/**
+	 * The classloader that loaded this class. In Tomcat this is
+	 * ParallelWebappClassLoader; in tests it is the system classloader. All classes
+	 * loaded from the same WAR (i.e. WEB-INF/lib and WEB-INF/classes) share this
+	 * loader instance
+	 */
+	private static final ClassLoader WEBAPP_CL = SystemEngineRegistry.class.getClassLoader();
 
 	/*
 	 * We have a per-engine caller allowlist (prefix based: covers all subpackages)
@@ -173,7 +181,7 @@ public final class SystemEngineRegistry {
 	}
 
 	// -------------------------------------------------------------------------
-	// Loaded-state checks — public, no access restriction, callable from anywhere
+	// Loaded-state checks: public, no access restriction, callable from anywhere
 	// -------------------------------------------------------------------------
 
 	/** Returns true if the SecurityDb has been loaded and registered. */
@@ -336,8 +344,8 @@ public final class SystemEngineRegistry {
 	}
 
 	/**
-	 * Internal registration switch — maps a system engine ID (via Constants) to
-	 * the correct volatile field. Called only from loadSystemEngine.
+	 * Internal registration switch, maps a system engine ID (via Constants) to the
+	 * correct volatile field. Called only from loadSystemEngine.
 	 * 
 	 * @param engineId
 	 * @param engine
@@ -455,9 +463,9 @@ public final class SystemEngineRegistry {
 	 * than one of the JVM's two built-in trusted loaders (platform or system/app).
 	 *
 	 * Checking the loader directly (rather than walking its parent chain) catches
-	 * every custom loader — SemossClassloader, URLClassLoader wrapping it,
+	 * every custom loader, SemossClassloader, URLClassLoader wrapping it,
 	 * xeustechnologies JarClassLoader used for Maven reactor dependencies, and any
-	 * future custom loader — without needing to enumerate them by type.
+	 * future custom loader, without needing to enumerate them by type.
 	 *
 	 * Bootstrap-loaded classes have a null classloader and are always trusted.
 	 * 
@@ -466,6 +474,7 @@ public final class SystemEngineRegistry {
 	 */
 	private static boolean isLoadedByUntrustedClassLoader(Class<?> clazz) {
 		ClassLoader loader = clazz.getClassLoader();
-		return loader != null && loader != PLATFORM_CL && loader != SYSTEM_CL;
+		return loader != null && loader != PLATFORM_CL && loader != SYSTEM_CL && loader != WEBAPP_CL;
 	}
+
 }
