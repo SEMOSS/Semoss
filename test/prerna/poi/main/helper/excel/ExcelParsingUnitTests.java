@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
 import static org.junit.Assert.assertFalse;
@@ -203,7 +230,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 
 		testValue = null;
 		assertEquals(SemossDataType.STRING, ExcelParsing.getTypeByCast(testValue));
-		
+
 		testValue = 1.25;
 		assertEquals(SemossDataType.DOUBLE, ExcelParsing.getTypeByCast(testValue));
 
@@ -266,7 +293,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			assertEquals(SemossDataType.STRING, predicted[0][0]);
 		}
 	}
-	
+
 	@Test
 	void predictTypes_intEmpty() throws IOException {
 		try (Workbook wb = new XSSFWorkbook()) {
@@ -277,7 +304,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			Row row = sheet.createRow(rowInt++);
 			Cell cell = row.createCell(0);
 			cell.setCellValue(1);
-			
+
 			// create empty rows
 			sheet.createRow(rowInt++);
 			sheet.createRow(rowInt++);
@@ -310,7 +337,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			assertEquals(SemossDataType.DOUBLE, predicted[0][0]);
 		}
 	}
-	
+
 	@Test
 	void predictTypes_onlyDouble() throws IOException {
 		try (Workbook wb = new XSSFWorkbook()) {
@@ -332,7 +359,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			assertEquals(SemossDataType.DOUBLE, predicted[0][0]);
 		}
 	}
-	
+
 	@Test
 	void predictTypes_onlyInt() throws IOException {
 		try (Workbook wb = new XSSFWorkbook()) {
@@ -354,8 +381,6 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			assertEquals(SemossDataType.INT, predicted[0][0]);
 		}
 	}
-	
-	
 
 	@Test
 	void predictTypes_numberThenString() throws IOException {
@@ -405,7 +430,7 @@ public class ExcelParsingUnitTests extends SemossUnitTest {
 			assertEquals(SemossDataType.STRING, predicted[0][0]);
 		}
 	}
-	
+
 	@Test
 	void predictTypes_boolean() throws IOException {
 		try (Workbook wb = new XSSFWorkbook()) {

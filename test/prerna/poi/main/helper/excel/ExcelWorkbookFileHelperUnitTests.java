@@ -1,7 +1,41 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,15 +61,16 @@ import prerna.query.querystruct.ExcelQueryStruct;
 
 class ExcelWorkbookFileHelperUnitTests {
 
-	@TempDir Path tempDir;
+	@TempDir
+	Path tempDir;
 
 	@Test
 	void parse_unencryptedWorkbook_getSheetsAndGetSheet_work() throws Exception {
 		Path xlsx = writeSimpleWorkbook(tempDir.resolve("simple.xlsx"), List.of("Sheet1", "Sheet2"));
-		
+
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(xlsx.toString(), null);
-		
+
 		assertEquals(xlsx.toString(), helper.getFilePath());
 		assertEquals(List.of("Sheet1", "Sheet2"), helper.getSheets());
 		assertNotNull(helper.getSheet("Sheet1"));
@@ -51,7 +86,8 @@ class ExcelWorkbookFileHelperUnitTests {
 
 		assertEquals("Excel file not found", ex.getMessage());
 		assertNotNull(ex.getCause());
-		// cause type is FileNotFoundException (implementation detail), but we at least ensure it exists
+		// cause type is FileNotFoundException (implementation detail), but we at least
+		// ensure it exists
 	}
 
 	@Test
@@ -59,7 +95,8 @@ class ExcelWorkbookFileHelperUnitTests {
 		Path enc = writeEncryptedWorkbook(tempDir.resolve("encrypted.xlsx"), "correct-password");
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(enc.toString(), "wrong-password"));
+		RuntimeException ex = assertThrows(RuntimeException.class,
+				() -> helper.parse(enc.toString(), "wrong-password"));
 
 		assertEquals("Unable to open encrypted Excel file. Please verify the password.", ex.getMessage());
 		assertTrue(ex.getCause() instanceof EncryptedDocumentException);
@@ -84,7 +121,8 @@ class ExcelWorkbookFileHelperUnitTests {
 		qs.setFilePath(xlsx.toString());
 		qs.setPassword(null);
 		qs.setSheetName("Sheet1");
-		// If your iterator requires range/types, set them here (left as-is because it depends on your implementation)
+		// If your iterator requires range/types, set them here (left as-is because it
+		// depends on your implementation)
 
 		ExcelSheetFileIterator it = ExcelWorkbookFileHelper.buildSheetIterator(qs);
 		assertNotNull(it);
@@ -128,8 +166,9 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 
 	/**
-	 * Creates an encrypted .xlsx using Apache POI's Agile encryption.
-	 * This is an integration-style test helper; it may need small tweaks depending on your POI version.
+	 * Creates an encrypted .xlsx using Apache POI's Agile encryption. This is an
+	 * integration-style test helper; it may need small tweaks depending on your POI
+	 * version.
 	 */
 	private static Path writeEncryptedWorkbook(Path path, String password) throws Exception {
 		byte[] plainXlsx;

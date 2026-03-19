@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,19 +62,18 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 	private Sheet sheet = null;
 	private String sheetName = "TestSheet";
 	private String sheetRange = "A1:G6";
-	
+
 	private String STRING_COL_NAME = "StringCol";
 	private String INT_COL_NAME = "IntCol";
 	private String DOUBLE_COL_NAME = "DoubleCol";
 	private String BOOL_COL_NAME = "BoolCol";
-	
+
 	private String DATE_COL_NAME = "DateCol";
 	private String DATE_FORMAT = "MM/dd/yyyy";
 
 	private String TS_COL_NAME = "TimestampCol";
 	private String TS_FORMAT = "MM/dd/yyyy HH:mm:ss";
 	private static final String NULL_COL_NAME = "NullCol";
-
 
 	@BeforeEach
 	void setUp() throws IOException {
@@ -72,7 +98,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			h.createCell(4).setCellValue(DATE_COL_NAME);
 			h.createCell(5).setCellValue(TS_COL_NAME);
 			h.createCell(6).setCellValue(NULL_COL_NAME);
-
 
 			// Data rows
 			for (int r = 1; r <= 5; r++) {
@@ -121,12 +146,12 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		assertEquals(qs, excelIt.getQs());
 		assertEquals(sheetName, excelIt.getQs().getSheetName());
-		
+
 		// use setQS
 		excelIt.setQs(qs);
 		assertEquals(qs, excelIt.getQs());
 		assertEquals(sheetName, excelIt.getQs().getSheetName());
-		
+
 		// test getSheet
 		assertEquals(sheetName, excelIt.getSheet().getSheetName());
 		excelIt.close();
@@ -158,7 +183,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		assertEquals(true, excelIt.hasNext());
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_getHeaderIndicies() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -171,7 +196,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		assertEquals(expectedHeaders, actual);
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_qsConstructor() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -189,7 +214,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		assertEquals(expectedHeaders, actual);
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_qsSelectors_originalDataTypes_validateData() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -299,11 +324,11 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			assertEquals(null, nullVal);
 			assertEquals(7, info.keySet().size());
 		}
-		
+
 		assertFalse(excelIt.hasNext());
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_qsSelectors_customDataTypes_validateData() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -316,7 +341,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		qs.addSelector(null, DATE_COL_NAME);
 		qs.addSelector(null, TS_COL_NAME);
 		qs.addSelector(null, NULL_COL_NAME);
-		
+
 		Map<String, String> dataTypes = new HashMap<>();
 		dataTypes.put(STRING_COL_NAME, "String");
 		dataTypes.put(INT_COL_NAME, "INT");
@@ -326,7 +351,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
 
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate SEMOSS types
@@ -440,11 +464,11 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			assertEquals(null, nullVal);
 			assertEquals(7, info.keySet().size());
 		}
-		
+
 		assertFalse(excelIt.hasNext());
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_qsSelectors_customDataTypes_semossDate_addType() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -457,7 +481,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		qs.addSelector(null, DATE_COL_NAME);
 		qs.addSelector(null, TS_COL_NAME);
 		qs.addSelector(null, NULL_COL_NAME);
-		
+
 		Map<String, String> dataTypes = new HashMap<>();
 		dataTypes.put(STRING_COL_NAME, "String");
 		dataTypes.put(INT_COL_NAME, "INT");
@@ -467,7 +491,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
+
 		Map<String, String> addTypes = new HashMap<>();
 		addTypes.put(DATE_COL_NAME, "yyyy-MM-dd");
 		addTypes.put(TS_COL_NAME, "yyyy-MM-dd HH:mm:ss");
@@ -585,11 +609,11 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			assertEquals(null, nullVal);
 			assertEquals(7, info.keySet().size());
 		}
-		
+
 		assertFalse(excelIt.hasNext());
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_findHeaderIndicies_customDataTypes() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -606,7 +630,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
 
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate SEMOSS types
@@ -617,14 +640,14 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		assertEquals(expectedHeaders, actual);
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_customHeadersAndDataTypes() throws IOException {
 		ExcelQueryStruct qs = new ExcelQueryStruct();
 		qs.setSheetName(sheetName);
 		qs.setSheetRange(sheetRange);
 
-		//  define new headers in datatypes
+		// define new headers in datatypes
 		Map<String, String> dataTypes = new HashMap<>();
 		dataTypes.put(STRING_COL_NAME + "_new", "String");
 		dataTypes.put(INT_COL_NAME + "_new", "INT");
@@ -645,22 +668,23 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		newHeaders.put(TS_COL_NAME + "_new", TS_COL_NAME);
 		newHeaders.put(NULL_COL_NAME + "_new", NULL_COL_NAME);
 		qs.setNewHeaderNames(newHeaders);
-		
+
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate headers
 		String[] headers = excelIt.getHeaders();
 		List<String> actual = Arrays.asList(headers);
 		List<String> expectedHeaders = List.of(STRING_COL_NAME + "_new", INT_COL_NAME + "_new",
-				DOUBLE_COL_NAME + "_new", BOOL_COL_NAME + "_new", DATE_COL_NAME + "_new",TS_COL_NAME + "_new", NULL_COL_NAME + "_new");
+				DOUBLE_COL_NAME + "_new", BOOL_COL_NAME + "_new", DATE_COL_NAME + "_new", TS_COL_NAME + "_new",
+				NULL_COL_NAME + "_new");
 		assertEquals(expectedHeaders, actual);
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_typesFromStr() throws IOException {
 		String fileLocation = this.tempDir + "\\test2.xlsx";
-		
-        DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 		try (XSSFWorkbook wb = new XSSFWorkbook()) {
 			sheet = wb.createSheet(sheetName);
@@ -675,7 +699,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			h.createCell(5).setCellValue(TS_COL_NAME);
 			h.createCell(6).setCellValue(NULL_COL_NAME);
 
-
 			LocalDate ld = LocalDate.of(2025, 3, 10);
 			LocalDateTime time = LocalDateTime.of(2025, 3, 10, 10, 30);
 
@@ -687,10 +710,10 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 				row.createCell(0).setCellValue("row" + r);
 
 				// B: INT-like numeric
-				row.createCell(1).setCellValue(r+"");
+				row.createCell(1).setCellValue(r + "");
 
 				// C: DOUBLE
-				row.createCell(2).setCellValue(r + 0.25+"");
+				row.createCell(2).setCellValue(r + 0.25 + "");
 
 				// D: BOOLEAN
 				row.createCell(3).setCellValue(r % 2 == 0);
@@ -700,12 +723,12 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 
 				// E: DATE (midnight UTC)
 				Cell dateCell = row.createCell(4);
-				ld =ld.plusDays(1);
+				ld = ld.plusDays(1);
 				dateCell.setCellValue(ld.toString());
 
 				// F: TIMESTAMP (non-midnight UTC)
 				time = time.plusHours(1);
-		        String s1 = time.format(f1);
+				String s1 = time.format(f1);
 
 				Cell tsCell = row.createCell(5);
 				tsCell.setCellValue(s1);
@@ -714,7 +737,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 
 			ExcelUtility.writeToFile(wb, fileLocation);
 		}
-		
+
 		ExcelQueryStruct qs = new ExcelQueryStruct();
 		qs.setSheetName(sheetName);
 		qs.setSheetRange(sheetRange);
@@ -729,7 +752,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
 
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate SEMOSS types
@@ -738,7 +760,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		List<SemossDataType> expectedHeaders = List.of(SemossDataType.STRING, SemossDataType.INT, SemossDataType.DOUBLE,
 				SemossDataType.BOOLEAN, SemossDataType.DATE, SemossDataType.TIMESTAMP, SemossDataType.STRING);
 		assertEquals(expectedHeaders, actual);
-		
+
 		// validate row 1
 		{
 			Map<String, Object> info = excelIt.next().flushRowToMap();
@@ -846,12 +868,12 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		}
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_addFormatTypes() throws IOException {
 		String fileLocation = this.tempDir + "\\test2.xlsx";
-		
-        DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 		try (XSSFWorkbook wb = new XSSFWorkbook()) {
 			sheet = wb.createSheet(sheetName);
@@ -903,7 +925,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 
 			ExcelUtility.writeToFile(wb, fileLocation);
 		}
-		
+
 		ExcelQueryStruct qs = new ExcelQueryStruct();
 		qs.setSheetName(sheetName);
 		qs.setSheetRange(sheetRange);
@@ -914,7 +936,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		qs.addSelector(null, DATE_COL_NAME);
 		qs.addSelector(null, TS_COL_NAME);
 		qs.addSelector(null, NULL_COL_NAME);
-		
+
 		Map<String, String> dataTypes = new HashMap<>();
 		dataTypes.put(STRING_COL_NAME, "String");
 		dataTypes.put(INT_COL_NAME, "INT");
@@ -924,12 +946,11 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
+
 		Map<String, String> addTypes = new HashMap<>();
 		addTypes.put(DATE_COL_NAME, "yyyy-MM-dd");
 		addTypes.put(TS_COL_NAME, "yyyy-MM-dd HH:mm:ss");
 		qs.setAdditionalTypes(addTypes);
-		
 
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate SEMOSS types
@@ -938,7 +959,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		List<SemossDataType> expectedHeaders = List.of(SemossDataType.STRING, SemossDataType.INT, SemossDataType.DOUBLE,
 				SemossDataType.BOOLEAN, SemossDataType.DATE, SemossDataType.TIMESTAMP, SemossDataType.STRING);
 		assertEquals(expectedHeaders, actual);
-		
+
 		// validate row 1
 		{
 			Map<String, Object> info = excelIt.next().flushRowToMap();
@@ -1046,12 +1067,12 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		}
 		excelIt.close();
 	}
-	
+
 	@Test
 	void test_inconsistent_datatypes() throws IOException {
 		String fileLocation = this.tempDir + "\\test2.xlsx";
-		
-        DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+		DateTimeFormatter f1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
 		try (XSSFWorkbook wb = new XSSFWorkbook()) {
 			sheet = wb.createSheet(sheetName);
@@ -1065,7 +1086,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			h.createCell(4).setCellValue(DATE_COL_NAME);
 			h.createCell(5).setCellValue(TS_COL_NAME);
 			h.createCell(6).setCellValue(NULL_COL_NAME);
-
 
 			LocalDate ld = LocalDate.of(2025, 3, 10);
 			LocalDateTime time = LocalDateTime.of(2025, 3, 10, 10, 30);
@@ -1114,10 +1134,10 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 				row.createCell(0).setCellValue("row" + r);
 
 				// B: Negative int
-				row.createCell(1).setCellValue("-"+r + "");
+				row.createCell(1).setCellValue("-" + r + "");
 
 				// C: negative DOUBLE
-				row.createCell(2).setCellValue("-"+(r + 0.25) + "");
+				row.createCell(2).setCellValue("-" + (r + 0.25) + "");
 
 				// D: BOOLEAN
 				row.createCell(3).setCellValue(false);
@@ -1144,10 +1164,10 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 				row.createCell(0).setCellValue("row" + r);
 
 				// B: Negative int
-				row.createCell(1).setCellValue("("+r + "");
+				row.createCell(1).setCellValue("(" + r + "");
 
 				// C: negative DOUBLE
-				row.createCell(2).setCellValue("("+(r + 0.25) + "");
+				row.createCell(2).setCellValue("(" + (r + 0.25) + "");
 
 				// D: BOOLEAN
 				row.createCell(3).setCellValue(false);
@@ -1198,10 +1218,9 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 				tsCell.setCellValue(s1);
 			}
 
-
 			ExcelUtility.writeToFile(wb, fileLocation);
 		}
-		
+
 		ExcelQueryStruct qs = new ExcelQueryStruct();
 		qs.setSheetName(sheetName);
 		qs.setSheetRange(sheetRange);
@@ -1216,7 +1235,6 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		dataTypes.put(TS_COL_NAME, "timestamp");
 		dataTypes.put(NULL_COL_NAME, "varchar");
 		qs.setColumnTypes(dataTypes);
-		
 
 		ExcelSheetFileIterator excelIt = new ExcelSheetFileIterator(sheet, qs);
 		// validate SEMOSS types
@@ -1225,7 +1243,7 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		List<SemossDataType> expectedHeaders = List.of(SemossDataType.STRING, SemossDataType.INT, SemossDataType.DOUBLE,
 				SemossDataType.BOOLEAN, SemossDataType.DATE, SemossDataType.TIMESTAMP, SemossDataType.STRING);
 		assertEquals(expectedHeaders, actual);
-		
+
 		// validate row 1
 		{
 			Map<String, Object> info = excelIt.next().flushRowToMap();
@@ -1257,8 +1275,8 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 			assertEquals(null, ((Integer) raw));
 			assertEquals(null, info.get(DOUBLE_COL_NAME));
 			assertEquals(null, info.get(BOOL_COL_NAME));
-			assertEquals(null,  info.get(DATE_COL_NAME));
-			assertEquals(null,  info.get(TS_COL_NAME));
+			assertEquals(null, info.get(DATE_COL_NAME));
+			assertEquals(null, info.get(TS_COL_NAME));
 			assertEquals(null, info.get(NULL_COL_NAME));
 			assertEquals(7, info.keySet().size());
 		}
@@ -1325,5 +1343,5 @@ public class ExcelSheetFileIteratorUnitTests extends SemossUnitTest {
 		}
 		excelIt.close();
 	}
-	
+
 }
