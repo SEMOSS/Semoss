@@ -3183,13 +3183,13 @@
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-commons</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-util</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
 		<dependency>

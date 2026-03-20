@@ -42,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -51,6 +52,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
@@ -86,6 +88,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// also add the max user limit check
 		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 		if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
@@ -347,6 +350,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	public static void storeUserPassword(String userId, String type, String hashPassword, String salt,
 			java.sql.Timestamp timestamp) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
 
@@ -487,6 +491,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	static String getUsernameByUserId(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT NAME FROM USER WHERE ID = '?1'"; query =
 		 * query.replace("?1", userId); IRawSelectWrapper wrapper =
@@ -513,6 +518,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT ID FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -541,6 +547,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return email if it exists otherwise null
 	 */
 	public static String getUserEmail(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT EMAIL FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -567,6 +574,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userEmailExists(String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
@@ -588,6 +596,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getNameUser(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT NAME FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -616,6 +625,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return User retrieved from the database otherwise null.
 	 */
 	private static Map<String, String> getUserFromDatabase(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String> user = new HashMap<>();
 
 		/*
@@ -671,6 +681,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isCurrentPassword(String userId, AuthProvider type, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String hashedPassword = null;
 		String salt = null;
 
@@ -701,6 +712,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isPreviousPassword(String userId, AuthProvider type, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int passReuseCount = -1;
 		try {
 			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
@@ -745,6 +757,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static String performResetPassword(String userId, String password) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure the new password is valid or throw error
 		validPassword(userId, AuthProvider.NATIVE, password);
 

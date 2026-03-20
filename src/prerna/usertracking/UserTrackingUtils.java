@@ -50,12 +50,11 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.SystemEngineRegistry;
 
 public class UserTrackingUtils {
 
 	private static Logger classLogger = LogManager.getLogger(UserTrackingUtils.class);
-
-	static IRDBMSEngine userTrackingDb;
 
 	/**
 	 * 
@@ -161,6 +160,7 @@ public class UserTrackingUtils {
 	 * @param origin
 	 */
 	private static void doTrackInsightOpen(String insightId, String userId, String origin) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) " + "VALUES (?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
@@ -197,6 +197,7 @@ public class UserTrackingUtils {
 	 */
 	private static void doTrackEmail(String[] toRecipients, String[] ccRecipients, String[] bccRecipients, String from,
 			String subject, String emailMessage, boolean isHtml, String[] attachments, boolean successful) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		boolean allowClob = userTrackingDb.getQueryUtil().allowClobJavaObject();
 
 		String query = "INSERT INTO EMAIL_TRACKING (ID, SENT_TIME, SUCCESSFUL, E_FROM, E_TO, E_CC, E_BCC, E_SUBJECT, BODY, ATTACHMENTS, IS_HTML) "
@@ -312,6 +313,7 @@ public class UserTrackingUtils {
 	 * @param engineId
 	 */
 	private static void doDeleteEngine(String query, String engineId) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -334,6 +336,7 @@ public class UserTrackingUtils {
 	 * @param projectId
 	 */
 	private static void doDeleteProject(String projectId) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ?";
 
 		PreparedStatement ps = null;
@@ -359,6 +362,7 @@ public class UserTrackingUtils {
 	 * @param insightId
 	 */
 	private static void doDeleteInsight(String projectId, String insightId) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ? AND INSIGHTID = ?";
 
 		PreparedStatement ps = null;
@@ -404,6 +408,7 @@ public class UserTrackingUtils {
 	 */
 	private static void doTrackQueryExecution(User user, String databaseId, String queryExecuted, Timestamp startTime,
 			Timestamp endTime, Long executionTime, boolean failed) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String insertQuery = "INSERT INTO QUERY_TRACKING "
 				+ "(ID, USERID, USERTYPE, DATABASEID, QUERY_EXECUTED, START_TIME, END_TIME, TOTAL_EXECUTION_TIME, FAILED_EXECUTION) "
 				+ "VALUES(?,?,?,?,?,?,?,?,?)";
@@ -498,7 +503,7 @@ public class UserTrackingUtils {
 	 * @throws Exception
 	 */
 	public static void initUserTrackerDatabase() throws Exception {
-		userTrackingDb = (IRDBMSEngine) Utility.getDatabase(Constants.USER_TRACKING_DB);
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		UserTrackingOwlCreator utoc = new UserTrackingOwlCreator(userTrackingDb);
 		if (utoc.needsRemake()) {
 			utoc.remakeOwl();
