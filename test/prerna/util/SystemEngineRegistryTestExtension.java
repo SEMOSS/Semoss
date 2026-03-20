@@ -29,26 +29,88 @@ package prerna.util;
 
 import java.lang.reflect.Field;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import prerna.engine.api.IRDBMSEngine;
+
 /**
- * JUnit 5 extension that clears the SecurityDb registration in
+ * JUnit 5 extension that clears all system engine registrations in
  * {@link SystemEngineRegistry} after each test class completes. This allows
- * each test class that extends AbstractSecurityUtilsUnitTestsSetup to register
- * its own fresh in-memory H2 database without hitting "already registered".
+ * each test class to register its own fresh databases without hitting "already
+ * registered".
  *
- * Lives in the test source tree only — not shipped in production JARs. Uses
- * reflection to null the private {@code securityDbHolder} field so that no
- * test-related code needs to exist in the production class.
+ * Lives in the test source tree only - not shipped in production JARs. Uses
+ * reflection to null the private holder fields so that no test-related code
+ * needs to exist in the production class.
+ *
+ * Also provides static helpers used by the integration test bootstrap
+ * ({@code ApiSemossTestEngineUtils}) to load and reset engines:
+ * <ul>
+ * <li>{@link #loadForTesting(String)} - delegates to
+ * {@link SystemEngineRegistry#loadSystemEngine(String)} from within
+ * {@code prerna.util}, which is on the registration allowlist.</li>
+ * <li>{@link #resetAll()} - closes and nulls all nine engine holders.</li>
+ * </ul>
  */
 public class SystemEngineRegistryTestExtension implements AfterAllCallback {
 
+	private static final Logger classLogger = LogManager.getLogger(SystemEngineRegistryTestExtension.class);
+
+	private static final String[] HOLDER_FIELDS = { "securityDbHolder", "localMasterDbHolder", "schedulerDbHolder",
+			"themesDbHolder", "userTrackingDbHolder", "promptDbHolder", "notificationDbHolder", "auditLogsDbHolder",
+			"modelInferenceLogsDbHolder" };
+
 	@Override
 	public void afterAll(ExtensionContext context) throws Exception {
-		Field field = SystemEngineRegistry.class.getDeclaredField("securityDbHolder");
-		field.setAccessible(true);
-		field.set(null, null);
+		resetAll();
+	}
+
+	/**
+	 * Loads a system engine from its SMSS file and registers it in
+	 * {@link SystemEngineRegistry}. Delegates to
+	 * {@link SystemEngineRegistry#loadSystemEngine(String)} from within
+	 * {@code prerna.util}, which is on the registration allowlist.
+	 *
+	 * @param smssFilePath absolute path to the engine's .smss file
+	 * @return the opened and registered engine
+	 * @throws Exception if loading or opening fails
+	 */
+	public static IRDBMSEngine loadForTesting(String smssFilePath) throws Exception {
+		return SystemEngineRegistry.loadSystemEngine(smssFilePath);
+	}
+
+	/**
+	 * Closes all registered engines and resets every holder to {@code null} so that
+	 * a subsequent test suite can re-initialize without hitting the one-time
+	 * registration guard. Closing releases any file locks held by the underlying
+	 * DB.
+	 */
+	@SuppressWarnings("unchecked")
+	public static void resetAll() {
+		for (String fieldName : HOLDER_FIELDS) {
+			try {
+				Field field = SystemEngineRegistry.class.getDeclaredField(fieldName);
+				field.setAccessible(true);
+				java.util.function.Supplier<IRDBMSEngine> holder = (java.util.function.Supplier<IRDBMSEngine>) field
+						.get(null);
+				if (holder != null) {
+					try {
+						IRDBMSEngine engine = holder.get();
+						if (engine != null) {
+							engine.close();
+						}
+					} catch (Exception e) {
+						classLogger.warn("Error closing engine '{}' during registry reset", fieldName, e);
+					}
+					field.set(null, null);
+				}
+			} catch (Exception e) {
+				classLogger.warn("Could not reset registry field '{}'", fieldName, e);
+			}
+		}
 	}
 
 }
