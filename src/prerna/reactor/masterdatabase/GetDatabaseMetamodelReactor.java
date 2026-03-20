@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
@@ -45,6 +46,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
+import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
@@ -74,6 +76,8 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 				&& !SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 		}
+
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
 
 		Logger logger = getLogger(CLASS_NAME);
 		boolean includeDataTypes = options.contains("datatypes");
@@ -117,7 +121,8 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 		// this is for the OWL positions for the new layout
 		if (options.contains("positions")) {
-			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId);
+			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId,
+					database.getEngineName(), database.getSmssFilePath());
 			metamodelObject.put("positions", positions);
 			logger.info("Done pulling database positions for database " + databaseId);
 		}

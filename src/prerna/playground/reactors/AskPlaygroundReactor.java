@@ -47,6 +47,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -131,6 +132,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
+		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
