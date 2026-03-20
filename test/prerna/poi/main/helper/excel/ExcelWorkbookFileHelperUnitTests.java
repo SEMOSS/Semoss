@@ -36,6 +36,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import org.mockito.MockedStatic;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -56,6 +57,9 @@ import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import com.github.pjfanning.xlsx.StreamingReader;
+import com.github.pjfanning.xlsx.StreamingReader.Builder;
 
 import prerna.query.querystruct.ExcelQueryStruct;
 
@@ -151,6 +155,92 @@ class ExcelWorkbookFileHelperUnitTests {
 		assertDoesNotThrow(helper::clear);
 	}
 
+	@Test
+	void parse_deprecatedOverload_delegatesAndWorks() throws Exception {
+	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("simple-deprecated.xlsx"), List.of("Sheet1"));
+
+	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	    helper.parse(xlsx.toString()); // deprecated overload
+
+	    assertEquals(List.of("Sheet1"), helper.getSheets());
+	    helper.clear();
+	}
+	
+	@Test
+	void parse_existingButInvalidXlsx_throwsUnableToReadExcelFile() throws Exception {
+	    Path bad = tempDir.resolve("not-really.xlsx");
+	    Files.write(bad, "definitely not an xlsx".getBytes());
+
+	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	    RuntimeException ex = assertThrows(RuntimeException.class, () -> helper.parse(bad.toString(), null));
+
+	    assertEquals("Unable to read Excel file", ex.getMessage());
+	    assertNotNull(ex.getCause());
+	}
+
+	
+	@Test
+	void parse_whenStreamingReaderThrowsEncryptedDocumentException_wrapsMessage() throws Exception {
+	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("any.xlsx"), List.of("Sheet1"));
+
+	    Builder builder = mock(Builder.class);
+
+	    // fluent builder stubs
+	    when(builder.rowCacheSize(anyInt())).thenReturn(builder);
+	    when(builder.bufferSize(anyInt())).thenReturn(builder);
+	    when(builder.password(any())).thenReturn(builder);
+
+	    // force the specific catch block you want covered
+	    when(builder.open(any(FileInputStream.class))).thenThrow(new EncryptedDocumentException("bad password"));
+
+	    try (MockedStatic<StreamingReader> mocked = mockStatic(StreamingReader.class)) {
+	        mocked.when(StreamingReader::builder).thenReturn(builder);
+
+	        ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	        RuntimeException ex = assertThrows(RuntimeException.class,
+	                () -> helper.parse(xlsx.toString(), "wrong"));
+
+	        assertEquals("Unable to open encrypted Excel file. Please verify the password.", ex.getMessage());
+	        assertTrue(ex.getCause() instanceof EncryptedDocumentException);
+	    }
+	}
+	
+	@Test
+	void clear_whenCloseThrowsRuntimeException_doesNotThrow() throws Exception {
+	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	    FileInputStream fis = mock(FileInputStream.class);
+	    doThrow(new RuntimeException("boom")).when(fis).close();
+
+	    setField(helper, "sourceFile", fis);
+	    setField(helper, "fileLocation", "dummy.xlsx");
+
+	    assertDoesNotThrow(helper::clear);
+	    verify(fis, times(1)).close();
+	}
+
+	@Test
+	void getSheetIterator_and_buildSheetIterator_coverThoseLines() throws Exception {
+	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("iter2.xlsx"), List.of("Sheet1"));
+
+	    ExcelQueryStruct qs = new ExcelQueryStruct();
+	    qs.setFilePath(xlsx.toString());
+	    qs.setPassword(null);
+	    qs.setSheetName("Sheet1");
+
+	    // If ExcelSheetFileIterator requires these, set them to valid minimal values:
+	    // qs.setSheetRange("A1:A1");
+	    // qs.setDataTypes(...);
+
+	    // instance path
+	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	    helper.parse(xlsx.toString(), null);
+	    assertNotNull(helper.getSheetIterator(qs));
+	    helper.clear();
+
+	    // static builder path (covers buildSheetIterator)
+	    assertNotNull(ExcelWorkbookFileHelper.buildSheetIterator(qs));
+	}
+	
 	// ---------- Test helpers ----------
 
 	private static Path writeSimpleWorkbook(Path path, List<String> sheetNames) throws Exception {
