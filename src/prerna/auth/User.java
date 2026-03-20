@@ -100,7 +100,7 @@ public class User implements Serializable {
 	private transient Process rProcess = null;
 
 	private String chrootPath = null;
-	private transient SymlinkHelper symlinkHelper = null;
+	private transient volatile SymlinkHelper symlinkHelper = null;
 
 	// playwright
 	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
@@ -818,13 +818,17 @@ public class User implements Serializable {
 	 */
 	public SymlinkHelper getUserSymlinkHelper() {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (symlinkHelper == null) {
-				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
-				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-				// unique user is just for testing so when i ls on R, I can see it is me and not
-				// someone else
-				symlinkHelper = new SymlinkHelper(chrootPath);
+			if (symlinkHelper != null) {
+				return symlinkHelper;
+			}
+
+			synchronized (this) {
+				if (symlinkHelper == null) {
+					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
+					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
+					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
+					symlinkHelper = new SymlinkHelper(chrootPath);
+				}
 			}
 			return symlinkHelper;
 		}
