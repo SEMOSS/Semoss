@@ -29,15 +29,14 @@ package prerna.cluster.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.reflect.MethodUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.recipes.cache.CuratorCache;
@@ -47,11 +46,8 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCacheListener;
 import org.apache.curator.retry.RetryNTimes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.zookeeper.ZooKeeper;
 
 import prerna.cluster.util.clients.AppCloudClientProperties;
-import prerna.project.api.IProject;
-import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
@@ -67,10 +63,12 @@ public class ClusterSynchronizer {
 
 	public static final String SYNC_PROJECT_PATH = "/sync/project";
 	public static final String SYNC_ENGINE_PATH = "/sync/engine";
+	public static final String SYNC_USER_PATH = "/sync/user";
 
 	private CuratorFramework client = null;
 	private CuratorCache projectCache;
 	private CuratorCache engineCache;
+	private CuratorCache userCache;
 
 	String host;
 
@@ -113,11 +111,16 @@ public class ClusterSynchronizer {
 				client.create().creatingParentsIfNeeded().forPath(SYNC_ENGINE_PATH);
 			}
 
+			// Check if the ZNode exists before trying to create it - user
+			if (client.checkExists().forPath(SYNC_USER_PATH) == null) {
+				client.create().creatingParentsIfNeeded().forPath(SYNC_USER_PATH);
+			}
+
 			projectCache = createCacheListener(SYNC_PROJECT_PATH);
 			engineCache = createCacheListener(SYNC_ENGINE_PATH);
+			userCache = createCacheListener(SYNC_USER_PATH);
 
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 
@@ -146,6 +149,10 @@ public class ClusterSynchronizer {
 									String[] path = fullPath.split(SYNC_PROJECT_PATH + "/");
 									id = path[1];
 									pull = projectLoaded(id);
+								} else if (fullPath.startsWith(SYNC_USER_PATH)) {
+									String[] path = fullPath.split(SYNC_USER_PATH + "/");
+									id = path[1];
+									pull = userLoaded(id);
 								} else {
 									String[] path = fullPath.split(SYNC_ENGINE_PATH + "/");
 									id = path[1];
@@ -156,14 +163,14 @@ public class ClusterSynchronizer {
 
 								if (pull) {
 									try {
-										List<String> params = (List<String>) dataMap.get("params");
-										Class<?>[] paramTypes = new Class[params.size()];
-										for (int i = 0; i < params.size(); i++) {
-											paramTypes[i] = params.get(i).getClass();
-										}
-										Method method = ClusterUtil.class
-												.getMethod(dataMap.get("methodName").toString(), paramTypes);
-										method.invoke(null, params.toArray());
+
+										// actual method param types could be primitives or wrappers
+										// params are all Objects (wrappers)
+										// invoke method with utility to handle primitive lookups
+										@SuppressWarnings("unchecked")
+										List<Object> params = (List<Object>) dataMap.get("params");
+										MethodUtils.invokeStaticMethod(ClusterUtil.class,
+												dataMap.get("methodName").toString(), params.toArray());
 									} catch (Exception e) {
 										classLogger.error(Constants.STACKTRACE, e);
 									}
@@ -199,6 +206,18 @@ public class ClusterSynchronizer {
 		if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 				|| engines.endsWith(";" + engineId)) {
 			classLogger.info("Loaded engine " + engineId + " is out of date. Pulling latest changes");
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	private static boolean userLoaded(String projectId) {
+		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+
+		if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+				|| projects.endsWith(";" + projectId)) {
+			classLogger.info("Loaded user asset/workspace " + projectId + " is out of date. Pulling latest changes");
 			return true;
 		} else {
 			return false;
@@ -244,6 +263,30 @@ public class ClusterSynchronizer {
 		out.writeObject(dataMap);
 
 		client.setData().forPath(enginePath, byteOut.toByteArray());
+
+	}
+
+	public void publishUserChange(String projectId, String methodName, Object... params) throws Exception {
+
+		String userPath = SYNC_USER_PATH + "/" + projectId;
+
+		// this creates the path if it doesnt exist
+		if (client.checkExists().forPath(userPath) == null) {
+			client.create().creatingParentsIfNeeded().forPath(userPath);
+		}
+
+		classLogger.info("Publishing change for user asset/workspace " + projectId + " and for nodes to " + methodName);
+		Map<String, Object> dataMap = new HashMap<>();
+		dataMap.put("nodeId", host);
+		dataMap.put("methodName", methodName);
+		List<Object> paramList = Arrays.asList(params);
+		dataMap.put("params", paramList);
+
+		ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+		ObjectOutputStream out = new ObjectOutputStream(byteOut);
+		out.writeObject(dataMap);
+
+		client.setData().forPath(userPath, byteOut.toByteArray());
 
 	}
 

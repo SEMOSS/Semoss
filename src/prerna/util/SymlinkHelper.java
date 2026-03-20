@@ -44,6 +44,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 
@@ -667,6 +668,14 @@ public class SymlinkHelper {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, "Error deleting directory: " + e.getMessage());
 		}
+	}
+
+	public void symlinkUserAsset(User user) {
+		AuthProvider provider = user.getPrimaryLogin();
+		String projectId = user.getAssetProjectId(provider);
+		String assetFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder("Asset", projectId);
+		classLogger.info("Symlinking user asset folder for projectId=" + projectId);
+		symlinkFolder(assetFolder);
 	}
 
 	public void symlinkProject(User user, String projectId) {

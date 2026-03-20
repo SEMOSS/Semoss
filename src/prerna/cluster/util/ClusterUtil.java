@@ -1091,7 +1091,7 @@ public class ClusterUtil {
 
 		if (ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishProjectChange(projectId, "pullUserWorkspace", projectId, isAsset);
+				getClusterSynchronizer().publishUserChange(projectId, "pullUserWorkspace", projectId, isAsset);
 			} catch (Exception e) {
 				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster",
 						projectId, isAsset, e);
