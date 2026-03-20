@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Union, Any, Literal
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 from ...utils import StringEnum
 import json
 from deprecated import deprecated
@@ -18,8 +18,12 @@ class SEMOSSMediaContent(BaseModel):
     type: SEMOSSMediaInputType
     data: Optional[str] = None
     format: Optional[str] = None
-    mime_type: Optional[str] = None
-    file_name: Optional[str] = None
+    mime_type: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("mime_type", "mimeType")
+    )
+    file_name: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("file_name", "fileName")
+    )
     url: Optional[str] = None
 
     class Config:
@@ -63,7 +67,10 @@ class SEMOSSToolCall(BaseModel):
     function: SEMOSSToolFunction
     type: Literal["function"]
     id: Optional[str] = None
-    thought_signature: Optional[str] = None  # Base64-encoded, Gemini thinking models only
+    thought_signature: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("thought_signature", "thoughtSignature"),
+    )  # Base64-encoded, Gemini thinking models only
 
 
 class SEMOSSToolResponse(BaseModel):
@@ -78,8 +85,19 @@ class SEMOSSToolResponse(BaseModel):
 class SEMOSSToolExecution(BaseModel):
     """Represents a tool response output"""
 
-    id: str
+    id: str = Field(validation_alias=AliasChoices("id", "toolCallId"))
     output: str
+    # below are not actually used in the model calls but are useful to have in the tool response objects for better traceability and debugging
+    tool_name: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("tool_name", "toolName")
+    )
+    tool_parameter_values: Optional[Dict[str, Any]] = Field(
+        default=None,
+        validation_alias=AliasChoices("tool_parameter_values", "toolParameterValues"),
+    )
+    tool_status: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("tool_status", "toolStatus")
+    )
 
 
 # =========== NEW MODELS FOR MESSAGE PARTS ===========
@@ -96,7 +114,9 @@ class SEMOSSMessagePartType(StringEnum):
 class SEMOSSMediaMessagePart(BaseModel):
     """Represents a media message content"""
 
-    mediaInfo: SEMOSSMediaContent
+    media_info: SEMOSSMediaContent = Field(
+        validation_alias=AliasChoices("mediaInfo", "media_info")
+    )
     type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
 
 
@@ -111,7 +131,9 @@ class SEMOSSTextMessagePart(BaseModel):
     """Represents a text message content"""
 
     text: str
-    uiText: Optional[str] = None
+    ui_text: Optional[str] = Field(
+        default=None, validation_alias=AliasChoices("uiText", "ui_text")
+    )
     type: Literal[SEMOSSMessagePartType.TEXT] = SEMOSSMessagePartType.TEXT
 
 
@@ -125,14 +147,18 @@ class SEMOSSThinkingMessagePart(BaseModel):
 class SEMOSSToolCallMessagePart(BaseModel):
     """Represents a tool call message content"""
 
-    toolCall: SEMOSSToolCall
+    tool_call: SEMOSSToolCall = Field(
+        validation_alias=AliasChoices("toolCall", "tool_call")
+    )
     type: Literal[SEMOSSMessagePartType.TOOL_CALL] = SEMOSSMessagePartType.TOOL_CALL
 
 
 class SEMOSSToolResultMessagePart(BaseModel):
     """Represents a tool result message content"""
 
-    toolResult: SEMOSSToolExecution
+    tool_result: SEMOSSToolExecution = Field(
+        validation_alias=AliasChoices("toolResult", "tool_result")
+    )
     type: Literal[SEMOSSMessagePartType.TOOL_RESULT] = SEMOSSMessagePartType.TOOL_RESULT
 
 

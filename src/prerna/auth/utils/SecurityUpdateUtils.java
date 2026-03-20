@@ -42,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -51,6 +52,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
@@ -71,6 +73,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param userName String representing the name of the user to add
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (newUser.getId() == null || newUser.getId().isEmpty()) {
 			throw new IllegalArgumentException("User id for the token is null or empty. Must provide a valid id.");
 		}
@@ -330,6 +333,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static void validateUserLogin(AccessToken newUser) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user is not locked out
 		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(),
 				newUser.getProvider());
@@ -420,6 +424,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static boolean updateOAuthUser(AccessToken existingToken) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
@@ -490,6 +495,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
@@ -523,6 +529,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	public static void updateUserLastLogin(String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// update the user last login
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
@@ -580,6 +587,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter,
 			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens,
 			Double modelMaxResponseTime) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if (isExistingUser) {
 			return false;

@@ -59,6 +59,8 @@ import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobStatus;
+import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -83,7 +85,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
-
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -103,18 +104,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 
 				classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
-				while (!connected && attempt < 6) // I do an attempt here too hmm..
-				{
+				while (!connected && attempt < 6) {
 					try {
 						clientSocket = new Socket(this.HOST, this.PORT);
 						// pick input and output stream and start the threads
 						this.is = clientSocket.getInputStream();
 						this.os = clientSocket.getOutputStream();
 						classLogger.info("CLIENT Connection complete !!!!!!!");
+						// sleep some before executing command
+						Thread.sleep(100);
 
-						Thread.sleep(100); // sleep some before executing command
-						// prime it
-						// classLogger.info("First command.. Prime" + executeCommand("2+2"));
 						connected = true;
 						ready = true;
 						killAll = false;
@@ -194,8 +193,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							classLogger.debug("incoming payload " + ps);
 							classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
+							// cancelled operations
+							if (ps.operation == PayloadStruct.OPERATION.CANCELLED) {
+								classLogger.debug("User cancelled request for epoc: {}", ps.epoc);
+							}
 							// std out no questions
-							if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null && !ps.response) {
+							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null
+									&& !ps.response) {
 								String logMessage = (String) ps.payload[0];
 								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
@@ -345,11 +349,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								}
 							}
 						} else {
-							killAll = true;
-							break;
+							crash();
+							break SOCKET_LISTENER;
 						}
 					} catch (SocketException ex1) {
-						classLogger.error(Constants.STACKTRACE, ex1);
 						crash();
 						break SOCKET_LISTENER;
 					} catch (Exception ex) {
@@ -458,6 +461,43 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 	@Override
+	public void interruptInsight(String insightId) {
+		interruptInsightJob(insightId, null);
+	}
+
+	@Override
+	public void interruptInsightJob(String insightId, String jobId) {
+		// Always cancel local waiters first.
+		super.interruptInsightJob(insightId, jobId);
+
+		if ((insightId == null || insightId.isBlank()) && (jobId == null || jobId.isBlank())) {
+			return;
+		}
+		if (!this.connected || this.killAll) {
+			return;
+		}
+
+		// Best-effort remote interrupt so the Python process can stop the currently
+		// running execution without killing the socket server process.
+		PayloadStruct ps = new PayloadStruct();
+		ps.epoc = "pi" + count.getAndIncrement();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.methodName = "interruptInsight";
+		ps.payload = new Object[] { "INTERRUPT_INSIGHT" };
+		ps.hasReturn = false;
+		ps.longRunning = false;
+		ps.insightId = insightId;
+		ps.executionInsightId = insightId;
+		ps.jobId = jobId;
+		writePayload(ps);
+	}
+
+	@Override
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	@Override
 	public Object executeCommand(PayloadStruct ps) {
 		String threadName = Thread.currentThread().getName();
 		long threadId = Thread.currentThread().threadId();
@@ -478,6 +518,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 		if (ps.insightId != null) {
 			addEpocForInsight(ps.insightId, ps.epoc);
+		}
+		if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+			addEpocForInsight(ps.executionInsightId, ps.epoc);
+		}
+		if (ps.jobId != null) {
+			addEpocForJob(ps.jobId, ps.epoc);
 		}
 		ps.longRunning = true;
 
@@ -509,7 +555,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (pollNum < maxWait) {
 								ps.wait(this.averageMillis);
 							} else {
-								classLogger.debug("Im about to wait eternally for epoc{}", ps.epoc);
+								classLogger.debug("Im about to wait eternally for epoc {}", ps.epoc);
 								// wait eternally - we dont know how long some of the load operations would take
 								// besides
 								// I am not sure if the null gets us anything
@@ -517,7 +563,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							}
 							pollNum++;
 						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							boolean cancelled = cancelledEpocs.contains(ps.epoc);
+							if (!cancelled && ps.jobId != null) {
+								PixelJobThread jt = PixelJobManager.getManager().getJob(ps.jobId);
+								cancelled = jt != null && jt.getPixelJobStatus() == PixelJobStatus.CANCELED;
+							}
+
+							if (cancelled) {
+								classLogger.debug("Interrupted due to cancel for epoc {}", ps.epoc);
+								break; // let existing cancelledEpocs/job handling throw cancel response
+							}
+
+							classLogger.warn("Interrupted while waiting for epoc {}", ps.epoc, e);
 						}
 					}
 					if (cancelledEpocs.contains(ps.epoc)) {
@@ -533,6 +590,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			}
 		} finally {
 			removeEpocForInsight(ps.insightId, ps.epoc);
+			if (ps.executionInsightId != null && !ps.executionInsightId.equals(ps.insightId)) {
+				removeEpocForInsight(ps.executionInsightId, ps.epoc);
+			}
+			removeEpocForJob(ps.jobId, ps.epoc);
 		}
 	}
 
@@ -595,7 +656,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		return finalByte;
-
 	}
 
 	/**
@@ -640,7 +700,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted or execution failure during stop server", e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -659,22 +720,20 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 */
 	@Override
 	public void crash() {
-		// this happens when the client has completely crashed
-		// make the connected to be false
-		// take everything that is waiting on it
-		// go through request map and start pushing
+		// this happens when the client losses connection to the server
+		classLogger.warn("NativePySocketClient is disconnected from server");
 
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
 
+		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Callable<String> callableTask = () -> {
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
 					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+					ps.ex = "Client is disconnected from the server.";
 					synchronized (ps) {
 						ps.notifyAll();
 					}
@@ -694,14 +753,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			classLogger.warn("Not able to release the payload structs within a timely fashion");
 			future.cancel(true);
 		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted or execution failure during crash", e);
 		} finally {
 			executor.shutdown();
 		}
 
 		this.close();
-		classLogger.fatal(
-				"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 }

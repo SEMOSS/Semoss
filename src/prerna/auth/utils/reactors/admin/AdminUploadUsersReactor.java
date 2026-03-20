@@ -60,6 +60,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -126,7 +127,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 
 		this.logger = getLogger(CLASS_NAME);
 
-		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
 		Connection conn = null;
 		try {
 			conn = database.getConnection();
