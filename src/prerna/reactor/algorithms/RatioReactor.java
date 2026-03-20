@@ -60,7 +60,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RatioReactor extends AbstractFrameReactor {
@@ -133,9 +132,9 @@ public class RatioReactor extends AbstractFrameReactor {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 
-		String insightCacheDir = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+		String insightCacheDir = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 		final String LINE_SEPARATOR = "\n";
-		String csvCache = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String csvCache = Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		String path = Utility.normalizePath(insightCacheDir) + DIR_SEPARATOR + Utility.normalizePath(csvCache)
 				+ DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 		StringBuilder sb = new StringBuilder();

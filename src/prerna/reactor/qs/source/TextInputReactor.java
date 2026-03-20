@@ -43,26 +43,23 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class TextInputReactor extends AbstractQueryStructReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(TextInputReactor.class);
 
-	//keys to get inputs from pixel command
+	// keys to get inputs from pixel command
 	private static final String FILE_INFO = "fileData";
 	private static final String DATA_TYPES = "dataTypeMap";
 	private static final String DELIMITER = "delim";
 
 	/**
-	 * TextInput args 
+	 * TextInput args
 	 * 
-	 * FILE_INFO=["fileInfo"]
-	 * DELIMITER = ["delimiter"]
+	 * FILE_INFO=["fileInfo"] DELIMITER = ["delimiter"]
 	 * 
-	 * to set dataTypes 
-	 *     dataTypesMap = [{"column", "type"}]
+	 * to set dataTypes dataTypesMap = [{"column", "type"}]
 	 */
 
 	@Override
@@ -70,13 +67,13 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		CsvQueryStruct qs = null;
 
 		// get inputs
-		Map<String, String> dataTypes = getDataTypes(); 
+		Map<String, String> dataTypes = getDataTypes();
 		String fileInfo = getFileInfo();
 
 		// write the file on disk
 		Date date = new Date();
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
-		String fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "PastedData" + modifiedDate + ".csv";
+		String fileLocation = Utility.getBaseFolder() + DIR_SEPARATOR + "PastedData" + modifiedDate + ".csv";
 		File file = new File(fileLocation);
 		FileWriter fw = null;
 		try {
@@ -85,7 +82,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(fw != null) {
+			if (fw != null) {
 				try {
 					fw.flush();
 					fw.close();
@@ -116,7 +113,8 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 			String encodedString = fGrs.get(0).toString();
 			fileInfo = Utility.decodeURIComponent(encodedString);
 		} else {
-			throw new IllegalArgumentException("Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");
+			throw new IllegalArgumentException(
+					"Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");
 		}
 		return fileInfo;
 	}
@@ -134,7 +132,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 	private char getDelimiter() {
 		GenRowStruct delimGRS = this.store.getGenRowStruct(DELIMITER);
 		String delimiter = "";
-		char delim = ','; //default
+		char delim = ','; // default
 		NounMetadata instanceIndexNoun;
 
 		if (delimGRS != null) {
@@ -144,8 +142,8 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException("Need to specify " + DELIMITER + "=[delimiter] in pixel command");
 		}
 
-		//get char from input string
-		if(delimiter.length() > 0) {
+		// get char from input string
+		if (delimiter.length() > 0) {
 			delim = delimiter.charAt(0);
 		}
 

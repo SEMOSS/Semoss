@@ -64,13 +64,13 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.ProjectSyncUtility;
 import prerna.util.ProjectWatcher;
 import prerna.util.SMSSNoInitEngineWatcher;
 import prerna.util.SMSSWebWatcher;
+import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -425,7 +425,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Engine " + aliasAndEngineId + " is locked");
 		try {
 			if (engine.holdsFileLocks()) {
-				DIHelper.getInstance().removeEngineProperty(engineId);
+				UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
 				engine.close();
 			}
 
@@ -508,7 +508,7 @@ public class CentralCloudStorage implements ICloudClient {
 		try {
 			if (engine != null) {
 				try {
-					DIHelper.getInstance().removeEngineProperty(engineId);
+					UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
 					engine.close();
 				} catch (Exception e) {
 					classLogger.warn("Error occurred trying to close engine " + aliasAndEngineId
@@ -974,7 +974,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + aliasAndDatabaseId + " is locked");
 		try {
-			DIHelper.getInstance().removeEngineProperty(databaseId);
+			UploadUtilities.removeEngineExcludingSMSSFromDIHelper(databaseId);
 			database.close();
 
 			classLogger.info(
@@ -1026,7 +1026,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Database " + databaseId + " is locked");
 		try {
-			DIHelper.getInstance().removeEngineProperty(databaseId);
+			UploadUtilities.removeEngineExcludingSMSSFromDIHelper(databaseId);
 			database.close();
 
 			if (centralStorageEngine.canReuseRcloneConfig()) {
@@ -1211,7 +1211,7 @@ public class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
-			DIHelper.getInstance().removeProjectProperty(projectId);
+			UploadUtilities.removeProjectExcludingSMSSFromDIHelper(projectId);
 			project.close();
 
 			if (centralStorageEngine.canReuseRcloneConfig()) {
@@ -1270,7 +1270,7 @@ public class CentralCloudStorage implements ICloudClient {
 		classLogger.info("Project " + aliasAndProjectId + " is locked");
 		try {
 			if (projectAlreadyLoaded) {
-				DIHelper.getInstance().removeProjectProperty(projectId);
+				UploadUtilities.removeProjectExcludingSMSSFromDIHelper(projectId);
 				project.close();
 			}
 
@@ -1701,7 +1701,7 @@ public class CentralCloudStorage implements ICloudClient {
 			// Close the user asset/workspace project so that we can pull without file locks
 			try {
 				if (projectAlreadyLoaded) {
-					DIHelper.getInstance().removeProjectProperty(projectId);
+					UploadUtilities.removeProjectExcludingSMSSFromDIHelper(projectId);
 					project.close();
 				}
 
@@ -1766,7 +1766,7 @@ public class CentralCloudStorage implements ICloudClient {
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
 		try {
-			DIHelper.getInstance().removeProjectProperty(projectId);
+			UploadUtilities.removeProjectExcludingSMSSFromDIHelper(projectId);
 			project.close();
 
 			if (centralStorageEngine.canReuseRcloneConfig()) {

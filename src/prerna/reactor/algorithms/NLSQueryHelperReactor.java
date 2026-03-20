@@ -43,7 +43,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class NLSQueryHelperReactor extends AbstractRFrameReactor {
@@ -58,7 +57,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	// if not, just always return null
 	protected static final String HELP_ON = "helpOn";
 	protected static final String GLOBAL = "global";
-	
+
 	// R variables to pass through background session
 	protected static final String NLDR_DB = "nldr_db";
 	protected static final String NLDR_JOINS = "nldr_joins";
@@ -73,7 +72,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		boolean helpOn = getHelpOn();
 		boolean global = getGlobal();
 
@@ -84,21 +83,22 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 		}
 
 		// otherwise, proceed with the reactor
-		String[] packages = new String[] { "igraph", "SteinerNet", "data.table" , "tools" };
+		String[] packages = new String[] { "igraph", "SteinerNet", "data.table", "tools" };
 		this.rJavaTranslator.checkPackages(packages);
 		String query = this.keyValue.get(this.keysToGet[0]);
 		List<String> dbFilters = getDatabaseIds();
 
 		// Generate string to initialize R console
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
-		
+
 		// need to validate that the user has access to these ids
 		if (dbFilters.size() > 0) {
 			List<String> databaseIds = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 			// make sure our ids are a complete subset of the user ids
 			// user defined list must always be a subset of all the engine ids
 			if (!databaseIds.containsAll(dbFilters)) {
-				throw new IllegalArgumentException("Attempting to filter to database ids that user does not have access to or do not exist");
+				throw new IllegalArgumentException(
+						"Attempting to filter to database ids that user does not have access to or do not exist");
 			}
 		} else {
 			dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
@@ -106,20 +106,21 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();
-		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR;
+		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts"
+				+ DIR_SEPARATOR;
 		sb.append(("source(\"" + rFolderPath + "template_assembly.R" + "\");").replace("\\", "/"));
-		if(global) {
+		if (global) {
 			sb.append(("source(\"" + rFolderPath + "template_db.R" + "\");").replace("\\", "/"));
 		} else {
 			sb.append(("source(\"" + rFolderPath + "template.R" + "\");").replace("\\", "/"));
 		}
-		
+
 		this.rJavaTranslator.runR(sb.toString());
 
 		// handle differently depending on whether it is from the frame or global
 		// convert json input into java map
 		String queryTable = getQueryTableFromJson(query);
-		String colHeadersAndTypesFrame = getColHeadersAndTypes(global,dbFilters);
+		String colHeadersAndTypesFrame = getColHeadersAndTypes(global, dbFilters);
 		Object[] retData = getDropdownItems(queryTable, colHeadersAndTypesFrame);
 
 		// error catch -- if retData is null, return empty list
@@ -135,11 +136,11 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 	private String getColHeadersAndTypes(boolean global, List<String> dbFilters) {
 		String dbTable = "db_" + Utility.getRandomString(6);
 		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
-		
-		if(global) {
+
+		if (global) {
 			StringBuilder rsb = new StringBuilder();
 			rsb.append(rSessionTable + " <- " + NLDR_DB + ";");
-			
+
 			// filter the rds files to the engineFilters
 			String appFilters = "appFilters" + Utility.getRandomString(8);
 			rsb.append(appFilters + " <- c(");
@@ -149,12 +150,13 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 				comma = " , ";
 			}
 			rsb.append(");");
-			rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters + " ,];");
-			
+			rsb.append(rSessionTable + " <- " + rSessionTable + "[" + rSessionTable + "$AppID %in% " + appFilters
+					+ " ,];");
+
 			// we only need column and type column
 			rsb.append(dbTable + " <- " + rSessionTable + ";");
 			this.rJavaTranslator.runR(rsb.toString());
-			
+
 			// gc
 			this.rJavaTranslator.executeEmptyR("rm(" + appFilters + "); gc();");
 		} else {
@@ -182,7 +184,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR(dbTable + " <- data.frame(Column = " + rColumns + " , Datatype = " + rTypes
 					+ ", stringsAsFactors = FALSE);");
 		}
-		
+
 		return dbTable;
 	}
 
@@ -194,7 +196,8 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		// pass the query table and the new dataframe to the script
 		if (getGlobal()) {
-			rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + "," + NLDR_MEMBERSHIP + ")");
+			rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + ","
+					+ NLDR_MEMBERSHIP + ")");
 		} else {
 			rsb.append(retList + " <- analyze_request(" + colHeadersAndTypesFrame + "," + queryTable + ")");
 		}
@@ -224,9 +227,9 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 	private String getQueryTableFromJson(String queryJSON) {
 		String retTable = "queryTable_" + Utility.getRandomString(6);
-		
+
 		// check for blank
-		if(queryJSON == null || queryJSON.isEmpty()) {
+		if (queryJSON == null || queryJSON.isEmpty()) {
 			queryJSON = "[]";
 		}
 
@@ -412,7 +415,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 		return retTable;
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
