@@ -187,7 +187,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
 				this.tempSmss.delete();
 				this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
-				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
+				UploadUtilities.addEngineToDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
 				UploadUtilities.updateMetadata(this.databaseId, user);

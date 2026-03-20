@@ -27,23 +27,52 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.xeustechnologies.jcl.JarClassLoader;
 
 /**
  * A restricted subclass of {@link JarClassLoader} used for loading Maven-based
- * project reactor JARs. Blocks access to reflection APIs that could otherwise
- * be used to bypass {@link SystemEngineRegistry} access controls, mirroring the
- * same restriction applied by {@link SemossClassloader} for folder-based
- * reactor classes.
+ * project reactor JARs. Applies the same security restrictions as
+ * {@link SemossClassLoader} for folder-based reactor classes:
  *
- * @see SemossClassloader#isReflectionApiBlocked(String)
+ * <ul>
+ * <li>Blocks loading of dangerous classes (reflection, process execution,
+ * networking, script engines, etc.) via
+ * {@link SemossClassLoader#isReflectionApiBlocked(String)}.</li>
+ * <li>Forces all {@code prerna.*} classes to load from the application
+ * classloader, preventing spoofed prerna classes in reactor JARs.</li>
+ * <li>Applies bytecode transformation to every class loaded from the JAR,
+ * intercepting {@code System.getenv}, {@code System.exit}, file paths, network
+ * access, and all other sandbox-enforced APIs - identical to the transformation
+ * applied by {@link SemossClassLoader}.</li>
+ * </ul>
+ *
+ * @see SemossClassLoader#isReflectionApiBlocked(String)
+ * @see SemossClassLoader#applyBytecodeTransformations(byte[])
  */
 public class SemossJarClassLoader extends JarClassLoader {
+
+	private static final Logger classLogger = LogManager.getLogger(SemossJarClassLoader.class);
+
+	/**
+	 * Constructs a SemossJarClassLoader and registers additional system properties
+	 * that reactor code loaded from the JAR is permitted to read.
+	 *
+	 * @param additionalProperties extra properties to expose to reactor code;
+	 *                             {@code null} is treated as an empty map
+	 * @see SemossClassLoader#SemossClassLoader(ClassLoader, Map)
+	 */
+	public SemossJarClassLoader(Map<String, String> additionalProperties) {
+		SandboxedJavaExecution.addPlatformProperties(additionalProperties);
+	}
 
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
-		if (className != null && SemossClassloader.isReflectionApiBlocked(className)) {
+		if (className != null && SemossClassLoader.isReflectionApiBlocked(className)) {
 			throw new ClassNotFoundException("Access to '" + className + "' is not permitted in project reactors");
 		}
 		if (className != null && className.startsWith("prerna.")) {
@@ -55,6 +84,27 @@ public class SemossJarClassLoader extends JarClassLoader {
 			return SemossJarClassLoader.class.getClassLoader().loadClass(className);
 		}
 		return super.loadClass(className, resolveIt);
+	}
+
+	/**
+	 * Intercepts raw class bytecode read from the JAR before it is passed to
+	 * {@code defineClass}, and applies the same sandbox bytecode transformations
+	 * used by {@link SemossClassLoader}. This ensures that classes packaged in a
+	 * reactor JAR are subject to exactly the same runtime restrictions as classes
+	 * loaded from a reactor folder.
+	 */
+	@Override
+	protected byte[] loadClassBytes(String className) {
+		byte[] bytes = super.loadClassBytes(className);
+		if (bytes == null) {
+			return null;
+		}
+		try {
+			return SemossClassLoader.applyBytecodeTransformations(bytes);
+		} catch (Exception e) {
+			classLogger.error("Failed to apply sandbox transformations to JAR class '{}' - denying load", className, e);
+			return null;
+		}
 	}
 
 }

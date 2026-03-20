@@ -66,7 +66,7 @@ import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.SemossClassloader;
+import prerna.util.SemossClassLoader;
 import prerna.util.SemossJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -92,7 +92,7 @@ public class ProjectReactorHelper {
 	private static final Logger classLogger = LogManager.getLogger(ProjectReactorHelper.class);
 	private static final String DIR_SEPARATOR = "/";
 
-	private SemossClassloader projectClassLoader = null;
+	private SemossClassLoader projectClassLoader = null;
 
 	// for jars
 	private URLClassLoader urlClassLoader;
@@ -132,7 +132,7 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
-		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
 
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -317,7 +317,7 @@ public class ProjectReactorHelper {
 			}
 		}
 
-		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
 		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
@@ -379,7 +379,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new SemossJarClassLoader();
+			mvnClassLoader = new SemossJarClassLoader(Map.of());
 
 			// classes are in
 			// appRoot / classes
