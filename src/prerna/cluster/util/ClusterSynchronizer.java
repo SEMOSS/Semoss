@@ -213,15 +213,22 @@ public class ClusterSynchronizer {
 	}
 
 	private static boolean userLoaded(String projectId) {
-		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
-
-		if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-				|| projects.endsWith(";" + projectId)) {
-			classLogger.info("Loaded user asset/workspace " + projectId + " is out of date. Pulling latest changes");
+		// User assets/workspaces are not registered in DIHelper like projects/engines.
+		// Check if the SMSS file exists locally it is only written here by
+		// pullUserAssetOrWorkspace, meaning this pod has previously fetched this
+		// user's data and may have a stale copy.
+		String userFolder = prerna.util.EngineUtility.USER_FOLDER;
+		String assetSmss = userFolder + java.io.File.separator
+				+ prerna.engine.impl.SmssUtilities.getUniqueName(
+						prerna.auth.utils.WorkspaceAssetUtils.ASSET_APP_NAME, projectId) + ".smss";
+		String workspaceSmss = userFolder + java.io.File.separator
+				+ prerna.engine.impl.SmssUtilities.getUniqueName(
+						prerna.auth.utils.WorkspaceAssetUtils.WORKSPACE_APP_NAME, projectId) + ".smss";
+		if (new java.io.File(assetSmss).exists() || new java.io.File(workspaceSmss).exists()) {
+			classLogger.info("User asset/workspace " + projectId + " is out of date. Pulling latest changes");
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 	public static ClusterSynchronizer getInstance() throws Exception {
