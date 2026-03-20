@@ -118,7 +118,6 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -137,7 +136,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String CUSTOM_COLOR_ARRAY = "tools.shared.customColors";
 	private static final String COLOR_ARRAY = "tools.shared.color";
 	private static final String CHART_TITLE = "tools.shared.chartTitle.text";
-	
+
 	// for exporting grid
 	private static final String GRIDSPANROWS = "tools.shared.gridSpanRows";
 	private static final String TABLE_STYLE = "table-layout: fixed;border-collapse: collapse; border: 1px solid #d9d9d9; font-family: Arial, Helvetica, sans-serif; width: 100%; max-width: 600px;";
@@ -145,47 +144,40 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String TH_STYLE = "border: 1px solid #d9d9d9; padding: 8px;width: 200px; background-color: #00A8C1;color: #FFFFFF;font-size: .875em;";
 	private static final String TD_STYLE = "border: 1px solid #d9d9d9; padding: 8px;font-size: .875em;";
 
-	
 	protected String fileLocation = null;
-	Map <String, List<String>> orderOfPanelsMap = null;
-	
+	Map<String, List<String>> orderOfPanelsMap = null;
+
 	protected Logger logger;
 
 	Object driver = null;
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
 	int height = 10;
 	int width = 10;
-	
+
 	ChromeDriverUtility util = null;
-	
+
 	// sheet alias
 	Map<String, String> sheetAlias = new HashMap<>();
 
 	public ExportToExcelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(), 
-				ReactorKeysEnum.WIDTH.getKey(), 
-				ReactorKeysEnum.HEADERS.getKey(), 
-				ReactorKeysEnum.ROW_GUTTER.getKey(),
-				ReactorKeysEnum.COLUMN_GUTTER.getKey(),
-				ReactorKeysEnum.TABLE_HEADER.getKey(),
-				ReactorKeysEnum.TABLE_FOOTER.getKey(),
-				ReactorKeysEnum.MERGE_CELLS.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(),
-				ReactorKeysEnum.PANEL_ORDER_IDS.getKey(),
-				ReactorKeysEnum.EXPORT_AUDIT.getKey(),
-				ReactorKeysEnum.PLACE_HOLDER_DATA.getKey(),
-				ReactorKeysEnum.PROJECT.getKey()
-			};
-		this.keyRequired = new int[] {0,0,0,0,0,0,0,0,0,0,0,0,0};
-		this.keyMulti = new int[] {0,0,0,0,0,0,1,0,0,0,0,0,0};
+				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.HEIGHT.getKey(),
+				ReactorKeysEnum.WIDTH.getKey(), ReactorKeysEnum.HEADERS.getKey(), ReactorKeysEnum.ROW_GUTTER.getKey(),
+				ReactorKeysEnum.COLUMN_GUTTER.getKey(), ReactorKeysEnum.TABLE_HEADER.getKey(),
+				ReactorKeysEnum.TABLE_FOOTER.getKey(), ReactorKeysEnum.MERGE_CELLS.getKey(),
+				ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), ReactorKeysEnum.PANEL_ORDER_IDS.getKey(),
+				ReactorKeysEnum.EXPORT_AUDIT.getKey(), ReactorKeysEnum.PLACE_HOLDER_DATA.getKey(),
+				ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		this.keyMulti = new int[] { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		// get the map also
@@ -196,20 +188,20 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		
+
 		// get a random file name
-		String prefixName =  Utility.normalizePath(exportMap.get("FILE_NAME") + ""); 
+		String prefixName = Utility.normalizePath(exportMap.get("FILE_NAME") + "");
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
 		// grab file path to write the file
-		String fileLocation =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
-		
+		String fileLocation = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+
 		boolean exportAudit = false;
 		// check if the export audit has been selected for export
 		if (keyValue.containsKey(ReactorKeysEnum.EXPORT_AUDIT.getKey())) {
-			String auditParam = (String) keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
+			String auditParam = keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
 			exportAudit = auditParam.equalsIgnoreCase("yes") || auditParam.equalsIgnoreCase("true");
 		}
-		
+
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
@@ -238,22 +230,23 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
-		
+
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL_ORDER_IDS.getKey());
-		
-		/** If we need to send the map
-		//((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")
-		// ((List)((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")).get(0)
-		
-		// ExportToExcel ( panelOrderIds = [ { "a" : [ '1' , '2' ] } ] ) ;
-		//this.store.getNoun("panelOrderIds").get(2)
-		//orderOfPanelsMap = (HashMap)this.store.getNoun("panelOrderIds").get(0);
-		*/
-		List <String> orderOfPanels = null;
-		//setting the order of panels for export
-		if(grs != null) {
-			orderOfPanels = new ArrayList<String>(); 
-			for(int idx = 0;idx < grs.size();idx++) {
+
+		/**
+		 * If we need to send the map
+		 * //((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a") //
+		 * ((List)((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")).get(0)
+		 * 
+		 * // ExportToExcel ( panelOrderIds = [ { "a" : [ '1' , '2' ] } ] ) ;
+		 * //this.store.getNoun("panelOrderIds").get(2) //orderOfPanelsMap =
+		 * (HashMap)this.store.getNoun("panelOrderIds").get(0);
+		 */
+		List<String> orderOfPanels = null;
+		// setting the order of panels for export
+		if (grs != null) {
+			orderOfPanels = new ArrayList<String>();
+			for (int idx = 0; idx < grs.size(); idx++) {
 				orderOfPanels.add(grs.get(idx) + "");
 			}
 		} else {
@@ -313,7 +306,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			setChartLayout(panelChartMap, taskOptions, panelId);
 			this.chartPanelLayout.get(sheetId).put(panelId, panelChartMap);
 			String plotType = taskOptions.getLayout(panelId);
-			//condition for stack bar chart its expecting different data format for stack
+			// condition for stack bar chart its expecting different data format for stack
 			if (plotType != null && (plotType.equals("Stack") || plotType.equals("MultiLine"))) {
 				writeChartCategoryData(workbook, task, sheetId, panelId, panel.getPanelFormatValues());
 			} else {
@@ -336,67 +329,64 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// add chart
 			processTask(user, workbook, task, panel);
 		}
-		
+
 		// Insert Semoss Logo after the last chart on each sheet
-		//addLogo(workbook, sheetAlias);
+		// addLogo(workbook, sheetAlias);
 
 		// rename sheets
 		// not sure we need this
 		/*
-		for (String sheetId : sheetAlias.keySet()) {
-			String sheetName = sheetAlias.get(sheetId);
-			int sheetIndex = workbook.getSheetIndex(sheetId);
-			if(sheetIndex >= 0) {
-				workbook.setSheetName(sheetIndex, sheetName);
-			}
-		}*/
+		 * for (String sheetId : sheetAlias.keySet()) { String sheetName =
+		 * sheetAlias.get(sheetId); int sheetIndex = workbook.getSheetIndex(sheetId);
+		 * if(sheetIndex >= 0) { workbook.setSheetName(sheetIndex, sheetName); } }
+		 */
 
-		
 		// add the last row count
 		// put the export map back
 		// count is already added by the way of createBaseChart
-		//putMap();
-		
+		// putMap();
+
 		// fill the headers
 		String para1 = null;
 		String para2 = null;
-		
-		if(exportMap.containsKey("para1")) {
-			para1 = (String)exportMap.get("para1");
+
+		if (exportMap.containsKey("para1")) {
+			para1 = (String) exportMap.get("para1");
 		}
-		if(exportMap.containsKey("para2")) {
-			para2 = (String)exportMap.get("para2");
+		if (exportMap.containsKey("para2")) {
+			para2 = (String) exportMap.get("para2");
 		}
-		
+
 		// process and apply the audit param sheet if the export Audit has been opted
 		// exportMap stores all the export related properties
 		if (exportAudit) {
-			makeParamSheet(workbook, this.insight,true, exportMap);
+			makeParamSheet(workbook, this.insight, true, exportMap);
 		}
-		//moved the footer and header logic under export audit to apply headers and disclaimers
-		if(para1 != null || para2 != null) {
+		// moved the footer and header logic under export audit to apply headers and
+		// disclaimers
+		if (para1 != null || para2 != null) {
 			fillHeader(workbook, exportMap, para1, para2);
 		}
-		
+
 		// fill the footers
-		if(exportMap.containsKey("footer")) {
-			fillFooter(workbook, exportMap, (String)exportMap.get("footer"));
+		if (exportMap.containsKey("footer")) {
+			fillFooter(workbook, exportMap, (String) exportMap.get("footer"));
 		}
-		
+
 		// fill the place holders
-		if(exportMap.containsKey("placeholders") && null!= exportMap.get("placeholders")) {
+		if (exportMap.containsKey("placeholders") && null != exportMap.get("placeholders")) {
 			fillPlaceholders(workbook, exportMap, (Map<String, List<String>>) exportMap.get("placeholders"));
 		}
-		
+
 		// remove the sheets after processing from the resulted export file
 		removeSheet(workbook);
-		
+
 		// close the driver
 		insight.getChromeDriver().quit(driver);
 		/*
-		if(driver != null && driver instanceof ChromeDriver) {
-			((ChromeDriver)driver).quit();
-		}*/
+		 * if(driver != null && driver instanceof ChromeDriver) {
+		 * ((ChromeDriver)driver).quit(); }
+		 */
 
 		// write / encrypt file
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
@@ -405,31 +395,32 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		} else {
 			ExcelUtility.writeToFile(workbook, fileLocation);
 		}
-		
-		// store the insight file 
+
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 		return new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
-	
+
+	@Override
 	public void processPayload() {
 		super.processPayload();
-		if(keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
-			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
-		} else if(exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
-			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey())+"");
+		if (keyValue.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey()) + "");
+		} else if (exportMap.containsKey(ReactorKeysEnum.HEIGHT.getKey())) {
+			this.height = Integer.parseInt(keyValue.get(ReactorKeysEnum.HEIGHT.getKey()) + "");
 		}
-		
-		if(keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
-			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
-		} else if(exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
-			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey())+"");
+
+		if (keyValue.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey()) + "");
+		} else if (exportMap.containsKey(ReactorKeysEnum.WIDTH.getKey())) {
+			this.width = Integer.parseInt(keyValue.get(ReactorKeysEnum.WIDTH.getKey()) + "");
 		}
 	}
-	
+
 	private void addLogo(XSSFWorkbook workbook, Map<String, String> sheetAlias) {
-		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		String semossLogoPath = Utility.getDIHelperProperty("EXPORT_SEMOSS_LOGO");
 		if (semossLogoPath != null) {
 			File logo = new File(semossLogoPath);
 			if (logo.exists()) {
@@ -514,14 +505,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				panelChartMap.put(column, new HashMap<>());
 			}
 		} // making accomodation for pivot
-		else if (chartLayout.contentEquals("Pivot Table"))
-		{
+		else if (chartLayout.contentEquals("Pivot Table")) {
 			// rows
 			// columns
 			// calculations
-			List <String> rows = (List)alignmentMap.get("rows");
-			List <String> columns = (List)alignmentMap.get("columns");
-			List <String> calcs = (List)alignmentMap.get("calculations");
+			List<String> rows = (List) alignmentMap.get("rows");
+			List<String> columns = (List) alignmentMap.get("columns");
+			List<String> calcs = (List) alignmentMap.get("calculations");
 		}
 	}
 
@@ -535,42 +525,45 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XSSFSheet dataSheet = workbook.getSheet(sheetName + "_Data");
 
 		// Insert chart if supported
-		try
-		{
+		try {
 			String plotType = tOptions.getLayout(panelId);
-			if (plotType.equals("Line")||plotType.equals("MultiLine")) {
+			if (plotType.equals("Line") || plotType.equals("MultiLine")) {
 				insertLineChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Scatter")) {
-				insertScatterChart(sheet, dataSheet,options, panel);
+				insertScatterChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Area")) {
-				insertAreaChart(sheet, dataSheet,options, panel);
+				insertAreaChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Column") || plotType.equals("Stack")) {
-				insertBarChart(sheet, dataSheet,options, panel);
+				insertBarChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Pie")) {
-				insertPieChart(sheet, dataSheet,options, panel);
+				insertPieChart(sheet, dataSheet, options, panel);
 			} else if (plotType.equals("Radar")) {
-				insertRadarChart(sheet, dataSheet,options, panel);
-			} else if(!plotType.equals("Grid") && !plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
+				insertRadarChart(sheet, dataSheet, options, panel);
+			} else if (!plotType.equals("Grid") && !plotType.equals("PivotTable")) {
+				// do it only for non grid.. for
+				// grid we still need to do
+				// something else
 				insertImage(workbook, user, sheet, sheetId, panelId);
 			} else if (plotType.equals("Grid")) {
 				insertGrid(sheet.getSheetName(), task, panel);
-			} else if(plotType.equals("PivotTable")) { // do it only for non grid.. for grid we still need to do something else
-				
-				String pivRoutine = DIHelper.getInstance().getProperty("OPTIMIZE_PIVOT_EXPORT");
-				if(pivRoutine != null && pivRoutine.equalsIgnoreCase("True"))
-				{
+			} else if (plotType.equals("PivotTable")) {
+				// do it only for non grid.. for grid we still need to do
+				// something else
+
+				String pivRoutine = Utility.getDIHelperProperty("OPTIMIZE_PIVOT_EXPORT");
+				if (pivRoutine != null && pivRoutine.equalsIgnoreCase("True")) {
 					prerna.reactor.frame.py.CollectPivotReactor cpr = new prerna.reactor.frame.py.CollectPivotReactor();
 					cpr.setNounStore(tOptions.getCollectStore());
 					cpr.setInsight(insight);
 					List rowObject = tOptions.getCollectStore().getGenRowStruct(cpr.keysToGet[0]).getAllValues();
-					//cpr.
+					// cpr.
 					insertPivot2(sheet.getSheetName(), cpr, rowObject);
-				}
-				else // old routine
+				} else { // old routine
 					insertPivot(user, sheet.getSheetName(), panelId, sheetId);
+				}
 			}
-			
-		} catch(Exception ex) {
+
+		} catch (Exception ex) {
 			logger.error(Constants.STACKTRACE, ex);
 			insight.getChromeDriver().quit(driver);
 
@@ -587,7 +580,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 	}
 
-	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String , Map<String, String>> panelFormatting) {
+	private void writeData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId,
+			Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		String sheetName = sheetAlias.get(sheetId);
 		XSSFSheet sheet = workbook.getSheet(sheetName);
@@ -602,7 +596,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// no need to worry about creating template for data sheet
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
-		} 
+		}
 		// since we write veriticlaly
 		// shouldn't be doing this anymore
 		// freeze the first row
@@ -615,7 +609,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		SemossDataType[] typesArr = null;
 		String[] additionalDataTypeArr = null;
 		CellStyle[] stylingArr = null;
-		
+
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
 		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
@@ -639,7 +633,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 			// create the header row
 			Row headerRow = sheet.createRow(excelRowCounter++);
-			
+
 			// create a Font for styling header cells
 			Font headerFont = workbook.createFont();
 			headerFont.setBold(true);
@@ -665,14 +659,15 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i])); 
-				} catch(Exception e) {
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i],
+							panelFormatting.get(headers[i]));
+				} catch (Exception e) {
 					// ignore
 				}
-				if(stylingArr[i] == null) {
-					if(typesArr[i] == SemossDataType.DATE) {
+				if (stylingArr[i] == null) {
+					if (typesArr[i] == SemossDataType.DATE) {
 						stylingArr[i] = dateCellStyle;
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						stylingArr[i] = timeStampCellStyle;
 					}
 				}
@@ -703,7 +698,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				getFormatedCellWithValue(cell, value, typesArr[i], stylingArr[i]);
 			}
 		}
-		
+
 		// add an additional empty row at the end
 		// so we have some spacing between
 		excelRow = sheet.createRow(excelRowCounter++);
@@ -712,7 +707,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// this keeps track at the sheet level where to add next task
 		sheetMap.put("colIndex", 0);
 		// add the offset of rows
-		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));		
+		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));
 
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
 
@@ -732,7 +727,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 	}
 
-	private void insertLineChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertLineChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options,
+			InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -740,25 +736,33 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
- 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
 		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
 		ChartTypes chartType = ChartTypes.LINE;
-		
-		//get the options data
-		Map<String, Object> optionData	=(Map<String, Object>) options.get(panelId);
+
+		// get the options data
+		Map<String, Object> optionData = (Map<String, Object>) options.get(panelId);
 
 		// Parse input data
 		// label is name of column of x vals
@@ -778,21 +782,21 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		leftAxis.setCrosses(leftAxisCrosses);
 
 		// Add Y Axis Title
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				if ("MultiLine".equals(optionData.get("layout"))) {
-					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value")).replace("_",
-							" "));
+					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value"))
+							.replace("_", " "));
 				} else {
 					leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 				}
 			}
 		}
 		// Add X Axis Title
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replace("_", " "));
@@ -803,7 +807,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// Add in x vals
 		// do it based on data sheet
-		
+
 		XDDFNumericalDataSource xs = createXAxis(dataSheet, xColumnMap);
 
 		// Add in y vals
@@ -815,7 +819,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			chartSeries.setTitle(yColumnNames.get(i).replace("_", " "), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
@@ -830,7 +834,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// add the title
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -840,8 +844,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			POIExportUtility.displayValues(ChartTypes.LINE, chart);
 		}
 	}
-	
-	private void insertScatterChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
+
+	private void insertScatterChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options,
+			InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -851,10 +856,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
 		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
-		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
-		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
-		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
-		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -876,19 +889,19 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, null);
 		XDDFValueAxis bottomAxis = chart.createValueAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-	//	leftAxis.setMinimum(0.4);
+		// leftAxis.setMinimum(0.4);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replace("_", " "));
@@ -912,14 +925,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			scatterSeries.getSerArray(i).addNewSpPr().addNewLn().addNewNoFill();
 			scatterSeries.addNewVaryColors().setVal(false);
 		}
-		
+
 		// add the title
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
-		
+
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
 			POIExportUtility.displayValues(ChartTypes.SCATTER, chart);
@@ -931,31 +944,41 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String sheetId = panel.getSheetId();
 
 		// retrieve ornaments
-		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
-		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+		Boolean toggleStack = Boolean
+				.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
+		Boolean flipAxis = Boolean
+				.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizeBarLabel.position") + "";
 		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
-		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
-		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
-		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
-		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
-        
-        
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
 		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
 		ChartTypes chartType = ChartTypes.BAR;
-		//get the options data
-		Map<String, Object> optionData	=(Map<String, Object>) options.get(panelId);
+		// get the options data
+		Map<String, Object> optionData = (Map<String, Object>) options.get(panelId);
 
 		// Parse input data
 		// label is name of column of x vals
@@ -969,29 +992,30 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// Build chart
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
-		//chart.setTitleText("Title Test");
+		// chart.setTitleText("Title Test");
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
-		
+
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
 		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 
 		// Add Y Axis Title
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				if ("Stack".equals(optionData.get("layout"))) {
-					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value")).replace("_",
-							" "));
+					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value"))
+							.replace("_", " "));
 				} else {
-				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
+					leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
+				}
 			}
-		}}
+		}
 		// Add X Axis Title
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replace("_", " "));
@@ -1005,8 +1029,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		} else {
 			data.setBarDirection(BarDirection.COL);
 		}
-		if("Stack".equals(optionData.get("layout"))){
-			toggleStack= !toggleStack;
+		if ("Stack".equals(optionData.get("layout"))) {
+			toggleStack = !toggleStack;
 		}
 
 		if (toggleStack) {
@@ -1026,15 +1050,15 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
-            chartSeries.setFillProperties(fillProperties);
-			chartSeries.setTitle(yColumnName!=null ? yColumnName.toString().replace("_", " "):null, null);
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
+			chartSeries.setFillProperties(fillProperties);
+			chartSeries.setTitle(yColumnName != null ? yColumnName.toString().replace("_", " ") : null, null);
 			yCounter++;
 		}
 
 		// add the title
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -1045,8 +1069,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			POIExportUtility.positionDisplayValues(ChartTypes.BAR, dLbls, displayValuesPosition);
 		}
 	}
-	
-	private void insertAreaChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
+
+	private void insertAreaChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options,
+			InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
@@ -1054,17 +1079,25 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
- 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
-        
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -1089,16 +1122,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		leftAxis.setCrosses(leftAxisCrosses);
 
 		// Add Y Axis Title
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replace("_", " "));
@@ -1117,7 +1150,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			XDDFNumericalDataSource ys = createYAxis(dataSheet, yColumnMap);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replace("_", " "), null);
 			yCounter++;
@@ -1125,7 +1158,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// add the title
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -1136,15 +1169,17 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 	}
 
-	private void insertPieChart(XSSFSheet sheet, XSSFSheet dataSheet,  Map<String, Object> options, InsightPanel panel) {
+	private void insertPieChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
 		// retrieve ornaments
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
-		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.dimension");
-		
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizePieLabel.position") + "";
+		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizePieLabel.dimension");
+
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
@@ -1178,7 +1213,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -1186,45 +1221,54 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
 			CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
-            ctPieChart.addNewDLbls();
-            CTDLbls dLbls = ctPieChart.getDLbls();
-            if(dLbls != null) {
-            	if(pieCustomDisplayValues.contains("Percentage")) {
-                    dLbls.addNewShowPercent().setVal(true);
-            	} else {
-                    dLbls.addNewShowPercent().setVal(false);
-            	}
-            	if(pieCustomDisplayValues.contains("Value")) {
-                    dLbls.addNewShowVal().setVal(true);
-            	} else {
-                    dLbls.addNewShowVal().setVal(false);
-            	}
-            	if(pieCustomDisplayValues.contains("Name")) {
-                    dLbls.addNewShowCatName().setVal(true);
-            	} else {
-                    dLbls.addNewShowCatName().setVal(false);
-            	}
-            	dLbls.addNewShowBubbleSize().setVal(false);
-                dLbls.addNewShowLegendKey().setVal(false);
-                dLbls.addNewShowSerName().setVal(false);
-    			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
-            }
+			ctPieChart.addNewDLbls();
+			CTDLbls dLbls = ctPieChart.getDLbls();
+			if (dLbls != null) {
+				if (pieCustomDisplayValues.contains("Percentage")) {
+					dLbls.addNewShowPercent().setVal(true);
+				} else {
+					dLbls.addNewShowPercent().setVal(false);
+				}
+				if (pieCustomDisplayValues.contains("Value")) {
+					dLbls.addNewShowVal().setVal(true);
+				} else {
+					dLbls.addNewShowVal().setVal(false);
+				}
+				if (pieCustomDisplayValues.contains("Name")) {
+					dLbls.addNewShowCatName().setVal(true);
+				} else {
+					dLbls.addNewShowCatName().setVal(false);
+				}
+				dLbls.addNewShowBubbleSize().setVal(false);
+				dLbls.addNewShowLegendKey().setVal(false);
+				dLbls.addNewShowSerName().setVal(false);
+				POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			}
 		}
 	}
 
-	private void insertRadarChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options, InsightPanel panel) {
+	private void insertRadarChart(XSSFSheet sheet, XSSFSheet dataSheet, Map<String, Object> options,
+			InsightPanel panel) {
 		String panelId = panel.getPanelId();
 		String sheetId = panel.getSheetId();
 
 		// retrieve ornaments
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";		             
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
@@ -1250,16 +1294,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		leftAxis.setCrosses(leftAxisCrosses);
 
 		// Add Y Axis Title
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
 			}
 		}
 		// Add X Axis Title
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replace("_", " "));
@@ -1281,7 +1325,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// add the title
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -1294,28 +1338,29 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		int colIndex = (int) sheetMap.get("colIndex");
 		int chartIndex = (int) sheetMap.get("chartIndex");
 		// drawing can be at 0 ,0
-		int drawingColIndex = startColumn + this.columnGutter ;
-		int sheetLastRow = 0; 
-		if(exportMap.containsKey(sheet.getSheetName() + "ROW_COUNT"))
+		int drawingColIndex = startColumn + this.columnGutter;
+		int sheetLastRow = 0;
+		if (exportMap.containsKey(sheet.getSheetName() + "ROW_COUNT")) {
 			sheetLastRow = Integer.parseInt(exportMap.get(sheet.getSheetName() + "ROW_COUNT") + "");
-		
-		XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, drawingColIndex, sheetLastRow, drawingColIndex + width,
-				sheetLastRow + height);
+		}
+
+		XSSFClientAnchor anchor = drawing.createAnchor(0, 0, 0, 0, drawingColIndex, sheetLastRow,
+				drawingColIndex + width, sheetLastRow + height);
 		// Increment for positioning other objects correctly
 		sheetMap.put("chartIndex", chartIndex + height + rowGutter);
 		XSSFChart chart = drawing.createChart(anchor);
-		if(legendPosition != null) {
+		if (legendPosition != null) {
 			XDDFChartLegend legend = chart.getOrAddLegend();
 			legend.setPosition(legendPosition);
 		}
 		sheetLastRow = sheetLastRow + height + rowGutter;
 		exportMap.put(sheet.getSheetName() + "ROW_COUNT", sheetLastRow);
-				
+
 		return chart;
 	}
 
 	private XDDFNumericalDataSource<Double> createXAxis(XSSFSheet sheet, Map<String, Object> xColumnMap) {
-		
+
 		int xStartCol = (int) xColumnMap.get("startCol");
 		int xEndCol = (int) xColumnMap.get("endCol");
 		int xStartRow = (int) xColumnMap.get("startRow");
@@ -1336,134 +1381,140 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		return ys;
 	}
-	
+
 	private void insertPivot(User user, String excelSheetName, String panelId, String sheetId) {
-		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
-		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
-		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
+		// http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0
+		// http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0
+		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5
+		// - this worked
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
-		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel=" + panelId;
+		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel="
+				+ panelId;
 		logger.info("Generating pivot at " + htmlUrl);
-		if(driver == null) {
-			//driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl,  800, 600);
-			driver = insight.getChromeDriver().makeChromeDriver(baseUrl, htmlUrl,  800, 600);
+		if (driver == null) {
+			// driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, 800, 600);
+			driver = insight.getChromeDriver().makeChromeDriver(baseUrl, htmlUrl, 800, 600);
 		}
 		logger.info("Generating pivot view");
-		
+
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, "ABCD", "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
-		//this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, htmlUrl, imageLocation, sessionId, 10_000);
-		
+		// this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl,
+		// htmlUrl, imageLocation, sessionId, 10_000);
+
 		String html2 = insight.getChromeDriver().captureDataPersistent(driver, baseUrl, htmlUrl, sessionId, 10_000);
-		
+
 		insight.getChromeDriver().quit(driver);
 		driver = null;
 
-		//logger.info(" HTML from Capture " + html2);
-		//html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
-		//logger.info(" HTML from getHTML " + html2);
-		//WebElement we = driver.findElement(By.xpath("//html/body//table"));
-		//String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
-		
-		//WebElement elem1 = new WebDriverWait(driver, 10)
-		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
-		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
-		//System.out.println(html);
-		//System.out.println(html2);
-		//driver.quit();
-		//driver = null; 
-		
+		// logger.info(" HTML from Capture " + html2);
+		// html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
+		// logger.info(" HTML from getHTML " + html2);
+		// WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		// String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
+		// "";
+
+		// WebElement elem1 = new WebDriverWait(driver, 10)
+		// .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
+		// html = driver.executeScript("return document.documentElement.outerHTML;") +
+		// "";
+		// System.out.println(html);
+		// System.out.println(html2);
+		// driver.quit();
+		// driver = null;
+
 		TableToXLSXReactor txl = new TableToXLSXReactor();
 		txl.exportMap = exportMap;
 		txl.html = html2;
 		txl.sheetName = excelSheetName;
-		String fileName = (String)exportMap.get("FILE_NAME");
-		
+		String fileName = (String) exportMap.get("FILE_NAME");
+
 		txl.processTable(excelSheetName, html2, fileName);
 		logger.info("Done processing pivot");
 	}
-	
-	private void insertPivot2(String excelSheetName, prerna.reactor.frame.py.CollectPivotReactor cpr, List rows) {
-		//http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0 
-		//http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0  
-		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5 - this worked
 
-		//logger.info(" HTML from Capture " + html2);
-		//html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
-		//logger.info(" HTML from getHTML " + html2);
-		//WebElement we = driver.findElement(By.xpath("//html/body//table"));
-		//String html2 = driver.executeScript("return arguments[0].outerHTML;", we) + "";
-		
-		//WebElement elem1 = new WebDriverWait(driver, 10)
-		//        .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
-		//html = driver.executeScript("return document.documentElement.outerHTML;") + "";
-		//System.out.println(html);
-		//System.out.println(html2);
-		//driver.quit();
-		//driver = null; 
+	private void insertPivot2(String excelSheetName, prerna.reactor.frame.py.CollectPivotReactor cpr, List rows) {
+		// http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0
+		// http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0
+		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5
+		// - this worked
+
+		// logger.info(" HTML from Capture " + html2);
+		// html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
+		// logger.info(" HTML from getHTML " + html2);
+		// WebElement we = driver.findElement(By.xpath("//html/body//table"));
+		// String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
+		// "";
+
+		// WebElement elem1 = new WebDriverWait(driver, 10)
+		// .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
+		// html = driver.executeScript("return document.documentElement.outerHTML;") +
+		// "";
+		// System.out.println(html);
+		// System.out.println(html2);
+		// driver.quit();
+		// driver = null;
 		NounMetadata retData = cpr.execute();
-		
+
 		// you have what you need now..
-		ConstantDataTask cdt = (ConstantDataTask)retData.getValue();
+		ConstantDataTask cdt = (ConstantDataTask) retData.getValue();
 		// json is sitting in the cdt
-		String json = (String)((Map)cdt.getOutputData()).get("values");
+		String json = (String) ((Map) cdt.getOutputData()).get("values");
 
 		JSONArray array = new JSONArray(json);
 		StringBuffer html2 = new StringBuffer();
-		for(int secIndex = 1;secIndex < array.length();secIndex++)
-		{
+		for (int secIndex = 1; secIndex < array.length(); secIndex++) {
 			JSONObject obj = array.getJSONArray(secIndex).getJSONObject(0);
 			html2.append(cpr.getJson2HTML(obj, rows));
 		}
-		
+
 		TableToXLSXReactor txl = new TableToXLSXReactor();
 		txl.exportMap = exportMap;
 		txl.html = html2.toString();
 		txl.sheetName = excelSheetName;
-		String fileName = (String)exportMap.get("FILE_NAME");
-		
+		String fileName = (String) exportMap.get("FILE_NAME");
+
 		txl.processTable(excelSheetName, html2.toString(), fileName);
 		logger.info("Done processing pivot");
 	}
 
-	
 	/**
 	 * Creating Html content and passed TableToXLSXReactor
-	 * @param excelSheetName  
-	 * @param task complete data 
-	 * @param panel insight panel information
+	 * 
+	 * @param excelSheetName
+	 * @param task           complete data
+	 * @param panel          insight panel information
 	 */
 	private void insertGrid(String excelSheetName, ITask task, InsightPanel panel) {
-		//get the string HTML from task
+		// get the string HTML from task
 		TableToXLSXReactor txl = new TableToXLSXReactor();
-		//it contains the all the param info
+		// it contains the all the param info
 		txl.exportMap = exportMap;
 		txl.sheetName = excelSheetName;
 		String fileName = (String) exportMap.get("FILE_NAME");
 		Boolean gridSpanRows = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRIDSPANROWS) + "");
 
-		String[] headers = task.getHeaderInfo().stream().map(hdr->{
-			return (String)hdr.get("header");
+		String[] headers = task.getHeaderInfo().stream().map(hdr -> {
+			return (String) hdr.get("header");
 		}).collect(Collectors.toList()).stream().toArray(String[]::new);
-		
+
 		List<Map<String, Object>> headerInfo = task.getHeaderInfo();
 		SemossDataType[] typesArr = new SemossDataType[headers.length];
 		for (int i = 0; i < headers.length; i++) {
 			typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 		}
 
-		//Putting the datatypes array of grid headers into export map
+		// Putting the datatypes array of grid headers into export map
 		exportMap.put(DATA_TYPES_ARRAY_KEY, typesArr);
 		txl.isGrid = true;
 		txl.processTable(excelSheetName, generateGridHtml(task, panel), fileName);
-		if(gridSpanRows) {
+		if (gridSpanRows) {
 			txl.mergeAreas();
 		}
 		logger.info("Done processing grid");
 	}
-
 
 	/**
 	 * 
@@ -1478,85 +1529,89 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String imageUrl = this.insight.getLiveURL();
 		String panelAppender = "&panel=" + panelId;
 		String sheetAppender = "&sheet=" + sheetId;
-		
+
 		String prefixName = Utility.getRandomString(8);
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
-		if(driver == null) {
-			//driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
-			driver = this.insight.getChromeDriver().makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
+		if (driver == null) {
+			// driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl +
+			// sheetAppender + panelAppender, 800, 600);
+			driver = this.insight.getChromeDriver().makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender,
+					800, 600);
 		}
 		// download this file
-		//ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId);
-		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 10_000);
+		// ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl +
+		// sheetAppender + panelAppender, imageLocation, sessionId);
+		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender,
+				imageLocation, sessionId, 10_000);
 
-		
 		insight.getChromeDriver().quit(driver);
 		driver = null;
-		
-		// download this file
-		//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
-		// write this to the sheet now
-		int sheetLastRow = 0; 
-		if(exportMap.containsKey(targetSheet.getSheetName() + "ROW_COUNT"))
-			sheetLastRow = Integer.parseInt(exportMap.get(targetSheet.getSheetName() + "ROW_COUNT") + "");
 
-		//1920 x 936
-		//FileInputStream obtains input bytes from the image file
+		// download this file
+		// ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender +
+		// panelAppender, fileLocation, sessionId, 800, 600, true);
+		// write this to the sheet now
+		int sheetLastRow = 0;
+		if (exportMap.containsKey(targetSheet.getSheetName() + "ROW_COUNT")) {
+			sheetLastRow = Integer.parseInt(exportMap.get(targetSheet.getSheetName() + "ROW_COUNT") + "");
+		}
+
+		// 1920 x 936
+		// FileInputStream obtains input bytes from the image file
 		try {
 			InputStream inputStream = new FileInputStream(Utility.normalizePath(imageLocation));
-			//Get the contents of an InputStream as a byte[].
+			// Get the contents of an InputStream as a byte[].
 			byte[] bytes = IOUtils.toByteArray(inputStream);
-			//Adds a picture to the workbook
+			// Adds a picture to the workbook
 			int pictureIdx = wb.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
-			//close the input stream
+			// close the input stream
 			inputStream.close();
 
 			FileUtils.forceDelete(new File(Utility.normalizePath(imageLocation)));
 
-			//Returns an object that handles instantiating concrete classes
+			// Returns an object that handles instantiating concrete classes
 			CreationHelper helper = wb.getCreationHelper();
-			//Creates the top-level drawing patriarch.
+			// Creates the top-level drawing patriarch.
 			Drawing drawing = targetSheet.createDrawingPatriarch();
 
-			//Create an anchor that is attached to the worksheet
+			// Create an anchor that is attached to the worksheet
 			ClientAnchor anchor = helper.createClientAnchor();
 
-			
-			//create an anchor with upper left cell _and_ bottom right cell
-			anchor.setCol1(startColumn); //Column B
-			anchor.setRow1(sheetLastRow); //Row 3
-			anchor.setCol2(startColumn + width); //Column C // doesnt matter
-			anchor.setRow2(sheetLastRow+height); //Row 4
+			// create an anchor with upper left cell _and_ bottom right cell
+			anchor.setCol1(startColumn); // Column B
+			anchor.setRow1(sheetLastRow); // Row 3
+			anchor.setCol2(startColumn + width); // Column C // doesnt matter
+			anchor.setRow2(sheetLastRow + height); // Row 4
 
-			//Creates a picture
+			// Creates a picture
 			Picture pict = drawing.createPicture(anchor, pictureIdx);
-			//pict.resize();
+			// pict.resize();
 
-			//Reset the image to the original size
-			//pict.resize(); //don't do that. Let the anchor resize the image!
-			//Create the Cell B3
+			// Reset the image to the original size
+			// pict.resize(); //don't do that. Let the anchor resize the image!
+			// Create the Cell B3
 			Cell cell = targetSheet.createRow(2).createCell(1);
 		} catch (IOException e) {
 			logger.error(Constants.STACKTRACE, e);
 		}
 
 		sheetLastRow = sheetLastRow + height + rowGutter;
-		exportMap.put(targetSheet.getSheetName() + "ROW_COUNT", sheetLastRow);		
+		exportMap.put(targetSheet.getSheetName() + "ROW_COUNT", sheetLastRow);
 	}
-	
+
 	/*
 	 * generate HTML string from the grid data
 	 * 
-	 * task contains the dataframe
-	 * panel contains the all the ornaments and panel formats and color by values
+	 * task contains the dataframe panel contains the all the ornaments and panel
+	 * formats and color by values
 	 */
 	private String generateGridHtml(ITask task, InsightPanel panel) {
-        // get the gridSpanRows param from the ornaments for the grid rowspan
+		// get the gridSpanRows param from the ornaments for the grid rowspan
 		Boolean gridSpanRows = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRIDSPANROWS) + "");
 		Map<String, Map<String, String>> panelFormatting = panel.getPanelFormatValues();
-		// get the color by value details like on which  data we have to apply the color
+		// get the color by value details like on which data we have to apply the color
 		Map<ColorByValueRule, List<Object>> colorByValueMap = getColorByValueData(panel);
 
 		StringBuilder html = new StringBuilder();
@@ -1572,7 +1627,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			IHeadersDataRow row = task.next();
 			headerInfo = task.getHeaderInfo();
 			headers = row.getHeaders();
-			
+
 			html.append("<thead style=\"" + THEAD_STYLE + "\">");
 			html.append("<tr>");
 			// creating header row
@@ -1581,7 +1636,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 			html.append("</tr>");
 			html.append("</thead>");
-			
+
 			// creating body
 			html.append("<tbody>");
 			// add the first row to the list
@@ -1610,13 +1665,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 						// look at the next row
 						for (int nextIdx = rowIdx + 1; nextIdx < rowLen; nextIdx++) {
 							Object next = rowList.get(nextIdx)[colIdx];
-							
+
 							// Check if the current cell is equal to the next cell
 							if (cell == next || (cell != null && next != null && cell.equals(next))) {
 								// increment
-								rowSpan[colIdx]++;								
+								rowSpan[colIdx]++;
 							}
-							//break the loop if current row cell and next row cell are not equal.
+							// break the loop if current row cell and next row cell are not equal.
 							else {
 								break;
 							}
@@ -1624,21 +1679,17 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					}
 					// get the background color of each cell or rows
 					Object cellColor = FormattingUtility.getBackgroundColor(colorByValueMap, headers, rowData, colIdx);
-					//get the formatted data values based on formatdatavalue tool applied 
-					Object formattedDataValue = FormattingUtility.formatDataValues(
-							cell,
+					// get the formatted data values based on formatdatavalue tool applied
+					Object formattedDataValue = FormattingUtility.formatDataValues(cell,
 							(String) headerInfo.get(colIdx).get("dataType"),
 							(String) headerInfo.get(colIdx).get("additionalDataType"),
 							panelFormatting.get(headers[colIdx]));
-					//getting rowspancount as String
-				   String rowSpanCount= rowSpan[colIdx] > 1 ? String.valueOf(rowSpan[colIdx]):""; 
+					// getting rowspancount as String
+					String rowSpanCount = rowSpan[colIdx] > 1 ? String.valueOf(rowSpan[colIdx]) : "";
 
 					// creating td with data and styles (rowspan if applicable)
-					html.append("<td style=\"" + TD_STYLE +
-								cellColor.toString()+ 
-							    "\"+ rowspan=" + rowSpanCount + ">" +
-							    formattedDataValue+
-							   "</td>");
+					html.append("<td style=\"" + TD_STYLE + cellColor.toString() + "\"+ rowspan=" + rowSpanCount + ">"
+							+ formattedDataValue + "</td>");
 				}
 				html.append("</tr>");
 			}
@@ -1646,13 +1697,14 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			html.append("</table>");
 		}
 		// write html to your C drive for testing purpose
-		// WriteToFile(html.toString(), "test.html");		
+		// WriteToFile(html.toString(), "test.html");
 		return html.toString();
 	}
 
 	/**
 	 * This method returns the map with color by value rules and the raw values to
 	 * apply color on
+	 * 
 	 * @param panel
 	 * @return
 	 */
@@ -1675,9 +1727,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		return colorByValueMap;
 	}
-	
-	//transform the data for stackbar and multiline chart
-	private void writeChartCategoryData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId, Map<String, Map<String, String>> panelFormatting) {
+
+	// transform the data for stackbar and multiline chart
+	private void writeChartCategoryData(XSSFWorkbook workbook, ITask task, String sheetId, String panelId,
+			Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		String sheetName = sheetAlias.get(sheetId);
 		XSSFSheet sheet = workbook.getSheet(sheetName);
@@ -1692,11 +1745,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			// no need to worry about creating template for data sheet
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
-		} 
+		}
 		// since we write veriticlaly
 		// shouldn't be doing this anymore
 		// freeze the first row
-		//			sheet.createFreezePane(0, 1);
+		// sheet.createFreezePane(0, 1);
 
 		int size = 0;
 		// create typesArr as an array for faster searching
@@ -1757,19 +1810,20 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i])); 
-				} catch(Exception e) {
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i],
+							panelFormatting.get(headers[i]));
+				} catch (Exception e) {
 					// ignore
 				}
-				if(stylingArr[i] == null) {
-					if(typesArr[i] == SemossDataType.DATE) {
+				if (stylingArr[i] == null) {
+					if (typesArr[i] == SemossDataType.DATE) {
 						stylingArr[i] = dateCellStyle;
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						stylingArr[i] = timeStampCellStyle;
 					}
 				}
 			}
-			
+
 			// we are creating our own table
 			// where the data will come as
 			// x-axis, y-axis value, split-for-columns
@@ -1782,7 +1836,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				cell.setCellValue(headers[0]);
 				cell.setCellStyle(headerCellStyle);
 			}
-			
+
 			// generate the first data row
 			excelRow = sheet.createRow(excelRowCounter++);
 			Object[] dataRow = row.getValues();
@@ -1790,20 +1844,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Object xAxisValue = dataRow[xAxisIndex];
 			xAxisToRow.put(xAxisValue + "", excelRow);
 			Cell cell = excelRow.createCell(0);
-			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
-					stylingArr[xAxisIndex]);
-			
+			getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex], stylingArr[xAxisIndex]);
+
 			Object instanceValue = dataRow[yAxisIndex];
 			Object instanceColumn = dataRow[instanceColumnIndex];
-			if(!currentHeaderValues.contains(instanceColumn + "")) {
+			if (!currentHeaderValues.contains(instanceColumn + "")) {
 				currentHeaderValues.add(instanceColumn + "");
-				cell = headerRow.createCell(currentHeaderValues.size()-1);
+				cell = headerRow.createCell(currentHeaderValues.size() - 1);
 				getFormatedCellWithValue(cell, instanceColumn, typesArr[instanceColumnIndex], headerCellStyle);
 			}
-			
+
 			cell = excelRow.createCell(currentHeaderValues.indexOf(instanceColumn + ""));
-			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex],
-					stylingArr[yAxisIndex]);
+			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex], stylingArr[yAxisIndex]);
 		}
 
 		// now iterate through all the data
@@ -1812,29 +1864,27 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			Object[] dataRow = row.getValues();
 			Cell cell = null;
 			Object xAxisValue = dataRow[xAxisIndex];
-			if(xAxisToRow.containsKey(xAxisValue + "")) {
+			if (xAxisToRow.containsKey(xAxisValue + "")) {
 				excelRow = xAxisToRow.get(xAxisValue + "");
 			} else {
 				excelRow = sheet.createRow(excelRowCounter++);
 				xAxisToRow.put(xAxisValue + "", excelRow);
-				
+
 				// set the x axis value once
 				cell = excelRow.createCell(0);
-				getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex],
-						stylingArr[xAxisIndex]);
+				getFormatedCellWithValue(cell, xAxisValue, typesArr[xAxisIndex], stylingArr[xAxisIndex]);
 			}
-			
+
 			Object instanceValue = dataRow[yAxisIndex];
 			Object instanceColumn = dataRow[instanceColumnIndex];
-			if(!currentHeaderValues.contains(instanceColumn + "")) {
+			if (!currentHeaderValues.contains(instanceColumn + "")) {
 				currentHeaderValues.add(instanceColumn + "");
-				cell = headerRow.createCell(currentHeaderValues.size()-1);
+				cell = headerRow.createCell(currentHeaderValues.size() - 1);
 				getFormatedCellWithValue(cell, instanceColumn, typesArr[instanceColumnIndex], headerCellStyle);
 			}
-			
+
 			cell = excelRow.createCell(currentHeaderValues.indexOf(instanceColumn + ""));
-			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex],
-					stylingArr[yAxisIndex]);
+			getFormatedCellWithValue(cell, instanceValue, typesArr[yAxisIndex], stylingArr[yAxisIndex]);
 		}
 
 		// add an additional empty row at the end
@@ -1845,7 +1895,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// this keeps track at the sheet level where to add next task
 		sheetMap.put("colIndex", 0);
 		// add the offset of rows
-		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));		
+		sheetMap.put("rowIndex", endRow + (excelRowCounter - endRow));
 
 		Map<String, Object> panelMap = (Map<String, Object>) sheetMap.get(panelId);
 
@@ -1922,7 +1972,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		return cell;
 	}
-	
+
 	/*
 	 * write file to the local for testing purpose
 	 * 
@@ -1938,5 +1988,4 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	 * }
 	 */
 
-	
 }

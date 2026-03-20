@@ -49,7 +49,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -66,7 +66,7 @@ public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSe
 
 	@BeforeEach
 	void tearDownAndSetUpUserMetaTables() throws SQLException {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
 		// clear out tables
 		Connection conn = null;
 		Statement s = null;

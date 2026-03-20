@@ -35,7 +35,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PyLoadReactor extends AbstractReactor {
@@ -47,8 +46,8 @@ public class PyLoadReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
-		String path = getBaseFolder() + "/Py/" + relativePath;
+		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+		String path = Utility.getBaseFolder() + "/Py/" + relativePath;
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
@@ -61,30 +60,14 @@ public class PyLoadReactor extends AbstractReactor {
 		String name = file.getName();
 		name = name.replaceAll(".py", "");
 
-		String assetOutput = assetFolder + "/" +  name + ".output";
-		
-		PyTranslator pyt = this.insight.getPyTranslator();
-		
-		//pyt.runScript(name +  " = smssutil.runwrapper('smss', '" + path + "')");
-		pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
+		String assetOutput = assetFolder + "/" + name + ".output";
 
-		
+		PyTranslator pyt = this.insight.getPyTranslator();
+
+		// pyt.runScript(name + " = smssutil.runwrapper('smss', '" + path + "')");
+		pyt.runScript(name + " = smssutil.loadScript('smss', '" + path + "')");
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	/**
-	 * Get the base folder
-	 * 
-	 * @return
-	 */
-	protected String getBaseFolder() {
-		String baseFolder = null;
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		} catch (Exception ignored) {
-			// logger.info("No BaseFolder detected... most likely running as
-			// test...");
-		}
-		return baseFolder;
-	}
 }

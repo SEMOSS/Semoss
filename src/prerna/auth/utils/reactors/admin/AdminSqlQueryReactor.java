@@ -48,6 +48,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 /**
@@ -208,7 +209,12 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	private HardSelectQueryStruct getQs(String sqlQuery, String databaseId) {
-		IDatabaseEngine engine = Utility.getDatabase(databaseId);
+		IDatabaseEngine engine = null;
+		if (SystemEngineRegistry.isSystemEngine(databaseId)) {
+			engine = SystemEngineRegistry.getSystemEngine(databaseId);
+		} else {
+			engine = Utility.getDatabase(databaseId);
+		}
 		if (engine == null) {
 			throw new SemossPixelException("Database with ID '" + databaseId + "' not found or could not be loaded");
 		}

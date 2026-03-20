@@ -58,7 +58,7 @@ import com.google.gson.ToNumberPolicy;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -144,7 +144,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		IRDBMSEngine auditLogs = SystemEngineRegistry.getAuditLogsDb();
 		if (auditLogs == null) {
 			LOGGER.warn("Audit logs database has not been initialized yet");
 			return;
