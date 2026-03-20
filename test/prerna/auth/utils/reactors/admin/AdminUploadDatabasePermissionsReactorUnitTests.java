@@ -72,6 +72,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -181,7 +182,8 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -189,7 +191,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			when(db.getConnection()).thenThrow(new SQLException("connection refused"));
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -210,7 +212,8 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
+				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -218,7 +221,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 
 			Connection conn = mock(Connection.class);
 			PreparedStatement ps = mock(PreparedStatement.class);
@@ -251,7 +254,8 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -259,7 +263,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			Connection conn = mock(Connection.class);
 			when(db.getConnection()).thenReturn(conn);
 			when(db.getQueryUtil()).thenThrow(new RuntimeException("query util unavailable"));
@@ -278,7 +282,8 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
+				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -286,7 +291,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 
 			Connection conn = mock(Connection.class);
 			PreparedStatement ps = mock(PreparedStatement.class);

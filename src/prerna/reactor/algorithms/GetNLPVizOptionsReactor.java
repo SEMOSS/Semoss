@@ -43,28 +43,28 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * Reads in the Columns and Database IDs and returns the visualization string, which
-	 * is then appended to the NLP search
+	 * Reads in the Columns and Database IDs and returns the visualization string,
+	 * which is then appended to the NLP search
 	 */
-	
+
 	protected static final String SORT_PIXEL = "sortPixel";
 	protected static final String CLASS_NAME = CreateNLPVizReactor.class.getName();
 
 	public GetNLPVizOptionsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COLUMNS.getKey() , ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.FRAME.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		init();
 		organizeKeys();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		List<String> cols = getColumns();
 		RDataTable frame = (RDataTable) this.getFrame();
@@ -74,26 +74,27 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		String fileroot = "dataitem";
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 		String databaseName = "Multiple";
-		if(!databaseId.contains("Multiple") && !databaseId.contains("null")) {
+		if (!databaseId.contains("Multiple") && !databaseId.contains("null")) {
 			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId).replace(" ", "_");
 		}
 		boolean allStrings = true;
-		
+
 		// set the intial list options -- only Recommended and Grid
-		String[] gridArray = {"Recommended","Grid"};
-		
+		String[] gridArray = { "Recommended", "Grid" };
+
 		// if it only has one column or one row, just return it as a grid
 		if (cols.size() < 2 || frame.getNumRows(frameName) < 2) {
 			return new NounMetadata(gridArray, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		}
 
 		// check if packages are installed
-		String[] packages = { "data.table", "plyr" , "jsonlite" };
+		String[] packages = { "data.table", "plyr", "jsonlite" };
 		this.rJavaTranslator.checkPackages(packages);
-		
+
 		// sort the columns list in ascending order of unique inst
 		// put the aggregate columns last
 		Collections.sort(cols, new Comparator<String>() {
+			@Override
 			public int compare(String firstCol, String secondCol) {
 				if (isAggregate(firstCol)) {
 					return 1;
@@ -105,7 +106,8 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 
 		// let's first create the input frame
 		String inputFrame = "inputFrame" + Utility.getRandomString(5);
-		rsb.append(inputFrame + " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
+		rsb.append(inputFrame
+				+ " <- data.frame(reference1 = character(), reference2 = character(), reference3 = integer(), stringsAsFactors = FALSE);");
 		int rowCounter = 1;
 		for (String col : cols) {
 			String tableName = null;
@@ -126,14 +128,14 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 
 			// get datatype
 			String dataType = metadata.getHeaderTypeAsString(tableName + "__" + colName);
-			
+
 			// If it is an int or double, convert to NUMBER
-			if(dataType.equalsIgnoreCase("INT") || dataType.equalsIgnoreCase("DOUBLE")) {
+			if (dataType.equalsIgnoreCase("INT") || dataType.equalsIgnoreCase("DOUBLE")) {
 				dataType = "NUMBER";
 			}
-			
+
 			// check to make sure at least one column is not a string
-			if(!dataType.equalsIgnoreCase("STRING")) {
+			if (!dataType.equalsIgnoreCase("STRING")) {
 				allStrings = false;
 			}
 
@@ -144,9 +146,9 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 			} else {
 				uniqueValues = frame.getUniqueInstanceCount(colName);
 			}
-			
 
-			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + databaseId + "$" + databaseName + "$" + tableName + "$" + colName + "\",");
+			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + databaseId + "$" + databaseName + "$" + tableName
+					+ "$" + colName + "\",");
 			rsb.append("\"" + dataType + "\",");
 			rsb.append(uniqueValues + ");");
 
@@ -155,18 +157,19 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 
 			rowCounter++;
 		}
-		
+
 		// if all the columns were strings, then make it a grid
-		if(allStrings) {
+		if (allStrings) {
 			return new NounMetadata(gridArray, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		}
 
 		// now let's look for the shared history vs personal history
-		File userHistory = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR + "dataitem-user-history.rds");
+		File userHistory = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR
+				+ "dataitem-user-history.rds");
 		if (!userHistory.exists()) {
 			// user history does not exist, let's use shared history
 			fileroot = "shared";
-		}		
+		}
 
 		// now lets run the script and return an array
 		// source the files and init
@@ -176,9 +179,8 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		rsb.append("source(\"viz_selection.r\");");
 		rsb.append("source(\"viz_recom.r\");");
 
-		
 		// change int/double to number in the history
-		rsb.append("sync_numeric(\"" +fileroot + "\",\"" + fileroot + "\");");		
+		rsb.append("sync_numeric(\"" + fileroot + "\",\"" + fileroot + "\");");
 
 		// run function
 		String output = "output" + Utility.getRandomString(5);
@@ -186,10 +188,10 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		rsb.append(output + " <- get_viz_choices(\"" + fileroot + "\"," + inputFrame + ");");
 		rsb.append(output + " <- c(\"Recommended\"," + output + ",\"Grid\")");
 		this.rJavaTranslator.runR(rsb.toString());
-		
+
 		// get the list
 		String[] retArray = this.rJavaTranslator.getStringArray(output);
-		
+
 		// garbage clean up in R
 		this.rJavaTranslator.executeEmptyR("setwd(" + wd + ");");
 		this.rJavaTranslator.executeEmptyR("rm(" + wd + "," + output + "," + inputFrame + "); gc();");
@@ -202,7 +204,7 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 		return (col.contains("UniqueCount_") || col.contains("Count_") || col.contains("Min_") || col.contains("Max_")
 				|| col.contains("Average_") || col.contains("Sum_"));
 	}
-	
+
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
 		GenRowStruct columnGRS = this.store.getGenRowStruct(this.keysToGet[1]);
