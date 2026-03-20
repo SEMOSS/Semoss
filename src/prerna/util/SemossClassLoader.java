@@ -42,18 +42,18 @@ import org.apache.logging.log4j.Logger;
  * application classpath. This is essential for loading custom reactors and
  * other project-specific code at runtime.
  */
-public class SemossClassloader extends ClassLoader {
+public class SemossClassLoader extends ClassLoader {
 
-	private static final Logger classLogger = LogManager.getLogger(SemossClassloader.class);
+	private static final Logger classLogger = LogManager.getLogger(SemossClassLoader.class);
 
 	private String folder = null;
 
 	/**
-	 * Constructs a new SemossClassloader with a specified parent class loader.
+	 * Constructs a new SemossClassLoader with a specified parent class loader.
 	 * 
 	 * @param parent The parent class loader.
 	 */
-	public SemossClassloader(ClassLoader parent) {
+	public SemossClassLoader(ClassLoader parent) {
 		super(parent);
 	}
 

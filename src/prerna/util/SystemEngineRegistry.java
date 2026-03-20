@@ -61,7 +61,7 @@ public final class SystemEngineRegistry {
 	/**
 	 * The JVM's two built-in trusted classloaders. Any class whose loader is
 	 * exactly one of these (or null = bootstrap) was loaded from the application
-	 * classpath and is considered trusted. Anything else like SemossClassloader,
+	 * classpath and is considered trusted. Anything else like SemossClassLoader,
 	 * URLClassLoader, JarClassLoader, or any other user-defined loader is untrusted
 	 * regardless of the package name it declares.
 	 */
@@ -468,7 +468,7 @@ public final class SystemEngineRegistry {
 	 * two independent checks:
 	 *
 	 * 1. Classloader chain - if the caller's class was loaded by a
-	 * SemossClassloader (or any classloader that has one as an ancestor), it is
+	 * SemossClassLoader (or any classloader that has one as an ancestor), it is
 	 * custom/untrusted code regardless of what package name it declares. This
 	 * closes the bypass where a custom JAR ships a helper class that declares
 	 * "package prerna.auth;" and calls through to here - the package name would
@@ -516,7 +516,7 @@ public final class SystemEngineRegistry {
 	 * than one of the JVM's two built-in trusted loaders (platform or system/app).
 	 *
 	 * Checking the loader directly (rather than walking its parent chain) catches
-	 * every custom loader, SemossClassloader, URLClassLoader wrapping it,
+	 * every custom loader, SemossClassLoader, URLClassLoader wrapping it,
 	 * xeustechnologies JarClassLoader used for Maven reactor dependencies, and any
 	 * future custom loader, without needing to enumerate them by type.
 	 *
