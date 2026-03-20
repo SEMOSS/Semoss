@@ -40,6 +40,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
@@ -52,6 +53,7 @@ import prerna.util.AssetUtility;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class WorkspaceAssetUtils extends AbstractSecurityUtils {
@@ -168,6 +170,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void registerUserWorkspaceProject(AccessToken token, String projectId) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
@@ -208,6 +211,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
@@ -252,6 +256,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserWorkspaceProject(AccessToken token) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT PROJECTID FROM WORKSPACEENGINE WHERE "
 //				+ "TYPE = '" + token.getProvider().name() + "' AND "
 //				+ "USERID = '" + token.getId() + "'"
@@ -299,6 +304,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserAssetProject(AccessToken token) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT PROJECTID FROM ASSETENGINE WHERE "
 //				+ "TYPE = '" + token.getProvider().name() + "' AND "
 //				+ "USERID = '" + token.getId() + "'"
@@ -345,6 +351,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isAssetOrWorkspaceProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__PROJECTID", "==", projectId));
@@ -368,6 +375,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isAssetProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__PROJECTID", "==", projectId));

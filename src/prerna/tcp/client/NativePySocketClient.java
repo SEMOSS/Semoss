@@ -85,7 +85,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
-
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -105,18 +104,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 
 				classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
-				while (!connected && attempt < 6) // I do an attempt here too hmm..
-				{
+				while (!connected && attempt < 6) {
 					try {
 						clientSocket = new Socket(this.HOST, this.PORT);
 						// pick input and output stream and start the threads
 						this.is = clientSocket.getInputStream();
 						this.os = clientSocket.getOutputStream();
 						classLogger.info("CLIENT Connection complete !!!!!!!");
+						// sleep some before executing command
+						Thread.sleep(100);
 
-						Thread.sleep(100); // sleep some before executing command
-						// prime it
-						// classLogger.info("First command.. Prime" + executeCommand("2+2"));
 						connected = true;
 						ready = true;
 						killAll = false;
@@ -352,11 +349,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								}
 							}
 						} else {
-							killAll = true;
-							break;
+							crash();
+							break SOCKET_LISTENER;
 						}
 					} catch (SocketException ex1) {
-						classLogger.error(Constants.STACKTRACE, ex1);
 						crash();
 						break SOCKET_LISTENER;
 					} catch (Exception ex) {
@@ -660,7 +656,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		return finalByte;
-
 	}
 
 	/**
@@ -725,22 +720,20 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 */
 	@Override
 	public void crash() {
-		// this happens when the client has completely crashed
-		// make the connected to be false
-		// take everything that is waiting on it
-		// go through request map and start pushing
+		// this happens when the client losses connection to the server
+		classLogger.warn("NativePySocketClient is disconnected from server");
 
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
 
+		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Callable<String> callableTask = () -> {
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
 					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+					ps.ex = "Client is disconnected from the server.";
 					synchronized (ps) {
 						ps.notifyAll();
 					}
@@ -767,8 +760,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		this.close();
-		classLogger.fatal(
-				"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 }

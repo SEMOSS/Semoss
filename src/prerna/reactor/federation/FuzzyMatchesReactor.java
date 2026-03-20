@@ -52,7 +52,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class FuzzyMatchesReactor extends AbstractRFrameReactor {
@@ -62,33 +61,34 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 	private static final String CLASS_NAME = FuzzyMatchesReactor.class.getName();
 
 	public static final String OUTPUT_FRAME_NAME = "outputFrame";
-	public static final String FRAME_COLUMN = "frameCol";	
+	public static final String FRAME_COLUMN = "frameCol";
 
 	private Logger logger = null;
 
 	public FuzzyMatchesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FRAME.getKey(), FRAME_COLUMN, OUTPUT_FRAME_NAME};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FRAME.getKey(), FRAME_COLUMN,
+				OUTPUT_FRAME_NAME };
 	}
 
 	@Override
 	public NounMetadata execute() {
 
 		/*
-		 * The logic for this is to get 2 data.tables with 1 column each
-		 * and then run them through the best_match method. 
+		 * The logic for this is to get 2 data.tables with 1 column each and then run
+		 * them through the best_match method.
 		 * 
-		 * The best_match returns a new table of col1, col2, distance where 
-		 * col1 is the values in the first data.table, 
-		 * col2 is the values in the second data.table, 
-		 * and distance is the measure of closeness between these values. 
-		 * This table compares every value in the first data.table to the values
-		 * in the second data.table.
+		 * The best_match returns a new table of col1, col2, distance where col1 is the
+		 * values in the first data.table, col2 is the values in the second data.table,
+		 * and distance is the measure of closeness between these values. This table
+		 * compares every value in the first data.table to the values in the second
+		 * data.table.
 		 * 
-		 * The majority of the logic is in getting the 2 data.tables since one comes 
-		 * from a task (or a QS that we flush into a task) and the other can come from a similar fashion
-		 * or can come from a frame + frame_column that is passed into reactor.  To further optimize, if the frame
-		 * is an R frame, we run R code to get the second data.table instead of running a frame query,
-		 * flushing to a TSV, and then reading in R
+		 * The majority of the logic is in getting the 2 data.tables since one comes
+		 * from a task (or a QS that we flush into a task) and the other can come from a
+		 * similar fashion or can come from a frame + frame_column that is passed into
+		 * reactor. To further optimize, if the frame is an R frame, we run R code to
+		 * get the second data.table instead of running a frame query, flushing to a
+		 * TSV, and then reading in R
 		 * 
 		 */
 
@@ -114,7 +114,8 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		{
 			logger.info("Creating first vector of values to compare");
 			ITask it1 = getTask(0);
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+			String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/"
+					+ Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it1, null, "\t");
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol1, newFile.getAbsolutePath(), "\t");
 			script.append(loadFileRScript);
@@ -127,12 +128,12 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		logger.info("Creating second vector of values to compare");
 		boolean optimized = false;
 		String frameCol = getFrameColumn();
-		if(frameCol.contains("__")) {
+		if (frameCol.contains("__")) {
 			frameCol = frameCol.split("__")[1];
 		}
-		if(frameCol != null) {
+		if (frameCol != null) {
 			ITableDataFrame frame = getFrame();
-			if(frame instanceof RDataTable) {
+			if (frame instanceof RDataTable) {
 				optimized = true;
 				// optimize for R frame
 				String getColScript = rCol2 + " <- as.character(" + frame.getName() + "$" + frameCol + ");";
@@ -143,19 +144,20 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				// read in R
 				SelectQueryStruct qs = new SelectQueryStruct();
 				qs.addSelector(new QueryColumnSelector(frameCol));
-				
+
 				File newFile = null;
 				IRawSelectWrapper iterator = null;
 				try {
 					iterator = frame.query(qs);
 					ITask it2 = new BasicIteratorTask(qs, iterator);
-					String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+					String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/"
+							+ Utility.getRandomString(6) + ".tsv";
 					newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 					throw new SemossPixelException(e.getMessage());
 				} finally {
-					if(iterator != null) {
+					if (iterator != null) {
 						try {
 							iterator.close();
 						} catch (IOException e) {
@@ -172,49 +174,53 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 			// grab it and flush into a TSV
 			// read in R
 			ITask it2 = getTask(1);
-			String newFileLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6) + ".tsv";
+			String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/"
+					+ Utility.getRandomString(6) + ".tsv";
 			File newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
 			String loadFileRScript = RSyntaxHelper.getFReadSyntax(rCol2, newFile.getAbsolutePath(), "\t");
 			script.append(loadFileRScript);
 			cleanUpFiles.add(newFile);
 		}
 
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String baseFolder = Utility.getBaseFolder();
 		// source the script
-		script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/Recommendations/advanced_federation_blend.r\");");
+		script.append(
+				"source(\"" + baseFolder.replace("\\", "/") + "/R/Recommendations/advanced_federation_blend.r\");");
 		// create the matches frame using the best_match method
-		if(optimized) {
+		if (optimized) {
 			script.append(matchesFrame + " <- best_match(" + rCol1 + "[[names(" + rCol1 + ")[1]]]," + rCol2 + ");");
 		} else {
-			script.append(matchesFrame + " <- best_match(" + rCol1 + "[[names(" + rCol1 + ")[1]]]," + rCol2 + "[[names(" + rCol2 + ")[1]]]);");
+			script.append(matchesFrame + " <- best_match(" + rCol1 + "[[names(" + rCol1 + ")[1]]]," + rCol2 + "[[names("
+					+ rCol2 + ")[1]]]);");
 		}
 		// add a unique combined col1 == col2, remove extra columns
 		script.append(matchesFrame + "$distance <- as.numeric(" + matchesFrame + "$dist);");
 		script.append(matchesFrame + "<-" + matchesFrame + "[,c(\"col1\",\"col2\",\"distance\")];");
 		script.append(matchesFrame + "<-" + matchesFrame + "[order(unique(" + matchesFrame + ")$distance),];");
 		// convert col1/col2 from factor to list
-		script.append(matchesFrame+"$col1<-as.character("+matchesFrame+"$col1);");
-		script.append(matchesFrame+"$col2<-as.character("+matchesFrame+"$col2);");
+		script.append(matchesFrame + "$col1<-as.character(" + matchesFrame + "$col1);");
+		script.append(matchesFrame + "$col2<-as.character(" + matchesFrame + "$col2);");
 		script.append("rm(" + rCol1 + "," + rCol2 + ");");
 
 		logger.info("Running script to generate all fuzzy matches");
 		this.rJavaTranslator.runR(script.toString());
-						
+
 		RDataTable returnTable = null;
 		NounMetadata retNoun = null;
 		// get count of exact matches and check if matches are found
-		String exactMatchCount = this.rJavaTranslator.getString("as.character(nrow(" + matchesFrame + "[" + matchesFrame + "$distance == 0,]))");
+		String exactMatchCount = this.rJavaTranslator
+				.getString("as.character(nrow(" + matchesFrame + "[" + matchesFrame + "$distance == 0,]))");
 		if (exactMatchCount != null) {
 			int val = Integer.parseInt(exactMatchCount);
 			returnTable = createNewFrameFromVariable(matchesFrame);
 			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME);
 			retNoun.addAdditionalReturn(new NounMetadata(val, PixelDataType.CONST_INT));
-		} else{
+		} else {
 			throw new IllegalArgumentException("No matches found.");
 		}
 
 		// clean up files
-		for(File f : cleanUpFiles) {
+		for (File f : cleanUpFiles) {
 			f.delete();
 		}
 
@@ -226,11 +232,12 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 	////////////////////////////////////////////////////////////
 
 	/*
-	 * Getting the inputs 
+	 * Getting the inputs
 	 */
 
 	/**
 	 * Get the task to use
+	 * 
 	 * @return
 	 */
 	private ITask getTask(int index) {
@@ -238,17 +245,18 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		ITask task = null;
 
 		GenRowStruct grsTasks = this.store.getGenRowStruct(PixelDataType.TASK.getKey());
-		//if we don't have jobs in the curRow, check if it exists in genrow under the key job
-		if(grsTasks != null && grsTasks.size() > index) {
+		// if we don't have jobs in the curRow, check if it exists in genrow under the
+		// key job
+		if (grsTasks != null && grsTasks.size() > index) {
 			task = (ITask) grsTasks.get(index);
 		} else {
 			List<Object> tasks = this.curRow.getValuesOfType(PixelDataType.TASK);
-			if(tasks != null && tasks.size() > index) {
+			if (tasks != null && tasks.size() > index) {
 				task = (ITask) tasks.get(index);
 			}
 		}
 
-		if(task == null) {
+		if (task == null) {
 			task = constructTaskFromQs(index);
 		}
 		task.setLogger(this.logger);
@@ -257,6 +265,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 	/**
 	 * Generate the task from the query struct
+	 * 
 	 * @return
 	 */
 	private ITask constructTaskFromQs(int index) {
@@ -264,13 +273,14 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		SelectQueryStruct qs = null;
 
 		GenRowStruct grsQs = this.store.getGenRowStruct(PixelDataType.QUERY_STRUCT.getKey());
-		//if we don't have tasks in the curRow, check if it exists in genrow under the qs key
-		if(grsQs != null && grsQs.size() > index) {
+		// if we don't have tasks in the curRow, check if it exists in genrow under the
+		// qs key
+		if (grsQs != null && grsQs.size() > index) {
 			noun = grsQs.getNoun(index);
 			qs = (SelectQueryStruct) noun.getValue();
 		} else {
 			List<NounMetadata> qsList = this.curRow.getNounsOfType(PixelDataType.QUERY_STRUCT);
-			if(qsList != null && qsList.size() > index) {
+			if (qsList != null && qsList.size() > index) {
 				noun = qsList.get(index);
 				qs = (SelectQueryStruct) noun.getValue();
 			}
@@ -278,25 +288,25 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 		// no qs either... i guess we will return an empty constant data task
 		// this will just store the information
-		if(qs == null) {
+		if (qs == null) {
 			throw new IllegalArgumentException("No data found to fuzzy match");
 		}
 
 		// handle some defaults
 		QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// first, do a basic check
-		if(qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if (qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			// it is not a hard query
 			// we need to make sure there is at least a selector
-			if(qs.getSelectors().isEmpty()) {
+			if (qs.getSelectors().isEmpty()) {
 				throw new IllegalArgumentException("There are no selectors in the query to return.  "
 						+ "There must be at least one selector for the query to execute.");
 			}
 		}
 
-		if(qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if (qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
-			if(frame == null) {
+			if (frame == null) {
 				frame = (ITableDataFrame) this.insight.getDataMaker();
 			}
 			qs.setFrame(frame);
@@ -311,13 +321,14 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 	/**
 	 * Get the frame column to use
+	 * 
 	 * @return String containing the frame column header
 	 */
 	private String getFrameColumn() {
 		GenRowStruct grs = this.store.getGenRowStruct(FRAME_COLUMN);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			String frameCol = grs.get(0).toString().trim();
-			if(!frameCol.isEmpty()) {
+			if (!frameCol.isEmpty()) {
 				return frameCol;
 			}
 		}
@@ -326,13 +337,14 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 
 	/**
 	 * Get the name of the frame to output
+	 * 
 	 * @return
 	 */
 	private String getOutputFrame() {
 		GenRowStruct grs = this.store.getGenRowStruct(OUTPUT_FRAME_NAME);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			String outFrame = grs.get(0).toString().trim();
-			if(!outFrame.isEmpty()) {
+			if (!outFrame.isEmpty()) {
 				return outFrame;
 			}
 		}
@@ -345,7 +357,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(FRAME_COLUMN)) {
 			return "The column from the frame to join on";
-		} else if(key.equals(OUTPUT_FRAME_NAME)){
+		} else if (key.equals(OUTPUT_FRAME_NAME)) {
 			return "Specify the output frame name";
 		} else {
 			return super.getDescriptionForKey(key);

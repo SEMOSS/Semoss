@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -49,8 +50,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.google.api.gax.paging.Page;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Blob;
@@ -59,7 +62,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.gson.Gson;
+
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
@@ -70,11 +73,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	public static final String GCS_SERVICE_ACCOUNT_FILE_KEY = "GCS_SERVICE_ACCOUNT_FILE";
 	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 	public static final String GCS_PROJECT_ID = "GCS_PROJECT_ID";
+
 	private transient String GCP_SERVICE_ACCOUNT_FILE = null;
 	private transient String BUCKET;
-	private String PROJECT_ID = null;
-	private Storage storage;
-	private Bucket bucket;
+	private transient String PROJECT_ID = null;
+	private transient Storage storage;
+	private transient Bucket bucket;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -119,6 +123,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		return StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE;
 	}
 
+	@Override
 	public byte[] readBlobToMemory(String storagePath) throws Exception {
 		Blob blob = this.bucket.get(storagePath);
 		if (blob == null) {
@@ -127,6 +132,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		return blob.getContent();
 	}
 
+	@Override
 	public void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
 		String normalizedPath = Utility.normalizePath(storagePath);
 		if (normalizedPath.startsWith("/")) {
@@ -143,14 +149,13 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		Map<String, String> flatMetadata = new HashMap<>();
-		Gson gson = new Gson();
 		for (Map.Entry<String, Object> entry : metadata.entrySet()) {
 			Object val = entry.getValue();
 			if (val instanceof String) {
 				flatMetadata.put(entry.getKey(), (String) val);
 			} else {
-				// Lists, Maps, etc. → JSON string
-				flatMetadata.put(entry.getKey(), gson.toJson(val));
+				// Lists, Maps, etc. JSON string
+				flatMetadata.put(entry.getKey(), GSON.toJson(val));
 			}
 		}
 
@@ -162,17 +167,16 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
-		List<String> fileList = new ArrayList<>();
-		containerPrefix = Utility.normalizePath(containerPrefix);
-
-		if (containerPrefix.startsWith("/")) {
-			containerPrefix = containerPrefix.substring(1);
-		}
-		if (containerPrefix.endsWith("/")) {
-			containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
-		}
-		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-			fileList.add(blob.getName());
+		List<Map<String, Object>> details = listDetails(containerPrefix);
+		List<String> fileList = new ArrayList<>(details.size());
+		for (Map<String, Object> item : details) {
+			Object nameObj = item.get("Name");
+			if (nameObj == null) {
+				continue;
+			}
+			String name = nameObj.toString();
+			boolean isDir = Boolean.TRUE.equals(item.get("IsDir"));
+			fileList.add(isDir ? name + "/" : name);
 		}
 		return fileList;
 	}
@@ -180,39 +184,65 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
 		List<Map<String, Object>> detailsList = new ArrayList<>();
-		containerPrefix = Utility.normalizePath(containerPrefix);
+		containerPrefix = containerPrefix == null ? "" : Utility.normalizePath(containerPrefix);
 		if (containerPrefix.startsWith("/")) {
 			containerPrefix = containerPrefix.substring(1);
 		}
 		if (containerPrefix.endsWith("/")) {
 			containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
 		}
+		String prefix = containerPrefix.isEmpty() ? "" : containerPrefix + "/";
 
-		Gson gson = new Gson();
+		Page<Blob> page = prefix.isEmpty() ? this.bucket.list(Storage.BlobListOption.currentDirectory())
+				: this.bucket.list(Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.currentDirectory());
 
-		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-			Map<String, Object> details = new HashMap<>();
-			details.put("name", blob.getName());
-			details.put("size", blob.getSize());
-			details.put("contentType", blob.getContentType());
-
-			Map<String, String> rawMetadata = blob.getMetadata();
-			if (rawMetadata != null && !rawMetadata.isEmpty()) {
-				Map<String, Object> parsed = new HashMap<>();
-				for (Map.Entry<String, String> entry : rawMetadata.entrySet()) {
-					try {
-						Object jsonVal = gson.fromJson(entry.getValue(), Object.class);
-						parsed.put(entry.getKey(), jsonVal);
-					} catch (Exception e) {
-						// Not valid JSON, keep as plain string
-						parsed.put(entry.getKey(), entry.getValue());
-					}
-				}
-				details.put("metadata", parsed);
-			} else {
-				details.put("metadata", Collections.emptyMap());
+		for (Blob blob : page.iterateAll()) {
+			String blobName = blob.getName();
+			if (blobName == null || blobName.equals(prefix)) {
+				continue;
+			}
+			String name = prefix.isEmpty() ? blobName : blobName.substring(prefix.length());
+			boolean isDir = blob.isDirectory();
+			if (name.endsWith("/")) {
+				name = name.substring(0, name.length() - 1);
+			}
+			if (name.isEmpty() || name.contains("/")) {
+				continue;
 			}
 
+			Map<String, Object> details = new HashMap<>();
+			details.put("Path", containerPrefix.isEmpty() ? "/" + name : "/" + containerPrefix + "/" + name);
+			details.put("Name", name);
+			details.put("IsDir", isDir);
+
+			if (isDir) {
+				details.put("Size", 0L);
+				details.put("MimeType", "inode/directory");
+				details.put("ModTime", null);
+				details.put("Metadata", Collections.emptyMap());
+			} else {
+				details.put("Size", blob.getSize());
+				details.put("MimeType", blob.getContentType());
+				Long updateTime = blob.getUpdateTime();
+				details.put("ModTime", updateTime == null ? null : Instant.ofEpochMilli(updateTime).toString());
+
+				Map<String, String> rawMetadata = blob.getMetadata();
+				if (rawMetadata != null && !rawMetadata.isEmpty()) {
+					Map<String, Object> parsed = new HashMap<>();
+					for (Map.Entry<String, String> entry : rawMetadata.entrySet()) {
+						try {
+							Object jsonVal = GSON.fromJson(entry.getValue(), Object.class);
+							parsed.put(entry.getKey(), jsonVal);
+						} catch (Exception e) {
+							// Not valid JSON, keep as plain string
+							parsed.put(entry.getKey(), entry.getValue());
+						}
+					}
+					details.put("Metadata", parsed);
+				} else {
+					details.put("Metadata", Collections.emptyMap());
+				}
+			}
 			detailsList.add(details);
 		}
 		return detailsList;
@@ -845,7 +875,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void close() throws IOException {
-		// there is no disconnect logic
-
+		if (storage != null) {
+			try {
+				storage.close();
+			} catch (Exception e) {
+				classLogger.error("Failed to close Google Cloud Storage client for bucket='{}'.", this.BUCKET, e);
+			}
+		}
 	}
 }

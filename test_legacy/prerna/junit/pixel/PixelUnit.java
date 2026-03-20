@@ -110,6 +110,7 @@ import prerna.theme.AbstractThemeUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.SMSSWebWatcher;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
@@ -293,15 +294,15 @@ public class PixelUnit {
 	private static void loadDatabases() throws Exception {
 
 		// Local master database
-		SMSSWebWatcher.loadNewEngine(Constants.LOCAL_MASTER_DB + ".smss", BASE_DB_DIRECTORY);
+		SystemEngineRegistry.loadSystemEngine(BASE_DB_DIRECTORY + "/" + Constants.LOCAL_MASTER_DB + ".smss");
 		MasterDatabaseUtility.initLocalMaster();
 
 		// Security
-		SMSSWebWatcher.loadNewEngine(Constants.SECURITY_DB + ".smss", BASE_DB_DIRECTORY);
+		SystemEngineRegistry.loadSystemEngine(BASE_DB_DIRECTORY + "/" + Constants.SECURITY_DB + ".smss");
 		AbstractSecurityUtils.loadSecurityDatabase();
 
 		// Themes
-		SMSSWebWatcher.loadNewEngine(Constants.THEMING_DB + ".smss", BASE_DB_DIRECTORY);
+		SystemEngineRegistry.loadSystemEngine(BASE_DB_DIRECTORY + "/" + Constants.THEMING_DB + ".smss");
 		AbstractThemeUtils.loadThemingDatabase();
 
 		// Add local databases (as defined in Local_DBs.prop) to Properties so that users can run tests on their local db's

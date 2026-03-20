@@ -50,7 +50,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
-import prerna.util.SemossDefaultEngines;
+import prerna.util.SystemDefaultDatabases;
 
 public class WrapperManager {
 
@@ -65,7 +65,7 @@ public class WrapperManager {
 	private static WrapperManager manager = null;
 	private static List<String> ignoreDatabases = new ArrayList<>();
 	{
-		ignoreDatabases.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
+		ignoreDatabases.addAll(SystemDefaultDatabases.getIgnoreDatabaseOwlList());
 		// add the OWLs as well
 		ignoreDatabases.add(Constants.LOCAL_MASTER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 		ignoreDatabases.add(Constants.SECURITY_DB + "_" + Constants.OWL_ENGINE_SUFFIX);

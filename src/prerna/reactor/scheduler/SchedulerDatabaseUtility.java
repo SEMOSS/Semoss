@@ -156,6 +156,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -190,8 +191,6 @@ public class SchedulerDatabaseUtility {
 			// is_latest
 			+ "LEFT OUTER JOIN SMSS_AUDIT_TRAIL ON SMSS_JOB_RECIPES.JOB_ID = SMSS_AUDIT_TRAIL.JOB_ID "
 			+ "AND SMSS_AUDIT_TRAIL.IS_LATEST=? ";
-
-	static IRDBMSEngine schedulerDb;
 	static AbstractSqlQueryUtil queryUtil;
 
 	private SchedulerDatabaseUtility() {
@@ -199,7 +198,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static void startServer() throws Exception {
-		schedulerDb = (IRDBMSEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = schedulerDb.getConnection();
 		try {
 			queryUtil = schedulerDb.getQueryUtil();
@@ -228,6 +227,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static void initialize() throws SQLException {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		String database = schedulerDb.getDatabase();
 		String schema = schedulerDb.getSchema();
 		Connection conn = schedulerDb.getConnection();
@@ -251,7 +251,7 @@ public class SchedulerDatabaseUtility {
 		Connection connection = null;
 
 		try {
-			schedulerDb = (IRDBMSEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
+			IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 			connection = schedulerDb.getConnection();
 		} catch (SQLException se) {
 			classLogger.error(Constants.STACKTRACE, se);
@@ -267,10 +267,11 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static IRDBMSEngine getSchedulerDB() {
-		return schedulerDb;
+		return SystemEngineRegistry.getSchedulerDb();
 	}
 
 	public static AbstractSqlQueryUtil getQueryUtil() {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		return schedulerDb.getQueryUtil();
 	}
 
@@ -292,6 +293,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
 				.prepareStatement("INSERT INTO SMSS_EXECUTION (EXEC_ID, JOB_ID, JOB_GROUP) VALUES (?,?,?)")) {
@@ -321,6 +323,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static String[] executionIdExists(String execId) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		ResultSet rs = null;
 		try (PreparedStatement statement = conn
@@ -361,6 +364,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static boolean removeExecutionId(String execId) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn.prepareStatement("DELETE FROM SMSS_EXECUTION WHERE EXEC_ID = ?")) {
 			statement.setString(1, execId);
@@ -393,6 +397,7 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end,
 			boolean success, String schedulerOutput) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
@@ -459,6 +464,7 @@ public class SchedulerDatabaseUtility {
 	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup,
 			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, String jobCategory,
 			boolean triggerOnLoad, String uiState, List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn.prepareStatement(
@@ -501,6 +507,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static boolean updateJobTags(String jobId, List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 
 		try {
@@ -565,6 +572,7 @@ public class SchedulerDatabaseUtility {
 			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, String jobCategory,
 			boolean triggerOnLoad, String uiState, String existingJobName, String existingJobGroup,
 			List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn.prepareStatement(
@@ -610,6 +618,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static boolean removeFromJobRecipesTable(String jobId, String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
 				.prepareStatement("DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?")) {
@@ -634,6 +643,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	public static boolean existsInJobRecipesTable(String jobId, String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn
 				.prepareStatement("SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?");) {
@@ -692,6 +702,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, Map<String, String>> retrieveJobsForProject(String appId, List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 
@@ -730,6 +741,7 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobsForProject(String appId, String userId,
 			List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = conn.prepareStatement(
@@ -766,6 +778,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, Map<String, String>> retrieveUsersJobs(String userId, List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		try (PreparedStatement statement = conn
@@ -847,6 +860,7 @@ public class SchedulerDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, Map<String, String>> retrieveAllJobs(List<String> jobTags) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		Connection conn = connectToScheduler();
 		Map<String, Map<String, String>> jobMap = new HashMap<>();
 		String query = createJobQuery(null, jobTags);
@@ -955,6 +969,7 @@ public class SchedulerDatabaseUtility {
 	 * 
 	 */
 	public static void executeAllTriggerOnLoads() {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		if (ClusterUtil.IS_CLUSTERED_SCHEDULER) {
 			return;
 		}
@@ -1070,6 +1085,7 @@ public class SchedulerDatabaseUtility {
 	 * @param schema
 	 */
 	private static void createQuartzTables(Connection connection, String database, String schema) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
@@ -1293,6 +1309,7 @@ public class SchedulerDatabaseUtility {
 	 * @param schema
 	 */
 	private static void createSemossTables(Connection connection, String database, String schema) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowBlobDataType = queryUtil.allowBlobDataType();
@@ -1589,6 +1606,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	private static void addAllPrimaryKeys(Connection conn, String database, String schema) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if (queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CALENDARS ADD CONSTRAINT IF NOT EXISTS PK_QRTZ_CALENDARS PRIMARY KEY ( SCHED_NAME, CALENDAR_NAME);";
@@ -1709,6 +1727,7 @@ public class SchedulerDatabaseUtility {
 	}
 
 	private static void addAllForeignKeys(Connection conn, String database, String schema) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		if (queryUtil.allowIfExistsAddConstraint()) {
 			String query1 = "ALTER TABLE QRTZ_CRON_TRIGGERS ADD CONSTRAINT IF NOT EXISTS FK_QRTZ_CRON_TRIGGERS_QRTZ_TRIGGERS FOREIGN KEY (SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) REFERENCES QRTZ_TRIGGERS ( SCHED_NAME, TRIGGER_NAME, TRIGGER_GROUP ) ON DELETE CASCADE;";

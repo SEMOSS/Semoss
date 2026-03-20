@@ -54,7 +54,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.PythonVariableValidator;
 import prerna.util.Settings;
 import prerna.util.UploadUtilities;
@@ -119,7 +118,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 				global = false;
 			}
 		}
-		
+
 		String modelTypeStr = (String) modelDetails.get(IModelEngine.MODEL_TYPE);
 		if (modelTypeStr == null || (modelTypeStr = modelTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the model type");
@@ -158,24 +157,19 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(modelId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(modelId, tempSmss.getAbsolutePath());
 			model.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			model.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(modelId, modelName, model, smssFile);
+			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
 
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.MODEL, modelId, modelName);
-
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(modelId);
@@ -185,12 +179,13 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);
-		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}
 		return retNoun;
-	
+
 	}
 
 	/**

@@ -161,6 +161,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         TCPServerHandler.da_server = self
 
+        # a lock to serialise all socket writes. HuggingFace (and similar libraries)
+        # download files in parallel worker threads that all write tqdm progress to
+        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # concurrent sendall() calls interleave bytes on the wire, which corrupts the
+        # 4-byte size header that Java uses to frame messages. Java then tries to read
+        # an astronomically large payload, its receive buffer fills up, sendall()
+        # blocks on the Python side, and both ends deadlock.
+        self.send_lock = threading.Lock()
+
         # cache where the link between payload id and monitor is kept
         self.monitors = {}
         # cache insight cancellation flags so a secondary request can interrupt
@@ -640,8 +649,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — acquire the lock so concurrent calls from parallel
+        # download worker threads cannot interleave bytes and corrupt the protocol
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def send_request(self, payload: dict):
         """
@@ -679,8 +690,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — use the same lock as send_output() to prevent interleaving
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def stop_request(self):
         """Stops the request and closes the connection."""
@@ -955,7 +967,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             # Handle empty code
             if not code.strip():
-                return '""', False
+                return '""', False, False
 
             parsed_code = ast.parse(code)
 
@@ -976,7 +988,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # Evaluate print arguments to be the return value of this function
                 print_args = last_node.value.args
                 if len(print_args) == 1:
-                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                    return (
+                        eval(ast.unparse(print_args[0]), insight_globals),
+                        False,
+                        False,
+                    )
                 else:
                     # Return a tuple of evaluated arguments
                     return (
