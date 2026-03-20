@@ -608,9 +608,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			String jsonPS = gson.toJson(ps);
 			byte[] psBytes = pack(jsonPS, ps.epoc);
 			try {
-				classLogger.debug("About to write to output stream for epoc: " + ps.epoc);
-				os.write(psBytes);
-				classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
+				synchronized (WRITE_LOCK) {
+					classLogger.debug("About to write to output stream for epoc: " + ps.epoc);
+					os.write(psBytes);
+					classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
+				}
 			} catch (IOException ex) {
 				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
 				classLogger.error(Constants.STACKTRACE, ex);
