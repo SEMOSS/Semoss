@@ -128,13 +128,8 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 						"Tool output added successfully. Additional tool executions required to continue");
 				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
 			} else {
-				// parse the response for code blocks
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
-				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
-					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
-				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
+				if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
 					room.updateToolResponseMeta(lastMessage);
 				}
 				Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));

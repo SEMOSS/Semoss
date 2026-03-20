@@ -35,7 +35,6 @@ import java.util.Map;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
@@ -90,13 +89,7 @@ public class COTToolPredictionReactor extends AbstractReactor {
 
 		ResponseMessage response = room.ask(inputMsg, modelEngine);
 
-		// parse the response for code blocks
-		// this should really only be a response tool ...
-		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
-		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
+		if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 			room.updateToolResponseMeta(response);
 		}
 
