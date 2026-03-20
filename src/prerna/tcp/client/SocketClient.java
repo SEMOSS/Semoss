@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -72,11 +73,11 @@ public class SocketClient implements Runnable, Closeable {
 	int PORT = -1;
 	boolean SSL = false;
 
-	Map<String, PayloadStruct> requestMap = new HashMap<>();
-	Map<String, PayloadStruct> responseMap = new HashMap<>();
-	Map<String, Set<String>> insightToEpoc = new HashMap<>();
-	Map<String, Set<String>> jobToEpoc = new HashMap<>();
-	Set<String> cancelledEpocs = new HashSet<>();
+	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
+	Map<String, PayloadStruct> responseMap = new ConcurrentHashMap<>();
+	Map<String, Set<String>> insightToEpoc = new ConcurrentHashMap<>();
+	Map<String, Set<String>> jobToEpoc = new ConcurrentHashMap<>();
+	Set<String> cancelledEpocs = ConcurrentHashMap.<String>newKeySet();
 
 	boolean ready = false;
 	boolean connected = false;
@@ -90,9 +91,13 @@ public class SocketClient implements Runnable, Closeable {
 	Socket clientSocket = null;
 	InputStream is = null;
 	OutputStream os = null;
+	final Object WRITE_LOCK = new Object();
+
 	SocketClientHandler sch = new SocketClientHandler();
-	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).disableHtmlEscaping()
+
+	Gson gson = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.create();
+
 	ClientProcessWrapper cpw = null;
 
 	public SocketClient() {
@@ -263,7 +268,9 @@ public class SocketClient implements Runnable, Closeable {
 	private void writePayload(PayloadStruct ps) {
 		byte[] psBytes = FstUtil.packBytes(ps);
 		try {
-			os.write(psBytes);
+			synchronized (WRITE_LOCK) {
+				os.write(psBytes);
+			}
 		} catch (IOException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 			crash();
