@@ -53,6 +53,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
@@ -101,7 +102,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineid));
 		}
 
-		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
