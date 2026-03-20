@@ -13,6 +13,14 @@ from claude_agent_sdk import (
     HookMatcher,
 )
 
+from ...debug_logger.debug_logger import DebugLogger
+
+logger = DebugLogger(
+    log_dir="/Users/rweiler/Desktop/LOG_FILES",
+    log_file_name="claude_code_client.txt",
+    class_name=__name__,
+).logger
+
 
 class MCP(BaseModel):
     url: str
@@ -146,11 +154,13 @@ class ClaudeCodeClient:
             prompt=prompt,
             options=self.agent_options,
         ):
+            logger.info(f"Received message from Claude: {message}")
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         print(f"Claude: {block.text}")
                         final_message += block.text
+        logger.info(f"Final response from Claude: {final_message}")
         return final_message
 
     def _resolve_mcps(

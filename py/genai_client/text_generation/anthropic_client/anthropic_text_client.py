@@ -1,8 +1,6 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
-from sympy import content
-
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -280,8 +278,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        use_beta_stream = self.use_beta_header and hasattr(self.client.beta.messages, "stream")
-        stream_method = self.client.beta.messages.stream if use_beta_stream else self.client.messages.stream
+        use_beta_stream = self.use_beta_header and hasattr(
+            self.client.beta.messages, "stream"
+        )
+        stream_method = (
+            self.client.beta.messages.stream
+            if use_beta_stream
+            else self.client.messages.stream
+        )
 
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
