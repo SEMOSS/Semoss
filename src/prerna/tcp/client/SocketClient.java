@@ -60,7 +60,6 @@ import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.util.Constants;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -79,21 +78,22 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, Set<String>> jobToEpoc = new ConcurrentHashMap<>();
 	Set<String> cancelledEpocs = ConcurrentHashMap.<String>newKeySet();
 
-	boolean ready = false;
-	boolean connected = false;
+	volatile boolean ready = false;
+	volatile boolean connected = false;
 	AtomicInteger count = new AtomicInteger(0);
 	long averageMillis = 200;
-	boolean killAll = false; // use this if the server is dead or it has crashed
+	// use this if the server is dead
+	volatile boolean killAll = false;
 	User user;
 
 	Map<String, String> startMdc = null;
 
 	Socket clientSocket = null;
-	InputStream is = null;
-	OutputStream os = null;
-	final Object WRITE_LOCK = new Object();
-
 	SocketClientHandler sch = new SocketClientHandler();
+
+	volatile InputStream is = null;
+	volatile OutputStream os = null;
+	final Object WRITE_LOCK = new Object();
 
 	Gson gson = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.create();
@@ -241,8 +241,7 @@ public class SocketClient implements Runnable, Closeable {
 						}
 						pollNum++;
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Interrupted while waiting for response to epoc: {}", ps.epoc, e);
 					}
 					/*
 					 * // trigger after 400 milliseconds if(pollNum == 2 && !ps.longRunning) {
@@ -272,7 +271,7 @@ public class SocketClient implements Runnable, Closeable {
 				os.write(psBytes);
 			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write payload to socket output stream for epoc: {}", ps.epoc, ex);
 			crash();
 		}
 	}
@@ -315,7 +314,7 @@ public class SocketClient implements Runnable, Closeable {
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error stopping server", e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -354,7 +353,7 @@ public class SocketClient implements Runnable, Closeable {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error releasing pending payload structs during crash", e);
 			}
 			return "Successfully released the payload structs";
 		};
@@ -368,7 +367,7 @@ public class SocketClient implements Runnable, Closeable {
 			classLogger.warn("Not able to release the payload structs within a timely fashion");
 			future.cancel(true);
 		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error waiting for crash cleanup to complete", e);
 		} finally {
 			executor.shutdown();
 		}
@@ -405,13 +404,7 @@ public class SocketClient implements Runnable, Closeable {
 	 * @param epoc
 	 */
 	void addEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = null;
-		if (this.insightToEpoc.containsKey(insightId)) {
-			epocs = this.insightToEpoc.get(insightId);
-		} else {
-			epocs = new HashSet<>();
-			this.insightToEpoc.put(insightId, epocs);
-		}
+		Set<String> epocs = this.insightToEpoc.computeIfAbsent(insightId, x -> ConcurrentHashMap.<String>newKeySet());
 		epocs.add(epoc);
 	}
 
@@ -431,13 +424,7 @@ public class SocketClient implements Runnable, Closeable {
 		if (jobId == null || epoc == null) {
 			return;
 		}
-		Set<String> epocs = null;
-		if (this.jobToEpoc.containsKey(jobId)) {
-			epocs = this.jobToEpoc.get(jobId);
-		} else {
-			epocs = new HashSet<>();
-			this.jobToEpoc.put(jobId, epocs);
-		}
+		Set<String> epocs = this.jobToEpoc.computeIfAbsent(jobId, x -> ConcurrentHashMap.<String>newKeySet());
 		epocs.add(epoc);
 	}
 
@@ -518,7 +505,7 @@ public class SocketClient implements Runnable, Closeable {
 			try {
 				closeThis.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing resource in socket client", e);
 			}
 		}
 	}
