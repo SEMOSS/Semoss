@@ -36,8 +36,8 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.LocalMasterConceptIdHash;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class DeleteFromMasterDB {
@@ -51,7 +51,7 @@ public class DeleteFromMasterDB {
 	 */
 	public boolean deleteEngineRDBMS(String engineId) {
 		classLogger.info("Removing engine {} from Local Master", Utility.cleanLogString(engineId));
-		IRDBMSEngine localMasterEngine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine localMasterEngine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = localMasterEngine.getConnection();

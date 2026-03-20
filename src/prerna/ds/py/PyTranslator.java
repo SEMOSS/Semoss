@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ds.py;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,7 +46,7 @@ import prerna.util.EngineUtility;
 
 public class PyTranslator {
 
-	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
+	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);

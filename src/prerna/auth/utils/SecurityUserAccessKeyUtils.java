@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.LocalUserStore;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -51,6 +52,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
@@ -89,6 +91,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static User validateKeysAndReturnUser(String accessKey, String secretKey) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String saltedSecretKey = null;
 		String salt = null;
 		String userId = null;
@@ -208,6 +211,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, String> createUserAccessToken(AccessToken accessToken, String tokenName,
 			String tokenDescription) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String salt = AbstractSecurityUtils.generateSalt();
 		String accessKey = UUID.randomUUID().toString();
 		String secretKey = UUID.randomUUID().toString();
@@ -265,6 +269,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @param token
 	 */
 	public static void updateAccessTokenLastUsed(String accessKey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String insertQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " SET LASTUSED=? WHERE ACCESSKEY=?";
@@ -293,6 +298,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean deleteUserAccessToken(AccessToken token, String accessKey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// validate user has this access key
 		List<Map<String, Object>> validateAssignedToUser = getUserAccessKeyInfo(token, accessKey);
 		if (validateAssignedToUser == null || validateAssignedToUser.isEmpty()) {
@@ -333,6 +339,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessKeyInfo(AccessToken token, String accessKey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TOKEN_NAME_COL));
 		qs.addSelector(new QueryColumnSelector(TOKEN_DESCRIPTION_COL));
@@ -362,6 +369,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	@Deprecated
 	// added on 12/05/2023
 	private static boolean hasOldColumnName() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// since we had a bad name
 		// will check for the old column if it exists and use that
 		Connection conn = null;
