@@ -33,17 +33,17 @@ import org.xeustechnologies.jcl.JarClassLoader;
  * A restricted subclass of {@link JarClassLoader} used for loading Maven-based
  * project reactor JARs. Blocks access to reflection APIs that could otherwise
  * be used to bypass {@link SystemEngineRegistry} access controls, mirroring the
- * same restriction applied by {@link SemossClassloader} for folder-based
+ * same restriction applied by {@link SemossClassLoader} for folder-based
  * reactor classes.
  *
- * @see SemossClassloader#isReflectionApiBlocked(String)
+ * @see SemossClassLoader#isReflectionApiBlocked(String)
  */
 public class SemossJarClassLoader extends JarClassLoader {
 
 	@Override
 	@SuppressWarnings("rawtypes")
 	public Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
-		if (className != null && SemossClassloader.isReflectionApiBlocked(className)) {
+		if (className != null && SemossClassLoader.isReflectionApiBlocked(className)) {
 			throw new ClassNotFoundException("Access to '" + className + "' is not permitted in project reactors");
 		}
 		if (className != null && className.startsWith("prerna.")) {

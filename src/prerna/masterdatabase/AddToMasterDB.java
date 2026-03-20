@@ -234,7 +234,8 @@ public class AddToMasterDB {
 			}
 
 			// sync metamodel position
-			Map<String, Object> positions = GenerateMetamodelUtility.getOwlMetamodelPositions(engineId);
+			Map<String, Object> positions = GenerateMetamodelUtility.getOwlMetamodelPositions(engineId, engineName,
+					smssFile);
 			if (positions.size() > 0) {
 				MasterDatabaseUtility.saveMetamodelPositions(engineId, positions, conn);
 			}
