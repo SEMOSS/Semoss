@@ -80,9 +80,9 @@ class ExcelRangeUnitTests {
 	 * AA=27). As written, ExcelRange.getExcelColumnNumber currently returns 0-based
 	 * values and is incorrect for multi-letter columns (e.g., "AA" returns 0).
 	 */
-	@Disabled("Enable after fixing getExcelColumnNumber implementation")
+	//@Disabled("Enable after fixing getExcelColumnNumber implementation")
 	@ParameterizedTest
-	@CsvSource({ "A,1", "B,2", "Z,26", "AA,27", "AZ,52", "BA,53", "ZZ,702", "AAA,703" })
+	@CsvSource({ "A,1", "B,2", "Z,26", "AA,27", "AZ,52", "BA,53", "ZZ,702", "AAA,703", "DHAVA,1969761" })
 	void test_getExcelColumnNumber_expectedExcelSemantics(String col, int expected) {
 		assertEquals(expected, ExcelRange.getExcelColumnNumber(col));
 	}
