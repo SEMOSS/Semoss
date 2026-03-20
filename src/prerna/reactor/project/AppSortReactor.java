@@ -1,4 +1,4 @@
-﻿package prerna.reactor.project;
+package prerna.reactor.project;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
