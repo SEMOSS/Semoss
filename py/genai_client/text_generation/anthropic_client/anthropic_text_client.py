@@ -257,7 +257,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
             messageType="TOOL",
         )
 
@@ -280,13 +280,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        stream_method = (
-            self.client.beta.messages.stream
-            if self.use_beta_header
-            else self.client.messages.stream
-        )
+        use_beta_stream = self.use_beta_header and hasattr(self.client.beta.messages, "stream")
+        stream_method = self.client.beta.messages.stream if use_beta_stream else self.client.messages.stream
 
-        with stream_method(**request_config.model_dump(exclude_none=True)) as stream:
+        stream_kwargs = request_config.model_dump(exclude_none=True)
+        if self.use_beta_header and not use_beta_stream:
+            # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
+            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            stream_kwargs.pop("betas", None)
+            stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
+
+        with stream_method(**stream_kwargs) as stream:
             final_message = None
             for event in stream:
                 if event.type == "message_start":
@@ -558,7 +562,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "type": "function",
                     "server_tool": content.get("server_tool", False),
                 }
-                parts.append({"type": "TOOL_CALL", "toolCall": tool_call})
+                parts.append({"type": "TOOL_CALL", "tool_call": tool_call})
 
             elif content_type == "tool_result":
                 tool_use_id = content.get("tool_use_id")
@@ -567,9 +571,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 parts.append(
                     {
                         "type": "TOOL_RESULT",
-                        "toolResult": {
-                            "toolCallId": tool_use_id,
-                            "toolName": tool_name,
+                        "tool_result": {
+                            "id": tool_use_id,
+                            "tool_name": tool_name,
                             "output": json.dumps(tool_content, ensure_ascii=False),
                         },
                     }

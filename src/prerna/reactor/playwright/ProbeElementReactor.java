@@ -68,10 +68,21 @@ public class ProbeElementReactor extends AbstractReactor {
 			         }
 
 			         // Otherwise, build a path with :nth-of-type
-			         const p = e.parentElement;
-			         if (!p) return tag;
+			         let p = e.parentElement;
 
-			         const idx = Array.from(p.children).indexOf(e) + 1;
+			         // Cross shadow DOM boundary: parentElement is null for direct children of a shadow root
+			         if (!p) {
+			           const root = e.getRootNode();
+			           if (root && root.host) {
+			             const sib = Array.from(root.children).filter(c => c.tagName === e.tagName);
+			             const idx = sib.indexOf(e) + 1;
+			             return cssPath(root.host) + ">" + tag + ":nth-of-type(" + idx + ")";
+			           }
+			           return tag;
+			         }
+
+			         const sib = Array.from(p.children).filter(c => c.tagName === e.tagName);
+                     const idx = sib.indexOf(e) + 1;
 			         return cssPath(p) + ">" + tag + ":nth-of-type(" + idx + ")";
 			       }
 
@@ -89,6 +100,13 @@ public class ProbeElementReactor extends AbstractReactor {
 			         return { element: null, frames: framesSoFar };
 			       }
 
+			       // Drill through shadow DOM boundaries (coordinates stay viewport-relative)
+			       while (el.shadowRoot) {
+			         const deeper = el.shadowRoot.elementFromPoint(x, y);
+			         if (!deeper || deeper === el) break;
+			         el = deeper;
+			       }
+
 			       if (el.tagName === "IFRAME") {
 			         try {
 			           const rect = el.getBoundingClientRect();
@@ -103,7 +121,7 @@ public class ProbeElementReactor extends AbstractReactor {
 			             }
 			           }
 			         } catch (e) {
-			           // Cross-origin iframe or access denied � fall back to iframe element itself
+			           // Cross-origin iframe or access denied - fall back to iframe element itself
 			         }
 			       }
 

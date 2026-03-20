@@ -39,6 +39,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEmbeddedRDBMSServerEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -74,7 +75,7 @@ public class SchedulerFactorySingleton {
 
 	private void init() {
 		Properties quartzProperties = null;
-		IRDBMSEngine schedulerDb = (IRDBMSEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		String username = queryUtil.getUsername();
 		String password = queryUtil.getPassword();

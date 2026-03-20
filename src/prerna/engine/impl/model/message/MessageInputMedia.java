@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 
+import com.google.gson.annotations.SerializedName;
 import prerna.cluster.util.ClusterUtil;
 
 public class MessageInputMedia {
@@ -51,9 +52,11 @@ public class MessageInputMedia {
 		FILE, URL
 	}
 
+	@SerializedName(value = "fileName", alternate = { "file_name" })
 	private String fileName;
 	private String base64Data;
 	private String fileFormat;
+	@SerializedName(value = "mimeType", alternate = { "mime_type" })
 	private String mimeType;
 	private String sourceUrl;
 	private MEDIA_INPUT_TYPE mediaInputType;

@@ -66,7 +66,11 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
+import java.lang.reflect.Field;
+import java.util.function.Supplier;
+
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -88,7 +92,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -99,6 +102,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -117,7 +121,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	IRawSelectWrapper rawWrapper;
 	WrapperManager wrapperManager;
 	IQueryInterpreter interpreter;
-	RDBMSNativeEngine nativeEngine;
 	IDatabaseEngine databaseEngine;
 	ModelInferenceLogsUtils reactor;
 	AbstractSqlQueryUtil absQueryUtil;
@@ -125,7 +128,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	private static final UUID FIXED_UUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
 	@BeforeEach
-	void setup() throws IOException {
+	void setup() throws Exception {
 		FileUtils.cleanDirectory(tempDir.toFile());
 
 		user = mock(User.class);
@@ -142,25 +145,31 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		rawWrapper = mock(IRawSelectWrapper.class);
 		wrapperManager = mock(WrapperManager.class);
 		interpreter = mock(IQueryInterpreter.class);
-		nativeEngine = mock(RDBMSNativeEngine.class);
 		databaseEngine = mock(IDatabaseEngine.class);
 		absQueryUtil = mock(AbstractSqlQueryUtil.class);
 
 		reactor = new ModelInferenceLogsUtils();
-		ModelInferenceLogsUtils.modelInferenceLogsDb = engine;
+		Field registryField = SystemEngineRegistry.class.getDeclaredField("modelInferenceLogsDbHolder");
+		registryField.setAccessible(true);
+		registryField.set(null, (Supplier<IRDBMSEngine>) () -> engine);
+	}
+
+	@AfterEach
+	void tearDown() throws Exception {
+		Field registryField = SystemEngineRegistry.class.getDeclaredField("modelInferenceLogsDbHolder");
+		registryField.setAccessible(true);
+		registryField.set(null, null);
 	}
 
 	@Test
 	void initModelInferenceLogsDatabase() throws Exception {
 		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class)) {
-			util.when(() -> Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB)).thenReturn(nativeEngine);
-
-			when(nativeEngine.getQueryUtil()).thenReturn(absQueryUtil);
-			when(nativeEngine.getOWLEngineFactory()).thenReturn(owlFactory);
+			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
+			when(engine.getOWLEngineFactory()).thenReturn(owlFactory);
 			when(owlFactory.getWriteOWL()).thenReturn(owlEngine);
 
-			when(nativeEngine.getConnection()).thenReturn(conn);
+			when(engine.getConnection()).thenReturn(conn);
 
 			when(absQueryUtil.allowsIfExistsTableSyntax()).thenReturn(false).thenReturn(true);
 			when(absQueryUtil.allowIfExistsIndexSyntax()).thenReturn(false).thenReturn(true);
@@ -178,9 +187,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 			ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 
-			util.verify(() -> Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB), times(2));
 			util.verify(() -> Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB), times(2));
-			connUtil.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(nativeEngine, conn, null, null),
+			connUtil.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null),
 					times(2));
 		}
 	}

@@ -42,7 +42,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PostRequestReactor extends AbstractReactor {
@@ -50,10 +49,10 @@ public class PostRequestReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(PostRequestReactor.class);
 
 	public PostRequestReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.HEADERS_MAP.getKey(), "bodyMap", 
-				ReactorKeysEnum.USE_APPLICATION_CERT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.HEADERS_MAP.getKey(), "bodyMap",
+				ReactorKeysEnum.USE_APPLICATION_CERT.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -65,51 +64,56 @@ public class PostRequestReactor extends AbstractReactor {
 		String keyStorePass = null;
 		String keyPass = null;
 		boolean useApplicationCert = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]) + "");
-		if(useApplicationCert) {
-			keyStore = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE);
-			keyStorePass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
-			keyPass = DIHelper.getInstance().getProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
+		if (useApplicationCert) {
+			keyStore = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE);
+			keyStorePass = Utility.getDIHelperProperty(Constants.SCHEDULER_KEYSTORE_PASSWORD);
+			keyPass = Utility.getDIHelperProperty(Constants.SCHEDULER_CERTIFICATE_PASSWORD);
 		}
-		
-		return new NounMetadata(HttpHelperUtility.postRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass), PixelDataType.CONST_STRING);
+
+		return new NounMetadata(
+				HttpHelperUtility.postRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass),
+				PixelDataType.CONST_STRING);
 	}
 
 	/**
 	 * Get headers to add to the request
+	 * 
 	 * @return
 	 */
 	private Map<String, String> getHeadersMap() {
 		GenRowStruct headersGrs = this.store.getGenRowStruct(this.keysToGet[1]);
-		if(headersGrs != null && !headersGrs.isEmpty()) {
+		if (headersGrs != null && !headersGrs.isEmpty()) {
 			Map<String, String> headers = new HashMap<>();
-			for(int i = 0; i < headersGrs.size(); i++) {
+			for (int i = 0; i < headersGrs.size(); i++) {
 				NounMetadata noun = headersGrs.getNoun(i);
-				if(noun.getNounType() == PixelDataType.PROJECT_AUTHORIZATION_HEADER) {
+				if (noun.getNounType() == PixelDataType.PROJECT_AUTHORIZATION_HEADER) {
 					try {
-						headers.putAll( ((ProjectHeaderAuthEvaluator) noun.getValue()).eval() );
+						headers.putAll(((ProjectHeaderAuthEvaluator) noun.getValue()).eval());
 					} catch (UnsupportedEncodingException e) {
 						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("An error occurred trying to get the project authorization headers");
+						throw new IllegalArgumentException(
+								"An error occurred trying to get the project authorization headers");
 					}
 				} else {
-					headers.putAll( (Map<String, String>) noun.getValue() );
+					headers.putAll((Map<String, String>) noun.getValue());
 				}
 			}
 			return headers;
 		}
 		return null;
 	}
-	
+
 	/**
 	 * Get headers to add to the request
+	 * 
 	 * @return
 	 */
 	private Map<String, String> getBody() {
 		GenRowStruct bodyGrs = this.store.getGenRowStruct(this.keysToGet[2]);
-		if(bodyGrs != null && !bodyGrs.isEmpty()) {
+		if (bodyGrs != null && !bodyGrs.isEmpty()) {
 			Map<String, String> body = new HashMap<>();
-			for(int i = 0; i < bodyGrs.size(); i++) {
-				body.putAll( (Map<String, String>) bodyGrs.get(i)); 
+			for (int i = 0; i < bodyGrs.size(); i++) {
+				body.putAll((Map<String, String>) bodyGrs.get(i));
 			}
 			return body;
 		}
@@ -118,12 +122,12 @@ public class PostRequestReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals("headersMap")) {
+		if (key.equals("headersMap")) {
 			return "Map containing key-value pairs to send in the POST request";
-		} else if(key.equals("bodyMap")) {
+		} else if (key.equals("bodyMap")) {
 			return "Map containing key-value pairs to send in the body of the POST request";
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 }

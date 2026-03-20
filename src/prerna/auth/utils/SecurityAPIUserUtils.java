@@ -40,6 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -48,6 +49,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityAPIUserUtils extends AbstractSecurityUtils {
@@ -104,6 +106,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean validCredentials(String clientId, String secretKey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String saltedPassword = null;
 		String salt = null;
 
@@ -137,6 +140,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, String> createAPIUser(String name) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String> details = new HashMap<>();
 		String salt = AbstractSecurityUtils.generateSalt();
 		String clientId = UUID.randomUUID().toString();

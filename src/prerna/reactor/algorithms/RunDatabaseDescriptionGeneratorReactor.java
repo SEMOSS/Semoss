@@ -37,7 +37,6 @@ import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReactor {
@@ -58,7 +57,7 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
 		StringBuilder rsb = new StringBuilder();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String size = this.keyValue.get(this.keysToGet[1]);
 		String token = this.keyValue.get(this.keysToGet[2]);
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
@@ -99,8 +98,8 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 	}
 
 	/**
-	 * Generate the 2 data.tables based on the table structure and relationships
-	 * and returns back the results from the algorithm
+	 * Generate the 2 data.tables based on the table structure and relationships and
+	 * returns back the results from the algorithm
 	 * 
 	 * @param query
 	 * @param allApps
