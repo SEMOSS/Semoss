@@ -97,10 +97,13 @@ public class ExcelRange {
 
 	public static int getExcelColumnNumber(String column) {
 		int result = 0;
-		for (int i = 0; i < column.length(); i++) {
-			result *= 26;
-			result += column.charAt(i) - 'A';
+		result += column.charAt(column.length() - 1) - 'A';
+		int coeff = 26;
+		for(int i = column.length() - 2; i >= 0; i--) {
+			result += coeff * (column.charAt(i) - 'A' + 1);
+			coeff *= 26;
 		}
+		result++;
 		return result;
 	}
 	
@@ -111,6 +114,9 @@ public class ExcelRange {
 	 * @return
 	 */
 	public static int[] getSheetRangeIndex(String rangeSyntax) {
+		if(rangeSyntax == null) {
+			throw new IllegalArgumentException("Invalid range syntax of " + rangeSyntax);
+		}
 		String[] split = rangeSyntax.split(":");
 		if(split.length != 2) {
 			throw new IllegalArgumentException("Invalid range syntax of " + rangeSyntax);
