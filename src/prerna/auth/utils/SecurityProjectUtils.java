@@ -44,6 +44,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import prerna.util.SystemEngineRegistry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,6 +63,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.engine.impl.SmssUtilities;
+import prerna.notifications.NotificationDbUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -83,7 +85,9 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -117,12 +121,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static void addProject(String projectId, boolean global, User user) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
 		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 		if (projectName == null) {
 			projectName = projectId;
+		}
+
+		String displayName = prop.getProperty(Constants.PROJECT_DISPLAY_NAME);
+		if (displayName == null || displayName.trim().isEmpty()) {
+			displayName = projectName;
 		}
 
 		boolean hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
@@ -142,7 +152,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					+ Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if (!projectExists) {
-			addProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global, user);
+			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], hasPortal, portalName,
+					global, user);
 		} else if (projectExists) {
 			// delete values if currently present
 			deleteInsightsFromProjectForRecreation(projectId);
@@ -208,9 +219,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		Timestamp timeStamp = Utility.getCurrentSqlTimestampUTC();
 
-//		String query = "SELECT DISTINCT ID, QUESTION_NAME, QUESTION_LAYOUT, HIDDEN_INSIGHT, CACHEABLE FROM QUESTION_ID WHERE HIDDEN_INSIGHT=false";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_ID_COL));
@@ -234,7 +242,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.QUESTION_PKQL_COL));
 		qs.addSelector(
 				new QueryColumnSelector(InsightAdministrator.TABLE_NAME + "__" + InsightAdministrator.SCHEMA_NAME_COL));
-//		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("QUESTION_ID__HIDDEN_INSIGHT", "==", false, PixelDataType.BOOLEAN));
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(rne, qs)) {
 			while (wrapper.hasNext()) {
@@ -290,13 +297,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					ps.setBoolean(parameterIndex++, cacheEncrypt);
-
-					// **** WITH RECENT UPDATES - THE RAW WRAPPER SHOULD NOT BE GIVING US BACK A
-					// CLOB
-					// need to determine if our input is a clob
-					// and if the database allows a clob data type
-					// use the utility method generated
-//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, pixelObject, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, pixelObject, parameterIndex++,
 							securityGson);
 
@@ -381,7 +381,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					// and if the database allows a clob data type
 					// use the utility method generated
 					Object metaValue = raw[2];
-//					RDBMSUtility.handleInsertionOfClobInput(securityDb, securityQueryUtil, ps, parameterIndex++, metaValue, securityGson);
 					securityQueryUtil.handleInsertionOfClob(ps.getConnection(), ps, metaValue, parameterIndex++,
 							securityGson);
 
@@ -437,12 +436,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// need to remove existing insights w/ permissions that do not exist anymore
 			if (existingInsightPermissions && !insightPermissionIds.isEmpty()) {
-
-				// TODO:
-				// TODO:
-				// TODO:
-				// TODO:
-
 				classLogger.info("Removing insights with permissions that no longer exist");
 				String deleteInsightPermissionQuery = "DELETE FROM USERINSIGHTPERMISSION " + "WHERE PROJECTID='"
 						+ projectId + "'" + " AND INSIGHTID " + createFilter(insightPermissionIds);
@@ -471,8 +464,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProject(String projectId, String projectName, String projectType, String projectCost,
 			boolean hasPortal, String portalName, boolean global, User user) {
-		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, HASPORTAL, PORTALNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+		addProject(projectId, projectName, projectName, projectType, projectCost, hasPortal, portalName, global, user);
+	}
+
+	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
+			String projectCost, boolean hasPortal, String portalName, boolean global, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, HASPORTAL, PORTALNAME, PROJECTDISPLAYNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -501,6 +500,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
+			if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
+				ps.setString(parameterIndex++, projectName);
+			} else {
+				ps.setString(parameterIndex++, projectDisplayName);
+			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -513,6 +517,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	public static void addProjectOwner(User user, String projectId, String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
@@ -540,6 +545,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	public static void updateProject(String projectID, String projectName, String projectType, String projectCost,
 			boolean hasPortal, String portalName, boolean global) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -569,6 +575,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	// For updating Last Edited Date for Block Apps
 	public static void updateProjectLastEditedDate(String projectID) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -593,6 +600,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param appId
 	 */
 	public static void deleteInsightsFromProjectForRecreation(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -618,6 +626,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static File createInsightsDatabase(String projectId, String folderPath) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		// TODO: potentially take into consideration playsheet legacy insights
 
@@ -776,14 +785,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String testUserProjectIdForAlias(User user, String potentialId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> ids = new ArrayList<String>();
 
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
-//				+ "FROM PROJECTPERMISSION INNER JOIN PROJECT ON PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
-//				+ "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECTPERMISSION.USERID IN " + userFilters;
-//		
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
+		// + "FROM PROJECTPERMISSION INNER JOIN PROJECT ON
+		// PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
+		// + "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND
+		// PROJECTPERMISSION.USERID IN " + userFilters;
+		//
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
@@ -794,7 +807,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		ids = QueryExecutionUtility.flushToListString(securityDb, qs);
 		if (ids.isEmpty()) {
-//			query = "SELECT DISTINCT PROJECT.PROJECTID FROM PROJECT WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECT.GLOBAL=TRUE";
+			// query = "SELECT DISTINCT PROJECT.PROJECTID FROM PROJECT WHERE
+			// PROJECT.PROJECTNAME='" + potentialId + "' AND PROJECT.GLOBAL=TRUE";
 
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
@@ -817,12 +831,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Get the engine alias for a id
-	 * 
+	 *
 	 * @return
 	 */
 	public static String getProjectAliasForId(String id) {
-//		String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// String query = "SELECT PROJECTNAME FROM PROJECT WHERE PROJECTID='" + id +
+		// "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
@@ -832,6 +849,73 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			return null;
 		}
 		return results.get(0);
+	}
+
+	/**
+	 * Get the display name for a project id. Falls back to canonical name
+	 * (PROJECTNAME) if display name is null or blank.
+	 *
+	 * @param id
+	 * @return
+	 */
+	public static String getProjectDisplayNameForId(String id) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", id));
+		List<Object[]> results = QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+		if (results.isEmpty()) {
+			return null;
+		}
+		Object[] row = results.get(0);
+		String displayName = row[0] != null ? row[0].toString() : null;
+		String canonicalName = row[1] != null ? row[1].toString() : null;
+		if (displayName == null || displayName.trim().isEmpty()) {
+			return canonicalName;
+		}
+		return displayName;
+	}
+
+	/**
+	 * Set the display name for a project. Only the project owner can perform this
+	 * action.
+	 *
+	 * @param user
+	 * @param projectId
+	 * @param newDisplayName
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static boolean setProjectDisplayName(User user, String projectId, String newDisplayName)
+			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have the permission to change the project display name. Only the owner can perform this action.");
+		}
+		if (newDisplayName == null || newDisplayName.trim().isEmpty()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newDisplayName);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("An error occurred updating the project display name");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+
+		return true;
 	}
 
 	/**
@@ -852,6 +936,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Set<String> getGlobalProjectIds() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(
@@ -880,6 +965,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllProjectIds() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -917,6 +1003,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getProjectMarkdown(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", Constants.MARKDOWN));
@@ -992,6 +1079,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getUserProjectPermissionsWrapper(List<String> userIds, String projectId)
 			throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
@@ -1007,6 +1095,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean projectExists(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
@@ -1026,6 +1115,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean projectIsGlobal(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='"
 		// + engineId + "'";
 		// IRawSelectWrapper wrapper =
@@ -1052,6 +1142,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean projectHasPortal(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(
@@ -1073,6 +1164,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static SemossDate getPortalPublishedTimestamp(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
@@ -1087,6 +1179,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	public static void setPortalPublish(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1115,6 +1208,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static SemossDate getReactorCompilationTimestamp(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
@@ -1129,6 +1223,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	public static void setReactorCompilation(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET REACTORSCOMPILED=?, REACTORSCOMPILEDUSER=?, REACTORSCOMPILEDTYPE=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1194,6 +1289,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserAccessRequestProjectPermission(String userId, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(
@@ -1212,6 +1308,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserProjectPermission(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// String userFilters = getUserFilters(user);
 		// // query the database
 		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
@@ -1264,6 +1361,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
@@ -1304,6 +1402,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProjectUser(User user, String newUserId, String projectId, String permission, String endDate)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the app
@@ -1375,8 +1474,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws IllegalAccessException
 	 */
-	public static void editProjectUserPermission(User user, String existingUserId, String projectId,
-			String newPermission, String endDate) throws IllegalAccessException {
+	public static void editProjectUserPermission(User user, String existingUserId, String existingUserType,
+			String projectId, String newPermission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the app
@@ -1435,6 +1535,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+
+			// Adding Notification
+			// Check notificationDb (conditional)
+			if (Utility.isNotificationDatabaseEnabled()) {
+				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
+				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId,
+						NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+						NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this project");
@@ -1454,6 +1563,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void editProjectUserPermissions(User user, String projectId, List<Map<String, String>> requests,
 			String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the database
@@ -1511,6 +1621,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?");
 			for (int i = 0; i < requests.size(); i++) {
 				int parameterIndex = 1;
+
+				String newUserId = requests.get(i).get("userid");
+				String newUserType = requests.get(i).get("type");
+				String existingPermission = AccessPermissionEnum
+						.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 				// SET
 				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
 				ps.setString(parameterIndex++, userDetails.getValue0());
@@ -1521,6 +1636,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, requests.get(i).get("userid"));
 				ps.setString(parameterIndex++, projectId);
 				ps.addBatch();
+
+				// Adding Notification
+				if (Utility.isNotificationDatabaseEnabled()) {
+					NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId,
+							NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+							NotificationConstants.Priority.MEDIUM, existingPermission,
+							requests.get(i).get("permission"));
+				}
 			}
 			ps.executeBatch();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -1539,6 +1662,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 */
 	public static void deleteProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
 		deletes.add("DELETE FROM INSIGHT WHERE PROJECTID=?");
@@ -1575,6 +1699,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeProjectUser(User user, String existingUserId, String projectId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the app
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)
@@ -1630,6 +1755,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void removeExpiredProjectUser(String userId, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1658,6 +1784,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static boolean setProjectGlobal(User user, String projectId, boolean global) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as global. Only the owner or an admin can perform this action.");
@@ -1686,6 +1813,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 */
 	public static void setProjectCompletelyGlobal(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		{
 			String update1 = "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?";
 			PreparedStatement ps = null;
@@ -1736,6 +1864,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setProjectDiscoverable(User user, String projectId, boolean discoverable)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as discoverable. Only the owner or an admin can perform this action.");
@@ -1769,6 +1898,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setProjectName(User user, String projectId, String newProjectName)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
@@ -1839,6 +1969,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateProjectDependencies(User user, String projectId,
 			List<Map<String, Object>> dependentEngines) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 		PreparedStatement deletePs = null;
@@ -1892,6 +2023,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeProjectDependency(User user, String projectId, String dependentEngineId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		if (!SecurityUserProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalAccessException("User does not have permissions to remove dependencies");
@@ -1914,26 +2046,140 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get project dependencies
 	 * 
-	 * @param user
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencies(String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
-		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return getProjectDependencies(projectId, false);
 	}
 
 	/**
+	 * Get project dependencies with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencies(String projectId, boolean subdependencies) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependenciesRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+			qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+			return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependencies
+	 * 
+	 * @param projectId
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependenciesRecursive(String projectId, Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__PROJECTID", "==", projectId));
+
+		List<Map<String, Object>> directDependencies = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependenciesRecursive(engineId, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Get project dependency details
 	 * 
 	 * @param projectId
 	 * @return
 	 */
 	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId) {
+		return getProjectDependencyDetails(projectId, false);
+	}
+
+	/**
+	 * Get project dependency details with optional subdependencies
+	 * 
+	 * @param projectId
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsRecursive(projectId, visited, allDependencies);
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsQuery(projectId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details
+	 * 
+	 * @param projectId
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsRecursive(String projectId, Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsQuery(projectId);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependencyDetailsRecursive(engineId, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Query to get project dependency details for a single project
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsQuery(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 
@@ -1977,13 +2223,203 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get project dependency details with user and group permissions
 	 * 
 	 * @param projectId
-	 * @param userId
+	 * @param user
 	 * @return
 	 */
-	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, String userId) {
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, User user) {
+		return getProjectDependencyDetails(projectId, user, false);
+	}
+
+	/**
+	 * Get project dependency details with user and group permissions and optional
+	 * subdependencies
+	 * 
+	 * @param projectId
+	 * @param user
+	 * @param subdependencies if true, recursively fetch subdependencies
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectDependencyDetails(String projectId, User user,
+			boolean subdependencies) {
+		if (subdependencies) {
+			Set<String> visited = new HashSet<>();
+			List<Map<String, Object>> allDependencies = new ArrayList<>();
+			getProjectDependencyDetailsWithUserRecursive(projectId, user, visited, allDependencies);
+
+			// Calculate can_view_dependencies for each dependency
+			calculateCanViewDependencies(allDependencies);
+
+			return allDependencies;
+		} else {
+			return getProjectDependencyDetailsWithUserQuery(projectId, user);
+		}
+	}
+
+	/**
+	 * Calculate can_view_dependencies field for each dependency by checking if user
+	 * has view access to all subdependencies. Works from leaf nodes up the tree.
+	 * Now accounts for both user permissions and group permissions.
+	 * 
+	 * @param allDependencies List of all dependencies (flat structure)
+	 */
+	private static void calculateCanViewDependencies(List<Map<String, Object>> allDependencies) {
+		// Build a map of engineId -> dependency for quick lookup
+		Map<String, Map<String, Object>> dependencyMap = new HashMap<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			dependencyMap.put(engineId, dep);
+		}
+
+		// Build a map of parent -> list of children directly from allDependencies
+		// Since we already recursively fetched everything, we have all the parent-child
+		// relationships
+		Map<String, List<String>> childrenMap = new HashMap<>();
+
+		for (Map<String, Object> dep : allDependencies) {
+			String parentId = (String) dep.get("parent_id");
+			String engineId = (String) dep.get("engine_id");
+
+			// Add this engine as a child of its parent (skip self-references to prevent
+			// infinite loops)
+			if (parentId != null && !parentId.equals(engineId)) {
+				childrenMap.computeIfAbsent(parentId, k -> new ArrayList<>()).add(engineId);
+			}
+		}
+
+		// Calculate can_view_dependencies from leaf nodes up
+		Map<String, Boolean> canViewCache = new HashMap<>();
+		Set<String> visiting = new HashSet<>();
+		for (Map<String, Object> dep : allDependencies) {
+			String engineId = (String) dep.get("engine_id");
+			boolean canView = calculateCanViewRecursive(engineId, dependencyMap, childrenMap, canViewCache,
+					visiting);
+			dep.put("can_view_dependencies", canView);
+		}
+	}
+
+	/**
+	 * Recursively calculate if user can view all subdependencies for a given engine
+	 * 
+	 * @param engineId      The engine ID to check
+	 * @param dependencyMap Map of engineId -> dependency data
+	 * @param childrenMap   Map of engineId -> list of child engine IDs
+	 * @param canViewCache  Cache to avoid recalculating
+	 * @param visiting      Set of engine IDs currently being processed (to detect
+	 *                      circular dependencies)
+	 * @return true if user has view access to this engine and all its
+	 *         subdependencies
+	 */
+	private static boolean calculateCanViewRecursive(String engineId,
+			Map<String, Map<String, Object>> dependencyMap, Map<String, List<String>> childrenMap,
+			Map<String, Boolean> canViewCache, Set<String> visiting) {
+		// Check cache first
+		if (canViewCache.containsKey(engineId)) {
+			return canViewCache.get(engineId);
+		}
+
+		// Detect circular dependency - if we're already visiting this node, there's a
+		// cycle. Every node in the visiting set has already had its own
+		// hasViewPermission
+		// checked, so the back-edge doesn't introduce any new permission requirement.
+		// Return true to avoid poisoning the result for all nodes in the cycle.
+		if (visiting.contains(engineId)) {
+			return true;
+		}
+
+		Map<String, Object> dependency = dependencyMap.get(engineId);
+		if (dependency == null) {
+			canViewCache.put(engineId, false);
+			return false;
+		}
+
+		// Check if user has view permission for this engine
+		// Account for both user permissions and group permissions
+		boolean hasViewPermission = false;
+		Integer permission = (Integer) dependency.get("permission");
+		Integer groupPermission = (Integer) dependency.get("group_permission");
+		Boolean isGlobal = (Boolean) dependency.get("engine_global");
+
+		// User has view permission if they have any user permission, group permission,
+		// or if engine is global
+		hasViewPermission = (permission != null) || (groupPermission != null) || (isGlobal != null && isGlobal);
+
+		// If this is a leaf node (no children), return the permission status
+		List<String> children = childrenMap.get(engineId);
+		if (children == null || children.isEmpty()) {
+			canViewCache.put(engineId, hasViewPermission);
+			return hasViewPermission;
+		}
+
+		// Mark this node as being visited to detect cycles
+		visiting.add(engineId);
+
+		try {
+			// If this has children, check all subdependencies
+			boolean allChildrenViewable = true;
+			for (String childId : children) {
+				if (!calculateCanViewRecursive(childId, dependencyMap, childrenMap, canViewCache, visiting)) {
+					allChildrenViewable = false;
+					break;
+				}
+			}
+
+			// User can view dependencies if they have permission for this node AND all
+			// children are viewable
+			boolean result = hasViewPermission && allChildrenViewable;
+			canViewCache.put(engineId, result);
+			return result;
+		} finally {
+			// Remove from visiting set after processing
+			visiting.remove(engineId);
+		}
+	}
+
+	/**
+	 * Helper method to recursively fetch project dependency details with user
+	 * permissions
+	 * 
+	 * @param projectId
+	 * @param user
+	 * @param visited         Set to track visited projects to avoid circular
+	 *                        dependencies
+	 * @param allDependencies Accumulated list of all dependencies
+	 */
+	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, User user,
+			Set<String> visited, List<Map<String, Object>> allDependencies) {
+		// Avoid circular dependencies
+		if (visited.contains(projectId)) {
+			return;
+		}
+		visited.add(projectId);
+
+		// Query direct dependencies
+		List<Map<String, Object>> directDependencies = getProjectDependencyDetailsWithUserQuery(projectId, user);
+
+		// Add direct dependencies and recurse for PROJECT type dependencies
+		for (Map<String, Object> dependency : directDependencies) {
+			allDependencies.add(dependency);
+			String engineId = (String) dependency.get("engine_id");
+			getProjectDependencyDetailsWithUserRecursive(engineId, user, visited, allDependencies);
+		}
+	}
+
+	/**
+	 * Query to get project dependency details with user and group permissions for a
+	 * single
+	 * project
+	 * 
+	 * @param projectId
+	 * @param user
+	 * @return
+	 */
+	private static List<Map<String, Object>> getProjectDependencyDetailsWithUserQuery(String projectId, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String userId = user.getPrimaryLoginToken().getId();
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__PROJECTID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINEID", "engine_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECTDEPENDENCIES__ENGINETYPE", "engine_type"));
 
@@ -2066,8 +2502,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			engineTagsAggregator.addInnerSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE"));
 			engineTagsAggregator.setAlias("TAGS");
 			engineTagsQs.addSelector(engineTagsAggregator);
-			engineTagsQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
+			engineTagsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "tag"));
 			engineTagsQs.addGroupBy(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
 
 			SubqueryRelationship engineTagsRel = new SubqueryRelationship(engineTagsQs, "ET", "left.outer.join",
@@ -2082,8 +2517,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			projectTagsAggregator.addInnerSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE"));
 			projectTagsAggregator.setAlias("TAGS");
 			projectTagsQs.addSelector(projectTagsAggregator);
-			projectTagsQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "tag"));
+			projectTagsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "tag"));
 			projectTagsQs.addGroupBy(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
 
 			SubqueryRelationship projectTagsRel = new SubqueryRelationship(projectTagsQs, "PT", "left.outer.join",
@@ -2093,8 +2527,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Use conditional selector for tags
 			QueryIfSelector tagsSelector = QueryIfSelector.makeQueryIfSelector(
 					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
-					new QueryColumnSelector("PT__TAGS"), new QueryColumnSelector("ET__TAGS"),
-					"tags");
+					new QueryColumnSelector("PT__TAGS"), new QueryColumnSelector("ET__TAGS"), "tags");
 			qs.addSelector(tagsSelector);
 		}
 
@@ -2144,6 +2577,113 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					new QueryColumnSelector("PP__PERMISSION_NAME"), new QueryColumnSelector("EP__PERMISSION_NAME"),
 					"permission_name");
 			qs.addSelector(permissionNameSelector);
+		}
+
+		// GROUP PERMISSION sub-query - conditional based on type (GROUPENGINEPERMISSION
+		// vs
+		// GROUPPROJECTPERMISSION)
+		{
+			// Build the group filter once for reuse
+			OrQueryFilter groupOrFilters = new OrQueryFilter();
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider login : logins) {
+					AccessToken accessToken = user.getAccessToken(login);
+					Collection<String> userGroups = accessToken.getUserGroups();
+					String userGroupType = accessToken.getUserGroupType();
+					Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+					if (!userCustomGroups.isEmpty()) {
+						AndQueryFilter customAndFilter = new AndQueryFilter();
+						customAndFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__ID", "==", userCustomGroups));
+						groupOrFilters.addFilter(customAndFilter);
+					}
+					if (!userGroups.isEmpty()) {
+						AndQueryFilter andFilter = new AndQueryFilter();
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__TYPE", "==", userGroupType));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPENGINEPERMISSION__ID", "==", userGroups));
+						groupOrFilters.addFilter(andFilter);
+					}
+				}
+			}
+
+			// ENGINE group permissions sub-query
+			SelectQueryStruct engineGroupPermQs = new SelectQueryStruct();
+			engineGroupPermQs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID", "ENGINEID"));
+			engineGroupPermQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					"GROUPENGINEPERMISSION__PERMISSION", "PERMISSION"));
+			engineGroupPermQs.addGroupBy(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
+			if (!groupOrFilters.isEmpty()) {
+				engineGroupPermQs.addExplicitFilter(groupOrFilters);
+			} else {
+				AndQueryFilter nullFilter = new AndQueryFilter();
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", null));
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", null));
+				engineGroupPermQs.addExplicitFilter(nullFilter);
+			}
+
+			SubqueryRelationship engineGroupPermRel = new SubqueryRelationship(engineGroupPermQs, "EGP",
+					"left.outer.join",
+					new String[] { "EGP__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs.addRelation(engineGroupPermRel);
+
+			// PROJECT group permissions sub-query
+			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
+			if (user != null) {
+				List<AuthProvider> logins = user.getLogins();
+				for (AuthProvider login : logins) {
+					AccessToken accessToken = user.getAccessToken(login);
+					Collection<String> userGroups = accessToken.getUserGroups();
+					String userGroupType = accessToken.getUserGroupType();
+					Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+					if (!userCustomGroups.isEmpty()) {
+						AndQueryFilter customAndFilter = new AndQueryFilter();
+						customAndFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__ID", "==", userCustomGroups));
+						groupProjectOrFilters.addFilter(customAndFilter);
+					}
+					if (!userGroups.isEmpty()) {
+						AndQueryFilter andFilter = new AndQueryFilter();
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__TYPE", "==", userGroupType));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
+								"GROUPPROJECTPERMISSION__ID", "==", userGroups));
+						groupProjectOrFilters.addFilter(andFilter);
+					}
+				}
+			}
+
+			SelectQueryStruct projectGroupPermQs = new SelectQueryStruct();
+			projectGroupPermQs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID", "PROJECTID"));
+			projectGroupPermQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					"GROUPPROJECTPERMISSION__PERMISSION", "PERMISSION"));
+			projectGroupPermQs.addGroupBy(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID"));
+			if (!groupProjectOrFilters.isEmpty()) {
+				projectGroupPermQs.addExplicitFilter(groupProjectOrFilters);
+			} else {
+				AndQueryFilter nullFilter = new AndQueryFilter();
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", null));
+				nullFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", null));
+				projectGroupPermQs.addExplicitFilter(nullFilter);
+			}
+
+			SubqueryRelationship projectGroupPermRel = new SubqueryRelationship(projectGroupPermQs, "PGP",
+					"left.outer.join",
+					new String[] { "PGP__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs.addRelation(projectGroupPermRel);
+
+			// Use conditional selector for group permission based on engine type
+			QueryIfSelector groupPermissionSelector = QueryIfSelector.makeQueryIfSelector(
+					SimpleQueryFilter.makeColToValFilter("PROJECTDEPENDENCIES__ENGINETYPE", "==", "PROJECT"),
+					new QueryColumnSelector("PGP__PERMISSION"), new QueryColumnSelector("EGP__PERMISSION"),
+					"group_permission");
+			qs.addSelector(groupPermissionSelector);
 		}
 
 		// ACCESS REQUEST sub-query - conditional based on type (ENGINEACCESSREQUEST vs
@@ -2281,12 +2821,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
 					if (isEngine) {
-						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, dependentEngineId,
-								requestedPermission, endDate, usageRestriction, usageFrequency, maxTokens,
-								maxResponseTime);
+						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType,
+								dependentEngineId, requestedPermission, endDate, usageRestriction, usageFrequency,
+								maxTokens, maxResponseTime);
 					} else {
-						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, dependentEngineId,
-								requestedPermission, endDate);
+						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, newUserType,
+								dependentEngineId, requestedPermission, endDate);
 					}
 
 					accessGranted.add(dependentEngineId);
@@ -2341,6 +2881,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param metadata
 	 */
 	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String deleteQ = "DELETE FROM PROJECTMETA WHERE METAKEY=? AND PROJECTID=?";
 		PreparedStatement deletePs = null;
@@ -2412,6 +2953,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getProjectMetadataWrapper(Collection<String> projectId, List<String> metaKeys,
 			boolean ignoreMarkdown) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID"));
@@ -2497,6 +3039,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			boolean isExpired = SecurityUserProjectUtils.projectPermissionIsExpired(userId, projectId);
 			if (isExpired) {
@@ -2554,6 +3097,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static void copyProjectPermissions(String sourceProjectId, String targetProjectId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertTargetProjectPermissionSql = "INSERT INTO PROJECTPERMISSION (PROJECTID, USERID, PERMISSION, VISIBILITY) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetProjectPermissionStatement = securityDb
 				.getPreparedStatement(insertTargetProjectPermissionSql);
@@ -2621,6 +3165,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectUsersNoCredentials(User user, String projectId, String searchTerm,
 			long limit, long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * Security check to make sure that the user can view the application provided.
 		 */
@@ -2683,6 +3228,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			List<String> projectIdFilters, boolean favoritesOnly, boolean portalsOnly,
 			Map<String, Object> projectMetadataFilter, List<Integer> permissionFilters, String searchTerm, String limit,
 			String offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
@@ -2694,6 +3240,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// selectors
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTID", "project_id"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTNAME", "project_name"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PROJECTDISPLAYNAME", "project_display_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
@@ -2886,6 +3433,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
 			searchFilter.addFilter(
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTDISPLAYNAME", searchTerm));
 			qs1.addExplicitFilter(searchFilter);
 		}
 
@@ -2971,6 +3520,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getUserProjectIdList(User user, boolean includeGlobal, boolean includeDiscoverable,
 			boolean includeExistingAccess) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String projectPrefix = "PROJECT__";
 		String projectPermissionPrefix = "PROJECTPERMISSION__";
 		String groupProjectPermissionPrefix = "GROUPPROJECTPERMISSION__";
@@ -3048,6 +3598,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAllUserProjectList(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
@@ -3078,9 +3629,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserProjectList(User user, String projectFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
@@ -3139,6 +3692,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean projectIsDiscoverable(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(
@@ -3163,9 +3717,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getDiscoverableProjectList(String projectFilter,
 			List<String> projectTypeFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
@@ -3216,6 +3772,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserDiscoverableProjectList(User user, List<String> projectTypes,
 			List<String> projectFilters, boolean portalsOnly, Map<String, Object> projectMetadataFilter,
 			String searchTerm, String limit, String offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -3224,6 +3781,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		// selectors
 		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
+		qs1.addSelector(new QueryColumnSelector("PROJECT__PROJECTDISPLAYNAME", "project_display_name"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__TYPE", "project_type"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
@@ -3286,6 +3844,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			OrQueryFilter searchFilter = new OrQueryFilter();
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("PROJECT__PROJECTID", searchTerm));
 			searchFilter.addFilter(securityDb.getQueryUtil().getSearchRegexFilter("PROJECT__PROJECTNAME", searchTerm));
+			searchFilter.addFilter(
+					securityDb.getQueryUtil().getSearchRegexFilter("PROJECT__PROJECTDISPLAYNAME", searchTerm));
 			qs1.addExplicitFilter(searchFilter);
 		}
 		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
@@ -3318,54 +3878,69 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
 
-//	/**
-//	 * Get the list of the projects with an optional filter
-//	 * @param userId
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllProjectList(String projectFilter, String limit, String offset) {
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "project_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
-//		// dont forget reactors/portal information
-//		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
-//		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-//		// back to the others
-//		QueryFunctionSelector fun = new QueryFunctionSelector();
-//		fun.setFunction(QueryFunctionHelper.LOWER);
-//		fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-//		fun.setAlias("low_project_name");
-//		qs.addSelector(fun);
-//		if(projectFilter != null && !projectFilter.isEmpty()) { 
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
-//		}
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-//		
-//		Long long_limit = -1L;
-//		Long long_offset = -1L;
-//		if(limit != null && !limit.trim().isEmpty()) {
-//			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-//		}
-//		if(offset != null && !offset.trim().isEmpty()) {
-//			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-//		}
-//		qs.setLimit(long_limit);
-//		qs.setOffSet(long_offset);
-//		
-//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//	}
+	// /**
+	// * Get the list of the projects with an optional filter
+	// * @param userId
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllProjectList(String
+	// projectFilter, String limit, String offset) {
+	// SelectQueryStruct qs = new SelectQueryStruct();
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME",
+	// "project_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME",
+	// "project_catalog_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY",
+	// "project_created_by"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE",
+	// "project_created_by_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED",
+	// "project_date_created"));
+	// // dont forget reactors/portal information
+	// qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL",
+	// "project_has_portal"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME",
+	// "project_portal_name"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED",
+	// "project_portal_published_date"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER",
+	// "project_published_user"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE",
+	// "project_published_user_type"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED",
+	// "project_reactors_compiled_date"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER",
+	// "project_reactors_compiled_user"));
+	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE",
+	// "project_reactors_compiled_user_type"));
+	// // back to the others
+	// QueryFunctionSelector fun = new QueryFunctionSelector();
+	// fun.setFunction(QueryFunctionHelper.LOWER);
+	// fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
+	// fun.setAlias("low_project_name");
+	// qs.addSelector(fun);
+	// if(projectFilter != null && !projectFilter.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID",
+	// "==", projectFilter));
+	// }
+	// qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+	//
+	// Long long_limit = -1L;
+	// Long long_offset = -1L;
+	// if(limit != null && !limit.trim().isEmpty()) {
+	// long_limit = ((Number) Double.parseDouble(limit)).longValue();
+	// }
+	// if(offset != null && !offset.trim().isEmpty()) {
+	// long_offset = ((Number) Double.parseDouble(offset)).longValue();
+	// }
+	// qs.setLimit(long_limit);
+	// qs.setOffSet(long_offset);
+	//
+	// return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	// }
 
 	/**
 	 * Change the user visibility (show/hide) for a project. Without removing its
@@ -3379,6 +3954,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void setProjectVisibility(User user, String projectId, boolean visibility)
 			throws SQLException, IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this project.");
@@ -3467,6 +4043,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void setProjectFavorite(User user, String projectId, boolean isFavorite)
 			throws SQLException, IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!projectIsGlobal(projectId) && !userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this project.");
@@ -3553,6 +4130,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName)
 			throws SQLException, IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set if this project has a portal");
@@ -3595,6 +4173,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Set<String> getProjectsUserHasExplicitAccess(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -3618,6 +4197,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	public static List<Map<String, Object>> getProjectInfo(Collection dbFilter) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
@@ -3632,6 +4212,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static List<Map<String, Object>> getUserRequestableProjects(Collection<String> allUserProjects) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
@@ -3648,6 +4229,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean canRequestProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(
@@ -3674,6 +4256,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<String> getProjectOwners(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
@@ -3690,6 +4273,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllMetakeys() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY"));
 		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -3702,6 +4286,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions(String metakey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__METAKEY", "metakey"));
 		qs.addSelector(new QueryColumnSelector("PROJECTMETAKEYS__SINGLEMULTI", "single_multi"));
@@ -3720,6 +4305,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean valid = false;
 		PreparedStatement insertPs = null;
 		String tableName = "PROJECTMETAKEYS";
@@ -3758,6 +4344,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> projectFilters, List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("PROJECTMETA__METAKEY"));
@@ -3791,6 +4378,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason,
 			int permission, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first mark previously undecided requests as old
 		String updateQ = "UPDATE PROJECTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
@@ -3856,6 +4444,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static int getUserPendingAccessRequest(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// grab user info who is submitting request
 		Pair<String, String> requesterDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -3892,6 +4481,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessRequestsByProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID"));
@@ -3924,6 +4514,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void approveProjectUserAccessRequests(User user, String projectId, List<Map<String, String>> requests,
 			String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user has right permission level to approve access requests
@@ -4028,6 +4619,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!updatePs.getConnection().getAutoCommit()) {
 				updatePs.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < requests.size(); i++) {
+					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+							requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							requests.get(i).get("permission"));
+					// Adding email notification
+					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
+							projectId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.PROJECT);
+				}
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -4047,6 +4651,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void denyProjectUserAccessRequests(User user, String projectId, List<String> requestIdList)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
@@ -4083,6 +4688,21 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < requestIdList.size(); i++) {
+					String requestId = requestIdList.get(i);
+					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
+					String permission = AccessPermissionEnum
+							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
+					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+							(String) deniedUserDetails.get(i).get("type"), projectId,
+							NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
+							NotificationConstants.Priority.MEDIUM, null, permission);
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -4101,6 +4721,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProjectUserPermissions(User user, String projectId, List<Map<String, String>> permission,
 			String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the project
@@ -4158,6 +4779,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
+
+			// Adding Notification
+			if (Utility.isNotificationDatabaseEnabled()) {
+				for (int i = 0; i < permission.size(); i++) {
+					NotificationDbUtils.createNotification(user, permission.get(i).get("userid"),
+							permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION,
+							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+							permission.get(i).get("permission"));
+				}
+			}
+
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
@@ -4173,6 +4805,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeProjectUsers(User user, List<String> existingUserIds, String projectId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the project
 		int userPermissionLvl = getMaxUserProjectPermission(user, projectId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -4221,4 +4854,67 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
+
+	/**
+	 * Get userDetails by using user's project access request
+	 * 
+	 * @param requestId
+	 * @return List of user details
+	 */
+	public static List<Map<String, Object>> getUserDetailsFromProjectAccessRequest(String projectRequestId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_USERID", "userId"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__REQUEST_TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("PERMISSION__NAME", "permission"));
+		qs.addSelector(new QueryColumnSelector("PROJECTACCESSREQUEST__PERMISSION", "permission"));
+		qs.addRelation("PROJECTACCESSREQUEST__PERMISSION", "PERMISSION__ID", "inner.join");
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__ID", "==", projectRequestId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get all authors for a specific project (for app-related notifications)
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectAuthors(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1));
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param projectIds
+	 * @return
+	 */
+	public static Map<String, String> getProjectNamesByIds(Collection<String> projectIds) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Map<String, String> projectMap = new HashMap<>();
+		if (projectIds == null || projectIds.isEmpty()) {
+			return projectMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				projectMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return projectMap;
+	}
+
 }

@@ -2037,6 +2037,13 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		String engineId = smssProp.getProperty(Constants.ENGINE);
+		if (SystemEngineRegistry.isSystemEngine(engineId)) {
+			classLogger.error("Blocked attempt to load system engine '{}' through Utility.loadEngine(). "
+					+ "Use SystemEngineRegistry.loadSystemEngine() instead.", engineId);
+			return null;
+		}
+
 		// trim all the values the SMSS file
 		for (String name : smssProp.stringPropertyNames()) {
 			String value = smssProp.getProperty(name);
@@ -2048,7 +2055,7 @@ public final class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
-			String engineId = smssProp.getProperty(Constants.ENGINE);
+			engineId = smssProp.getProperty(Constants.ENGINE);
 			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
@@ -2059,7 +2066,7 @@ public final class Utility {
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IDatabaseEngine) {
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 				}
 			}
@@ -2068,14 +2075,9 @@ public final class Utility {
 			if (smssFilePath != null) {
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			}
-			// we also store the OWL location
-			if (smssProp.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL,
-						smssProp.getProperty(Constants.OWL));
-			}
 
 			// create and open the class
-			engine = (IEngine) Class.forName(engineClass).newInstance();
+			engine = (IEngine) Class.forName(engineClass).getDeclaredConstructor().newInstance();
 			engine.setEngineId(engineId);
 
 			// before we open, let us see if we have the assets folder
@@ -2104,7 +2106,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
 				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+					if (!SystemDefaultDatabases.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -2117,14 +2119,9 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if (hasAssetsFolder) {
-					if (SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. This enigne will not be synced to cloud");
-					} else {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. Sync to cloud storage if enabled");
-						ClusterUtil.pushEngine(engineId);
-					}
+					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+							+ " assets directory exists. Sync to cloud storage if enabled");
+					ClusterUtil.pushEngine(engineId);
 				} else {
 					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
 							+ " assets directory still does not exist");
@@ -2700,20 +2697,11 @@ public final class Utility {
 					} else {
 						classLogger.info(
 								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
 
-					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-					// TODO >>>timb: remove node exists error or catch it
-					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SemossDefaultEngines.valueStartsWith(engineId,
-							SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
+					if (!SystemDefaultDatabases.valueStartsWith(engineId,
+							SystemDefaultDatabases.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -6123,6 +6111,21 @@ public final class Utility {
 		// Check for at least one non-directory file
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
+	}
+
+	/**
+	 * Determine if notification db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isNotificationDatabaseEnabled() {
+		String notificationDb = Utility.getDIHelperProperty(Constants.NOTIFICATION_DATABASE_ENABLED);
+		if (notificationDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(notificationDb);
 	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {

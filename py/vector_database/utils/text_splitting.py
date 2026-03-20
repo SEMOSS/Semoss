@@ -178,6 +178,10 @@ def split_text(
     #     text_results_df = main_df
     #     other_modalities_df = pd.DataFrame()
 
+    # Guard against key error when checking for first row if there are no rows in the CSV file after dropping all invalid content
+    if main_df.empty:
+        raise Exception("No valid content found to chunk.")
+
     document_name = main_df["Source"][0]
 
     if chunking_method.lower() == "semantic":

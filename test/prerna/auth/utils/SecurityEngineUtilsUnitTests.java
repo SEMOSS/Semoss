@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Constants;
 
 public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -60,7 +61,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}
@@ -773,13 +774,13 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
 		// user does not have permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user, "admin2id", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals(
 				"Attempting to modify engine permission for a user who does not currently have access to the engine",
 				argEx.getMessage());
@@ -790,18 +791,18 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// edit user tries to edit owner user
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"adminid", "testId", "EDIT", null, null, null, 0, 0));
+				"adminid", "NATIVE", "testId", "EDIT", null, null, null, 0, 0));
 		assertEquals("The user doesn't have the high enough permissions to modify this users engine permission.",
 				ex.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"user3id", "testId", "OWNER", null, null, null, 0, 0));
+		           "user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user2 successfully changes user3 to edit as edit user
-		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "testId", "EDIT", null, null, null, 0, 0);
+		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null, null, null, 0, 0);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
