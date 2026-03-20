@@ -7,7 +7,7 @@ This document covers the clients designed to interact with OpenAI's language mod
 This class provides a client for OpenAI's chat completion models (e.g., GPT-3.5 Turbo, GPT-4).
 
 *   **Purpose**: It acts as an interface to OpenAI's chat models, handling request construction, API interaction, and response parsing. It standardizes these operations within the SEMOSS `genai_client` framework.
-*   **Relationship to Framework**: It extends `AbstractOpenAiClient` (which likely extends `AbstractTextGenerationClient`), inheriting common OpenAI client setup, template management, and model limit considerations. It implements the core `ask_call()` via its `Chat` operation delegate and also provides an `instruct()` method.
+*   **Relationship to Framework**: It extends `AbstractOpenAiClient` (which likely extends `AbstractTextGenerationClient`), inheriting common OpenAI client setup, template management, and model limit considerations. It implements the core `ask_call()` via its `Chat` operation delegate.
 
 ### Initialization
 
@@ -35,10 +35,6 @@ The constructor initializes `openai.OpenAI` client and instantiates `Instruct` a
         *   Handling streaming responses by iterating through chunks and concatenating content.
         *   Parsing non-streaming responses, including handling `tool_calls` if present.
         *   Returning an `AskModelEngineResponse` with the text response, token counts, and message type ("CHAT" or "TOOL").
-
-*   **`instruct(self, **kwargs) -> InstructModelEngineResponse`**:
-    *   Provides an interface for instruction-following tasks (though often implemented via chat completions with specific system prompts).
-    *   Delegates to `self.instruct_operation.instruct(**kwargs)`.
 
 *   **`inference_call(self, prefix: str, **kwargs) -> Tuple[str, int, str]`**: (Defined in `AbstractOpenAiClient` but executed by `OpenAiChatCompletion` instance)
     *   This is a central method used by `Chat.ask()`.

@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -47,6 +48,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.ldap.ILdapAuthenticator;
 
@@ -79,6 +81,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userEmailExists(String email, String type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
@@ -100,6 +103,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getUserIdFromEmail(String email, String type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(USERID_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
@@ -123,6 +127,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static String allowUserResetPassword(String email, String type) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AuthProvider provider = null;
 		try {
 			provider = AuthProvider.valueOf(type);
@@ -178,6 +183,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static Map<String, Object> userResetPassword(String token, String newPassword) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, Object> retMap = new HashMap<>();
 		SemossDate dateTokenAdded = null;
 		String email = null;
@@ -203,7 +209,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		if (dateTokenAdded == null) {
 			throw new IllegalArgumentException("Invalid attempt trying to update password");
 		}
-		
+
 		provider = AuthProvider.valueOf(type);
 
 		ZonedDateTime curTimeUtc = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -239,6 +245,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean deleteToken(String token) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("DELETE FROM PASSWORD_RESET WHERE TOKEN=?");

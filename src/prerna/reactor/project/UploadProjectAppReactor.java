@@ -311,6 +311,19 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				SecurityProjectUtils.addProject(projectId, global, user);
 			}
 
+			// ensure PROJECT_DISPLAY_NAME is present in the smss file
+			// if not present, seed it from PROJECT_ALIAS so the file stays consistent
+			Properties smssProps = Utility.loadProperties(finalProjectSmssF.getAbsolutePath());
+			String displayName = smssProps.getProperty(Constants.PROJECT_DISPLAY_NAME);
+			if (displayName == null || displayName.trim().isEmpty()) {
+				try {
+					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
+							Constants.PROJECT_DISPLAY_NAME, projectName);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
 			// see if we have any metadata to load
 			{
 				File metadataFile = new File(

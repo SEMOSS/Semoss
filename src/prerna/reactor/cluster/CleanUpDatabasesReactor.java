@@ -48,12 +48,10 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CleanUpDatabasesReactor extends AbstractReactor {
-	
+
 	private static final Logger logger = LogManager.getLogger(CleanUpDatabasesReactor.class);
 
 	private static final String STACKTRACE = "StackTrace: ";
@@ -61,16 +59,18 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public CleanUpDatabasesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.DRY_RUN.getKey(), ReactorKeysEnum.CLEAN_UP_CLOUD_STORAGE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.DRY_RUN.getKey(),
+				ReactorKeysEnum.CLEAN_UP_CLOUD_STORAGE.getKey() };
 	}
+
 	// deploy test
 	// This is just so we don't call this on mistake
 	// The real security comes from security database
 	private static final String PASSWORD = "clean_up_apps_reactor_password";
-	
+
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();	
+		organizeKeys();
 		if (this.keyValue.size() < 3) {
 			throw new IllegalArgumentException("Must input three arguments");
 		}
@@ -80,7 +80,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 		String cleanUpString = this.keyValue.get(ReactorKeysEnum.CLEAN_UP_CLOUD_STORAGE.getKey());
 		String configPassword = null;
 
-		try(InputStream input = new FileInputStream(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + CONFIGURATION_FILE)) {
+		try (InputStream input = new FileInputStream(Utility.getBaseFolder() + DIR_SEPARATOR + CONFIGURATION_FILE)) {
 			Properties prop = new Properties();
 			prop.load(input);
 			configPassword = prop.getProperty(PASSWORD);
@@ -89,12 +89,13 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 		}
 
 		//////////////////////////////////////////////////////////////////////////////////////////
-		///////////////////////////////// Security Checks ////////////////////////////////////////
-		if(password == null || password.isEmpty()) {
+		///////////////////////////////// Security Checks
+		////////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////////
+		if (password == null || password.isEmpty()) {
 			throw new IllegalArgumentException("Must input a password");
 		}
 
-		if(!password.equals(configPassword)) {
+		if (!password.equals(configPassword)) {
 			throw new IllegalArgumentException("The provided password is not correct!");
 		}
 
@@ -102,30 +103,32 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 		if (dryRunString != null && !dryRunString.isEmpty() && dryRunString.equalsIgnoreCase("false")) {
 			dryRun = false;
 		}
-		
+
 		boolean cleanUpCloudStorage = false;
 		if (cleanUpString != null && !cleanUpString.isEmpty() && cleanUpString.equalsIgnoreCase("true")) {
 			cleanUpCloudStorage = true;
 		}
-		
+
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(this.insight.getUser());
-		if(!isAdmin) {
+		if (!isAdmin) {
 			throw new IllegalArgumentException("User must be an admin for this operation!");
 		}
-		
+
 		//////////////////////////////////////////////////////////////////////////////////////////
-		//////////////////////////////////// Cleanup /////////////////////////////////////////////
+		//////////////////////////////////// Cleanup
+		////////////////////////////////////////////////////////////////////////////////////////// /////////////////////////////////////////////
 		Map<String, Object> cleanupAppsData = new HashMap<>();
 		cleanupAppsData.put("dryRun", dryRun);
 		if (ClusterUtil.IS_CLUSTER) {
-			
+
 			//////////////////////////////////////////////////////////////////////////////////////////
-			//////////////////////////////////// Cleanup Apps ////////////////////////////////////////
+			//////////////////////////////////// Cleanup Apps
+			////////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////////
 			Map<String, Object> removedAppsMap = new HashMap<>();
 			List<String> databaseIds = SecurityEngineUtils.getAllEngineIds();
 			for (String databaseId : databaseIds) {
 				String alias = SecurityEngineUtils.getEngineAliasForId(databaseId);
-				String key = alias + "__" + databaseId; 
+				String key = alias + "__" + databaseId;
 				IDatabaseEngine engine = null;
 				try {
 					engine = Utility.getDatabase(databaseId);
@@ -133,27 +136,28 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 					logger.error(STACKTRACE, e);
 				}
 				if (engine == null) {
-					
+
 					// Cleanup the app
 					if (!dryRun) {
-						
+
 						// Actually remove
-						
+
 						// Delete from master db
 						DeleteFromMasterDB remover = new DeleteFromMasterDB();
 						remover.deleteEngineRDBMS(databaseId);
 						SecurityEngineUtils.deleteEngine(databaseId);
-						
+
 						// Delete from cluster
 						try {
 							ClusterUtil.deleteEngine(databaseId);
-							
+
 							// Successful cleanup
 							removedAppsMap.put(key, "removed");
 						} catch (Exception e) {
 							logger.error(STACKTRACE, e);
 							// Partially successful cleanup
-							removedAppsMap.put(key, "removed from security and local master, but failed to remove from cloud storage");
+							removedAppsMap.put(key,
+									"removed from security and local master, but failed to remove from cloud storage");
 						}
 					} else {
 						// Don't actually remove
@@ -165,9 +169,10 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 				}
 			}
 			cleanupAppsData.put("apps", removedAppsMap);
-						
+
 			//////////////////////////////////////////////////////////////////////////////////////////
-			//////////////////////////////////// Cleanup Containers ///////////////////////////////////
+			//////////////////////////////////// Cleanup Containers
+			////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
 			cleanupAppsData.put("cleanedUpCloudStorage", cleanUpCloudStorage);
 			Map<String, Object> removedContainersMap = new HashMap<>();
 			if (cleanUpCloudStorage) {
@@ -175,7 +180,7 @@ public class CleanUpDatabasesReactor extends AbstractReactor {
 					List<String> allContainers = CentralCloudStorage.getInstance().listAllBlobContainers();
 					for (String container : allContainers) {
 						String cleanedContainerName = container.replaceAll("-smss", "").replaceAll("/", "");
-						//we now have configuration blobs like the image blob we dont want to delete
+						// we now have configuration blobs like the image blob we dont want to delete
 //						if(ClusterUtil.CONFIGURATION_BLOBS.contains(cleanedContainerName)){
 //							continue;
 //						}

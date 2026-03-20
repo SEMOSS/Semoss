@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -50,6 +51,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
 
@@ -60,7 +62,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	public static String testUserEngineIdForAlias(User user, String potentialId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> ids = new ArrayList<String>();
 
 //		String userFilters = getUserFilters(user);
@@ -72,7 +76,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+		OrQueryFilter nameOrDisplayFilter1 = new OrQueryFilter();
+		nameOrDisplayFilter1.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+		nameOrDisplayFilter1
+				.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+		qs.addExplicitFilter(nameOrDisplayFilter1);
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "inner.join");
@@ -83,7 +91,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+			OrQueryFilter nameOrDisplayFilter2 = new OrQueryFilter();
+			nameOrDisplayFilter2
+					.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", potentialId));
+			nameOrDisplayFilter2
+					.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEDISPLAYNAME", "==", potentialId));
+			qs.addExplicitFilter(nameOrDisplayFilter2);
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 
@@ -106,6 +119,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getInsightNameForId(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
@@ -123,6 +137,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 
 	public static SemossDate getLastModifiedDateForInsightInProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
 //				+ "FROM INSIGHT "
 //				+ "WHERE INSIGHT.PROJECTID='" + projectId + "'"
@@ -169,6 +184,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static Map<String, Map<String, Object>> getUserInfo(List<String> userIds) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM SMSS_USER ";
 //		String userFilter = createFilter(userIds);
 //		query += " WHERE ID " + userFilter + ";";
@@ -222,6 +238,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static int getApplicationUserCount() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int userCount = 0;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -254,6 +271,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsPublisher(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String userFilters = getUserFilters(user);
 //		String query = "SELECT * FROM SMSS_USER WHERE PUBLISHER=TRUE AND ID IN " + userFilters + " LIMIT 1;";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -278,6 +296,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsExporter(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(
@@ -300,6 +319,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> searchForUser(String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT SMSS_USER.ID AS ID, SMSS_USER.NAME AS NAME, SMSS_USER.EMAIL AS EMAIL FROM SMSS_USER "
 //				+ "WHERE UPPER(SMSS_USER.NAME) LIKE UPPER('%" + searchTerm + "%') "
 //				+ "OR UPPER(SMSS_USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') "
@@ -333,6 +353,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT * FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -356,6 +377,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return true if user is found otherwise false.
 	 */
 	public static boolean checkUserExist(String username, String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT * FROM SMSS_USER WHERE USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(username) + 
 //				"' OR EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(email) + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -375,6 +397,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	public static boolean checkUserEmailExist(String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
@@ -389,6 +412,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	public static boolean checkUsernameExist(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", username));
@@ -409,6 +433,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @param type
 	 */
 	public static Boolean isUserType(String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT NAME FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
@@ -433,6 +458,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] getUserLockAndLastLoginAndLastPassReset(String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__LOCKED"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__LASTLOGIN"));
@@ -454,6 +480,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, Object> getEnginePermission(String userId, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
