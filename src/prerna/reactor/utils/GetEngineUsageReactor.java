@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.f4b6a3.uuid.alt.GUID;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -56,8 +54,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PIXEL = "pixel";
 
 	public GetEngineUsageReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.TYPE.getKey() };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
@@ -65,8 +63,26 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		// get the selectors
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		IEngine.CATALOG_TYPE engineType = null;
+		if (engineId != null && !engineId.isEmpty()) {
+			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+			engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		} else {
+			String engineTypeStr = this.keyValue.get(this.keysToGet[1]);
+			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
+				try {
+					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
+					engineId = "SAMPLE_ENGINE_ID";
+				} catch (IllegalArgumentException e) {
+					// do nothing
+				}
+			}
+		}
+
+		if (engineType == null) {
+			throw new IllegalArgumentException("Must provide a valid engine id or a valid engine type");
+		}
+
 		List<Map<String, Object>> output;
 		switch (engineType) {
 		case DATABASE:
@@ -97,10 +113,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
 					"""
 							Generation
-							
-							
+
+
 							roomId is used to maintain conversational history if that is enabled for a model.
-							
+
 							```python
 							myRoom=UUID();
 							LLM(engine = "<engineid>", roomId = myRoom, command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
@@ -142,19 +158,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 					"""
 							```python
 							\"\"\"
-						        Args:
-						            - command (str): The command to send to the model.
-						            - question (str): **Deprecated**. Use `command` instead.
-						            - room_id (Optional[str]): Identifier for the room/conversation.
-						            - context (Optional[str]): Context for the model (the system prompt).
-						            - image (Optional[List]): List of base64 image data to provide to the model.
-						            - url (Optional[List]): List of image URLs to provide to the model.
-						            - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
-						            - param_dict (Optional[Dict]): Additional parameters.
-						            - insight_id (Optional[str]): Identifier for insights.
-						    \"\"\"
-						    
-						    
+							       Args:
+							           - command (str): The command to send to the model.
+							           - question (str): **Deprecated**. Use `command` instead.
+							           - room_id (Optional[str]): Identifier for the room/conversation.
+							           - context (Optional[str]): Context for the model (the system prompt).
+							           - image (Optional[List]): List of base64 image data to provide to the model.
+							           - url (Optional[List]): List of image URLs to provide to the model.
+							           - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
+							           - param_dict (Optional[Dict]): Additional parameters.
+							           - insight_id (Optional[str]): Identifier for insights.
+							   \"\"\"
+
+
 							from ai_server import ModelEngine
 							model = ModelEngine(engine_id = "<engineid>")
 
@@ -166,12 +182,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 							command = 'Sample Command With Image'
 							output = model.ask(command = command, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
 							output = model.ask(command = command, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-							
+
 							# Continue Conversation with Room ID
 							command = 'Sample Question'
 							room_id = 'my_room_id'
 							output = model.ask(command = command, room_id= room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
-		
+
 							# Structured Ouputs (if supported by model)
 							command = 'Sample Command With Structured Output'
 							json_schema = {
@@ -191,7 +207,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 										    },
 										    "required": ["sample_property"],
 										}
-							output = model.ask(command = command, param_dict={"schema": json_schema}) 
+							output = model.ask(command = command, param_dict={"schema": json_schema})
 
 							# Geneartion with ChatML
 							model.ask(question='ignore', param_dict=
@@ -668,4 +684,27 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		usageMap.put(PARAM_INFO, paramInfo);
 		return usageMap;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Retrieves sample usage code for a specific engine by ID or by engine type. \
+				If passing in the engine type, the ID in the sample code will be shown as SAMPLE_ENGINE_ID. \
+				Either the engine ID or the engine type must be provided.
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine ID to retrieve sample usage code for.";
+		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+			return "The engine type to retrieve sample usage code for. Valid values: "
+					+ String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
+							IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
+							IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

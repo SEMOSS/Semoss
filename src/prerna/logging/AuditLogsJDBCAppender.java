@@ -66,6 +66,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -156,14 +157,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
+		IRDBMSEngine auditLogs = null;
 		if (!Constants.AUDIT_LOGS_DB.equals(this.ENGINE_ID)) {
+			auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
 			try {
 				AuditLogsDbUtils.initEngineAsAuditDatabase(auditLogs);
 			} catch (Exception e) {
 				LOGGER.error("Failed to initialize custom engine as audit logs database", e);
 				return;
 			}
+		} else {
+			auditLogs = SystemEngineRegistry.getAuditLogsDb();
 		}
 		if (auditLogs == null) {
 			LOGGER.warn("Audit logs database has not been initialized yet");
