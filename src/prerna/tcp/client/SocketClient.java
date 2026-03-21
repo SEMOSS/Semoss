@@ -414,9 +414,11 @@ public class SocketClient implements Runnable, Closeable {
 	 * @param epoc
 	 */
 	void removeEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if (epocs != null) {
-			epocs.remove(epoc);
+		if (insightId != null) {
+			Set<String> epocs = this.insightToEpoc.get(insightId);
+			if (epocs != null) {
+				epocs.remove(epoc);
+			}
 		}
 	}
 
