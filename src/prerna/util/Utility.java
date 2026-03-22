@@ -2066,7 +2066,7 @@ public final class Utility {
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IDatabaseEngine) {
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 				}
 			}
@@ -2075,14 +2075,9 @@ public final class Utility {
 			if (smssFilePath != null) {
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			}
-			// we also store the OWL location
-			if (smssProp.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL,
-						smssProp.getProperty(Constants.OWL));
-			}
 
 			// create and open the class
-			engine = (IEngine) Class.forName(engineClass).newInstance();
+			engine = (IEngine) Class.forName(engineClass).getDeclaredConstructor().newInstance();
 			engine.setEngineId(engineId);
 
 			// before we open, let us see if we have the assets folder
@@ -2124,14 +2119,9 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if (hasAssetsFolder) {
-					if (SystemDefaultDatabases.getDatabasesWithGeneratedOwl().contains(engineId)) {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. This enigne will not be synced to cloud");
-					} else {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. Sync to cloud storage if enabled");
-						ClusterUtil.pushEngine(engineId);
-					}
+					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+							+ " assets directory exists. Sync to cloud storage if enabled");
+					ClusterUtil.pushEngine(engineId);
 				} else {
 					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
 							+ " assets directory still does not exist");
