@@ -112,7 +112,14 @@ RUN useradd -u 1001 -r -g 0 -d /opt/semosshome -s /bin/bash \
     -c "Default Application User" default && \
     chown -R 1001:0 /opt/semosshome
 
+
+FROM golang:1.23-alpine AS inspect
+COPY --from=final /usr/bin/rclone /rclone
+RUN go version -m /rclone | grep -E "google.golang.org/grpc|^path|^mod"
+
 USER 1001
 
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
 CMD ["bash", "-c", "exec $TOMCAT_HOME/bin/start.sh" ]
+
+
