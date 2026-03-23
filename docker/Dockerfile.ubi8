@@ -77,12 +77,12 @@ ARG RCLONE_TARBALL_URI=https://github.com/rclone/rclone/releases/download/v1.73.
 
 RUN yum update -y \
   && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates \
-  && curl -fsSL "${RCLONE_ZIP_URI}" -o /tmp/rclone.zip \
+  && curl -fsSL "https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip" -o /tmp/rclone.zip \
   && unzip -q /tmp/rclone.zip -d /tmp \
   && install -m 0755 /tmp/rclone-*/rclone /usr/bin/rclone \
   && rm -rf /tmp/rclone* \
   && /usr/bin/rclone version \
-  && /usr/bin/rclone version | head -n 1 | grep -F "rclone v${RCLONE_VERSION}"
+  && /usr/bin/rclone version | head -n 1 | grep -F "rclone v1.73.2"
 
 ## TODO - Chrome installation for UBI8 would be different.
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
