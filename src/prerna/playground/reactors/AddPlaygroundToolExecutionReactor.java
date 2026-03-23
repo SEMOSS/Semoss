@@ -31,9 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -58,8 +55,6 @@ import prerna.util.Utility;
  * tool_execution_response, tool_
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(AddPlaygroundToolExecutionReactor.class);
 
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
@@ -123,11 +118,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
-
 		Map<String, Object> pixelReturn = new HashMap<>();
 		try {
+			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
 			if (response == null) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
@@ -148,7 +142,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 		} finally {
-			classLogger.info("AddPlaygroundToolExecution - pushing room '{}' to cloud storage", roomId);
 			ClusterUtil.pushRoom(roomId);
 		}
 	}
