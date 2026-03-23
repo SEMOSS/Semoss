@@ -28,6 +28,10 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -52,6 +56,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
@@ -172,6 +177,7 @@ public final class RoomUtils {
 					}
 					upgradeRoomMessagesIfNeeded(room, insight);
 				}
+				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
 			} catch (ClassCastException e) {
 				insight.getUser().getRoomHash().remove(roomId); // Clear corrupted cache entry
@@ -212,7 +218,33 @@ public final class RoomUtils {
 
 		room.setInsight(insight);
 		insight.getUser().getRoomHash().put(roomId, room);
+		symlinkRoomFolderIfNeeded(room, insight);
 		return room;
+	}
+
+	/**
+	 * Ensures the room folder is symlinked into the user's chroot environment.
+	 * This is needed when an existing room is loaded after re-login, since the
+	 * chroot jail is destroyed on logout and recreated on the new session.
+	 */
+	private static void symlinkRoomFolderIfNeeded(Room room, Insight insight) {
+		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			return;
+		}
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String roomFolderPath = room.getRoomFolderPath();
+		if (roomFolderPath == null || roomFolderPath.trim().isEmpty()) {
+			return;
+		}
+		try {
+			Path folderPath = Paths.get(roomFolderPath);
+			Files.createDirectories(folderPath);
+			insight.getUser().getUserSymlinkHelper().symlinkFolder(roomFolderPath);
+		} catch (IOException e) {
+			classLogger.warn("Failed to symlink room folder into chroot: " + roomFolderPath, e);
+		}
 	}
 
 	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
