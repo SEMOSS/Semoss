@@ -338,7 +338,23 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
-		return stringifyMcpResult(result.getValue());
+
+		String output = stringifyMcpResult(result.getValue());
+
+		// append any additional return messages (warnings, etc.) so the model sees them
+		List<NounMetadata> additionalReturns = result.getAdditionalReturn();
+		if (additionalReturns != null && !additionalReturns.isEmpty()) {
+			StringBuilder sb = new StringBuilder(output);
+			for (NounMetadata additional : additionalReturns) {
+				if (additional.getValue() != null) {
+					sb.append("\nAdditional Return: ").append(additional.getValue())
+							.append(" (").append(additional.getOpType().toString()).append(")");
+				}
+			}
+			output = sb.toString();
+		}
+
+		return output;
 	}
 
 	/**
