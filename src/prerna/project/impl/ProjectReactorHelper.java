@@ -379,7 +379,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new SemossJarClassLoader();
+			mvnClassLoader = new SemossJarClassLoader(Map.of());
 
 			// classes are in
 			// appRoot / classes
