@@ -49,7 +49,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * RunGenericAgent(
  *   roomId     = "<roomId>",
  *   command    = "<user prompt>",
- *   filePath   = "<optional project id or file path>",
+ *   engine     = "<engineId>",
  *   harnessType = "room_loop",
  *   paramValues = {"key" : "val"}
  * )
@@ -57,41 +57,39 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>Returns the final text as a {@code CONST_STRING NounMetadata}.
  */
-public class RunGenericAgentReactor extends AbstractReactor {
+public class RunAgentReactor extends AbstractReactor {
 
-    private static final Logger logger = LogManager.getLogger(RunGenericAgentReactor.class);
+    private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
 
-    // Custom key constants (not in ReactorKeysEnum)
     private static final String HARNESS_TYPE_KEY    = "harnessType";
     private static final String AGENT_ID_KEY        = "agentId";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
 
-    public RunGenericAgentReactor() {
+    public RunAgentReactor() {
         this.keysToGet = new String[] {
-                ReactorKeysEnum.ROOM_ID.getKey(),             // 0 — required
-                ReactorKeysEnum.COMMAND.getKey(),             // 1 — required
-                ReactorKeysEnum.ENGINE.getKey(),              // 2 — optional fallback engine
-                ReactorKeysEnum.FILE_PATH.getKey(),           // 3 — optional
-                HARNESS_TYPE_KEY,                             // 4 — optional
-                AGENT_ID_KEY,                                 // 5 — optional
-                MAX_REFLECTIONS_KEY,                          // 6 — optional
-                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()     // 7 — optional
+                ReactorKeysEnum.ROOM_ID.getKey(),             
+                ReactorKeysEnum.COMMAND.getKey(),             
+                ReactorKeysEnum.ENGINE.getKey(),              
+                HARNESS_TYPE_KEY,                             
+                AGENT_ID_KEY,                                 
+                MAX_REFLECTIONS_KEY,                          
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
     }
 
     @Override
     public NounMetadata execute() {
         organizeKeys();
 
-        String roomId           = getString(0);
-        String input            = getString(1);
-        String engineIdFallback = getString(2);
-        String filePath         = getString(3);
-        String harnessType      = getString(4);
+        String roomId           = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
+        String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
+        String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+        String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
+        
         // agentId reserved for future agent-config lookup
-        // String agentId       = getString(5);
-        String maxReflectionsStr = getString(6);
+        // String agentId       = this.keyValue.get(AGENT_ID_KEY);
+        String maxReflectionsStr = this.keyValue.get(MAX_REFLECTIONS_KEY);
         int maxReflections = GenericAgentContext.DEFAULT_MAX_REFLECTIONS;
         if (maxReflectionsStr != null && !maxReflectionsStr.trim().isEmpty()) {
             try {
@@ -109,8 +107,8 @@ public class RunGenericAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunGenericAgent");
         }
 
-        logger.info("RunGenericAgentReactor: roomId={} engineFallback={} harnessType={} filePath={} maxReflections={}",
-                roomId, engineIdFallback, harnessType, filePath, maxReflections);
+        logger.info("RunGenericAgentReactor: roomId={} engineFallback={} harnessType={} maxReflections={}",
+                roomId, engineIdFallback, harnessType, maxReflections);
 
         try {
             AgentHarnessResult result = GenericAgent.run(
@@ -118,7 +116,6 @@ public class RunGenericAgentReactor extends AbstractReactor {
                     input,
                     engineIdFallback,
                     harnessType,
-                    filePath,
                     maxReflections,
                     paramMap,
                     this.insight);

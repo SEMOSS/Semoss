@@ -38,6 +38,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 /**
@@ -83,10 +84,10 @@ public final class GenericAgent {
             String input,
             String engineIdFallback,
             String harnessType,
-            String filePath,
             int maxReflections,
             Map<String, Object> paramMap,
-            Insight insight) throws Exception {
+            Insight insight
+            ) throws Exception {
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required");
@@ -98,23 +99,25 @@ public final class GenericAgent {
         // 1. Load Room
         Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
-        // 2. Resolve model ID — room column, then options map, then caller-supplied fallback
+        // 2. Resolve model ID and room column, then options map, then caller-supplied fallback
         String modelId = resolveModelId(room, engineIdFallback);
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "No model engine found for room '" + roomId + "'. "
                     + "Set MODEL_ID on the room or pass engine= to the reactor.");
         }
-        logger.info("GenericAgent: room={} resolved modelId={}", roomId, modelId);
+        logger.debug("GenericAgent: room={} resolved modelId={}", roomId, modelId);
 
         IModelEngine modelEngine = Utility.getModel(modelId);
         if (modelEngine == null) {
             throw new IllegalArgumentException(
                     "Could not load model engine '" + modelId + "' for room '" + roomId + "'");
         }
+        
+        room.setModelId(modelId);
 
         // 3. Create a fresh Insight scoped to the room folder.
-        //    We do NOT mutate the caller's insight — that would break any subsequent pixel calls
+        //    We do NOT mutate the caller's insight id that would break any subsequent pixel calls
         //    in the same session (same pattern used in RepositoryRunAnalysisReactor).
         Insight agentInsight = new Insight();
         agentInsight.setUser(insight.getUser());
@@ -127,12 +130,17 @@ public final class GenericAgent {
         // is not set, causing files to land in InsightCache instead of the room folder.
         agentInsight.setRoomForInsight(room);
 
-        // If an explicit filePath was provided (e.g. from RunSubAgent passing the
-        // orchestrator's working directory), override the insight folder so the sub-agent
-        // operates on the same file workspace as its caller.
-        if (filePath != null && !filePath.trim().isEmpty()) {
-            agentInsight.setInsightFolder(filePath.trim());
-            logger.info("GenericAgent: agentInsight folder overridden by filePath={}", filePath);
+        // If a Project ID is pass in paramMap (as "project") use ID to get assets path
+        // Else if a file path is passed in paramMap (as "filePath") use this file path
+        // Else use the room directory
+        String filePath = "";
+        if (paramMap.containsKey("project")) {
+        	String projectId = paramMap.remove("project").toString();
+        	filePath = AssetUtility.getProjectAssetsFolder(projectId);
+        	logger.info("Using project ID {} to set agent working directory..", projectId);
+        } else if(paramMap.containsKey("filePath")){
+        	filePath = paramMap.remove("filePath").toString();
+        	agentInsight.setInsightFolder(filePath.trim());
         } else {
             String roomFolderPath = room.getRoomFolderPath();
             File roomFolder = new File(roomFolderPath);
@@ -141,14 +149,15 @@ public final class GenericAgent {
             }
             logger.info("GenericAgent: agentInsight folder set to room folder={}", roomFolderPath);
         }
+        
 
-        // 4. Build paramMap copy and inject filePath
+        
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
-        // 5. Build context — use agentInsight, not the caller's insight
+        // 5. Build context to use agentInsight, not the caller's insight
         GenericAgentContext ctx = GenericAgentContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
@@ -182,7 +191,7 @@ public final class GenericAgent {
             return modelId.trim();
         }
 
-        // Tier 2: options map — some older rooms stored it under "engine"
+        // Tier 2: options map some older rooms stored it under "engine"
         Map<String, Object> opts = room.getOptionsMap();
         if (opts != null) {
             for (String key : MODEL_ID_OPTION_KEYS) {

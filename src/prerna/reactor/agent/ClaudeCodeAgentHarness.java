@@ -64,7 +64,6 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "claude_code";
 
-    private static final String PARAM_PROJECT_ID     = "project_id";
     private static final String PARAM_ALLOWED_TOOLS  = "allowed_tools";
     private static final String PARAM_PERMISSION_MODE = "permission_mode";
 
@@ -80,17 +79,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         Map<String, Object> params = ctx.getParamMap();
         String             input   = ctx.getInput();
 
-        // Resolve projectId
-        String projectId = ctx.getFilePath();
-        if (projectId == null || projectId.trim().isEmpty()) {
-            projectId = params.containsKey(PARAM_PROJECT_ID)
-                    ? String.valueOf(params.get(PARAM_PROJECT_ID))
-                    : null;
-        }
-        if (projectId == null || projectId.trim().isEmpty()) {
-            throw new IllegalArgumentException(
-                    "ClaudeCodeAgentHarness requires a projectId pass it via filePath or paramMap[\"project_id\"]");
-        }
+        String filePath = ctx.getFilePath();
 
         //Resolve model engine ID
         String engineId = room.getModelId();
@@ -127,13 +116,13 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         }
 
         // Delegate to ClaudeCodeManager
-        logger.info("ClaudeCodeAgentHarness: engine={} projectId={} mcps={}", engineId, projectId, mcps.size());
+        logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
         String output = manager.query(
                 ctx.getInsight(),
                 user,
                 engineId,
-                projectId,
+                filePath,
                 input,
                 systemPrompt,
                 room.getId(),
