@@ -169,7 +169,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PROMPT_LIBRARY_TAG", "VARCHAR(255)")
 			);
 		
 		this.workspaceResourceColumns = Arrays.asList(

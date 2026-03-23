@@ -2058,14 +2058,14 @@ public class ModelInferenceLogsUtils {
 	 * @param resources
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
-			String workspaceDescription, String systemPrompt, List<Map<String, String>> resources) throws Exception {
+			String workspaceDescription, String systemPrompt, List<Map<String, String>> resources, String workspacePromptLibraryTag) throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")) {
+					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED, PROMPT_LIBRARY_TAG) VALUES (?,?,?,?,?,?,?,?,?)")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.setString(index++, workspaceName);
@@ -2075,6 +2075,7 @@ public class ModelInferenceLogsUtils {
 				ps.setBoolean(index++, true);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspacePromptLibraryTag);
 				ps.execute();
 				if (!con.getAutoCommit()) {
 					con.commit();
@@ -2118,20 +2119,21 @@ public class ModelInferenceLogsUtils {
 	 * @param resources
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
-			String systemPrompt, boolean isActive, List<Map<String, String>> resources) throws Exception {
+			String systemPrompt, boolean isActive, List<Map<String, String>> resources, String workspacePromptLibraryTag) throws Exception {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ?, PROMPT_LIBRARY_TAG = ? WHERE WORKSPACE_ID = ?")) {
 				int index = 1;
 				ps.setString(index++, workspaceName);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
 				ps.setBoolean(index++, isActive);
 				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspacePromptLibraryTag);
 				ps.setString(index++, workspaceId);
 				ps.execute();
 				if (!con.getAutoCommit()) {
@@ -2219,6 +2221,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__PROMPT_LIBRARY_TAG", "prompt_library_tag"));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACE__WORKSPACE_ID", "==", workspaceId));
 
@@ -2390,6 +2393,8 @@ public class ModelInferenceLogsUtils {
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
 		subQs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_UPDATED", "date_updated"));
+		subQs.addSelector(new QueryColumnSelector("WORKSPACE__PROMPT_LIBRARY_TAG", "prompt_library_tag"));
+
 
 		subQs.addSelector(QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE__OWNER", "==", userIds),
@@ -2408,6 +2413,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
 		qs.addSelector(new QueryTypedColumnSelector("subquery__is_creator", "is_creator", SemossDataType.BOOLEAN));
+		qs.addSelector(new QueryTypedColumnSelector("subquery__prompt_library_tag", "prompt_library_tag", SemossDataType.STRING));
 		qs.addSelector(new QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
 
 		if (filters != null && !filters.isEmpty()) {

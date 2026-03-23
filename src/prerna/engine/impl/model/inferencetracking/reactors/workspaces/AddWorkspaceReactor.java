@@ -61,10 +61,12 @@ public class AddWorkspaceReactor extends AbstractReactor {
 	public static final String NAME = "name";
 	public static final String DESCRIPTION = "description";
 	public static final String SYSTEM_PROMPT = "systemPrompt";
+	public static final String PROMPT_LIBRARY_TAG = "promptLibraryTag";
+
 
 	public AddWorkspaceReactor() {
-		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPT_LIBRARY_TAG };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -85,6 +87,8 @@ public class AddWorkspaceReactor extends AbstractReactor {
 
 		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
 		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
+		String workspacePromptLibraryTag = Utility.decodeURIComponent(this.keyValue.get(PROMPT_LIBRARY_TAG));
+
 
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		Set<String> engines = new HashSet<>();
@@ -135,7 +139,7 @@ public class AddWorkspaceReactor extends AbstractReactor {
 					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
 			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
-					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
+					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources, workspacePromptLibraryTag);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			if (workspaceProject != null) {

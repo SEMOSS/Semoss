@@ -61,11 +61,12 @@ public class EditWorkspaceReactor extends AbstractReactor {
 	public static final String DESCRIPTION = "description";
 	public static final String SYSTEM_PROMPT = "systemPrompt";
 	public static final String IS_ACTIVE = "isActive";
+	public static final String PROMPT_LIBRARY_TAG = "promptLibraryTag";
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPT_LIBRARY_TAG };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -79,7 +80,8 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
 		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
-
+		String workspacePromptLibraryTag = this.keyValue.get(PROMPT_LIBRARY_TAG);
+		
 		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
 		if (current == null) {
 			throw new IllegalArgumentException("Workspace not found");
@@ -160,7 +162,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
-					workspaceSystemPrompt, isActive, workspaceResources);
+					workspaceSystemPrompt, isActive, workspaceResources, workspacePromptLibraryTag);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return getError("Error during workspace update: " + e.getMessage());
