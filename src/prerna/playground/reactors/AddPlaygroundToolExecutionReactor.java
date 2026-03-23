@@ -123,11 +123,10 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
-
 		Map<String, Object> pixelReturn = new HashMap<>();
 		try {
+			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
 			if (response == null) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
