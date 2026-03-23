@@ -1264,6 +1264,17 @@
 			</exclusions>
 		</dependency>
 		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.22.0</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
 			<artifactId>jsqlparser</artifactId>
 			<version>3.1</version>
@@ -3172,13 +3183,13 @@
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-commons</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-util</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
 		<dependency>

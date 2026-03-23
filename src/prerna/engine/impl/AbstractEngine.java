@@ -65,6 +65,7 @@ public abstract class AbstractEngine implements IEngine {
 
 	protected String engineId = null;
 	protected String engineName = null;
+	protected String displayName = null;
 
 	protected String engineBaseFolder = null;
 	protected String engineAppRootFolder = null;
@@ -117,12 +118,18 @@ public abstract class AbstractEngine implements IEngine {
 			if (smssProp.containsKey(Constants.ENGINE_ALIAS)) {
 				this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			}
+			String smssDisplayName = smssProp.getProperty(Constants.ENGINE_DISPLAY_NAME);
+			this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+					: this.engineName;
 			return;
 		}
 
 		// not basic, so normal flow
 		this.engineId = smssProp.getProperty(Constants.ENGINE);
 		this.engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
+		String smssDisplayName = smssProp.getProperty(Constants.ENGINE_DISPLAY_NAME);
+		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+				: this.engineName;
 
 		String engineIdAndName = SmssUtilities.getUniqueName(engineName, engineId);
 
@@ -245,6 +252,16 @@ public abstract class AbstractEngine implements IEngine {
 	@Override
 	public String getEngineName() {
 		return this.engineName;
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	@Override
+	public String getDisplayName() {
+		return (this.displayName != null && !this.displayName.trim().isEmpty()) ? this.displayName : this.engineName;
 	}
 
 	@Override

@@ -48,6 +48,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -79,7 +80,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		accessToken.setId(id);
 		user.setGlobalAccessToken(accessToken);
 
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
 		// clear the session share table before each test
 		securityDb.removeData("DELETE FROM " + SESSION_SHARE_TABLE_NAME);
 
@@ -254,7 +255,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 	// used to get a wrapper on the table to validate tests
 	// this wrapper needs to be closed after use
 	private IRawSelectWrapper getSessionSharedTableWrapper(String shareToken) throws Exception {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SHARE_VAL));
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SESSION_VAL));
