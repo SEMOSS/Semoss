@@ -485,9 +485,14 @@ public final class SystemEngineRegistry {
 	 * @param context
 	 */
 	private static void checkAccess(Set<String> allowedPackages, String context) {
-		Class<?> caller = WALKER.walk(frames -> frames.skip(2).map(StackWalker.StackFrame::getDeclaringClass)
-				.filter(c -> !c.getName().startsWith("prerna.util.SystemEngineRegistry")).findFirst().orElse(null));
+		final String registryName = prerna.util.SystemEngineRegistry.class.getName();
 
+		Class<?> caller = WALKER
+				.walk(frames -> frames.skip(2).map(StackWalker.StackFrame::getDeclaringClass).filter(c -> {
+					String n = c.getName();
+					return !(n.equals(registryName) || n.startsWith(registryName + "$"));
+				}).findFirst().orElse(null));
+		
 		if (caller == null) {
 			throw new SecurityException("Unable to determine caller for " + context);
 		}
