@@ -111,7 +111,7 @@ public class EditWorkspaceReactor extends AbstractReactor {
 			}
 		}
 		
-		List<Map<String, Object>> currProjectDependencies = SecurityProjectUtils.getProjectDependencies(workspaceId);
+		List<Map<String, Object>> currProjectDependencies = SecurityProjectUtils.getProjectDependencies(workspaceId, false);
 		Set<String> curDepList = currProjectDependencies.stream()
 			    .map(map -> (String) map.get("engine_id"))
 			    .collect(Collectors.toSet());

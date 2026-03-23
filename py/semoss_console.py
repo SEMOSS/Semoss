@@ -16,10 +16,8 @@ class SemossConsole(object):
         if console_line:
             print(console_line, file=sys.__stdout__)
 
-        if self.socket_handler is not None:
-            self.socket_handler.send_output(
-                console_line, self.socket_handler.thread_local.payload, response=False
-            )
+        if self.socket_handler is not None and console_line and console_line.strip():
+            self.socket_handler.send_output(console_line, response=False)
 
     def flush(self):
         pass

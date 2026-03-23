@@ -43,6 +43,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -57,6 +58,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
@@ -71,6 +73,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanViewEngine(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
@@ -152,6 +155,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanEditEngine(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
@@ -233,6 +237,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupIsOwner(User user, String databaseId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", databaseId));
@@ -335,6 +340,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getBestDatabasePermission(User user, String databaseId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// get best permission from user
 		Integer bestUserDatabasePermission = null;
 
@@ -417,6 +423,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
 		}
@@ -467,6 +474,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getGroupDatabasePermission(String groupId, String groupType, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -499,6 +507,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId,
 			String newPermission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -575,6 +584,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeDatabaseGroupPermission(User user, String groupId, String groupType, String engineId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -631,6 +641,8 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	public static void removeExpiredEngineGroupPermission(String groupId, String groupType, String engineId)
 			throws IllegalAccessException {
 
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
 		if (existingGroupPermission == null) {
@@ -664,6 +676,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllUserGroupDatabases(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null,
@@ -690,6 +703,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getGroupsWithAccessToEngine(User user, String engineId, long limit,
 			long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Input engineId must not be null or blank");
 		}
@@ -719,6 +733,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static Long getNumGroupsWithAccessToEngine(User user, String engineId) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Input engineId must not be null or blank");
 		}

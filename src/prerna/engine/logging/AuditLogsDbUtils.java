@@ -51,16 +51,14 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AuditLogsDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AuditLogsDbUtils.class);
-
-	static IRDBMSEngine auditLogsDb;
 	static boolean initialized = false;
 
 	private AuditLogsDbUtils() {
@@ -68,7 +66,7 @@ public class AuditLogsDbUtils {
 	}
 
 	public static void loadAuditLogsDatabase() throws Exception {
-		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 		initEngineAsAuditDatabase(auditLogsDb);
 		initialized = true;
 	}
@@ -81,6 +79,7 @@ public class AuditLogsDbUtils {
 	 */
 	private static void executeInitDatabaseSchema(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
 		String database = engine.getDatabase();
 		String schema = engine.getSchema();
@@ -232,6 +231,7 @@ public class AuditLogsDbUtils {
 	public static List<LogActivityDto> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
 			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset)
 			throws SQLException {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -394,6 +394,7 @@ public class AuditLogsDbUtils {
 	 */
 	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
 			SemossDate endDate, String roomId, String sessionId) {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// COUNT(AUDIT_LOGS__LOG_ID) selector
