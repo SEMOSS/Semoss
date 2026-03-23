@@ -2723,6 +2723,57 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Get token usage aggregated by user for a specific model.
+	 * 
+	 * @param agentId
+	 * @param userIds
+	 * @param startDate
+	 * @param endDate
+	 * @return
+	 */
+	public static List<Map<String, Object>> getModelInferenceUserTokenReport(String agentId, List<String> userIds,
+			String startDate, String endDate) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME", "user"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID", "user_id"));
+
+		QueryFunctionSelector sumTokens = new QueryFunctionSelector();
+		sumTokens.setAlias("tokens");
+		sumTokens.setFunction(QueryFunctionHelper.SUM);
+		sumTokens.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(sumTokens);
+
+		QueryFunctionSelector lastUsed = new QueryFunctionSelector();
+		lastUsed.setAlias("last_utilized_date");
+		lastUsed.setFunction(QueryFunctionHelper.MAX);
+		lastUsed.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(lastUsed);
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", agentId));
+
+		if (userIds != null && !userIds.isEmpty()) {
+			if (userIds.size() == 1) {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userIds.get(0)));
+			} else {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userIds));
+			}
+		}
+
+		if (startDate != null && endDate != null) {
+			addStartDateEndDateFitler(qs, startDate, endDate);
+		}
+
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addOrderBy("tokens", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
 	 * 
 	 * @param agentId
 	 * @param startDate
