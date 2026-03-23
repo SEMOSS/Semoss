@@ -64,7 +64,6 @@ import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
@@ -98,8 +97,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					try {
 						SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 					} catch (NumberFormatException e) {
-						classLogger.warn("Invalid property value for SLEEP_TIME");
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Invalid SLEEP_TIME property value: {}", Utility.getDIHelperProperty("SLEEP_TIME"), e);
 					}
 				}
 
@@ -308,7 +306,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											finalPs.response = true;
 											executeCommand(finalPs);
 										} catch (Exception e) {
-											classLogger.error(Constants.STACKTRACE, e);
+											classLogger.error("Error executing pixel operation in reactor thread for epoc: {}", finalPs.epoc, e);
 											finalPs.response = true;
 											String errorMessage = "An error occurred running the pixel = " + pixelOp;
 											if (e.getMessage() != null) {
@@ -320,7 +318,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											try {
 												output.close();
 											} catch (IOException e) {
-												classLogger.error(Constants.STACKTRACE, e);
+												classLogger.error("Error closing output stream in reactor thread for epoc: {}", finalPs.epoc, e);
 											}
 										}
 									}
@@ -356,7 +354,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						crash();
 						break SOCKET_LISTENER;
 					} catch (Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
+						classLogger.error("Unexpected error in socket listener loop", ex);
 					}
 				}
 			}
@@ -436,7 +434,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						input.payload[classIndex] = insight;
 					}
 				} catch (ClassNotFoundException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Could not find class: {}", input.payloadClassNames[classIndex], e);
 				}
 			}
 		}
@@ -614,11 +612,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
 				}
 			} catch (IOException ex) {
-				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to write payload to output stream for epoc: {}", ps.epoc, ex);
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Unexpected error serializing payload for epoc: {}", ps.epoc, ex);
 		}
 	}
 
@@ -741,7 +738,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error releasing pending payload structs during crash", e);
 			}
 			return "Successfully released the payload structs";
 		};
