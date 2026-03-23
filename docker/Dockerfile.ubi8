@@ -73,14 +73,33 @@ COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 # 	&& curl https://rclone.org/install.sh | bash \
 # 	&& chmod 755 /usr/bin/rclone
 
+# RUN yum update -y \
+#   && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates \
+#   && curl -fsSL "https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip" -o /tmp/rclone.zip \
+#   && unzip -q /tmp/rclone.zip -d /tmp \
+#   && install -m 0755 /tmp/rclone-*/rclone /usr/bin/rclone \
+#   && rm -rf /tmp/rclone* \
+#   && /usr/bin/rclone version \
+#   && /usr/bin/rclone version | head -n 1 | grep -F "rclone v1.73.2"
+
+
 RUN yum update -y \
-  && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates \
-  && curl -fsSL "https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip" -o /tmp/rclone.zip \
-  && unzip -q /tmp/rclone.zip -d /tmp \
-  && install -m 0755 /tmp/rclone-*/rclone /usr/bin/rclone \
-  && rm -rf /tmp/rclone* \
+  && yum install -y git golang make gcc ca-certificates \
+  && yum clean all \
+  && rm -rf /var/cache/yum \
+  && rm -rf /tmp/rclone-build \
+  && mkdir -p /tmp/rclone-build \
+  && cd /tmp/rclone-build \
+  && git clone --depth 1 --branch main "https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip" rclone \
+  && cd rclone \
+  && go get "google.golang.org/grpc@v1.79.3" \
+  && go mod tidy \
+  && go mod vendor \
+  && go build -trimpath -ldflags="-s -w" -o /usr/bin/rclone ./ \
+  && chmod 755 /usr/bin/rclone \
   && /usr/bin/rclone version \
-  && /usr/bin/rclone version | head -n 1 | grep -F "rclone v1.73.2"
+  && go version -m /usr/bin/rclone | grep -F "google.golang.org/grpc" \
+  && rm -rf /tmp/rclone-build
 
 ## TODO - Chrome installation for UBI8 would be different.
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
