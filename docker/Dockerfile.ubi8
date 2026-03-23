@@ -67,10 +67,22 @@ ENV LC_ALL='en_US.UTF-8'
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
-RUN	yum update -y \
-	&& yum install -y git curl unzip lsof vim nano procps-ng \
-	&& curl https://rclone.org/install.sh | bash \
-	&& chmod 755 /usr/bin/rclone
+ARG RCLONE_VERSION=1.73.2
+ARG RCLONE_TARBALL_URI=https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip
+
+# RUN	yum update -y \
+# 	&& yum install -y git curl unzip lsof vim nano procps-ng \
+# 	&& curl https://rclone.org/install.sh | bash \
+# 	&& chmod 755 /usr/bin/rclone
+
+RUN yum update -y \
+  && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates coreutils \
+  && curl -fsSL "${RCLONE_ZIP_URI}" -o /tmp/rclone.zip \
+  && unzip -q /tmp/rclone.zip -d /tmp \
+  && install -m 0755 /tmp/rclone-*/rclone /usr/bin/rclone \
+  && rm -rf /tmp/rclone* \
+  && /usr/bin/rclone version \
+  && /usr/bin/rclone version | head -n 1 | grep -F "rclone v${RCLONE_VERSION}"
 
 ## TODO - Chrome installation for UBI8 would be different.
 # RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - \
