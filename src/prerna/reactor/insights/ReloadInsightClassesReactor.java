@@ -42,17 +42,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
 @Deprecated
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
+	@Deprecated
 	public ReloadInsightClassesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -137,9 +138,8 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 
 		// if we are doing reactors on socket side
 		boolean executeOnSocket = false;
-		if (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean
-					.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
+		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
+			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
 		}
 
 		if (executeOnSocket && this.insight.getUser() != null
@@ -154,6 +154,7 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";

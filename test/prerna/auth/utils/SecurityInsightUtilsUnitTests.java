@@ -47,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -56,7 +57,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}
