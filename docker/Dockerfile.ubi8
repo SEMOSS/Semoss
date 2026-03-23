@@ -76,7 +76,7 @@ ARG RCLONE_TARBALL_URI=https://github.com/rclone/rclone/releases/download/v1.73.
 # 	&& chmod 755 /usr/bin/rclone
 
 RUN yum update -y \
-  && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates coreutils \
+  && yum install -y git curl unzip lsof vim nano procps-ng ca-certificates \
   && curl -fsSL "${RCLONE_ZIP_URI}" -o /tmp/rclone.zip \
   && unzip -q /tmp/rclone.zip -d /tmp \
   && install -m 0755 /tmp/rclone-*/rclone /usr/bin/rclone \
