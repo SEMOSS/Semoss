@@ -67,8 +67,6 @@ ENV LC_ALL='en_US.UTF-8'
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
-ARG RCLONE_VERSION=1.73.2
-ARG RCLONE_TARBALL_URI=https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip
 
 # RUN	yum update -y \
 # 	&& yum install -y git curl unzip lsof vim nano procps-ng \
