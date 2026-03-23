@@ -90,7 +90,7 @@ RUN yum update -y \
   && rm -rf /tmp/rclone-build \
   && mkdir -p /tmp/rclone-build \
   && cd /tmp/rclone-build \
-  && git clone --depth 1 --branch main "https://github.com/rclone/rclone/releases/download/v1.73.2/rclone-v1.73.2-linux-amd64.zip" rclone \
+  && git clone --depth 1 --branch main https://github.com/rclone/rclone.git rclone \
   && cd rclone \
   && go get "google.golang.org/grpc@v1.79.3" \
   && go mod tidy \
