@@ -29,7 +29,7 @@ dependencies = [
     "flask>=3.1.0",
     "gliner>=0.2.22",
     "google-auth>=2.38.0",
-    "google-cloud-aiplatform==1.112.0",
+    "google-cloud-aiplatform==1.133.0",  # CVE-2026-2472, CVE-2026-2473: bumped from 1.112.0
     "google-genai==1.56.0",
     "grpcio-status>=1.78.0",
     "guidance>=0.2.0",
@@ -107,6 +107,7 @@ override-dependencies = [
     "marshmallow==4.1.2",
     "protobuf>=6.33.5",
     "numpy>=2.2.6",
+    "pyasn1>=0.6.3",  # CVE-2026-30922: force min version over transitive 0.6.2
 ]
 
 [[tool.uv.index]]
