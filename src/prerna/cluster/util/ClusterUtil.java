@@ -1041,6 +1041,7 @@ public class ClusterUtil {
 
 	public static void pushRoom(String roomId) {
 		if (ClusterUtil.IS_CLUSTER) {
+			classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
 			try {
 				getCentralStorageClient().pushRoomFolderToCloud(roomId);
 			} catch (Exception e) {
