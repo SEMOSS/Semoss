@@ -40,6 +40,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -52,6 +53,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+import vha.supply.utility.VHAUtility;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
 
@@ -489,5 +492,21 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 
 		return (results != null && !results.isEmpty()) ? results.get(0) : null;
+	}
+
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return list of unlocked of user ids
+	 */
+	public static List<String> getUnlockedUsers(List<String> userIds) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct securityQs = new SelectQueryStruct();
+		securityQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
+		List<Boolean> falseFilter = List.of(null, false);
+		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", falseFilter));
+		return QueryExecutionUtility.flushToListString(securityDb, securityQs);
 	}
 }
