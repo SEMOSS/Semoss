@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,7 +41,6 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -53,8 +53,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
-import vha.supply.utility.VHAUtility;
 
 public class SecurityQueryUtils extends AbstractSecurityUtils {
 
@@ -505,7 +503,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		SelectQueryStruct securityQs = new SelectQueryStruct();
 		securityQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
-		List<Boolean> falseFilter = List.of(null, false);
+		List<Boolean> falseFilter = new Vector<>();
+		falseFilter.add(null);
+		falseFilter.add(false);
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", falseFilter));
 		return QueryExecutionUtility.flushToListString(securityDb, securityQs);
 	}
