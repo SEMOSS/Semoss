@@ -71,6 +71,7 @@ public class SocialPropertiesProcessor {
 
 	// social properties
 	private Properties socialData = null;
+	@Deprecated
 	private Map<String, Boolean> loginsAllowedMap;
 	private List<Map<String, Object>> availableProviders;
 
@@ -158,16 +159,17 @@ public class SocialPropertiesProcessor {
 
 		// define the allProviders set
 		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
-		
+
 		// get all _login props
-		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_login")).collect(Collectors.toSet());
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_login"))
+				.collect(Collectors.toSet());
 		for (String prop : loginProps) {
 			// check if it allowed
 			Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
-			if(!isAllowed) {
+			if (!isAllowed) {
 				continue;
 			}
-			
+
 			// get provider from prop by split on _
 			String provider = prop.split("_login")[0];
 
@@ -179,7 +181,7 @@ public class SocialPropertiesProcessor {
 					name = value;
 				}
 			}
-			
+
 			AuthProvider thisProvider = allProviders.get(provider);
 			Map<String, Object> providerMap = new HashMap<>();
 			providerMap.put("name", name);
@@ -189,7 +191,7 @@ public class SocialPropertiesProcessor {
 			this.availableProviders.add(providerMap);
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param provider
@@ -197,12 +199,14 @@ public class SocialPropertiesProcessor {
 	 */
 	public boolean accessKeyAllowed(AuthProvider provider) {
 		String prefix = provider.toString().toLowerCase();
-		boolean accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed")+"");
-		// LEGACY 
-		if(!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
-			accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed")+"");
+		boolean accessKeysAllowed = Boolean
+				.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed") + "");
+		// LEGACY
+		if (!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
+			accessKeysAllowed = Boolean
+					.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed") + "");
 		}
-		
+
 		return accessKeysAllowed;
 	}
 
@@ -230,7 +234,7 @@ public class SocialPropertiesProcessor {
 		try {
 			config = new PropertiesConfiguration(this.socialPropFile);
 		} catch (ConfigurationException e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			logger.error("Error loading PropertiesConfiguration for social properties file: {}", this.socialPropFile, e1);
 			throw new ConfigurationException(
 					"An unexpected error happened trying to access the properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
@@ -265,7 +269,7 @@ public class SocialPropertiesProcessor {
 			try {
 				currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Error reading social properties file: {}", this.socialPropFile, e);
 				throw new IOException(
 						"An error occurred reading the current social properties file. Detailed message = "
 								+ e.getMessage());
@@ -279,14 +283,14 @@ public class SocialPropertiesProcessor {
 			}
 			reloadProps();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error writing new social properties file: {}", this.socialPropFile, e);
 			// reset the values
 			currentSocialProperties.delete();
 			if (currentContent != null) {
 				try (FileWriter fw = new FileWriter(currentSocialProperties, false)) {
 					fw.write(currentContent);
 				} catch (IOException e2) {
-					logger.error(Constants.STACKTRACE, e2);
+					logger.error("Error reverting social properties file to previous content: {}", this.socialPropFile, e2);
 					throw new IOException(
 							"A fatal error occurred and could not revert the social properties to an operational state. Detailed message = "
 									+ e2.getMessage());
@@ -313,7 +317,7 @@ public class SocialPropertiesProcessor {
 		try {
 			currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error reading social properties file: {}", this.socialPropFile, e);
 			throw new IOException("An error occurred reading the current social properties file. Detailed message = "
 					+ e.getMessage());
 		}
@@ -337,6 +341,13 @@ public class SocialPropertiesProcessor {
 		this.imapEmailStore = null;
 	}
 
+	/**
+	 * Switch to using {@link #getAvailableProviders()}
+	 * 
+	 * @param provider
+	 * @return
+	 */
+	@Deprecated
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.loginsAllowedMap;
 	}
@@ -564,6 +575,7 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps, new jakarta.mail.Authenticator() {
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -573,7 +585,7 @@ public class SocialPropertiesProcessor {
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating SMTP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -603,6 +615,7 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.pop3EmailProps, new jakarta.mail.Authenticator() {
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -612,7 +625,7 @@ public class SocialPropertiesProcessor {
 				emailSession = Session.getInstance(this.pop3EmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating POP3 email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -624,7 +637,7 @@ public class SocialPropertiesProcessor {
 			this.pop3EmailStore = emailSession.getStore("pop3s");
 			this.pop3EmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error connecting to POP3 email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -654,6 +667,7 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.imapEmailProps, new jakarta.mail.Authenticator() {
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -663,7 +677,7 @@ public class SocialPropertiesProcessor {
 				emailSession = Session.getInstance(this.imapEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating IMAP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -675,7 +689,7 @@ public class SocialPropertiesProcessor {
 			this.imapEmailStore = emailSession.getStore("imaps");
 			this.imapEmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error connecting to IMAP email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
