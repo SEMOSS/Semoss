@@ -69,7 +69,6 @@ public class ListWorkspacesReactor extends AbstractReactor {
 		TYPES_FOR_SUBQUERY_COLUMNS.put("date_updated", SemossDataType.STRING);
 		TYPES_FOR_SUBQUERY_COLUMNS.put("is_creator", SemossDataType.BOOLEAN);
 		TYPES_FOR_SUBQUERY_COLUMNS.put("is_active", SemossDataType.BOOLEAN);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("prompt_library_tag", SemossDataType.STRING);
 	}
 
 	public ListWorkspacesReactor() {

@@ -43,17 +43,26 @@ import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = GetWorkspaceReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
+
+	/**
+	 * Plan is the store the prompts in the workspace resource table
+	 * but since that uses catalog enums, having a constant here for it
+	 * since it makes no sense to add promopt as a catalog type idk 
+	 */
+	private static final String PROMPT_RESOURCE_TYPE = "PROMPT";
 
 	// To get workspaces without resources, call MyProjects w/ type as workspace
 	public GetWorkspaceReactor() {
@@ -107,23 +116,40 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
 
 		List<Map<String, String>> mcps = new ArrayList<>();
+		List<Map<String, String>> prompts = new ArrayList<>();
 		for (Map<String, Object> r : resources) {
-			Map<String, String> mcpMap = new HashMap<>();
 			String resourceId = (String) r.get("resource_id");
-			mcpMap.put("id", resourceId);
 			String rType = (String) r.get("resource_type");
-			CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
-			if (resourceType == CATALOG_TYPE.PROJECT) {
-				String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
-				mcpMap.put("name", rName);
+
+			// Handle prompt resources separately becase prompt is not catalog type
+			if (PROMPT_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
+				Map<String, String> promptMap = new HashMap<>();
+				promptMap.put("id", resourceId);
+				promptMap.put("type", rType);
+				if (SystemEngineRegistry.isPromptDbLoaded()) {
+					Map<String, Object> promptDetail = PromptUtils.getPrompt(resourceId, user);
+					String promptTitle = promptDetail != null && !promptDetail.isEmpty()
+							? (String) promptDetail.get("title") : null;
+					promptMap.put("name", promptTitle);
+				}
+				prompts.add(promptMap);
 			} else {
-				String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
-				mcpMap.put("name", rName);
+				CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
+				Map<String, String> mcpMap = new HashMap<>();
+				mcpMap.put("id", resourceId);
+				if (resourceType == CATALOG_TYPE.PROJECT) {
+					String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
+					mcpMap.put("name", rName);
+				} else {
+					String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
+					mcpMap.put("name", rName);
+				}
+				mcpMap.put("type", rType);
+				mcps.add(mcpMap);
 			}
-			mcpMap.put("type", rType);
-			mcps.add(mcpMap);
 		}
 		current.put("mcp", mcps);
+		current.put("prompts", prompts);
 		current.put("permission", permission);
 		current.put("number_collaborators", userCount);
 

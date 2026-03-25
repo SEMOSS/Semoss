@@ -45,12 +45,14 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class EditWorkspaceReactor extends AbstractReactor {
@@ -61,11 +63,18 @@ public class EditWorkspaceReactor extends AbstractReactor {
 	public static final String DESCRIPTION = "description";
 	public static final String SYSTEM_PROMPT = "systemPrompt";
 	public static final String IS_ACTIVE = "isActive";
-	public static final String PROMPT_LIBRARY_TAG = "promptLibraryTag";
+	public static final String PROMPTS = "prompts";
+
+	/**
+	 * Plan is the store the prompts in the workspace resource table
+	 * but since that uses catalog enums, having a constant here for it
+	 * since it makes no sense to add promopt as a catalog type idk 
+	 */
+	private static final String PROMPT_RESOURCE_TYPE = "PROMPT";
 
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
-				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPT_LIBRARY_TAG };
+				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS };
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
@@ -80,7 +89,6 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
 		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
-		String workspacePromptLibraryTag = this.keyValue.get(PROMPT_LIBRARY_TAG);
 		
 		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
 		if (current == null) {
@@ -160,9 +168,28 @@ public class EditWorkspaceReactor extends AbstractReactor {
 			workspaceResources.add(makeProjectResourceEntryMap(workspaceId, project));
 		}
 
+		/**
+		 * Validate and add prompt resources-- we should make a util file some of these methods
+		 * Prompts are not engines there use the constant 
+		 * linked to workspaces via WORKSPACE_RESOURCE with RESOURCE_TYPE = "PROMPT"
+		 */
+		List<String> promptIds = getPromptIdList();
+		if (!promptIds.isEmpty()) {
+			if (!SystemEngineRegistry.isPromptDbLoaded()) {
+				return getError("Prompt database is not enabled");
+			}
+			for (String promptId : promptIds) {
+				Map<String, Object> prompt = PromptUtils.getPrompt(promptId, user);
+				if (prompt == null || prompt.isEmpty()) {
+					return getError("Prompt not found or user lacks access: " + promptId);
+				}
+				workspaceResources.add(makePromptResourceEntryMap(workspaceId, promptId));
+			}
+		}
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
-					workspaceSystemPrompt, isActive, workspaceResources, workspacePromptLibraryTag);
+					workspaceSystemPrompt, isActive, workspaceResources);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return getError("Error during workspace update: " + e.getMessage());
@@ -204,6 +231,22 @@ public class EditWorkspaceReactor extends AbstractReactor {
 		return resource;
 	}
 
+	/**
+	 * 
+	 * @param workspaceId
+	 * @param promptId
+	 * @return
+	 */
+	private Map<String, String> makePromptResourceEntryMap(String workspaceId, String promptId) {
+		Map<String, String> resource = new HashMap<>();
+		resource.put("workspace_resource_id", UUID.randomUUID().toString());
+		resource.put("workspace_id", workspaceId);
+		resource.put("resource_id", promptId);
+		resource.put("resource_type", PROMPT_RESOURCE_TYPE);
+		resource.put("resource_subtype", null);
+		return resource;
+	}
+
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getMcpMapList() {
 		List<Map<String, Object>> mcpMapList = new ArrayList<>();
@@ -215,6 +258,18 @@ public class EditWorkspaceReactor extends AbstractReactor {
 			}
 		}
 		return mcpMapList;
+	}
+
+	private List<String> getPromptIdList() {
+		List<String> promptIds = new ArrayList<>();
+		GenRowStruct grs = this.store.getGenRowStruct(PROMPTS);
+		if (grs != null && !grs.isEmpty()) {
+			int size = grs.size();
+			for (int i = 0; i < size; i++) {
+				promptIds.add(grs.get(i).toString());
+			}
+		}
+		return promptIds;
 	}
 
 }
