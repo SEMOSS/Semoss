@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -492,7 +491,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return (results != null && !results.isEmpty()) ? results.get(0) : null;
 	}
 
-
 	/**
 	 * 
 	 * @param userIds
@@ -503,9 +501,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		SelectQueryStruct securityQs = new SelectQueryStruct();
 		securityQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
-		List<Boolean> falseFilter = new Vector<>();
-		falseFilter.add(null);
-		falseFilter.add(false);
+		List<Boolean> falseFilter = List.of(null, false);
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", falseFilter));
 		return QueryExecutionUtility.flushToListString(securityDb, securityQs);
 	}
