@@ -501,7 +501,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		SelectQueryStruct securityQs = new SelectQueryStruct();
 		securityQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
-		List<Boolean> falseFilter = List.of(null, false);
+		List<Boolean> falseFilter = new ArrayList<>();
+		falseFilter.add(false);
+		falseFilter.add(null);
 		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", falseFilter));
 		return QueryExecutionUtility.flushToListString(securityDb, securityQs);
 	}
