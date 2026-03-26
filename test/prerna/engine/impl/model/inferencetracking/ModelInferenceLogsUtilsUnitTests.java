@@ -852,7 +852,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		when(engine.getConnection()).thenReturn(conn);
 		when(conn.prepareStatement(
-				"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED, PROMPT_LIBRARY_TAG) VALUES (?,?,?,?,?,?,?,?,?)"))
+				"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)"))
 				.thenReturn(ps);
 
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
@@ -865,17 +865,17 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		Exception e = assertThrows(IllegalArgumentException.class,
 				() -> ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName",
-						"workspaceDescription", "systemPrompt", resources, "promptLibraryTag"));
+						"workspaceDescription", "systemPrompt", resources));
 		assertEquals("Error creating workspace: null", e.getMessage());
 
 		ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName",
-				"workspaceDescription", "systemPrompt", null, "");
+				"workspaceDescription", "systemPrompt", null);
 		ModelInferenceLogsUtils.createNewWorkspaceEntry("workspaceId", "ownerId", "workspaceName",
-				"workspaceDescription", "systemPrompt", resources, "promptLibraryTag");
+				"workspaceDescription", "systemPrompt", resources);
 
 		verify(engine, times(3)).getConnection();
 		verify(conn, times(4)).prepareStatement(anyString());
-		verify(ps, times(14)).setString(anyInt(), anyString());
+		verify(ps, times(14 - 3)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(3)).execute();
@@ -897,7 +897,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		when(engine.getConnection()).thenReturn(conn);
 		when(conn.prepareStatement(
-				"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ?, PROMPT_LIBRARY_TAG = ? WHERE WORKSPACE_ID = ?"))
+				"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?"))
 				.thenReturn(ps);
 
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
@@ -911,13 +911,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		Exception e = assertThrows(IllegalArgumentException.class,
 				() -> ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName",
-						"workspaceDescription", "systemPrompt", true, resources, "promptLibraryTag"));
+						"workspaceDescription", "systemPrompt", true, resources));
 		assertEquals("Error updating workspace: null", e.getMessage());
 
 		ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription",
-				"systemPrompt", true, null, "promptLibraryTag");
+				"systemPrompt", true, null);
 		ModelInferenceLogsUtils.updateWorkspaceEntry("workspaceId", "workspaceName", "workspaceDescription",
-				"systemPrompt", true, resources, "promptLibraryTag");
+				"systemPrompt", true, resources);
 
 		verify(engine, times(3)).getConnection();
 		verify(engine, times(6)).getQueryUtil();
@@ -928,7 +928,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(conn, times(5)).getAutoCommit();
 		verify(conn, times(5)).commit();
 
-		verify(ps, times(13)).setString(anyInt(), anyString());
+		verify(ps, times(13 - 3)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(5)).execute();
