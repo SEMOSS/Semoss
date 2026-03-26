@@ -633,7 +633,9 @@ public class AddToMasterDB {
 			}
 		}
 
-		if (Utility.isIntegerType(dataType)) {
+		if (Utility.isBoolean(dataType)) {
+			dataType = "BOOLEAN";
+		} else if (Utility.isIntegerType(dataType)) {
 			dataType = "INT";
 		} else if (Utility.isDoubleType(dataType)) {
 			dataType = "DOUBLE";
