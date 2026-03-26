@@ -60,7 +60,6 @@ import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -115,7 +114,7 @@ public class RdbmsCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
