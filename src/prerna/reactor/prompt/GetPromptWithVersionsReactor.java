@@ -31,33 +31,25 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.prompt.PromptUtils;
-import prerna.query.querystruct.SelectQueryStruct;
-import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Lists prompts visible to the current user (global prompts + user's own
- * prompts),
- * with optional filtering and pagination.
+ * Retrieves a single prompt by ID with access control.
+ * Only returns the prompt if it is global or created by the requesting user.
  *
  * Pixel usage:
- * ListPrompt(limit="10", offset="0", metaFilters=[{"department":
- * "engineering"}]);
+ * GetPromptWithVersions(promptId="<uuid>");
  *
  * Parameters:
- * limit (String, optional) - Maximum number of results
- * offset (String, optional) - Pagination offset
- * filters (GenRowFilters, optional) - Additional column-level filters
- * metaFilters (Map of String to Object, optional) - Filter by metadata
- * key-value pairs
+ * promptId (String, required) - UUID of the prompt to retrieve
  *
- * Returns: MAP - a list of prompt maps, each containing:
+ * Returns: MAP - a map containing prompt details, tags, and metadata.
+ * Returns an empty map if the prompt is not found or the user lacks access.
  *
- * Per-prompt fields:
+ * Return fields:
  * id (String) - UUID of the prompt
  * title (String) - Prompt name
  * context (String) - The prompt text/template
@@ -69,12 +61,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * tags (List of String) - Tags for categorization
  * metaKeys (Map of String to List of String) - Metadata key-value pairs
  */
-public class ListPromptReactor extends AbstractReactor {
+public class GetPromptWithVersionsReactor extends AbstractReactor {
 
-	public ListPromptReactor() {
+	public GetPromptWithVersionsReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				ReactorKeysEnum.PROMPT_ID.getKey()
 		};
 	}
 
@@ -86,40 +77,14 @@ public class ListPromptReactor extends AbstractReactor {
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
-		GenRowFilters filters = getFilters();
-		String limit = this.keyValue.get(this.keysToGet[0]);
-		String offset = this.keyValue.get(this.keysToGet[1]);
-		Map<String, Object> promptMetadataFilter = getMetaMap();
-		List<Map<String, Object>> response = PromptUtils.getPrompts(this.insight.getUser(), filters,
-				promptMetadataFilter, limit, offset);
+		String promptID = this.keyValue.get(ReactorKeysEnum.PROMPT_ID.getKey());
+		if (promptID == null || promptID.isEmpty()) {
+			throw new IllegalArgumentException("PROMPT ID must be passed in to get details for a specific prompt");
+		}
 
-		NounMetadata nm = new NounMetadata(response, PixelDataType.MAP);
+		List<Map<String, Object>> promptDetails = PromptUtils.getPromptWithVersioning(promptID, this.insight.getUser());
+		NounMetadata nm = new NounMetadata(promptDetails, PixelDataType.VECTOR);
 		return nm;
 	}
 
-	protected GenRowFilters getFilters() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			GenRowFilters filters = qs.getCombinedFilters();
-			return filters;
-		}
-		return null;
-	}
-
-	private Map<String, Object> getMetaMap() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
 }

@@ -55,6 +55,7 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -963,6 +964,50 @@ public class PromptUtils extends AbstractPromptUtils {
 			getPromptTags(promptID, promptDetail);
 		}
 		return promptDetail;
+	}
+	
+	/**
+	 * Retrieves a specific prompt by ID with access control.
+	 * Returns the prompt only if it is global or created by the requesting user.
+	 * The returned map includes:
+	 * - Basic prompt information (ID, TITLE, CONTEXT, VERSION, INTENT, CREATED_BY,
+	 * DATE_CREATED, GLOBAL)
+	 * - tags: List of String values where METAKEY equals "tag"
+	 * - metaKeys: Map<String, List<String>> containing all other metadata organized
+	 * by metakey
+	 * 
+	 * @param promptID The ID of the prompt to retrieve
+	 * @param user     The user requesting the prompt, used for access control
+	 * @return Map containing prompt details, tags, and metadata (empty map if not
+	 *         found or no access)
+	 */
+	public static List<Map<String, Object>> getPromptWithVersioning(String promptID, User user) {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String pc : PROMPT_COLUMNS) {
+			// Add selector with lowercase alias for consistent API response keys
+			QueryColumnSelector selector = new QueryColumnSelector(PROMPT + "__" + pc);
+			selector.setAlias(pc.toLowerCase());
+			qs.addSelector(selector);
+		}
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROMPT__ID", "==", promptID));
+		qs.addOrderBy(new QueryColumnOrderBySelector("PROMPT__VERSION", "DESC"));
+
+		// Apply appropriate visibility filters based on user role
+		applyPromptVisibilityFilters(user, qs);
+
+		List<Map<String, Object>> promptDetails = QueryExecutionUtility.flushRsToMap(promptDb, qs);
+
+		for (Map<String, Object> promptDetail : promptDetails) {
+			// Append Tags
+			if (!promptDetails.isEmpty()) {
+				getPromptTags(promptID, promptDetail);
+			}
+		}
+		
+		return promptDetails;
 	}
 
 	/**
