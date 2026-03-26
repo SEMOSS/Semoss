@@ -2910,4 +2910,85 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
+	/**
+	 * Get model inference token usage report for specified users on a specific
+	 * model engine
+	 * 
+	 * @param modelId   The model engine ID
+	 * @param userIds   List of user IDs to report on
+	 * @param startDate Optional start date (format: YYYY-MM-DD HH:MM:SS.SSS)
+	 * @param endDate   Optional end date (format: YYYY-MM-DD HH:MM:SS.SSS)
+	 * @return List of maps with token usage per user
+	 */
+	public static List<Map<String, Object>> getModelInferenceUserTokenReport(String modelId, List<String> userIds,
+			String startDate, String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Select user info
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID", "user_id"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME", "user_name"));
+
+		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// INPUT_TOKENS
+		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"INPUT_IF");
+		QueryFunctionSelector inputTokenSelector = new QueryFunctionSelector();
+		inputTokenSelector.setAlias("input_tokens");
+		inputTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		inputTokenSelector.addInnerSelector(inputIf);
+		qs.addSelector(inputTokenSelector);
+
+		// SUM(CASE WHEN MESSAGE_TYPE='RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// RESPONSE_TOKENS
+		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"RESPONSE_IF");
+		QueryFunctionSelector responseTokenSelector = new QueryFunctionSelector();
+		responseTokenSelector.setAlias("response_tokens");
+		responseTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		responseTokenSelector.addInnerSelector(responseIf);
+		qs.addSelector(responseTokenSelector);
+
+		// SUM(MESSAGE_TOKENS) AS TOTAL_TOKENS
+		QueryFunctionSelector totalTokenSelector = new QueryFunctionSelector();
+		totalTokenSelector.setAlias("total_tokens");
+		totalTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		totalTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(totalTokenSelector);
+
+		// COUNT(DISTINCT MESSAGE_ID) for total messages
+		QueryFunctionSelector msgCountSelector = new QueryFunctionSelector();
+		msgCountSelector.setAlias("total_messages");
+		msgCountSelector.setFunction(QueryFunctionHelper.COUNT);
+		msgCountSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(msgCountSelector);
+
+		// Filter by model engine ID
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", modelId));
+
+		// Filter by user IDs
+		if (userIds != null && !userIds.isEmpty()) {
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userIds));
+		}
+
+		// Filter by date range if provided
+		if (startDate != null && endDate != null) {
+			addStartDateEndDateFitler(qs, startDate, endDate);
+		}
+
+		// Group by user
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+
+		// Order by total tokens descending
+		qs.addOrderBy("total_tokens", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
 }
