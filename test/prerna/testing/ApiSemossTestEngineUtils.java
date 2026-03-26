@@ -64,6 +64,7 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AuthProvider;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -176,7 +177,7 @@ public class ApiSemossTestEngineUtils {
 
 			String name = userUserName.substring(0, 1);
 			PreparedStatement ps = conn.prepareStatement("INSERT INTO SMSS_USER "
-					+ "(NAME, EMAIL, \"TYPE\", ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
+					+ "(NAME, EMAIL, TYPE, ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
 					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, true, true, null, null, null, false, '', '', '')");
 			int i = 1;
 			ps.setString(i++, name);
@@ -221,7 +222,7 @@ public class ApiSemossTestEngineUtils {
 		connectAndClearThemeDb(themeConnDetails);
 
 		try {
-			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
+			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, AuthProvider.NATIVE.toString(), true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not add Default Native Admin user");
