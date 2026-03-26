@@ -74,7 +74,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	Path tempDir;
 
 	@Test
-	void parse_unencryptedWorkbook_getSheetsAndGetSheet_work() throws Exception {
+	void test_parse_unencryptedWorkbook_getSheetsAndGetSheet_work() throws Exception {
 		Path xlsx = writeSimpleWorkbook(tempDir.resolve("simple.xlsx"), List.of("Sheet1", "Sheet2"));
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
@@ -87,7 +87,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 
 	@Test
-	void parse_missingFile_throwsRuntimeExceptionWithCause() {
+	void test_parse_missingFile_throwsRuntimeExceptionWithCause() {
 		Path missing = tempDir.resolve("missing.xlsx");
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
@@ -100,7 +100,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 
 	@Test
-	void parse_encryptedWorkbook_wrongPassword_throwsHelpfulRuntimeException() throws Exception {
+	void test_parse_encryptedWorkbook_wrongPassword_throwsHelpfulRuntimeException() throws Exception {
 		Path enc = writeEncryptedWorkbook(tempDir.resolve("encrypted.xlsx"), "correct-password");
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
@@ -112,7 +112,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 
 	@Test
-	void parse_encryptedWorkbook_correctPassword_succeeds() throws Exception {
+	void test_parse_encryptedWorkbook_correctPassword_succeeds() throws Exception {
 		Path enc = writeEncryptedWorkbook(tempDir.resolve("encrypted-ok.xlsx"), "pw123");
 
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
@@ -123,45 +123,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 
 	@Test
-	void buildSheetIterator_smokeTest_returnsIterator() throws Exception {
-		Path xlsx = writeSimpleWorkbook(tempDir.resolve("iter.xlsx"), List.of("Sheet1"));
-
-		ExcelQueryStruct qs = new ExcelQueryStruct();
-		qs.setFilePath(xlsx.toString());
-		qs.setPassword(null);
-		qs.setSheetName("Sheet1");
-		// If your iterator requires range/types, set them here (left as-is because it
-		// depends on your implementation)
-
-		ExcelSheetFileIterator it = ExcelWorkbookFileHelper.buildSheetIterator(qs);
-		assertNotNull(it);
-	}
-
-	@Test
-	void clear_whenSourceFilePresent_closesIt() throws Exception {
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		FileInputStream fis = mock(FileInputStream.class); // requires mockito-inline to mock final classes
-		setField(helper, "sourceFile", fis);
-		setField(helper, "fileLocation", "dummy.xlsx");
-
-		helper.clear();
-
-		verify(fis, times(1)).close();
-	}
-
-	@Test
-	void clear_whenCloseThrowsIOException_doesNotThrow() throws Exception {
-		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-		FileInputStream fis = mock(FileInputStream.class);
-		doThrow(new IOException("boom")).when(fis).close();
-		setField(helper, "sourceFile", fis);
-		setField(helper, "fileLocation", "dummy.xlsx");
-
-		assertDoesNotThrow(helper::clear);
-	}
-
-	@Test
-	void parse_deprecatedOverload_delegatesAndWorks() throws Exception {
+	void test_parse_deprecatedOverload_delegatesAndWorks() throws Exception {
 	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("simple-deprecated.xlsx"), List.of("Sheet1"));
 
 	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
@@ -172,7 +134,7 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 	
 	@Test
-	void parse_existingButInvalidXlsx_throwsUnableToReadExcelFile() throws Exception {
+	void test_parse_existingButInvalidXlsx_throwsUnableToReadExcelFile() throws Exception {
 	    Path bad = tempDir.resolve("not-really.xlsx");
 	    Files.write(bad, "definitely not an xlsx".getBytes());
 
@@ -185,7 +147,7 @@ class ExcelWorkbookFileHelperUnitTests {
 
 	
 	@Test
-	void parse_whenStreamingReaderThrowsEncryptedDocumentException_wrapsMessage() throws Exception {
+	void test_parse_whenStreamingReaderThrowsEncryptedDocumentException_wrapsMessage() throws Exception {
 	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("any.xlsx"), List.of("Sheet1"));
 
 	    Builder builder = mock(Builder.class);
@@ -211,20 +173,22 @@ class ExcelWorkbookFileHelperUnitTests {
 	}
 	
 	@Test
-	void clear_whenCloseThrowsRuntimeException_doesNotThrow() throws Exception {
-	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
-	    FileInputStream fis = mock(FileInputStream.class);
-	    doThrow(new RuntimeException("boom")).when(fis).close();
+	void test_buildSheetIterator_smokeTest_returnsIterator() throws Exception {
+		Path xlsx = writeSimpleWorkbook(tempDir.resolve("iter.xlsx"), List.of("Sheet1"));
 
-	    setField(helper, "sourceFile", fis);
-	    setField(helper, "fileLocation", "dummy.xlsx");
+		ExcelQueryStruct qs = new ExcelQueryStruct();
+		qs.setFilePath(xlsx.toString());
+		qs.setPassword(null);
+		qs.setSheetName("Sheet1");
+		// If your iterator requires range/types, set them here (left as-is because it
+		// depends on your implementation)
 
-	    assertDoesNotThrow(helper::clear);
-	    verify(fis, times(1)).close();
+		ExcelSheetFileIterator it = ExcelWorkbookFileHelper.buildSheetIterator(qs);
+		assertNotNull(it);
 	}
 
 	@Test
-	void getSheetIterator_and_buildSheetIterator_coverThoseLines() throws Exception {
+	void test_getSheetIterator_and_buildSheetIterator_coverThoseLines() throws Exception {
 	    Path xlsx = writeSimpleWorkbook(tempDir.resolve("iter2.xlsx"), List.of("Sheet1"));
 
 	    ExcelQueryStruct qs = new ExcelQueryStruct();
@@ -244,6 +208,42 @@ class ExcelWorkbookFileHelperUnitTests {
 
 	    // static builder path (covers buildSheetIterator)
 	    assertNotNull(ExcelWorkbookFileHelper.buildSheetIterator(qs));
+	}
+	
+	@Test
+	void test_clear_whenSourceFilePresent_closesIt() throws Exception {
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		FileInputStream fis = mock(FileInputStream.class); // requires mockito-inline to mock final classes
+		setField(helper, "sourceFile", fis);
+		setField(helper, "fileLocation", "dummy.xlsx");
+
+		helper.clear();
+
+		verify(fis, times(1)).close();
+	}
+
+	@Test
+	void test_clear_whenCloseThrowsIOException_doesNotThrow() throws Exception {
+		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+		FileInputStream fis = mock(FileInputStream.class);
+		doThrow(new IOException("boom")).when(fis).close();
+		setField(helper, "sourceFile", fis);
+		setField(helper, "fileLocation", "dummy.xlsx");
+
+		assertDoesNotThrow(helper::clear);
+	}
+	
+	@Test
+	void test_clear_whenCloseThrowsRuntimeException_doesNotThrow() throws Exception {
+	    ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
+	    FileInputStream fis = mock(FileInputStream.class);
+	    doThrow(new RuntimeException("boom")).when(fis).close();
+
+	    setField(helper, "sourceFile", fis);
+	    setField(helper, "fileLocation", "dummy.xlsx");
+
+	    assertDoesNotThrow(helper::clear);
+	    verify(fis, times(1)).close();
 	}
 	
 	// ---------- Test helpers ----------
