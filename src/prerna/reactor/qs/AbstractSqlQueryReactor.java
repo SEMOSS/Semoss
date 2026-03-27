@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.qs;
 
 import org.apache.logging.log4j.LogManager;
@@ -22,7 +49,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryReactor extends AbstractReactor {
@@ -76,7 +102,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			// create query structure and delegate
 			return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing SQL query for database {}", databaseId, e);
 			throw new SemossPixelException("Error executing SQL query: " + e.getMessage());
 		}
 	}
@@ -174,7 +200,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			this.insight.addQueriedDatabasesese(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing SELECT SQL query for database {}", databaseId, e);
 			throw new SemossPixelException("Error executing SELECT query: " + e.getMessage());
 		}
 	}
@@ -203,7 +229,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 			return execReactor.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing SQL modification query for database {}", databaseId, e);
 			throw new SemossPixelException("Error executing modification query: " + e.getMessage());
 		}
 	}
