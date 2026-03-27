@@ -122,9 +122,38 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 
 			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
+			List<String> failedFiles = new ArrayList<>();
+			List<String> partialFiles = new ArrayList<>();
+			for (FileEmbeddingStatus status : fileStatusList) {
+				if (status == null) {
+					continue;
+				}
+				boolean hasError = status.getError() != null && !status.getError().isEmpty();
+				String statusValue = status.getStatus();
+				boolean failed = "FAILED".equalsIgnoreCase(statusValue);
+				boolean partial = "PARTIAL".equalsIgnoreCase(statusValue);
+				if (failed || hasError) {
+					failedFiles.add(status.getFileName());
+				} else if (partial) {
+					partialFiles.add(status.getFileName());
+				}
+			}
+			if (!failedFiles.isEmpty()) {
+				String message = "Embedding failed for: " + String.join(", ", failedFiles);
+				NounMetadata error = NounMetadata.getErrorNounMessage(message);
+				error.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION));
+				return error;
+			} else if (!partialFiles.isEmpty()) {
+				String message = "Embedding partially failed for: " + String.join(", ", partialFiles);
+				NounMetadata warning = NounMetadata.getWarningNounMessage(message);
+				warning.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION));
+				return warning;
+			}
 		} catch (Exception e) {
 			classLogger.error("Error creating embeddings from document files for engine {}", engineId, e);
-			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
+			throw new SemossPixelException("The following exception occured: " + e.getMessage());
 		} finally {
 			File zipFileExtractionDir = new File(rootFolder + "/" + PATH_TO_UNZIP_FILES);
 			if (zipFileExtractionDir.exists()) {
@@ -136,9 +165,11 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.OPERATION);
-		return noun;
+		// On success, we return the fileStatusList as additional output
+		NounMetadata success = NounMetadata.getSuccessNounMessage("Successfully embedded all files");
+		success.addAdditionalReturn(
+				new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION));
+		return success;
 	}
 
 	/**
