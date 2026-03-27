@@ -35,7 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 
 public abstract class AbstractFileProcessor implements IFileProcessor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AbstractFileProcessor.class);
 
 	protected String filePath = null;
@@ -55,7 +55,7 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 		File file = new File(filePath);
 		return file.getName();
 	}
-	
+
 	/**
 	 * 
 	 * @param file
@@ -65,11 +65,11 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 	public static IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
 		// pick up the files and convert them to CSV
 		classLogger.info("Processing file : " + file.getName());
-		
+
 		FileHandlerChain handlerChain = FileHandlerChain.getCoreHandlerChain();
-		
+
 		return handlerChain.getFileProcessor(file, writer);
-		
+
 	}
-	
+
 }

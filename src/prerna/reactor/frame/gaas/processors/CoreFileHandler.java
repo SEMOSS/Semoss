@@ -3,11 +3,17 @@ package prerna.reactor.frame.gaas.processors;
 import java.io.File;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.apache.commons.io.FilenameUtils;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 
 public class CoreFileHandler extends AbstractFileHandler {
+
+	private static final Logger classLogger = LogManager.getLogger();
+
 	public static final Set<String> SUPPORTED_TYPES = Set.of("csv", "doc", "docx", "json", "pdf", "ppt", "pptx", "txt",
 			"xml", "rtf");
 
@@ -22,39 +28,44 @@ public class CoreFileHandler extends AbstractFileHandler {
 		String fileType = FilenameUtils.getExtension(file.getAbsolutePath());
 		String filePath = file.getAbsolutePath();
 		String mimeType = this.getMimeType(file);
-		IFileProcessor subprocessor;
-		switch (fileType) {
-		case "doc":
-		case "docx":
-			if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-							|| mimeType.equalsIgnoreCase("application/msword")
-							|| mimeType.equalsIgnoreCase("application/x-tika-msoffice")))) {
-				subprocessor = new DocProcessor(filePath, writer);
-				break;
-			}
-		case "pdf":
-			if (mimeType.equalsIgnoreCase("application/pdf")) {
-				subprocessor = new PDFProcessor(filePath, writer);
-				break;
-			}
-		case "ppt":
-		case "pptx":
-			if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
-					|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-							|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint"))))) {
-				subprocessor = new PPTProcessor(filePath, writer);
-				break;
-			}
-		case "csv":
-		case "json":
-		case "txt":
-		case "xml":
-		case "rtf":
+		IFileProcessor subprocessor = null;
+		// classLogger.info("Processing file : " + file.getName() + " mime type: " +
+		// mimeType);
+		if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| mimeType.equalsIgnoreCase("application/msword")
+						|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
+						&& (fileType.equals("doc") || fileType.equals("docx")))) {
+			// document
+			subprocessor = new DocProcessor(filePath, writer);
+		} else if (mimeType
+				.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
+				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+						|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
+						&& (fileType.equals("ppt") || fileType.equals("pptx")))) {
+			// powerpoint
+			subprocessor = new PPTProcessor(filePath, writer);
+		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
+			subprocessor = new PDFProcessor(filePath, writer);
+		} else if (mimeType.equalsIgnoreCase("message/rfc822")
+				|| (fileType.equals("eml"))) {
+			// eml email
+			subprocessor = new EMLProcessor(filePath, writer);
+		} else if (mimeType.equalsIgnoreCase("application/vnd.ms-outlook")
+				|| (fileType.equals("msg"))) {
+			// msg email
+			subprocessor = new MSGProcessor(filePath, writer);
+		} else if (mimeType.equalsIgnoreCase("text/plain")
+				|| mimeType.equalsIgnoreCase("application/rtf")
+				|| mimeType.equalsIgnoreCase("text/txt")
+				|| mimeType.equalsIgnoreCase("text/rtf")
+				|| mimeType.equalsIgnoreCase("text/richtext")
+				|| mimeType.equalsIgnoreCase("application/json")
+				|| mimeType.equalsIgnoreCase("application/xml")) {
+			// basic text
 			subprocessor = new TextFileProcessor(filePath, writer);
-			break;
-		default:
-			subprocessor = null;
+		} else {
+			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
 		}
 		return subprocessor;
 	}
