@@ -296,6 +296,7 @@ public class AuditLogsDbUtils {
 		List<LogActivityDto> activityList = new ArrayList<>();
 		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
 		for (Map<String, Object> map : list) {
+			String requestId = getOrDefault(map.get("REQUEST_ID"), "");
 			Timestamp startTime = extractTimestamp(map.get("START_TIME"));
 			Timestamp endTime = extractTimestamp(map.get("END_TIME"));
 			String request = getOrDefault(map.get("REQUEST"), "");
@@ -312,8 +313,9 @@ public class AuditLogsDbUtils {
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			Timestamp logTimestamp = extractTimestamp(map.get("LOG_TIMESTAMP"));
 
-			activityList.add(new LogActivityDto(startTime, endTime, request, response, tokens, latency, status,
-					engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow, logTimestamp));
+			activityList.add(new LogActivityDto(requestId, startTime, endTime, request, response, tokens, latency,
+					status, engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow,
+					logTimestamp));
 
 		}
 		return activityList;
