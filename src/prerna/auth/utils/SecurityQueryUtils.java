@@ -490,4 +490,21 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		return (results != null && !results.isEmpty()) ? results.get(0) : null;
 	}
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return list of unlocked of user ids
+	 */
+	public static List<String> getUnlockedUsers(List<String> userIds) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct securityQs = new SelectQueryStruct();
+		securityQs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
+		List<Boolean> falseFilter = new ArrayList<>();
+		falseFilter.add(false);
+		falseFilter.add(null);
+		securityQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", falseFilter));
+		return QueryExecutionUtility.flushToListString(securityDb, securityQs);
+	}
 }
