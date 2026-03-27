@@ -14,13 +14,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetRoomTokenUsageReactor extends AbstractReactor {
 
   public GetRoomTokenUsageReactor() {
-    this.keysToGet = new String[] {"roomId"};
-    this.keyRequired = new int[] {0};
+    this.keysToGet = new String[] { "roomId" };
+    this.keyRequired = new int[] { 0 };
   }
 
   @Override
   public NounMetadata execute() {
-	  organizeKeys();
+    organizeKeys();
     String roomId = this.keyValue.get("roomId");
     if (roomId == null || roomId.trim().isEmpty()) {
       roomId = insight.getRoomId();
@@ -32,9 +32,7 @@ public class GetRoomTokenUsageReactor extends AbstractReactor {
     Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
     List<AbstractMessage> messages = room.getMessages();
     int totalTokens = 0;
-    for (AbstractMessage message : messages) {
-      totalTokens += message.getTokensInMessage();
-    }
+    totalTokens = messages.parallelStream().mapToInt(AbstractMessage::getTokensInMessage).sum();
 
     Map<String, Object> result = new HashMap<>();
     result.put("roomId", roomId);

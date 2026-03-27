@@ -3,8 +3,12 @@ package prerna.reactor.agent.mcp.tools;
 import prerna.util.files.SemossParsedFile;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.AbstractMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -20,43 +24,43 @@ public class GetRoomFileTokenStatsReactor extends AbstractReactor {
 
   @Override
   public NounMetadata execute() {
-	  organizeKeys();
-    File roomFolder = new File(insight.getInsightFolder());
-    Map<String, Map<String, Object>> results = new HashMap<>();
+    organizeKeys();
+    Path roomPath = new File(insight.getInsightFolder()).toPath();
 
-    File[] files = roomFolder.listFiles();
-    if (files == null) {
-      return new NounMetadata(results, PixelDataType.MAP);
+    List<Path> filePaths;
+    try {
+      filePaths = RoomFileUtils.collectVisibleFiles(roomPath);
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Unable to list room files: " + e.getMessage());
     }
 
-    for (File file : files) {
-      if (!file.isFile()) {
-        continue;
-      }
-
-      Map<String, Object> fileResult = new HashMap<>();
-      try {
-        SemossParsedFile SemossParsedFile = new SemossParsedFile(file);
-        String extractedContent = SemossParsedFile.getExtractedContents();
-        if (extractedContent == null) {
-          fileResult.put("status", "no_content");
-        } else {
-          int charCount = extractedContent.length();
-          int wordCount = countWords(extractedContent);
-          int approxTokens = (int) Math.ceil(charCount / 4.0);
-          fileResult.put("status", "ok");
-          fileResult.put("extractedPath", SemossParsedFile.getExtractedContentsFilePath());
-          fileResult.put("charCount", charCount);
-          fileResult.put("wordCount", wordCount);
-          fileResult.put("approxTokens", approxTokens);
-        }
-      } catch (IOException e) {
-        fileResult.put("status", "error");
-        fileResult.put("message", e.getMessage());
-      }
-
-      results.put(file.getName(), fileResult);
-    }
+    Map<String, Map<String, Object>> results = filePaths.parallelStream()
+        .map(path -> {
+          File file = path.toFile();
+          String relativePath = roomPath.relativize(path).toString();
+          Map<String, Object> fileResult = new HashMap<>();
+          try {
+            SemossParsedFile semossParsedFile = new SemossParsedFile(file);
+            String extractedContent = semossParsedFile.getExtractedContents();
+            if (extractedContent == null) {
+              fileResult.put("status", "no_content");
+            } else {
+              int charCount = extractedContent.length();
+              int wordCount = countWords(extractedContent);
+              int approxTokens = (int) Math.ceil(charCount / 4.0);
+              fileResult.put("status", "ok");
+              fileResult.put("extractedPath", semossParsedFile.getExtractedContentsFilePath());
+              fileResult.put("charCount", charCount);
+              fileResult.put("wordCount", wordCount);
+              fileResult.put("approxTokens", approxTokens);
+            }
+          } catch (IOException e) {
+            fileResult.put("status", "error");
+            fileResult.put("message", e.getMessage());
+          }
+          return new AbstractMap.SimpleEntry<>(relativePath, fileResult);
+        })
+        .collect(Collectors.toConcurrentMap(Map.Entry::getKey, Map.Entry::getValue));
 
     return new NounMetadata(results, PixelDataType.MAP);
   }

@@ -4,12 +4,16 @@ import prerna.util.files.SemossParsedFile;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.text.similarity.JaroWinklerSimilarity;
 
 import prerna.reactor.AbstractReactor;
@@ -48,6 +52,7 @@ public class SearchRoomFilesWithContextReactor extends AbstractReactor {
 		if (contextWords <= 0) {
 			contextWords = Math.max(DEFAULT_CONTEXT_WORDS, contextLines);
 		}
+		final int finalContextWords = contextWords;
 		int maxMatches = getOptionalInt("maxMatches", DEFAULT_MAX_MATCHES);
 		boolean caseSensitive = getOptionalBoolean("caseSensitive", false);
 		boolean fuzzy = getOptionalBoolean("fuzzy", false);
@@ -63,86 +68,12 @@ public class SearchRoomFilesWithContextReactor extends AbstractReactor {
 			return new NounMetadata(new ArrayList<>(), PixelDataType.MAP);
 		}
 
-		List<Map<String, Object>> results = new ArrayList<>();
-		int matchCount = 0;
-
-		for (File file : files) {
-			if (!file.isFile()) {
-				continue;
-			}
-
-			String extractedContent;
-			String extractedPath;
-			try {
-				SemossParsedFile SemossParsedFile = new SemossParsedFile(file);
-				extractedContent = SemossParsedFile.getExtractedContents();
-				extractedPath = SemossParsedFile.getExtractedContentsFilePath();
-			} catch (IOException e) {
-				continue;
-			}
-
-			if (extractedContent == null) {
-				continue;
-			}
-
-			String normalized = normalizeWhitespace(extractedContent);
-			if (normalized.isEmpty()) {
-				continue;
-			}
-
-			String contentForMatch = caseSensitive ? normalized : normalized.toLowerCase(Locale.ROOT);
-			List<TokenSpan> tokens = tokenize(normalized);
-			if (tokens.isEmpty()) {
-				continue;
-			}
-
-			if (fuzzy) {
-				if (termWordCount <= 1) {
-					for (int i = 0; i < tokens.size(); i++) {
-						String tokenText = tokens.get(i).text;
-						String tokenMatch = caseSensitive ? tokenText : tokenText.toLowerCase(Locale.ROOT);
-						double score = similarity.apply(termForMatch, tokenMatch);
-						if (score >= fuzzyThreshold) {
-							addMatch(results, file.getName(), i, contextWords, tokens, score);
-							matchCount++;
-							if (matchCount >= maxMatches) {
-								return new NounMetadata(results, PixelDataType.MAP);
-							}
-						}
-					}
-				} else {
-					for (int i = 0; i <= tokens.size() - termWordCount; i++) {
-						String window = joinTokens(tokens, i, i + termWordCount - 1);
-						String windowMatch = caseSensitive ? window : window.toLowerCase(Locale.ROOT);
-						double score = similarity.apply(termForMatch, windowMatch);
-						if (score >= fuzzyThreshold) {
-							addMatch(results, file.getName(), i, contextWords, tokens, score);
-							matchCount++;
-							if (matchCount >= maxMatches) {
-								return new NounMetadata(results, PixelDataType.MAP);
-							}
-						}
-					}
-				}
-			} else {
-				int fromIndex = 0;
-				while (fromIndex < contentForMatch.length()) {
-					int idx = contentForMatch.indexOf(termForMatch, fromIndex);
-					if (idx < 0) {
-						break;
-					}
-					int tokenIndex = findTokenIndex(tokens, idx);
-					if (tokenIndex >= 0) {
-						addMatch(results, file.getName(), tokenIndex, contextWords, tokens, null);
-						matchCount++;
-						if (matchCount >= maxMatches) {
-							return new NounMetadata(results, PixelDataType.MAP);
-						}
-					}
-					fromIndex = idx + termForMatch.length();
-				}
-			}
-		}
+		List<Map<String, Object>> results = Arrays.stream(files).parallel()
+				.filter(File::isFile)
+				.flatMap(file -> searchFile(file, termForMatch, caseSensitive, fuzzy,
+						fuzzyThreshold, similarity, termWordCount, finalContextWords))
+				.limit(maxMatches)
+				.collect(Collectors.toList());
 
 		return new NounMetadata(results, PixelDataType.MAP);
 	}
@@ -243,7 +174,7 @@ public class SearchRoomFilesWithContextReactor extends AbstractReactor {
 		return builder.toString();
 	}
 
-	private void addMatch(List<Map<String, Object>> results, String fileName, int tokenIndex, int contextWords,
+	private Map<String, Object> buildMatch(String fileName, int tokenIndex, int contextWords,
 			List<TokenSpan> tokens, Double similarityScore) {
 		int start = Math.max(0, tokenIndex - contextWords);
 		int end = Math.min(tokens.size() - 1, tokenIndex + contextWords);
@@ -256,7 +187,71 @@ public class SearchRoomFilesWithContextReactor extends AbstractReactor {
 		if (similarityScore != null) {
 			match.put("similarity", similarityScore);
 		}
-		results.add(match);
+		return match;
+	}
+
+	private Stream<Map<String, Object>> searchFile(File file, String termForMatch, boolean caseSensitive,
+			boolean fuzzy, double fuzzyThreshold, JaroWinklerSimilarity similarity, int termWordCount,
+			int contextWords) {
+		String extractedContent;
+		try {
+			SemossParsedFile semossParsedFile = new SemossParsedFile(file);
+			extractedContent = semossParsedFile.getExtractedContents();
+		} catch (IOException e) {
+			return Stream.empty();
+		}
+
+		if (extractedContent == null) {
+			return Stream.empty();
+		}
+
+		String normalized = normalizeWhitespace(extractedContent);
+		if (normalized.isEmpty()) {
+			return Stream.empty();
+		}
+
+		String contentForMatch = caseSensitive ? normalized : normalized.toLowerCase(Locale.ROOT);
+		List<TokenSpan> tokens = tokenize(normalized);
+		if (tokens.isEmpty()) {
+			return Stream.empty();
+		}
+
+		List<Map<String, Object>> matches = new ArrayList<>();
+		if (fuzzy) {
+			if (termWordCount <= 1) {
+				for (int i = 0; i < tokens.size(); i++) {
+					String tokenText = tokens.get(i).text;
+					String tokenMatch = caseSensitive ? tokenText : tokenText.toLowerCase(Locale.ROOT);
+					double score = similarity.apply(termForMatch, tokenMatch);
+					if (score >= fuzzyThreshold) {
+						matches.add(buildMatch(file.getName(), i, contextWords, tokens, score));
+					}
+				}
+			} else {
+				for (int i = 0; i <= tokens.size() - termWordCount; i++) {
+					String window = joinTokens(tokens, i, i + termWordCount - 1);
+					String windowMatch = caseSensitive ? window : window.toLowerCase(Locale.ROOT);
+					double score = similarity.apply(termForMatch, windowMatch);
+					if (score >= fuzzyThreshold) {
+						matches.add(buildMatch(file.getName(), i, contextWords, tokens, score));
+					}
+				}
+			}
+		} else {
+			int fromIndex = 0;
+			while (fromIndex < contentForMatch.length()) {
+				int idx = contentForMatch.indexOf(termForMatch, fromIndex);
+				if (idx < 0) {
+					break;
+				}
+				int tokenIndex = findTokenIndex(tokens, idx);
+				if (tokenIndex >= 0) {
+					matches.add(buildMatch(file.getName(), tokenIndex, contextWords, tokens, null));
+				}
+				fromIndex = idx + termForMatch.length();
+			}
+		}
+		return matches.stream();
 	}
 
 	private static class TokenSpan {

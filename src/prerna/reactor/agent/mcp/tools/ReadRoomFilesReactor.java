@@ -5,9 +5,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -26,10 +27,10 @@ public class ReadRoomFilesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		List<String> fileNames = getFileNames();
-		Map<String, String> fileContentsMap = new HashMap<>();
-		List<String> failedFiles = new ArrayList<>();
+		Map<String, String> fileContentsMap = new ConcurrentHashMap<>();
+		List<String> failedFiles = new CopyOnWriteArrayList<>();
 
-		for (String fileName : fileNames) {
+		fileNames.parallelStream().forEach(fileName -> {
 			try {
 				File targetFile = Paths.get(insight.getInsightFolder(), fileName).toFile();
 				SemossParsedFile semossParsedFile = new SemossParsedFile(targetFile);
@@ -38,7 +39,7 @@ public class ReadRoomFilesReactor extends AbstractReactor {
 			} catch (IOException e) {
 				failedFiles.add(fileName);
 			}
-		}
+		});
 
 		if (failedFiles.size() == fileNames.size()) {
 			return NounMetadata
