@@ -14,6 +14,7 @@ public class PartitionManager {
 	/**
 	 * Ensure the given table is partitioned (fresh create or conversion).
 	 *
+	 * @param exists            table exists or not boolean
 	 * @param conn
 	 * @param queryUtil
 	 * @param tableName
@@ -27,7 +28,7 @@ public class PartitionManager {
 			AbstractSqlQueryUtil.PartitionFrequency freq, int monthsAhead) {
 
 		if (!queryUtil.supportsPartitioning()) {
-			logger.info("DB does not support partitioning (via queryUtil). Skipping.");
+			logger.info("DB does not support partitioning");
 			return;
 		}
 

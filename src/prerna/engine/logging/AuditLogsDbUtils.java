@@ -33,8 +33,11 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,8 +75,15 @@ public class AuditLogsDbUtils {
 		initialized = true;
 	}
 
+	/**
+	 * @param engine
+	 * @param conn
+	 * @param dbSchema
+	 * @throws SQLException
+	 */
 	private static void executeInitDatabaseSchema(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
+
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
 		String database = engine.getDatabase();
@@ -83,73 +93,105 @@ public class AuditLogsDbUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
-		boolean dbSupportsPartitioning = queryUtil.supportsPartitioning();
+		boolean partitioningSupported = queryUtil.supportsPartitioning()
+				&& AbstractSqlQueryUtil.isDatabasePartitioningEnabled();
 
 		String auditLogColDefs = null;
 
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-
 			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
 
-			// If partitioning supported, skip creation of AUDIT_LOGS here
-			if (dbSupportsPartitioning && "AUDIT_LOGS".equalsIgnoreCase(tableName)) {
-				StringBuilder sb = new StringBuilder();
-				List<Pair<String, String>> cols = tableSchema.getValue1();
-				for (int i = 0; i < cols.size(); i++) {
-					Pair<String, String> col = cols.get(i);
-					sb.append(col.getValue0()).append(" ").append(col.getValue1());
-					if (i < cols.size() - 1) {
-						sb.append(", ");
-					}
-				}
-				auditLogColDefs = sb.toString();
-				classLogger.info("Partitioning supported. AUDIT_LOGS creation will be handled by PartitionManager.");
+			if (partitioningSupported && "AUDIT_LOGS".equalsIgnoreCase(tableName)) {
+				auditLogColDefs = buildColumnDefinitions(tableSchema.getValue1());
+				classLogger.info("Partitioning enabled. AUDIT_LOGS creation will be handled separately.");
 				continue;
 			}
 
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+			createOrUpdateTable(conn, queryUtil, engine, database, schema, tableSchema, allowIfExistsTable);
+		}
+
+		if (partitioningSupported && auditLogColDefs != null) {
+			ensureAuditLogsPartitioning(conn, queryUtil, engine, database, schema, auditLogColDefs);
+		}
+
+		createAuditLogsIndexes(conn, queryUtil, auditLogsDb, database, schema, allowIfExistsIndexs);
+	}
+
+	private static void createOrUpdateTable(Connection conn, AbstractSqlQueryUtil queryUtil, IRDBMSEngine engine,
+			String database, String schema, Pair<String, List<Pair<String, String>>> tableSchema,
+			boolean allowIfExistsTable) throws SQLException {
+
+		String tableName = tableSchema.getValue0();
+		String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+		String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+
+		if (allowIfExistsTable) {
+			String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+			executeSql(conn, sql);
+		} else {
+			if (!queryUtil.tableExists(engine, tableName, database, schema)) {
+				String sql = queryUtil.createTable(tableName, colNames, types);
 				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					try {
-						executeSql(conn, addColumnSql);
-					} catch (SQLException e) {
-						classLogger.warn("Failed to add column {} to table {}: {}", col, tableName, e.getMessage());
-					}
-				}
 			}
 		}
 
-		// Partition AUDIT_LOGS table
-		if (dbSupportsPartitioning && auditLogColDefs != null) {
-			try {
-				boolean exists = queryUtil.tableExists(engine, "AUDIT_LOGS", queryUtil.getDatabase(),
-						queryUtil.getSchema());
+		List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+		if (allCols == null) {
+			allCols = List.of();
+		}
 
-				PartitionManager.ensurePartitioned(exists, conn, queryUtil, "AUDIT_LOGS", "LOG_TIMESTAMP",
-						auditLogColDefs, AbstractSqlQueryUtil.PartitionFrequency.MONTHLY, 12);
-			} catch (Exception e) {
-				classLogger.warn("Partitioning failed for AUDIT_LOGS: {}", e.getMessage(), e);
+		Set<String> allColsLower = new HashSet<>();
+		for (String c : allCols) {
+			if (c != null) {
+				allColsLower.add(c.toLowerCase(Locale.ROOT));
 			}
 		}
 
-		// Index creation
+		for (int i = 0; i < colNames.length; i++) {
+			String col = colNames[i];
+			if (col == null) {
+				continue;
+			}
+
+			if (!allColsLower.contains(col.toLowerCase(Locale.ROOT))) {
+				String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+				try {
+					executeSql(conn, addColumnSql);
+				} catch (SQLException e) {
+					classLogger.warn("Failed to add column {} to table {}: {}", col, tableName, e.getMessage());
+				}
+			}
+		}
+	}
+
+	private static String buildColumnDefinitions(List<Pair<String, String>> cols) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < cols.size(); i++) {
+			Pair<String, String> col = cols.get(i);
+			sb.append(col.getValue0()).append(" ").append(col.getValue1());
+			if (i < cols.size() - 1) {
+				sb.append(", ");
+			}
+		}
+		return sb.toString();
+	}
+
+	private static void ensureAuditLogsPartitioning(Connection conn, AbstractSqlQueryUtil queryUtil,
+			IRDBMSEngine engine, String database, String schema, String auditLogColDefs) {
+		try {
+			boolean exists = queryUtil.tableExists(engine, "AUDIT_LOGS", database, schema);
+
+			PartitionManager.ensurePartitioned(exists, conn, queryUtil, "AUDIT_LOGS", "LOG_TIMESTAMP", auditLogColDefs,
+					AbstractSqlQueryUtil.PartitionFrequency.MONTHLY, 2);
+		} catch (Exception e) {
+			classLogger.warn("Partitioning failed for AUDIT_LOGS: {}", e.getMessage(), e);
+		}
+	}
+
+	private static void createAuditLogsIndexes(Connection conn, AbstractSqlQueryUtil queryUtil,
+			IRDBMSEngine auditLogsDb, String database, String schema, boolean allowIfExistsIndexs) throws SQLException {
+
 		if (allowIfExistsIndexs) {
-
 			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
 			executeSql(conn, sql);
 

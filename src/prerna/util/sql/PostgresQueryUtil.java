@@ -637,7 +637,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void ensureMonthlyPartitions(Connection conn, String parentTable, int monthsAhead) {
 
 		String createPartitionFunction = """
-				CREATE OR REPLACE FUNCTION create_monthly_partition(parent_table TEXT, target_date DATE)
+				CREATE OR REPLACE FUNCTION create_monthly_partition(parent_table regclass, target_date date)
 				RETURNS VOID AS $$
 				DECLARE
 				    partition_name TEXT;
@@ -646,27 +646,38 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				BEGIN
 				    start_date := date_trunc('month', target_date)::date;
 				    end_date := (start_date + INTERVAL '1 month')::date;
-				    partition_name := parent_table || '_' || to_char(start_date, 'YYYY_MM');
+
+				    -- Build partition name from the parent table name
+				    partition_name := regexp_replace(parent_table::text, '[^a-zA-Z0-9_]+', '_', 'g')
+				                      || '_' || to_char(start_date, 'YYYY_MM');
 
 				    IF NOT EXISTS (
-				        SELECT 1 FROM pg_class WHERE relname = partition_name
+				        SELECT 1
+				        FROM pg_class c
+				        JOIN pg_namespace n ON n.oid = c.relnamespace
+				        WHERE c.relname = partition_name
 				    ) THEN
 				        EXECUTE format(
-				            'CREATE TABLE %I PARTITION OF %I
+				            'CREATE TABLE %I PARTITION OF %s
 				             FOR VALUES FROM (%L) TO (%L)',
 				            partition_name, parent_table, start_date, end_date
 				        );
+				        RAISE NOTICE 'Created partition: %', partition_name;
 				    END IF;
 				END;
 				$$ LANGUAGE plpgsql;
 				""";
 
 		String createBatchFunction = """
-				CREATE OR REPLACE FUNCTION create_monthly_partitions(parent_table TEXT, start_date DATE, months INT)
+				CREATE OR REPLACE FUNCTION create_monthly_partitions(parent_table regclass, start_date date, months int)
 				RETURNS VOID AS $$
 				DECLARE
 				    i INT;
 				BEGIN
+				    IF months IS NULL OR months <= 0 THEN
+				        RAISE EXCEPTION 'months must be > 0';
+				    END IF;
+
 				    FOR i IN 0..months-1 LOOP
 				        PERFORM create_monthly_partition(parent_table, (start_date + (i || ' month')::interval)::date);
 				    END LOOP;
@@ -675,17 +686,15 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				""";
 
 		try (Statement stmt = conn.createStatement()) {
-
 			stmt.execute(createPartitionFunction);
 			stmt.execute(createBatchFunction);
 
-			String callSql = "SELECT create_monthly_partitions(?, ?, ?)";
+			String callSql = "SELECT create_monthly_partitions(?::regclass, ?::date, ?)";
 
 			try (PreparedStatement ps = conn.prepareStatement(callSql)) {
 				ps.setString(1, parentTable);
 				ps.setDate(2, java.sql.Date.valueOf(java.time.LocalDate.now().withDayOfMonth(1)));
 				ps.setInt(3, monthsAhead);
-
 				ps.execute();
 			}
 

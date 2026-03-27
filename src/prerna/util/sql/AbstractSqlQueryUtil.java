@@ -2311,15 +2311,22 @@ public abstract class AbstractSqlQueryUtil {
 				interpreter.processSelector(innerSelectors.get(0), false));
 	}
 
-	/**
-	 * Partitioning support contract (generic).
-	 */
+	public static boolean isDatabasePartitioningEnabled() {
+		String auditLogsPartitionDb = Utility.getDIHelperProperty(Constants.DATABASE_PARTITIONING_ENABLED);
+		if (auditLogsPartitionDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsPartitionDb);
+	}
+
 	public enum PartitionFrequency {
 		MONTHLY, YEARLY
 	}
 
 	/**
-	 * Return true if the DB supports partitioning features.
+	 * Return true if the DB supports partitioning
 	 */
 	public boolean supportsPartitioning() {
 		return false;
