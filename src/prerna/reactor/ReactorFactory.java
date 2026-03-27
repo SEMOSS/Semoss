@@ -256,8 +256,8 @@ import prerna.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
-import prerna.reactor.masterdatabase.GetPhysicalToLogicalMapping;
-import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
+import prerna.reactor.masterdatabase.GetPhysicalToLogicalMappingReactor;
+import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMappingReactor;
 import prerna.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.reactor.masterdatabase.QueryTranslatorReactor;
@@ -1019,8 +1019,8 @@ public class ReactorFactory {
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", SemanticDescription.class);
 		// similar reactors to x-ray
-		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
-		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMapping.class);
+		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMappingReactor.class);
+		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMappingReactor.class);
 
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", RunNumericalCorrelationReactor.class);

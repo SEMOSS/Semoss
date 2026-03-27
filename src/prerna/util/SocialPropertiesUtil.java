@@ -96,6 +96,13 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.getFileContents();
 	}
 
+	/**
+	 * Switch to using {@link #getAvailableProviders()}
+	 * 
+	 * @param provider
+	 * @return
+	 */
+	@Deprecated
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}
@@ -108,6 +115,21 @@ public class SocialPropertiesUtil {
 		return SocialPropertiesUtil.processor.isNativeRegistrationAllowed();
 	}
 
+	/**
+	 * Returns a list of available authentication providers, where each entry is a
+	 * map containing the following keys:
+	 *
+	 * <ul>
+	 * <li>{@code name} — the display name of the provider (e.g. "Google",
+	 * "Facebook")</li>
+	 * <li>{@code provider} — the provider key in social.properties</li>
+	 * <li>{@code isOauth} — {@code true} if the provider uses OAuth</li>
+	 * <li>{@code label} — the label associated with the provider enum</li>
+	 * </ul>
+	 *
+	 * @return a {@link List} of {@link Map} objects, each representing one
+	 *         available provider for logining into the system
+	 */
 	public List<Map<String, Object>> getAvailableProviders() {
 		return SocialPropertiesUtil.processor.getAvailableProviders();
 	}

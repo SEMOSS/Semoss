@@ -45,7 +45,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,7 +62,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.api.TokenTypeEnum;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
@@ -92,6 +90,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -109,8 +108,6 @@ public class ModelInferenceLogsUtils {
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
 	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
-
-	static IRDBMSEngine modelInferenceLogsDb;
 	static boolean initialized = false;
 
 	/**
@@ -118,7 +115,7 @@ public class ModelInferenceLogsUtils {
 	 * @throws Exception
 	 */
 	public static void initModelInferenceLogsDatabase() throws Exception {
-		modelInferenceLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.MODEL_INFERENCE_LOGS_DB);
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if (modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
@@ -468,6 +465,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean userIsMessageAuthor(String userId, String messageId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setAlias("Counts");
@@ -522,6 +520,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean feedbackExists(String messageId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector newSelector = new QueryFunctionSelector();
 		newSelector.setAlias("Counts");
@@ -566,6 +565,7 @@ public class ModelInferenceLogsUtils {
 	 * @param rating
 	 */
 	public static void insertFeedback(MessageFeedback feedback) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
 				+ "VALUES (?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -595,6 +595,7 @@ public class ModelInferenceLogsUtils {
 	 * @param rating
 	 */
 	public static void updateFeedback(MessageFeedback feedback) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(
 					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?");
@@ -637,6 +638,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getOverAllEngineUsageFromModelInferenceLogs(String engineId, String limit,
 			String offset, String startDate, String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TYPE"));
@@ -668,6 +670,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getTokenUsagePerProjectForEngine(String engineId, String limit,
 			String offset, String startDate, String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 
@@ -721,6 +724,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserUsagePerEngine(String engineId, String limit, String offset,
 			String startDate, String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
@@ -761,6 +765,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static Map<String, Object> getProjectUsageFromModelInferenceLogs(String projectId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// First get a list of roomIds from Room
 		List<String> roomIdList = getRoomIdListPerProject(projectId);
 		// Second query against message to find number of unique calls? Not sure what we
@@ -783,6 +788,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<String> getRoomIdListPerProject(String projectId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
@@ -792,6 +798,7 @@ public class ModelInferenceLogsUtils {
 
 	/** @param user */
 	public static void doCreateNewUser(User user) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO USERS (USER_ID, USERNAME, EMAIL) VALUES (?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
@@ -896,6 +903,7 @@ public class ModelInferenceLogsUtils {
 	public static void doCreateNewConversation(String insightId, String roomId, String roomName, String roomContext,
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
 			String projectId, String projectName, String workspaceId, Map<String, Object> options) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
 				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
@@ -969,6 +977,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doCheckRoomExists(String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?";
 		PreparedStatement ps = null;
 		try {
@@ -997,6 +1006,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doCheckMessageIdMigration(String roomId, String messageId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM MESSAGE WHERE ROOM_ID = ? AND MESSAGE_ID = ?";
 		PreparedStatement ps = null;
 		try {
@@ -1025,6 +1035,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doModelIsRegistered(String agentId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?";
 		PreparedStatement ps = null;
 		try {
@@ -1069,6 +1080,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doCreateNewAgent(String agentId, String agentName, String agentDescription, String agentType,
 			String author) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, "
 				+ "AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
@@ -1143,6 +1155,7 @@ public class ModelInferenceLogsUtils {
 			Integer thinkingTokens,
 			Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
@@ -1228,6 +1241,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doSetRoomToInactive(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb
 					.getPreparedStatement("UPDATE ROOM SET IS_ACTIVE=? WHERE USER_ID=? AND ROOM_ID=?");
@@ -1263,6 +1277,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean isRoomInActive(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__IS_ACTIVE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
@@ -1296,6 +1311,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb
 					.getPreparedStatement("UPDATE ROOM SET PINNED=? WHERE USER_ID=? AND ROOM_ID=?");
@@ -1335,6 +1351,7 @@ public class ModelInferenceLogsUtils {
 	 * @return a list of matching messages (room_id, message_text, message_id)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// Always select room_id and message_id
@@ -1372,6 +1389,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb
 					.getPreparedStatement("UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=?");
@@ -1407,6 +1425,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String roomId, String dateSort) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = retrieveMessageQS(userId, roomId, dateSort);
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
@@ -1421,6 +1440,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> doRetrieveConversation(String userId, String roomId, String dateSort,
 			Integer limit, Integer offset) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = retrieveMessageQS(userId, roomId, dateSort);
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
@@ -1463,6 +1483,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doRetrieveNearestNeighbor(String userId, String roomId, String dateSort) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("MESSAGE__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_TYPE"));
@@ -1487,6 +1508,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> doVerifyConversation(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PROJECT_ID"));
@@ -1510,6 +1532,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
@@ -1574,6 +1597,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getRoomContext(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "ROOM_CONTEXT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "ROOM_ID", "==", roomId));
@@ -1588,6 +1612,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getRoomOptions(String roomId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
@@ -1607,6 +1632,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static void setRoomOptions(String roomId, String userId, Map<String, Object> options) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
 
 		PreparedStatement ps = null;
@@ -1638,6 +1664,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static void setRoomWorkspaceId(String roomId, String userId, String workspaceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?";
 
 		PreparedStatement ps = null;
@@ -1670,6 +1697,7 @@ public class ModelInferenceLogsUtils {
 	 * @return
 	 */
 	public static void setRoomContext(String roomId, String userId, String context) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb
 					.getPreparedStatement("UPDATE ROOM SET ROOM_CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?");
@@ -1698,6 +1726,7 @@ public class ModelInferenceLogsUtils {
 
 	/** @param messageId */
 	private static void deleteFeedbackEntry(String messageId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String deleteQuery = "DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?";
 		PreparedStatement ps = null;
 		try {
@@ -1730,6 +1759,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
 			ZonedDateTime currentDateTime, String frequency) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
@@ -1805,6 +1835,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
 			ZonedDateTime currentDateTime, String frequency) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
@@ -1901,6 +1932,7 @@ public class ModelInferenceLogsUtils {
 	 * @param messageHistory
 	 */
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement updateStmt = null;
 		try {
 			// Update messages and timestamp where room and user match
@@ -1929,6 +1961,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static void updateMessageIds(String transactionId, String newMessageId, MessageType messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			String mType = null;
 			if (messageType.equals(MessageType.INPUT_TEXT)) {
@@ -1964,6 +1997,7 @@ public class ModelInferenceLogsUtils {
 
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,
 			String engineId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement updateStmt = null;
 		try {
 			// Update messages and timestamp where room and user match
@@ -1994,6 +2028,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static Room getRoomById(String room_id, String user_id) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?";
 		PreparedStatement stmt = null;
 		ResultSet resultSet = null;
@@ -2031,6 +2066,7 @@ public class ModelInferenceLogsUtils {
 	 * @return a list of the users room
 	 */
 	public static List<Map<String, Object>> getUserActiveRooms(String roomId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "IS_ACTIVE"));
 
@@ -2069,6 +2105,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void createNewWorkspaceEntry(String workspaceId, String ownerId, String workspaceName,
 			String workspaceDescription, String systemPrompt, List<Map<String, String>> resources) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
 		Connection con = null;
@@ -2129,6 +2166,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void updateWorkspaceEntry(String workspaceId, String workspaceName, String workspaceDescription,
 			String systemPrompt, boolean isActive, List<Map<String, String>> resources) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
 		Connection con = null;
@@ -2190,6 +2228,7 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceId
 	 */
 	public static void deleteWorkspaceEntry(String workspaceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
@@ -2220,6 +2259,7 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceId
 	 */
 	public static Map<String, Object> getWorkspaceEntry(String workspaceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__WORKSPACE_ID", "workspace_id"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__NAME", "name"));
@@ -2274,6 +2314,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Map<String, Object> getWorkspaceRoomsForUser(String workspaceId, User user, long limit, long offset,
 			GenRowFilters filters, List<IQuerySort> sorts) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -2382,6 +2423,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static Map<String, Object> getWorkspaceEntriesForUser(User user, long limit, long offset,
 			GenRowFilters filters, List<IQuerySort> sorts, Set<String> sharedWorkspaceIds) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 
 		// This can get reworked but only does anything if sharedWorkspaceIds is not
 		// null
@@ -2494,6 +2536,7 @@ public class ModelInferenceLogsUtils {
 	}
 
 	public static List<Map<String, Object>> getWorkspaceResourcesByType(String workspaceId, String resourceType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__WORKSPACE_RESOURCE_ID", "workspace_resource_id"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__WORKSPACE_ID", "workspace_id"));
@@ -2536,6 +2579,7 @@ public class ModelInferenceLogsUtils {
 
 	public static void createNewWorkspaceResource(String workspaceResourceId, String workspaceId, String resourceId,
 			String resourceType, String resourceSubType) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
@@ -2562,6 +2606,7 @@ public class ModelInferenceLogsUtils {
 
 	public static List<Map<String, String>> getWorkspaceResources(String workspaceId, String resourceType,
 			String resourceSubType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		List<Map<String, String>> resources = new ArrayList<>();
 		try {
@@ -2608,6 +2653,7 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceResourceId
 	 */
 	public static void deleteWorkspaceResource(String workspaceResourceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
@@ -2631,6 +2677,7 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceId
 	 */
 	public static void doSetWorkspaceToInactive(String workspaceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
@@ -2656,6 +2703,7 @@ public class ModelInferenceLogsUtils {
 	 * @param workspaceId
 	 */
 	public static void doSetWorksapceToActive(String workspaceId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		try {
 			con = modelInferenceLogsDb.getConnection();
@@ -2685,6 +2733,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getModelInferenceUserReport(String agentId, String startDate,
 			String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// SELECT fields
@@ -2739,6 +2788,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getModelInferenceAppReport(String agentId, String startDate,
 			String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// SELECT fields
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME", "project_name"));
@@ -2782,6 +2832,86 @@ public class ModelInferenceLogsUtils {
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
 		qs.addGroupBy(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addOrderBy("last_utilized_date", "DESC");
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * Get user model usage per specific engines
+	 *
+	 * @param user      The user to get usage for
+	 * @param engineIds List of engine IDs to filter by
+	 * @param startDate Optional start date (format: YYYY-MM-DD)
+	 * @param endDate   Optional end date (format: YYYY-MM-DD)
+	 * @return List of maps containing usage data per engine
+	 */
+	public static List<Map<String, Object>> getUserModelUsagePerEngine(User user, List<String> engineIds,
+			String startDate, String endDate) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Select engine ID and name
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
+
+		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// INPUT_TOKENS
+		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"INPUT_IF");
+		QueryFunctionSelector inputTokenSelector = new QueryFunctionSelector();
+		inputTokenSelector.setAlias("INPUT_TOKENS");
+		inputTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		inputTokenSelector.addInnerSelector(inputIf);
+		qs.addSelector(inputTokenSelector);
+
+		// SUM(CASE WHEN MESSAGE_TYPE='RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS
+		// RESPONSE_TOKENS
+		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
+				"RESPONSE_IF");
+		QueryFunctionSelector responseTokenSelector = new QueryFunctionSelector();
+		responseTokenSelector.setAlias("RESPONSE_TOKENS");
+		responseTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		responseTokenSelector.addInnerSelector(responseIf);
+		qs.addSelector(responseTokenSelector);
+
+		// Sum total tokens
+		QueryFunctionSelector totalTokenSelector = new QueryFunctionSelector();
+		totalTokenSelector.setAlias("TOTAL_TOKENS");
+		totalTokenSelector.setFunction(QueryFunctionHelper.SUM);
+		totalTokenSelector.addInnerSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"));
+		qs.addSelector(totalTokenSelector);
+
+		// Count number of requests (INPUT messages only)
+		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
+				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_ID"), new QueryConstantSelector(null),
+				"REQUEST_IF");
+		QueryFunctionSelector countRequestSelector = new QueryFunctionSelector();
+		countRequestSelector.setAlias("TOTAL_REQUESTS");
+		countRequestSelector.setFunction(QueryFunctionHelper.COUNT);
+		countRequestSelector.addInnerSelector(requestIf);
+		qs.addSelector(countRequestSelector);
+
+		// Filter by user ID
+		String userId = user.getPrimaryLoginToken().getId();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+
+		// Filter by engine IDs
+		if (engineIds != null && !engineIds.isEmpty()) {
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineIds));
+		}
+
+		// Filter by date range if provided
+		addStartDateEndDateFitler(qs, startDate, endDate);
+
+		// Group by engine
+		qs.addGroupBy(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
+		// Order by engine ID
+		qs.addOrderBy(MESSAGE_TABLE_NAME + "AGENT_ID", "ASC");
 
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}

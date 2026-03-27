@@ -62,6 +62,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -72,7 +73,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}
