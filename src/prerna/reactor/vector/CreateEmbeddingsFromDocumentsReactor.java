@@ -153,7 +153,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.error("Error creating embeddings from document files for engine {}", engineId, e);
-			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
+			throw new SemossPixelException("The following exception occured: " + e.getMessage());
 		} finally {
 			File zipFileExtractionDir = new File(rootFolder + "/" + PATH_TO_UNZIP_FILES);
 			if (zipFileExtractionDir.exists()) {
@@ -165,9 +165,10 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 			}
 		}
-//		On success, we return the fileStatusList as additional output
+		// On success, we return the fileStatusList as additional output
 		NounMetadata success = NounMetadata.getSuccessNounMessage("Successfully embedded all files");
-		success.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION));
+		success.addAdditionalReturn(
+				new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION));
 		return success;
 	}
 

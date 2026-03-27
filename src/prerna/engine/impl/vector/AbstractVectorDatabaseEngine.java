@@ -413,13 +413,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					}
 
 					extractedFiles.add(extractedFile);
-				} catch (IOException e) {
-					String errorMessage = "Unable to remove old or create new text extraction file for " + documentName;
-					classLogger.error(Constants.STACKTRACE, errorMessage, e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
-							0, 0);
-					failedStatus.setError(buildEmbeddingError(errorMessage, e));
-					resultList.add(failedStatus);
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error(Constants.STACKTRACE, errorMessage, e);
@@ -427,6 +420,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
 					resultList.add(failedStatus);
+					extractedFile.delete(); // delete the csv if it was created
+					destinationFile.delete(); // delete the input file e.g pdf
 				}
 			}
 
