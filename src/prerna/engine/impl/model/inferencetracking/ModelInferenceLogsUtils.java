@@ -1122,7 +1122,8 @@ public class ModelInferenceLogsUtils {
 	 * @param messageType
 	 * @param messageData
 	 * @param messageMethod
-	 * @param tokenSize default token count, not split per message or token type
+	 * @param tokenSize       default token count, not split per message or token
+	 *                        type
 	 * @param inputTokenSize
 	 * @param outputTokenSize
 	 * @param thinkingTokens
@@ -1138,7 +1139,8 @@ public class ModelInferenceLogsUtils {
 	 * @param userEmail
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
-			String messageMethod, Integer tokenSize, Integer inputTokenSize, Integer outputTokenSize, Integer thinkingTokens,
+			String messageMethod, Integer tokenSize, Integer inputTokenSize, Integer outputTokenSize,
+			Integer thinkingTokens,
 			Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		// convert the time to UTC
