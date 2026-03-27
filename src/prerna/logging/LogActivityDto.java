@@ -31,6 +31,8 @@ import java.sql.Timestamp;
 
 public class LogActivityDto {
 
+	private String requestId;
+
 	private java.sql.Timestamp startTime;
 	private java.sql.Timestamp endTime;
 	private java.sql.Timestamp logTimestamp;
@@ -52,9 +54,10 @@ public class LogActivityDto {
 
 	}
 
-	public LogActivityDto(java.sql.Timestamp startTime, java.sql.Timestamp endTime, String request, String response,
-			int tokens, long latency, boolean status, String engineName, String engineType, String methodName,
-			String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
+	public LogActivityDto(String requestId, java.sql.Timestamp startTime, java.sql.Timestamp endTime, String request,
+			String response, int tokens, long latency, boolean status, String engineName, String engineType,
+			String methodName, String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
+		this.requestId = requestId;
 		this.startTime = startTime;
 		this.endTime = endTime;
 		this.request = request;
@@ -69,6 +72,14 @@ public class LogActivityDto {
 		this.sessionId = sessionId;
 		this.spanId = spanId;
 		this.logTimestamp = logTimestamp;
+	}
+
+	public String getRequestId() {
+		return requestId;
+	}
+
+	public void setRequestId(String requestId) {
+		this.requestId = requestId;
 	}
 
 	public Timestamp getStartTime() {
