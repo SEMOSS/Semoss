@@ -31,19 +31,10 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Utility;
 
 /**
- * Unified SQL Query Reactor that: 1. Parses SQL to detect query type (SELECT vs
- * modification) 2. Validates user permissions based on query type 3. Delegates
- * to appropriate existing reactors
- * 
- * Usage: SqlQuery(database=["myDb"], query=["SELECT * FROM table"],
- * limit=[100], commit=[true])
+ * Executes query against a database. The query to be executed is expected to be
+ * wrapped in <encode> </encode> blocks.
  */
-
 public class SqlQueryReactor extends AbstractSqlQueryReactor {
-
-	public SqlQueryReactor() {
-
-	}
 
 	@Override
 	protected String getDecodedQuery() {
@@ -53,18 +44,9 @@ public class SqlQueryReactor extends AbstractSqlQueryReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return "The SQL query to execute, provided as a URL-encoded UTF-8 string.";
-		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limits the number of rows retrieved by the SQL query";
-		} else {
-			return super.getDescriptionForKey(key);
+			return "The sql query to execute. The sql query should be passed wtihin <encode> </encode> blocks for proper encoding";
 		}
+		return super.getDescriptionForKey(key);
 	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Execute a URL-encoded SQL query against a database with pagination support (limit and offset). ";
-	}
 }

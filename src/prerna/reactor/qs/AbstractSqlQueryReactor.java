@@ -26,7 +26,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(SqlQueryReactor.class);
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractSqlQueryReactor.class);
 
 	private static final int DEFAULT_LIMIT = 50;
 	private static final int MAX_LIMIT = 5_000;
@@ -259,7 +260,18 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Abstract base class for SQL query execution. Subclasses implement specific decoding mechanisms.";
+		return "Execute a sql query against a database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Limits the number of rows retrieved by a select query";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }
