@@ -164,7 +164,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
-			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
+			IEngine emptyClass = (IEngine) Class.forName(rawType).getConstructor().newInstance();
 			engineType = emptyClass.getCatalogType();
 			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch (Exception e) {
