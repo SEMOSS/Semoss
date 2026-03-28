@@ -29,7 +29,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock, AnthropicFoundry
+from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -100,6 +100,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         elif self.provider == "azure":
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
+                api_key=kwargs.pop("api_key", None),
+            )
+        elif self.provider == "anthropic":
+            return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
         else:
@@ -280,8 +284,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        use_beta_stream = self.use_beta_header and hasattr(self.client.beta.messages, "stream")
-        stream_method = self.client.beta.messages.stream if use_beta_stream else self.client.messages.stream
+        use_beta_stream = self.use_beta_header and hasattr(
+            self.client.beta.messages, "stream"
+        )
+        stream_method = (
+            self.client.beta.messages.stream
+            if use_beta_stream
+            else self.client.messages.stream
+        )
 
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
