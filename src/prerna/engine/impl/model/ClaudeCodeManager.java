@@ -42,13 +42,9 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -73,36 +69,9 @@ public class ClaudeCodeManager {
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
 
-	private record RoomOptions(String model, String instructions, List<Map<String, String>> mcps){}
-
-	private RoomOptions gatherRoomOptions(String roomId, User user) throws Exception {
-		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-		String userId = token.getId();
-
-		Room room = Optional.ofNullable(ModelInferenceLogsUtils.getRoomById(roomId, userId))
-				.orElseThrow(() -> new Exception(String.format("Failed to find room with ID: %s", roomId)));
-
-		Map<String, Object> optionsMap = room.getOptionsMap();
-
-		String model = Optional.ofNullable(optionsMap.get("modelId"))
-				.map(Object::toString)
-				.orElseThrow(() -> new Exception("No model selected for room"));
-
-		String instructions = Optional.ofNullable(optionsMap.get("instructions"))
-				.map(Object::toString)
-				.orElse("");
-
-		List<Map<String, String>> mcps = (List<Map<String, String>>) optionsMap.get("mcp");
-
-		if (!SecurityEngineUtils.userCanViewEngine(user, model)) {
-			throw new IllegalArgumentException(
-					"Model " + model + " does not exist or user does not have access to this model");
-		}
-		return new RoomOptions(model, instructions, mcps);
-	}
-
-	private String createInitScript(String roomId, String projectPath, String accessKey,
-			String secretKey, List<String> allowedTools, String permissionMode, RoomOptions roomOptions) throws Exception {
+	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
+			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps)
+			throws Exception {
 
 		String allowedToolsString = "allowed_tools=["
 				+ allowedTools.stream().map(tool -> "'" + tool + "'").collect(Collectors.joining(",")) + "]";
@@ -111,8 +80,8 @@ public class ClaudeCodeManager {
 		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
 		List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
-		if (roomOptions.mcps() != null) {
-			for (Map<String, String> mcp : roomOptions.mcps()) {
+		if (mcps != null) {
+			for (Map<String, String> mcp : mcps) {
 				Map<String, String> mcpConfig = new HashMap<>();
 				mcpConfig.put("name", mcp.get("name"));
 				String mcpProjectId = mcp.get("id");
@@ -127,8 +96,7 @@ public class ClaudeCodeManager {
 
 		return String.format(
 				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s)",
-				roomOptions.model(), projectPath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl,
-				mcpsString);
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString);
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
@@ -164,27 +132,19 @@ public class ClaudeCodeManager {
 		}
 	}
 
-	public String query(Insight insight, User user, String projectId, String prompt,
-			 String roomId, List<String> allowedTools, String permissionMode) throws Exception {
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, null, prompt);
-		String finalRoomId = room.getId();
-		RoomOptions roomOptions = gatherRoomOptions(finalRoomId, user);
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
+			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
+			List<Map<String, String>> mcps) throws Exception {
 
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		createClaudeDir(projectPath);
+		createClaudeDir(filePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(roomId, projectPath, accessKey, secretKey, allowedTools, permissionMode, roomOptions);
+		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
+				engineId, mcps);
 		checkSocketStatus(initScript);
-		String queryScript = createQueryScript(prompt, roomOptions.instructions());
+		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
 	}

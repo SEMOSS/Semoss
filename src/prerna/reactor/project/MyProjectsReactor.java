@@ -35,6 +35,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
@@ -189,5 +191,94 @@ public class MyProjectsReactor extends AbstractReactor {
 			return "This is an optional project filter";
 		}
 		return super.getDescriptionForKey(key);
+	}
+	
+	@Override
+	public JSONObject getResponseSchema() {
+	    JSONObject schema = new JSONObject();
+	    schema.put("type", "array");
+	    schema.put("description", "List of project objects the user has access to");
+	    
+	    JSONObject itemProperties = new JSONObject();
+	    
+	    itemProperties.put("project_id", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Unique project identifier (UUID)"));
+	    
+	    itemProperties.put("project_name", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Display name of the project"));
+	    
+	    itemProperties.put("project_type", new JSONObject()
+	        .put("type", "string")
+	        .put("enum", new JSONArray().put("CODE").put("INSIGHTS"))
+	        .put("description", "The type of project"));
+	    
+	    itemProperties.put("project_date_created", new JSONObject()
+	        .put("type", "string")
+	        .put("format", "datetime")
+	        .put("description", "ISO datetime when project was created"));
+	    
+	    itemProperties.put("project_date_last_edited", new JSONObject()
+	        .put("type", "string")
+	        .put("format", "datetime")
+	        .put("description", "ISO datetime when project was last modified"));
+	    
+	    itemProperties.put("project_created_by", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Username of the project creator"));
+	    
+	    itemProperties.put("project_created_by_type", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Auth type of creator, e.g. NATIVE"));
+	    
+	    itemProperties.put("permission", new JSONObject()
+	        .put("type", "integer")
+	        .put("enum", new JSONArray().put(1).put(2).put(3))
+	        .put("description", "User's permission level: 1=Owner, 2=Editor, 3=ReadOnly"));
+	    
+	    itemProperties.put("user_permission", new JSONObject()
+	        .put("type", "integer")
+	        .put("description", "Same as permission"));
+	    
+	    itemProperties.put("project_has_portal", new JSONObject()
+	        .put("type", "boolean")
+	        .put("description", "Whether the project has a portal attached"));
+	    
+	    itemProperties.put("project_portal_name", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Name of the portal, empty string if none"));
+	    
+	    itemProperties.put("project_discoverable", new JSONObject()
+	        .put("type", "boolean")
+	        .put("description", "Whether the project is discoverable by other users"));
+	    
+	    itemProperties.put("project_global", new JSONObject()
+	        .put("type", "boolean")
+	        .put("description", "Whether the project is globally accessible"));
+	    
+	    itemProperties.put("project_favorite", new JSONObject()
+	        .put("type", "integer")
+	        .put("enum", new JSONArray().put(0).put(1))
+	        .put("description", "1 if user has favorited this project, 0 otherwise"));
+	    
+	    itemProperties.put("project_cost", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Cost metadata, may be empty string"));
+	    
+	    itemProperties.put("tag", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Metadata tag associated with the project"));
+	    
+	    itemProperties.put("low_project_name", new JSONObject()
+	        .put("type", "string")
+	        .put("description", "Lowercase version of project_name"));
+	    
+	    JSONObject items = new JSONObject();
+	    items.put("type", "object");
+	    items.put("properties", itemProperties);
+	    
+	    schema.put("items", items);
+	    return schema;
 	}
 }
