@@ -78,7 +78,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
-        # TODO: Implement support for Anthropic API directly
         if self.provider == "google":
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
