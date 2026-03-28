@@ -666,7 +666,15 @@ public class MessageUtils {
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+								// THIS IS FOR CLAUDE CODE.. NEED TO MAKE SURE THIS DOESN'T BREAK ANYTHING
+								Object argsRaw = funcMap.get("arguments");
+								if (argsRaw instanceof String) {
+									flatTool.put("arguments", (String) argsRaw);
+								} else if (argsRaw != null) {
+									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
+								} else {
+									flatTool.put("arguments", "{}");
+								}
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
