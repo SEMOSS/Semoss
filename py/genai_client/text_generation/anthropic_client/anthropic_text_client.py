@@ -29,7 +29,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock, AnthropicFoundry
+from anthropic import AnthropicBedrock, AnthropicFoundry, Anthropic
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -78,7 +78,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
-        # TODO: Implement support for Anthropic API directly
         if self.provider == "google":
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
@@ -100,6 +99,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         elif self.provider == "azure":
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
+                api_key=kwargs.pop("api_key", None),
+            )
+        elif self.provider == "anthropic":
+            return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
         else:
