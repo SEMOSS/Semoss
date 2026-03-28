@@ -34,10 +34,16 @@ from ..semoss_base.semoss_models import (
 
 class OpenAIMessageBuilder:
 
-    def __init__(self, model_settings: ModelSettings, chat_type: str):
+    def __init__(
+        self,
+        model_settings: ModelSettings,
+        chat_type: str,
+        simplify_messages: bool = False,
+    ):
         """Initialize the OpenAI message builder with a specific model name."""
         self.model_settings = model_settings
         self.chat_type = chat_type
+        self.simplify_messages = simplify_messages
 
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
@@ -375,6 +381,15 @@ class OpenAIMessageBuilder:
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
                 elif content_parts:
+                    if (
+                        len(content_parts) == 1
+                        and isinstance(content_parts[0], OpenAITextContentPart)
+                        and self.simplify_messages
+                    ):
+                        content = content_parts[0].text
+                    else:
+                        content = content_parts
+
                     openai_messages.append(
                         OpenAIMessage(
                             role=(
@@ -382,7 +397,7 @@ class OpenAIMessageBuilder:
                                 if message.io == "INPUT"
                                 else OpenAIRoles.ASSISTANT.value
                             ),
-                            content=content_parts,
+                            content=content,
                         )
                     )
 

@@ -56,6 +56,9 @@ import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
+import prerna.reactor.model.LLMReactor;
+import prerna.reactor.qs.SqlQueryBase64Reactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
@@ -97,6 +100,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             	VectorDatabaseQueryReactor.class,
             	RemoveDocumentFromVectorDatabaseReactor.class,
             	VectorFileDownloadReactor.class
+            )));
+        put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
+            	GetDatabaseTableStructureReactor.class,
+            	SqlQueryBase64Reactor.class
+            )));
+        put(IEngine.CATALOG_TYPE.MODEL, new ArrayList<>(Arrays.asList(
+            	LLMReactor.class
             )));
 		}
 	};

@@ -27,26 +27,32 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
- * Executes query against a database. The query to be executed is expected to be
- * wrapped in <encode> </encode> blocks.
+ * Executes Base64-encoded sql query against a database.
  */
-public class SqlQueryReactor extends AbstractSqlQueryReactor {
+public class SqlQueryBase64Reactor extends AbstractSqlQueryReactor {
 
 	@Override
 	protected String getDecodedQuery() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()));
+		try {
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode python code: input is not base64-encoded utf-8 string",
+					e);
+		}
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return "The sql query to execute. The sql query should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return "The sql query to execute. The query should be passed in as a base64-encoded utf-8 string";
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 }

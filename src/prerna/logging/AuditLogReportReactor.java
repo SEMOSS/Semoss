@@ -109,6 +109,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 		if (projectId != null && !projectId.isEmpty()) {
 			Integer userPermissionLvl = SecurityProjectUtils
 					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
+			if (userPermissionLvl == null && !SecurityProjectUtils.projectIsGlobal(projectId)) {
+				throw new IllegalArgumentException(
+						"Project id '" + projectId + "' does not exist or user does not have access");
+			}
 			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
 				userIsOwner = true;
 			}
@@ -118,6 +122,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 			if (engineId != null && !engineId.isEmpty()) {
 				Integer userPermissionLvl = SecurityEngineUtils
 						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
+				if (userPermissionLvl == null && !SecurityEngineUtils.engineIsGlobal(engineId)) {
+					throw new IllegalArgumentException(
+							"Engine id '" + engineId + "' does not exist or user does not have access");
+				}
 				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
 					userIsOwner = true;
 				}
@@ -154,7 +162,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 				endDateCustom);
 		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
-		List<LogActivityDto> result = Collections.emptyList();
+		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
