@@ -13,11 +13,11 @@ from claude_agent_sdk import (
 from ...debug_logger.debug_logger import DebugLogger
 from .claude_code_utils import _build_change_logger
 
-# logger = DebugLogger(
-#     log_dir="/Users/rweiler/Desktop/LOG_FILES",
-#     log_file_name="claude_code_client.txt",
-#     class_name=__name__,
-# ).logger
+logger = DebugLogger(
+    log_dir="/Users/rweiler/Desktop/LOG_FILES",
+    log_file_name="claude_code_client.txt",
+    class_name=__name__,
+).logger
 
 
 class MCP(BaseModel):
@@ -35,6 +35,7 @@ class CCInitArgs(BaseModel):
     base_url: Optional[str] = ""
     allowed_tools: Optional[list[str]] = None
     mcps: Optional[list[MCP]] = None
+    insight_id: Optional[str] = None
 
 
 class ClaudeCodeClient:
@@ -45,6 +46,10 @@ class ClaudeCodeClient:
             self.configuration.allowed_tools or [],
             self.configuration.access_key,
             self.configuration.secret_key,
+        )
+
+        logger.info(
+            f"Initialized ClaudeCodeClient with {self.configuration.model_dump()}"
         )
 
         change_logger = _build_change_logger(self.configuration.cwd_path)
@@ -108,13 +113,14 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
+        new_prompt = f"[[SEMOSS_CONTEXT:insightId={self.configuration.insight_id},roomId={self.configuration.room_id}]]\n{prompt}"
         self.agent_options.system_prompt = system_prompt
         final_message = ""
         async for message in query(
-            prompt=prompt,
+            prompt=new_prompt,
             options=self.agent_options,
         ):
-            # logger.info(f"Received message chunk: {message}")
+            logger.info(f"Received message chunk: {message}")
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):

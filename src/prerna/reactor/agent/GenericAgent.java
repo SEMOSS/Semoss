@@ -44,15 +44,6 @@ import prerna.util.Utility;
 /**
  * High-level orchestrator for the generic agent loop.
  *
- * <p>Accepts minimal inputs, resolves the Room and model engine, selects a harness from
- * {@link AgentHarnessRegistry}, and delegates execution.
- *
- * <h3>Model ID resolution order</h3>
- * <ol>
- *   <li>{@code room.getModelId()} — stored in the ROOM.MODEL_ID column
- *   <li>{@code room.getOptionsMap().get("engine")} — legacy rooms that stored engine in options
- *   <li>{@code engineIdFallback} — explicit engine param passed by the caller
- * </ol>
  */
 public final class GenericAgent {
 
@@ -96,10 +87,8 @@ public final class GenericAgent {
             throw new IllegalArgumentException("input is required");
         }
 
-        // 1. Load Room
         Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
-        // 2. Resolve model ID and room column, then options map, then caller-supplied fallback
         String modelId = resolveModelId(room, engineIdFallback);
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalArgumentException(
@@ -116,23 +105,8 @@ public final class GenericAgent {
         
         room.setModelId(modelId);
 
-        // 3. Create a fresh Insight scoped to the room folder.
-        //    We do NOT mutate the caller's insight id that would break any subsequent pixel calls
-        //    in the same session (same pattern used in RepositoryRunAnalysisReactor).
-        Insight agentInsight = new Insight();
-        agentInsight.setUser(insight.getUser());
+        insight.setRoomForInsight(room);
 
-        // Point the working directory at the room folder so that file-system MCP tools
-        // (readFile, listFiles, writeFile, etc.) default to the room's persistent folder.
-        // Use setRoomForInsight() which sets both roomId and insightFolder — the same
-        // pattern used by SetInsightForRoomReactor. Plain setInsightFolder() alone is
-        // insufficient because getInsightFolder() lazily recomputes the path if roomId
-        // is not set, causing files to land in InsightCache instead of the room folder.
-        agentInsight.setRoomForInsight(room);
-
-        // If a Project ID is pass in paramMap (as "project") use ID to get assets path
-        // Else if a file path is passed in paramMap (as "filePath") use this file path
-        // Else use the room directory
         String filePath = "";
         if (paramMap.containsKey("project")) {
         	String projectId = paramMap.remove("project").toString();
@@ -140,7 +114,7 @@ public final class GenericAgent {
         	logger.info("Using project ID {} to set agent working directory..", projectId);
         } else if(paramMap.containsKey("filePath")){
         	filePath = paramMap.remove("filePath").toString();
-        	agentInsight.setInsightFolder(filePath.trim());
+        	insight.setInsightFolder(filePath.trim());
         } else {
             String roomFolderPath = room.getRoomFolderPath();
             File roomFolder = new File(roomFolderPath);
@@ -157,11 +131,10 @@ public final class GenericAgent {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
-        // 5. Build context to use agentInsight, not the caller's insight
         GenericAgentContext ctx = GenericAgentContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
-                .insight(agentInsight)
+                .insight(insight)
                 .userId(room.getUserId())
                 .filePath(filePath)
                 .input(input)
@@ -169,7 +142,6 @@ public final class GenericAgent {
                 .maxReflections(maxReflections)
                 .build();
 
-        // 6. Select harness and execute
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("GenericAgent: using harness '{}' for room={}", harness.getName(), roomId);
         return harness.execute(ctx);
@@ -177,11 +149,6 @@ public final class GenericAgent {
 
     /**
      * Resolves the model/engine ID using a three-tier priority:
-     * <ol>
-     *   <li>ROOM.MODEL_ID column value
-     *   <li>{@code "engine"} key inside room options JSON
-     *   <li>Caller-supplied {@code fallback}
-     * </ol>
      */
     @SuppressWarnings("unchecked")
     private static String resolveModelId(Room room, String fallback) {

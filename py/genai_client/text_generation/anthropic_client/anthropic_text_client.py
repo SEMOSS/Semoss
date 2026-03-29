@@ -1,7 +1,14 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
-from sympy import content
+from ...debug_logger.debug_logger import DebugLogger
+
+logger = DebugLogger(
+    log_dir="/Users/rweiler/Desktop/LOG_FILES",
+    log_file_name="anthropic_text_client.txt",
+    class_name=__name__,
+).logger
+
 
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
@@ -161,6 +168,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
 
+            logger.info(
+                f"Built request config: {request_config}, streaming: {streaming}, has_schema: {self.has_schema}"
+            )
+
             if streaming:
                 return self._handle_streaming(
                     request_config,
@@ -283,8 +294,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
-        use_beta_stream = self.use_beta_header and hasattr(self.client.beta.messages, "stream")
-        stream_method = self.client.beta.messages.stream if use_beta_stream else self.client.messages.stream
+        use_beta_stream = self.use_beta_header and hasattr(
+            self.client.beta.messages, "stream"
+        )
+        stream_method = (
+            self.client.beta.messages.stream
+            if use_beta_stream
+            else self.client.messages.stream
+        )
 
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
