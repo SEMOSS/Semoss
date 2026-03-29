@@ -1,15 +1,6 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
-from ...debug_logger.debug_logger import DebugLogger
-
-logger = DebugLogger(
-    log_dir="/Users/rweiler/Desktop/LOG_FILES",
-    log_file_name="anthropic_text_client.txt",
-    class_name=__name__,
-).logger
-
-
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -18,7 +9,6 @@ if TYPE_CHECKING:
 
 
 from smss_thread_local import get_smss_stream
-import json
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -167,10 +157,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             request_config = msg_builder_response.request_config
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
-
-            logger.info(
-                f"Built request config: {request_config}, streaming: {streaming}, has_schema: {self.has_schema}"
-            )
 
             if streaming:
                 return self._handle_streaming(
