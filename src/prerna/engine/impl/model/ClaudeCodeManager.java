@@ -70,7 +70,7 @@ public class ClaudeCodeManager {
 	protected Map<String, String> vars = new HashMap<>();
 
 	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
-			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps)
+			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
 			throws Exception {
 
 		String allowedToolsString = "allowed_tools=["
@@ -95,8 +95,8 @@ public class ClaudeCodeManager {
 				.collect(Collectors.joining(",", "[", "]"));
 
 		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s)",
-				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString);
+				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s')",
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId);
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
@@ -135,14 +135,17 @@ public class ClaudeCodeManager {
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
 			List<Map<String, String>> mcps) throws Exception {
-
+		
+		String insightId = insight.getInsightId();
+		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
+		
 		createClaudeDir(filePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
 		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
-				engineId, mcps);
+				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);

@@ -52,6 +52,10 @@ public class PixelJobThread extends Thread {
 	private String sessionId;
 	private String routeId;
 
+	private Integer localPort;
+	private String localProtocol;
+	private String localHostname;
+
 	private Insight insight;
 	private volatile PixelRunner runner;
 	private List<String> pixel;
@@ -65,7 +69,10 @@ public class PixelJobThread extends Thread {
 		this.sessionId = sessionId;
 		this.routeId = routeId;
 
-		// capture parent thread MDC
+		// capture parent thread context before spawning new thread
+		this.localPort = ThreadStore.getLocalPort();
+		this.localProtocol = ThreadStore.getLocalProtocol();
+		this.localHostname = ThreadStore.getLocalHostname();
 		this.log4jContextMap = ThreadContext.getImmutableContext();
 	}
 
@@ -78,6 +85,9 @@ public class PixelJobThread extends Thread {
 			ThreadStore.setRouteId(routeId);
 			ThreadStore.setJobId(jobId);
 			ThreadStore.setUser(insight.getUser());
+			ThreadStore.setLocalPort(localPort);
+			ThreadStore.setLocalProtocol(localProtocol);
+			ThreadStore.setLocalHostname(localHostname);
 
 			this.runner = new PixelRunner();
 			if (isCancelRequested()) {

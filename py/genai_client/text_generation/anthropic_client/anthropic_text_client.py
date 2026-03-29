@@ -1,8 +1,6 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
-from sympy import content
-
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -11,7 +9,6 @@ if TYPE_CHECKING:
 
 
 from smss_thread_local import get_smss_stream
-import json
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
