@@ -162,7 +162,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 				endDateCustom);
 		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
-		List<LogActivityDto> result = Collections.emptyList();
+		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,

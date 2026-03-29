@@ -25,20 +25,36 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.agent;
 
-@Deprecated
-public class SetContextReactor extends LoadAppReactor {
+/**
+ * Pluggable harness interface for the generic agent loop.
+ *
+ * <p>Implementations receive a fully-resolved {@link GenericAgentContext} and are
+ * responsible for driving the model/tool loop until a final text response is obtained.
+ *
+ * <p>Built-in implementations:
+ * <ul>
+ *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — SEMOSS Room tool-calling loop
+ *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness} — ClaudeCode SDK
+ * </ul>
+ *
+ * <p>Custom harnesses can be registered at startup via {@link AgentHarnessRegistry#register}.
+ */
+public interface IAgentHarness {
 
-	@Deprecated
-	public SetContextReactor() {
-		super();
-	}
+    /**
+     * Unique registry key for this harness (e.g. {@code "room_loop"}, {@code "claude_code"}).
+     * Must be stable across JVM restarts.
+     */
+    String getName();
 
-	@Deprecated
-	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
-	}
-
+    /**
+     * Execute the agentic loop and return a rich result.
+     *
+     * @param ctx fully-resolved context containing Room, model engine, insight, and parameters
+     * @return result with final text, iteration count, and per-tool-call trace
+     * @throws Exception on unrecoverable errors (callers should wrap and surface to the user)
+     */
+    AgentHarnessResult execute(GenericAgentContext ctx) throws Exception;
 }

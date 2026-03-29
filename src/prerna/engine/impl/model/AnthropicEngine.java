@@ -25,20 +25,14 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.engine.impl.model;
 
-@Deprecated
-public class SetContextReactor extends LoadAppReactor {
+import prerna.engine.api.ModelTypeEnum;
 
-	@Deprecated
-	public SetContextReactor() {
-		super();
-	}
+public class AnthropicEngine extends AbstractPythonModelEngine {
 
-	@Deprecated
 	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
+	public ModelTypeEnum getModelType() {
+		return ModelTypeEnum.ANTHROPIC;
 	}
-
 }
