@@ -666,7 +666,6 @@ public class MessageUtils {
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								// THIS IS FOR CLAUDE CODE.. NEED TO MAKE SURE THIS DOESN'T BREAK ANYTHING
 								Object argsRaw = funcMap.get("arguments");
 								if (argsRaw instanceof String) {
 									flatTool.put("arguments", (String) argsRaw);
