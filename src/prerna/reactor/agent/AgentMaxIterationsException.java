@@ -25,20 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.agent;
 
-@Deprecated
-public class SetContextReactor extends LoadAppReactor {
+/**
+ * Thrown by {@link RoomAgentHarness} when the tool-call loop reaches the maximum iteration
+ * cap without the model producing a {@code RESPONSE_TEXT}.
+ *
+ * <p>Callers are responsible for recording the failure and surfacing a clear error message.
+ */
+public class AgentMaxIterationsException extends RuntimeException {
 
-	@Deprecated
-	public SetContextReactor() {
-		super();
-	}
+    private final int maxIterations;
 
-	@Deprecated
-	@Override
-	public String getReactorDescription() {
-		return "This reactor is deprecated. Please update to LoadApp(project='') instead";
-	}
+    public AgentMaxIterationsException(int maxIterations) {
+        super("Agent loop exceeded max iterations (" + maxIterations
+                + ") without producing a final RESPONSE_TEXT");
+        this.maxIterations = maxIterations;
+    }
 
+    /** The iteration cap that was reached. */
+    public int getMaxIterations() {
+        return maxIterations;
+    }
 }
