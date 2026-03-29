@@ -26,7 +26,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock, AnthropicFoundry, Anthropic
+from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
