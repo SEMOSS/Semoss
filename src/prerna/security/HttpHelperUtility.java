@@ -587,7 +587,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
 	}
