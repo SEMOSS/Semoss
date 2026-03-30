@@ -48,8 +48,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
@@ -72,43 +71,40 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 			throw new IllegalArgumentException("Need to specify file name");
 		}
 
-		//get access token
-		String accessToken=null;
+		// get access token
+		String accessToken = null;
 		User user = this.insight.getUser();
 
-		try{
-			if(user==null){
+		try {
+			if (user == null) {
 				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "microsoft");
 				retMap.put("message", "Please login to your Microsoft account");
 				throwLoginError(retMap);
-			}
-			else {
+			} else {
 				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
-				accessToken=msToken.getAccess_token();
+				accessToken = msToken.getAccess_token();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "microsoft");
 			retMap.put("message", "Please login to your Microsoft account");
 			throwLoginError(retMap);
 		}
 
-
 		logger = getLogger(CLASS_NAME);
 		this.task = getTask();
 
 		// get a random file name
 		String randomKey = UUID.randomUUID().toString();
-		this.fileLocation = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + randomKey + ".csv";
-		//make file
+		this.fileLocation = Utility.getBaseFolder() + DIR_SEPARATOR + randomKey + ".csv";
+		// make file
 		buildTask();
 
-
-		//make call to OneDrive
-		String urlStr = "https://graph.microsoft.com/v1.0/me/drive/items/root:/"+fileName+".csv:/content";
-		String output = HttpHelperUtility.makeBinaryFilePutCall(urlStr, accessToken, fileName, this.fileLocation.toString());
+		// make call to OneDrive
+		String urlStr = "https://graph.microsoft.com/v1.0/me/drive/items/root:/" + fileName + ".csv:/content";
+		String output = HttpHelperUtility.makeBinaryFilePutCall(urlStr, accessToken, fileName,
+				this.fileLocation.toString());
 
 		return new NounMetadata(randomKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 	}
@@ -143,7 +139,7 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 				SemossDataType[] typesArr = null;
 
 				// we need to iterate and write the headers during the first time
-				if(this.task.hasNext()) {
+				if (this.task.hasNext()) {
 					IHeadersDataRow row = this.task.next();
 					List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
 
@@ -154,14 +150,15 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 					size = headers.length;
 					typesArr = new SemossDataType[size];
 					builder = new StringBuilder();
-					for(; i < size; i++) {
+					for (; i < size; i++) {
 						builder.append("\"").append(headers[i]).append("\"");
-						if( (i+1) != size) {
+						if ((i + 1) != size) {
 							builder.append(",");
 						}
 
-						if(headerInfo.get(i).containsKey("type")) {
-							typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
+						if (headerInfo.get(i).containsKey("type")) {
+							typesArr[i] = SemossDataType
+									.convertStringToDataType(headerInfo.get(i).get("type").toString());
 						} else {
 							typesArr[i] = SemossDataType.STRING;
 						}
@@ -173,13 +170,13 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 					Object[] dataRow = row.getValues();
 					builder = new StringBuilder();
 					i = 0;
-					for(; i < size; i ++) {
-						if(typesArr[i] == SemossDataType.STRING) {
+					for (; i < size; i++) {
+						if (typesArr[i] == SemossDataType.STRING) {
 							builder.append("\"").append(dataRow[i]).append("\"");
 						} else {
 							builder.append(dataRow[i]);
 						}
-						if( (i+1) != size) {
+						if ((i + 1) != size) {
 							builder.append(",");
 						}
 					}
@@ -189,26 +186,26 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 
 				int counter = 1;
 				// now loop through all the data
-				while(this.task.hasNext()) {
+				while (this.task.hasNext()) {
 					IHeadersDataRow row = this.task.next();
 					// generate the data row
 					Object[] dataRow = row.getValues();
 					builder = new StringBuilder();
 					i = 0;
-					for(; i < size; i ++) {
-						if(typesArr[i] == SemossDataType.STRING) {
+					for (; i < size; i++) {
+						if (typesArr[i] == SemossDataType.STRING) {
 							builder.append("\"").append(dataRow[i]).append("\"");
 						} else {
 							builder.append(dataRow[i]);
 						}
-						if( (i+1) != size) {
+						if ((i + 1) != size) {
 							builder.append(",");
 						}
 					}
 					// write row to file
 					bufferedWriter.write(builder.append("\n").toString());
 
-					if(counter % 10_000 == 0) {
+					if (counter % 10_000 == 0) {
 						logger.info("Finished writing line " + counter);
 					}
 					counter++;
@@ -218,10 +215,10 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 				logger.error(STACKTRACE, e);
 			} finally {
 				try {
-					if(bufferedWriter != null) {
+					if (bufferedWriter != null) {
 						bufferedWriter.close();
 					}
-					if(writer != null) {
+					if (writer != null) {
 						writer.close();
 					}
 				} catch (IOException e) {
@@ -230,10 +227,10 @@ public class OneDriveUploaderReactor extends TaskBuilderReactor {
 			}
 
 			long end = System.currentTimeMillis();
-			logger.info("Time to output file = " + (end-start) + " ms");
-		} catch(Exception e) {
+			logger.info("Time to output file = " + (end - start) + " ms");
+		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
-			if(f.exists()) {
+			if (f.exists()) {
 				f.delete();
 			}
 			throw new IllegalArgumentException("Encountered error while writing to CSV file");

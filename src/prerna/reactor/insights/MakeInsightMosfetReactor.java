@@ -57,7 +57,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
@@ -104,10 +103,9 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 			List<String> insightIds = project.getInsights();
 
 			for (String id : insightIds) {
-
-				String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-						+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + SmssUtilities.getUniqueName(projectName, projectId)
-						+ DIR_SEPARATOR + "version" + DIR_SEPARATOR + Utility.normalizePath(id);
+				String mosfetPath = Utility.getBaseFolder() + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR
+						+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + "version"
+						+ DIR_SEPARATOR + Utility.normalizePath(id);
 
 				if (!override) {
 					File f = new File(mosfetPath + DIR_SEPARATOR + MosfetFile.RECIPE_FILE);
@@ -164,8 +162,7 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 				throw e;
 			}
 
-			String mosfetPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
-					+ Constants.PROJECT_FOLDER + DIR_SEPARATOR
+			String mosfetPath = Utility.getBaseFolder() + DIR_SEPARATOR + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 					+ SmssUtilities.getUniqueName(project.getProjectName(), projectId) + DIR_SEPARATOR + "version"
 					+ DIR_SEPARATOR + rdbmsId;
 

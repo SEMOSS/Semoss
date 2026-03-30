@@ -56,6 +56,8 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -79,6 +81,7 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
+	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
@@ -101,6 +104,18 @@ public final class MCPUtility {
 	// UUID format: 8-4-4-4-12 hexadecimal digits
 	private static final Pattern UUID_PREFIX_PATTERN = Pattern
 			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
+
+	// Default maximum tool name length (matches OpenAI's 64-char limit)
+	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
+
+	// SMSS property key to override tool name length per engine instance
+	public static final String MAX_TOOL_NAME_CHAR = "MAX_TOOL_NAME_CHAR";
+
+	// Per-provider tool name length limits keyed by ModelTypeEnum.name()
+	private static final Map<String, Integer> PROVIDER_TOOL_NAME_LIMITS = Map.of(ModelTypeEnum.OPEN_AI.name(), 64,
+			ModelTypeEnum.AZURE_OPEN_AI.name(), 64
+	// other providers default to Integer.MAX_VALUE (no truncation)
+	);
 
 	public enum MCPExecution {
 		AUTO("auto"), ASK("ask"), DISABLED("disabled");
@@ -343,47 +358,126 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param jsonToolsMap
-	 * @return
+	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 */
+	public static String computeShortEngineId(String engineId) {
+		return engineId.replace("-", "").substring(0, 8);
+	}
+
+	/**
+	 * Returns the maximum tool name length for the given model engine. Checks
+	 * MAX_TOOL_NAME_CHAR in the engine's SMSS first, then falls back to the
+	 * per-provider default.
+	 */
+	public static int getMaxToolNameLength(IModelEngine modelEngine) {
+		if (modelEngine == null) {
+			return DEFAULT_MAX_TOOL_NAME_LENGTH;
+		}
+		java.util.Properties smssProp = modelEngine.getSmssProp();
+		if (smssProp != null) {
+			String smssValue = smssProp.getProperty(MAX_TOOL_NAME_CHAR);
+			if (smssValue != null && !smssValue.isBlank()) {
+				try {
+					return Integer.parseInt(smssValue.trim());
+				} catch (NumberFormatException e) {
+					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} — falling back to provider default",
+							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
+				}
+			}
+		}
+		ModelTypeEnum modelType = modelEngine.getModelType();
+		return getMaxToolNameLength(modelType != null ? modelType.name() : null);
+	}
+
+	/**
+	 * Returns the maximum tool name length for the given model type string. OPEN_AI
+	 * and AZURE_OPEN_AI return 64; all others return Integer.MAX_VALUE (no
+	 * truncation). A null type falls back to DEFAULT_MAX_TOOL_NAME_LENGTH in case
+	 * it is OPEN_AI.
+	 */
+	public static int getMaxToolNameLength(String modelType) {
+		if (modelType == null) {
+			return DEFAULT_MAX_TOOL_NAME_LENGTH;
+		}
+		return PROVIDER_TOOL_NAME_LIMITS.getOrDefault(modelType, Integer.MAX_VALUE);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name with no length limit (preserves
+	 * full UUID prefix).
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap) {
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, Integer.MAX_VALUE);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name, truncating to maxLength.
+	 * Non-length-limited providers (Integer.MAX_VALUE) use the full UUID prefix and
+	 * skip truncation.
+	 */
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
 
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+
+		if (maxLength == Integer.MAX_VALUE) {
+			// No length limit: use the full UUID prefix (preserves existing behavior)
+			for (int i = 0; i < toolsArray.length(); i++) {
+				JSONObject toolMap = toolsArray.getJSONObject(i);
+				String currentName = toolMap.getString("name");
+				toolMap.put("name", "a" + engineId + "_" + currentName);
+			}
+			return jsonToolsMap;
+		}
+
+		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
+		// fall back to short 8-hex prefix and truncate if still needed.
+		String fullPrefix = "a" + engineId + "_";
+		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
 			String currentName = toolMap.getString("name");
-			toolMap.put("name", "a" + engineId + "_" + currentName);
+			String llmName;
+			if (fullPrefix.length() + currentName.length() <= maxLength) {
+				llmName = fullPrefix + currentName;
+			} else {
+				int availableChars = maxLength - shortPrefix.length();
+				if (availableChars < 0) {
+					availableChars = 0;
+				}
+				String truncated = currentName.length() > availableChars ? currentName.substring(0, availableChars)
+						: currentName;
+				llmName = shortPrefix + truncated;
+			}
+			toolMap.put("name", llmName);
 		}
 		return jsonToolsMap;
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param functionName
-	 * @return
+	 * Strips the engine ID prefix from a tool function name. Tries the short prefix
+	 * (a{8hex}_) first, then falls back to the legacy full-UUID prefix.
 	 */
 	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
-		String internalFunctionNamePrefix = "a" + engineId + "_";
-		if (functionName.startsWith(internalFunctionNamePrefix)) {
-			return functionName.replaceFirst(internalFunctionNamePrefix, "");
+		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		if (functionName.startsWith(shortPrefix)) {
+			return functionName.substring(shortPrefix.length());
+		}
+		String fullPrefix = "a" + engineId + "_";
+		if (functionName.startsWith(fullPrefix)) {
+			return functionName.substring(fullPrefix.length());
 		}
 		return functionName;
 	}
 
 	/**
-	 * Parses the "a" + project id UUID + "_" prefix from a string
-	 * 
-	 * @param input the input string
-	 * @return String array [prefix, remainingString] if prefix found, null
-	 *         otherwise
+	 * Parses the legacy "a{UUID}_" prefix from a function name. Returns [engineId,
+	 * functionName] or null if no match.
 	 */
-	private static String[] parseEngineIdFromFunctionName(String input) {
+	public static String[] parseEngineIdFromFunctionName(String input) {
 		if (input == null) {
 			return null;
 		}
@@ -401,46 +495,75 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Updates the tool response with information regarding the tool
-	 * 
-	 * @param response
-	 * @return
+	 * Updates the tool response with engine/tool metadata.
 	 */
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response) {
-		updateToolResponseWithProjectMeta(response, null);
+		updateToolResponseWithProjectMeta(response, null, null);
 	}
 
 	/**
-	 * Updates the tool response with information regarding the tool. Uses a map for
-	 * an intermediary cache during the process in case we are iterating through
-	 * numerous response messages
-	 * 
-	 * @param response
-	 * @param mcpToolsJsonCache
-	 * @return
+	 * Updates the tool response with engine/tool metadata. Accepts a cache map to
+	 * avoid repeated engine lookups when iterating over multiple messages.
 	 */
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
 			Map<String, JSONObject> mcpToolsJsonCache) {
+		updateToolResponseWithProjectMeta(response, mcpToolsJsonCache, null);
+	}
+
+	/**
+	 * Updates the tool response with engine/tool metadata. Uses llmNameToToolJson
+	 * for direct lookup (short-prefix names) when provided, falling back to
+	 * UUID-regex parsing for legacy full-UUID-prefix names.
+	 */
+	@SuppressWarnings("unchecked")
+	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
+			Map<String, JSONObject> mcpToolsJsonCache, Map<String, Map<String, Object>> llmNameToToolJson) {
 		if (mcpToolsJsonCache == null) {
 			mcpToolsJsonCache = new HashMap<>();
 		}
 		List<Map<String, Object>> toolResponses = response.getToolResponses();
 		for (int toolResponseIndex = 0; toolResponseIndex < toolResponses.size(); toolResponseIndex++) {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
-			// we start the function name with _projectid_ so lets remove that
-			String responseProjectIdToolFunctionName = (String) responseToolMap.get("name");
-			String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(
-					responseProjectIdToolFunctionName);
+			String llmFacingName = (String) responseToolMap.get("name");
+
+			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
+				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
+				Object rawMeta = toolEntry.get("_meta");
+				Map<String, Object> enrichedMeta = (rawMeta instanceof Map) ? (Map<String, Object>) rawMeta
+						: new HashMap<>();
+
+				String origFunctionName = (String) enrichedMeta.get(SMSS_FUNCTION_NAME);
+				if (origFunctionName == null) {
+					origFunctionName = llmFacingName;
+				}
+
+				responseToolMap.put("_tool_found", true);
+				responseToolMap.put("original_name", origFunctionName);
+
+				if (toolEntry.containsKey("title")) {
+					responseToolMap.put("title", toolEntry.get("title"));
+				}
+				if (toolEntry.containsKey("description")) {
+					responseToolMap.put("description", toolEntry.get("description"));
+				}
+
+				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
+				currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(enrichedMeta));
+				JSONObject uiMeta = getValidMcpUI(enrichedMeta);
+				if (uiMeta != null) {
+					currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
+				}
+				responseToolMap.put("_meta", currentMeta);
+				continue;
+			}
+
+			// Legacy fallback: UUID-regex parsing for old full-UUID-prefix names
+			String[] responseProjectIdToolFunctionNameSplit = parseEngineIdFromFunctionName(llmFacingName);
 			if (responseProjectIdToolFunctionNameSplit == null) {
-				// if the tool function doesn't start with _projectid_
-				// then this response is already in proper format for the FE
 				continue;
 			}
 			String engineId = responseProjectIdToolFunctionNameSplit[0];
 			String origFunctionName = responseProjectIdToolFunctionNameSplit[1];
-
-			// now that we have the projectId
-			// lets append some of the mcp metadata back into the response
 
 			JSONObject mcpToolsJson = mcpToolsJsonCache.get(engineId);
 			if (mcpToolsJson == null) {
@@ -454,8 +577,6 @@ public final class MCPUtility {
 					engine = Utility.getProject(engineId);
 				}
 				if (engine == null) {
-					// technically speaking you could have a function start with _
-					// but will assume this is in proper format
 					continue;
 				}
 				mcpToolsJson = MCPUtility.getAggregatedTools(engine);
@@ -475,11 +596,9 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				// add back the title from mcp structure
 				if (mcpTool != null && mcpTool.has("title")) {
 					responseToolMap.put("title", mcpTool.getString("title"));
 				}
-
 				if (mcpTool != null && mcpTool.has("description")) {
 					responseToolMap.put("description", mcpTool.getString("description"));
 				}
@@ -494,21 +613,14 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", currentMeta);
 				}
 
-				// Add additional MCP metadata
 				if (mcpTool != null && mcpTool.has("_meta")) {
-					JSONObject toolMeta = mcpTool.getJSONObject("_meta");
-
-					// Add SMSS_MCP_EXECUTION
-					String mcpExecution = getValidMcpExecution(toolMeta);
-					currentMeta.put(SMSS_MCP_EXECUTION, mcpExecution);
-
-					// Add SMSS_MCP_UI
-					JSONObject uiMeta = getValidMcpUI(toolMeta);
+					Map<String, Object> toolMetaMap = mcpTool.getJSONObject("_meta").toMap();
+					currentMeta.put(SMSS_MCP_EXECUTION, getValidMcpExecution(toolMetaMap));
+					JSONObject uiMeta = getValidMcpUI(toolMetaMap);
 					if (uiMeta != null) {
 						currentMeta.put(SMSS_MCP_UI, uiMeta.toMap());
 					}
 				}
-
 			} else {
 				responseToolMap.put("_tool_found", false);
 			}
@@ -856,34 +968,37 @@ public final class MCPUtility {
 	 * @param toolMeta
 	 * @return
 	 */
-	private static String getValidMcpExecution(JSONObject toolMeta) {
+	private static String getValidMcpExecution(Map<String, Object> toolMeta) {
 		if (toolMeta == null) {
-			return MCPExecution.ASK.getValue(); // default if _meta missing
+			return MCPExecution.ASK.getValue();
 		}
-
-		Object val = toolMeta.opt(SMSS_MCP_EXECUTION); // could be null, missing, etc
-		String valueString = (val == null || JSONObject.NULL.equals(val)) ? null : val.toString();
-
-		MCPExecution exec = MCPExecution.fromValue(valueString); // null if not a valid enum
+		Object val = toolMeta.get(SMSS_MCP_EXECUTION);
+		String valueString = (val == null) ? null : val.toString();
+		MCPExecution exec = MCPExecution.fromValue(valueString);
 		return exec != null ? exec.getValue() : MCPExecution.ASK.getValue();
 	}
 
 	/**
-	 * 
+	 *
 	 * @param toolMeta
 	 * @return
 	 */
-	private static JSONObject getValidMcpUI(JSONObject toolMeta) {
+	private static JSONObject getValidMcpUI(Map<String, Object> toolMeta) {
 		if (toolMeta == null) {
 			return null;
 		}
-
-		Object val = toolMeta.opt(SMSS_MCP_UI); // could be null, missing, etc
-		if (val == null || JSONObject.NULL.equals(val) || !(val instanceof JSONObject)) {
+		Object val = toolMeta.get(SMSS_MCP_UI);
+		if (val == null) {
 			return null;
 		}
-
-		JSONObject uiJson = (JSONObject) val;
+		JSONObject uiJson;
+		if (val instanceof JSONObject) {
+			uiJson = (JSONObject) val;
+		} else if (val instanceof Map) {
+			uiJson = new JSONObject((Map<?, ?>) val);
+		} else {
+			return null;
+		}
 
 		// Only add known keys
 		String resourceURI = null;

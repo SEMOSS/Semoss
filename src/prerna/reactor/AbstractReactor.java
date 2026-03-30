@@ -563,6 +563,14 @@ public abstract class AbstractReactor implements IReactor {
 	public String getReactorDescription() {
 		return null;
 	}
+	
+	/**
+	 * Override in child reactors to define the output schema.
+	 * Returns null by default, meaning no output schema is defined.
+	 */
+	public JSONObject getResponseSchema() {
+	    return null;
+	}
 
 	@Override
 	public String getHelp() {
@@ -591,6 +599,14 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		help.append("\nMCP Schema:\n");
 		help.append(this.asMcpTool().toString(4));
+		
+	   JSONObject responseSchema = getResponseSchema();
+	    if (responseSchema != null) {
+	        help.append("\nResponse Schema:\n");
+	        help.append(responseSchema.toString(4));
+	    }
+		    
+		    
 		return help.toString();
 	}
 

@@ -31,12 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -55,14 +53,13 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
-import prerna.usertracking.UserCatalogVoteUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserCatalogVoteUtils;
 
 public class AdminMyEnginesReactorUnitTests {
 
@@ -81,7 +78,8 @@ public class AdminMyEnginesReactorUnitTests {
 		reactor.setNounStore(ns);
 		when(insight.getUser()).thenReturn(user);
 
-		// curRow is accessed by getMetaMap() — use reflection since it's protected in AbstractReactor
+		// curRow is accessed by getMetaMap() — use reflection since it's protected in
+		// AbstractReactor
 		GenRowStruct curRow = mock(GenRowStruct.class);
 		Field curRowField = AbstractReactor.class.getDeclaredField("curRow");
 		curRowField.setAccessible(true);
@@ -90,7 +88,7 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testKeysToGet() {
-		assertEquals(9, reactor.keysToGet.length);
+		assertEquals(10, reactor.keysToGet.length);
 		assertEquals(ReactorKeysEnum.FILTER_WORD.getKey(), reactor.keysToGet[0]);
 	}
 
@@ -110,7 +108,7 @@ public class AdminMyEnginesReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
@@ -124,7 +122,9 @@ public class AdminMyEnginesReactorUnitTests {
 	void testGetDescriptionForSortKey() {
 		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
 		assertNotNull(desc);
-		assertEquals("The sort is a string value containing either 'name' or 'date' for how to sort", desc);
+		assertEquals(
+				"The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.",
+				desc);
 	}
 
 	@Test
@@ -154,7 +154,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -164,8 +164,7 @@ public class AdminMyEnginesReactorUnitTests {
 			IHeadersDataRow row2 = mock(IHeadersDataRow.class);
 			when(row2.getValues()).thenReturn(new Object[] { "eng1", "description", "Another value" });
 			when(wrapper.next()).thenReturn(row1, row2);
-			seu.when(() -> SecurityEngineUtils.getEngineMetadataWrapper(any(), isNull(), eq(true)))
-					.thenReturn(wrapper);
+			seu.when(() -> SecurityEngineUtils.getEngineMetadataWrapper(any(), isNull(), eq(true))).thenReturn(wrapper);
 
 			NounMetadata result = reactor.execute();
 
@@ -193,7 +192,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -201,8 +200,7 @@ public class AdminMyEnginesReactorUnitTests {
 			IHeadersDataRow row1 = mock(IHeadersDataRow.class);
 			when(row1.getValues()).thenReturn(new Object[] { "eng1", "description", null });
 			when(wrapper.next()).thenReturn(row1);
-			seu.when(() -> SecurityEngineUtils.getEngineMetadataWrapper(any(), isNull(), eq(true)))
-					.thenReturn(wrapper);
+			seu.when(() -> SecurityEngineUtils.getEngineMetadataWrapper(any(), isNull(), eq(true))).thenReturn(wrapper);
 
 			NounMetadata result = reactor.execute();
 
@@ -230,7 +228,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			// noMeta=true (skip metadata), includeUserT=true (include user tracking)

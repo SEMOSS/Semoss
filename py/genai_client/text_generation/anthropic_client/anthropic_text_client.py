@@ -1,8 +1,6 @@
 from typing import Optional, Dict, Any, Union, TYPE_CHECKING, List
 import json
 
-from sympy import content
-
 if TYPE_CHECKING:
     # injected into globals in handle_python of gaas_tcp_server_handler.py
     def smss_stream(
@@ -11,7 +9,6 @@ if TYPE_CHECKING:
 
 
 from smss_thread_local import get_smss_stream
-import json
 from pydantic import BaseModel
 from ...clients.google_clients import (
     GoogleClient,
@@ -29,7 +26,7 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import AnthropicBedrock, AnthropicFoundry
+from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -78,7 +75,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
-        # TODO: Implement support for Anthropic API directly
         if self.provider == "google":
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
@@ -100,6 +96,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         elif self.provider == "azure":
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
+                api_key=kwargs.pop("api_key", None),
+            )
+        elif self.provider == "anthropic":
+            return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
         else:
@@ -280,13 +280,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         tool_result = []
 
+        use_beta_stream = self.use_beta_header and hasattr(
+            self.client.beta.messages, "stream"
+        )
         stream_method = (
             self.client.beta.messages.stream
-            if self.use_beta_header
+            if use_beta_stream
             else self.client.messages.stream
         )
 
-        with stream_method(**request_config.model_dump(exclude_none=True)) as stream:
+        stream_kwargs = request_config.model_dump(exclude_none=True)
+        if self.use_beta_header and not use_beta_stream:
+            # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
+            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            stream_kwargs.pop("betas", None)
+            stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
+
+        with stream_method(**stream_kwargs) as stream:
             final_message = None
             for event in stream:
                 if event.type == "message_start":
