@@ -493,7 +493,7 @@ public final class MCPUtility {
 	 * Parses the legacy "a{UUID}_" prefix from a function name. Returns [engineId,
 	 * functionName] or null if no match.
 	 */
-	private static String[] parseEngineIdFromFunctionName(String input) {
+	public static String[] parseEngineIdFromFunctionName(String input) {
 		if (input == null) {
 			return null;
 		}

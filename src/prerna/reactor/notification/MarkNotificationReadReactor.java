@@ -45,6 +45,9 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isNotificationDatabaseEnabled()) {
+			throw new IllegalArgumentException("Notifications are not enabled on this instance");
+		}
 		if (this.insight.getUser() == null
 				|| (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous())) {
 			throwAnonymousUserError();

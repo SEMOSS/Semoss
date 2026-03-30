@@ -142,6 +142,28 @@ public class AdminSqlQueryReactorUnitTests {
 	}
 
 	@Test
+	void testShowTablesQuerySuccess() {
+		reactor.keyValue.put(ReactorKeysEnum.QUERY_KEY.getKey(), "SHOW TABLES");
+		reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "db123");
+
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+
+			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
+			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			util.when(() -> Utility.decodeURIComponent("SHOW TABLES")).thenReturn("SHOW TABLES");
+
+			IDatabaseEngine engine = mock(IDatabaseEngine.class);
+			util.when(() -> Utility.getDatabase("db123")).thenReturn(engine);
+
+			NounMetadata result = reactor.execute();
+
+			assertNotNull(result);
+			assertEquals(PixelDataType.FORMATTED_DATA_SET, result.getNounType());
+		}
+	}
+
+	@Test
 	void testDatabaseNotFoundThrowsException() {
 		reactor.keyValue.put(ReactorKeysEnum.QUERY_KEY.getKey(), "SELECT 1");
 		reactor.keyValue.put(ReactorKeysEnum.DATABASE.getKey(), "bad_db");

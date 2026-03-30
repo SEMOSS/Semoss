@@ -78,6 +78,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
 
+	// the init script loading tells us the provider we are using
+	// but we also want to know what the model brand actually is
+	public static final String MODEL_BRAND = "MODEL_BRAND";
+
 	protected boolean keepConversationHistory = false;
 	protected int contextWindow = 0;
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
@@ -415,6 +419,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
+		// if we know the model brand
+		// return that for subtype
+		if (smssProp.containsKey(MODEL_BRAND)) {
+			return smssProp.getProperty(MODEL_BRAND);
+		}
+		// default to the model provider
 		return this.getModelType().toString();
 	}
 
