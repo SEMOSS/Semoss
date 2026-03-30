@@ -2107,10 +2107,10 @@ public abstract class AbstractSecurityUtils {
 										new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
 										new Object[] { "data classification", "multi", order++, "select-box",
-												"CONFIDENTIAL,FOUO,INTERNAL ONLY,IP,PII,PHI,PUBLIC,RESTRICTED" }));
+												"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" }));
 								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
 										new Object[] { "data restrictions", "multi", order++, "select-box",
-												"CONFIDENTIAL ALLOWED,FOUO ALLOWED,INTERNAL ALLOWED,IP ALLOWED,PII ALLOWED,PHI ALLOWED,RESTRICTED ALLOWED" }));
+												"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" }));
 							}
 						}
 					} catch (Exception e) {

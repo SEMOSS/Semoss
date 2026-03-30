@@ -27,10 +27,16 @@
  *******************************************************************************/
 package prerna.auth.utils.reactors.admin;
 
+import java.util.Locale;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.DescribeStatement;
+import net.sf.jsqlparser.statement.ExplainStatement;
+import net.sf.jsqlparser.statement.ShowColumnsStatement;
+import net.sf.jsqlparser.statement.ShowStatement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
@@ -112,7 +118,9 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		try {
 			Statement statement = CCJSqlParserUtil.parse(sql);
 
-			if (statement instanceof Select) {
+			if (statement instanceof Select || statement instanceof ShowStatement
+					|| statement instanceof ShowColumnsStatement || statement instanceof DescribeStatement
+					|| statement instanceof ExplainStatement) {
 				return QueryType.SELECT;
 			} else if (statement instanceof Insert) {
 				return QueryType.INSERT;
@@ -125,9 +133,29 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 				return QueryType.OTHER;
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not parse SQL statement, defaulting to OTHER type: " + e.getMessage());
+			classLogger.warn("Could not parse SQL statement, using keyword fallback: " + e.getMessage());
+			return detectQueryTypeFromKeyword(sql);
+		}
+	}
+
+	/**
+	 * Fallback when parser fails for dialect-specific read-only queries.
+	 */
+	private QueryType detectQueryTypeFromKeyword(String sql) {
+		if (sql == null) {
 			return QueryType.OTHER;
 		}
+
+		String normalizedSql = sql.trim().toLowerCase(Locale.ROOT);
+		if (normalizedSql.startsWith("select ") || normalizedSql.equals("select") || normalizedSql.startsWith("with ")
+				|| normalizedSql.equals("with") || normalizedSql.startsWith("show ") || normalizedSql.equals("show")
+				|| normalizedSql.startsWith("describe ") || normalizedSql.equals("describe")
+				|| normalizedSql.startsWith("desc ") || normalizedSql.equals("desc")
+				|| normalizedSql.startsWith("explain ") || normalizedSql.equals("explain")) {
+			return QueryType.SELECT;
+		}
+
+		return QueryType.OTHER;
 	}
 
 	/**
