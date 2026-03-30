@@ -426,7 +426,8 @@ public final class Utility {
 		while (keys.hasNext()) {
 			String key = (String) keys.next();
 			String value = paramHash.get(key);
-//			classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" + key + "@"));
+			// classLogger.debug("Replacing " + key + "<<>>" + value + query.indexOf("@" +
+			// key + "@"));
 			if (!value.equalsIgnoreCase(Constants.EMPTY)) {
 				query = query.replace("@" + key + "@", value);
 			}
@@ -1736,7 +1737,7 @@ public final class Utility {
 		try {
 			outDate = outdate_formatter.parse(output_date);
 		} catch (ParseException e) {
-//			logger.error(Constants.STACKTRACE, e);
+			// logger.error(Constants.STACKTRACE, e);
 		}
 
 		return outDate;
@@ -2995,9 +2996,9 @@ public final class Utility {
 				// write the propfile also into it
 				// prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
 				// FileWriter fw = new FileWriter(propFile);
-//				prop.list(new PrintWriter(fw));
-//				fw.flush();
-//				fw.close();
+				// prop.list(new PrintWriter(fw));
+				// fw.flush();
+				// fw.close();
 			}
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
@@ -3009,46 +3010,50 @@ public final class Utility {
 	/**
 	 * PLEASE USE PortAllocator.getInstance().getNextAvailablePort()
 	 */
-//	public static String findOpenPort() {
-//		classLogger.info("Finding an open port.. ");
-//		boolean found = false;
-//
-//		int lowPort = 5355;
-//		int highPort = lowPort + 10_000;
-//
-//		if (Utility.getDIHelperProperty("LOW_PORT") != null) {
-//			try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
-//			try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); } catch (Exception ignore) {};
-//		}
-//		
-//		for (; !found && lowPort < highPort; lowPort++) {
-//			classLogger.info("Trying port = " + lowPort);
-//			try(ServerSocket s = new ServerSocket(lowPort);) {
-//				classLogger.info("Success with port = " + lowPort);
-//				// no error, found an open port, we can stop
-//				found = true;
-//				s.close();
-//				break;
-//			} catch (Exception ex) {
-//				// do nothing
-//				classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
-//				found = false;
-////				logger.error(Constants.STACKTRACE, ex);
-//			}
-//		}
-//
-//		// if we found a port, return that port
-//		if (found) {
-//			return lowPort + "";
-//		}
-//		
-//		// no available ports in the range, either config is bad or something else is messed up
-//		// just throw an exception
-//		throw new IllegalArgumentException("Could not find available port to connect to");
-//	}
+	// public static String findOpenPort() {
+	// classLogger.info("Finding an open port.. ");
+	// boolean found = false;
+	//
+	// int lowPort = 5355;
+	// int highPort = lowPort + 10_000;
+	//
+	// if (Utility.getDIHelperProperty("LOW_PORT") != null) {
+	// try {lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT")); }
+	// catch (Exception ignore) {};
+	// }
+	//
+	// if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
+	// try {highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT")); }
+	// catch (Exception ignore) {};
+	// }
+	//
+	// for (; !found && lowPort < highPort; lowPort++) {
+	// classLogger.info("Trying port = " + lowPort);
+	// try(ServerSocket s = new ServerSocket(lowPort);) {
+	// classLogger.info("Success with port = " + lowPort);
+	// // no error, found an open port, we can stop
+	// found = true;
+	// s.close();
+	// break;
+	// } catch (Exception ex) {
+	// // do nothing
+	// classLogger.info("Port " + lowPort + " Failed. " + ex.getMessage());
+	// found = false;
+	//// logger.error(Constants.STACKTRACE, ex);
+	// }
+	// }
+	//
+	// // if we found a port, return that port
+	// if (found) {
+	// return lowPort + "";
+	// }
+	//
+	// // no available ports in the range, either config is bad or something else is
+	// messed up
+	// // just throw an exception
+	// throw new IllegalArgumentException("Could not find available port to connect
+	// to");
+	// }
 
 	/**
 	 * Write an iterator to a file location using "," as a separator
@@ -3657,21 +3662,21 @@ public final class Utility {
 		Map<String, String> cleanedParams = null;
 
 		switch (typeOfMap.toUpperCase(Locale.ENGLISH)) {
-		case "HASHTABLE":
-			cleanedParams = new Hashtable<>();
-			break;
-		case "HASHMAP":
-			cleanedParams = new HashMap<>();
-			break;
-		case "LINKEDHASHMAP":
-			cleanedParams = new LinkedHashMap<>();
-			break;
-		case "TREEMAP":
-			cleanedParams = new TreeMap<>();
-			break;
-		default:
-			cleanedParams = new HashMap<>();
-			break;
+			case "HASHTABLE":
+				cleanedParams = new Hashtable<>();
+				break;
+			case "HASHMAP":
+				cleanedParams = new HashMap<>();
+				break;
+			case "LINKEDHASHMAP":
+				cleanedParams = new LinkedHashMap<>();
+				break;
+			case "TREEMAP":
+				cleanedParams = new TreeMap<>();
+				break;
+			default:
+				cleanedParams = new HashMap<>();
+				break;
 		}
 
 		for (Entry<String, String> map : paramTable.entrySet()) {
@@ -4585,6 +4590,21 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(schedulerForceDisable);
+	}
+
+	/**
+	 * Determine if Room Tools MCP project initialisation is enabled at boot
+	 * 
+	 * @return
+	 */
+	public static boolean isRoomMCPEnabled() {
+		String roomMcp = Utility.getDIHelperProperty(Constants.ROOM_MCP_ENABLED);
+		if (roomMcp == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(roomMcp);
 	}
 
 	public static boolean isUserTrackingDisabled() {
@@ -6104,8 +6124,10 @@ public final class Utility {
 	}
 
 	/**
-	 * Returns true only if the folder contains at least one direct non-directory file.
-	 * Use this when you specifically need to confirm flat files exist (e.g., validating
+	 * Returns true only if the folder contains at least one direct non-directory
+	 * file.
+	 * Use this when you specifically need to confirm flat files exist (e.g.,
+	 * validating
 	 * that a folder has been populated with data files, not just sub-folders).
 	 */
 	public static boolean folderHasAnyFiles(String folderPath) {
@@ -6119,10 +6141,14 @@ public final class Utility {
 	}
 
 	/**
-	 * Returns true if the folder exists and contains any entries — files, sub-directories,
-	 * hidden files, dot files, etc. Use this when you just need to know the folder is
-	 * non-empty regardless of whether its contents are files or directories (e.g., before
-	 * syncing a room folder to cloud storage where the room may store data in sub-directories).
+	 * Returns true if the folder exists and contains any entries — files, s
+	 * b-directories,
+	 * hidden files, dot files, etc. Use this when you just need to know the folder
+	 * is
+	 * non-empty regardless of whether its contents are files or directories (e.g.,
+	 * before
+	 * syncing a room folder to cloud storage where the room may store data in
+	 * sub-directories).
 	 */
 	public static boolean folderIsNotEmpty(String folderPath) {
 		File folder = new File(folderPath);

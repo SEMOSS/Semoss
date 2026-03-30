@@ -46,6 +46,7 @@ import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.AbstractPromptUtils;
+import prerna.reactor.agent.mcp.tools.RoomMCPUtility;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -91,9 +92,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-//			OwlPrettyPrintFixer.fixOwl(prop);
+			// OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-//			OwlSeparatePixelFromConceptual.fixOwl(prop);
+			// OwlSeparatePixelFromConceptual.fixOwl(prop);
 
 			engineId = prop.getProperty(Constants.ENGINE);
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
@@ -129,9 +130,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-//			OwlPrettyPrintFixer.fixOwl(prop);
+			// OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-//			OwlSeparatePixelFromConceptual.fixOwl(prop);
+			// OwlSeparatePixelFromConceptual.fixOwl(prop);
 
 			engineId = prop.getProperty(Constants.ENGINE);
 
@@ -278,6 +279,15 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		if (!ClusterUtil.IS_CLUSTER) {
 			LegacyToProjectRestructurerHelper updater = new LegacyToProjectRestructurerHelper();
 			updater.executeRestructure();
+		}
+
+		// initialise the Room Tools MCP system project if enabled
+		if (Utility.isRoomMCPEnabled()) {
+			try {
+				RoomMCPUtility.initAndPublish();
+			} catch (Exception e) {
+				classLogger.error("Failed to initialise Room Tools MCP system project during boot", e);
+			}
 		}
 	}
 
