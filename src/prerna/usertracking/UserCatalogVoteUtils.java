@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -51,17 +52,19 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class UserCatalogVoteUtils extends UserTrackingUtils {
 
 	private static Logger classLogger = LogManager.getLogger(UserCatalogVoteUtils.class);
-	
+
 	private static String VOTE_TN = "USER_CATALOG_VOTES";
 	private static String VOTE_PRE = "USER_CATALOG_VOTES__";
-	
+
 	/**
 	 * 
 	 * @param creds
@@ -73,25 +76,24 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "USERID"));
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "TYPE"));
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
-		
+
 		OrQueryFilter of = new OrQueryFilter();
 		for (Pair<String, String> cred : creds) {
 			AndQueryFilter af = new AndQueryFilter();
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getValue0()));
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getValue1()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "USERID", "==", cred.getValue0()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "TYPE", "==", cred.getValue1()));
 			of.addFilter(af);
 		}
 		qs.addExplicitFilter(of);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", catalogId));
-		
-		IRawSelectWrapper wrapper = null;
+
 		Map<Pair<String, String>, Integer> votes = new HashMap<>();
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getUserTrackingDb(), qs)) {
 			if (wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				Object[] values = headerRow.getValues();
-				
+
 				if (values[0] != null && values[1] != null && values[2] != null) {
 					Pair<String, String> credential = Pair.with(values[0].toString(), values[1].toString());
 					Integer vote = ((Number) values[2]).intValue();
@@ -100,19 +102,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		return votes;
 	}
-	
+
 	/**
 	 * 
 	 * @param creds
@@ -125,32 +119,31 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "USERID"));
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "TYPE"));
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
-		
+
 		OrQueryFilter of = new OrQueryFilter();
 		for (Pair<String, String> cred : creds) {
 			AndQueryFilter af = new AndQueryFilter();
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "USERID", "==", cred.getValue0()));
-			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE +  "TYPE", "==", cred.getValue1()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "USERID", "==", cred.getValue0()));
+			af.addFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "TYPE", "==", cred.getValue1()));
 			of.addFilter(af);
 		}
 		qs.addExplicitFilter(of);
-		if(engineIds != null && !engineIds.isEmpty()) {
+		if (engineIds != null && !engineIds.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", engineIds));
 		}
-		
-		IRawSelectWrapper wrapper = null;
+
 		Map<String, Map<Pair<String, String>, Integer>> mappy = new HashMap<>();
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getUserTrackingDb(), qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				Object[] values = headerRow.getValues();
-				
+
 				if (values[0] != null && values[1] != null && values[2] != null && values[3] != null) {
 					String engine = values[0].toString();
 					Pair<String, String> credential = Pair.with(values[1].toString(), values[2].toString());
 					Integer vote = ((Number) values[3]).intValue();
-					
+
 					if (mappy.containsKey(engine)) {
 						mappy.get(engine).put(credential, vote);
 					} else {
@@ -162,20 +155,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
-		
+
 		Map<String, Boolean> toReturn = new HashMap<>();
 		for (String x : engineIds) {
 			boolean upvoted = false;
-			
+
 			if (mappy.containsKey(x)) {
 				Map<Pair<String, String>, Integer> fromDB = mappy.get(x);
 				boolean allUpvoted = true;
@@ -189,7 +174,7 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 
 			toReturn.put(x, upvoted);
 		}
-		
+
 		return toReturn;
 	}
 
@@ -199,6 +184,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @return
 	 */
 	public static int getAllVotes(String databaseId) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector sum = new QueryFunctionSelector();
 		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
@@ -206,13 +193,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		sum.setFunction(QueryFunctionHelper.SUM);
 		qs.addSelector(sum);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseId));
-		
+
 		int val = 0;
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
 
-			if(wrapper.hasNext()) {
+			if (wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				Object[] values = headerRow.getValues();
 				if (values[0] != null) {
@@ -230,7 +217,7 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				}
 			}
 		}
-		
+
 		return val;
 	}
 
@@ -240,6 +227,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @return
 	 */
 	public static Map<String, Integer> getAllVotes(List<String> databaseIds) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
 		QueryFunctionSelector sum = new QueryFunctionSelector();
@@ -249,12 +238,12 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		qs.addSelector(sum);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseIds));
 		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
-		
+
 		Map<String, Integer> votes = new HashMap<>();
 		IRawSelectWrapper wrapper = null;
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
-			while(wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				IHeadersDataRow headerRow = wrapper.next();
 				Object[] values = headerRow.getValues();
 				votes.put((String) values[0], ((Number) values[0]).intValue());
@@ -270,10 +259,10 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				}
 			}
 		}
-		
+
 		return votes;
 	}
-	
+
 	/**
 	 * 
 	 * @param databaseIds
@@ -281,6 +270,8 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @throws Exception
 	 */
 	public static IRawSelectWrapper getAllVotesWrapper(Collection<String> databaseIds) throws Exception {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
 		QueryFunctionSelector sum = new QueryFunctionSelector();
@@ -290,11 +281,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		qs.addSelector(sum);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", databaseIds));
 		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
-		
+
 		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
 		return wrapper;
 	}
-	
+
 	/**
 	 * 
 	 * @param creds
@@ -334,8 +325,9 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @param vote
 	 */
 	private static void update(List<Pair<String, String>> creds, String catalogId, int vote) {
-		String query = "UPDATE " + VOTE_TN + " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
-		
+		String query = "UPDATE " + VOTE_TN
+				+ " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -349,28 +341,20 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				if(userTrackingDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
-		}	
+		}
 	}
 
 	/**
@@ -380,6 +364,7 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 */
 	public static void delete(List<Pair<String, String>> creds, String catalogId) {
 		String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -391,25 +376,16 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				ps.addBatch();
 			}
 			ps.execute();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				if(userTrackingDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -421,8 +397,9 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @param vote
 	 */
 	private static void insert(List<Pair<String, String>> creds, String cid, int vote) {
-		String query = "INSERT INTO " + VOTE_TN + " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
-		
+		String query = "INSERT INTO " + VOTE_TN
+				+ " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -436,26 +413,18 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				ps.addBatch();
 			}
 			ps.executeBatch();
-			if(!ps.getConnection().getAutoCommit()) {
+			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred while adding user access request detailed message = " + e.getMessage());
+			throw new IllegalArgumentException(
+					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
-			if(ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-				if(userTrackingDb.isConnectionPooling()) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -467,23 +436,25 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	 * @return
 	 */
 	public static List<String> getRecommendedDatabases(int limit, List<String> accessibleDbs) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
-		
+
 		QueryFunctionSelector sum = new QueryFunctionSelector();
 		sum.addInnerSelector(new QueryColumnSelector(VOTE_PRE + "VOTE"));
 		sum.setAlias("total");
 		sum.setFunction(QueryFunctionHelper.SUM);
 		qs.addSelector(sum);
-		
+
 		// filter out any non viewable databases
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(VOTE_PRE + "ENGINEID", "==", accessibleDbs));
 
 		qs.addGroupBy(new QueryColumnSelector(VOTE_PRE + "ENGINEID"));
-		
+
 		qs.addOrderBy("total", "desc");
 		qs.setLimit(limit);
 		return QueryExecutionUtility.flushToListString(userTrackingDb, qs);
 	}
-	
+
 }

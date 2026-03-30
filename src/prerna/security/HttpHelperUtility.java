@@ -107,7 +107,6 @@ import io.burt.jmespath.JmesPath;
 import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class HttpHelperUtility {
@@ -162,17 +161,17 @@ public final class HttpHelperUtility {
 					SSLBufferMode.DYNAMIC, verifier);
 
 		} catch (KeyManagementException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (NoSuchAlgorithmException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (KeyStoreException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (UnrecoverableKeyException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (CertificateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
@@ -226,21 +225,21 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} finally {
 			if (entity != null) {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -322,7 +321,7 @@ public final class HttpHelperUtility {
 					bais.reset();
 					FileUtils.copyInputStreamToFile(bais, savedFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 					throw new IllegalArgumentException("Could not read file item.");
 				}
 			} else {
@@ -331,7 +330,7 @@ public final class HttpHelperUtility {
 
 			return savedFile;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		} finally {
 			if (is != null) {
@@ -347,14 +346,14 @@ public final class HttpHelperUtility {
 				try {
 					EntityUtils.consume(entity);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 			if (response != null) {
 				try {
 					response.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -403,7 +402,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException(
 					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
@@ -449,7 +448,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
@@ -494,7 +493,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
@@ -542,7 +541,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException(
 					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
 		}
@@ -591,7 +590,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
@@ -620,7 +619,7 @@ public final class HttpHelperUtility {
 			int statusCode = response.getCode();
 			return statusCode;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url, e);
 		} finally {
 			if (response != null) {
@@ -668,7 +667,7 @@ public final class HttpHelperUtility {
 
 			return responseData;
 		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
 		}
 	}
@@ -721,19 +720,19 @@ public final class HttpHelperUtility {
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (ClientProtocolException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -786,19 +785,19 @@ public final class HttpHelperUtility {
 				}
 			}
 		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (ClientProtocolException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -841,16 +840,26 @@ public final class HttpHelperUtility {
 	 */
 	public static AccessToken getAccessToken(String input, String nameOfToken) {
 		String accessToken = null;
+		String refreshToken = null;
 		String[] tokens = input.split("&");
 		for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
 			if (thisToken.startsWith(nameOfToken)) {
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
-				break;
+			} else if (thisToken.startsWith("refresh_token=")) {
+				refreshToken = thisToken.replaceAll("refresh_token=", "");
 			}
 		}
 		AccessToken tok = new AccessToken();
 		tok.setAccess_token(accessToken);
+		if (refreshToken != null && !refreshToken.isEmpty()) {
+			try {
+				tok.addMetaValue("refresh_token", URLDecoder.decode(refreshToken, StandardCharsets.UTF_8.toString()));
+			} catch (UnsupportedEncodingException e) {
+				classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
+				tok.addMetaValue("refresh_token", refreshToken);
+			}
+		}
 		tok.init();
 
 		return tok;
@@ -903,9 +912,16 @@ public final class HttpHelperUtility {
 			if (result.size() >= 2) {
 				tok.setExpires_in(result.get(2).asInt());
 			}
+			JsonNode refreshTokenNode = input.get("refresh_token");
+			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
+				String refreshToken = refreshTokenNode.asText();
+				if (refreshToken != null && !refreshToken.isEmpty()) {
+					tok.addMetaValue("refresh_token", refreshToken);
+				}
+			}
 			tok.init();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		}
 		return tok;
 	}
@@ -990,22 +1006,22 @@ public final class HttpHelperUtility {
 
 			responseCode = String.valueOf(con.getResponseCode());
 		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -1058,9 +1074,9 @@ public final class HttpHelperUtility {
 			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 			return br;
 		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 		}
 
 		return null;
@@ -1105,13 +1121,13 @@ public final class HttpHelperUtility {
 			}
 			return result.toString();
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -1141,13 +1157,13 @@ public final class HttpHelperUtility {
 			}
 			return result.toString();
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -1180,13 +1196,13 @@ public final class HttpHelperUtility {
 			}
 			return result.toString();
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}
@@ -1215,13 +1231,13 @@ public final class HttpHelperUtility {
 			}
 			return result.toString();
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("HttpHelperUtility operation failed while handling an HTTP/token request", e);
 				}
 			}
 		}

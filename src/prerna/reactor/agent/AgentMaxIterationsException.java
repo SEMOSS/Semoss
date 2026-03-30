@@ -25,34 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.masterdatabase;
+package prerna.reactor.agent;
 
-import prerna.ds.rdbms.h2.H2Frame;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
-import prerna.query.querystruct.HardSelectQueryStruct;
-import prerna.reactor.AbstractReactor;
-import prerna.reactor.imports.RdbmsImporter;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.Utility;
+/**
+ * Thrown by {@link RoomAgentHarness} when the tool-call loop reaches the maximum iteration
+ * cap without the model producing a {@code RESPONSE_TEXT}.
+ *
+ * <p>Callers are responsible for recording the failure and surfacing a clear error message.
+ */
+public class AgentMaxIterationsException extends RuntimeException {
 
-public class GetPhysicalToLogicalMapping extends AbstractReactor {
+    private final int maxIterations;
 
-	@Override
-	public NounMetadata execute() {
-		String query = "SELECT e.engineName, ec.physicalName, c.logicalName from Engine e INNER JOIN EngineConcept ec ON e.id=ec.engine INNER JOIN Concept c on ec.localConceptID = c.localConceptID";
-		HardSelectQueryStruct qs = new HardSelectQueryStruct();
-		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
-		qs.setEngine(Utility.getDatabase(Constants.LOCAL_MASTER_DB));
-		
-		H2Frame frame = new H2Frame();
-		RdbmsImporter importer = new RdbmsImporter(frame, qs);
-		importer.insertData();
-		this.insight.setDataMaker(frame);
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
-	}
+    public AgentMaxIterationsException(int maxIterations) {
+        super("Agent loop exceeded max iterations (" + maxIterations
+                + ") without producing a final RESPONSE_TEXT");
+        this.maxIterations = maxIterations;
+    }
 
+    /** The iteration cap that was reached. */
+    public int getMaxIterations() {
+        return maxIterations;
+    }
 }

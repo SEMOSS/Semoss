@@ -33,12 +33,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Comparator;
 import java.util.stream.Stream;
 import java.io.UncheckedIOException;
 
@@ -47,10 +43,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
-import prerna.engine.api.IModelEngine;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -75,9 +69,10 @@ public class ClaudeCodeManager {
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
 
-	private String createInitScript(String engineId, String projectPath, String roomId, String accessKey,
-			String secretKey, List<String> allowedTools, String permissionMode, String projectId,
-			List<Map<String, String>> mcps) {
+	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
+			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
+			throws Exception {
+
 		String allowedToolsString = "allowed_tools=["
 				+ allowedTools.stream().map(tool -> "'" + tool + "'").collect(Collectors.joining(",")) + "]";
 		Integer localPort = ThreadStore.getLocalPort();
@@ -100,9 +95,8 @@ public class ClaudeCodeManager {
 				.collect(Collectors.joining(",", "[", "]"));
 
 		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s)",
-				engineId, projectPath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl,
-				mcpsString);
+				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s')",
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId);
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
@@ -138,33 +132,20 @@ public class ClaudeCodeManager {
 		}
 	}
 
-	public String query(Insight insight, User user, String engineId, String projectId, String prompt,
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps) {
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
-		}
-		IModelEngine modelEngine = Utility.getModel(engineId);
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		createClaudeDir(projectPath);
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, prompt);
-//		Map<String, Object> roomOptions = new HashMap<>();
-//		roomOptions.put("mcps", mcps);
-//		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
-//		room.setOptionsMap(roomOptions);
-		String finalRoomId = room.getId();
+			List<Map<String, String>> mcps) throws Exception {
+		
+		String insightId = insight.getInsightId();
+		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
+		
+		createClaudeDir(filePath);
+
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(engineId, projectPath, finalRoomId, accessKey, secretKey, allowedTools,
-				permissionMode, projectId, mcps);
+		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
+				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
