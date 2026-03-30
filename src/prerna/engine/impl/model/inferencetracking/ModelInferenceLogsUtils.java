@@ -2910,4 +2910,154 @@ public class ModelInferenceLogsUtils {
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
+	/**
+	 * Returns feedback records for the admin dashboard, joining FEEDBACK with
+	 * MESSAGE and ROOM to expose user, project, and agent context.
+	 *
+	 * @param limit     max rows to return (nullable)
+	 * @param offset    rows to skip (nullable)
+	 * @param startDate inclusive lower bound on FEEDBACK_DATE (nullable)
+	 * @param endDate   inclusive upper bound on FEEDBACK_DATE (nullable)
+	 * @param projectId filter by project (nullable)
+	 * @param userId    filter by user (nullable)
+	 * @param engineId  filter by agent/engine (nullable)
+	 * @return list of feedback record maps
+	 */
+	public static List<Map<String, Object>> getFeedbackForAdmin(String limit, String offset,
+			String startDate, String endDate, String projectId, String userId, String engineId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Feedback columns
+		qs.addSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "FEEDBACK_TEXT"));
+		qs.addSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE"));
+		qs.addSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "RATING"));
+
+		// Message columns for context
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+
+		// Room columns for project context
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+
+		// Join FEEDBACK -> MESSAGE on MESSAGE_ID
+		qs.addRelation(FEEDBACK_TABLE_NAME + "MESSAGE_ID", MESSAGE_TABLE_NAME + "MESSAGE_ID", "inner.join");
+		// Join MESSAGE -> ROOM on ROOM_ID
+		qs.addRelation(MESSAGE_TABLE_NAME + "ROOM_ID", ROOM_TABLE_NAME + "ROOM_ID", "left.join");
+
+		// Optional filters
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "PROJECT_ID", "==", projectId));
+		}
+		if (userId != null && !userId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+		}
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		}
+
+		// Date range filter on FEEDBACK_DATE
+		addFeedbackDateFilter(qs, startDate, endDate);
+
+		// Default sort by FEEDBACK_DATE descending
+		qs.addOrderBy(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "DESC");
+
+		addLimitAndOffSet(qs, limit, offset);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * Returns aggregate feedback counts for the admin dashboard: total, positive,
+	 * and negative counts, optionally grouped/filtered by project, user, engine, or
+	 * date range.
+	 *
+	 * @param startDate inclusive lower bound on FEEDBACK_DATE (nullable)
+	 * @param endDate   inclusive upper bound on FEEDBACK_DATE (nullable)
+	 * @param projectId filter by project (nullable)
+	 * @param userId    filter by user (nullable)
+	 * @param engineId  filter by agent/engine (nullable)
+	 * @return list of count maps with TOTAL_FEEDBACK, POSITIVE_FEEDBACK,
+	 *         NEGATIVE_FEEDBACK
+	 */
+	public static List<Map<String, Object>> getFeedbackCountForAdmin(String startDate, String endDate,
+			String projectId, String userId, String engineId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		// Total feedback count
+		QueryFunctionSelector totalSelector = new QueryFunctionSelector();
+		totalSelector.setAlias("TOTAL_FEEDBACK");
+		totalSelector.setFunction(QueryFunctionHelper.COUNT);
+		totalSelector.addInnerSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "MESSAGE_ID"));
+		qs.addSelector(totalSelector);
+
+		// Positive feedback count: SUM(CASE WHEN RATING = true THEN 1 ELSE 0 END)
+		QueryIfSelector positiveIf = new QueryIfSelector();
+		positiveIf.setCondition(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "RATING", "==", true));
+		positiveIf.setPrecedent(new QueryConstantSelector(1));
+		positiveIf.setAntecedent(new QueryConstantSelector(0));
+
+		QueryFunctionSelector positiveSelector = new QueryFunctionSelector();
+		positiveSelector.setAlias("POSITIVE_FEEDBACK");
+		positiveSelector.setFunction(QueryFunctionHelper.SUM);
+		positiveSelector.addInnerSelector(positiveIf);
+		qs.addSelector(positiveSelector);
+
+		// Negative feedback count: SUM(CASE WHEN RATING = false THEN 1 ELSE 0 END)
+		QueryIfSelector negativeIf = new QueryIfSelector();
+		negativeIf.setCondition(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "RATING", "==", false));
+		negativeIf.setPrecedent(new QueryConstantSelector(1));
+		negativeIf.setAntecedent(new QueryConstantSelector(0));
+
+		QueryFunctionSelector negativeSelector = new QueryFunctionSelector();
+		negativeSelector.setAlias("NEGATIVE_FEEDBACK");
+		negativeSelector.setFunction(QueryFunctionHelper.SUM);
+		negativeSelector.addInnerSelector(negativeIf);
+		qs.addSelector(negativeSelector);
+
+		// Join FEEDBACK -> MESSAGE on MESSAGE_ID
+		qs.addRelation(FEEDBACK_TABLE_NAME + "MESSAGE_ID", MESSAGE_TABLE_NAME + "MESSAGE_ID", "inner.join");
+		// Join MESSAGE -> ROOM on ROOM_ID
+		qs.addRelation(MESSAGE_TABLE_NAME + "ROOM_ID", ROOM_TABLE_NAME + "ROOM_ID", "left.join");
+
+		// Optional filters
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ROOM_TABLE_NAME + "PROJECT_ID", "==", projectId));
+		}
+		if (userId != null && !userId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+		}
+		if (engineId != null && !engineId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "AGENT_ID", "==", engineId));
+		}
+
+		// Date range filter on FEEDBACK_DATE
+		addFeedbackDateFilter(qs, startDate, endDate);
+
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * Adds a date range filter on FEEDBACK__FEEDBACK_DATE.
+	 *
+	 * @param qs        the query struct to modify
+	 * @param startDate inclusive lower bound (nullable)
+	 * @param endDate   inclusive upper bound (nullable)
+	 */
+	private static void addFeedbackDateFilter(SelectQueryStruct qs, String startDate, String endDate) {
+		if ((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
+			AndQueryFilter andFilters = new AndQueryFilter();
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", ">=", startDate));
+			andFilters.addFilter(
+					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "<=", endDate));
+			qs.addExplicitFilter(andFilters);
+		}
+	}
+
 }
