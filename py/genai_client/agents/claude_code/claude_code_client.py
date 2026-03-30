@@ -1,7 +1,5 @@
 from typing import Optional
 import asyncio
-import os
-from datetime import datetime, timezone
 from pydantic import BaseModel
 from claude_agent_sdk import (
     query,
@@ -12,6 +10,7 @@ from claude_agent_sdk import (
     PermissionMode,
     HookMatcher,
 )
+from .claude_code_utils import _build_change_logger
 
 
 class MCP(BaseModel):
@@ -29,48 +28,7 @@ class CCInitArgs(BaseModel):
     base_url: Optional[str] = ""
     allowed_tools: Optional[list[str]] = None
     mcps: Optional[list[MCP]] = None
-
-
-def _build_change_logger(cwd: str):
-    """
-    Factory that returns a PostToolUse hook callback bound to the given cwd.
-    Logs every file-modifying tool call to {cwd}/.claude/logs/change_log.txt.
-    """
-    log_path = os.path.join(cwd, ".claude", "logs", "change_log.txt")
-
-    async def log_change(input_data: dict, tool_use_id: str | None, context) -> dict:
-        tool_name = input_data.get("tool_name", "unknown")
-        tool_input = input_data.get("tool_input", {})
-        timestamp = datetime.now(timezone.utc).isoformat()
-
-        file_path = (
-            tool_input.get("file_path")
-            or tool_input.get("path")
-            or tool_input.get("file")
-            or "N/A"
-        )
-
-        if tool_name == "Bash":
-            command = tool_input.get("command", "N/A")
-            entry = f"[{timestamp}] TOOL={tool_name} CMD={command}\n"
-        else:
-            # For Write/Edit/MultiEdit, include a short description
-            description = tool_input.get("description", "")
-            entry = f"[{timestamp}] TOOL={tool_name} FILE={file_path}"
-            if description:
-                entry += f" DESC={description}"
-            entry += "\n"
-
-        try:
-            os.makedirs(os.path.dirname(log_path), exist_ok=True)
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(entry)
-        except OSError:
-            pass
-
-        return {}
-
-    return log_change
+    insight_id: Optional[str] = None
 
 
 class ClaudeCodeClient:
@@ -86,12 +44,17 @@ class ClaudeCodeClient:
         change_logger = _build_change_logger(self.configuration.cwd_path)
 
         self.agent_options = ClaudeAgentOptions(
-            permission_mode=self.configuration.permission_mode,
+            # permission_mode=self.configuration.permission_mode,
+            permission_mode="bypassPermissions",
             setting_sources=["project"],
             model=self.configuration.model,
             cwd=self.configuration.cwd_path,
+            disallowed_tools=[
+                "AskUserQuestion",
+            ],
             allowed_tools=allowed_tools
             or [
+                "Agent",
                 "Skill",
                 "Bash",
                 "BashOutput",
@@ -109,7 +72,6 @@ class ClaudeCodeClient:
                 "TodoRead",
                 "TodoWrite",
                 "Task",
-                "AskUserQuestion",
             ],
             mcp_servers=mcps,
             env={
@@ -140,10 +102,15 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
-        self.agent_options.system_prompt = system_prompt
+        new_prompt = f"[[SEMOSS_CONTEXT:insightId={self.configuration.insight_id},roomId={self.configuration.room_id}]]\n{prompt}"
+        model_tag = f"[[SEMOSS_MODEL:{self.configuration.model}]]"
+        if system_prompt:
+            self.agent_options.system_prompt = f"{model_tag}\n{system_prompt}"
+        else:
+            self.agent_options.system_prompt = model_tag
         final_message = ""
         async for message in query(
-            prompt=prompt,
+            prompt=new_prompt,
             options=self.agent_options,
         ):
             if isinstance(message, AssistantMessage):
