@@ -134,19 +134,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Use `roomId` when you want follow-up calls to share the same conversation history.
 
-						```pixel
+						```
 						myRoom = UUID();
 						```
 
 						Basic Generation
 
-						```pixel
+						```
 						LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
 						```
 
 						Generation with Image
 
-						```pixel
+						```
 						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
 						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", image = "myImage.png");
 						```
@@ -155,7 +155,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Pass a full prompt array to fully control conversation history for that call.
 
-						```pixel
+						```
 						LLM(engine = "<engineid>", command = "<encode>ignore</encode>", paramValues=[
 						    {"full_prompt":[
 						        {"role":"system", "content": "You are a helpful assistant."},
@@ -170,7 +170,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Embeddings
 
-						```pixel
+						```
 						Embeddings(engine = "<engineid>", values = ["Sample String 1", "Sample String 2"], paramValues=[{}]);
 						```
 
@@ -405,7 +405,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						List Paths
-						```pixel
+						```
 						Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
 						```
 
@@ -413,32 +413,32 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Returns one object per file/folder with common keys:<br/>
 						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.<br/>
 						`Metadata` is a key-value map (empty map when none exists).
-						```pixel
+						```
 						Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
 						```
 
 						Download from Storage
-						```pixel
+						```
 						Storage(storage = "<engineid>") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');
 						```
 
 						Upload to Storage
-						```pixel
+						```
 						Storage(storage = "<engineid>") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
 						```
 
 						Sync Storage to Local
-						```pixel
+						```
 						Storage(storage = "<engineid>") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');
 						```
 
 						Sync Local to Storage
-						```pixel
+						```
 						Storage(storage = "<engineid>") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
 						```
 
 						Delete from Storage
-						```pixel
+						```
 						Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
 						```
 						""",
@@ -557,12 +557,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						Select Queries
-						```pixel
+						```
 						Database(database = "<engineid>")|Query("<encode> your select query </encode>")|Collect(500);
 						```
 
 						Insert/Update/Delete Queries
-						```pixel
+						```
 						Database(database = "<engineid>")|Query("<encode> your insert/update/delete query </encode>")|ExecQuery();
 						```
 
@@ -570,7 +570,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						`SqlQuery` auto-detects the SQL type and routes to the appropriate execution path.<br/>
 						Select queries use select-style handling (`limit`).<br/>
 						Insert/update/delete queries use modification-style handling (`commit`).
-						```pixel
+						```
 						SqlQuery(database = "<engineid>", query = "<encode> SELECT * FROM table_name </encode>", limit = 500);
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
 						```
@@ -578,7 +578,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Direct Base64 SQL Query<br/>
 						`SqlQueryBase64` uses the same wrapper behavior as `SqlQuery`; only the query input format changes (base64-encoded UTF-8 SQL string).<br/>
 						`U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==` decodes to `SELECT * FROM table_name;`
-						```pixel
+						```
 						SqlQueryBase64(database = "<engineid>", query = "U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==", limit = 500);
 						```
 						""",
@@ -663,13 +663,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
 						List current vector documents (unique `Source` values)
-						```pixel
+						```
 						ListDocumentsInVectorDatabase (engine = "<engineid>");
 						```
 
 						Add uploaded documents from the current insight/room space
 
-						```pixel
+						```
 						CreateEmbeddingsFromDocuments (engine = "<engineid>", filePaths = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
 						```
 
@@ -677,7 +677,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Use `space` when files are not in the current insight folder.<br/>
 						`space = "app_id"` (project/app UUID), `space = "user"` (user space).
-						```pixel
+						```
 						CreateEmbeddingsFromDocuments (engine = "<engineid>", filePaths = ["docs/file1.pdf"], space = "app_id");
 						```
 
@@ -691,17 +691,17 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Source,Modality,Divider,Part,Tokens,Content
 						doc1.pdf,text,1,0,120,"First chunk of text"
 						```
-						```pixel
+						```
 						CreateEmbeddingsFromVectorCSVFile (engine = "<engineid>", filePaths = ["fileName1.csv", "fileName2.csv", ..., "fileNameX.csv"]);
 						```
 
 						Add VectorCSVFile-formatted CSV files from app/project/user space
-						```pixel
+						```
 						CreateEmbeddingsFromVectorCSVFile (engine = "<engineid>", filePaths = ["vector_data/chunks.csv"], space = "app_id");
 						```
 
 						Run nearest-neighbor search
-						```pixel
+						```
 						## filters format: Filter(Source == ["your document name 1", "your document name 2"]) ##
 						## metaFilters format: Filter(MetadataKey == "Metadata Value") ##
 						VectorDatabaseQuery (engine = "<engineid>", command = "Sample Search Statement", limit = 5, filters=[], metaFilters=[]);
@@ -710,7 +710,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Remove files from the vector index
 
 						Use `fileNames` (source identifiers), not file paths.
-						```pixel
+						```
 						RemoveDocumentFromVectorDatabase (engine = "<engineid>", fileNames = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
 						```
 						""",
@@ -875,7 +875,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 		addUsage(usage, PIXEL, PIXEL_LABEL, """
 				Execute Function
-				```pixel
+				```
 				ExecuteFunctionEngine(engine = "<engineid>"<javastring>);
 				```
 				""".replace("<javastring>", pixelMapArg), engineId, paramInfo);
