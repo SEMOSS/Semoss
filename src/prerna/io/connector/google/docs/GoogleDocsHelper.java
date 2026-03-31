@@ -1,6 +1,34 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.io.connector.google.docs;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,7 +57,7 @@ public class GoogleDocsHelper {
 	private static final String BODY = "body";
 	private static final String CONTENT_KEY = "content";
 	private static final String FILES = "files";
-	private static final String STATUS_KEY = "status";
+	private static final String SUCCESS_KEY = "success";
 	private static final String TITLE_KEY = "title";
 
 	private static final String GOOGLE_DOCS_GET_URL = "https://docs.googleapis.com/v1/documents/%s";
@@ -39,15 +67,15 @@ public class GoogleDocsHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param title
-	 * @param content
-	 * @return
-	 * @throws Exception
+	 * Creates a Google Docs document and optionally populates it with content.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param title       document title to create; must be unique for the user.
+	 * @param content     optional initial body content for the document.
+	 * @return a result map containing the created document ID and success status.
+	 * @throws Exception if document creation fails or validation fails.
 	 */
 	public static Map<String, Object> createDoc(String accessToken, String title, String content) throws Exception {
-		final String SUCCESS_KEY = "success";
 		final String DOCUMENT_ID_KEY = "documentId";
 		final String GOOGLE_DOCS_CREATE_URL = "https://docs.googleapis.com/v1/documents";
 
@@ -75,17 +103,18 @@ public class GoogleDocsHelper {
 			map.put(SUCCESS_KEY, true);
 			return map;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create Google Docs document with title '{}'", title, e);
 			throw e;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param docId
-	 * @return
-	 * @throws Exception
+	 * Reads a Google Docs document and returns its title and plain text content.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param docId       unique Google Docs document ID.
+	 * @return a map containing the document title and extracted text content.
+	 * @throws Exception if the document cannot be read or parsed.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> readDoc(String accessToken, String docId) throws Exception {
@@ -129,18 +158,19 @@ public class GoogleDocsHelper {
 			map.put(CONTENT_KEY, contentText.toString());
 			return map;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read Google Docs document id {}", docId, e);
 			throw e;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param docId
-	 * @param newContent
-	 * @return
-	 * @throws Exception
+	 * Replaces the body content of an existing Google Docs document.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param docId       unique Google Docs document ID.
+	 * @param newContent  replacement text content for the document body.
+	 * @return a status map indicating whether the update request succeeded.
+	 * @throws Exception if the document cannot be updated.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> updateDoc(String accessToken, String docId, String newContent) throws Exception {
@@ -156,13 +186,19 @@ public class GoogleDocsHelper {
 		final String GOOGLE_DOCS_BATCH_UPDATE_URL = "https://docs.googleapis.com/v1/documents/%s:batchUpdate";
 
 		try {
+			if (newContent == null) {
+				throw new IllegalArgumentException("Document content cannot be null.");
+			}
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String getDocUrl = String.format(GOOGLE_DOCS_GET_URL, docId);
 			String docResponse = HttpHelperUtility.getRequest(getDocUrl, headers, null, null, null);
 			Map<String, Object> docJson = GSON.fromJson(docResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			Map<String, Object> body = (Map<String, Object>) docJson.get(BODY);
-			List<Map<String, Object>> content = (List<Map<String, Object>>) body.get(CONTENT_KEY);
+			List<Map<String, Object>> content = null;
+			if (body != null) {
+				content = (List<Map<String, Object>>) body.get(CONTENT_KEY);
+			}
 			int endIndex = 1;
 			if (content != null && !content.isEmpty()) {
 				Map<String, Object> lastElement = content.get(content.size() - 1);
@@ -199,21 +235,22 @@ public class GoogleDocsHelper {
 			HttpHelperUtility.postRequestStringBody(updateUrl, headers, jsonBody, ContentType.APPLICATION_JSON, null,
 					null, null);
 			Map<String, Object> map = new HashMap<>();
-			map.put(STATUS_KEY, true);
+			map.put(SUCCESS_KEY, true);
 			return map;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.warn("Failed to update document", e.getMessage());
+			classLogger.error("Failed to update Google Docs document id {}", docId, e);
+			classLogger.warn("Unable to update document id {}: {}", docId, e.getMessage());
 			throw e;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param docId
-	 * @return
-	 * @throws Exception
+	 * Deletes a Google Docs document by deleting the underlying Drive file.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param docId       unique Google Docs document ID.
+	 * @return a status map indicating successful deletion.
+	 * @throws Exception if deletion fails.
 	 */
 	public static Map<String, Object> deleteDoc(String accessToken, String docId) throws Exception {
 		final String GOOGLE_DRIVE_FILE_URL = "https://www.googleapis.com/drive/v3/files/%s";
@@ -223,20 +260,23 @@ public class GoogleDocsHelper {
 			String url = String.format(GOOGLE_DRIVE_FILE_URL, docId);
 			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
 			Map<String, Object> map = new HashMap<>();
-			map.put(STATUS_KEY, true);
+			map.put(SUCCESS_KEY, true);
 			return map;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete Google Docs document id {}", docId, e);
 			throw e;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param title
-	 * @return
-	 * @throws Exception
+	 * Checks whether the logged-in user already has a document with the given
+	 * title.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param title       candidate document title.
+	 * @return {@code true} if a document with the title exists; otherwise
+	 *         {@code false}.
+	 * @throws Exception if the Drive file list request fails.
 	 */
 	@SuppressWarnings("unchecked")
 	public static boolean titleExists(String accessToken, String title) throws Exception {
@@ -248,6 +288,9 @@ public class GoogleDocsHelper {
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
+			if (files == null || files.isEmpty()) {
+				return false;
+			}
 			for (Map<String, Object> file : files) {
 				if (file.get(Constants.USER_MAP_NAME) != null
 						&& file.get(Constants.USER_MAP_NAME).toString().equalsIgnoreCase(title)) {
@@ -256,17 +299,18 @@ public class GoogleDocsHelper {
 			}
 			return false;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify whether Google Docs title '{}' exists", title, e);
 			throw e;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param limit
-	 * @return
-	 * @throws Exception
+	 * Lists Google Docs documents for the logged-in user.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param limit       maximum number of documents to return.
+	 * @return a list of maps containing document titles and IDs.
+	 * @throws Exception if the list request fails.
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getDocsList(String accessToken, int limit) throws Exception {
@@ -275,28 +319,37 @@ public class GoogleDocsHelper {
 		final String MIME_TYPE = "application/vnd.google-apps.document";
 		final String DRIVE_API_URL = "https://www.googleapis.com/drive/v3/files";
 
-		List<Map<String, Object>> docList = new ArrayList<>();
-		String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
-		String fullUrl = DRIVE_API_URL + "?q=" + URLEncoder.encode(queryParam, "UTF-8") + "&pageSize=" + limit + "&fields="
-				+ URLEncoder.encode(FIELDS_PARAM, "UTF-8");
+		try {
+			if (limit <= 0) {
+				throw new IllegalArgumentException("Limit must be a positive integer.");
+			}
 
-		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-		String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
-		Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-		}.getType());
-		List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
-		if (files != null) {
-			for (Map<String, Object> file : files) {
-				Map<String, Object> map = new HashMap<>();
-				String name = (String) file.get(Constants.USER_MAP_NAME);
-				String id = (String) file.get(Constants.USER_MAP_ID);
-				if (name != null && id != null) {
-					map.put(TITLE_KEY, name);
-					map.put(Constants.USER_MAP_ID, id);
-					docList.add(map);
+			List<Map<String, Object>> docList = new ArrayList<>();
+			String queryParam = String.format(QUERY_PARAM_TEMPLATE, MIME_TYPE);
+			String fullUrl = DRIVE_API_URL + "?q=" + URLEncoder.encode(queryParam, StandardCharsets.UTF_8)
+					+ "&pageSize=" + limit + "&fields=" + URLEncoder.encode(FIELDS_PARAM, StandardCharsets.UTF_8);
+
+			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
+			String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
+			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+			}.getType());
+			List<Map<String, Object>> files = (List<Map<String, Object>>) json.get(FILES);
+			if (files != null) {
+				for (Map<String, Object> file : files) {
+					Map<String, Object> map = new HashMap<>();
+					String name = (String) file.get(Constants.USER_MAP_NAME);
+					String id = (String) file.get(Constants.USER_MAP_ID);
+					if (name != null && id != null) {
+						map.put(TITLE_KEY, name);
+						map.put(Constants.USER_MAP_ID, id);
+						docList.add(map);
+					}
 				}
 			}
+			return docList;
+		} catch (Exception e) {
+			classLogger.error("Failed to list Google Docs documents with limit {}", limit, e);
+			throw e;
 		}
-		return docList;
 	}
 }
