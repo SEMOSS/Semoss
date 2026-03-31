@@ -97,6 +97,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
+		boolean isFirstMessageInRoom = room.getMessages().isEmpty();
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
@@ -112,6 +113,11 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// ---- Actually run LLM call
 		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
 
+		// ---- Generate room title for new rooms
+		if (isFirstMessageInRoom && question != null && !question.trim().isEmpty()) {
+			generateNewRoomTitle(room, modelEngine, question);
+		}
+
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
 			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
@@ -125,15 +131,80 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
-//		MessageUtils.applyLegacyInputFields(msg, inputMap);
+		// MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
-//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		// MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
+		pixelReturn.put("roomId", room.getId());
+		pixelReturn.put("roomName", room.getRoomName());
 
 		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
+	}
+
+	private void generateNewRoomTitle(Room room, IModelEngine modelEngine, String question) {
+		String title = null;
+		try {
+			Map<String, Object> titleParamMap = new HashMap<>();
+			titleParamMap.put("use_history", false);
+
+			InputMessage titleMsg = InputMessage.builder(room)
+					.withText("Give a short title for this conversation (max 50 characters). "
+							+ "Return ONLY the title, no quotes, no explanation.\n\nQuestion: "
+							+ question.trim())
+					.withModelType(modelEngine.getModelType())
+					.withParamMap(titleParamMap)
+					.build();
+
+			ResponseMessage titleResponse = room.ask(titleMsg, modelEngine, null, false);
+			title = normalizeTitle(titleResponse != null ? titleResponse.getContent() : null);
+		} catch (Exception e) {
+			classLogger.warn("Could not generate LLM room title for room {}", room.getId(), e);
+		}
+
+		if (title == null) {
+			title = normalizeTitle(question);
+		}
+
+		persistRoomTitle(room, title);
+	}
+
+	private void persistRoomTitle(Room room, String title) {
+		if (title == null || title.isBlank()) {
+			return;
+		}
+
+		room.setRoomName(title);
+		boolean updated = ModelInferenceLogsUtils.doSetNameForRoom(
+				insight.getUser().getPrimaryLoginToken().getId(), room.getId(), title);
+		if (!updated) {
+			classLogger.warn("Playground room title was not persisted for room {}", room.getId());
+		}
+	}
+
+	private String normalizeTitle(String rawTitle) {
+		if (rawTitle == null) {
+			return null;
+		}
+
+		String title = rawTitle.trim().replaceAll("\\s+", " ");
+		if (title.isEmpty()) {
+			return null;
+		}
+
+		if (title.toLowerCase().startsWith("title:")) {
+			title = title.substring("title:".length()).trim();
+		}
+
+		if ((title.startsWith("\"") && title.endsWith("\""))
+				|| (title.startsWith("'") && title.endsWith("'"))) {
+			title = title.substring(1, title.length() - 1).trim();
+		}
+
+		title = title.substring(0, Math.min(title.length(), 50)).trim();
+		return title.isEmpty() ? null : title;
 	}
 
 	@Override
