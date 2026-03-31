@@ -68,7 +68,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.prompt.AbstractPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -158,11 +158,11 @@ public class ApiSemossTestEngineUtils {
 	public static Void initializePrompt() throws Exception {
 		try {
 			doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
-			AbstractPromptUtils.loadPromptDatabase();
+			PromptUtils.loadPromptDatabase();
 		} catch (Exception e) {
 			// Weird behavior, but NPE on first try, successful load on second
 			// Can't debug because it works first try when debugging
-			AbstractPromptUtils.loadPromptDatabase();
+			PromptUtils.loadPromptDatabase();
 		}
 		return null;
 	}
@@ -222,7 +222,8 @@ public class ApiSemossTestEngineUtils {
 		connectAndClearThemeDb(themeConnDetails);
 
 		try {
-			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, AuthProvider.NATIVE.toString(), true);
+			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
+					AuthProvider.NATIVE.toString(), true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not add Default Native Admin user");
