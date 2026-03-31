@@ -1,0 +1,57 @@
+package prerna.io.connector.salesforce;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class SalesforceDeleteRecordReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(SalesforceDeleteRecordReactor.class);
+	
+	private static final String SOBJECT_NAME = "sObjectName";
+	private static final String RECORD_ID = "recordId";
+	
+	public SalesforceDeleteRecordReactor() {
+		this.keysToGet = new String[] { SOBJECT_NAME, RECORD_ID };
+		this.keyRequired = new int[] { 1, 1 };
+	}
+	@Override
+	public NounMetadata execute() {
+		this.organizeKeys();
+
+		String sObjectName = this.keyValue.get(this.keysToGet[0]);
+		String recordId = this.keyValue.get(this.keysToGet[1]);
+
+		try {
+			User user = this.insight.getUser();
+			String accessToken = SalesforceUtils.getSalesforceAccessToken(user);
+			String instanceUrl = SalesforceUtils.getSalesforceInstanceUrl(user);
+
+			return SalesforceHelper.deleteRecord(accessToken, instanceUrl, sObjectName, recordId);
+
+		} catch (Exception e) {
+			classLogger.error("Error deleting Salesforce record ", e);
+			throw new SemossPixelException("Error deleting Salesforce record: " + e.getMessage(), e);
+		}
+	}
+	
+	@Override
+	public String getReactorDescription() {
+		return "Deletes a record from a salesforce object given its record Id. This reactor is executed after Salesforce Login.";
+	}
+	
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SOBJECT_NAME)) {
+			return "This field specifies the name of the Salesforce object " + SOBJECT_NAME;
+		} else if (key.equals(RECORD_ID)) {
+			return "The Salesforce record Id to delete " + RECORD_ID;
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+}

@@ -350,6 +350,14 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_USER", "MODELMAXTOKENS", "INT");
 		owler.addProp("SMSS_USER", "MODELMAXRESPONSETIME", "DOUBLE");
 
+		// SALESFORCE_CONNECTIONS
+        owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
+        owler.addProp("SALESFORCE_CONNECTIONS", "ID", "VARCHAR(255)");
+        //owler.addProp("SALESFORCE_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		
 		// SMSS_USER_ACCESS_KEYS
 		owler.addConcept("SMSS_USER_ACCESS_KEYS", null, null);
 		// TODO: DELETE ID AFTER SOME TIME, REPLACED WITH USERID ... 2023-09-19

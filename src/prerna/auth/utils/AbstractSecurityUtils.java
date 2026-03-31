@@ -1616,6 +1616,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// SALESFORCE_CONNECTIONS
+            colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+             
+            if (allowIfExistsTable) {
+                securityDb.insertData(queryUtil.createTableIfNotExists("SALESFORCE_CONNECTIONS", colNames, types));
+            } else {
+                // see if table exists
+                if (!queryUtil.tableExists(conn, "SALESFORCE_CONNECTIONS", database, schema)) {
+                    // make the table
+                    securityDb.insertData(queryUtil.createTable("SALESFORCE_CONNECTIONS", colNames, types));
+                }
+            }
+            {
+                List<String> allCols = queryUtil.getTableColumns(conn, "SALESFORCE_CONNECTIONS", database, schema);
+                for (int i = 0; i < colNames.length; i++) {
+                    String col = colNames[i];
+                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
+                        String addColumnSql = queryUtil.alterTableAddColumn("SALESFORCE_CONNECTIONS", col, types[i]);
+                        securityDb.insertData(addColumnSql);
+                    }
+                }
+            }
+			
 			// SMSS_USER_ACCESS_KEYS
 			colNames = new String[] { "USERID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", "DATECREATED",
 					"LASTUSED", "TOKENNAME", "TOKENDESCRIPTION" };
