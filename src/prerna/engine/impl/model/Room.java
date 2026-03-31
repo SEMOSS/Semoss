@@ -61,6 +61,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageIO;
@@ -508,6 +509,9 @@ public class Room {
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+
+				// set the input tokens for the input message
+				toolResultsMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 			} catch (Exception e) {
 				// remove the last tool since it failed
 				toolResultsMessage.getParts().removeLast();
@@ -651,8 +655,8 @@ public class Room {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							null);
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
 						if (!ensureUnique.contains(toolId)) {

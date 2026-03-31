@@ -32,50 +32,52 @@ import java.util.Map;
 
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns distinct metadata values with usage counts for the specified
- * metakeys.
+ * Retrieves a single prompt by ID with access control. Only returns the prompt
+ * if it is global or created by the requesting user.
  *
- * Pixel usage: GetPromptMetaValues(metaKeys=["department", "region"]);
+ * Pixel usage: GetPromptWithVersions(promptId="<uuid>");
  *
- * Parameters: metaKeys (List of String, required) - List of metakeys to
- * retrieve values for
+ * Parameters: promptId (String, required) - UUID of the prompt to retrieve
  *
- * Returns: CUSTOM_DATA_STRUCTURE - a list of maps, each containing:
+ * Returns: MAP - a map containing prompt details, tags, and metadata. Returns
+ * an empty map if the prompt is not found or the user lacks access.
  *
- * Per-entry fields: metakey (String) - The metadata key name metavalue (String)
- * - A distinct value for that key count (int) - Number of prompts with this
- * key-value pair
+ * Return fields: id (String) - UUID of the prompt title (String) - Prompt name
+ * context (String) - The prompt text/template version (int) - Version number
+ * (0-based, incremented on update) intent (String) - Description of the
+ * prompt's purpose created_by (String) - User ID of the prompt creator
+ * date_created (String) - ISO timestamp of creation global (boolean) - Whether
+ * the prompt is visible to all users tags (List of String) - Tags for
+ * categorization metaKeys (Map of String to List of String) - Metadata
+ * key-value pairs
  */
-public class GetPromptMetaValuesReactor extends AbstractReactor {
+public class GetPromptWithVersionsReactor extends AbstractReactor {
 
-	public GetPromptMetaValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.META_KEYS.getKey() };
+	public GetPromptWithVersionsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_ID.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
+
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
 
-		organizeKeys();
-		List<Map<String, Object>> ret = PromptUtils
-				.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));
-		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		String promptID = this.keyValue.get(ReactorKeysEnum.PROMPT_ID.getKey());
+		if (promptID == null || promptID.isEmpty()) {
+			throw new IllegalArgumentException("PROMPT ID must be passed in to get details for a specific prompt");
+		}
+
+		List<Map<String, Object>> promptDetails = PromptUtils.getPromptWithVersioning(promptID, this.insight.getUser());
+		return new NounMetadata(promptDetails, PixelDataType.VECTOR);
 	}
 
-	private List<String> getListValues(String key) {
-		GenRowStruct grs = this.store.getGenRowStruct(key);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		return this.curRow.getAllStrValues();
-	}
 }
