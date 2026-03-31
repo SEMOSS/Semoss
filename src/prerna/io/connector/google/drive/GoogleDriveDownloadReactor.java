@@ -25,10 +25,9 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.google.calendar;
+package prerna.io.connector.google.drive;
 
-import java.time.ZoneId;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,65 +37,69 @@ import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-public class GoogleCalendarListReactor extends AbstractReactor {
+public class GoogleDriveDownloadReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarListReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleDriveDownloadReactor.class);
 
-	private static final String START_DATE = "startDate";
-	private static final String END_DATE = "endDate";
+	private static final String ID = "id";
+	private static final String SUCCESS = "success";
+	private static final String FILE_NAME = "fileName";
 
-	public GoogleCalendarListReactor() {
-		this.keysToGet = new String[] { START_DATE, END_DATE };
-		this.keyRequired = new int[] { 1, 1 };
+	public GoogleDriveDownloadReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), FILE_NAME };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String startdate = this.keyValue.get(this.keysToGet[0]);
-		String enddate = this.keyValue.get(this.keysToGet[1]);
-		if (startdate == null || startdate.trim().isEmpty()) {
-			throw new SemossPixelException("Start date and time are required.");
+		String fileId = this.keyValue.get(this.keysToGet[0]);
+		String path = this.keyValue.get(this.keysToGet[1]);
+		String fileName = null;
+		if (fileId == null || fileId.trim().isEmpty()) {
+			throw new SemossPixelException("File ID is required to download a Google Drive file.");
 		}
-		if (enddate == null || enddate.trim().isEmpty()) {
-			throw new SemossPixelException("End date and time are required.");
+		if (path == null || path.trim().isEmpty()) {
+			throw new SemossPixelException("Destination path is required to download a Google Drive file.");
+		}
+
+		if (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty()) {
+			fileName = this.keyValue.get(this.keysToGet[2]);
 		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			ZoneId zoneId = user.getZoneId();
-			if (zoneId == null) {
-				zoneId = Utility.getApplicationZoneIdObj();
-			}
-			List<Map<String, Object>> eventList = GoogleCalendarHelper.getEventList(accessToken, startdate, enddate,
-					zoneId);
-			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			GoogleDriveHelper.downloadFile(accessToken, fileId, path, fileName);
+			Map<String, Object> result = new HashMap<>();
+			result.put(SUCCESS, true);
+			result.put(ID, fileId);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while listing Google Calendar events", e);
+			classLogger.error("Error while downloading a Google Drive file", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to list Google Calendar events", e);
-			throw new SemossPixelException(
-					"An error occurred retrieving the list of events. Error message: " + e.getMessage());
+			classLogger.error("Failed to download a Google Drive file", e);
+			throw new SemossPixelException("An error occurred downloading the file. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve Google Calendar events occurring between a specified start and end time.";
+		return "Download a file from Google Drive to a local path.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(START_DATE)) {
-			return "Start date and time for retrieving events.";
-		} else if (key.equals(END_DATE)) {
-			return "End date and time for retrieving events.";
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Google Drive file ID for the file to download.";
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Local path where the file should be downloaded.";
+		} else if (key.equals(FILE_NAME)) {
+			return "Optional local file name to use for the downloaded file.";
 		}
 		return super.getDescriptionForKey(key);
 	}

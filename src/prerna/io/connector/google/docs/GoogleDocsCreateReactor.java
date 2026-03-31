@@ -25,10 +25,8 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.google.calendar;
+package prerna.io.connector.google.docs;
 
-import java.time.ZoneId;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,66 +36,63 @@ import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-public class GoogleCalendarListReactor extends AbstractReactor {
+public class GoogleDocsCreateReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarListReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleDocsCreateReactor.class);
 
-	private static final String START_DATE = "startDate";
-	private static final String END_DATE = "endDate";
-
-	public GoogleCalendarListReactor() {
-		this.keysToGet = new String[] { START_DATE, END_DATE };
-		this.keyRequired = new int[] { 1, 1 };
+	public GoogleDocsCreateReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey(), ReactorKeysEnum.CONTENT.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String startdate = this.keyValue.get(this.keysToGet[0]);
-		String enddate = this.keyValue.get(this.keysToGet[1]);
-		if (startdate == null || startdate.trim().isEmpty()) {
-			throw new SemossPixelException("Start date and time are required.");
+		String title = this.keyValue.get(this.keysToGet[0]);
+		String content = null;
+		if (title == null || title.trim().isEmpty()) {
+			throw new SemossPixelException("Document title is required.");
 		}
-		if (enddate == null || enddate.trim().isEmpty()) {
-			throw new SemossPixelException("End date and time are required.");
+
+		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
+			content = this.keyValue.get(this.keysToGet[1]);
 		}
+
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			ZoneId zoneId = user.getZoneId();
-			if (zoneId == null) {
-				zoneId = Utility.getApplicationZoneIdObj();
-			}
-			List<Map<String, Object>> eventList = GoogleCalendarHelper.getEventList(accessToken, startdate, enddate,
-					zoneId);
-			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+			Map<String, Object> result = GoogleDocsHelper.createDoc(accessToken, title, content);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (IllegalArgumentException e) {
+			classLogger.error("Invalid input while creating a Google Docs document", e);
+			throw new SemossPixelException("Invalid input for document creation. Error message: " + e.getMessage());
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while listing Google Calendar events", e);
+			classLogger.error("Error while creating a Google Docs document", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to list Google Calendar events", e);
-			throw new SemossPixelException(
-					"An error occurred retrieving the list of events. Error message: " + e.getMessage());
+			classLogger.error("Failed to create a Google Docs document", e);
+			throw new SemossPixelException("An error occurred creating the document. Error message: " + e.getMessage());
 		}
+
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Retrieve Google Calendar events occurring between a specified start and end time.";
+		return "Create a document in Google Docs.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(START_DATE)) {
-			return "Start date and time for retrieving events.";
-		} else if (key.equals(END_DATE)) {
-			return "End date and time for retrieving events.";
+		if (key.equals(ReactorKeysEnum.PROMPT_TITLE.getKey())) {
+			return "Title of the Google Docs document (" + ReactorKeysEnum.PROMPT_TITLE.getKey() + ").";
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+			return "Content to add to the document (" + ReactorKeysEnum.CONTENT.getKey() + ").";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }

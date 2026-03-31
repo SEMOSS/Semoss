@@ -47,6 +47,10 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ArrayUtilityMethods;
 
+/**
+ * Iterates through a configured sheet range and returns rows coerced to the
+ * expected SEMOSS types.
+ */
 public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	// classes around the sheet
@@ -72,8 +76,8 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	/**
 	 * Simple iterator used when all the information can be parsed from the QS
-	 * 
-	 * @param qs
+	 *
+	 * @param qs query struct containing file, sheet, range, and selector metadata
 	 */
 	public ExcelSheetFileIterator(ExcelQueryStruct qs) {
 		this(null, qs);
@@ -81,9 +85,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 
 	/**
 	 * Constructor for file iterator
-	 * 
-	 * @param sheet
-	 * @param qs
+	 *
+	 * @param sheet optional pre-opened sheet; when {@code null}, the sheet is
+	 *              opened from {@code qs}
+	 * @param qs    query struct containing range and selector metadata
 	 */
 	public ExcelSheetFileIterator(Sheet sheet, ExcelQueryStruct qs) {
 		if (sheet == null) {
@@ -150,6 +155,9 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		this.offset = qs.getOffset();
 	}
 
+	/**
+	 * Advances the iterator to the next row in the configured range.
+	 */
 	@Override
 	public void getNextRow() {
 		if (this.curRow > this.endRow) {
@@ -262,7 +270,10 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 						cleanRow[i] = SemossDate.genTimeStampDateObj(strVal);
 					}
 				}
+			} else if (type == SemossDataType.BOOLEAN) {
+				cleanRow[i] = Boolean.parseBoolean(val.toString());
 			}
+
 		}
 
 		return cleanRow;
@@ -438,24 +449,47 @@ public class ExcelSheetFileIterator extends AbstractFileIterator {
 		// TODO Auto-generated method stub
 	}
 
+	/**
+	 * Closes iterator resources.
+	 */
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
 
 	}
 
+	/**
+	 * Gets the query struct used to configure this iterator.
+	 *
+	 * @return query struct
+	 */
 	public ExcelQueryStruct getQs() {
 		return this.qs;
 	}
 
+	/**
+	 * Updates the query struct reference for this iterator.
+	 *
+	 * @param qs query struct
+	 */
 	public void setQs(ExcelQueryStruct qs) {
 		this.qs = qs;
 	}
 
+	/**
+	 * Gets the sheet being iterated.
+	 *
+	 * @return source sheet
+	 */
 	public Sheet getSheet() {
 		return this.sheet;
 	}
 
+	/**
+	 * Gets one-based column indices corresponding to the selected headers.
+	 *
+	 * @return selected header indices
+	 */
 	public int[] getHeaderIndicies() {
 		return this.headerIndices;
 	}

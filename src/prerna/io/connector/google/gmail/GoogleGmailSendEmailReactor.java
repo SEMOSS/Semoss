@@ -58,6 +58,15 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 		String subject = this.keyValue.get(EMAIL_SUBJECT);
 		String to = this.keyValue.get(EMAIL_TO_RECEIVER);
 		String body = this.keyValue.get(EMAIL_MESSAGE);
+		if (subject == null || subject.trim().isEmpty()) {
+			throw new SemossPixelException("Email subject is required.");
+		}
+		if (to == null || to.trim().isEmpty()) {
+			throw new SemossPixelException("Recipient email address is required.");
+		}
+		if (body == null || body.trim().isEmpty()) {
+			throw new SemossPixelException("Email body is required.");
+		}
 
 		try {
 			User user = this.insight.getUser();
@@ -75,19 +84,20 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Send an email from the logged in gmail account";
+		return "Send an email from the logged-in Gmail account.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(EMAIL_MESSAGE)) {
-			return "The message of the email to send.";
+			return "Body content for the email.";
 		} else if (key.equals(EMAIL_TO_RECEIVER)) {
-			return "The to receipient(s) of the email.";
+			return "Recipient email address (or comma-separated addresses).";
 		} else if (key.equals(EMAIL_SUBJECT)) {
-			return "The subject of the email.";
+			return "Subject line for the email.";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
 	}
+
 }
