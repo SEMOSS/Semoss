@@ -492,6 +492,30 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Look up a user's ID and type by their email address.
+	 * Returns a String array [userId, type] or null if no user is found.
+	 *
+	 * @param email the user's email address
+	 * @return String[] { userId, type } or null
+	 */
+	public static String[] getUserIdAndTypeByEmail(String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				return new String[] { (String) values[0], (String) values[1] };
+			}
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+		return null;
+	}
+
+	/**
 	 * 
 	 * @param userIds
 	 * @return list of unlocked of user ids
