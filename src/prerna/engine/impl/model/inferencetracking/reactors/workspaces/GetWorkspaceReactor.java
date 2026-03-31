@@ -48,21 +48,14 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class GetWorkspaceReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = GetWorkspaceReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
 
-	/**
-	 * Plan is the store the prompts in the workspace resource table
-	 * but since that uses catalog enums, having a constant here for it
-	 * since it makes no sense to add promopt as a catalog type idk 
-	 */
-	private static final String PROMPT_RESOURCE_TYPE = "PROMPT";
+	private static final String CLASS_NAME = GetWorkspaceReactor.class.getName();
 
 	// To get workspaces without resources, call MyProjects w/ type as workspace
 	public GetWorkspaceReactor() {
@@ -110,7 +103,8 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			permission = SecurityProjectUtils.getActualUserProjectPermission(user, workspaceId);
 			userCount = SecurityProjectUtils.getProjectUsersCount(user, workspaceId, null, null);
 		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to fetch workspace permission/collaborator info for workspace '{}'.", workspaceId,
+					e);
 		}
 
 		List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
@@ -121,15 +115,16 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			String resourceId = (String) r.get("resource_id");
 			String rType = (String) r.get("resource_type");
 
-			// Handle prompt resources separately becase prompt is not catalog type
-			if (PROMPT_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
+			// Handle prompt resources separately because prompt is not catalog type
+			if (AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE.equalsIgnoreCase(rType)) {
 				Map<String, String> promptMap = new HashMap<>();
 				promptMap.put("id", resourceId);
 				promptMap.put("type", rType);
 				if (SystemEngineRegistry.isPromptDbLoaded()) {
 					Map<String, Object> promptDetail = PromptUtils.getPrompt(resourceId, user);
 					String promptTitle = promptDetail != null && !promptDetail.isEmpty()
-							? (String) promptDetail.get("title") : null;
+							? (String) promptDetail.get("title")
+							: null;
 					promptMap.put("name", promptTitle);
 				}
 				prompts.add(promptMap);

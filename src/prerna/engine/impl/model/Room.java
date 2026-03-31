@@ -61,6 +61,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageIO;
@@ -92,9 +93,6 @@ public class Room {
 			.compile("\\{\\{\\s*([A-Z][A-Z0-9_]*)\\s*((?:\\.|\\[)[^}]*)?\\s*\\}\\}");
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
 			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
-	
-	private static final String PROMPT_RESOURCE_TYPE = "PROMPT";
-
 
 	private String room_id;
 	private String userId;
@@ -654,18 +652,13 @@ public class Room {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
-					//TODO: maybe i just update this function to also take in a filter - eh seems dumb 
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							null);
+					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
 					for (Map<String, Object> tool : tools) {
-						String resourceType = (String) tool.get("resource_type");
-						// Only load engine/project resources as tools not prompts boyo
-						if (!PROMPT_RESOURCE_TYPE.equalsIgnoreCase(resourceType)) {
-							String toolId = (String) tool.get("resource_id");
-							if (!ensureUnique.contains(toolId)) {
-								aggregated.addAll(getToolJson(toolId, maxLength));
-								ensureUnique.add(toolId);
-							}
+						String toolId = (String) tool.get("resource_id");
+						if (!ensureUnique.contains(toolId)) {
+							aggregated.addAll(getToolJson(toolId, maxLength));
+							ensureUnique.add(toolId);
 						}
 					}
 				}
