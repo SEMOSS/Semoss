@@ -509,6 +509,9 @@ public class Room {
 				nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 				nextAssistant.setModel(modelEngine);
 				nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+
+				// set the input tokens for the input message
+				toolResultsMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
 			} catch (Exception e) {
 				// remove the last tool since it failed
 				toolResultsMessage.getParts().removeLast();
