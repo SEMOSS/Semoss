@@ -55,8 +55,8 @@ class BedrockEmbedder(AbstractEmbedder):
     def embeddings_call(
         self, strings_to_embed: List[str], prefix: str = ""
     ) -> EmbeddingsModelEngineResponse:
-        embeddings_list = []
         embeddings = []
+        total_prompt_tokens = 0
 
         for text in strings_to_embed:
             json_obj = self.createJsonObjForModel(text)
@@ -68,30 +68,27 @@ class BedrockEmbedder(AbstractEmbedder):
                 )
                 response_body = json.loads(response["body"].read())
 
-                # Determine the correct key for embeddings
+                # Determine the correct key for embeddings and token count
                 if "amazon.titan-embed-text" in self.model_name:
                     embedding_array = response_body.get("embedding")
+                    total_prompt_tokens += response_body.get("inputTextTokenCount", 0)
                 elif "cohere.embed" in self.model_name:
-                    embedding_array = response_body.get("embeddings")[
-                        0
-                    ]  # we are only sending in 1 at a time in the for loop
+                    embedding_array = response_body.get("embeddings")[0]
+                    # Cohere on Bedrock does not return token counts
                 else:
                     raise ValueError(f"Unsupported model name: {self.model_name}")
 
                 if embedding_array:
-                    embeddings_list = [float(value) for value in embedding_array]
-                    embeddings.append(embeddings_list)
-
-                model_engine_response = EmbeddingsModelEngineResponse(
-                    response=embeddings,
-                    prompt_tokens=response_body.get("inputTextTokenCount"),
-                    response_tokens=0,
-                )
+                    embeddings.append([float(value) for value in embedding_array])
 
             except requests.RequestException as e:
                 logger.error(f"An error occurred in bedrock embedding: {e}")
 
-        return model_engine_response
+        return EmbeddingsModelEngineResponse(
+            response=embeddings,
+            prompt_tokens=total_prompt_tokens,
+            response_tokens=0,
+        )
 
     def image_embeddings_call(
         self, images_to_embed: List[str], **kwargs

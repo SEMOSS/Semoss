@@ -46,7 +46,6 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -356,63 +355,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			return response;
 		}
 
-		return response;
-	}
-
-	@Override
-	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData,
-			Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-
-		final String TRIPLE_QUOTE = "\"\"\"";
-		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
-
-		if (task.startsWith("\"")) {
-			task = " " + task;
-		}
-		if (task.endsWith("\"")) {
-			task = task + " ";
-		}
-		task = task.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-
-		callMaker.append("task=").append(TRIPLE_QUOTE).append(task).append(TRIPLE_QUOTE);
-		if (context != null) {
-			if (context.startsWith("\"")) {
-				context = " " + context;
-			}
-			if (context.endsWith("\"")) {
-				context = context + " ";
-			}
-			context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-			callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-		}
-
-		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
-
-		if (parameters != null) {
-			Iterator<String> paramKeys = parameters.keySet().iterator();
-			while (paramKeys.hasNext()) {
-				String key = paramKeys.next();
-				Object value = parameters.get(key);
-				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
-			}
-		}
-
-		if (this.prefix != null) {
-			callMaker.append(", prefix='").append(prefix).append("'");
-		}
-
-		callMaker.append(")");
-		classLogger.debug("Running >>>" + callMaker.toString());
-
-		Object output = pyTranslator.runDirectPy(callMaker.toString());
-		InstructModelEngineResponse response = null;
-		try {
-			response = InstructModelEngineResponse.fromObject(output);
-		} catch (Exception e) {
-			classLogger.error("Could not create response object from output: {}", output, e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
 		return response;
 	}
 

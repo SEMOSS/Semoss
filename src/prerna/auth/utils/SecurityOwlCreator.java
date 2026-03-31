@@ -131,9 +131,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINEDISPLAYNAME")) {
 				return true;
 			}
 		}
@@ -182,6 +181,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("ENGINE", null, null);
 		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINEDISPLAYNAME", "VARCHAR(255)");
 		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
 		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("ENGINE", "ENGINETYPE", "VARCHAR(255)");
@@ -228,6 +228,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("PROJECT", null, null);
 		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
+		owler.addProp("PROJECT", "PROJECTDISPLAYNAME", "VARCHAR(255)");
 		owler.addProp("PROJECT", "GLOBAL", "BOOLEAN");
 		owler.addProp("PROJECT", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");

@@ -44,7 +44,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AbstractPromptUtils {
@@ -52,7 +52,6 @@ public class AbstractPromptUtils {
 	private static final Logger classLogger = LogManager.getLogger(AbstractPromptUtils.class);
 
 	static boolean initialized = false;
-	static IRDBMSEngine promptDb;
 
 	/**
 	 * Only used for static references
@@ -62,7 +61,7 @@ public class AbstractPromptUtils {
 	}
 
 	public static void loadPromptDatabase() throws Exception {
-		promptDb = (IRDBMSEngine) Utility.getDatabase(Constants.PROMPT_DB);
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		PromptOwlCreator owlCreator = new PromptOwlCreator(promptDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -72,11 +71,11 @@ public class AbstractPromptUtils {
 	}
 
 	private static void initialize() throws Exception {
+		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		String database = promptDb.getDatabase();
 		String schema = promptDb.getSchema();
 		String[] colNames = null;
 		String[] types = null;
-		Object[] defaultValues = null;
 		/*
 		 * Currently used
 		 */
@@ -92,9 +91,9 @@ public class AbstractPromptUtils {
 
 		// PROMPT STUFF
 		colNames = new String[] { "ID", "TITLE", "CONTEXT", "VERSION", "INTENT", "CREATED_BY", "DATE_CREATED",
-				"IS_LATEST" };
+				"IS_LATEST", "GLOBAL" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
-				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+				"VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
 		if (allowIfExistsTable) {
 			promptDb.insertData(queryUtil.createTableIfNotExists("PROMPT", colNames, types));
 		} else {
@@ -102,6 +101,25 @@ public class AbstractPromptUtils {
 			if (!queryUtil.tableExists(promptDb.getConnection(), "PROMPT", database, schema)) {
 				// make the table
 				promptDb.insertData(queryUtil.createTable("PROMPT", colNames, types));
+			}
+		}
+		
+		// check all the columns we want are there
+		{
+			List<String> allCols = queryUtil.getTableColumns(promptDb.getConnection(), "PROMPT", database, schema);
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+					String type = types[i];
+					String addColumnSql;
+					if (BOOLEAN_DATATYPE_NAME.equals(type)) {
+						addColumnSql = queryUtil.alterTableAddColumnWithDefault("PROMPT", col, type, false);
+					} else {
+						addColumnSql = queryUtil.alterTableAddColumn("PROMPT", col, types[i]);
+					}
+					classLogger.info("Running sql " + addColumnSql);
+					promptDb.insertData(addColumnSql);
+				}
 			}
 		}
 
@@ -143,7 +161,6 @@ public class AbstractPromptUtils {
 			colNames = new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYORDER", "DISPLAYOPTIONS", "DEFAULTVALUES" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)",
 					"VARCHAR(500)" };
-			defaultValues = new Object[] { null, null, null, true, false };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
 				classLogger.info("Running sql " + sql);

@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -53,7 +54,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
     @BeforeEach
     void setup() {
-        securityDb = AbstractSecurityUtils.securityDb;
+        securityDb = SystemEngineRegistry.getSecurityDb();
         assertTrue(securityDb.getOwlFilePath().contains("junit"));
         assertNotNull(this.securityDb);
     }
