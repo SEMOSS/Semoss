@@ -43,6 +43,10 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.poi.main.helper.FileHelperUtil;
 
+/**
+ * Parsing helpers for extracting typed values and inferring column data types
+ * from Excel sheets.
+ */
 public class ExcelParsing {
 
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 500;
@@ -51,9 +55,19 @@ public class ExcelParsing {
 
 	}
 
+	/**
+	 * Validates that the provided file path points to a supported Excel file type.
+	 *
+	 * @param filePath input file path
+	 * @return {@code true} when the file extension is one of {@code .xlsx},
+	 *         {@code .xlsm}, or {@code .xls}
+	 */
 	public static boolean isExcelFile(String filePath) {
+		if (filePath == null) {
+			return false;
+		}
 		String file = filePath.toLowerCase();
-		if (file.endsWith(".xlsx") || file.endsWith("xlsm") || file.endsWith("xls")) {
+		if (file.endsWith(".xlsx") || file.endsWith(".xlsm") || file.endsWith(".xls")) {
 			return true;
 		}
 
@@ -61,6 +75,12 @@ public class ExcelParsing {
 
 	}
 
+	/**
+	 * Determines whether a cell should be treated as empty.
+	 *
+	 * @param thisCell cell to evaluate
+	 * @return {@code true} when the cell is {@code null}, blank, or whitespace only
+	 */
 	public static boolean isEmptyCell(Cell thisCell) {
 		if (thisCell == null || thisCell.getCellType() == CellType.BLANK || thisCell.toString().trim().isEmpty()) {
 			return true;
@@ -70,9 +90,10 @@ public class ExcelParsing {
 
 	/**
 	 * Get the cell values
-	 * 
-	 * @param thisCell
-	 * @return
+	 *
+	 * @param thisCell cell to read
+	 * @return the typed Java value for the cell, or {@code null} when no value can
+	 *         be resolved
 	 */
 	public static Object getCell(Cell thisCell) {
 		if (thisCell == null) {
@@ -117,6 +138,14 @@ public class ExcelParsing {
 	 * Methods around predicting types
 	 */
 
+	/**
+	 * Predicts the column types for a range in a sheet.
+	 *
+	 * @param sheet source sheet
+	 * @param range excel range in A1 notation
+	 * @return matrix of per-column type predictions and optional formatting
+	 *         metadata
+	 */
 	public static Object[][] predictTypes(Sheet sheet, String range) {
 		// for a given sheet
 		// loop through and determine the types
@@ -184,9 +213,9 @@ public class ExcelParsing {
 				if (formatTracker.containsKey(additionalFormatting)) {
 					// increase counter by 1
 					formatTracker.put(additionalFormatting,
-							new Integer(formatTracker.get(additionalFormatting) + 1));
+							Integer.valueOf(formatTracker.get(additionalFormatting) + 1));
 				} else {
-					formatTracker.put(additionalFormatting, new Integer(1));
+					formatTracker.put(additionalFormatting, Integer.valueOf(1));
 				}
 			}
 
@@ -318,9 +347,9 @@ public class ExcelParsing {
 
 	/**
 	 * Predict the type via casting
-	 * 
-	 * @param value
-	 * @return
+	 *
+	 * @param value value to inspect
+	 * @return inferred SEMOSS type
 	 */
 	public static SemossDataType getTypeByCast(Object value) {
 		if (value instanceof String) {

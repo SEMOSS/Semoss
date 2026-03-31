@@ -40,6 +40,10 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import prerna.algorithm.api.SemossDataType;
 import prerna.poi.main.helper.FileHelperUtil;
 
+/**
+ * Represents a contiguous block of data in an Excel sheet and stores summary
+ * statistics used for block merging and column type inference.
+ */
 public class ExcelBlock {
 
 	// keep track of statistics on the start column
@@ -62,27 +66,27 @@ public class ExcelBlock {
 	/**
 	 * Get the ranges of the block This will split up the entire segment if there
 	 * are empty columns
-	 * 
-	 * @return
+	 *
+	 * @return the one or more contiguous ranges represented by this block
 	 */
 	public List<ExcelRange> getRanges() {
 		List<ExcelRange> ranges = new ArrayList<ExcelRange>();
 		boolean started = false;
-		int startCol = new Double(startColumnIndexStats.getMin()).intValue();
-		int max = new Double(columnToRowIndexStats.get(startCol).getMax()).intValue();
+		int startCol = (int) startColumnIndexStats.getMin();
+		int max = (int) columnToRowIndexStats.get(startCol).getMax();
 		for (int colIndex = 0; colIndex <= lastColMaxIndex; colIndex++) {
 			// get max row by comparing every max in each column
-			SummaryStatistics rowIndexStats = columnToRowIndexStats.get(new Integer(colIndex - 1));
+			SummaryStatistics rowIndexStats = columnToRowIndexStats.get(Integer.valueOf(colIndex - 1));
 			if (rowIndexStats != null) {
-				int tempMax = new Double(rowIndexStats.getMax()).intValue();
+				int tempMax = (int) rowIndexStats.getMax();
 				if (tempMax > max) {
 					max = tempMax;
 				}
 			}
 
-			if (!columnToRowIndexStats.containsKey(new Integer(colIndex)) && started) {
+			if (!columnToRowIndexStats.containsKey(Integer.valueOf(colIndex)) && started) {
 				if (columnToRowIndexStats.containsKey(startCol)) {
-					int min = new Double(columnToRowIndexStats.get(new Integer(startCol)).getMin()).intValue();
+					int min = (int) columnToRowIndexStats.get(Integer.valueOf(startCol)).getMin();
 					ExcelRange r = new ExcelRange(startCol + 1, colIndex, min, max);
 					ranges.add(r);
 				}
@@ -90,7 +94,7 @@ public class ExcelBlock {
 				started = false;
 			}
 
-			if (columnToRowIndexStats.containsKey(new Integer(colIndex)) && !started) {
+			if (columnToRowIndexStats.containsKey(Integer.valueOf(colIndex)) && !started) {
 				started = true;
 				startCol = colIndex;
 			}
@@ -99,6 +103,12 @@ public class ExcelBlock {
 		return ranges;
 	}
 
+	/**
+	 * Predicts the dominant data type for each column in the provided range.
+	 *
+	 * @param range excel range whose columns should be analyzed
+	 * @return a matrix where each row contains type metadata for a column
+	 */
 	public Object[][] getRangeTypes(ExcelRange range) {
 		int[] rangeIndex = range.getIndices();
 		int numCols = rangeIndex[2] - rangeIndex[0] + 1;
@@ -227,9 +237,10 @@ public class ExcelBlock {
 
 	/**
 	 * Determine if 2 blocks are the same
-	 * 
-	 * @param block
-	 * @return
+	 *
+	 * @param newBlock candidate block to compare
+	 * @return {@code true} when both blocks have statistically similar start/end
+	 *         shape
 	 */
 	public boolean sameAs(ExcelBlock newBlock) {
 		boolean retValue = false;
@@ -251,6 +262,11 @@ public class ExcelBlock {
 		return retValue;
 	}
 
+	/**
+	 * Merges row index metadata from an equivalent block.
+	 *
+	 * @param equivBlock block to merge into this block
+	 */
 	public void merge(ExcelBlock equivBlock) {
 		this.rowIndicesInBlock.addAll(equivBlock.rowIndicesInBlock);
 		// try to set the last column
@@ -259,8 +275,8 @@ public class ExcelBlock {
 
 	/**
 	 * Add the start column index of this row
-	 * 
-	 * @param colIndex
+	 *
+	 * @param colIndex zero-based column index
 	 */
 	public void addStartColumnIndex(int colIndex) {
 		startColumnIndexStats.addValue(colIndex);
@@ -268,7 +284,7 @@ public class ExcelBlock {
 
 	/**
 	 * Add the total number of columns to this row
-	 * 
+	 *
 	 * @param numRows
 	 */
 	public void addTotalColumnsInRowStats(int numRows) {
@@ -277,8 +293,8 @@ public class ExcelBlock {
 
 	/**
 	 * Add the row index if it contains data
-	 * 
-	 * @param rowIndex
+	 *
+	 * @param rowIndex one-based excel row index
 	 */
 	public void addRowIndexContainingData(int rowIndex) {
 		rowIndicesInBlock.add(rowIndex);
@@ -286,8 +302,8 @@ public class ExcelBlock {
 
 	/**
 	 * Determine if this block is empty
-	 * 
-	 * @return
+	 *
+	 * @return {@code true} when no data rows are captured in this block
 	 */
 	public boolean isEmpty() {
 		return rowIndicesInBlock.isEmpty();
@@ -295,15 +311,23 @@ public class ExcelBlock {
 
 	/**
 	 * Get the number of indices in the block
-	 * 
-	 * @return
+	 *
+	 * @return number of rows included in this block
 	 */
 	public int numIndicesInBlock() {
 		return rowIndicesInBlock.size();
 	}
 
+	/**
+	 * Tracks type and row statistics for a cell in this block.
+	 *
+	 * @param columnIndex    zero-based column index
+	 * @param rowIndex       one-based row index
+	 * @param type           inferred SEMOSS type for the cell
+	 * @param additionalType optional additional type metadata (such as date format)
+	 */
 	public void addColumnToRowIndexWithData(int columnIndex, int rowIndex, SemossDataType type, String additionalType) {
-		Integer objColumnIndex = new Integer(columnIndex);
+		Integer objColumnIndex = Integer.valueOf(columnIndex);
 		// update index stats
 		SummaryStatistics stats = null;
 		if (columnToRowIndexStats.containsKey(objColumnIndex)) {
@@ -351,14 +375,14 @@ public class ExcelBlock {
 				additionalTypeStats = new SummaryStatistics();
 				tracker.put(additionalType, additionalTypeStats);
 			}
-			stats.addValue(rowIndex);
+			additionalTypeStats.addValue(rowIndex);
 		}
 	}
 
 	/**
 	 * Try to set a new last col max index
-	 * 
-	 * @param startColMinIndex
+	 *
+	 * @param lastColMaxIndex candidate maximum zero-based column index
 	 */
 	public void trySetLastColMaxIndex(int lastColMaxIndex) {
 		if (this.lastColMaxIndex == -1) {
