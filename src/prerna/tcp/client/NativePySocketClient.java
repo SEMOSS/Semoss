@@ -203,11 +203,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									exposeLog(logMessage, lock.jobId);
 								}
 							}
-							// new way of handling streaming data to repalce below else if
+
 							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
 								if (ps.payload != null && ps.payload[0] != null) {
 									classLogger.debug(ps.payload[0] + "");
-									PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
+									if (lock != null && lock.jobId != null) {
+										PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
+									}
 								}
 							}
 							// need some way to say this is the output from the actual python vs. something

@@ -39,7 +39,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 
@@ -54,6 +53,9 @@ public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String id = this.keyValue.get(this.keysToGet[0]);
+		if (id == null || id.trim().isEmpty()) {
+			throw new SemossPixelException("Event ID is required.");
+		}
 
 		try {
 			User user = this.insight.getUser();
@@ -61,23 +63,23 @@ public class GoogleCalendarSearchEventReactor extends AbstractReactor {
 			Map<String, Object> result = GoogleCalendarHelper.searchEvent(accessToken, id);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while searching for a Google Calendar event", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to search for a Google Calendar event", e);
 			throw new SemossPixelException("An error occurred searching for events. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Search for events in Google Calender";
+		return "Search for a Google Calendar event by ID.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Unique identifier of the event to be searched " + ReactorKeysEnum.ID.getKey();
+			return "Unique identifier of the event to search (" + ReactorKeysEnum.ID.getKey() + ").";
 		}
 		return super.getDescriptionForKey(key);
 	}
