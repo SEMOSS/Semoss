@@ -103,6 +103,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
+		// Generates room title for new rooms BEFORE ask
+		// This prevents Room.ask() from setting a truncated prompt name
+		if (isFirstMessageInRoom && question != null && !question.trim().isEmpty()) {
+			generateNewRoomTitle(room, modelEngine, question);
+		}
+
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
 				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
@@ -112,11 +118,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Actually run LLM call
 		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
-
-		// ---- Generate room title for new rooms
-		if (isFirstMessageInRoom && question != null && !question.trim().isEmpty()) {
-			generateNewRoomTitle(room, modelEngine, question);
-		}
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
@@ -137,8 +138,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
 		// MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
-		pixelReturn.put("roomId", room.getId());
-		pixelReturn.put("roomName", room.getRoomName());
 
 		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
@@ -151,21 +150,27 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			titleParamMap.put("use_history", false);
 
 			InputMessage titleMsg = InputMessage.builder(room)
-					.withText("Give a short title for this conversation (max 50 characters). "
-							+ "Return ONLY the title, no quotes, no explanation.\n\nQuestion: "
+					.withText("Generate a concise conversation title. "
+							+ "Hard limit: 50 characters. Return only the title text with no prefix, quotes, or explanation.\n\nQuestion: "
 							+ question.trim())
 					.withModelType(modelEngine.getModelType())
 					.withParamMap(titleParamMap)
 					.build();
 
 			ResponseMessage titleResponse = room.ask(titleMsg, modelEngine, null, false);
-			title = normalizeTitle(titleResponse != null ? titleResponse.getContent() : null);
+			if (titleResponse != null && titleResponse.getContent() != null) {
+				title = titleResponse.getContent().trim();
+			}
 		} catch (Exception e) {
 			classLogger.warn("Could not generate LLM room title for room {}", room.getId(), e);
 		}
 
-		if (title == null) {
-			title = normalizeTitle(question);
+		if (title == null || title.isEmpty()) {
+			title = question.trim();
+		}
+
+		if (title.length() > 50) {
+			title = title.substring(0, 50).trim();
 		}
 
 		persistRoomTitle(room, title);
@@ -182,29 +187,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		if (!updated) {
 			classLogger.warn("Playground room title was not persisted for room {}", room.getId());
 		}
-	}
-
-	private String normalizeTitle(String rawTitle) {
-		if (rawTitle == null) {
-			return null;
-		}
-
-		String title = rawTitle.trim().replaceAll("\\s+", " ");
-		if (title.isEmpty()) {
-			return null;
-		}
-
-		if (title.toLowerCase().startsWith("title:")) {
-			title = title.substring("title:".length()).trim();
-		}
-
-		if ((title.startsWith("\"") && title.endsWith("\""))
-				|| (title.startsWith("'") && title.endsWith("'"))) {
-			title = title.substring(1, title.length() - 1).trim();
-		}
-
-		title = title.substring(0, Math.min(title.length(), 50)).trim();
-		return title.isEmpty() ? null : title;
 	}
 
 	@Override
