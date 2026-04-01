@@ -50,6 +50,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		newToken.id = token.id;
 		newToken.username = token.username;
 		newToken.access_token = token.access_token;
+		newToken.instance_url = token.instance_url;
 		newToken.expires_in = token.expires_in;
 		newToken.token_type = token.token_type;
 		newToken.startTime = token.startTime;
@@ -90,6 +91,11 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 
 	@Override
 	public void setAccess_token(String accessToken) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+    @Override
+	public void setInstance_url(String instanceUrl) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
