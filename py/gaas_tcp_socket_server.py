@@ -73,6 +73,15 @@ class Server(socketserver.ThreadingTCPServer):
         # This value (in seconds) is used by the TCPServerHandler to set the timeout on the client connection socket
         self.timeout_val = timeout
 
+        # Pre-import heavy modules in a background thread so they are cached
+        # in sys.modules before the first handler needs them (e.g. HuggingfaceTokenizer).
+        # Python's import lock ensures concurrent importers wait for the
+        # in-flight import rather than starting a duplicate.
+        self._preload_thread = threading.Thread(
+            target=self._preload_heavy_modules, daemon=True
+        )
+        self._preload_thread.start()
+
         if start:
             self.serve_forever()
 
@@ -124,6 +133,15 @@ class Server(socketserver.ThreadingTCPServer):
             print("Closing server")
             self.stop = True
             socketserver.TCPServer.server_close(self)
+
+    @staticmethod
+    def _preload_heavy_modules():
+        """Pre-import expensive modules so they are already in sys.modules
+        when the first handler request triggers tokenizer construction."""
+        try:
+            from transformers import AutoTokenizer  # noqa: F401
+        except Exception:
+            pass
 
 
 def parse_args():
