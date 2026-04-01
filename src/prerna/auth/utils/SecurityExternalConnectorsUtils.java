@@ -25,27 +25,45 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.salesforce;
+package prerna.auth.utils;
 
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.utils.SecurityExternalConnectorsUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-public class GetSalesforceConnectionsReactor extends AbstractReactor {
+import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
-	@Override
-	public NounMetadata execute() {
-		List<Map<String, Object>> salesforceConnections = SecurityExternalConnectorsUtils.getSalesforceConnections();
-		return new NounMetadata(salesforceConnections, PixelDataType.CUSTOM_DATA_STRUCTURE);
-	}
+public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
-	@Override
-	public String getReactorDescription() {
-		return "Returns all configured Salesforce connections stored in the security database for UI display.";
+	private static final Logger classLogger = LogManager.getLogger(SecurityExternalConnectorsUtils.class);
+
+	/**
+	 * Retrieves the ID and alias for each configured Salesforce connection.
+	 *
+	 * <p>
+	 * Queries the {@code SALESFORCE_CONNECTIONS} table in the security database,
+	 * returning all available connections with their identifiers and human-readable
+	 * aliases.
+	 *
+	 * @return a list of maps, each containing:
+	 *         <ul>
+	 *         <li>{@code id} - the unique identifier of the connection</li>
+	 *         <li>{@code alias} - the human-readable name of the connection</li>
+	 *         </ul>
+	 *         Returns an empty list if no connections are configured.
+	 */
+	public static List<Map<String, Object>> getSalesforceConnections() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__ALIAS", "alias"));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
 }

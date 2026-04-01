@@ -1406,16 +1406,16 @@ public abstract class AbstractSecurityUtils {
 						"USERINSIGHTPERMISSION", "PERMISSION");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX",
-						"USERINSIGHTPERMISSION", "PROJECTID");
+				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION",
+						"PROJECTID");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_USERID_INDEX", "USERINSIGHTPERMISSION",
 						"USERID");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
-				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX",
-						"USERINSIGHTPERMISSION", "FAVORITE");
+				sql = queryUtil.createIndexIfNotExists("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
+						"FAVORITE");
 				classLogger.info("Running sql " + sql);
 				securityDb.insertData(sql);
 			} else {
@@ -1429,8 +1429,8 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION",
 						database, schema)) {
-					String sql = queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX",
-							"USERINSIGHTPERMISSION", "PROJECTID");
+					String sql = queryUtil.createIndex("USERINSIGHTPERMISSION_PROJECTID_INDEX", "USERINSIGHTPERMISSION",
+							"PROJECTID");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
@@ -1443,8 +1443,8 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
 						database, schema)) {
-					String sql = queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX",
-							"USERINSIGHTPERMISSION", "FAVORITE");
+					String sql = queryUtil.createIndex("USERINSIGHTPERMISSION_FAVORITE_INDEX", "USERINSIGHTPERMISSION",
+							"FAVORITE");
 					classLogger.info("Running sql " + sql);
 					securityDb.insertData(sql);
 				}
@@ -1616,31 +1616,6 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// SALESFORCE_CONNECTIONS
-            colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET" };
-            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
-             
-            if (allowIfExistsTable) {
-                securityDb.insertData(queryUtil.createTableIfNotExists("SALESFORCE_CONNECTIONS", colNames, types));
-            } else {
-                // see if table exists
-                if (!queryUtil.tableExists(conn, "SALESFORCE_CONNECTIONS", database, schema)) {
-                    // make the table
-                    securityDb.insertData(queryUtil.createTable("SALESFORCE_CONNECTIONS", colNames, types));
-                }
-            }
-            {
-                List<String> allCols = queryUtil.getTableColumns(conn, "SALESFORCE_CONNECTIONS", database, schema);
-                for (int i = 0; i < colNames.length; i++) {
-                    String col = colNames[i];
-                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-                        String addColumnSql = queryUtil.alterTableAddColumn("SALESFORCE_CONNECTIONS", col, types[i]);
-                        securityDb.insertData(addColumnSql);
-                    }
-                }
-            }
-			
 			// SMSS_USER_ACCESS_KEYS
 			colNames = new String[] { "USERID", "TYPE", "ACCESSKEY", "SECRETKEY", "SECRETSALT", "DATECREATED",
 					"LASTUSED", "TOKENNAME", "TOKENDESCRIPTION" };
@@ -2340,16 +2315,18 @@ public abstract class AbstractSecurityUtils {
 					securityDb.insertData(sql);
 				}
 			}
-			// check all the columns we want are there
-			List<String> allCols = queryUtil.getTableColumns(conn, Constants.USER_METAKEYS, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					classLogger.info(
-							"Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-					String addColumnSql = queryUtil.alterTableAddColumn(Constants.USER_METAKEYS, col, types[i]);
-					classLogger.info("Running sql " + addColumnSql);
-					securityDb.insertData(addColumnSql);
+			{
+				// check all the columns we want are there
+				List<String> allCols = queryUtil.getTableColumns(conn, Constants.USER_METAKEYS, database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: "
+								+ allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn(Constants.USER_METAKEYS, col, types[i]);
+						classLogger.info("Running sql " + addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
 				}
 			}
 
@@ -2372,6 +2349,32 @@ public abstract class AbstractSecurityUtils {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 
+			// SALESFORCE_CONNECTIONS
+			colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SALESFORCE_CONNECTIONS", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "SALESFORCE_CONNECTIONS", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SALESFORCE_CONNECTIONS", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SALESFORCE_CONNECTIONS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '" + col + "' is not present in current list of columns: "
+								+ allCols.toString());
+						String addColumnSql = queryUtil.alterTableAddColumn("SALESFORCE_CONNECTIONS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -2381,104 +2384,6 @@ public abstract class AbstractSecurityUtils {
 				conn.close();
 			}
 		}
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-		////////////////////////////////////////////////////////////////////
-
-		/*
-		 * Tables accounted for that we are not using yet...
-		 */
-
-		// // USERGROUP
-		// colNames = new String[] { "groupid", "name", "owner" };
-		// types = new String[] { "int identity", "varchar(255)", "varchar(255)" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERGROUP",
-		// colNames, types));
-		//
-		// // GROUPMEMBERS
-		// colNames = new String[] {"groupmembersid", "groupid", "userid"};
-		// types = new String[] {"int identity", "integer", "varchar(255)"};
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPMEMBERS",
-		// colNames, types));
-		//
-		// // ENGINEGROUPMEMBERVISIBILITY
-		// colNames = new String[] { "id", "groupenginepermissionid", "groupmembersid",
-		// "visibility" };
-		// types = new String[] { "int identity", "integer", "integer", "boolean" };
-		// defaultValues = new Object[]{null, null, null, true};
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreateWithDefault("ENGINEGROUPMEMBERVISIBILITY",
-		// colNames, types, defaultValues));
-		//
-		// // GROUPENGINEPERMISSION
-		// colNames = new String[] {"groupenginepermissionid", "groupid", "permission",
-		// "engine"};
-		// types = new String[] {"int identity", "integer", "integer", "varchar(255)"};
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPENGINEPERMISSION",
-		// colNames, types));
-		//
-		// // FOREIGN KEYS FOR CASCASDE DELETE
-		// wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb,
-		// "select
-		// count(*) from INFORMATION_SCHEMA.CONSTRAINTS where
-		// constraint_name='FK_GROUPENGINEPERMISSION'");
-		// if(wrapper.hasNext()) {
-		// if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-		// securityDb.insertData("ALTER TABLE
-		// ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
-		// FK_GROUPENGINEPERMISSION FOREIGN KEY (GROUPENGINEPERMISSIONID) REFERENCES
-		// GROUPENGINEPERMISSION(GROUPENGINEPERMISSIONID) ON DELETE CASCADE;");
-		// }
-		// }
-		// wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb,
-		// "select
-		// count(*) from INFORMATION_SCHEMA.CONSTRAINTS where
-		// constraint_name='FK_GROUPMEMBERSID'");
-		// if(wrapper.hasNext()) {
-		// if( ((Number) wrapper.next().getValues()[0]).intValue() == 0) {
-		// securityDb.insertData("ALTER TABLE
-		// ENGINEGROUPMEMBERVISIBILITY ADD CONSTRAINT
-		// FK_GROUPMEMBERSID FOREIGN KEY (GROUPMEMBERSID) REFERENCES GROUPMEMBERS
-		// (GROUPMEMBERSID) ON DELETE CASCADE;");
-		// }
-		// }
-		//
-		// // GROUPINSIGHTPERMISSION
-		// colNames = new String[] { "groupid", "engineid", "insightid" };
-		// types = new String[] { "integer", "integer", "varchar(255)" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPINSIGHTPERMISSION",
-		// colNames, types));
-
-		// // INSIGHTEXECUTION
-		// colNames = new String[] { "user", "database", "insight", "count",
-		// "lastexecuted", "session" };
-		// types = new String[] { "varchar(255)", "varchar(255)", "varchar(255)",
-		// "integer", "date", "varchar(255)" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("INSIGHTEXECUTION",
-		// colNames, types));
-
-		// // SEED
-		// colNames = new String[] { "id", "name", "databaseid", "tablename",
-		// "columnname", "rlsvalue", "rlsjavacode", "owner" };
-		// types = new String[] { "integer", "varchar(255)", "integer", "varchar(255)",
-		// "varchar(255)", "varchar(255)", CLOB_DATATYPE_NAME, "varchar(255)" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("SEED",
-		// colNames,
-		// types));
-
-		// // USERSEEDPERMISSION
-		// colNames = new String[] { "userid", "seedid" };
-		// types = new String[] { "varchar(255)", "integer" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("USERSEEDPERMISSION",
-		// colNames, types));
-
-		// // GROUPSEEDPERMISSION
-		// colNames = new String[] { "groupid", "seedid" };
-		// types = new String[] { "integer", "integer" };
-		// securityDb.insertData(RdbmsQueryBuilder.makeOptionalCreate("GROUPSEEDPERMISSION",
-		// colNames, types));
 	}
 
 	private static void updateUserTypeEnum() {
