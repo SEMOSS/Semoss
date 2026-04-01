@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.scheduler;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +55,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.rpa.config.JobConfigKeys;
+import prerna.rpa.jobrunr.jobs.PixelExecutionJobRequest;
 import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -62,6 +64,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
@@ -79,32 +82,32 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 	public ScheduleJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_NAME.getKey(), ReactorKeysEnum.JOB_GROUP.getKey(),
-				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.CRON_TZ.getKey(), 
-				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(),
-				TRIGGER_ON_LOAD, TRIGGER_NOW, UI_STATE, ReactorKeysEnum.JOB_TAGS.getKey() };
+				ReactorKeysEnum.CRON_EXPRESSION.getKey(), ReactorKeysEnum.CRON_TZ.getKey(),
+				ReactorKeysEnum.RECIPE.getKey(), ReactorKeysEnum.RECIPE_PARAMETERS.getKey(), TRIGGER_ON_LOAD,
+				TRIGGER_NOW, UI_STATE, ReactorKeysEnum.JOB_TAGS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
 		organizeKeys();
 
-		String userId = null;
+//		String userId = null;
 		// Get inputs
-        String jobId = UUID.randomUUID().toString();
+		String jobId = UUID.randomUUID().toString();
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
 		String jobGroup = this.keyValue.get(ReactorKeysEnum.JOB_GROUP.getKey());
 		String cronExpression = this.keyValue.get(ReactorKeysEnum.CRON_EXPRESSION.getKey());
 		TimeZone cronTimeZone = null;
 		String cronTz = this.keyValue.get(ReactorKeysEnum.CRON_TZ.getKey());
-		if(cronTz == null || (cronTz=cronTz.trim()).isEmpty()) {
+		if (cronTz == null || (cronTz = cronTz.trim()).isEmpty()) {
 			cronTz = Utility.getApplicationTimeZoneId();
 		}
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
@@ -116,43 +119,187 @@ public class ScheduleJobReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
 		String recipe = this.keyValue.get(ReactorKeysEnum.RECIPE.getKey());
 		recipe = SchedulerDatabaseUtility.validateAndDecodeRecipe(recipe);
 		recipe = recipe.trim();
-		
+
 		String recipeParameters = this.keyValue.get(ReactorKeysEnum.RECIPE_PARAMETERS.getKey());
 		recipeParameters = SchedulerDatabaseUtility.validateAndDecodeRecipeParameters(recipeParameters);
-		if(recipeParameters == null) {
+		if (recipeParameters == null) {
 			recipeParameters = "";
 		} else {
 			recipeParameters = recipeParameters.trim();
 		}
-		
+
 		// get triggers
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
 		String uiState = this.keyValue.get(UI_STATE);
-		if(uiState == null) {
+		if (uiState == null) {
 			throw new NullPointerException("UI State is null and needs to be passed");
 		}
-		
+
+		boolean useJobRunr = SchedulerMigrationUtil.isJobRunrEnabled();
+
+		if (useJobRunr) {
+			// Use JobRunr for scheduling
+			return scheduleWithJobRunr(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
+					triggerOnLoad, triggerNow, uiState, jobTags);
+		} else {
+			// Use Quartz for scheduling
+			return scheduleWithQuartz(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
+					triggerOnLoad, triggerNow, uiState, jobTags);
+		}
+	}
+
+	private NounMetadata scheduleWithJobRunr(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, List<String> jobTags) {
+
 		try {
+			// Get user access information
+			String userId = null;
+			User user = this.insight.getUser();
+			List<AuthProvider> authProviders = user.getLogins();
+			StringBuilder providerInfo = new StringBuilder();
+			for (int i = 0; i < authProviders.size(); i++) {
+				AuthProvider authProvider = authProviders.get(i);
+				AccessToken token = user.getAccessToken(authProvider);
+				userId = token.getId();
+				providerInfo.append(authProvider.name()).append(":").append(token.getId());
+				if (i != authProviders.size() - 1) {
+					providerInfo.append(",");
+				}
+			}
+
+			// Get JobRunr service
+			JobRunrService jobRunrService = SchedulerMigrationUtil.getJobRunrService();
+
+			// inside the JobRequestHandler with a new execId each time
+			PixelExecutionJobRequest recurringJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+					providerInfo.toString(), null, // execId will be generated per execution
+					jobId, jobGroup);
+
+			// Schedule as recurring job with proper timezone
+			String zoneId = cronTimeZone != null ? cronTimeZone.getID() : ZoneId.systemDefault().getId();
+			jobRunrService.scheduleRecurring(jobId, cronExpression, zoneId, recurringJobRequest);
+
+			classLogger.info("Scheduled recurring job with JobRunr: {} (Cron: {}, Timezone: {})", jobId, cronExpression,
+					zoneId);
+
+			// Insert into database
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
+					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, jobTags);
+
+			// Trigger immediately if requested (with unique execId)
+			if (triggerNow || triggerOnLoad) {
+				String immediateExecId = UUID.randomUUID().toString();
+				PixelExecutionJobRequest immediateJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+						providerInfo.toString(), immediateExecId, jobId, jobGroup);
+
+				jobRunrService.enqueue(immediateJobRequest);
+
+				String triggerReason = triggerNow ? "immediately" : "on load";
+				classLogger.info("Triggered JobRunr job {}: {} (execId: {})", triggerReason, jobId, immediateExecId);
+			}
+
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
+
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to schedule job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Schedule job using JobRunr scheduler.
+	 */
+	private NounMetadata scheduleWithJobRunr2(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, List<String> jobTags) {
+
+		try {
+			// Get user access information
+			String userId = null;
+			User user = this.insight.getUser();
+			List<AuthProvider> authProviders = user.getLogins();
+			StringBuilder providerInfo = new StringBuilder();
+			for (int i = 0; i < authProviders.size(); i++) {
+				AuthProvider authProvider = authProviders.get(i);
+				AccessToken token = user.getAccessToken(authProvider);
+				// save user id for later insertion
+				userId = token.getId();
+				providerInfo.append(authProvider.name()).append(":").append(token.getId());
+				if (i != authProviders.size() - 1) {
+					providerInfo.append(",");
+				}
+			}
+
+			// Get JobRunr service
+			JobRunrService jobRunrService = SchedulerMigrationUtil.getJobRunrService();
+
+			// Create job request for JobRunr
+			String execId = UUID.randomUUID().toString();
+			PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+					providerInfo.toString(), execId, jobId, jobGroup);
+
+			// Schedule as recurring job with Cron expression
+			jobRunrService.scheduleRecurring(jobId, cronExpression, jobRequest);
+
+			classLogger.info("Scheduled job with JobRunr: {} (Cron: {})", jobId, cronExpression);
+
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
+					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, jobTags);
+
+			if (triggerNow) {
+				jobRunrService.enqueue(jobRequest);
+				classLogger.info("Triggered JobRunr job immediately: {}", jobId);
+			}
+
+			if (triggerOnLoad) {
+				jobRunrService.enqueue(jobRequest);
+				classLogger.info("Triggered JobRunr job on load: {}", jobId);
+			}
+
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
+			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
+
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to schedule job with JobRunr: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Schedule job using Quartz scheduler (existing implementation).
+	 */
+	private NounMetadata scheduleWithQuartz(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
+			String uiState, List<String> jobTags) {
+
+		try {
+			String userId = null;
 			scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 
 			// start up scheduler
 			SchedulerDatabaseUtility.startScheduler(scheduler);
 
 			// get user access information
-			List<AuthProvider> authProviders = user.getLogins();
-			StringBuilder providerInfo = new StringBuilder(); 
+			List<AuthProvider> authProviders = this.insight.getUser().getLogins();
+			StringBuilder providerInfo = new StringBuilder();
 			for (int i = 0; i < authProviders.size(); i++) {
-				AuthProvider authProvider = authProviders.get(i); 
-				AccessToken token = user.getAccessToken(authProvider);
+				AuthProvider authProvider = authProviders.get(i);
+				AccessToken token = this.insight.getUser().getAccessToken(authProvider);
 				// save user id for later insertion
 				userId = token.getId();
 				providerInfo.append(authProvider.name()).append(":").append(token.getId());
@@ -165,35 +312,29 @@ public class ScheduleJobReactor extends AbstractReactor {
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
 				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
-				throw new IllegalArgumentException("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
+				throw new IllegalArgumentException(
+						"job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 			}
 
 			try {
-				scheduleJob(jobKey, jobId, jobName, jobGroup, 
-						cronExpression, cronTimeZone, 
-						recipe, recipeParameters,
+				scheduleJob(jobKey, jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
 						triggerOnLoad, uiState, providerInfo.toString());
 			} catch (SchedulerException e) {
 				throw new RuntimeException("Failed to schedule the job", e);
 			}
-			
+
 			if (triggerNow) {
 				triggerJobNow(jobKey);
 			}
 
 			// insert into SMOSS_JOB_RECIPES table
-			classLogger.info("Saving JobId to database: "+jobId);
-			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, 
-					jobName, jobGroup, 
-					cronExpression, cronTimeZone,
-					recipe, recipeParameters, 
-					"Default", triggerOnLoad, uiState, jobTags);
+			classLogger.info("Saving JobId to database: " + jobId);
+			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
+					cronTimeZone, recipe, recipeParameters, "QUARTZ", triggerOnLoad, uiState, jobTags);
 
-			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, 
-					cronExpression, cronTimeZone, 
-					recipe, recipeParameters,
-					triggerOnLoad, uiState, providerInfo.toString());
-						
+			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
 			classLogger.error(Constants.STACKTRACE, se);
@@ -230,29 +371,29 @@ public class ScheduleJobReactor extends AbstractReactor {
 	 * @throws IllegalConfigException
 	 * @throws SchedulerException
 	 */
-	protected JobKey scheduleJob(JobKey jobKey, String jobId, String jobName, String jobGroup, 
-			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
-			boolean triggerOnLoad, String uiState, String providerInfo) throws SchedulerException {
-		JobDataMap jobDataMap = getJobDataMap(jobId, jobName, jobGroup, 
-				cronExpression, cronTimeZone, recipe, recipeParameters, 
-				triggerOnLoad, uiState, providerInfo);
-				
+	protected JobKey scheduleJob(JobKey jobKey, String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, String uiState,
+			String providerInfo) throws SchedulerException {
+		JobDataMap jobDataMap = getJobDataMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
+				recipeParameters, triggerOnLoad, uiState, providerInfo);
+
 		Class<? extends Job> jobClass = RunPixelJobFromDB.class;
 
 		// Schedule the job
-		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobKey).usingJobData(jobDataMap).storeDurably().build();
-		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId+ "Trigger", jobGroup + "TriggerGroup")
-				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)
-				.inTimeZone(cronTimeZone)).build();
+		JobDetail job = JobBuilder.newJob(jobClass).withIdentity(jobKey).usingJobData(jobDataMap).storeDurably()
+				.build();
+		Trigger trigger = TriggerBuilder.newTrigger().withIdentity(jobId + "Trigger", jobGroup + "TriggerGroup")
+				.withSchedule(CronScheduleBuilder.cronSchedule(cronExpression).inTimeZone(cronTimeZone)).build();
 
 		scheduler.scheduleJob(job, trigger);
 
-		classLogger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: " + Utility.cleanLogString(cronExpression) + ".");
-		
+		classLogger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: "
+				+ Utility.cleanLogString(cronExpression) + ".");
+
 		// Return the job key
 		return job.getKey();
 	}
-	
+
 	/**
 	 * 
 	 * @param jobId
@@ -267,9 +408,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 	 * @param providerInfo
 	 * @return
 	 */
-	public static JobDataMap getJobDataMap(String jobId, String jobName, String jobGroup, 
-			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
-			boolean triggerOnLoad, String uiState, String providerInfo) {
+	public static JobDataMap getJobDataMap(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, String uiState,
+			String providerInfo) {
 		JobDataMap jobDataMap = new JobDataMap();
 		jobDataMap.put(providerInfo, triggerOnLoad);
 		jobDataMap.put(JobConfigKeys.JOB_ID, jobId);
@@ -285,9 +426,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 		jobDataMap.put(JobConfigKeys.USER_ACCESS, providerInfo);
 		return jobDataMap;
 	}
-	
+
 	/**
-	 * TODO: DO I NEED TO RETURN THIS MAP ? 
+	 * TODO: DO I NEED TO RETURN THIS MAP ?
 	 * 
 	 * @param jobId
 	 * @param jobName
@@ -301,9 +442,9 @@ public class ScheduleJobReactor extends AbstractReactor {
 	 * @param providerInfo
 	 * @return
 	 */
-	public static Map<String, Object> createRetMap(String jobId, String jobName, String jobGroup, 
-			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, 
-			boolean triggerOnLoad, String uiState, String providerInfo) {
+	public static Map<String, Object> createRetMap(String jobId, String jobName, String jobGroup, String cronExpression,
+			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, String uiState,
+			String providerInfo) {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put(JobConfigKeys.JOB_ID, jobId);
 		retMap.put(JobConfigKeys.JOB_NAME, jobName);
@@ -322,7 +463,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		GenRowStruct boolGrs = this.store.getGenRowStruct(TRIGGER_ON_LOAD);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-			if(val != null && !val.isEmpty()) {
+			if (val != null && !val.isEmpty()) {
 				return (boolean) val.get(0);
 			}
 		}
@@ -334,22 +475,22 @@ public class ScheduleJobReactor extends AbstractReactor {
 		GenRowStruct boolGrs = this.store.getGenRowStruct(TRIGGER_NOW);
 		if (boolGrs != null && !boolGrs.isEmpty()) {
 			List<Object> val = boolGrs.getValuesOfType(PixelDataType.BOOLEAN);
-			if(val != null && !val.isEmpty()) {
+			if (val != null && !val.isEmpty()) {
 				return (boolean) val.get(0);
 			}
 		}
 
 		return false;
 	}
-	
+
 	protected List<String> getJobTags() {
 		List<String> jobTags = null;
-		GenRowStruct grs= this.store.getGenRowStruct(ReactorKeysEnum.JOB_TAGS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.JOB_TAGS.getKey());
+		if (grs != null && !grs.isEmpty()) {
 			jobTags = new ArrayList<>();
 			int size = grs.size();
-			for(int i = 0; i < size; i++) {
-				jobTags.add( grs.get(i)+"" );
+			for (int i = 0; i < size; i++) {
+				jobTags.add(grs.get(i) + "");
 			}
 		}
 		return jobTags;
