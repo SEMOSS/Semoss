@@ -44,7 +44,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -85,7 +84,7 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete workspace '{}'.", workspaceId, e);
 			return getError("Error during workspace delete: " + e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -109,7 +108,7 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 		try {
 			project.delete();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete workspace project files for project '{}'.", projectId, e);
 		}
 
 		return true;

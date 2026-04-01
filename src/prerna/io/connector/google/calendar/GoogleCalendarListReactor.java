@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GoogleCalendarListReactor extends AbstractReactor {
@@ -61,6 +60,12 @@ public class GoogleCalendarListReactor extends AbstractReactor {
 		this.organizeKeys();
 		String startdate = this.keyValue.get(this.keysToGet[0]);
 		String enddate = this.keyValue.get(this.keysToGet[1]);
+		if (startdate == null || startdate.trim().isEmpty()) {
+			throw new SemossPixelException("Start date and time are required.");
+		}
+		if (enddate == null || enddate.trim().isEmpty()) {
+			throw new SemossPixelException("End date and time are required.");
+		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
@@ -72,12 +77,12 @@ public class GoogleCalendarListReactor extends AbstractReactor {
 					zoneId);
 			return new NounMetadata(eventList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while listing Google Calendar events", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list Google Calendar events", e);
 			throw new SemossPixelException(
-					"An error occurred retrieving the list of event. Error message: " + e.getMessage());
+					"An error occurred retrieving the list of events. Error message: " + e.getMessage());
 		}
 	}
 
@@ -89,9 +94,9 @@ public class GoogleCalendarListReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(START_DATE)) {
-			return "Start date and time for retrieving events";
+			return "Start date and time for retrieving events.";
 		} else if (key.equals(END_DATE)) {
-			return "End date and time for retrieving events";
+			return "End date and time for retrieving events.";
 		}
 		return super.getDescriptionForKey(key);
 	}

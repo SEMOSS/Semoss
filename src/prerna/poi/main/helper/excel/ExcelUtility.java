@@ -46,99 +46,105 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Utility methods for common Excel file operations such as encryption and file
+ * writes.
+ */
 public class ExcelUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(ExcelUtility.class);
 
 	/**
-	 * 
-	 * @param fileLocation
-	 * @return
+	 * Checks whether the supplied workbook file is encrypted.
+	 *
+	 * @param fileLocation absolute or relative workbook path
+	 * @return {@code true} when the workbook is encrypted, {@code false} when it is
+	 *         a regular OOXML workbook
 	 */
 	public static boolean isExcelEncrypted(String fileLocation) {
-		boolean isEncrypted = false;
-		try (POIFSFileSystem x = new POIFSFileSystem(new FileInputStream(fileLocation))  ) { 
-			isEncrypted = true;
-		} catch(OfficeXmlFileException e) {
+		String normalizedPath = Utility.normalizePath(fileLocation);
+		try (POIFSFileSystem x = new POIFSFileSystem(new FileInputStream(normalizedPath))) {
+			return true;
+		} catch (OfficeXmlFileException e) {
 			// This is a regular ooxml .xlsx file
-			isEncrypted = false;
+			return false;
 		} catch (IOException e) {
-			classLogger.error(e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not handle file location. See logs for details.");
+			classLogger.error("Failed to determine whether Excel file is encrypted: {}", normalizedPath, e);
+			throw new IllegalArgumentException("Could not handle file location. See logs for details.", e);
 		}
-		
-		return isEncrypted;
 	}
-	
+
 	/**
-	 * 
-	 * @param workbook
-	 * @param fileLocation
-	 * @param password
+	 * Encrypts and writes a workbook to disk using the provided password.
+	 *
+	 * @param workbook     workbook to encrypt and write
+	 * @param fileLocation target workbook file path
+	 * @param password     password used for workbook encryption
 	 */
 	public static void encrypt(Workbook workbook, String fileLocation, String password) {
+		String normalizedPath = Utility.normalizePath(fileLocation);
 		POIFSFileSystem fs = null;
-		OutputStream os  = null;
-		OutputStream encos  = null;
+		OutputStream os = null;
+		OutputStream encos = null;
 		try {
 			fs = new POIFSFileSystem();
 			EncryptionInfo info = new EncryptionInfo(EncryptionMode.agile);
 			Encryptor enc = info.getEncryptor();
 			enc.confirmPassword(password);
-			
+
 			// write the workbook into an encrypted outputstream
 			encos = enc.getDataStream(fs);
 			workbook.write(encos);
 			workbook.close();
 			encos.close();
-			
-			os = new FileOutputStream(Utility.normalizePath(fileLocation));
+
+			os = new FileOutputStream(normalizedPath);
 			fs.writeFilesystem(os);
 		} catch (GeneralSecurityException e) {
-			throw new RuntimeException(e);
+			classLogger.error("Failed to encrypt workbook for file: {}", normalizedPath, e);
+			throw new RuntimeException("Failed to encrypt workbook for file: " + normalizedPath, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write encrypted workbook to file: {}", normalizedPath, e);
 		} finally {
-			if(workbook != null) {
+			if (workbook != null) {
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close workbook after encryption for file: {}", normalizedPath, e);
 				}
 			}
-			if(os != null) {
+			if (os != null) {
 				try {
 					os.close();
-				} catch(IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				} catch (IOException e) {
+					classLogger.error("Failed to close output stream for encrypted workbook: {}", normalizedPath, e);
 				}
 			}
-			if(fs != null) {
+			if (fs != null) {
 				try {
 					fs.close();
-				} catch(IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				} catch (IOException e) {
+					classLogger.error("Failed to close POIFS filesystem for encrypted workbook: {}", normalizedPath, e);
 				}
 			}
 		}
 	}
 
 	/**
-	 * Write the file
-	 * Also closes the workbook so no additional changes can be performed
-	 * @param workbook
-	 * @param fileLocation
+	 * Write the file Also closes the workbook so no additional changes can be
+	 * performed
+	 * 
+	 * @param workbook     streaming workbook instance
+	 * @param fileLocation target workbook file path
 	 */
 	public static void writeToFile(SXSSFWorkbook workbook, String fileLocation) {
 		fileLocation = Utility.normalizePath(fileLocation);
 		// make sure the directory exists
 		{
 			File file = new File(fileLocation);
-			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+			if (!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
 				file.getParentFile().mkdirs();
 			}
 		}
@@ -148,13 +154,13 @@ public class ExcelUtility {
 			fileOut = new FileOutputStream(fileLocation);
 			workbook.write(fileOut);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write SXSSFWorkbook to file: {}", fileLocation, e);
 		} finally {
 			if (fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close file output stream for SXSSFWorkbook file: {}", fileLocation, e);
 				}
 			}
 			if (workbook != null) {
@@ -162,24 +168,25 @@ public class ExcelUtility {
 					workbook.close();
 					workbook.dispose();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close SXSSFWorkbook after writing file: {}", fileLocation, e);
 				}
 			}
 		}
 	}
 
 	/**
-	 * Write the file
-	 * Also closes the workbook so no additional changes can be performed
-	 * @param workbook
-	 * @param fileLocation
+	 * Write the file Also closes the workbook so no additional changes can be
+	 * performed
+	 * 
+	 * @param workbook     workbook instance
+	 * @param fileLocation target workbook file path
 	 */
 	public static void writeToFile(XSSFWorkbook workbook, String fileLocation) {
 		fileLocation = Utility.normalizePath(fileLocation);
 		// make sure the directory exists
 		{
 			File file = new File(fileLocation);
-			if(!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
+			if (!file.getParentFile().exists() || !file.getParentFile().isDirectory()) {
 				file.getParentFile().mkdirs();
 			}
 		}
@@ -189,22 +196,22 @@ public class ExcelUtility {
 			out = new FileOutputStream(fileLocation);
 			workbook.write(out);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Workbook output path not found: {}", fileLocation, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write XSSFWorkbook to file: {}", fileLocation, e);
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close file output stream for XSSFWorkbook file: {}", fileLocation, e);
 				}
 			}
 			if (workbook != null) {
 				try {
 					workbook.close();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close XSSFWorkbook after writing file: {}", fileLocation, e);
 				}
 			}
 		}

@@ -45,6 +45,7 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -4714,7 +4715,7 @@ public final class Utility {
 		// derived from the social.properties redirect value
 		try {
 			String redirectUrlStr = SocialPropertiesUtil.getInstance().getProperty("redirect");
-			URL redirectUrl = new URL(redirectUrlStr);
+			URL redirectUrl = new URI(redirectUrlStr).toURL();
 			String protocol = redirectUrl.getProtocol();
 			int port = redirectUrl.getPort();
 			String host = redirectUrl.getHost();
@@ -4723,7 +4724,7 @@ public final class Utility {
 			} else {
 				return protocol + "://" + host;
 			}
-		} catch (MalformedURLException e) {
+		} catch (URISyntaxException | MalformedURLException e) {
 			classLogger.warn("Invalid redirect URL in social.properties for redirect");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -6103,6 +6104,12 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
+	/**
+	 * Returns true only if the folder contains at least one direct non-directory
+	 * file. Use this when you specifically need to confirm flat files exist (e.g.,
+	 * validating that a folder has been populated with data files, not just
+	 * sub-folders).
+	 */
 	public static boolean folderHasAnyFiles(String folderPath) {
 		File folder = new File(folderPath);
 		if (!folder.exists() || !folder.isDirectory()) {
@@ -6111,6 +6118,22 @@ public final class Utility {
 		// Check for at least one non-directory file
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
+	}
+
+	/**
+	 * Returns true if the folder exists and contains any entries — files,
+	 * sub-directories, hidden files, dot files, etc. Use this when you just need to
+	 * know the folder is non-empty regardless of whether its contents are files or
+	 * directories (e.g., before syncing a room folder to cloud storage where the
+	 * room may store data in sub-directories).
+	 */
+	public static boolean folderIsNotEmpty(String folderPath) {
+		File folder = new File(folderPath);
+		if (!folder.exists() || !folder.isDirectory()) {
+			return false;
+		}
+		File[] entries = folder.listFiles();
+		return entries != null && entries.length > 0;
 	}
 
 	/**

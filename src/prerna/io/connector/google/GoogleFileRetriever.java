@@ -40,53 +40,41 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.security.HttpHelperUtility;
-import prerna.util.Constants;
 
-public class GoogleFileRetriever implements IConnectorIOp{
-	
+public class GoogleFileRetriever implements IConnectorIOp {
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetriever.class);
-	
+
 	@Override
 	public Object execute(User user, Map<String, Object> params) {
-		String fileName = (String)params.remove("target");
-		BufferedWriter target  = null;
+		String fileName = (String) params.remove("target");
+		BufferedWriter target = null;
 		try {
-			String url_str = "https://docs.google.com/spreadsheets/export"; 
-			//System.out.println("....");
-			
-			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, null, params, false);
-			
+			String url = "https://docs.google.com/spreadsheets/export";
+			BufferedReader br = HttpHelperUtility.getHttpStream(url, null, params, false);
 			// create a file
 			File outputFile = new File(fileName);
-			
 			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
-			
-			
-			while((data = br.readLine()) != null)
-			{
+			while ((data = br.readLine()) != null) {
 				target.write(data);
 				target.write("\n");
 				target.flush();
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve and write Google spreadsheet content to {}", fileName, e);
 		} finally {
-			if(target != null) {
-		          try {
-		        	  target.flush();
-		        	  target.close();
-		          } catch(IOException e) {
-		            // ignore
-		          }
-		        }
-
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					// ignore
+				}
+			}
 		}
-		
-		// TODO Auto-generated method stub
+
 		return fileName;
 	}
 
-	// https://docs.google.com/spreadsheets/export?id=1it40jNFcRo1ur2dHIYUk18XmXdd37j4gmJm_Sg7KLjI&exportFormat=csv
 }
