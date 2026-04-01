@@ -12,6 +12,17 @@ from claude_agent_sdk import (
 )
 from .claude_code_utils import _build_change_logger
 
+# from ...debug_logger.debug_logger import DebugLogger
+
+# logger = DebugLogger(
+#     log_dir="/Users/rweiler/Desktop/LOG_FILES",
+#     log_file_name="claude-code-client.txt",
+#     class_name=__name__,
+# ).logger
+
+# def _stderr_handler(line: str):
+#     logger.debug(f"Claude-Code-stderr:: {line.rstrip()}")
+
 
 class MCP(BaseModel):
     url: str
@@ -45,7 +56,9 @@ class ClaudeCodeClient:
 
         self.agent_options = ClaudeAgentOptions(
             # permission_mode=self.configuration.permission_mode,
+            # stderr=_stderr_handler,
             permission_mode="bypassPermissions",
+            max_turns=10,
             setting_sources=["project"],
             model=self.configuration.model,
             cwd=self.configuration.cwd_path,
@@ -80,6 +93,14 @@ class ClaudeCodeClient:
                 "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
                 "ENABLE_TOOL_SEARCH": "true",
+                # "ANTHROPIC_LOG": "debug",
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
+                "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
+                "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
+                "ANTHROPIC_DEFAULT_SONNET_MODEL": self.configuration.model,
+                "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": self.configuration.model,
+                "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
+                "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
             },
             hooks={
                 "PostToolUse": [
@@ -113,6 +134,7 @@ class ClaudeCodeClient:
             prompt=new_prompt,
             options=self.agent_options,
         ):
+            # logger.info(f"Claude-Code-chunk:: {message}")
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):
