@@ -131,9 +131,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -154,6 +156,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.reactor.shortcuts.temporal.WorkflowEntity;
+import prerna.reactor.shortcuts.temporal.WorkflowTemplate;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
@@ -1798,6 +1802,348 @@ public class SchedulerDatabaseUtility {
 			return "org.quartz.impl.jdbcjobstore.oracle.OracleDelegate";
 		} else {
 			return "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
+		}
+	}
+
+	public static void insertWorkflowTemplate(WorkflowTemplate e) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				INSERT INTO workflow_template
+				(workflow_template_key, template_name, description, version, status, workflow_json, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+				""")) {
+			ps.setString(1, e.workflowTemplateKey);
+			ps.setString(2, e.templateName);
+			ps.setString(3, e.description);
+			ps.setInt(4, e.version);
+			ps.setString(5, e.status);
+			ps.setString(6, e.workflowJson);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void updateWorkflowTemplate(WorkflowTemplate e) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				UPDATE workflow_template
+				SET template_name=?, description=?, version=?, status=?, workflow_json=?, updated_at=CURRENT_TIMESTAMP
+				WHERE workflow_template_key=?
+				""")) {
+			ps.setString(1, e.templateName);
+			ps.setString(2, e.description);
+			ps.setInt(3, e.version);
+			ps.setString(4, e.status);
+			ps.setString(5, e.workflowJson);
+			ps.setString(6, e.workflowTemplateKey);
+			ps.executeUpdate();
+		}
+	}
+
+	public static WorkflowTemplate getWorkflowTemplateByKey(String key) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				SELECT * FROM workflow_template WHERE workflow_template_key=?
+				""")) {
+			ps.setString(1, key);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				WorkflowTemplate e = new WorkflowTemplate();
+				e.id = rs.getLong("id");
+				e.workflowTemplateKey = rs.getString("workflow_template_key");
+				e.templateName = rs.getString("template_name");
+				e.description = rs.getString("description");
+				e.version = rs.getInt("version");
+				e.status = rs.getString("status");
+				e.workflowJson = rs.getString("workflow_json");
+				return e;
+			}
+			return null;
+		}
+	}
+
+	public static List<WorkflowTemplate> listWorkflowTemplate() throws Exception {
+		List<WorkflowTemplate> list = new ArrayList<>();
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement("SELECT * FROM workflow_template");
+				ResultSet rs = ps.executeQuery()) {
+			while (rs.next()) {
+				WorkflowTemplate e = new WorkflowTemplate();
+				e.id = rs.getLong("id");
+				e.workflowTemplateKey = rs.getString("workflow_template_key");
+				e.templateName = rs.getString("template_name");
+				e.description = rs.getString("description");
+				e.version = rs.getInt("version");
+				e.status = rs.getString("status");
+				e.workflowJson = rs.getString("workflow_json");
+				list.add(e);
+			}
+		}
+		return list;
+	}
+
+	public static void deleteWorkflowTemplateByKey(String key) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				DELETE FROM workflow_template WHERE workflow_template_key=?
+				""")) {
+			ps.setString(1, key);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void insertWorkflow(WorkflowEntity e) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				INSERT INTO workflow
+				(workflow_key, workflow_template_key, workflow_name, description, version, status,
+				 trigger_type, watch_directory, file_pattern, recursive_watch, cron_expression, api_endpoint,
+				 temporal_schedule_id, workflow_json, updated_at)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+				""")) {
+			ps.setString(1, e.workflowKey);
+			ps.setString(2, e.workflowTemplateKey);
+			ps.setString(3, e.workflowName);
+			ps.setString(4, e.description);
+			ps.setInt(5, e.version);
+			ps.setString(6, e.status);
+			ps.setString(7, e.triggerType);
+			ps.setString(8, e.watchDirectory);
+			ps.setString(9, e.filePattern);
+			ps.setBoolean(10, e.recursiveWatch != null && e.recursiveWatch);
+			ps.setString(11, e.cronExpression);
+			ps.setString(12, e.apiEndpoint);
+			ps.setString(13, e.temporalScheduleId);
+			ps.setString(14, e.workflowJson);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void updateWorkflow(WorkflowEntity e) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				UPDATE workflow
+				SET workflow_template_key=?, workflow_name=?, description=?, version=?, status=?,
+				    trigger_type=?, watch_directory=?, file_pattern=?, recursive_watch=?, cron_expression=?,
+				    api_endpoint=?, temporal_schedule_id=?, workflow_json=?, updated_at=CURRENT_TIMESTAMP
+				WHERE workflow_key=?
+				""")) {
+			ps.setString(1, e.workflowTemplateKey);
+			ps.setString(2, e.workflowName);
+			ps.setString(3, e.description);
+			ps.setInt(4, e.version);
+			ps.setString(5, e.status);
+			ps.setString(6, e.triggerType);
+			ps.setString(7, e.watchDirectory);
+			ps.setString(8, e.filePattern);
+			ps.setBoolean(9, e.recursiveWatch != null && e.recursiveWatch);
+			ps.setString(10, e.cronExpression);
+			ps.setString(11, e.apiEndpoint);
+			ps.setString(12, e.temporalScheduleId);
+			ps.setString(13, e.workflowJson);
+			ps.setString(14, e.workflowKey);
+			ps.executeUpdate();
+		}
+	}
+
+	public static WorkflowEntity getWorkflowByKey(String key) throws Exception {
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement("SELECT * FROM workflow WHERE workflow_key=?")) {
+			ps.setString(1, key);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				WorkflowEntity e = new WorkflowEntity();
+				e.id = rs.getLong("id");
+				e.workflowKey = rs.getString("workflow_key");
+				e.workflowTemplateKey = rs.getString("workflow_template_key");
+				e.workflowName = rs.getString("workflow_name");
+				e.description = rs.getString("description");
+				e.version = rs.getInt("version");
+				e.status = rs.getString("status");
+				e.triggerType = rs.getString("trigger_type");
+				e.watchDirectory = rs.getString("watch_directory");
+				e.filePattern = rs.getString("file_pattern");
+				e.recursiveWatch = rs.getBoolean("recursive_watch");
+				e.cronExpression = rs.getString("cron_expression");
+				e.apiEndpoint = rs.getString("api_endpoint");
+				e.temporalScheduleId = rs.getString("temporal_schedule_id");
+				e.workflowJson = rs.getString("workflow_json");
+				return e;
+			}
+			return null;
+		}
+	}
+
+	public static WorkflowEntity findWorkflowActiveByDirectory(String watchDirectory) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				SELECT * FROM workflow
+				WHERE trigger_type='FILE_WATCHER' AND status='ACTIVE' AND watch_directory=?
+				""")) {
+			ps.setString(1, watchDirectory);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				WorkflowEntity e = new WorkflowEntity();
+				e.id = rs.getLong("id");
+				e.workflowKey = rs.getString("workflow_key");
+				e.workflowTemplateKey = rs.getString("workflow_template_key");
+				e.workflowName = rs.getString("workflow_name");
+				e.description = rs.getString("description");
+				e.version = rs.getInt("version");
+				e.status = rs.getString("status");
+				e.triggerType = rs.getString("trigger_type");
+				e.watchDirectory = rs.getString("watch_directory");
+				e.filePattern = rs.getString("file_pattern");
+				e.recursiveWatch = rs.getBoolean("recursive_watch");
+				e.cronExpression = rs.getString("cron_expression");
+				e.apiEndpoint = rs.getString("api_endpoint");
+				e.temporalScheduleId = rs.getString("temporal_schedule_id");
+				e.workflowJson = rs.getString("workflow_json");
+				return e;
+			}
+			return null;
+		}
+	}
+
+	public static List<WorkflowEntity> WorkflowList() throws Exception {
+		List<WorkflowEntity> list = new ArrayList<>();
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement("SELECT * FROM workflow");
+				ResultSet rs = ps.executeQuery()) {
+			while (rs.next()) {
+				WorkflowEntity e = new WorkflowEntity();
+				e.id = rs.getLong("id");
+				e.workflowKey = rs.getString("workflow_key");
+				e.workflowTemplateKey = rs.getString("workflow_template_key");
+				e.workflowName = rs.getString("workflow_name");
+				e.description = rs.getString("description");
+				e.version = rs.getInt("version");
+				e.status = rs.getString("status");
+				e.triggerType = rs.getString("trigger_type");
+				e.watchDirectory = rs.getString("watch_directory");
+				e.filePattern = rs.getString("file_pattern");
+				e.recursiveWatch = rs.getBoolean("recursive_watch");
+				e.cronExpression = rs.getString("cron_expression");
+				e.apiEndpoint = rs.getString("api_endpoint");
+				e.temporalScheduleId = rs.getString("temporal_schedule_id");
+				e.workflowJson = rs.getString("workflow_json");
+				list.add(e);
+			}
+		}
+		return list;
+	}
+
+	public static void deleteWorkflowByKey(String key) throws Exception {
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement("DELETE FROM workflow WHERE workflow_key=?")) {
+			ps.setString(1, key);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void updateWorkflowScheduleId(String workflowKey, String scheduleId) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				UPDATE workflow SET temporal_schedule_id=?, updated_at=CURRENT_TIMESTAMP
+				WHERE workflow_key=?
+				""")) {
+			ps.setString(1, scheduleId);
+			ps.setString(2, workflowKey);
+			ps.executeUpdate();
+		}
+	}
+
+	public static long insertWorkflowExecution(String executionKey, String workflowKey, String temporalWorkflowId,
+			String triggerType, String triggerValue, String status, String inputPayload) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				INSERT INTO workflow_execution
+				(execution_key, workflow_key, temporal_workflow_id, trigger_type, trigger_value, status, input_payload)
+				VALUES (?, ?, ?, ?, ?, ?, ?)
+				""", Statement.RETURN_GENERATED_KEYS)) {
+			ps.setString(1, executionKey);
+			ps.setString(2, workflowKey);
+			ps.setString(3, temporalWorkflowId);
+			ps.setString(4, triggerType);
+			ps.setString(5, triggerValue);
+			ps.setString(6, status);
+			ps.setString(7, inputPayload);
+			ps.executeUpdate();
+			ResultSet rs = ps.getGeneratedKeys();
+			rs.next();
+			return rs.getLong(1);
+		}
+	}
+
+	public static void markCompletedWorkflowExecution(long id, String outputPayload) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				UPDATE workflow_execution
+				SET status='COMPLETED', output_payload=?, end_time=CURRENT_TIMESTAMP
+				WHERE id=?
+				""")) {
+			ps.setString(1, outputPayload);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void markFailedWorkflowExecution(long id, String errorMessage) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				UPDATE workflow_execution
+				SET status='FAILED', error_message=?, end_time=CURRENT_TIMESTAMP
+				WHERE id=?
+				""")) {
+			ps.setString(1, errorMessage);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void insertActionExecution(long workflowExecutionId, String actionId, String actionName,
+			String status, String pixel, String inputPayload, String outputPayload, String errorMessage)
+			throws Exception {
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement(
+						"""
+								INSERT INTO action_execution
+								(workflow_execution_id, action_id, action_name, status, pixel, input_payload, output_payload, error_message, end_time)
+								VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+								""")) {
+			ps.setLong(1, workflowExecutionId);
+			ps.setString(2, actionId);
+			ps.setString(3, actionName);
+			ps.setString(4, status);
+			ps.setString(5, pixel);
+			ps.setString(6, inputPayload);
+			ps.setString(7, outputPayload);
+			ps.setString(8, errorMessage);
+			ps.executeUpdate();
+		}
+	}
+
+	public static String getActionExecutionOutputByActionId(long workflowExecutionId, String actionId)
+			throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				SELECT output_payload FROM action_execution
+				WHERE workflow_execution_id=? AND action_id=? AND status='SUCCESS'
+				ORDER BY id DESC
+				""")) {
+			ps.setLong(1, workflowExecutionId);
+			ps.setString(2, actionId);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getString("output_payload");
+			}
+			return null;
+		}
+	}
+
+	public static void insertWorkflowDLQ(long workflowExecutionId, String workflowKey, String actionId, String pixel,
+			String errorMessage, int retryCount, int maxRetry, String status) throws Exception {
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement("""
+				INSERT INTO workflow_dlq
+				(workflow_execution_id, workflow_key, action_id, pixel, error_message, retry_count, max_retry, status)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+				""")) {
+			ps.setLong(1, workflowExecutionId);
+			ps.setString(2, workflowKey);
+			ps.setString(3, actionId);
+			ps.setString(4, pixel);
+			ps.setString(5, errorMessage);
+			ps.setInt(6, retryCount);
+			ps.setInt(7, maxRetry);
+			ps.setString(8, status);
+			ps.executeUpdate();
 		}
 	}
 }

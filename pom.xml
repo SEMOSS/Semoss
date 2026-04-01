@@ -643,6 +643,17 @@
 				<artifactId>assertj-core</artifactId>
 				<version>3.27.7</version>
 			</dependency>
+			<dependency>
+	            <groupId>org.slf4j</groupId>
+	            <artifactId>slf4j-api</artifactId>
+	            <version>2.0.7</version>
+        	</dependency>
+        	<!-- Perfmark -->
+	        <dependency>
+	            <groupId>io.perfmark</groupId>
+	            <artifactId>perfmark-api</artifactId>
+	            <version>0.27.0</version>
+	        </dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
@@ -3410,6 +3421,33 @@
 			<artifactId>jimfs</artifactId>
 			<version>1.3.0</version>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+		    <groupId>io.temporal</groupId>
+		    <artifactId>temporal-shaded</artifactId>
+		    <version>1.33.0</version>
+		    <exclusions>
+		        <exclusion>
+		            <groupId>com.google.code.gson</groupId>
+		            <artifactId>gson</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.fasterxml.jackson.core</groupId>
+		            <artifactId>jackson-databind</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.google.protobuf</groupId>
+		            <artifactId>protobuf-java-util</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.fasterxml.jackson.core</groupId>
+		            <artifactId>jackson-core</artifactId>
+		        </exclusion>
+		        <exclusion>
+		            <groupId>com.fasterxml.jackson.datatype</groupId>
+		            <artifactId>jackson-datatype-jsr310</artifactId>
+		        </exclusion>
+		    </exclusions>
 		</dependency>
 		<!--  please add jars above and not within the testing block -->
 	</dependencies>
