@@ -32,9 +32,11 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -64,6 +66,31 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__ALIAS", "alias"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Retrieves the client id and client secret for a specific configured
+	 * Salesforce connection
+	 * <p>
+	 * Queries the {@code SALESFORCE_CONNECTIONS} table in the security database,
+	 * returning the client id adn client secret for a specific connection id that
+	 * is generated upon insertion into the system.
+	 * 
+	 * @param connectionId the unique connection id that was added
+	 * @return a pair of client id and client secret id
+	 */
+	public static Pair<String, String> getSalesforceConnectionDetails(String connectionId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__CLIENTID", "clientid"));
+		qs.addSelector(new QueryColumnSelector("SALESFORCE_CONNECTIONS__CLIENTSECRET", "clientsecret"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SALESFORCE_CONNECTIONS__ID", "==", connectionId));
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList.isEmpty()) {
+			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
+		}
+		Map<String, Object> result = resultList.get(0);
+		return new Pair<String, String>((String) result.get("clientid"), (String) result.get("clientsecret"));
 	}
 
 }
