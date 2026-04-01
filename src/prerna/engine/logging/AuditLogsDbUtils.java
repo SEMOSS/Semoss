@@ -216,6 +216,56 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
+	 * Fetches the most recent audit log entry for a specific room and user. Returns
+	 * the latest entry containing the raw request payload, model response, and the
+	 * combined prompt + response token count.
+	 *
+	 * @param userId     the authenticated user ID who owns the room session;
+	 * @param roomId     the playground room ID whose log should be retrieved;
+	 * @param engineType the engine type filter used to narrow the query to the
+	 *                   relevant log entries
+	 * @return a Map containing: request - the raw JSON request string sent to the
+	 *         model, response - the raw response string returned by the model,
+	 *         tokens - total token count (NUMBER_OF_TOKENS_IN_PROMPT +
+	 *         NUMBER_OF_TOKENS_IN_RESPONSE)
+	 * @throws IllegalArgumentException if userId or roomId is blank, or if no log
+	 *                                  entry is found for the given room
+	 */
+	public static Map<String, Object> fetchLatestRoomAuditEntry(String userId, String roomId, String engineType) {
+		if (userId == null || userId.isEmpty()) {
+			throw new IllegalArgumentException("User ID is required to fetch logs");
+		}
+		if (roomId == null || roomId.isEmpty()) {
+			throw new IllegalArgumentException("Room ID is required to fetch logs");
+		}
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_RESPONSE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ROOM_ID", "==", roomId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ENGINE_TYPE", "==", engineType));
+		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
+
+		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		if (list == null || list.isEmpty()) {
+			throw new IllegalArgumentException("No audit logs found for roomId: " + roomId);
+		}
+		Map<String, Object> result = list.get(0);
+		String request = getOrDefault(result.get("REQUEST"), "");
+		String response = getOrDefault(result.get("RESPONSE"), "");
+		int tokensInPrompt = getIntValue(result.get("NUMBER_OF_TOKENS_IN_PROMPT"));
+		int tokensInResponse = getIntValue(result.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+		int tokens = tokensInPrompt + tokensInResponse;
+		Map<String, Object> logMap = Map.of("request", request, "response", response, "tokens", tokens);
+		return logMap;
+	}
+
+	/**
 	 * 
 	 * @param userId
 	 * @param projectId
