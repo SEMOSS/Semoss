@@ -45,7 +45,7 @@ import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
-import prerna.prompt.AbstractPromptUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -252,7 +252,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			if (promptDbNameIndex > -1) {
 				try {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[promptDbNameIndex]);
-					AbstractPromptUtils.loadPromptDatabase();
+					PromptUtils.loadPromptDatabase();
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
