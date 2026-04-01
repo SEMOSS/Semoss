@@ -1,5 +1,4 @@
 from typing import Dict, List, Union
-from transformers import AutoTokenizer
 from .abstract_tokenizer import AbstractTokenizer
 
 
@@ -27,6 +26,7 @@ class HuggingfaceTokenizer(AbstractTokenizer):
         Returns the appropriate encoding based on the given encoding type (either an encoding string or a model name).
         """
         try:
+            from transformers import AutoTokenizer
             return AutoTokenizer.from_pretrained(encoder_name)
         except:
             from .word_count_tokenizer import WordCountTokenizer

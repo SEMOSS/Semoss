@@ -79,6 +79,10 @@ def __getattr__(name: str) -> Any:
         from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 
         return HuggingfaceTokenizer
+    elif name == "LazyTokenizer":
+        from .tokenizers.lazy_tokenizer import LazyTokenizer
+
+        return LazyTokenizer
 
     elif name == "BedrockEmbedder":
         from .embedders.bedrock_embedder import BedrockEmbedder
@@ -161,23 +165,16 @@ def get_embedder(embedder_type, **kwargs):
 
 def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
     """
-    Utility method to  get the appropriate tokenizer based on the Model Engine
+    Utility method to get the appropriate tokenizer based on the Model Engine.
+    Returns a LazyTokenizer that defers the expensive construction until first use.
     """
-    if (tokenizer_type == "EMBEDDED") or (tokenizer_type == "TEXT_GENERATION"):
-        from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+    from .tokenizers.lazy_tokenizer import LazyTokenizer
 
-        return HuggingfaceTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    elif tokenizer_type == "OPEN_AI":
-        from .tokenizers.openai_tokenizer import OpenAiTokenizer
-
-        return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    # putting this for now, need to implement vertex tokenizer. this will fall back to WordCountTokenizer
-    elif (tokenizer_type == "VERTEX") or (tokenizer_type == "BEDROCK"):
-        from .tokenizers.openai_tokenizer import OpenAiTokenizer
-
-        return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    else:
-        raise ValueError("Tokenizer type has not been defined.")
+    return LazyTokenizer(
+        tokenizer_type=tokenizer_type,
+        encoder_name=tokenizer_name,
+        max_tokens=max_tokens,
+    )
 
 
 __all__ = [
@@ -196,6 +193,7 @@ __all__ = [
     "VertexAiEmbedder",
     "OpenAiTokenizer",
     "HuggingfaceTokenizer",
+    "LazyTokenizer",
     "get_text_gen_client",
     "get_embedder",
     "get_tokenizer",
