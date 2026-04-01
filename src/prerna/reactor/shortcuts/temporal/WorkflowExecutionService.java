@@ -41,9 +41,9 @@ public class WorkflowExecutionService {
 		WorkflowOptions options = WorkflowOptions.newBuilder()
 				.setTaskQueue("WORKFLOW_TASK_QUEUE")
 				.setWorkflowId(workflowId)
-				.setWorkflowExecutionTimeout(java.time.Duration.ofMinutes(30))
-				.setWorkflowRunTimeout(java.time.Duration.ofMinutes(15))
-				.setWorkflowTaskTimeout(java.time.Duration.ofSeconds(10))
+				.setWorkflowExecutionTimeout(java.time.Duration.ofMinutes(60))
+				.setWorkflowRunTimeout(java.time.Duration.ofMinutes(30))
+				.setWorkflowTaskTimeout(java.time.Duration.ofMinutes(20))
 				.build();
 
 		WorkflowEngine stub = client.newWorkflowStub(WorkflowEngine.class, options);
