@@ -1,4 +1,4 @@
-﻿package prerna.io.connector.jira;
+package prerna.io.connector.jira;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

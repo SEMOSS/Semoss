@@ -68,7 +68,7 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor updates an existing Jira issue. Only provided fields are updated — omitted fields are left unchanged. The status field handles workflow transitions.";
+		return "This reactor updates an existing Jira issue. Only provided fields are updated -- omitted fields are left unchanged. The status field handles workflow transitions.";
 	}
 
 	@Override
