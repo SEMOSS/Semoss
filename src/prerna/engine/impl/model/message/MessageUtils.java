@@ -43,8 +43,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -71,17 +69,6 @@ import prerna.util.gson.SemossDateAdapter;
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
-
-	private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile("```" + // Opening backticks
-			"(?:([a-zA-Z0-9]+))?" + // Language (optional, group 1)
-			"(?:" + // Non-capturing group for title alternatives
-			"\\s+title=\"([^\"]+)\"" + // Either title="filename" (group 2)
-			"|\\s+([^\\s\\n]+)" + // Or direct filename (group 3)
-			")?" + // Title is optional
-			"\\s*\\n" + // Whitespace and mandatory newline
-			"(.*?)" + // Code content (group 4)
-			"```", // Closing backticks
-			Pattern.DOTALL);
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -668,7 +655,7 @@ public class MessageUtils {
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
 								Object argsRaw = funcMap.get("arguments");
 								if (argsRaw instanceof String) {
-									flatTool.put("arguments", (String) argsRaw);
+									flatTool.put("arguments", argsRaw);
 								} else if (argsRaw != null) {
 									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
 								} else {
@@ -1060,48 +1047,6 @@ public class MessageUtils {
 			subtype = subtype.replaceAll("[^a-z0-9]", "");
 			return subtype.isEmpty() ? "png" : subtype;
 		}
-	}
-
-	// Method to parse markdown code blocks
-	public static ResponseMessage processMarkdownCodeBlocks(ResponseMessage responseMessage, IModelEngine modelEngine,
-			Room room) {
-		String rawResponse = responseMessage.getContent();
-
-		Map<String, CodeBlock> codeBlocks = new HashMap<>();
-		Matcher matcher = MARKDOWN_CODE_PATTERN.matcher(rawResponse);
-		StringBuffer modifiedResponse = new StringBuffer();
-
-		while (matcher.find()) {
-			String language = matcher.group(1) != null ? matcher.group(1).trim() : "";
-			// Check both title formats and use the first non-null one
-			String title = matcher.group(2) != null ? matcher.group(2).trim()
-					: matcher.group(3) != null ? matcher.group(3).trim() : "";
-			String code = matcher.group(4).trim();
-
-			String uuid = UUID.randomUUID().toString();
-
-			if (title == "") {
-				HashMap<String, Object> paramMap = new HashMap<String, Object>();
-				paramMap.put("use_history", "false");
-				String prompt = "Given the following code block, give it a title: " + code + " Just give me the title";
-				InputMessage msg = InputMessage.builder(room).withText(prompt).withModelType(modelEngine.getModelType())
-						.withParamMap(paramMap).build();
-
-				ResponseMessage response = room.ask(msg, modelEngine);
-				title = response.getContent();
-			}
-
-			codeBlocks.put(uuid, new CodeBlock(language, code, title));
-
-			matcher.appendReplacement(modifiedResponse,
-					Matcher.quoteReplacement("<CODEBLOCK>" + uuid + "</CODEBLOCK>"));
-		}
-		matcher.appendTail(modifiedResponse);
-
-		responseMessage.setOrnament("processedResponsed", modifiedResponse.toString());
-		responseMessage.setOrnament("codeBlocks", codeBlocks);
-
-		return responseMessage;
 	}
 
 	public enum ToolChoiceType {
