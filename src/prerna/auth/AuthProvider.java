@@ -40,6 +40,7 @@ import prerna.io.connector.google.GoogleTokenFiller;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.okta.OktaTokenFiller;
 import prerna.io.connector.salesforce.SalesforceTokenFiller;
+import prerna.io.connector.jira.JiraTokenFiller;
 
 public enum AuthProvider implements Serializable {
 
@@ -50,6 +51,7 @@ public enum AuthProvider implements Serializable {
 	GITHUB("GITHUB", "GitHub", true, GithubTokenFiller.class.getName()),
 	GITLAB("GITLAB", "GitLab", true, GitLabTokenFiller.class.getName()),
 	//TODO: build out custom endpoint in UserResource
+	JIRA("JIRA", "Jira", true, JiraTokenFiller.class.getName()),
 	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
 	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName()),
 	SALESFORCE("SALESFORCE", "Salesforce", true, SalesforceTokenFiller.class.getName()), 

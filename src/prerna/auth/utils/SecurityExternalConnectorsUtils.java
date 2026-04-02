@@ -93,4 +93,52 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		return new Pair<String, String>((String) result.get("clientid"), (String) result.get("clientsecret"));
 	}
 
+	/**
+	 * Retrieves the ID and client id for each configured Jira connection.
+	 *
+	 * <p>
+	 * Queries the {@code JIRA_CONNECTIONS} table in the security database,
+	 * returning all available connections with their identifiers.
+	 *
+	 * @return a list of maps, each containing:
+	 *         <ul>
+	 *         <li>{@code id} - the unique identifier of the connection</li>
+	 *         <li>{@code clientid} - the Jira connected-app client id</li>
+	 *         </ul>
+	 *         Returns an empty list if no connections are configured.
+	 */
+	public static List<Map<String, Object>> getJiraConnections() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientid"));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Retrieves the full details for a specific configured Jira connection.
+	 * <p>
+	 * Queries the {@code JIRA_CONNECTIONS} table in the security database,
+	 * returning the client id, client secret, scope, and user profile URL for
+	 * a specific connection id that is generated upon insertion into the system.
+	 *
+	 * @param connectionId the unique connection id that was added
+	 * @return a map containing client id, client secret, scope, and user profile URL for the specified connection id
+	 * @throws IllegalArgumentException if the provided connection id does not exist in the database
+	 */
+	public static Map<String, Object> getJiraConnectionDetails(String connectionId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientid"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTSECRET", "clientsecret"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__SCOPE", "scope"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__USERPROFILEURL", "userprofileurl"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ID", "==", connectionId));
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList.isEmpty()) {
+			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
+		}
+		return resultList.get(0);
+	}
+
 }

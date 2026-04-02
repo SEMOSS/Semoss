@@ -1,0 +1,50 @@
+package prerna.io.connector.jira;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+
+public class JiraGetPriorityReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(JiraGetPriorityReactor.class);
+
+	public JiraGetPriorityReactor() {
+		this.keysToGet = new String[] {};
+		this.keyRequired = new int[] {};
+	}
+
+	@Override
+	public NounMetadata execute() {
+		try {
+			this.organizeKeys();
+			User user = this.insight.getUser();
+			String[] jiraCreds = JiraUtils.getJiraCredentials(user);
+			String accessToken = jiraCreds[0];
+			String baseUrl = jiraCreds[1];
+			List<Map<String, Object>> result = JiraHelper.getPriorities(accessToken, baseUrl);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		} catch (SemossPixelException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			throw new SemossPixelException(
+					"An error occurred while retrieving Jira priorities. Error message: " + e.getMessage());
+		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Retrieve all available priority levels from Jira. Returns id and name for each priority. Use the name value when setting priority in create or update ticket calls.";
+	}
+}
