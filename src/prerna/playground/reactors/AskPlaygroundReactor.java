@@ -97,17 +97,10 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
-		boolean isFirstMessageInRoom = room.getMessages().isEmpty();
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
 		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-
-		// Generates room title for new rooms BEFORE ask
-		// This prevents Room.ask() from setting a truncated prompt name
-		if (isFirstMessageInRoom && question != null && !question.trim().isEmpty()) {
-			generateNewRoomTitle(room, modelEngine, question);
-		}
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
@@ -132,61 +125,15 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
-		// MessageUtils.applyLegacyInputFields(msg, inputMap);
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
 		pixelReturn.put("inputMessage", inputMap);
 
 		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
-		// MessageUtils.applyLegacyResponseFields(response, responseMap);
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
 		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
-	}
-
-	private void generateNewRoomTitle(Room room, IModelEngine modelEngine, String question) {
-		String title = null;
-		try {
-			Map<String, Object> titleParamMap = new HashMap<>();
-			titleParamMap.put("use_history", false);
-
-			InputMessage titleMsg = InputMessage.builder(room)
-					.withText("Generate a concise conversation title. "
-							+ "Hard limit: 50 characters. Return only the title text with no prefix, quotes, or explanation.\n\nQuestion: "
-							+ question.trim())
-					.withModelType(modelEngine.getModelType())
-					.withParamMap(titleParamMap)
-					.build();
-
-			ResponseMessage titleResponse = room.ask(titleMsg, modelEngine, null, false);
-			if (titleResponse != null && titleResponse.getContent() != null) {
-				title = titleResponse.getContent().trim();
-			}
-		} catch (Exception e) {
-			classLogger.warn("Could not generate LLM room title for room {}", room.getId(), e);
-		}
-
-		if (title == null || title.isEmpty()) {
-			title = question.trim();
-		}
-
-		if (title.length() > 50) {
-			title = title.substring(0, 50).trim();
-		}
-
-		persistRoomTitle(room, title);
-	}
-
-	private void persistRoomTitle(Room room, String title) {
-		if (title == null || title.isBlank()) {
-			return;
-		}
-
-		room.setRoomName(title);
-		boolean updated = ModelInferenceLogsUtils.doSetNameForRoom(
-				insight.getUser().getPrimaryLoginToken().getId(), room.getId(), title);
-		if (!updated) {
-			classLogger.warn("Playground room title was not persisted for room {}", room.getId());
-		}
 	}
 
 	@Override
