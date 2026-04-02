@@ -24,7 +24,6 @@ import prerna.security.HttpHelperUtility;
 
 
 public final class JiraHelper {
-
 	private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
@@ -32,6 +31,7 @@ public final class JiraHelper {
 
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+	// Url Constants
 	private static final String JIRA_ISSUE_URL = "/rest/api/3/issue";
 	private static final String JIRA_PROJECT_URL = "/rest/api/3/project";
 
@@ -74,6 +74,7 @@ public final class JiraHelper {
 	private static final String UNASSIGNED = "Unassigned";
 
 	private JiraHelper() {
+		
 	}
 
 	/**
