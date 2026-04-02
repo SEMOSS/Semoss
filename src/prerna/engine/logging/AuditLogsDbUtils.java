@@ -258,10 +258,10 @@ public class AuditLogsDbUtils {
 		Map<String, Object> result = list.get(0);
 		String request = getOrDefault(result.get("REQUEST"), "");
 		String response = getOrDefault(result.get("RESPONSE"), "");
-		int tokensInPrompt = getIntValue(result.get("NUMBER_OF_TOKENS_IN_PROMPT"));
-		int tokensInResponse = getIntValue(result.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
-		int tokens = tokensInPrompt + tokensInResponse;
-		Map<String, Object> logMap = Map.of("request", request, "response", response, "tokens", tokens);
+		int promptTokens = getIntValue(result.get("NUMBER_OF_TOKENS_IN_PROMPT"));
+		int responseTokens = getIntValue(result.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+		int totalTokens = promptTokens + responseTokens;
+		Map<String, Object> logMap = Map.of("request", request, "response", response, "tokens", totalTokens);
 		return logMap;
 	}
 
