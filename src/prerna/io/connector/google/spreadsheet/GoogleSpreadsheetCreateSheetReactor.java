@@ -30,24 +30,24 @@ public class GoogleSpreadsheetCreateSheetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-		if (titleSheetID == null || titleSheetID.isEmpty()) {
-			throw new SemossPixelException("Title sheet ID is required to create new sheet in spreadsheet");
+		String spreadsheetId = this.keyValue.get(this.keysToGet[0]);
+		if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
+			throw new SemossPixelException("Spreadsheet ID is required to create a sheet in a Google spreadsheet");
 		}
 		String sheetName = this.keyValue.get(this.keysToGet[1]);
-		if (sheetName == null || sheetName.isEmpty()) {
-			throw new SemossPixelException("Sheet name is required to create new sheet in spreadsheet");
+		if (sheetName == null || sheetName.trim().isEmpty()) {
+			throw new SemossPixelException("Sheet name is required to create a sheet in a Google spreadsheet");
 		}
 		String rawData = this.keyValue.get(this.keysToGet[2]);
 		if (rawData == null || rawData.isEmpty()) {
-			throw new SemossPixelException("Data is required to create new sheet in spreadsheet");
+			throw new SemossPixelException("Data is required to create a sheet in a Google spreadsheet");
 		}
 		try {
 			User user = this.insight.getUser();
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return SpreadSheetHelper.createNewSheet(titleSheetID, sheetName, accessToken, data);
+			return GoogleSpreadsheetHelper.createNewSheet(spreadsheetId, sheetName, accessToken, data);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -59,17 +59,17 @@ public class GoogleSpreadsheetCreateSheetReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor will create new sheet in existing google spreadsheet and data in it";
+		return "This reactor creates a new sheet in an existing Google spreadsheet and optionally loads data into it";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(TITLESHEETID)) {
-			return "TitleSheet id of the Google spread sheet";
+			return "Spreadsheet ID of the Google spreadsheet";
 		} else if (key.equals(SHEETNAME)) {
-			return "Sheet name from Google spreadsheet";
+			return "Sheet name to create in the Google spreadsheet";
 		} else if (key.equals(DATA)) {
-			return "Data to be updated in Google spreadsheet";
+			return "Data to write into the newly created Google sheet";
 		}
 		return super.getDescriptionForKey(key);
 	}

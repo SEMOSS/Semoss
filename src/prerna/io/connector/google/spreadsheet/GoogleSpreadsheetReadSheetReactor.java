@@ -25,18 +25,18 @@ public class GoogleSpreadsheetReadSheetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-		if (titleSheetID == null || titleSheetID.isEmpty()) {
-			throw new SemossPixelException("Title sheet ID is required to read sheet in spreadsheet");
+		String spreadsheetId = this.keyValue.get(this.keysToGet[0]);
+		if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
+			throw new SemossPixelException("Spreadsheet ID is required to read a sheet from a Google spreadsheet");
 		}
 		String sheetID = this.keyValue.get(this.keysToGet[1]);
-		if (sheetID == null || sheetID.isEmpty()) {
-			throw new SemossPixelException("Sheet ID is required to read sheet in spreadsheet");
+		if (sheetID == null || sheetID.trim().isEmpty()) {
+			throw new SemossPixelException("Sheet ID is required to read a sheet from a Google spreadsheet");
 		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return SpreadSheetHelper.readData(titleSheetID, sheetID, accessToken);
+			return GoogleSpreadsheetHelper.readData(spreadsheetId, sheetID, accessToken);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -48,15 +48,15 @@ public class GoogleSpreadsheetReadSheetReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to read the data present on Google spread sheet";
+		return "This reactor reads the data present on a Google spreadsheet sheet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(TITLESHEETID)) {
-			return "TitleSheet id of the Google spread sheet";
+			return "Spreadsheet ID of the Google spreadsheet";
 		} else if (key.equals(SHEETID)) {
-			return "Sheet id from Google spreadsheet";
+			return "Sheet ID from the Google spreadsheet";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -30,24 +30,24 @@ public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-		if (titleSheetID == null || titleSheetID.isEmpty()) {
-			throw new SemossPixelException("Title sheet ID is required to update sheet in spreadsheet");
+		String spreadsheetId = this.keyValue.get(this.keysToGet[0]);
+		if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
+			throw new SemossPixelException("Spreadsheet ID is required to update a sheet in a Google spreadsheet");
 		}
 		String sheetID = this.keyValue.get(this.keysToGet[1]);
-		if (sheetID == null || sheetID.isEmpty()) {
-			throw new SemossPixelException("Sheet ID is required to update sheet in spreadsheet");
+		if (sheetID == null || sheetID.trim().isEmpty()) {
+			throw new SemossPixelException("Sheet ID is required to update a sheet in a Google spreadsheet");
 		}
 		String rawData = this.keyValue.get(this.keysToGet[2]);
 		if (rawData == null || rawData.isEmpty()) {
-			throw new SemossPixelException("Data is required to update sheet in spreadsheet");
+			throw new SemossPixelException("Data is required to update a sheet in a Google spreadsheet");
 		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			ObjectMapper mapper = new ObjectMapper();
 			List<List<String>> data = mapper.readValue(rawData, List.class);
-			return SpreadSheetHelper.updateData(titleSheetID, sheetID, data, accessToken);
+			return GoogleSpreadsheetHelper.updateData(spreadsheetId, sheetID, data, accessToken);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -59,17 +59,17 @@ public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used tp update Sheet in Google spread sheet";
+		return "This reactor updates data in a Google spreadsheet sheet";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(TITLESHEETID)) {
-			return "TitleSheet name of the Google spread sheet";
+			return "Spreadsheet ID of the Google spreadsheet";
 		} else if (key.equals(SHEETID)) {
-			return "Sheet ID from Google spreadsheet";
+			return "Sheet ID from the Google spreadsheet";
 		} else if (key.equals(DATA)) {
-			return "Data to be updated in Google spreadsheet";
+			return "Data to update in the Google spreadsheet";
 		}
 		return super.getDescriptionForKey(key);
 	}

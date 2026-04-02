@@ -1,14 +1,11 @@
 package prerna.io.connector.google.spreadsheet;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
@@ -33,7 +30,7 @@ public class GoogleSpreadsheetGetAllSheetsReactor extends AbstractReactor {
 		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			spreadsheets = SpreadSheetHelper.fetchSpreadsheetMetadata(accessToken);
+			spreadsheets = GoogleSpreadsheetHelper.fetchSpreadsheetMetadata(accessToken);
 			return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -47,6 +44,6 @@ public class GoogleSpreadsheetGetAllSheetsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor will return all spreadsheet titles and sheet names for the authenticated user.";
+		return "This reactor returns all spreadsheet titles and sheet names for the authenticated user.";
 	}
 }

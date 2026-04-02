@@ -10,47 +10,47 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class GoogleSpreadsheetDeleteMainSheetReactor extends AbstractReactor {
+public class GoogleSpreadsheetCreateMasterSheetReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetDeleteMainSheetReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GoogleSpreadsheetCreateMasterSheetReactor.class);
 
-	private static final String TITLESHEETID = "titleSheetID";
+	private static final String TITLESHEETNAME = "titleSheetName";
 
-	public GoogleSpreadsheetDeleteMainSheetReactor() {
-		this.keysToGet = new String[] { TITLESHEETID };
+	public GoogleSpreadsheetCreateMasterSheetReactor() {
+		this.keysToGet = new String[] { TITLESHEETNAME };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		String titleSheetID = this.keyValue.get(this.keysToGet[0]);
-		if (titleSheetID == null || titleSheetID.isEmpty()) {
-			throw new SemossPixelException("Title sheet ID is required to delete main spreadsheet");
+		String spreadsheetName = this.keyValue.get(this.keysToGet[0]);
+		if (spreadsheetName == null || spreadsheetName.trim().isEmpty()) {
+			throw new SemossPixelException("Master sheet name is required to create a Google spreadsheet");
 		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return SpreadSheetHelper.deleteTitleSheet(titleSheetID, accessToken);
+			return GoogleSpreadsheetHelper.createNewSpreadsheet(spreadsheetName, accessToken);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(
-					"An error occurred in deleting main spreadsheet. Error message: " + e.getMessage());
+					"An error occurred while creating the Google spreadsheet. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete google spreadsheet";
+		return "This reactor creates a new Google spreadsheet for the provided master sheet name";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(TITLESHEETID)) {
-			return "TitleSheet id of the Google spread sheet";
+		if (key.equals(TITLESHEETNAME)) {
+			return "Master sheet name of the Google spreadsheet";
 		}
 		return super.getDescriptionForKey(key);
 	}
