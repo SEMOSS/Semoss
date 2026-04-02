@@ -120,7 +120,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * @return list of MCP maps; each map represents one MCP configuration object
 	 */
 	List<Map<String, Object>> getMcpMapList() {
-		return getList(ReactorKeysEnum.MCP.getKey());
+		return getList(ReactorKeysEnum.MCP.getKey(), List.of());
 	}
 
 }
