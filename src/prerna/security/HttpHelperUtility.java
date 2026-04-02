@@ -96,11 +96,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.GsonBuilder;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
-import net.snowflake.client.jdbc.internal.com.nimbusds.jose.shaded.gson.GsonBuilder;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Utility;
@@ -108,7 +105,9 @@ import prerna.util.Utility;
 public final class HttpHelperUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(HttpHelperUtility.class.getName());
+
 	private static ObjectMapper mapper = new ObjectMapper();
+	private static final int MAX_ERROR_RESPONSE_CHARS = 500;
 
 	/**
 	 * Builds a custom Apache HttpClient instance for connector requests.
@@ -162,8 +161,7 @@ public final class HttpHelperUtility {
 					SSLBufferMode.DYNAMIC, verifier);
 
 		} catch (Exception e) {
-			classLogger.error("getCustomClient: failed to configure TLS strategy or keystore for custom HTTP client",
-					e);
+			classLogger.error("Failed to configure TLS strategy or keystore while creating a custom HTTP client", e);
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
@@ -215,12 +213,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("GET", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("getRequest: failed to execute GET request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			throw buildConnectionException("GET", url, e);
 		}
 	}
 
@@ -258,12 +256,12 @@ public final class HttpHelperUtility {
 						return entity != null ? EntityUtils.toByteArray(entity) : null;
 					}
 					String errorMsg = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + errorMsg);
+					throw buildHttpStatusException("GET", url, statusCode, errorMsg);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("getRequestBytes: failed to execute GET request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			throw buildConnectionException("GET", url, e);
 		}
 	}
 
@@ -296,8 +294,9 @@ public final class HttpHelperUtility {
 			// if not passed in, see if we can grab it from the URL
 			String[] pathSeparated = url.split("/");
 			fileName = pathSeparated[pathSeparated.length - 1];
-			if (fileName == null) {
-				throw new IllegalArgumentException("Url path does not end in a file name");
+			if (fileName == null || fileName.trim().isEmpty()) {
+				throw new IllegalArgumentException(
+						"Cannot infer a file name from URL '" + url + "'. Provide saveFileName explicitly.");
 			}
 		}
 		final String resolvedFileName = fileName;
@@ -313,7 +312,12 @@ public final class HttpHelperUtility {
 			return httpClient.execute(httpGet, new HttpClientResponseHandler<File>() {
 				@Override
 				public File handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
 					HttpEntity entity = response.getEntity();
+					if (statusCode < 200 || statusCode >= 300) {
+						String responseData = readEntityAsStringOrEmpty(entity);
+						throw buildHttpStatusException("GET", url, statusCode, responseData);
+					}
 
 					File fileDir = new File(saveFilePath);
 					if (!fileDir.exists()) {
@@ -321,15 +325,16 @@ public final class HttpHelperUtility {
 						if (!success) {
 							classLogger.warn("Unable to make the directory to save the file at location: "
 									+ Utility.cleanLogString(saveFilePath));
-							throw new IllegalArgumentException(
-									"Directory to save the file download does not exist and could not be created");
+							throw new IllegalArgumentException("Unable to create download directory '" + saveFilePath
+									+ "' for URL '" + url + "'.");
 						}
 					}
 
 					String fileLocation = Utility.getUniqueFilePath(saveFilePath, resolvedFileName);
 					File savedFile = new File(fileLocation);
 					if (entity == null) {
-						throw new IllegalArgumentException("Connected to " + url + " but no file payload was returned");
+						throw new IllegalArgumentException(
+								"GET request to '" + url + "' succeeded but returned no file content to save.");
 					}
 
 					try (InputStream is = entity.getContent()) {
@@ -340,12 +345,13 @@ public final class HttpHelperUtility {
 									Map<String, Collection<String>> viruses = VirusScannerUtils
 											.getViruses(resolvedFileName, bais);
 									if (!viruses.isEmpty()) {
-										String error = "File contained " + viruses.size() + " virus";
+										String error = "Virus scan blocked downloaded file '" + resolvedFileName
+												+ "' from URL '" + url + "': detected " + viruses.size() + " threat";
 										if (viruses.size() > 1) {
-											error = error + "es";
+											error = error + "s";
 										}
 
-										throw new IllegalArgumentException(error);
+										throw new IllegalArgumentException(error + ".");
 									}
 
 									bais.reset();
@@ -356,19 +362,18 @@ public final class HttpHelperUtility {
 							FileUtils.copyInputStreamToFile(is, savedFile);
 						}
 					} catch (IOException e) {
-						classLogger.error(
-								"getRequestFileDownload: failed while reading or scanning downloaded file from URL: "
-										+ url,
+						classLogger.error("Failed while reading or scanning downloaded file content from URL: " + url,
 								e);
-						throw new IllegalArgumentException("Could not read file item.");
+						throw new IllegalArgumentException("Failed to read or save downloaded content from URL '" + url
+								+ "' to '" + savedFile.getAbsolutePath() + "'.", e);
 					}
 
 					return savedFile;
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("getRequestFileDownload: failed to download file from URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to download file from URL: " + url, e);
+			throw buildConnectionException("GET (file download)", url, e);
 		}
 	}
 
@@ -413,13 +418,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("postRequestUrlEncodedBody: failed to execute POST request for URL: " + url, e);
-			throw new IllegalArgumentException(
-					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
+			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
 		}
 	}
 
@@ -460,12 +464,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("postRequestStringBody: failed to execute POST request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
 		}
 	}
 
@@ -508,13 +512,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error(
-					"postRequestBytesBody: failed to execute POST request with byte[] payload for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute POST request with byte[] payload to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
 		}
 	}
 
@@ -555,12 +558,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("putRequestStringBody: failed to execute PUT request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			throw buildConnectionException("PUT", url, e);
 		}
 	}
 
@@ -605,13 +608,58 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("putRequestUrlEncodedBody: failed to execute PUT request for URL: " + url, e);
-			throw new IllegalArgumentException(
-					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
+			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			throw buildConnectionException("PUT", url, e);
+		}
+	}
+
+	/**
+	 * Executes an HTTP PATCH request with a string form body.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param body         optional body as string
+	 * @param contentType  optional contenttype for the body
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+			HttpPatch httpPatch = new HttpPatch(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
+					httpPatch.addHeader(key, headersMap.get(key));
+				}
+			}
+			if (body != null && !body.isEmpty()) {
+				httpPatch.setEntity(new StringEntity(body, contentType));
+			}
+			return httpClient.execute(httpPatch, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PATCH", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PATCH request to URL: " + url, e);
+			throw buildConnectionException("PATCH", url, e);
 		}
 	}
 
@@ -653,12 +701,12 @@ public final class HttpHelperUtility {
 						return new GsonBuilder().disableHtmlEscaping().create().toJson(headersArray);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("HEAD", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("headRequest: failed to execute HEAD request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute HEAD request to URL: " + url, e);
+			throw buildConnectionException("HEAD", url, e);
 		}
 	}
 
@@ -690,8 +738,8 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("headRequestStatus: failed to execute HEAD status request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url, e);
+			classLogger.error("Failed to execute HEAD request while fetching status for URL: " + url, e);
+			throw buildConnectionException("HEAD", url, e);
 		}
 	}
 
@@ -727,12 +775,12 @@ public final class HttpHelperUtility {
 						return readEntityAsString(entity);
 					}
 					String responseData = readEntityAsStringOrEmpty(entity);
-					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
+					throw buildHttpStatusException("DELETE", url, statusCode, responseData);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("deleteRequestStringBody: failed to execute DELETE request for URL: " + url, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			classLogger.error("Failed to execute DELETE request to URL: " + url, e);
+			throw buildConnectionException("DELETE", url, e);
 		}
 	}
 
@@ -800,20 +848,19 @@ public final class HttpHelperUtility {
 			});
 			result = resultHolder[0];
 		} catch (UnsupportedEncodingException e) {
-			classLogger.error("getAccessToken: unsupported encoding while processing token response from URL: " + url,
-					e);
+			classLogger.error("Unsupported encoding while processing token response from URL: " + url, e);
 		} catch (ClientProtocolException e) {
-			classLogger.error("getAccessToken: HTTP protocol error while requesting token from URL: " + url, e);
+			classLogger.error("HTTP protocol error while requesting token from URL: " + url, e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error("getAccessToken: unsupported operation while requesting token from URL: " + url, e);
+			classLogger.error("Unsupported operation while requesting token from URL: " + url, e);
 		} catch (IOException e) {
-			classLogger.error("getAccessToken: I/O error while requesting token from URL: " + url, e);
+			classLogger.error("I/O error while requesting token from URL: " + url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("getAccessToken: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after token request to URL: " + url, e);
 				}
 			}
 		}
@@ -882,13 +929,13 @@ public final class HttpHelperUtility {
 			});
 			result = resultHolder[0];
 		} catch (Exception e) {
-			classLogger.error("getIdToken: failed to request or parse ID token from URL: " + url, e);
+			classLogger.error("Failed to request or parse ID token from URL: " + url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("getIdToken: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after ID token request to URL: " + url, e);
 				}
 			}
 		}
@@ -951,7 +998,7 @@ public final class HttpHelperUtility {
 			try {
 				tok.addMetaValue("refresh_token", URLDecoder.decode(refreshToken, StandardCharsets.UTF_8.toString()));
 			} catch (UnsupportedEncodingException e) {
-				classLogger.error("getAccessToken(input, nameOfToken): failed to decode refresh token value", e);
+				classLogger.error("Failed to decode refresh token value while parsing token response", e);
 				tok.addMetaValue("refresh_token", refreshToken);
 			}
 		}
@@ -967,7 +1014,48 @@ public final class HttpHelperUtility {
 	 * @return parsed {@link AccessToken}
 	 */
 	public static AccessToken getJAccessToken(String input) {
-		return getJAccessToken(input, "[access_token, token_type, expires_in]");
+		AccessToken tok = new AccessToken();
+		try {
+			JsonNode json = mapper.readTree(input);
+			JsonNode accessTokenNode = json.get("access_token");
+			if (accessTokenNode != null && !accessTokenNode.isNull()) {
+				String accessToken = accessTokenNode.asText();
+				if (accessToken != null && !accessToken.isEmpty()) {
+					tok.setAccess_token(accessToken);
+				}
+			}
+			JsonNode tokenTypeNode = json.get("token_type");
+			if (tokenTypeNode != null && !tokenTypeNode.isNull()) {
+				String tokenType = tokenTypeNode.asText();
+				if (tokenType != null && !tokenType.isEmpty()) {
+					tok.setToken_type(tokenType);
+				}
+			}
+			JsonNode expiresInNode = json.get("expires_in");
+			if (expiresInNode != null && !expiresInNode.isNull()) {
+				int expiresIn = expiresInNode.asInt();
+				tok.setExpires_in(expiresIn);
+			}
+			JsonNode instanceUrlNode = json.get("instance_url");
+			if (instanceUrlNode != null && !instanceUrlNode.isNull()) {
+				String instanceUrl = instanceUrlNode.asText();
+				if (instanceUrl != null && !instanceUrl.isEmpty()) {
+					tok.setInstance_url(instanceUrl);
+				}
+			}
+			JsonNode refreshTokenNode = json.get("refresh_token");
+			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
+				String refreshToken = refreshTokenNode.asText();
+				if (refreshToken != null && !refreshToken.isEmpty()) {
+					tok.addMetaValue("refresh_token", refreshToken);
+				}
+			}
+			tok.init();
+		} catch (IOException e) {
+			classLogger.error("Failed to parse access-token JSON response: " + input, e);
+		}
+		return tok;
+
 	}
 
 	/**
@@ -977,40 +1065,29 @@ public final class HttpHelperUtility {
 	 * @return parsed {@link AccessToken}
 	 */
 	public static AccessToken getJIDToken(String input) {
-		return getJAccessToken(input, "[id_token, token_type, expires_in]");
-	}
-
-	/**
-	 * Parses token values from JSON using a JMESPath expression.
-	 *
-	 * @param json        token response JSON
-	 * @param nameOfToken JMESPath expression that resolves to an array containing
-	 *                    token fields in order: token value, token type, and expiry
-	 *                    seconds
-	 * @return populated {@link AccessToken}; an empty token object is returned when
-	 *         parsing fails
-	 */
-	public static AccessToken getJAccessToken(String json, String nameOfToken) {
 		AccessToken tok = new AccessToken();
 		try {
-			JmesPath<JsonNode> jmespath = new JacksonRuntime();
-			// Expressions need to be compiled before you can search. Compiled expressions
-			// are reusable and thread safe
-			// Compile your expressions once, just like database prepared statements.
-			Expression<JsonNode> expression = jmespath.compile(nameOfToken);
-
-			JsonNode input = mapper.readTree(json);
-			JsonNode result = expression.search(input);
-			if (result.size() >= 0) {
-				tok.setAccess_token(result.get(0).asText());
+			JsonNode json = mapper.readTree(input);
+			JsonNode accessTokenNode = json.get("id_token");
+			if (accessTokenNode != null && !accessTokenNode.isNull()) {
+				String accessToken = accessTokenNode.asText();
+				if (accessToken != null && !accessToken.isEmpty()) {
+					tok.setAccess_token(accessToken);
+				}
 			}
-			if (result.size() >= 1) {
-				tok.setToken_type(result.get(1).asText());
+			JsonNode tokenTypeNode = json.get("token_type");
+			if (tokenTypeNode != null && !tokenTypeNode.isNull()) {
+				String tokenType = tokenTypeNode.asText();
+				if (tokenType != null && !tokenType.isEmpty()) {
+					tok.setToken_type(tokenType);
+				}
 			}
-			if (result.size() >= 2) {
-				tok.setExpires_in(result.get(2).asInt());
+			JsonNode expiresInNode = json.get("expires_in");
+			if (expiresInNode != null && !expiresInNode.isNull()) {
+				int expiresIn = expiresInNode.asInt();
+				tok.setExpires_in(expiresIn);
 			}
-			JsonNode refreshTokenNode = input.get("refresh_token");
+			JsonNode refreshTokenNode = json.get("refresh_token");
 			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
 				String refreshToken = refreshTokenNode.asText();
 				if (refreshToken != null && !refreshToken.isEmpty()) {
@@ -1019,7 +1096,7 @@ public final class HttpHelperUtility {
 			}
 			tok.init();
 		} catch (IOException e) {
-			classLogger.error("getJAccessToken: failed to parse token JSON using expression: " + nameOfToken, e);
+			classLogger.error("Failed to parse ID-token JSON response: " + input, e);
 		}
 		return tok;
 	}
@@ -1079,7 +1156,8 @@ public final class HttpHelperUtility {
 		}
 
 		String retString = null;
-		String responseCode = null;
+		Integer responseCode = null;
+		Exception requestException = null;
 		BufferedReader br = null;
 		InputStreamReader isr = null;
 		try {
@@ -1106,29 +1184,37 @@ public final class HttpHelperUtility {
 			}
 			retString = str.toString();
 
-			responseCode = String.valueOf(con.getResponseCode());
+			responseCode = con.getResponseCode();
 		} catch (Exception e) {
-			classLogger.error("makeGetCall: failed to execute GET request for URL: " + urlStr, e);
+			classLogger.error("Failed to execute GET request to URL: " + urlStr, e);
+			requestException = e;
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error("makeGetCall: failed to close response BufferedReader for URL: " + urlStr, e);
+					classLogger.error("Failed to close response BufferedReader for URL: " + urlStr, e);
 				}
 			}
 			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					classLogger.error("makeGetCall: failed to close response InputStreamReader for URL: " + urlStr, e);
+					classLogger.error("Failed to close response InputStreamReader for URL: " + urlStr, e);
 				}
 			}
 		}
 
 		classLogger.info("Return from " + urlStr + " with response " + responseCode + " = " + retString);
-		if (responseCode.startsWith("4") || responseCode.startsWith("5")) {
-			throw new IllegalArgumentException(retString);
+		if (requestException != null) {
+			throw buildConnectionException("GET", urlStr, requestException);
+		}
+		if (responseCode == null) {
+			throw new IllegalArgumentException(
+					"GET request to '" + urlStr + "' did not return an HTTP status code or response body.");
+		}
+		if (responseCode >= 400) {
+			throw buildHttpStatusException("GET", urlStr, responseCode, retString);
 		}
 
 		return retString;
@@ -1187,7 +1273,7 @@ public final class HttpHelperUtility {
 			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 			return br;
 		} catch (Exception e) {
-			classLogger.error("getHttpStream: failed to open HTTP stream for URL: " + urlStr, e);
+			classLogger.error("Failed to open HTTP stream for URL: " + urlStr, e);
 		}
 
 		return null;
@@ -1250,13 +1336,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("makePostCall: failed to execute POST request for URL: " + url, ex);
+			classLogger.error("Failed to execute POST request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("makePostCall: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after POST request to URL: " + url, e);
 				}
 			}
 		}
@@ -1303,13 +1389,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("makeBinaryFilePutCall: failed to upload file via PUT for URL: " + url, ex);
+			classLogger.error("Failed to upload file via PUT request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("makeBinaryFilePutCall: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after PUT file upload to URL: " + url, e);
 				}
 			}
 		}
@@ -1358,13 +1444,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("makeBinaryFilePostCall: failed to upload file via POST for URL: " + url, ex);
+			classLogger.error("Failed to upload file via POST request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("makeBinaryFilePostCall: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after POST file upload to URL: " + url, e);
 				}
 			}
 		}
@@ -1408,13 +1494,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("makeBinaryFilePatchCall: failed to upload file via PATCH for URL: " + url, ex);
+			classLogger.error("Failed to upload file via PATCH request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("makeBinaryFilePatchCall: failed to close HTTP client for URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after PATCH file upload to URL: " + url, e);
 				}
 			}
 		}
@@ -1452,6 +1538,66 @@ public final class HttpHelperUtility {
 	private static String readEntityAsStringOrEmpty(HttpEntity entity) throws IOException {
 		String body = readEntityAsString(entity);
 		return body == null ? "" : body;
+	}
+
+	/**
+	 * Builds a consistent exception for non-2xx HTTP responses.
+	 *
+	 * @param method       HTTP method (GET, POST, etc.)
+	 * @param url          target URL
+	 * @param statusCode   HTTP status code returned by the server
+	 * @param responseBody response payload, if present
+	 * @return populated {@link IllegalArgumentException}
+	 */
+	private static IllegalArgumentException buildHttpStatusException(String method, String url, int statusCode,
+			String responseBody) {
+		StringBuilder message = new StringBuilder();
+		message.append(method).append(" request to ").append(url).append(" returned HTTP ").append(statusCode);
+
+		String normalizedBody = normalizeErrorBody(responseBody);
+		if (!normalizedBody.isEmpty()) {
+			message.append(". Response body: ").append(normalizedBody);
+		}
+
+		return new IllegalArgumentException(message.toString());
+	}
+
+	/**
+	 * Builds a consistent exception for transport-level failures.
+	 *
+	 * @param method HTTP method or operation label
+	 * @param url    target URL
+	 * @param cause  root cause from the HTTP client
+	 * @return populated {@link IllegalArgumentException}
+	 */
+	private static IllegalArgumentException buildConnectionException(String method, String url, Exception cause) {
+		StringBuilder message = new StringBuilder();
+		message.append("Failed to execute ").append(method).append(" request to ").append(url);
+		String causeMessage = cause.getMessage();
+		if (causeMessage != null && !causeMessage.trim().isEmpty()) {
+			message.append(". Cause: ").append(causeMessage.trim());
+		}
+
+		return new IllegalArgumentException(message.toString(), cause);
+	}
+
+	/**
+	 * Normalizes and truncates response bodies for inclusion in exception messages.
+	 *
+	 * @param responseBody raw response body text
+	 * @return one-line response text, truncated when very long
+	 */
+	private static String normalizeErrorBody(String responseBody) {
+		if (responseBody == null) {
+			return "";
+		}
+
+		String normalized = responseBody.replace("\r", " ").replace("\n", " ").trim();
+		if (normalized.length() <= MAX_ERROR_RESPONSE_CHARS) {
+			return normalized;
+		}
+
+		return normalized.substring(0, MAX_ERROR_RESPONSE_CHARS) + "... [truncated]";
 	}
 
 	/**
