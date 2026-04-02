@@ -38,41 +38,45 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<String, Object>> {
-	
-	private static final Logger classLogger = LogManager.getLogger(AskImageModelEngineResponse.class);
-	private static final long serialVersionUID = 1L;
-	
-	public static final String SOURCE_KSERVE = "kserve";
-	public static final String SOURCE_OPENAI = "openai";
-	
-	/**
-	 * 
-	 * @param response
-	 * @param numberOfTokensInPrompt
-	 * @param numberOfTokensInResponse
-	 */
-    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+
+    private static final Logger classLogger = LogManager.getLogger(AskImageModelEngineResponse.class);
+    private static final long serialVersionUID = 1L;
+
+    public static final String SOURCE_KSERVE = "kserve";
+    public static final String SOURCE_OPENAI = "openai";
+    public static final String SOURCE_BEDROCK = "bedrock";
+
+    /**
+     * 
+     * @param response
+     * @param numberOfTokensInPrompt
+     * @param numberOfTokensInResponse
+     */
+    public AskImageModelEngineResponse(Map<String, Object> response, Integer numberOfTokensInPrompt,
+            Integer numberOfTokensInResponse) {
         super(response, numberOfTokensInPrompt, numberOfTokensInResponse);
-        this.messageType = IMAGE; 
+        this.messageType = IMAGE;
     }
 
     /**
      * Factory method for OpenAI image responses
-     * @param imageList List of image strings (base64 or URLs)
+     * 
+     * @param imageList                List of image strings (base64 or URLs)
      * @param numberOfTokensInPrompt
      * @param numberOfTokensInResponse
      * @return AskImageModelEngineResponse
      */
-    public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
+    public static AskImageModelEngineResponse getOpenAIImageResponse(List<String> imageList,
+            Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
         Map<String, Object> responseMap = new HashMap<>();
-        
+
         if (imageList != null && !imageList.isEmpty()) {
             // Convert List<String> to String[] for consistency with KServe format
             String[] imageArray = imageList.toArray(new String[0]);
             responseMap.put("images", imageArray);
             responseMap.put("source", SOURCE_OPENAI);
             responseMap.put("count", imageList.size());
-            
+
             // Determine if images are base64 or URLs
             String firstImage = imageList.get(0);
             boolean isBase64 = !firstImage.toLowerCase().startsWith("http") && firstImage.length() > 100;
@@ -83,12 +87,13 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
             responseMap.put("count", 0);
             responseMap.put("format", "unknown");
         }
-        
+
         return new AskImageModelEngineResponse(responseMap, numberOfTokensInPrompt, numberOfTokensInResponse);
     }
 
     /**
      * Factory method for KServe image responses
+     * 
      * @param response
      * @return
      */
@@ -96,11 +101,11 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
         if (response != null) {
             Map<String, Object> responseMap = new HashMap<>();
             responseMap.put("source", SOURCE_KSERVE);
-            
+
             if (response.has("output")) {
                 Object outputObj = response.get("output");
                 String outputStr = null;
-                
+
                 if (outputObj instanceof JSONArray) {
                     JSONArray images = (JSONArray) outputObj;
                     String[] imageList = new String[images.length()];
@@ -128,7 +133,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
                     responseMap.put("count", 1);
                 }
             }
-            
+
             if (response.has("prompt")) {
                 responseMap.put("prompt", response.getString("prompt"));
             }
@@ -158,23 +163,24 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
             errorMap.put("status", "error");
             errorMap.put("message", "Null response from model request");
             errorMap.put("source", SOURCE_KSERVE);
-            
+
             return new AskImageModelEngineResponse(errorMap, 0, 0);
         }
     }
 
     /**
      * Get the images as a String array, regardless of source
+     * 
      * @return String array of images, or empty array if none
      */
     public String[] getImages() {
         Map<String, Object> response = this.getResponse();
         Object imagesObj = response.get("images");
-        
+
         if (imagesObj instanceof String[]) {
             return (String[]) imagesObj;
         } else if (imagesObj instanceof String) {
-            return new String[]{(String) imagesObj};
+            return new String[] { (String) imagesObj };
         } else {
             return new String[0];
         }
@@ -182,6 +188,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 
     /**
      * Get the first image
+     * 
      * @return First image string, or null if no images
      */
     public String getFirstImage() {
@@ -191,6 +198,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 
     /**
      * Get the number of images
+     * 
      * @return Number of images
      */
     public int getImageCount() {
@@ -205,6 +213,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
 
     /**
      * Check if images are base64 encoded or URLs
+     * 
      * @return true if base64, false if URLs, null if unknown
      */
     public Boolean isBase64Format() {
@@ -213,18 +222,19 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
         if (formatObj instanceof String) {
             return "base64".equals(formatObj);
         }
-        
+
         // Fallback: check first image
         String firstImage = getFirstImage();
         if (firstImage != null) {
             return !firstImage.toLowerCase().startsWith("http") && firstImage.length() > 100;
         }
-        
+
         return null;
     }
 
     /**
      * Get the source of the images (kserve, openai, etc.)
+     * 
      * @return Source string
      */
     public String getSource() {
@@ -232,12 +242,12 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
         Object sourceObj = response.get("source");
         return (sourceObj instanceof String) ? (String) sourceObj : "unknown";
     }
-	
+
     @Override
     public String getStringResponse() {
         Map<String, Object> response = this.getResponse();
         JSONObject jsonObject = new JSONObject();
-        
+
         if (response.containsKey("images")) {
             Object imagesObj = response.get("images");
             if (imagesObj instanceof JSONArray) {
@@ -259,7 +269,7 @@ public class AskImageModelEngineResponse extends AskModelEngineResponse<Map<Stri
                 jsonObject.put(entry.getKey(), entry.getValue());
             }
         }
-        
+
         return jsonObject.toString();
     }
 }
