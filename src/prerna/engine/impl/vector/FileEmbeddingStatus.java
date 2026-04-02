@@ -27,12 +27,15 @@
  *******************************************************************************/
 package prerna.engine.impl.vector;
 
+import java.util.Map;
+
 public class FileEmbeddingStatus {
 	private String fileName;
     private String status;
     private long insertedRecords;
     private long failedRecords;
     private long totalRecords;
+	private Map<String, Object> error;
 
     public FileEmbeddingStatus() {}
 
@@ -43,6 +46,16 @@ public class FileEmbeddingStatus {
         this.failedRecords = failedRecords;
         this.totalRecords = totalRecords;
     }
+
+	public FileEmbeddingStatus(String fileName, String status, long insertedRecords, long failedRecords,
+				long totalRecords, Map<String, Object> error) {
+		this.fileName = fileName;
+		this.status = status;
+		this.insertedRecords = insertedRecords;
+		this.failedRecords = failedRecords;
+		this.totalRecords = totalRecords;
+		this.error = error;
+	}
     
     public String getFileName() {
 		return fileName;
@@ -82,6 +95,14 @@ public class FileEmbeddingStatus {
 
 	public void setTotalRecords(long totalRecords) {
 		this.totalRecords = totalRecords;
+	}
+
+	public Map<String, Object> getError() {
+		return error;
+	}
+
+	public void setError(Map<String, Object> error) {
+		this.error = error;
 	}
 
    

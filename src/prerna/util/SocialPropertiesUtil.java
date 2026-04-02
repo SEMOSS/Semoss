@@ -51,10 +51,10 @@ public class SocialPropertiesUtil {
 	private static SocialPropertiesUtil instance = null;
 	private static SocialPropertiesProcessor processor = null;
 	private static String socialPropFile = null;
-	
+
 	public SocialPropertiesUtil() {
 		SocialPropertiesUtil.socialPropFile = Utility.getDIHelperProperty(Constants.SOCIAL);
-		if(SocialPropertiesUtil.socialPropFile != null) {
+		if (SocialPropertiesUtil.socialPropFile != null) {
 			File f = new File(SocialPropertiesUtil.socialPropFile);
 			if (!f.exists()) {
 				classLogger.warn("No social.properties file found!");
@@ -69,77 +69,99 @@ public class SocialPropertiesUtil {
 			classLogger.warn("No social.properties defined in RDF_Map.prop!");
 		}
 	}
-	
+
 	public static SocialPropertiesUtil getInstance() {
-		if(instance != null) {
+		if (instance != null) {
 			return instance;
 		}
-		
+
 		synchronized (SocialPropertiesUtil.class) {
-			if(instance == null) {
+			if (instance == null) {
 				instance = new SocialPropertiesUtil();
 			}
 		}
-		
+
 		return instance;
 	}
-	
+
 	public void updateSocialProperties(String provider, Map<String, String> mods) throws ConfigurationException {
 		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
 	}
-	
+
 	public void updateAllProperties(String newFileContents) throws IOException {
 		SocialPropertiesUtil.processor.updateAllProperties(newFileContents);
 	}
-	
+
 	public String getFileContents() throws NullPointerException, IOException {
 		return SocialPropertiesUtil.processor.getFileContents();
 	}
-	
+
+	/**
+	 * Switch to using {@link #getAvailableProviders()}
+	 * 
+	 * @param provider
+	 * @return
+	 */
+	@Deprecated
 	public Map<String, Boolean> getLoginsAllowed() {
 		return SocialPropertiesUtil.processor.getLoginsAllowed();
 	}
-	
+
 	public boolean accessKeysAllowed(AuthProvider provider) {
 		return SocialPropertiesUtil.processor.accessKeyAllowed(provider);
 	}
-	
+
 	public boolean isNativeRegistrationAllowed() {
 		return SocialPropertiesUtil.processor.isNativeRegistrationAllowed();
 	}
-	
+
+	/**
+	 * Returns a list of available authentication providers, where each entry is a
+	 * map containing the following keys:
+	 *
+	 * <ul>
+	 * <li>{@code name} — the display name of the provider (e.g. "Google",
+	 * "Facebook")</li>
+	 * <li>{@code provider} — the provider key in social.properties</li>
+	 * <li>{@code isOauth} — {@code true} if the provider uses OAuth</li>
+	 * <li>{@code label} — the label associated with the provider enum</li>
+	 * </ul>
+	 *
+	 * @return a {@link List} of {@link Map} objects, each representing one
+	 *         available provider for logining into the system
+	 */
 	public List<Map<String, Object>> getAvailableProviders() {
 		return SocialPropertiesUtil.processor.getAvailableProviders();
 	}
-	
+
 	public String getProperty(String key) {
 		return SocialPropertiesUtil.processor.getProperty(key);
 	}
-	
+
 	public String getProperty(String key, String defaultValue) {
 		return SocialPropertiesUtil.processor.getProperty(key, defaultValue);
 	}
-	
+
 	public Object get(Object key) {
 		return SocialPropertiesUtil.processor.get(key);
 	}
-	
+
 	public boolean containsKey(String key) {
 		return SocialPropertiesUtil.processor.containsKey(key);
 	}
-	
+
 	public Set<String> stringPropertyNames() {
 		return SocialPropertiesUtil.processor.stringPropertyNames();
 	}
-	
+
 	public String getLoginRedirect() {
 		return SocialPropertiesUtil.processor.getLoginRedirect();
 	}
-	
+
 	public Map<String, String[]> getSamlAttributeNames() {
 		return SocialPropertiesUtil.processor.getSamlAttributeNames();
 	}
-	
+
 	@Deprecated
 	public boolean emailEnabled() {
 		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
@@ -148,78 +170,82 @@ public class SocialPropertiesUtil {
 		classLogger.warn("METHOD DEPRECATED - PLEASE USE smtpEmailEnabled()");
 		return smtpEmailEnabled();
 	}
-	
+
 	// smtp email
 	public boolean smtpEmailEnabled() {
 		return SocialPropertiesUtil.processor.smtpEmailEnabled();
 	}
-	
+
 	public String getSmtpUsername() {
 		return SocialPropertiesUtil.processor.getSmtpUsername();
 	}
-	
+
 	public String getSmtpPassword() {
 		return SocialPropertiesUtil.processor.getSmtpPassword();
 	}
-	
+
 	public String getSmtpSender() {
 		return SocialPropertiesUtil.processor.getSmtpSender();
 	}
-	
+
 	public Session getEmailSession() {
 		return SocialPropertiesUtil.processor.getSmtpEmailSession();
 	}
-	
+
+	public boolean isEmailSessionActive() {
+		return SocialPropertiesUtil.processor.getSmtpEmailSession() != null;
+	}
+
 	public Properties getEmailProps() {
 		return SocialPropertiesUtil.processor.getSmtpEmailProps();
 	}
-	
+
 	public Map<String, String> getEmailStaticProps() {
 		return SocialPropertiesUtil.processor.getSmtpEmailStaticProps();
 	}
-	
+
 	// pop3 email
 	public boolean pop3EmailEnabled() {
 		return SocialPropertiesUtil.processor.pop3EmailEnabled();
 	}
-	
+
 	public String getPop3Username() {
 		return SocialPropertiesUtil.processor.getPop3Username();
 	}
-	
+
 	public String getPop3Password() {
 		return SocialPropertiesUtil.processor.getPop3Password();
 	}
-	
+
 	public Store getPop3EmailStore() {
 		return SocialPropertiesUtil.processor.getPop3EmailStore();
 	}
-	
+
 	public Properties getPop3EmailProps() {
 		return SocialPropertiesUtil.processor.getPop3EmailProps();
 	}
-	
+
 	// imap email
 	public boolean imapEmailEnabled() {
 		return SocialPropertiesUtil.processor.imapEmailEnabled();
 	}
-	
+
 	public String getImapUsername() {
 		return SocialPropertiesUtil.processor.getImapUsername();
 	}
-	
+
 	public String getImapPassword() {
 		return SocialPropertiesUtil.processor.getImapPassword();
 	}
-	
+
 	public Store getImapStore() {
 		return SocialPropertiesUtil.processor.getImapEmailStore();
 	}
-	
+
 	public Properties getImapEmailProps() {
 		return SocialPropertiesUtil.processor.getImapEmailProps();
 	}
-	
+
 	public void reloadProps() {
 		SocialPropertiesUtil.processor.reloadProps();
 	}
@@ -230,5 +256,5 @@ public class SocialPropertiesUtil {
 		ldapAuthenticator.load();
 		return ldapAuthenticator;
 	}
-	
+
 }

@@ -125,13 +125,25 @@ public final class UploadUtilities {
 	}
 
 	/**
+	 * Used to store the temp smss in DIHelper such that we do not load via the file
+	 * watcher
+	 * 
+	 * @param temporaryNewDatabaseId
+	 * @param temporarySmssFile
+	 */
+	public static void addEngineToDIHelperToIgnoreEngineWatchers(String temporaryNewDatabaseId,
+			String temporarySmssFile) {
+		DIHelper.getInstance().setEngineProperty(temporaryNewDatabaseId + "_" + Constants.STORE, temporarySmssFile);
+	}
+
+	/**
 	 * Used to update DIHelper To be used when making new engine
 	 * 
 	 * @param newEngineName
 	 * @param engine
 	 * @param smssFile
 	 */
-	public static void updateDIHelper(String newEngineId, String newEngineName, IEngine engine, File smssFile) {
+	public static void addEngineToDIHelper(String newEngineId, String newEngineName, IEngine engine, File smssFile) {
 		DIHelper.getInstance().setEngineProperty(newEngineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		DIHelper.getInstance().setEngineProperty(newEngineId, engine);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
@@ -140,43 +152,59 @@ public final class UploadUtilities {
 	}
 
 	/**
-	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * Used to update DIHelper when making new engine and an error occurs, or
+	 * deleting engine, or syncing engine from cloud
 	 * 
-	 * @param erroredEngineId
+	 * @param engineIdToremove
 	 */
-	public static void removeEngineExcludingSMSSFromDIHelper(String erroredEngineId) {
-		// in case this is a db and there is an OWL file
-		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.OWL);
-		DIHelper.getInstance().removeEngineProperty(erroredEngineId);
+	public static void removeEngineExcludingSMSSFromDIHelper(String engineIdToremove) {
+		DIHelper.getInstance().removeEngineProperty(engineIdToremove);
 		String engineIds = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-		engineIds = engineIds.replace(";" + erroredEngineId + ";", ";");
-		engineIds = engineIds.replace(";" + erroredEngineId, "");
-		engineIds = engineIds.replace(erroredEngineId + ";", "");
+		engineIds = engineIds.replace(";" + engineIdToremove + ";", ";");
+		engineIds = engineIds.replace(";" + engineIdToremove, "");
+		engineIds = engineIds.replace(engineIdToremove + ";", "");
 		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
 	}
 
 	/**
-	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * Used to update DIHelper when making new engine and an error occurs or
+	 * deleting engine
 	 * 
-	 * @param erroredEngineId
+	 * @param engineIdToRemove
 	 */
-	public static void removeEngineFromDIHelper(String erroredEngineId) {
-		removeEngineExcludingSMSSFromDIHelper(erroredEngineId);
-		DIHelper.getInstance().removeEngineProperty(erroredEngineId + "_" + Constants.STORE);
+	public static void removeEngineFromDIHelper(String engineIdToRemove) {
+		removeEngineExcludingSMSSFromDIHelper(engineIdToRemove);
+		DIHelper.getInstance().removeEngineProperty(engineIdToRemove + "_" + Constants.STORE);
 	}
 
 	/**
-	 * Used to update DIHelper When making new engine and errors or deleting engine
+	 * Used to update DIHelper when making new project and an error occurs or
+	 * deleting an engine
 	 * 
-	 * @param erroredProjectId
+	 * @param projectIdToRemove
 	 */
-	public static void removeProjectFromDIHelper(String erroredProjectId) {
-		DIHelper.getInstance().removeProjectProperty(erroredProjectId + "_" + Constants.STORE);
-		DIHelper.getInstance().removeProjectProperty(erroredProjectId);
+	public static void removeProjectExcludingSMSSFromDIHelper(String projectIdToRemove) {
+		DIHelper.getInstance().removeProjectProperty(projectIdToRemove);
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-		projectIds = projectIds.replace(";" + erroredProjectId + ";", ";");
-		projectIds = projectIds.replace(";" + erroredProjectId, "");
-		projectIds = projectIds.replace(erroredProjectId + ";", "");
+		projectIds = projectIds.replace(";" + projectIdToRemove + ";", ";");
+		projectIds = projectIds.replace(";" + projectIdToRemove, "");
+		projectIds = projectIds.replace(projectIdToRemove + ";", "");
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
+	}
+
+	/**
+	 * Used to update DIHelper when making new project and an error occurs or
+	 * deleting an engine
+	 * 
+	 * @param projectIdToRemove
+	 */
+	public static void removeProjectFromDIHelper(String projectIdToRemove) {
+		DIHelper.getInstance().removeProjectProperty(projectIdToRemove + "_" + Constants.STORE);
+		DIHelper.getInstance().removeProjectProperty(projectIdToRemove);
+		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+		projectIds = projectIds.replace(";" + projectIdToRemove + ";", ";");
+		projectIds = projectIds.replace(";" + projectIdToRemove, "");
+		projectIds = projectIds.replace(projectIdToRemove + ";", "");
 		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
 	}
 
@@ -1525,6 +1553,7 @@ public final class UploadUtilities {
 		bufferedWriter.write("#Base Properties" + newLine);
 		bufferedWriter.write(Constants.ENGINE + tab + engineId + newLine);
 		bufferedWriter.write(Constants.ENGINE_ALIAS + tab + engineName + newLine);
+		bufferedWriter.write(Constants.ENGINE_DISPLAY_NAME + tab + engineName + newLine);
 		bufferedWriter.write(Constants.ENGINE_TYPE + tab + className + newLine);
 	}
 

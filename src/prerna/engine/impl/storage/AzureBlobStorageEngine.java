@@ -249,22 +249,7 @@ public class AzureBlobStorageEngine extends AbstractRCloneStorageEngine {
 			delete = true;
 		}
 		try {
-			String rClonePath = rCloneConfig + ":";
-			if (path != null) {
-				path = path.replace("\\", "/");
-				if (!path.startsWith("/")) {
-					rClonePath += "/" + path;
-				} else {
-					rClonePath += path;
-				}
-			}
-//			// wrap in quotes just in case of spaces, etc.
-//			if(!rClonePath.startsWith("\"")) {
-//				rClonePath = "\""+rClonePath+"\"";
-//			}
-			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath,
-					"--max-depth=1", "--metadata");
-			return results;
+			return super.listDetails(path, rCloneConfig);
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);

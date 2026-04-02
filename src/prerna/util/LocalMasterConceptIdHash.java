@@ -76,7 +76,7 @@ public class LocalMasterConceptIdHash {
 	}
 
 	private void load() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		// this is only for local master!!!
 		Connection conn = null;
@@ -119,7 +119,7 @@ public class LocalMasterConceptIdHash {
 	}
 
 	public void persistBack() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		if (this.dirty) {
 			Connection conn = null;

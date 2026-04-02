@@ -35,12 +35,30 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Retrieves a single prompt by ID with access control. Only returns the prompt
+ * if it is global or created by the requesting user.
+ *
+ * Pixel usage: GetPrompt(promptId="<uuid>");
+ *
+ * Parameters: promptId (String, required) - UUID of the prompt to retrieve
+ *
+ * Returns: MAP - a map containing prompt details, tags, and metadata. Returns
+ * an empty map if the prompt is not found or the user lacks access.
+ *
+ * Return fields: id (String) - UUID of the prompt title (String) - Prompt name
+ * context (String) - The prompt text/template version (int) - Version number
+ * (0-based, incremented on update) intent (String) - Description of the
+ * prompt's purpose created_by (String) - User ID of the prompt creator
+ * date_created (String) - ISO timestamp of creation global (boolean) - Whether
+ * the prompt is visible to all users tags (List of String) - Tags for
+ * categorization metaKeys (Map of String to List of String) - Metadata
+ * key-value pairs
+ */
 public class GetPromptReactor extends AbstractReactor {
 
 	public GetPromptReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.PROMPT_ID.getKey()
-		};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_ID.getKey() };
 	}
 
 	@Override
@@ -52,13 +70,12 @@ public class GetPromptReactor extends AbstractReactor {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
 		String promptID = this.keyValue.get(ReactorKeysEnum.PROMPT_ID.getKey());
-		if(promptID == null || promptID.isEmpty()) {
+		if (promptID == null || promptID.isEmpty()) {
 			throw new IllegalArgumentException("PROMPT ID must be passed in to get details for a specific prompt");
 		}
 
-		Map<String, Object> promptDetails = PromptUtils.getPrompt(promptID);
-		NounMetadata nm = new NounMetadata(promptDetails, PixelDataType.MAP);
-		return nm;
+		Map<String, Object> promptDetails = PromptUtils.getPrompt(promptID, this.insight.getUser());
+		return new NounMetadata(promptDetails, PixelDataType.MAP);
 	}
 
 }

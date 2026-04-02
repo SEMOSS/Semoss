@@ -66,7 +66,6 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("USERMETA");
 		conceptsRequired.add("USERMETAKEYS");
 
-		// conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
 		conceptsRequired.add("INSIGHTACCESSREQUEST");
@@ -80,6 +79,9 @@ public class SecurityOwlCreator {
 
 		// trusted token security
 		conceptsRequired.add("TOKEN");
+
+		// connectors
+		conceptsRequired.add("SALESFORCE_CONNECTIONS");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -131,9 +133,8 @@ public class SecurityOwlCreator {
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = securityDb
-					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SESSION_SHARE");
-			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/SESSION_SHARE/IS_SESSION_SHARE")) {
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINEDISPLAYNAME")) {
 				return true;
 			}
 		}
@@ -182,6 +183,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("ENGINE", null, null);
 		owler.addProp("ENGINE", "ENGINEID", "VARCHAR(255)");
 		owler.addProp("ENGINE", "ENGINENAME", "VARCHAR(255)");
+		owler.addProp("ENGINE", "ENGINEDISPLAYNAME", "VARCHAR(255)");
 		owler.addProp("ENGINE", "GLOBAL", "BOOLEAN");
 		owler.addProp("ENGINE", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("ENGINE", "ENGINETYPE", "VARCHAR(255)");
@@ -219,6 +221,7 @@ public class SecurityOwlCreator {
 		owler.addConcept("PROJECT", null, null);
 		owler.addProp("PROJECT", "PROJECTID", "VARCHAR(255)");
 		owler.addProp("PROJECT", "PROJECTNAME", "VARCHAR(255)");
+		owler.addProp("PROJECT", "PROJECTDISPLAYNAME", "VARCHAR(255)");
 		owler.addProp("PROJECT", "GLOBAL", "BOOLEAN");
 		owler.addProp("PROJECT", "DISCOVERABLE", "BOOLEAN");
 		owler.addProp("PROJECT", "TYPE", "VARCHAR(255)");
@@ -510,7 +513,6 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
@@ -558,6 +560,13 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+
+		// SALESFORCE_CONNECTIONS
+		owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
+		owler.addProp("SALESFORCE_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,

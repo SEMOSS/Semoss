@@ -33,19 +33,19 @@ import com.google.gson.annotations.SerializedName;
 
 public class ToolResultPart {
 
-	@SerializedName("toolCallId")
+	@SerializedName(value = "toolCallId", alternate = { "id" })
 	private String toolCallId;
 
-	@SerializedName("toolName")
+	@SerializedName(value = "toolName", alternate = { "tool_name" })
 	private String toolName;
 
 	@SerializedName("output")
 	private String output;
 
-	@SerializedName("toolParameterValues")
+	@SerializedName(value = "toolParameterValues", alternate = { "tool_parameter_values" })
 	private Map<String, Object> toolParameterValues;
 
-	@SerializedName("toolStatus")
+	@SerializedName(value = "toolStatus", alternate = { "tool_status" })
 	private String toolStatus;
 
 	public ToolResultPart() {

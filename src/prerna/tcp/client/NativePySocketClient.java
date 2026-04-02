@@ -64,7 +64,6 @@ import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
@@ -85,7 +84,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
-
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -99,24 +97,21 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					try {
 						SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 					} catch (NumberFormatException e) {
-						classLogger.warn("Invalid property value for SLEEP_TIME");
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Invalid SLEEP_TIME property value: {}", Utility.getDIHelperProperty("SLEEP_TIME"), e);
 					}
 				}
 
 				classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
-				while (!connected && attempt < 6) // I do an attempt here too hmm..
-				{
+				while (!connected && attempt < 6) {
 					try {
 						clientSocket = new Socket(this.HOST, this.PORT);
 						// pick input and output stream and start the threads
 						this.is = clientSocket.getInputStream();
 						this.os = clientSocket.getOutputStream();
 						classLogger.info("CLIENT Connection complete !!!!!!!");
+						// sleep some before executing command
+						Thread.sleep(100);
 
-						Thread.sleep(100); // sleep some before executing command
-						// prime it
-						// classLogger.info("First command.. Prime" + executeCommand("2+2"));
 						connected = true;
 						ready = true;
 						killAll = false;
@@ -208,11 +203,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									exposeLog(logMessage, lock.jobId);
 								}
 							}
-							// new way of handling streaming data to repalce below else if
+
 							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
 								if (ps.payload != null && ps.payload[0] != null) {
 									classLogger.debug(ps.payload[0] + "");
-									PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
+									if (lock != null && lock.jobId != null) {
+										PixelJobManager.getManager().addStreamOut(lock.jobId, (Map) ps.payload[0]);
+									}
 								}
 							}
 							// need some way to say this is the output from the actual python vs. something
@@ -311,7 +308,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											finalPs.response = true;
 											executeCommand(finalPs);
 										} catch (Exception e) {
-											classLogger.error(Constants.STACKTRACE, e);
+											classLogger.error("Error executing pixel operation in reactor thread for epoc: {}", finalPs.epoc, e);
 											finalPs.response = true;
 											String errorMessage = "An error occurred running the pixel = " + pixelOp;
 											if (e.getMessage() != null) {
@@ -323,7 +320,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											try {
 												output.close();
 											} catch (IOException e) {
-												classLogger.error(Constants.STACKTRACE, e);
+												classLogger.error("Error closing output stream in reactor thread for epoc: {}", finalPs.epoc, e);
 											}
 										}
 									}
@@ -352,15 +349,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								}
 							}
 						} else {
-							killAll = true;
-							break;
+							crash();
+							break SOCKET_LISTENER;
 						}
 					} catch (SocketException ex1) {
-						classLogger.error(Constants.STACKTRACE, ex1);
 						crash();
 						break SOCKET_LISTENER;
 					} catch (Exception ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
+						classLogger.error("Unexpected error in socket listener loop", ex);
 					}
 				}
 			}
@@ -440,7 +436,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						input.payload[classIndex] = insight;
 					}
 				} catch (ClassNotFoundException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Could not find class: {}", input.payloadClassNames[classIndex], e);
 				}
 			}
 		}
@@ -612,15 +608,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			String jsonPS = gson.toJson(ps);
 			byte[] psBytes = pack(jsonPS, ps.epoc);
 			try {
-				classLogger.debug("About to write to output stream for epoc: " + ps.epoc);
-				os.write(psBytes);
-				classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
+				synchronized (WRITE_LOCK) {
+					classLogger.debug("About to write to output stream for epoc: " + ps.epoc);
+					os.write(psBytes);
+					classLogger.debug("Successfully wrote to output stream for epoc: " + ps.epoc);
+				}
 			} catch (IOException ex) {
-				classLogger.info("Failed writing to output stream for epoc: " + ps.epoc, ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to write payload to output stream for epoc: {}", ps.epoc, ex);
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Unexpected error serializing payload for epoc: {}", ps.epoc, ex);
 		}
 	}
 
@@ -660,7 +657,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		return finalByte;
-
 	}
 
 	/**
@@ -725,28 +721,26 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 */
 	@Override
 	public void crash() {
-		// this happens when the client has completely crashed
-		// make the connected to be false
-		// take everything that is waiting on it
-		// go through request map and start pushing
+		// this happens when the client losses connection to the server
+		classLogger.warn("NativePySocketClient is disconnected from server");
 
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
 
+		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Callable<String> callableTask = () -> {
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
 					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
-					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
+					ps.ex = "Client is disconnected from the server.";
 					synchronized (ps) {
 						ps.notifyAll();
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error releasing pending payload structs during crash", e);
 			}
 			return "Successfully released the payload structs";
 		};
@@ -767,8 +761,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		}
 
 		this.close();
-		classLogger.fatal(
-				"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 }

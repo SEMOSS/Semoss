@@ -88,7 +88,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.SemossDefaultEngines;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
@@ -176,8 +175,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		if (method.isAnnotationPresent(IgnoreEngineLogging.class)
-				|| SemossDefaultEngines.getDatabaseIgnoreAudit().contains(this.engineId)) {
+		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
 			} catch (InvocationTargetException e) {
@@ -567,7 +565,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 			return reactor;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create reactor: {}", className, e);
 			throw new RuntimeException("Failed to create reactor: " + className, e);
 		}
 	}

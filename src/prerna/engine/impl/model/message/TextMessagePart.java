@@ -37,7 +37,7 @@ public class TextMessagePart extends MessagePart {
 	/**
 	 * Optional UI-only text (legacy inputUIPrompt) when {@code text} differs.
 	 */
-	@SerializedName("uiText")
+	@SerializedName(value = "uiText", alternate = { "ui_text" })
 	private String uiText;
 
 	public TextMessagePart() {

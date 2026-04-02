@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Comment;
@@ -55,16 +54,24 @@ import prerna.util.Utility;
  * This class gets the data validation constraints from an excel sheet
  */
 public class ExcelDataValidationHelper {
-	
+
 	public enum WIDGET_COMPONENT {
 		CHECKLIST, DROPDOWN, EXECUTE, FREETEXT, NUMBER, RADIO, SLIDER, TEXTAREA, TYPEAHEAD
 	};
 
+	/**
+	 * Extracts data-validation metadata for all validations defined on a sheet.
+	 *
+	 * @param sheet      source sheet
+	 * @param newHeaders optional map of cleaned header names to user-defined
+	 *                   aliases
+	 * @return validation metadata keyed by header
+	 */
 	public static Map<String, Object> getDataValidation(Sheet sheet, Map<String, String> newHeaders) {
 		Map<String, Object> validationMap = new HashMap<>();
 		List<? extends DataValidation> validations = sheet.getDataValidations();
 		HeadersException headerChecker = HeadersException.getInstance();
-		List<String> newUniqueCleanHeaders = new Vector<String>();
+		List<String> newUniqueCleanHeaders = new ArrayList<String>();
 		// check if validations exist
 		for (DataValidation dv : validations) {
 			Map<String, Object> headerMeta = new HashMap<>();
@@ -77,7 +84,7 @@ public class ExcelDataValidationHelper {
 				// get the header for the range
 				String[] split = address.split(":");
 				CellReference cellReference = new CellReference(split[0]);
-				Row row = sheet.getRow(cellReference.getRow() - 1);
+				Row row = sheet.getRow(cellReference.getRow());
 				Cell c = row.getCell(cellReference.getCol());
 				// add header comment as description
 				Comment cellComment = c.getCellComment();
@@ -173,7 +180,7 @@ public class ExcelDataValidationHelper {
 		Map<String, Object> validationMap = new HashMap<>();
 		List<? extends DataValidation> validations = sheet.getDataValidations();
 		HeadersException headerChecker = HeadersException.getInstance();
-		List<String> newUniqueCleanHeaders = new Vector<String>();
+		List<String> newUniqueCleanHeaders = new ArrayList<String>();
 		// check if validations exist
 		for (DataValidation dv : validations) {
 			Map<String, Object> headerMeta = new HashMap<>();
@@ -186,12 +193,7 @@ public class ExcelDataValidationHelper {
 				// get the header for the range
 				String[] split = address.split(":");
 				CellReference cellReference = new CellReference(split[0]);
-				int cellRow = cellReference.getRow();
-				// this is the case if we are only uploading headers
-				if (cellRow == 0) {
-					cellRow = 1;
-				}
-				Row row = sheet.getRow(cellRow - 1);
+				Row row = sheet.getRow(cellReference.getRow());
 				Cell c = row.getCell(cellReference.getCol());
 				// add header comment as description
 				Comment cellComment = c.getCellComment();
@@ -387,8 +389,8 @@ public class ExcelDataValidationHelper {
 	public static Map<String, Object> createInsertForm(String appId, String sheetName,
 			Map<String, Object> dataValidationMap, String[] headerList) {
 		Map<String, Object> formMap = new HashMap<>();
-		formMap.put("js", new Vector<>());
-		formMap.put("css", new Vector<>());
+		formMap.put("js", new ArrayList<>());
+		formMap.put("css", new ArrayList<>());
 
 		// grab all the properties
 		List<String> propertyList = new ArrayList<String>();
@@ -431,7 +433,7 @@ public class ExcelDataValidationHelper {
 			Map<String, Object> propMap = (Map<String, Object>) dataValidationMap.get(property);
 			String type = (String) propMap.get("type");
 			SemossDataType propType = SemossDataType.valueOf(type);
-			
+
 			// grab description from excel we will add this after
 			// adding appropriate input component
 			String description = "";
@@ -445,13 +447,13 @@ public class ExcelDataValidationHelper {
 					description = "Please enter a date (yyyy-mm-dd)";
 				}
 			}
-			
+
 			// build data property map for data binding
 			Map<String, Object> propertyMap = new HashMap<>();
 			propertyMap.put("defaultValue", "");
-			propertyMap.put("options", new Vector());
+			propertyMap.put("options", new ArrayList<>());
 			propertyMap.put("name", property);
-			propertyMap.put("dependsOn", new Vector());
+			propertyMap.put("dependsOn", new ArrayList<>());
 			propertyMap.put("required", true);
 			propertyMap.put("autoPopulate", false);
 			Map<String, Object> configMap = new HashMap<>();
@@ -466,14 +468,14 @@ public class ExcelDataValidationHelper {
 			String validationType = (String) propMap.get("validationType");
 			int vt = ExcelDataValidationHelper.stringToValidationType(validationType);
 			WIDGET_COMPONENT wc = ExcelDataValidationHelper.validationTypeToComponent(vt);
-			
+
 			// build html based on input component
 			if (wc == WIDGET_COMPONENT.DROPDOWN) {
 				String[] values = (String[]) propMap.get("values");
 				propertyMap.put("manualOptions", String.join(",", values));
 				htmlSb.append(FormUtility.getDropdownComponent(property));
 			} else if (wc == WIDGET_COMPONENT.NUMBER) {
-				//TODO: min and max ranges for slider
+				// TODO: min and max ranges for slider
 				Object f1 = propMap.get("f1");
 				Object f2 = propMap.get("f2");
 				propertyMap.put("defaultValue", "0");
@@ -555,6 +557,12 @@ public class ExcelDataValidationHelper {
 		return updateMap;
 	}
 
+	/**
+	 * Cleans Excel comment text before exposing it in generated form metadata.
+	 *
+	 * @param commentToClean raw comment string from Excel
+	 * @return cleaned comment text
+	 */
 	public static String cleanComment(String commentToClean) {
 		// takes out spaces before the string
 		String regex = "^\\s+";
@@ -568,6 +576,12 @@ public class ExcelDataValidationHelper {
 		return trimmedComment;
 	}
 
+	/**
+	 * Converts an Apache POI validation type constant to its string name.
+	 *
+	 * @param validationType POI validation type constant
+	 * @return validation type name
+	 */
 	public static String validationTypeToString(int validationType) {
 		String validationName = "";
 		if (validationType == DataValidationConstraint.ValidationType.ANY) {
@@ -590,6 +604,12 @@ public class ExcelDataValidationHelper {
 		return validationName;
 	}
 
+	/**
+	 * Converts a validation type name to the corresponding Apache POI constant.
+	 *
+	 * @param validationType validation type name
+	 * @return POI validation type constant
+	 */
 	public static int stringToValidationType(String validationType) {
 		int vt = ValidationType.ANY;
 		if (validationType.equals("ANY")) {
@@ -612,6 +632,12 @@ public class ExcelDataValidationHelper {
 		return vt;
 	}
 
+	/**
+	 * Maps a validation type to the preferred UI component.
+	 *
+	 * @param validationType POI validation type constant
+	 * @return widget component for rendering/editing the value
+	 */
 	public static WIDGET_COMPONENT validationTypeToComponent(int validationType) {
 		WIDGET_COMPONENT widgetComponent = WIDGET_COMPONENT.FREETEXT;
 		if (validationType == DataValidationConstraint.ValidationType.ANY) {
@@ -634,6 +660,12 @@ public class ExcelDataValidationHelper {
 		return widgetComponent;
 	}
 
+	/**
+	 * Maps a UI component to the corresponding SEMOSS data type.
+	 *
+	 * @param widgetComponent widget component
+	 * @return matching data type
+	 */
 	public static SemossDataType widgetComponentToDataType(WIDGET_COMPONENT widgetComponent) {
 		SemossDataType dataType = SemossDataType.STRING;
 		if (widgetComponent == WIDGET_COMPONENT.CHECKLIST) {
@@ -649,6 +681,12 @@ public class ExcelDataValidationHelper {
 		return dataType;
 	}
 
+	/**
+	 * Converts a POI validation operator constant to a readable name.
+	 *
+	 * @param operatorType POI operator constant
+	 * @return operator name
+	 */
 	public static String operatorToString(int operatorType) {
 		String operatorName = "";
 		if (operatorType == DataValidationConstraint.OperatorType.BETWEEN) {

@@ -21,6 +21,7 @@ from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from ...utils import string_to_bool
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -41,6 +42,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         "thinking",
         "thinking_budget",
         "global_param_override",
+        "simplify_messages",
     }
 
     def __init__(
@@ -64,8 +66,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         self.chat_type = self.model_settings.chat_type
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
+        self.simplify_messages = string_to_bool(
+            parent_kwargs.get("simplify_messages", False)
+        )
 
-        self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
+        self.message_builder = OpenAIMessageBuilder(
+            self.model_settings, self.chat_type, self.simplify_messages
+        )
         self.image_client = OpenAiImageClient(client=self)
         self.audio_client = OpenAiAudioClient(client=self)
 
@@ -320,7 +327,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             if aggregated_thinking
                             else []
                         )
-                        + [{"type": "TOOL_CALL", "toolCall": t} for t in tool_result]
+                        + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
                     ),
                 )
             else:
@@ -515,7 +522,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
-                    parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tool_result],
+                    parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tool_result],
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
@@ -634,7 +641,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _extract_reasoning_summary(self, response) -> str:

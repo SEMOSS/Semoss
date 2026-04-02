@@ -37,7 +37,6 @@ import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
@@ -52,14 +51,12 @@ import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
-	
-	//private String[] keysToGet;
-	private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
+public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor {
 
+	// private String[] keysToGet;
+	private static final String CLASS_NAME = DropBoxFileRetrieverReactor.class.getName();
 
 	public DropBoxFileRetrieverReactor() {
 		this.keysToGet = new String[] { "path" };
@@ -68,7 +65,7 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 	@Override
 	protected SelectQueryStruct createQueryStruct() {
 
-		//get keys
+		// get keys
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String dropboxPath = this.keyValue.get(this.keysToGet[0]);
@@ -76,24 +73,20 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 			throw new IllegalArgumentException("Need to specify file path");
 		}
 
-
-
-		//get access token
+		// get access token
 		String accessToken = null;
 		User user = this.insight.getUser();
-		try{
-			if(user==null){
+		try {
+			if (user == null) {
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "dropbox");
 				retMap.put("message", "Please login to your DropBox account");
 				throwLoginError(retMap);
-			}
-			else if (user != null) {
+			} else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.DROPBOX);
-				accessToken=msToken.getAccess_token();
+				accessToken = msToken.getAccess_token();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "dropbox");
 			retMap.put("message", "Please login to your DropBox account");
@@ -103,10 +96,10 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		//
 
 		// lists the various files for this user
-		// if the 
+		// if the
 		// name of the object to return
 		String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-		String [] beanProps = {"name","id","url"}; // add is done when you have a list
+		String[] beanProps = { "name", "id", "url" }; // add is done when you have a list
 		String jsonPattern = "[metadata.name,metadata.id,link]";
 
 		// you fill what you want to send on the API call
@@ -116,10 +109,11 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 
 		String output = HttpHelperUtility.makePostCall(url_str, accessToken, params, true);
 
-		// fill the bean with the return. This return will have a url to download the file from which is done below
+		// fill the bean with the return. This return will have a url to download the
+		// file from which is done below
 		RemoteItem link = (RemoteItem) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String filePath = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+				+ Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		filePath += "\\" + Utility.getRandomString(10) + ".csv";
 		filePath = filePath.replace("\\", "/");
 		try {
@@ -137,7 +131,8 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		CSVFileHelper helper = new CSVFileHelper();
 		helper.setDelimiter(',');
 		helper.parse(filePath);
-		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+		Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(),
+				helper.predictTypes());
 		Map<String, String> dataTypes = predictionMaps[0];
 		Map<String, String> additionalDataTypes = predictionMaps[1];
 		CsvQueryStruct qs = new CsvQueryStruct();
@@ -152,8 +147,6 @@ public class DropBoxFileRetrieverReactor extends AbstractQueryStructReactor{
 		qs.setAdditionalTypes(additionalDataTypes);
 		return qs;
 
-
 	}
-
 
 }

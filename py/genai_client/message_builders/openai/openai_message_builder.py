@@ -34,10 +34,16 @@ from ..semoss_base.semoss_models import (
 
 class OpenAIMessageBuilder:
 
-    def __init__(self, model_settings: ModelSettings, chat_type: str):
+    def __init__(
+        self,
+        model_settings: ModelSettings,
+        chat_type: str,
+        simplify_messages: bool = False,
+    ):
         """Initialize the OpenAI message builder with a specific model name."""
         self.model_settings = model_settings
         self.chat_type = chat_type
+        self.simplify_messages = simplify_messages
 
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
@@ -109,7 +115,7 @@ class OpenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_parts.append(media_content)
 
@@ -131,9 +137,9 @@ class OpenAIMessageBuilder:
 
                         openai_messages.append(
                             OpenAIResponsesToolCall(
-                                call_id=p.toolCall.id,
-                                name=p.toolCall.function.name,
-                                arguments=p.toolCall.function.parameters or {},
+                                call_id=p.tool_call.id,
+                                name=p.tool_call.function.name,
+                                arguments=p.tool_call.function.parameters or {},
                             )
                         )
 
@@ -156,8 +162,8 @@ class OpenAIMessageBuilder:
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
-                                call_id=p.toolResult.id,
-                                output=p.toolResult.output,
+                                call_id=p.tool_result.id,
+                                output=p.tool_result.output,
                             )
                         )
 
@@ -298,7 +304,7 @@ class OpenAIMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_parts.append(media_content)
 
@@ -320,11 +326,11 @@ class OpenAIMessageBuilder:
 
                         tool_call_parts.append(
                             OpenAIToolCall(
-                                id=p.toolCall.id,
-                                type=p.toolCall.type,
+                                id=p.tool_call.id,
+                                type=p.tool_call.type,
                                 function=OpenAIToolFunctionPart(
-                                    name=p.toolCall.function.name,
-                                    arguments=p.toolCall.function.parameters or {},
+                                    name=p.tool_call.function.name,
+                                    arguments=p.tool_call.function.parameters or {},
                                 ),
                             )
                         )
@@ -348,8 +354,8 @@ class OpenAIMessageBuilder:
                         openai_messages.append(
                             OpenAIMessage(
                                 role="tool",
-                                content=p.toolResult.output,
-                                tool_call_id=p.toolResult.id,
+                                content=p.tool_result.output,
+                                tool_call_id=p.tool_result.id,
                             )
                         )
 
@@ -375,6 +381,15 @@ class OpenAIMessageBuilder:
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
                 elif content_parts:
+                    if (
+                        len(content_parts) == 1
+                        and isinstance(content_parts[0], OpenAITextContentPart)
+                        and self.simplify_messages
+                    ):
+                        content = content_parts[0].text
+                    else:
+                        content = content_parts
+
                     openai_messages.append(
                         OpenAIMessage(
                             role=(
@@ -382,7 +397,7 @@ class OpenAIMessageBuilder:
                                 if message.io == "INPUT"
                                 else OpenAIRoles.ASSISTANT.value
                             ),
-                            content=content_parts,
+                            content=content,
                         )
                     )
 

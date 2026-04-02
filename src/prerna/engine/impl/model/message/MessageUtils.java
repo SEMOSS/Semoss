@@ -545,11 +545,48 @@ public class MessageUtils {
 			throw new IllegalArgumentException("fullPrompt must be a JSON string or List<Map>.");
 		}
 
+		// accumulates consecutive function_call entries (parallel tool calls) into one
+		// RESPONSE_TOOL message
+		List<Map<String, Object>> pendingFunctionCalls = new ArrayList<>();
 		for (Object o : promptList) {
 			if (!(o instanceof Map)) {
 				continue;
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
+
+			// first we will check the type because responses api returns function_call /
+			// function_call_output with no role
+			String entryType = asStringOrNull(map.get("type"));
+
+			// flush accumulated function_calls once we hit a non-function_call entry
+			if (!"function_call".equals(entryType) && !pendingFunctionCalls.isEmpty()) {
+				ResponseMessage.Builder fcBuilder = ResponseMessage.builder();
+				fcBuilder.withType(MessageType.RESPONSE_TOOL);
+				fcBuilder.withToolResponses(new ArrayList<>(pendingFunctionCalls));
+				result.add(fcBuilder.build());
+				pendingFunctionCalls.clear();
+			}
+
+			if ("function_call".equals(entryType)) {
+				String callId = asStringOrNull(map.get("call_id"));
+				String funcName = asStringOrNull(map.get("name"));
+				String arguments = asStringOrNull(map.get("arguments"));
+				Map<String, Object> flatTool = new HashMap<>();
+				flatTool.put("id", callId);
+				flatTool.put("type", "function");
+				flatTool.put("name", funcName);
+				flatTool.put("arguments", arguments);
+				pendingFunctionCalls.add(flatTool);
+				continue;
+			}
+			if ("function_call_output".equals(entryType)) {
+				String callId = asStringOrNull(map.get("call_id"));
+				String output = asStringOrNull(map.get("output"));
+				result.add(InputMessage.toolExecution(room, callId, null, output, null, null));
+				continue;
+			}
+
+			// this will continue the normal flow
 			String role = asStringOrNull(map.get("role"));
 			Object contentObj = map.get("content");
 			String content = parseContentMap(contentObj);
@@ -573,16 +610,20 @@ public class MessageUtils {
 						}
 						Map<?, ?> partMap = (Map<?, ?>) part;
 						String type = asStringOrNull(partMap.get("type"));
-						if ("text".equals(type)) {
+						if ("text".equals(type) || "input_text".equals(type)) {
 							textPart += asStringOrNull(partMap.get("text"));
-						} else if ("image_url".equals(type)) {
-							// e.g. { "type": "image_url", "image_url": { "url": ... } }
+						} else if ("image_url".equals(type) || "input_image".equals(type)) {
+							// Chat Completions: { "type": "image_url", "image_url": { "url": ... } }
+							// Responses API: { "type": "input_image", "image_url": "..." }
 							Object imgURLObj = partMap.get("image_url");
-							if (imgURLObj instanceof Map) {
-								String url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
-								if (url != null) {
-									mediaInputList.add(url);
-								}
+							String url = null;
+							if (imgURLObj instanceof String) {
+								url = (String) imgURLObj;
+							} else if (imgURLObj instanceof Map) {
+								url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
+							}
+							if (url != null) {
+								mediaInputList.add(url);
 							}
 						}
 					}
@@ -625,7 +666,14 @@ public class MessageUtils {
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+								Object argsRaw = funcMap.get("arguments");
+								if (argsRaw instanceof String) {
+									flatTool.put("arguments", (String) argsRaw);
+								} else if (argsRaw != null) {
+									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
+								} else {
+									flatTool.put("arguments", "{}");
+								}
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
@@ -666,6 +714,14 @@ public class MessageUtils {
 
 		}
 
+		// Flush any function_calls that were at the tail of the list
+		if (!pendingFunctionCalls.isEmpty()) {
+			ResponseMessage.Builder fcBuilder = ResponseMessage.builder();
+			fcBuilder.withType(MessageType.RESPONSE_TOOL);
+			fcBuilder.withToolResponses(new ArrayList<>(pendingFunctionCalls));
+			result.add(fcBuilder.build());
+		}
+
 		// ------ Attach system prompt to last input message, if any ------
 		if (systemPrompt != null) {
 			// find the last InputMessage in result
@@ -680,37 +736,6 @@ public class MessageUtils {
 
 		return result;
 	}
-
-//	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-//	    List<Map<String, Object>> mcpTools = new ArrayList<>();
-//	    for (Map<String, Object> tool : inputTools) {
-//	        // Check if already in MCP format
-//	        if (tool.containsKey("name") && tool.containsKey("description") && tool.containsKey("function")) {
-//	            // Already MCP format, clone for safety and add
-//	            mcpTools.add(new HashMap<>(tool));
-//	            continue;
-//	        }
-//	        Object functionObj = tool.get("function");
-//	        if (functionObj instanceof Map) {
-//	            @SuppressWarnings("unchecked")
-//	            Map<String, Object> functionMap = new HashMap<>((Map<String, Object>) functionObj); // copy so we can modify
-//	            Object nameObj = functionMap.remove("name");
-//	            Object descriptionObj = functionMap.remove("description");
-//	            if (nameObj != null && descriptionObj != null) {
-//	                Map<String, Object> mcpTool = new HashMap<>();
-//	                mcpTool.put("name", nameObj);
-//	                mcpTool.put("description", descriptionObj);
-//	                mcpTool.put("function", functionMap);
-//	                mcpTool.put("type", tool.getOrDefault("type", "function"));
-//	                mcpTools.add(mcpTool);
-//	                continue;
-//	            }
-//	        }
-//	        // If not recognizable, add as-is
-//	        mcpTools.add(new HashMap<>(tool));
-//	    }
-//	    return mcpTools;
-//	}
 
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
 		List<Map<String, Object>> newTools = new ArrayList<>();
@@ -843,7 +868,7 @@ public class MessageUtils {
 				}
 				Map<?, ?> partMap = (Map<?, ?>) part;
 				String type = asStringOrNull(partMap.get("type"));
-				if ("text".equals(type)) {
+				if ("text".equals(type) || "input_text".equals(type) || "output_text".equals(type)) {
 					textBuilder.append(asStringOrNull(partMap.get("text")));
 				}
 			}

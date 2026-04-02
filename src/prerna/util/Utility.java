@@ -45,6 +45,7 @@ import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -2037,6 +2038,13 @@ public final class Utility {
 	 * @return
 	 */
 	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		String engineId = smssProp.getProperty(Constants.ENGINE);
+		if (SystemEngineRegistry.isSystemEngine(engineId)) {
+			classLogger.error("Blocked attempt to load system engine '{}' through Utility.loadEngine(). "
+					+ "Use SystemEngineRegistry.loadSystemEngine() instead.", engineId);
+			return null;
+		}
+
 		// trim all the values the SMSS file
 		for (String name : smssProp.stringPropertyNames()) {
 			String value = smssProp.getProperty(name);
@@ -2048,7 +2056,7 @@ public final class Utility {
 		IEngine engine = null;
 		try {
 			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
-			String engineId = smssProp.getProperty(Constants.ENGINE);
+			engineId = smssProp.getProperty(Constants.ENGINE);
 			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
 			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
 
@@ -2059,7 +2067,7 @@ public final class Utility {
 				// engine/all call
 				// so even though it is added here there is a good possibility it is not loaded
 				// so check to see this
-				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IDatabaseEngine) {
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 				}
 			}
@@ -2068,14 +2076,9 @@ public final class Utility {
 			if (smssFilePath != null) {
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
 			}
-			// we also store the OWL location
-			if (smssProp.containsKey(Constants.OWL)) {
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.OWL,
-						smssProp.getProperty(Constants.OWL));
-			}
 
 			// create and open the class
-			engine = (IEngine) Class.forName(engineClass).newInstance();
+			engine = (IEngine) Class.forName(engineClass).getDeclaredConstructor().newInstance();
 			engine.setEngineId(engineId);
 
 			// before we open, let us see if we have the assets folder
@@ -2104,7 +2107,7 @@ public final class Utility {
 					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
 				// for database, load into local master as well
 				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
-					if (!SemossDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+					if (!SystemDefaultDatabases.getDatabaseIgnoreLocalMaster().contains(engineId)) {
 						synchronizeEngineMetadata(engineId);
 					}
 				}
@@ -2117,14 +2120,9 @@ public final class Utility {
 				// we didn't have the assets directory when we started, do we have it now?
 				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
 				if (hasAssetsFolder) {
-					if (SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(engineId)) {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. This enigne will not be synced to cloud");
-					} else {
-						classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
-								+ " assets directory exists. Sync to cloud storage if enabled");
-						ClusterUtil.pushEngine(engineId);
-					}
+					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
+							+ " assets directory exists. Sync to cloud storage if enabled");
+					ClusterUtil.pushEngine(engineId);
 				} else {
 					classLogger.info("After loading engine " + SmssUtilities.getUniqueName(engineName, engineId)
 							+ " assets directory still does not exist");
@@ -2700,20 +2698,11 @@ public final class Utility {
 					} else {
 						classLogger.info(
 								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
-						classLogger.info(
-								"There is no SMSS File for the engine " + Utility.cleanLogString(engineId) + "...");
 					}
 
-					// TODO >>>timb: Centralize this ZK env check stuff and use is cluster variable
-					// TODO >>>timb: remove node exists error or catch it
-					// TODO >>>cluster: tag
 					// Start with because the insights RDBMS has the id security_InsightsRDBMS
-					if (!SemossDefaultEngines.valueStartsWith(engineId,
-							SemossDefaultEngines.getDatabaseIgnoreSecurity())) {
+					if (!SystemDefaultDatabases.valueStartsWith(engineId,
+							SystemDefaultDatabases.getDatabaseIgnoreSecurity())) {
 						Map<String, String> envMap = System.getenv();
 						if (envMap.containsKey(ZKClient.ZK_SERVER)
 								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
@@ -4726,7 +4715,7 @@ public final class Utility {
 		// derived from the social.properties redirect value
 		try {
 			String redirectUrlStr = SocialPropertiesUtil.getInstance().getProperty("redirect");
-			URL redirectUrl = new URL(redirectUrlStr);
+			URL redirectUrl = new URI(redirectUrlStr).toURL();
 			String protocol = redirectUrl.getProtocol();
 			int port = redirectUrl.getPort();
 			String host = redirectUrl.getHost();
@@ -4735,7 +4724,7 @@ public final class Utility {
 			} else {
 				return protocol + "://" + host;
 			}
-		} catch (MalformedURLException e) {
+		} catch (URISyntaxException | MalformedURLException e) {
 			classLogger.warn("Invalid redirect URL in social.properties for redirect");
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -6115,6 +6104,12 @@ public final class Utility {
 		return Boolean.parseBoolean(nonApprovedFlag);
 	}
 
+	/**
+	 * Returns true only if the folder contains at least one direct non-directory
+	 * file. Use this when you specifically need to confirm flat files exist (e.g.,
+	 * validating that a folder has been populated with data files, not just
+	 * sub-folders).
+	 */
 	public static boolean folderHasAnyFiles(String folderPath) {
 		File folder = new File(folderPath);
 		if (!folder.exists() || !folder.isDirectory()) {
@@ -6123,6 +6118,37 @@ public final class Utility {
 		// Check for at least one non-directory file
 		File[] files = folder.listFiles(f -> f.isFile());
 		return files != null && files.length > 0;
+	}
+
+	/**
+	 * Returns true if the folder exists and contains any entries — files,
+	 * sub-directories, hidden files, dot files, etc. Use this when you just need to
+	 * know the folder is non-empty regardless of whether its contents are files or
+	 * directories (e.g., before syncing a room folder to cloud storage where the
+	 * room may store data in sub-directories).
+	 */
+	public static boolean folderIsNotEmpty(String folderPath) {
+		File folder = new File(folderPath);
+		if (!folder.exists() || !folder.isDirectory()) {
+			return false;
+		}
+		File[] entries = folder.listFiles();
+		return entries != null && entries.length > 0;
+	}
+
+	/**
+	 * Determine if notification db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isNotificationDatabaseEnabled() {
+		String notificationDb = Utility.getDIHelperProperty(Constants.NOTIFICATION_DATABASE_ENABLED);
+		if (notificationDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(notificationDb);
 	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {

@@ -120,6 +120,7 @@ public final class UploadInputUtility {
 		return noun.getValue().toString();
 	}
 
+	@Deprecated
 	public static String getDatabaseNameOrId(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(DATABASE);
 		if (grs == null || grs.isEmpty()) {
