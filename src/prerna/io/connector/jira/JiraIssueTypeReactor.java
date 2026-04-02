@@ -3,6 +3,7 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
+import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,9 +32,9 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 			this.organizeKeys();
 			String projectKey = this.keyValue.get(PROJECT);
 			User user = this.insight.getUser();
-			String[] jiraCreds = JiraUtils.getJiraCredentials(user);
-			String accessToken = jiraCreds[0];
-			String baseUrl = jiraCreds[1];
+			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
+			String accessToken = jiraCreds.getValue0();
+			String baseUrl = jiraCreds.getValue1();
 			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, nullSafe(projectKey));
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {

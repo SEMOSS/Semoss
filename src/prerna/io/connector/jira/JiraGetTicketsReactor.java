@@ -2,6 +2,7 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
+import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,9 +51,9 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 			}
 
 			User user = this.insight.getUser();
-			String[] jiraCreds = JiraUtils.getJiraCredentials(user);
-			String accessToken = jiraCreds[0];
-			String baseUrl = jiraCreds[1];
+			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
+			String accessToken = jiraCreds.getValue0();
+			String baseUrl = jiraCreds.getValue1();
 			Map<String, Object> result = JiraHelper.listIssues(accessToken, baseUrl, projectKey,
 					nullSafe(statusFilter), nullSafe(assigneeFilter),
 					nullSafe(priorityFilter), nullSafe(nextPageToken), maxResults);

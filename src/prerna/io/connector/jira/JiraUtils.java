@@ -1,5 +1,6 @@
 package prerna.io.connector.jira;
 
+import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,9 +20,9 @@ public class JiraUtils {
 	 * single token lookup.
 	 *
 	 * @param user current session user
-	 * @return two-element array: {@code [0]} access token, {@code [1]} base URL
+	 * @return a {@link Pair} containing the access token and base URL
 	 */
-	public static String[] getJiraCredentials(User user) {
+	public static Pair<String, String> getJiraCredentials(User user) {
 		AccessToken jiraToken = getJiraToken(user);
 		String accessToken = jiraToken.getAccess_token();
 		String cloudId = jiraToken.getId();
@@ -29,7 +30,7 @@ public class JiraUtils {
 			classLogger.error("Jira Cloud ID not found on token.");
 			throw new SemossPixelException("Jira Cloud ID not found on token. Please reconnect your Jira account.");
 		}
-		return new String[] { accessToken, JIRA_API_BASE + cloudId };
+		return new Pair<>(accessToken, JIRA_API_BASE + cloudId);
 	}
 
 	/**

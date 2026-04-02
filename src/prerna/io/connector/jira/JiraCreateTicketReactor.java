@@ -2,6 +2,7 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
+import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -46,9 +47,9 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			String parentKey = this.keyValue.get(PARENT);
 			String status = this.keyValue.get(STATUS);
 			User user = this.insight.getUser();
-			String[] jiraCreds = JiraUtils.getJiraCredentials(user);
-			String accessToken = jiraCreds[0];
-			String baseUrl = jiraCreds[1];
+			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
+			String accessToken = jiraCreds.getValue0();
+			String baseUrl = jiraCreds.getValue1();
 			Map<String, Object> result = JiraHelper.createIssue(accessToken, baseUrl, nullSafe(projectKey), nullSafe(summary),
 					nullSafe(description), nullSafe(issueType), nullSafe(assigneeAccountId),
 					nullSafe(priority), nullSafe(dueDate), nullSafe(parentKey), nullSafe(status));
