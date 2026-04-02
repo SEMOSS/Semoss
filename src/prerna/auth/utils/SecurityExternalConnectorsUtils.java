@@ -111,7 +111,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientid"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientId"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -129,10 +129,10 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	public static Map<String, Object> getJiraConnectionDetails(String connectionId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientid"));
-		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTSECRET", "clientsecret"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientId"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTSECRET", "clientSecret"));
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__SCOPE", "scope"));
-		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__USERPROFILEURL", "userprofileurl"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__USERPROFILEURL", "userInfoUrl"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ID", "==", connectionId));
 		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
 		if (resultList.isEmpty()) {
