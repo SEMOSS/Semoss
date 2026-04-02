@@ -119,6 +119,20 @@ class SEMOSSMediaMessagePart(BaseModel):
     )
     type: Literal[SEMOSSMessagePartType.MEDIA] = SEMOSSMessagePartType.MEDIA
 
+    @field_validator("media_info", mode="before")
+    @classmethod
+    def parse_media_info(cls, v):
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+                else:
+                    raise ValueError("Parsed JSON for media_info is not a dictionary")
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON string for media_info: {e}")
+        return v
+
 
 class SEMOSSSystemMessagePart(BaseModel):
     """Represents a system message content"""
