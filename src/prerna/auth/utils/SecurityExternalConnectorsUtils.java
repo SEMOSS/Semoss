@@ -103,7 +103,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	 * @return a list of maps, each containing:
 	 *         <ul>
 	 *         <li>{@code id} - the unique identifier of the connection</li>
-	 *         <li>{@code clientid} - the Jira connected-app client id</li>
+	 *         <li>{@code alias} - the human-readable name of the connection</li>
 	 *         </ul>
 	 *         Returns an empty list if no connections are configured.
 	 */
@@ -111,7 +111,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
-		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientId"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ALIAS", "alias"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -123,12 +123,13 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	 * a specific connection id that is generated upon insertion into the system.
 	 *
 	 * @param connectionId the unique connection id that was added
-	 * @return a map containing client id, client secret, scope, and user profile URL for the specified connection id
+	 * @return a map containing alias, client id, client secret, scope, and user profile URL for the specified connection id
 	 * @throws IllegalArgumentException if the provided connection id does not exist in the database
 	 */
 	public static Map<String, Object> getJiraConnectionDetails(String connectionId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ALIAS", "alias"));
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTID", "clientId"));
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__CLIENTSECRET", "clientSecret"));
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__SCOPE", "scope"));
@@ -140,5 +141,4 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 		return resultList.get(0);
 	}
-
 }

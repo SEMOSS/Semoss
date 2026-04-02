@@ -58,9 +58,11 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 	private static final String SALESFORCE_CONNECTIONS_TABLE = "SALESFORCE_CONNECTIONS";
 	private static final String INSERT_CONNECTION_SQL = "INSERT INTO " + SALESFORCE_CONNECTIONS_TABLE
 			+ " (ID, ALIAS, CLIENTID, CLIENTSECRET) VALUES (?, ?, ?, ?)";
+			
+	// Jira connections table and insert statement
 	private static final String JIRA_CONNECTIONS_TABLE = "JIRA_CONNECTIONS";
 	private static final String INSERT_JIRA_CONNECTION_SQL = "INSERT INTO " + JIRA_CONNECTIONS_TABLE
-			+ " (ID, CLIENTID, CLIENTSECRET, SCOPE, USERPROFILEURL) VALUES (?, ?, ?, ?, ?)";
+			+ " (ID, ALIAS, CLIENTID, CLIENTSECRET, SCOPE, USERPROFILEURL) VALUES (?, ?, ?, ?, ?, ?)";
 
 	private SecurityAdminExternalConnectorsUtils() {
 
@@ -177,17 +179,21 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 	/**
 	 * Inserts a new Jira connection into the security database.
 	 * <p>
-	 * This method validates required inputs, checks for a duplicate {@code CLIENTID},
+	 * This method validates required inputs, checks for a duplicate {@code CLIENTID} or {@code ALIAS},
 	 * then inserts a new row using prepared statements.
 	 * </p>
 	 *
+	 * @param alias          unique alias for the saved connection
 	 * @param clientId       Jira connected-app client id
 	 * @param clientSecret   Jira connected-app client secret
 	 * @param scope          OAuth scope for the Jira connection
 	 * @param userProfileUrl URL used to retrieve the Jira user profile
 	 * @return generated Jira connection id
 	 */
-	public String insertJiraConnection(String clientId, String clientSecret, String scope, String userProfileUrl) {
+	public String insertJiraConnection(String alias, String clientId, String clientSecret, String scope, String userProfileUrl) {
+		if (alias == null || (alias = alias.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Alias must not be empty.");
+		}
 		if (clientId == null || (clientId = clientId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Client id must not be empty.");
 		}
@@ -206,18 +212,22 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ALIAS", "alias"));
+		OrQueryFilter or = new OrQueryFilter();
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__CLIENTID", "==", clientId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ALIAS", "==", alias));
+		qs.addExplicitFilter(or);
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				throw new IllegalArgumentException(
-						"A Jira connection with the same clientId already exists.");
+						"A Jira connection with the same clientId or alias already exists.");
 			}
 		} catch (Exception e) {
 			classLogger.error(
-					"An error occurred attempting to determine if clientId already exists for Jira connection", e);
+					"An error occurred attempting to determine if clientId or alias already exists for Jira connection", e);
 			throw new IllegalArgumentException(
-					"An error occurred attempting to determine if clientId already exists for Jira connection", e);
+					"An error occurred attempting to determine if clientId or alias already exists for Jira connection", e);
 		}
 
 		Connection conn = null;
@@ -227,10 +237,11 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 			ps = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL);
 			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL)) {
 				insertStmt.setString(1, generatedId);
-				insertStmt.setString(2, clientId);
-				insertStmt.setString(3, clientSecret);
-				insertStmt.setString(4, scope);
-				insertStmt.setString(5, userProfileUrl);
+				insertStmt.setString(2, alias);
+				insertStmt.setString(3, clientId);
+				insertStmt.setString(4, clientSecret);
+				insertStmt.setString(5, scope);
+				insertStmt.setString(6, userProfileUrl);
 
 				int rowsInserted = insertStmt.executeUpdate();
 				if (rowsInserted != 1) {

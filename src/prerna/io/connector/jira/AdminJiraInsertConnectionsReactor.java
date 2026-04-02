@@ -18,14 +18,15 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminJiraInsertConnectionsReactor.class);
 
+	private static final String ALIAS = "alias";
 	private static final String CLIENT_ID = "clientId";
 	private static final String CLIENT_SECRET = "clientSecret";
 	private static final String SCOPE = "scope";
 	private static final String USER_PROFILE_URL = "userProfileUrl";
 
 	public AdminJiraInsertConnectionsReactor() {
-		this.keysToGet = new String[] { CLIENT_ID, CLIENT_SECRET, SCOPE, USER_PROFILE_URL };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+		this.keysToGet = new String[] { ALIAS, CLIENT_ID, CLIENT_SECRET, SCOPE, USER_PROFILE_URL };
+		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
 	}
 
 	@Override
@@ -37,14 +38,15 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 		}
 		this.organizeKeys();
 
-		String clientId = this.keyValue.get(this.keysToGet[0]);
-		String clientSecret = this.keyValue.get(this.keysToGet[1]);
-		String scope = this.keyValue.get(this.keysToGet[2]);
-		String userProfileUrl = this.keyValue.get(this.keysToGet[3]);
+		String alias = this.keyValue.get(this.keysToGet[0]);
+		String clientId = this.keyValue.get(this.keysToGet[1]);
+		String clientSecret = this.keyValue.get(this.keysToGet[2]);
+		String scope = this.keyValue.get(this.keysToGet[3]);
+		String userProfileUrl = this.keyValue.get(this.keysToGet[4]);
 
 		Map<Object, Object> responseMap = new HashMap<>();
 		try {
-			String connectionId = adminUtils.insertJiraConnection(clientId, clientSecret, scope, userProfileUrl);
+			String connectionId = adminUtils.insertJiraConnection(alias, clientId, clientSecret, scope, userProfileUrl);
 			responseMap.put("id", connectionId);
 			responseMap.put("success", connectionId != null && !connectionId.isEmpty());
 			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -57,12 +59,14 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates and stores a Jira connection entry (client id, client secret, scope, and user profile URL).";
+		return "Creates and stores a Jira connection entry (alias, client id, client secret, scope, and user profile URL).";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (CLIENT_ID.equals(key)) {
+		if (ALIAS.equals(key)) {
+			return "Required human-readable name for the Jira connection.";
+		} else if (CLIENT_ID.equals(key)) {
 			return "Required Jira connected-app client id.";
 		} else if (CLIENT_SECRET.equals(key)) {
 			return "Required Jira connected-app client secret.";

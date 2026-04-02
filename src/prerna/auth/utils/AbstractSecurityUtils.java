@@ -2350,9 +2350,8 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// JIRA_CONNECTIONS
-			// JIRA_CONNECTIONS
-            colNames = new String[] { "ID", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
-            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(1000)", "VARCHAR(255)" };
+            colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
+            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(1000)", "VARCHAR(255)", "VARCHAR(255)" };
 
             if (allowIfExistsTable) {
                 securityDb.insertData(queryUtil.createTableIfNotExists("JIRA_CONNECTIONS", colNames, types));

@@ -565,6 +565,7 @@ public class SecurityOwlCreator {
 		// JIRA_CONNECTIONS
         owler.addConcept("JIRA_CONNECTIONS", null, null);
         owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "ALIAS", "VARCHAR(255)");
         owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
         owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
 		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
