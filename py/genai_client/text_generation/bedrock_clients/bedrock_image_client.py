@@ -36,9 +36,9 @@ class BedrockImageClient(BedrockClient):
             prompt = self._extract_last_input_text(semoss_messages)
             if not prompt:
                 raise ValueError("No text prompt found in the input messages.")
+            param_map["text"] = prompt
 
             task_type = param_map.pop("taskType", None)
-            param_map["text"] = prompt
             body = build_nova_canvas_body(
                 task_type=task_type,
                 param_map=param_map,
