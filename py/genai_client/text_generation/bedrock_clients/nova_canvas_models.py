@@ -1,104 +1,146 @@
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 from enum import Enum
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 
 class NovaCanvasTaskType(str, Enum):
+    """
+    Task types for Nova Canvas image generation.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
     TEXT_IMAGE = "TEXT_IMAGE"
-    # Future task types:
-    # IMAGE_VARIATION = "IMAGE_VARIATION"
-    # INPAINTING = "INPAINTING"
-    # OUTPAINTING = "OUTPAINTING"
-    # COLOR_GUIDED_GENERATION = "COLOR_GUIDED_GENERATION"
-    # BACKGROUND_REMOVAL = "BACKGROUND_REMOVAL"
-
-
-class NovaCanvasStyle(str, Enum):
-    THREE_D_ANIMATED = "3D_ANIMATED_FAMILY_FILM"
-    DESIGN_SKETCH = "DESIGN_SKETCH"
-    FLAT_VECTOR = "FLAT_VECTOR_ILLUSTRATION"
-    GRAPHIC_NOVEL = "GRAPHIC_NOVEL_ILLUSTRATION"
-    MAXIMALISM = "MAXIMALISM"
-    MIDCENTURY_RETRO = "MIDCENTURY_RETRO"
-    PHOTOREALISM = "PHOTOREALISM"
-    SOFT_DIGITAL_PAINTING = "SOFT_DIGITAL_PAINTING"
-
-
-class NovaCanvasQuality(str, Enum):
-    STANDARD = "standard"
-    PREMIUM = "premium"
+    COLOR_GUIDED_GENERATION = "COLOR_GUIDED_GENERATION"
+    IMAGE_VARIATION = "IMAGE_VARIATION"
+    INPAINTING = "INPAINTING"
+    OUTPAINTING = "OUTPAINTING"
+    BACKGROUND_REMOVAL = "BACKGROUND_REMOVAL"
+    VIRTUAL_TRY_ON = "VIRTUAL_TRY_ON"
 
 
 class ImageGenerationConfig(BaseModel):
-    width: int = 1024
-    height: int = 1024
-    quality: NovaCanvasQuality = NovaCanvasQuality.STANDARD
-    cfgScale: float = 8.0
+    """
+    Common image generation parameters for Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    width: Optional[int] = None
+    height: Optional[int] = None
+    quality: Optional[str] = None
+    cfgScale: Optional[float] = None
     seed: Optional[int] = None
     numberOfImages: int = 1
 
 
 class TextToImageParams(BaseModel):
+    """
+    Parameters specific to text-to-image generation in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
     text: str
-    negativeText: Optional[str] = None
-    style: Optional[NovaCanvasStyle] = None
+    negativeText: str
+    style: str
+    conditionImage: Optional[str] = None
+    controlMode: Optional[str] = None
+    controlStrength: Optional[float] = None
 
 
-class TextToImageBody(BaseModel):
-    taskType: NovaCanvasTaskType = NovaCanvasTaskType.TEXT_IMAGE
-    textToImageParams: TextToImageParams
-    imageGenerationConfig: ImageGenerationConfig = ImageGenerationConfig()
+class ColorGuidedGenerationParams(BaseModel):
+    """
+    Parameters specific to color-guided image generation in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    colors: List[str] # list of color hex codes (e.g. ["#FF0000", "#00FF00", "#0000FF"])
+    referenceImage: str # base64-encoded reference image
+    text: str
+    negativeText: str
 
-    @staticmethod
-    def from_params(
-        text: str,
-        param_map: Dict[str, Any] = None,
-    ) -> "TextToImageBody":
-        if param_map is None:
-            param_map = {}
 
-        text_params = TextToImageParams(
-            text=text,
-            negativeText=param_map.get("negativeText") or param_map.get("negative_text"),
-            style=param_map.get("style"),
-        )
+class ImageVariationParams(BaseModel):
+    """
+    Parameters specific to image variation generation in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    images: List[str] # list of base64-encoded images to be varied
+    similarityStrength: float
+    text: str
+    negativeText: str
 
-        config_kwargs = {}
-        if "width" in param_map:
-            config_kwargs["width"] = int(param_map["width"])
-        if "height" in param_map:
-            config_kwargs["height"] = int(param_map["height"])
-        if "quality" in param_map:
-            config_kwargs["quality"] = param_map["quality"]
-        if "cfgScale" in param_map or "cfg_scale" in param_map:
-            config_kwargs["cfgScale"] = float(param_map.get("cfgScale") or param_map.get("cfg_scale"))
-        if "seed" in param_map:
-            config_kwargs["seed"] = int(param_map["seed"])
-        if "numberOfImages" in param_map or "number_of_images" in param_map:
-            config_kwargs["numberOfImages"] = int(
-                param_map.get("numberOfImages") or param_map.get("number_of_images")
-            )
+class InpaintingParams(BaseModel):
+    """
+    Parameters specific to inpainting in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    image: str # base64-encoded image to be inpainted
+    maskPrompt: str
+    maskImage: str # base64-encoded mask image where white pixels indicate areas to be inpainted
+    text: str
+    negativeText: str
 
-        return TextToImageBody(
-            textToImageParams=text_params,
-            imageGenerationConfig=ImageGenerationConfig(**config_kwargs),
-        )
 
-    def to_json(self) -> str:
-        return self.model_dump_json(exclude_none=True)
+class OutpaintingParams(BaseModel):
+    """
+    Parameters specific to outpainting in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    image: str # base64-encoded image to be outpainted
+    maskPrompt: str
+    maskImage: str # base64-encoded mask image where white pixels indicate areas to be inpainted
+    outPaintingMode: str
+    text: str
+    negativeText: str
 
-    def to_dict(self) -> Dict[str, Any]:
-        return self.model_dump(exclude_none=True)
+class VirtualTryOnParams(BaseModel):
+    """
+    Parameters specific to virtual try-on in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    sourceImage: str # base64-encoded image
+    referenceImage: str # base64-encoded image
+    maskType: str
+    imageBasedMask: Dict[str, Any] # dictionary containing image-based mask parameters
+    garmentBasedMask: Dict[str, Any] # dictionary containing garment-based mask parameters
+    promptBasedMask: Dict[str, Any] # dictionary containing prompt-based mask parameters
+    maskExclusions: Dict[str, Any] # dictionary containing mask exclusion parameters
+    mergeStyle: str
+    returnMask: bool
+
+
+class BackgroundRemovalParams(BaseModel):
+    """
+    Parameters specific to background removal in Nova Canvas.
+    See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
+    """
+    image: str # base64-encoded image for background removal
+
+
+_TASK_PARAMS: Dict[NovaCanvasTaskType, tuple] = {
+    NovaCanvasTaskType.TEXT_IMAGE: ("textToImageParams", TextToImageParams),
+    NovaCanvasTaskType.COLOR_GUIDED_GENERATION: ("colorGuidedGenerationParams", ColorGuidedGenerationParams),
+    NovaCanvasTaskType.IMAGE_VARIATION: ("imageVariationParams", ImageVariationParams),
+    NovaCanvasTaskType.INPAINTING: ("inPaintingParams", InpaintingParams),
+    NovaCanvasTaskType.OUTPAINTING: ("outPaintingParams", OutpaintingParams),
+    NovaCanvasTaskType.BACKGROUND_REMOVAL: ("backgroundRemovalParams", BackgroundRemovalParams),
+    NovaCanvasTaskType.VIRTUAL_TRY_ON: ("virtualTryOnParams", VirtualTryOnParams),
+}
 
 
 def build_nova_canvas_body(
     task_type: str,
-    text: str,
     param_map: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
     task = NovaCanvasTaskType(task_type)
+    param_map = param_map or {}
 
-    if task == NovaCanvasTaskType.TEXT_IMAGE:
-        return TextToImageBody.from_params(text=text, param_map=param_map).to_dict()
+    if task not in _TASK_PARAMS:
+        raise ValueError(f"Unsupported Nova Canvas task type: {task_type}")
 
-    raise ValueError(f"Unsupported Nova Canvas task type: {task_type}")
+    param_key, param_cls = _TASK_PARAMS[task]
+
+    body: Dict[str, Any] = {
+        "taskType": task.value,
+        param_key: param_cls.model_validate({**param_map}).model_dump(exclude_none=True),
+    }
+
+    if task != NovaCanvasTaskType.BACKGROUND_REMOVAL:
+        body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(param_map).model_dump(exclude_none=True)
+
+    return body

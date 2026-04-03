@@ -1,4 +1,3 @@
-import base64
 import json
 from datetime import datetime
 from typing import Dict, List
@@ -38,10 +37,10 @@ class BedrockImageClient(BedrockClient):
             if not prompt:
                 raise ValueError("No text prompt found in the input messages.")
 
-            task_type = param_map.pop("taskType", None) or param_map.pop("task_type", NovaCanvasTaskType.TEXT_IMAGE.value)
+            task_type = param_map.pop("taskType", None)
+            param_map["text"] = prompt
             body = build_nova_canvas_body(
                 task_type=task_type,
-                text=prompt,
                 param_map=param_map,
             )
 
@@ -62,8 +61,7 @@ class BedrockImageClient(BedrockClient):
 
             parts = []
             for raw_b64 in raw_images:
-                image_bytes = base64.b64decode(raw_b64.encode("ascii"))
-                media_info = self._create_media_info(mime_type=mime_type, image_bytes=image_bytes)
+                media_info = self._create_media_info(mime_type=mime_type, base64_data=raw_b64)
                 parts.append({"type": "MEDIA", "media_info": media_info})
 
             return AskModelEngineResponse2(
@@ -98,13 +96,12 @@ class BedrockImageClient(BedrockClient):
                 return content
         return None
     
-    def _create_media_info(self, mime_type: str, image_bytes: bytes) -> Dict:
+    def _create_media_info(self, mime_type: str, base64_data: str) -> Dict:
         """
         Create a MessageInputMedia-shaped dict for Java to persist into the room folder.
         """
         file_format = mime_type.split("/")[-1]
 
-        base64_data = base64.b64encode(image_bytes).decode("utf-8")
         file_name = f"genImage_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.{file_format}"
 
         return {
