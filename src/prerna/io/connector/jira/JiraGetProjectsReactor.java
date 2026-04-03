@@ -45,6 +45,6 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the Jira projects visible to the current authenticated user. Use this before JiraCreateTicketReactor, JiraGetTicketsReactor, JiraIssueTypeReactor, or JiraGetAssignableUsersReactor whenever the project key is unknown. Returns a list of maps containing id, key, name, projectTypeKey, and lead. Preconditions: the current SEMOSS user must already have Jira credentials.";
+		return "Lists Jira projects visible to the current user. Use when the project key is unknown before project-scoped Jira calls. Returns id, key, name, projectTypeKey, and lead. Requires Jira auth.";
 	}
 }

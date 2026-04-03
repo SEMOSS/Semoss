@@ -49,15 +49,15 @@ public class JiraAddCommentReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds a new comment to an existing Jira issue. Use this when the task is to append discussion or notes to a ticket; do not use JiraUpdateTicketReactor for comments because that reactor only updates issue fields. Returns a map with id, author, created, and success for the new comment. Preconditions: the current SEMOSS user must already have Jira credentials, and jiraid must identify an existing Jira issue.";
+		return "Adds a comment to an existing Jira issue. Use for discussion updates only; use JiraUpdateTicketReactor for field changes. Returns id, author, created, and success. Requires Jira auth and a valid issue key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor if the issue is not already known. Do not pass a project key or Jira numeric id. If this value is wrong or missing, Jira cannot find the issue and the comment is not added.";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Not a project key or numeric id. Fails if missing or invalid.";
 		} else if (key.equals(COMMENT)) {
-			return "Required. Plain-text comment content to add to the issue. Provide the full message string, including line breaks if needed. This reactor converts the text to Atlassian document format internally. If the value is empty or missing, Jira rejects the request.";
+			return "Required. Plain-text comment body. Line breaks are allowed. Empty or missing text is rejected by Jira.";
 		}
 		return super.getDescriptionForKey(key);
 	}

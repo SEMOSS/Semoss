@@ -72,29 +72,29 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates a new Jira issue in a Jira project. Use this when the agent needs a new ticket; do not use JiraUpdateTicketReactor because that reactor only changes an existing issue. Returns a map containing id, key, self, summary, success, and sometimes status if a post-create transition was applied. Preconditions: the current SEMOSS user must already have Jira credentials. In most flows, call JiraGetProjectsReactor first to get the project key, JiraIssueTypeReactor to get a valid issue type, JiraGetAssignableUsersReactor to get an assignee accountId, and JiraGetPriorityReactor to get allowed priority names.";
+		return "Creates a new Jira issue. Use for new tickets; use JiraUpdateTicketReactor for existing ones. Returns id, key, self, summary, success, and status if a transition was applied. Requires Jira auth; usually get project, issue type, assignee, and priority from the lookup reactors first.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Required. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. Do not pass the project name. If the key is wrong or missing, the issue cannot be created.";
+			return "Required. Jira project key in uppercase, for example RTJ. Get it from JiraGetProjectsReactor. Do not pass the project name. Fails if missing or invalid.";
 		} else if (key.equals(SUMMARY)) {
-			return "Required. Short Jira issue summary or title as plain text. This becomes the ticket headline shown in Jira. If this value is missing or blank, Jira rejects the create request.";
+			return "Required. Jira issue summary or title as plain text. Jira rejects a missing or blank value.";
 		} else if (key.equals(DESCRIPTION)) {
-			return "Optional. Detailed issue description as plain text. If omitted, blank, or the literal string 'null', no description is sent. This reactor converts the text to Atlassian document format internally. If Jira rejects the content, the create request fails.";
+			return "Optional. Jira issue description as plain text. Omit, blank, or 'null' to leave it unset. Fails if Jira rejects the content.";
 		} else if (key.equals(ISSUETYPE)) {
-			return "Required. Exact Jira issue type name, for example Bug, Task, Story, Epic, or Subtask. Get the valid value from JiraIssueTypeReactor, ideally scoped to the same project. If the issue type is missing, misspelled, or not allowed for the project, Jira rejects the create request.";
+			return "Required. Exact Jira issue type name, for example Bug, Task, Story, Epic, or Subtask. Get it from JiraIssueTypeReactor. Fails if missing, invalid, or not allowed for the project.";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Jira assignee accountId string, not display name and not email address. Get this from JiraGetAssignableUsersReactor for the same project. If omitted, Jira uses its default assignee behavior. If the accountId is wrong or the user is not assignable, the create request fails.";
+			return "Optional. Jira assignee accountId, not display name or email. Get it from JiraGetAssignableUsersReactor. If wrong or not assignable, the create request fails.";
 		} else if (key.equals(PRIORITY)) {
-			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get this from JiraGetPriorityReactor if unknown. If omitted, Jira uses the default priority. If the name does not exist in Jira, the create request fails.";
+			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get it from JiraGetPriorityReactor. Fails if the value is not valid in Jira.";
 		} else if (key.equals(DUEDATE)) {
-			return "Optional. Due date in ISO date format YYYY-MM-DD, for example 2026-04-30. If omitted, blank, or 'null', no due date is sent. If the format is wrong, Jira validation fails.";
+			return "Optional. Due date in YYYY-MM-DD format, for example 2026-04-30. Omit, blank, or 'null' to leave it unset. Fails if the format is invalid.";
 		} else if (key.equals(PARENT)) {
-			return "Optional. Parent issue key in KEY-NUMBER format, for example RTJ-45. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. This is typically required when creating a Subtask. If the parent issue key is wrong or incompatible with the issue type, Jira rejects the create request.";
+			return "Optional. Parent issue key in KEY-NUMBER format, for example RTJ-45. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Usually required for Subtask. Fails if invalid or incompatible.";
 		} else if (key.equals(STATUS)) {
-			return "Optional. Exact Jira transition or target status name to apply after the issue is created. Use this only when the new issue must move immediately after creation. If omitted, the issue stays in Jira's default initial status. If the supplied transition is not valid for the new issue's workflow, the transition step fails.";
+			return "Optional. Jira transition or target status name to apply after create. If omitted, Jira keeps the default initial status. Fails if the transition is not valid for the new issue.";
 		}
 		return super.getDescriptionForKey(key);
 	}

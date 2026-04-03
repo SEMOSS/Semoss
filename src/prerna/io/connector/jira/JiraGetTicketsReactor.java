@@ -76,23 +76,23 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists issues in a single Jira project with simple built-in filters. Use this when the agent already knows the project key and only needs project-scoped browsing; use JiraSearchReactor instead for arbitrary JQL, cross-project search, or advanced conditions. Returns a paginated map containing issues, isLast, maxResults, and optionally nextPageToken. Each issue entry includes key, summary, status, assignee, priority, issuetype, duedate, and labels. Preconditions: the current SEMOSS user must already have Jira credentials and project must be a valid Jira project key.";
+		return "Lists issues in one Jira project with simple filters and pagination. Use when you know the project key; use JiraSearchReactor for JQL or cross-project search. Returns issues, isLast, maxResults, and nextPageToken when more pages exist. Requires Jira auth.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Required. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. This reactor only searches inside this single project. If the key is wrong or missing, the request fails or returns no issues.";
+			return "Required. Jira project key in uppercase, for example RTJ. Get it from JiraGetProjectsReactor. This reactor only searches this project. Fails if missing or invalid.";
 		} else if (key.equals(STATUS)) {
-			return "Optional. Exact Jira status name used to filter the project issue list, for example 'To Do', 'In Progress', or 'Done'. Use Jira status values from Jira itself. If omitted, no status filter is applied. If the value does not match Jira's status names, the result can be empty.";
+			return "Optional. Exact Jira status name, for example 'To Do', 'In Progress', or 'Done'. Omit for no status filter. Returns no matches if the value does not exist in Jira.";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Jira assignee accountId string used to filter results. Get this from JiraGetAssignableUsersReactor or from assigneeAccountId returned by JiraReadTicketReactor. Do not pass a display name. If omitted, no assignee filter is applied. If the accountId is wrong, the result can be empty.";
+			return "Optional. Jira assignee accountId. Get it from JiraGetAssignableUsersReactor or JiraReadTicketReactor. Do not pass a display name. Omit for no assignee filter.";
 		} else if (key.equals(PRIORITY)) {
-			return "Optional. Exact Jira priority name used to filter results, for example Highest, High, Medium, or Low. Get valid values from JiraGetPriorityReactor. If omitted, no priority filter is applied. If the name is wrong, the result can be empty.";
+			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get it from JiraGetPriorityReactor. Omit for no priority filter.";
 		} else if (key.equals(NEXT_PAGE_TOKEN)) {
-			return "Optional. Opaque pagination token returned by a previous JiraGetTicketsReactor response. Pass it back unchanged to fetch the next page. Do not invent, parse, or modify it. If omitted, the first page is returned. If the token is stale or invalid, Jira can reject the request.";
+			return "Optional. Opaque pagination token from a previous JiraGetTicketsReactor response. Pass it back unchanged for the next page. Omit for the first page. Invalid tokens can fail.";
 		} else if (key.equals(MAX_RESULTS)) {
-			return "Optional. Maximum number of issues to return per page, provided as an integer string such as '25' or '100'. Default is 50 when omitted. If this value is non-numeric, the reactor fails before calling Jira.";
+			return "Optional. Max issues per page as an integer string, for example '25' or '100'. Default is 50. Non-numeric values fail before the Jira call.";
 		}
 		return super.getDescriptionForKey(key);
 	}

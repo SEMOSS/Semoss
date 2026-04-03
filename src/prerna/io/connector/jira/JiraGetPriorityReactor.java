@@ -45,6 +45,6 @@ public class JiraGetPriorityReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the Jira priority values available in the connected Jira instance. Use this before JiraCreateTicketReactor or JiraUpdateTicketReactor when you need a valid priority name; do not invent priority names. Returns a list of maps with id and name. Preconditions: the current SEMOSS user must already have Jira credentials.";
+		return "Lists Jira priorities available in the connected instance. Use before JiraCreateTicketReactor or JiraUpdateTicketReactor when you need a valid priority name. Returns id and name. Requires Jira auth.";
 	}
 }

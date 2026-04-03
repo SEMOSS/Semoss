@@ -67,17 +67,17 @@ public class JiraSearchReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs an arbitrary Jira JQL search. Use this instead of JiraGetTicketsReactor when the query spans multiple projects, needs date logic, text search, OR or AND conditions, or any filter beyond simple project, status, assignee, and priority matching. Returns a paginated map containing issues, isLast, maxResults, and optionally nextPageToken. Each issue entry includes key, summary, status, assignee, priority, issuetype, duedate, and labels. Preconditions: the current SEMOSS user must already have Jira credentials and jql must be a valid Jira Query Language string.";
+		return "Runs a Jira JQL search with pagination. Use for cross-project or advanced filtering; use JiraGetTicketsReactor for simple project lists. Returns issues, isLast, maxResults, and nextPageToken when more pages exist. Requires Jira auth and valid JQL.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JQL)) {
-			return "Required. Full Jira Query Language string, for example 'project = RTJ AND assignee = currentUser() AND status = \"In Progress\"'. Use Jira field names and Jira JQL syntax exactly. If you only need a simple project-scoped list, prefer JiraGetTicketsReactor instead. If this string is malformed or missing, Jira rejects the search.";
+			return "Required. Full Jira Query Language string, for example 'project = RTJ AND status = \"In Progress\"'. Use JiraSearchReactor only when simple project filters are not enough. Jira rejects missing or invalid JQL.";
 		} else if (key.equals(NEXT_PAGE_TOKEN)) {
-			return "Optional. Opaque pagination token returned by a previous JiraSearchReactor response. Pass it back unchanged to fetch the next page. Do not invent, parse, or modify it. If omitted, the first page is returned. If the token is stale or invalid, Jira can reject the request.";
+			return "Optional. Opaque pagination token from a previous JiraSearchReactor response. Pass it back unchanged for the next page. Omit for the first page. Invalid tokens can fail.";
 		} else if (key.equals(MAX_RESULTS)) {
-			return "Optional. Maximum number of issues to return per page, provided as an integer string such as '25' or '100'. Default is 50 when omitted. If this value is non-numeric, the reactor fails before calling Jira.";
+			return "Optional. Max issues per page as an integer string, for example '25' or '100'. Default is 50. Non-numeric values fail before the Jira call.";
 		}
 		return super.getDescriptionForKey(key);
 	}

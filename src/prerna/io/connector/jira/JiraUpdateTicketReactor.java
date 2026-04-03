@@ -68,25 +68,25 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates fields on an existing Jira issue. Use this when the issue already exists and one or more fields must change; use JiraAddCommentReactor to add comments and JiraCreateTicketReactor to create new issues. Only nonblank optional fields are sent, so omitted values remain unchanged. Returns a map containing key, success, and sometimes status if a workflow transition was applied. Preconditions: the current SEMOSS user must already have Jira credentials, jiraid must identify an existing issue, and at least one optional field should be supplied. For status changes, call JiraGetStatusReactor first to get a valid transition for that specific issue.";
+		return "Updates fields on an existing Jira issue. Use for summary, description, assignee, priority, due date, or status changes; use JiraAddCommentReactor for comments. Only supplied fields are changed. Returns key, success, and status if a transition was applied. Requires Jira auth and a valid issue key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Do not pass a project key or numeric id. If this value is wrong or missing, the update fails.";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Not a project key or numeric id. Fails if missing or invalid.";
 		} else if (key.equals(SUMMARY)) {
-			return "Optional. New Jira issue summary or title as plain text. If omitted, blank, or the literal string 'null', the summary is left unchanged. If the new value violates Jira validation rules, the update fails.";
+			return "Optional. New Jira issue summary as plain text. Omit, blank, or 'null' to leave it unchanged. Fails if Jira rejects the value.";
 		} else if (key.equals(DESCRIPTION)) {
-			return "Optional. New Jira issue description as plain text. This reactor converts the text to Atlassian document format internally. If omitted, blank, or 'null', the description is left unchanged. If Jira rejects the new description, the update fails.";
+			return "Optional. New Jira issue description as plain text. Omit, blank, or 'null' to leave it unchanged. Fails if Jira rejects the value.";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Jira assignee accountId string, not display name and not email address. Get this from JiraGetAssignableUsersReactor for the same project or from assigneeAccountId returned by JiraReadTicketReactor. If omitted, blank, or 'null', assignee is left unchanged. If the accountId is wrong or not assignable, the update fails.";
+			return "Optional. Jira assignee accountId, not display name or email. Get it from JiraGetAssignableUsersReactor or JiraReadTicketReactor. Omit, blank, or 'null' to leave it unchanged. Fails if invalid.";
 		} else if (key.equals(PRIORITY)) {
-			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get valid values from JiraGetPriorityReactor. If omitted, blank, or 'null', priority is left unchanged. If the name is not valid in Jira, the update fails.";
+			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get it from JiraGetPriorityReactor. Omit, blank, or 'null' to leave it unchanged. Fails if invalid.";
 		} else if (key.equals(DUEDATE)) {
-			return "Optional. New due date in ISO date format YYYY-MM-DD, for example 2026-04-30. If omitted, blank, or 'null', due date is left unchanged. If the format is wrong, Jira validation fails.";
+			return "Optional. New due date in YYYY-MM-DD format, for example 2026-04-30. Omit, blank, or 'null' to leave it unchanged. Fails if the format is invalid.";
 		} else if (key.equals(STATUS)) {
-			return "Optional. Exact Jira transition or target status name for this specific issue. Call JiraGetStatusReactor first and use one of the returned transition names or target statuses for the same jiraid. If omitted, blank, or 'null', the issue status is left unchanged. If the supplied value is not valid for the issue's current workflow state, the transition fails.";
+			return "Optional. Jira transition or target status name for this specific issue. Get a valid value from JiraGetStatusReactor for the same jiraid. Omit, blank, or 'null' to leave status unchanged. Fails if the transition is invalid.";
 		}
 		return super.getDescriptionForKey(key);
 	}
