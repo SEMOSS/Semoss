@@ -6,7 +6,7 @@ import uuid
 from pydantic_core import ErrorDetails
 
 from .bedrock_client import BedrockClient
-from .nova_canvas_models import build_nova_canvas_body, NovaCanvasTaskType
+from .bedrock_image_gen_models import build_request_body
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...message_builders.semoss_base.semoss_models import SEMOSSMessagePartType
 from ..model_engine_exception import ModelEngineException
@@ -39,7 +39,7 @@ class BedrockImageClient(BedrockClient):
             param_map["text"] = prompt
 
             task_type = param_map.pop("taskType", None)
-            body = build_nova_canvas_body(
+            body = build_request_body(
                 task_type=task_type,
                 param_map=param_map,
             )

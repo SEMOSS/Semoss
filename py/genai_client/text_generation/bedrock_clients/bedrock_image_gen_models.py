@@ -1,11 +1,11 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 from pydantic import BaseModel
 
 
-class NovaCanvasTaskType(str, Enum):
+class BedrockImageGenTaskType(str, Enum):
     """
-    Task types for Nova Canvas image generation.
+    Task types for Bedrock models image generation.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     TEXT_IMAGE = "TEXT_IMAGE"
@@ -19,7 +19,7 @@ class NovaCanvasTaskType(str, Enum):
 
 class ImageGenerationConfig(BaseModel):
     """
-    Common image generation parameters for Nova Canvas.
+    Common image generation parameters for Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     width: Optional[int] = None
@@ -32,12 +32,12 @@ class ImageGenerationConfig(BaseModel):
 
 class TextToImageParams(BaseModel):
     """
-    Parameters specific to text-to-image generation in Nova Canvas.
+    Parameters specific to text-to-image generation in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     text: str
     negativeText: str
-    style: str
+    style: Optional[str]
     conditionImage: Optional[str] = None
     controlMode: Optional[str] = None
     controlStrength: Optional[float] = None
@@ -45,7 +45,7 @@ class TextToImageParams(BaseModel):
 
 class ColorGuidedGenerationParams(BaseModel):
     """
-    Parameters specific to color-guided image generation in Nova Canvas.
+    Parameters specific to color-guided image generation in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     colors: List[str] # list of color hex codes (e.g. ["#FF0000", "#00FF00", "#0000FF"])
@@ -56,7 +56,7 @@ class ColorGuidedGenerationParams(BaseModel):
 
 class ImageVariationParams(BaseModel):
     """
-    Parameters specific to image variation generation in Nova Canvas.
+    Parameters specific to image variation generation in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     images: List[str] # list of base64-encoded images to be varied
@@ -66,7 +66,7 @@ class ImageVariationParams(BaseModel):
 
 class InpaintingParams(BaseModel):
     """
-    Parameters specific to inpainting in Nova Canvas.
+    Parameters specific to inpainting in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     image: str # base64-encoded image to be inpainted
@@ -74,11 +74,12 @@ class InpaintingParams(BaseModel):
     maskImage: str # base64-encoded mask image where white pixels indicate areas to be inpainted
     text: str
     negativeText: str
+    returnMask: Optional[bool] = None
 
 
 class OutpaintingParams(BaseModel):
     """
-    Parameters specific to outpainting in Nova Canvas.
+    Parameters specific to outpainting in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     image: str # base64-encoded image to be outpainted
@@ -87,10 +88,11 @@ class OutpaintingParams(BaseModel):
     outPaintingMode: str
     text: str
     negativeText: str
+    returnMask: Optional[bool] = None
 
 class VirtualTryOnParams(BaseModel):
     """
-    Parameters specific to virtual try-on in Nova Canvas.
+    Parameters specific to virtual try-on in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     sourceImage: str # base64-encoded image
@@ -106,32 +108,32 @@ class VirtualTryOnParams(BaseModel):
 
 class BackgroundRemovalParams(BaseModel):
     """
-    Parameters specific to background removal in Nova Canvas.
+    Parameters specific to background removal in Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     image: str # base64-encoded image for background removal
 
 
-_TASK_PARAMS: Dict[NovaCanvasTaskType, tuple] = {
-    NovaCanvasTaskType.TEXT_IMAGE: ("textToImageParams", TextToImageParams),
-    NovaCanvasTaskType.COLOR_GUIDED_GENERATION: ("colorGuidedGenerationParams", ColorGuidedGenerationParams),
-    NovaCanvasTaskType.IMAGE_VARIATION: ("imageVariationParams", ImageVariationParams),
-    NovaCanvasTaskType.INPAINTING: ("inPaintingParams", InpaintingParams),
-    NovaCanvasTaskType.OUTPAINTING: ("outPaintingParams", OutpaintingParams),
-    NovaCanvasTaskType.BACKGROUND_REMOVAL: ("backgroundRemovalParams", BackgroundRemovalParams),
-    NovaCanvasTaskType.VIRTUAL_TRY_ON: ("virtualTryOnParams", VirtualTryOnParams),
+_TASK_PARAMS: Dict[BedrockImageGenTaskType, Tuple[str, BaseModel]] = {
+    BedrockImageGenTaskType.TEXT_IMAGE: ("textToImageParams", TextToImageParams),
+    BedrockImageGenTaskType.COLOR_GUIDED_GENERATION: ("colorGuidedGenerationParams", ColorGuidedGenerationParams),
+    BedrockImageGenTaskType.IMAGE_VARIATION: ("imageVariationParams", ImageVariationParams),
+    BedrockImageGenTaskType.INPAINTING: ("inPaintingParams", InpaintingParams),
+    BedrockImageGenTaskType.OUTPAINTING: ("outPaintingParams", OutpaintingParams),
+    BedrockImageGenTaskType.BACKGROUND_REMOVAL: ("backgroundRemovalParams", BackgroundRemovalParams),
+    BedrockImageGenTaskType.VIRTUAL_TRY_ON: ("virtualTryOnParams", VirtualTryOnParams),
 }
 
 
-def build_nova_canvas_body(
+def build_request_body(
     task_type: str,
     param_map: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    task = NovaCanvasTaskType(task_type)
+    task = BedrockImageGenTaskType(task_type)
     param_map = param_map or {}
 
     if task not in _TASK_PARAMS:
-        raise ValueError(f"Unsupported Nova Canvas task type: {task_type}")
+        raise ValueError(f"Unsupported task type: {task_type}")
 
     param_key, param_cls = _TASK_PARAMS[task]
 
@@ -140,7 +142,7 @@ def build_nova_canvas_body(
         param_key: param_cls.model_validate({**param_map}).model_dump(exclude_none=True),
     }
 
-    if task != NovaCanvasTaskType.BACKGROUND_REMOVAL:
+    if task != BedrockImageGenTaskType.BACKGROUND_REMOVAL:
         body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(param_map).model_dump(exclude_none=True)
 
     return body
