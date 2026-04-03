@@ -136,7 +136,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
 					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
