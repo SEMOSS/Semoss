@@ -66,6 +66,10 @@ import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
 
+/**
+ * Helper methods for message serialization/deserialization, legacy
+ * compatibility shims, prompt conversion, and room-file media handling.
+ */
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
@@ -136,6 +140,10 @@ public class MessageUtils {
 	 * API compatibility: add legacy flat fields into a map built from a message
 	 * JSON. This keeps FE consumers working while storage stays on parts-based
 	 * schema.
+	 *
+	 * @param msg    input message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy input fields
 	 */
 	@Deprecated
 	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
@@ -185,41 +193,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * API compatibility: add legacy flat fields into a map built from a response
-	 * JSON.
-	 */
-	@Deprecated
-	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
-		if (target == null) {
-			target = new LinkedHashMap<>();
-		}
-		if (msg == null) {
-			return target;
-		}
-		if (msg.getMessageType() != null) {
-			target.put("type", msg.getMessageType().name());
-		}
-		String content = msg.getContent();
-		if (content != null) {
-			target.put("content", content);
-		}
-		String thinking = msg.getThinking();
-		if (thinking != null) {
-			target.put("thinking", thinking);
-		}
-		List<Map<String, Object>> toolResponses = msg.getToolResponses();
-		if (toolResponses == null) {
-			toolResponses = new ArrayList<>();
-		}
-		target.put("tool_responses", toolResponses);
-		return target;
-	}
-
-	/**
 	 * Converts a JSON object string to a Map<String, Object>
-	 * 
+	 *
 	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
+	 * @return The parsed map representation
+	 * @throws IllegalArgumentException if the input is null/blank or not a JSON
+	 *                                  object
 	 */
 	public static Map<String, Object> jsonToMapForPixelReturn(String json) {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
@@ -229,7 +208,15 @@ public class MessageUtils {
 		}.getType());
 	}
 
-	// Deserialize a single message from JSON
+	/**
+	 * Deserializes a single message JSON payload into either {@link InputMessage}
+	 * or {@link ResponseMessage}, using schema discriminators and legacy fallbacks.
+	 *
+	 * @param json message JSON string
+	 * @param room room context used during post-load normalization
+	 * @return deserialized message, or {@code null} when deserialization yields no
+	 *         message
+	 */
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
 
@@ -292,7 +279,12 @@ public class MessageUtils {
 		return message;
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for DB persistence using the DB-safe Gson profile.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJson(AbstractMessage msg) {
 		if (msg != null) {
 			msg.normalizeForWrite();
@@ -300,7 +292,13 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msg);
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for Python/model execution payloads, including image
+	 * base64 when available.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJsonWithImage(AbstractMessage msg) {
 		if (msg != null) {
 			msg.normalizeForWrite();
@@ -308,7 +306,13 @@ public class MessageUtils {
 		return GSON_FOR_PY.toJson(msg);
 	}
 
-	// Deserialize from JSON array string to List<AbstractMessage>
+	/**
+	 * Deserializes a JSON array of messages.
+	 *
+	 * @param jsonArrayString message-array JSON
+	 * @param room            room context used during post-load normalization
+	 * @return ordered list of deserialized messages
+	 */
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
 		if (jsonArrayString == null || jsonArrayString.trim().isEmpty()) {
 			return new ArrayList<>();
@@ -330,6 +334,9 @@ public class MessageUtils {
 	 * <p>
 	 * This is used for model-generated media (e.g., Gemini inline images) that
 	 * arrive as base64.
+	 *
+	 * @param message message to inspect for file-based media parts
+	 * @param room    room context used to resolve destination folder
 	 */
 	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
 		if (message == null || room == null || room.getRoomFolderPath() == null) {
@@ -397,7 +404,13 @@ public class MessageUtils {
 
 	// --- Core two serialization methods ---
 
-	// For DB: JSON array string of messages, with NO base64
+	/**
+	 * Serializes a list of messages for DB persistence (without inline base64 media
+	 * payloads).
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArray(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
@@ -410,15 +423,36 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
+	/**
+	 * Builds the current branch history (root to latest message) and serializes it
+	 * for model execution payloads.
+	 *
+	 * @param messages full room message list
+	 * @return branch JSON including image data
+	 */
 	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
 	}
 
+	/**
+	 * Builds the branch history ending in {@code newMessage} and serializes it for
+	 * model execution payloads.
+	 *
+	 * @param messages   full room message list
+	 * @param newMessage new leaf message to append as branch tail
+	 * @return branch JSON including image data
+	 */
 	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
 
-	// For Python: JSON array string WITH base64 image data in ImageInfo
+	/**
+	 * Serializes messages for Python/model execution and ensures image parts
+	 * contain base64 payloads.
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
@@ -444,10 +478,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * 
-	 * @param messages
-	 * @param newMessage
-	 * @return
+	 * Returns a root-to-leaf message branch ending at {@code newMessage} (or the
+	 * current tail message when {@code newMessage} is null).
+	 *
+	 * @param messages   complete message list
+	 * @param newMessage optional branch leaf override
+	 * @return ordered branch messages from root to leaf
 	 */
 	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
 			AbstractMessage newMessage) {
@@ -484,10 +520,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * 
-	 * @param messages
-	 * @param parentMessageId
-	 * @return
+	 * Returns a root-to-node branch by walking parent links from
+	 * {@code parentMessageId}.
+	 *
+	 * @param messages        complete message list
+	 * @param parentMessageId leaf message id from which to walk parent links
+	 * @return ordered branch messages from root to requested parent
 	 */
 	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
 			String parentMessageId) {
@@ -518,6 +556,17 @@ public class MessageUtils {
 		return history;
 	}
 
+	/**
+	 * Converts a mixed-format full prompt payload (Chat Completions/Responses API
+	 * style) into normalized room messages.
+	 *
+	 * @param fullPrompt  full prompt payload as JSON string or list
+	 * @param room        room context used for message construction
+	 * @param modelEngine model engine used for message model typing
+	 * @return normalized message list
+	 * @throws IllegalArgumentException when {@code fullPrompt} is neither a JSON
+	 *                                  string nor a list payload
+	 */
 	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt, Room room, IModelEngine modelEngine) {
 		List<AbstractMessage> result = new ArrayList<>();
 		List<?> promptList;
@@ -724,6 +773,13 @@ public class MessageUtils {
 		return result;
 	}
 
+	/**
+	 * Converts OpenAI-style tool definitions to MCP-compatible tool definitions.
+	 * Built-in non-function tools are passed through unchanged.
+	 *
+	 * @param inputTools tool definitions from incoming API payload
+	 * @return MCP-compatible tool definitions
+	 */
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
 		List<Map<String, Object>> newTools = new ArrayList<>();
 		for (Map<String, Object> tool : inputTools) {
@@ -784,6 +840,12 @@ public class MessageUtils {
 		return newTools;
 	}
 
+	/**
+	 * Normalizes tool-choice input (string/object) into MCP tool-choice shape.
+	 *
+	 * @param toolChoiceInput tool-choice value from caller payload
+	 * @return normalized MCP tool-choice map
+	 */
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
 		// Handle String
 		if (toolChoiceInput instanceof String) {
@@ -840,11 +902,24 @@ public class MessageUtils {
 		return makeToolChoice(ToolChoiceType.AUTO, null);
 	}
 
-	// Utility: to get string or return null if not a string
+	/**
+	 * Returns the object as a string when the value is a {@link String}; otherwise
+	 * returns {@code null}.
+	 *
+	 * @param o value to inspect
+	 * @return string value or {@code null}
+	 */
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
 	}
 
+	/**
+	 * Extracts text content from mixed content payloads (plain string or list of
+	 * typed content maps).
+	 *
+	 * @param o content payload
+	 * @return concatenated text content or {@code null}
+	 */
 	private static String parseContentMap(Object o) {
 		if (o instanceof List<?>) {
 			// OpenAI-style: content is a list of dicts with type text, ignore images
@@ -868,17 +943,36 @@ public class MessageUtils {
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
-	// These can alias to above or be retained for backwards compatibility
+	/**
+	 * Backward-compatible alias for {@link #toJsonArray(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return DB-safe message JSON
+	 */
 	public static String getMessagesForDatabase(List<AbstractMessage> msgs) {
 		return toJsonArray(msgs);
 	}
 
+	/**
+	 * Backward-compatible alias for {@link #toJsonArrayWithImageData(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return execution payload message JSON
+	 */
 	public static String getMessagesForPy(List<AbstractMessage> msgs) {
 		return toJsonArrayWithImageData(msgs);
 	}
 
 	// ---- Image move utilities ---- This should be used over copy
 
+	/**
+	 * Moves files from an insight folder into the room folder.
+	 *
+	 * @param relativePathToFiles paths relative to the insight folder
+	 * @param room                destination room context
+	 * @param insight             source insight context
+	 * @return absolute destination paths for files that were moved
+	 */
 	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
 		List<String> roomFilePaths = new ArrayList<>();
 		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
@@ -913,7 +1007,14 @@ public class MessageUtils {
 		return roomFilePaths;
 	}
 
-	// ---- Image copy utilities ----
+	/**
+	 * Copies files (or supported base64 data URIs) into the room folder.
+	 *
+	 * @param relativePathToFiles source relative file paths or data URI strings
+	 * @param room                destination room context
+	 * @param insight             source insight context
+	 * @return destination file names for successfully copied/decoded assets
+	 */
 	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
 		List<String> copiedFileNames = new ArrayList<>();
 		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
@@ -954,6 +1055,12 @@ public class MessageUtils {
 		return copiedFileNames;
 	}
 
+	/**
+	 * Checks whether a value is a supported base64 media data URI.
+	 *
+	 * @param value input string
+	 * @return {@code true} for supported image/pdf data URIs
+	 */
 	private static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
@@ -966,6 +1073,13 @@ public class MessageUtils {
 		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
 	}
 
+	/**
+	 * Decodes a base64 image/pdf data URI and writes it to the target directory.
+	 *
+	 * @param dataUri   media data URI
+	 * @param targetDir destination directory
+	 * @return written file name, or {@code null} on validation/IO/decode failure
+	 */
 	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
 		try {
 			Files.createDirectories(targetDir);
@@ -1014,6 +1128,12 @@ public class MessageUtils {
 		}
 	}
 
+	/**
+	 * Resolves an output file extension from mime type.
+	 *
+	 * @param mimeType mime type string
+	 * @return normalized file extension (without dot)
+	 */
 	private static String extensionFromMimeType(String mimeType) {
 		if ("application/pdf".equals(mimeType)) {
 			return "pdf";
@@ -1049,10 +1169,20 @@ public class MessageUtils {
 		}
 	}
 
+	/**
+	 * Supported tool-choice strategy values.
+	 */
 	public enum ToolChoiceType {
 		FORCED, AUTO, REQUIRED, NONE
 	}
 
+	/**
+	 * Creates an MCP tool-choice payload.
+	 *
+	 * @param type tool-choice strategy
+	 * @param name forced tool name (used only when {@code type == FORCED})
+	 * @return tool-choice map
+	 */
 	public static Map<String, Object> makeToolChoice(ToolChoiceType type, String name) {
 		Map<String, Object> toolChoice = new HashMap<>();
 		toolChoice.put("type", type.name().toLowerCase());
@@ -1062,29 +1192,39 @@ public class MessageUtils {
 		return toolChoice;
 	}
 
-	// Class to represent a code block
-	private static class CodeBlock {
-		private final String language;
-		private final String code;
-		private final String title;
-
-		public CodeBlock(String language, String code, String title) {
-			this.language = language;
-			this.code = code;
-			this.title = title;
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a response
+	 * JSON.
+	 *
+	 * @param msg    response message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy response fields
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
 		}
-
-		public String getLanguage() {
-			return language;
+		if (msg == null) {
+			return target;
 		}
-
-		public String getCode() {
-			return code;
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
 		}
-
-		public String getTitle() {
-			return title;
+		String content = msg.getContent();
+		if (content != null) {
+			target.put("content", content);
 		}
+		String thinking = msg.getThinking();
+		if (thinking != null) {
+			target.put("thinking", thinking);
+		}
+		List<Map<String, Object>> toolResponses = msg.getToolResponses();
+		if (toolResponses == null) {
+			toolResponses = new ArrayList<>();
+		}
+		target.put("tool_responses", toolResponses);
+		return target;
 	}
 
 }

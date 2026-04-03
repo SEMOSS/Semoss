@@ -50,7 +50,6 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageType;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
@@ -59,22 +58,29 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * Utility methods for fetching and managing Room objects. -
- * createRoomIfNotExists: creates (if needed) and returns a Room -
- * getOrLoadRoom: looks up or loads room to memory hash, but never creates a
- * Room
+ * Utility methods for creating, loading, migrating, and querying {@link Room}
+ * instances.
+ * <p>
+ * This class centralizes room lifecycle concerns including:
+ * <ul>
+ * <li>conditional room creation in persistence</li>
+ * <li>loading from user cache and database</li>
+ * <li>legacy message backfill and schema upgrade</li>
+ * <li>message paging helpers</li>
+ * <li>room-folder file presence checks</li>
+ * </ul>
  */
 public final class RoomUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(RoomUtils.class);
 
 	/**
-	 * Overload create room
-	 * 
-	 * @param roomId
-	 * @param insight
-	 * @param modelEngine
-	 * @param question
+	 * Convenience overload that creates/loads a room with default optional values.
+	 *
+	 * @param roomId      requested room id; when null/blank the insight id is used
+	 * @param insight     active insight context
+	 * @param modelEngine model engine associated with the room
+	 * @param question    initial user question used for default room naming
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
@@ -85,14 +91,15 @@ public final class RoomUtils {
 	/**
 	 * Ensures a Room exists: creates it if necessary, then loads it for the given
 	 * user/insight.
-	 * 
-	 * @param roomId
-	 * @param insight
-	 * @param modelEngine
-	 * @param question
-	 * @param workspaceId
-	 * @param options
-	 * @param context
+	 *
+	 * @param roomId      requested room id; when null/blank the insight id is used
+	 * @param insight     active insight context
+	 * @param modelEngine model engine associated with the room (optional)
+	 * @param question    initial user question used for default room naming
+	 * @param workspaceId optional workspace id to associate with the room
+	 * @param options     optional room options payload
+	 * @param context     optional room context/system prompt
+	 * @param projectId   optional project id override
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
@@ -156,7 +163,10 @@ public final class RoomUtils {
 
 	/**
 	 * Loads a Room from user room hash or database if present.
-	 * 
+	 *
+	 * @param roomId  room identifier
+	 * @param insight active insight context (contains user cache and user id)
+	 * @return loaded room with normalized message state
 	 * @throws IllegalArgumentException if Room does not exist.
 	 */
 	public static Room getOrLoadRoom(String roomId, Insight insight) {
@@ -165,17 +175,7 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = (Room) insight.getUser().getRoomHash().get(roomId);
-				// is the message json null? if so then this is probably a legacy room
-				// (pre-message json!!)
-				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-					RoomUtils.updateRoom(room, insight);
-				} else {
-					// Ensure messages are parsed exactly once before upgrade checks.
-					if (room.getMessages() == null || room.getMessages().isEmpty()) {
-						room.parseMessages();
-					}
-					upgradeRoomMessagesIfNeeded(room, insight);
-				}
+				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
 			} catch (ClassCastException e) {
@@ -192,12 +192,7 @@ public final class RoomUtils {
 			throw new IllegalArgumentException("Room is not valid for this user");
 		}
 
-		// is the message json null? if so then this is probably a legacy room
-		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-			RoomUtils.updateRoom(room, insight);
-		} else {
-			upgradeRoomMessagesIfNeeded(room, insight);
-		}
+		ensureRoomMessagesUpToDate(room, insight);
 
 		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
@@ -222,9 +217,43 @@ public final class RoomUtils {
 	}
 
 	/**
+	 * Message normalization lifecycle on room load: 1) If ROOM.MESSAGES is empty,
+	 * treat as legacy and backfill from MESSAGE rows. 2) Otherwise ensure in-memory
+	 * messages are parsed (cached safety-net case). 3) Run schema upgrade checks
+	 * and persist only when content actually changes.
+	 * <p>
+	 * Both cache-hit and DB-load paths call this method so legacy migration and
+	 * schema upgrades are defined in one place. Ensures room messages are loaded
+	 * and upgraded to the latest persisted schema (including pre-message_json
+	 * legacy rooms).
+	 *
+	 * @param room    room to normalize
+	 * @param insight insight context used for persistence/user checks
+	 */
+	private static void ensureRoomMessagesUpToDate(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String json = room.getMessageJson();
+		if (json == null || json.trim().isEmpty()) {
+			updateRoom(room, insight);
+			return;
+		}
+		// Messages should already be parsed by Room constructor. This is a safety net
+		// for any cached legacy/corrupted objects.
+		if (room.getMessages().isEmpty() && !"[]".equals(json.trim())) {
+			room.parseMessages();
+		}
+		upgradeRoomMessagesIfNeeded(room, insight);
+	}
+
+	/**
 	 * Ensures the room folder is symlinked into the user's chroot environment. This
 	 * is needed when an existing room is loaded after re-login, since the chroot
 	 * jail is destroyed on logout and recreated on the new session.
+	 *
+	 * @param room    room containing folder path information
+	 * @param insight insight context containing user symlink helper
 	 */
 	private static void symlinkRoomFolderIfNeeded(Room room, Insight insight) {
 		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
@@ -246,6 +275,13 @@ public final class RoomUtils {
 		}
 	}
 
+	/**
+	 * Upgrades persisted room messages to the latest message schema when needed and
+	 * persists only if content changes.
+	 *
+	 * @param room    room whose messages should be upgraded
+	 * @param insight insight context used for persistence/user checks
+	 */
 	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
 		if (room == null || insight == null || insight.getUser() == null) {
 			return;
@@ -256,13 +292,22 @@ public final class RoomUtils {
 			return;
 		}
 
-		MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
+		boolean changed = MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
 		String upgraded = room.getMessagesAsString();
-		room.setMessagesJson(upgraded);
+		if (!changed && upgraded.equals(json)) {
+			return;
+		}
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
 				upgraded);
 	}
 
+	/**
+	 * Migrates a legacy room (without ROOM.MESSAGES JSON) by rebuilding message
+	 * history from MESSAGE table rows and persisting normalized message JSON.
+	 *
+	 * @param room    room to migrate
+	 * @param insight insight context used for user-scoped retrieval/persistence
+	 */
 	private static void updateRoom(Room room, Insight insight) {
 		List<Map<String, Object>> output = ModelInferenceLogsUtils
 				.doRetrieveConversation(insight.getUser().getPrimaryLoginToken().getId(), room.getId(), "ASC", -1, -1);
@@ -276,17 +321,19 @@ public final class RoomUtils {
 			}
 		}
 
-		// set the messages in the room from string
-		room.setMessagesJson(MessageUtils.toJsonArray(messages));
+		// set and persist the normalized messages in one pass
 		room.setMessages(messages);
-
-		// write the message json to db
+		String messageJson = room.getMessagesAsString();
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				MessageUtils.toJsonArray(messages));
+				messageJson);
 	}
 
 	/**
-	 * Gets the room options map
+	 * Retrieves parsed room options for a user-scoped room.
+	 *
+	 * @param roomId room identifier
+	 * @param userId user identifier
+	 * @return room options map, or empty map when no options are stored
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 		List<Map<String, Object>> roomOptions = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
@@ -297,8 +344,11 @@ public final class RoomUtils {
 	}
 
 	/**
-	 * Helper method: converts a single row map to an InputMessage or
-	 * ResponseMessage
+	 * Converts a single legacy MESSAGE-table row to an in-memory room message.
+	 *
+	 * @param room  room context used by message builders
+	 * @param entry legacy MESSAGE row
+	 * @return converted message, or {@code null} for unknown message types
 	 */
 	private static AbstractMessage convertLegacyMessage(Room room, Map<String, Object> entry) {
 		// Read type
@@ -376,6 +426,9 @@ public final class RoomUtils {
 	/**
 	 * Returns true if there are any non-hidden (not starting with .) files under
 	 * the room's folder, recursively.
+	 *
+	 * @param room room whose folder should be scanned
+	 * @return {@code true} when at least one visible file exists
 	 */
 	public static boolean hasFiles(Room room) {
 		if (room == null) {
@@ -390,9 +443,10 @@ public final class RoomUtils {
 	}
 
 	/**
-	 * 
-	 * @param folder
-	 * @return
+	 * Recursively checks whether a directory tree contains any non-hidden file.
+	 *
+	 * @param folder folder to scan
+	 * @return {@code true} if any visible file exists beneath {@code folder}
 	 */
 	private static boolean hasVisibleFilesRecursive(File folder) {
 		if (folder == null || !folder.exists() || !folder.isDirectory()) {
@@ -420,8 +474,8 @@ public final class RoomUtils {
 		return false;
 	}
 
-	/*
-	 * Private constructor
+	/**
+	 * Utility class constructor.
 	 */
 	private RoomUtils() {
 
