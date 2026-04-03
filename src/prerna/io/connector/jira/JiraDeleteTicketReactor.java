@@ -59,17 +59,17 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to delete a Jira ticket/issue by its ID and project.";
+		return "Deletes an existing Jira issue permanently. Use this only for permanent removal; this is not the same as transitioning an issue to Done or Closed. Returns a map with success. Preconditions: the current SEMOSS user must already have Jira credentials, jiraid must identify an existing issue, and project must match the project that owns that issue. This reactor validates the issue-project relationship before deletion.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "The Jira project key the issue belongs to (e.g. MYPROJECT).";
+			return "Required. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. This must be the project that owns the issue identified by jiraid. If it is wrong or missing, the delete validation fails.";
 		} else if (key.equals(JIRAID)) {
-			return "The Jira ID of the ticket/issue to be deleted.";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Do not pass a Jira numeric id. If the key is wrong, missing, or does not belong to the supplied project, the delete request fails.";
 		} else if (key.equals(DELETE_SUBTASKS)) {
-			return "Optional. Whether to delete subtasks of the issue. Accepts 'true' or 'false'.";
+			return "Optional. Literal string 'true' or 'false' controlling whether Jira should also delete subtasks when deleting a parent issue. Default behavior is false when omitted. Any value other than case-insensitive 'true' is treated as false. If the issue has subtasks and this flag is false, Jira can reject the delete request.";
 		}
 		return super.getDescriptionForKey(key);
 	}

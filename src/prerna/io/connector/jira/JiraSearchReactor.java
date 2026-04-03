@@ -67,17 +67,17 @@ public class JiraSearchReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Run an arbitrary JQL query against Jira with pagination. Use for cross-project searches, date-range queries, or any search that goes beyond a single project filter. Returns paginated issue list with total count.";
+		return "Runs an arbitrary Jira JQL search. Use this instead of JiraGetTicketsReactor when the query spans multiple projects, needs date logic, text search, OR or AND conditions, or any filter beyond simple project, status, assignee, and priority matching. Returns a paginated map containing issues, isLast, maxResults, and optionally nextPageToken. Each issue entry includes key, summary, status, assignee, priority, issuetype, duedate, and labels. Preconditions: the current SEMOSS user must already have Jira credentials and jql must be a valid Jira Query Language string.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JQL)) {
-			return "The JQL query string to run (e.g. 'assignee = currentUser() AND status = \"In Progress\"').";
+			return "Required. Full Jira Query Language string, for example 'project = RTJ AND assignee = currentUser() AND status = \"In Progress\"'. Use Jira field names and Jira JQL syntax exactly. If you only need a simple project-scoped list, prefer JiraGetTicketsReactor instead. If this string is malformed or missing, Jira rejects the search.";
 		} else if (key.equals(NEXT_PAGE_TOKEN)) {
-			return "Optional. Token from a previous response to fetch the next page of results.";
+			return "Optional. Opaque pagination token returned by a previous JiraSearchReactor response. Pass it back unchanged to fetch the next page. Do not invent, parse, or modify it. If omitted, the first page is returned. If the token is stale or invalid, Jira can reject the request.";
 		} else if (key.equals(MAX_RESULTS)) {
-			return "Optional. Maximum number of results to return per page. Default is 50.";
+			return "Optional. Maximum number of issues to return per page, provided as an integer string such as '25' or '100'. Default is 50 when omitted. If this value is non-numeric, the reactor fails before calling Jira.";
 		}
 		return super.getDescriptionForKey(key);
 	}

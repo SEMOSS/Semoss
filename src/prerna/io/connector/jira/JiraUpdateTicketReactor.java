@@ -68,25 +68,25 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor updates an existing Jira issue. Only provided fields are updated -- omitted fields are left unchanged. The status field handles workflow transitions.";
+		return "Updates fields on an existing Jira issue. Use this when the issue already exists and one or more fields must change; use JiraAddCommentReactor to add comments and JiraCreateTicketReactor to create new issues. Only nonblank optional fields are sent, so omitted values remain unchanged. Returns a map containing key, success, and sometimes status if a workflow transition was applied. Preconditions: the current SEMOSS user must already have Jira credentials, jiraid must identify an existing issue, and at least one optional field should be supplied. For status changes, call JiraGetStatusReactor first to get a valid transition for that specific issue.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "The Jira issue key to update (e.g. PROJECT-123).";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Do not pass a project key or numeric id. If this value is wrong or missing, the update fails.";
 		} else if (key.equals(SUMMARY)) {
-			return "Optional. New issue title/summary.";
+			return "Optional. New Jira issue summary or title as plain text. If omitted, blank, or the literal string 'null', the summary is left unchanged. If the new value violates Jira validation rules, the update fails.";
 		} else if (key.equals(DESCRIPTION)) {
-			return "Optional. New issue description body.";
+			return "Optional. New Jira issue description as plain text. This reactor converts the text to Atlassian document format internally. If omitted, blank, or 'null', the description is left unchanged. If Jira rejects the new description, the update fails.";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. The accountId of the user to assign to. Use JiraGetAssignableUsersReactor to get accountIds.";
+			return "Optional. Jira assignee accountId string, not display name and not email address. Get this from JiraGetAssignableUsersReactor for the same project or from assigneeAccountId returned by JiraReadTicketReactor. If omitted, blank, or 'null', assignee is left unchanged. If the accountId is wrong or not assignable, the update fails.";
 		} else if (key.equals(PRIORITY)) {
-			return "Optional. New priority name (e.g. High, Medium, Low).";
+			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get valid values from JiraGetPriorityReactor. If omitted, blank, or 'null', priority is left unchanged. If the name is not valid in Jira, the update fails.";
 		} else if (key.equals(DUEDATE)) {
-			return "Optional. New due date in YYYY-MM-DD format.";
+			return "Optional. New due date in ISO date format YYYY-MM-DD, for example 2026-04-30. If omitted, blank, or 'null', due date is left unchanged. If the format is wrong, Jira validation fails.";
 		} else if (key.equals(STATUS)) {
-				return "Optional. The status to transition the issue to. Handled internally via workflow transitions.";
+			return "Optional. Exact Jira transition or target status name for this specific issue. Call JiraGetStatusReactor first and use one of the returned transition names or target statuses for the same jiraid. If omitted, blank, or 'null', the issue status is left unchanged. If the supplied value is not valid for the issue's current workflow state, the transition fails.";
 		}
 		return super.getDescriptionForKey(key);
 	}

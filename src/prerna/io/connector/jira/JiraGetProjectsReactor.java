@@ -45,6 +45,6 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor retrieves all Jira projects accessible to the logged-in user. Returns id, key, name, projectTypeKey, and lead for each project.";
+		return "Lists the Jira projects visible to the current authenticated user. Use this before JiraCreateTicketReactor, JiraGetTicketsReactor, JiraIssueTypeReactor, or JiraGetAssignableUsersReactor whenever the project key is unknown. Returns a list of maps containing id, key, name, projectTypeKey, and lead. Preconditions: the current SEMOSS user must already have Jira credentials.";
 	}
 }

@@ -49,13 +49,13 @@ public class JiraGetStatusReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the available Jira status options for a ticket by listing its workflow transitions. Use the transition name with the status field in JiraUpdateTicketReactor to move the issue to a new status.";
+		return "Returns the workflow transitions currently available for a specific Jira issue. Use this before JiraUpdateTicketReactor when the task is to move an issue to a new status; this reactor does not return every status in the project, only the transitions valid for the current issue state and workflow. Returns a list of maps with id, name, and toStatus. Preconditions: the current SEMOSS user must already have Jira credentials and jiraid must identify the exact issue being transitioned.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "The Jira issue key to get available status options for (e.g. PROJECT-123).";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Transitions depend on the current issue state, so using a different ticket can produce the wrong status options. If the key is wrong or missing, Jira cannot return transitions.";
 		}
 		return super.getDescriptionForKey(key);
 	}

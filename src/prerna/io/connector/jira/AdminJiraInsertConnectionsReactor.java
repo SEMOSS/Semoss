@@ -59,21 +59,21 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates and stores a Jira connection entry (alias, client id, client secret, scope, and user profile URL).";
+		return "Creates a Jira OAuth connection definition in the SEMOSS security database. Use this only when an administrator is registering a new Jira connector configuration; do not use it to authenticate a user or to fetch Jira projects or issues. Returns a map with id and success. Preconditions: the caller must be a SEMOSS admin and must provide valid Jira app configuration values.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ALIAS.equals(key)) {
-			return "Required human-readable name for the Jira connection.";
+			return "Required. Human-readable unique alias for this stored Jira connection, for example 'Corporate Jira Cloud'. This value is stored in SEMOSS and later returned by GetJiraConnectionsReactor. If the alias is missing or duplicates an existing Jira connection alias, the insert fails.";
 		} else if (CLIENT_ID.equals(key)) {
-			return "Required Jira connected-app client id.";
+			return "Required. Jira OAuth client ID exactly as issued by the Atlassian app configuration. This is not a project key, not a user token, and not a SEMOSS identifier. If it is wrong or missing, later Jira authentication flows for this connection will fail.";
 		} else if (CLIENT_SECRET.equals(key)) {
-			return "Required Jira connected-app client secret.";
+			return "Required. Jira OAuth client secret exactly as issued by the Atlassian app configuration. Keep the value exactly as configured in Atlassian. If it is wrong or missing, token exchange for this connection will fail.";
 		} else if (SCOPE.equals(key)) {
-			return "Required OAuth scope for the Jira connection.";
+			return "Required. Space-delimited Atlassian OAuth scope string, for example 'read:jira-user read:jira-work write:jira-work offline_access'. Copy this from the Jira app configuration. If required scopes are omitted or wrong, downstream Jira project or issue reactors can fail with authorization errors.";
 		} else if (USER_PROFILE_URL.equals(key)) {
-			return "Required URL used to retrieve the Jira user profile.";
+			return "Required. Full HTTPS URL used by this Jira connector to retrieve the authenticated user's profile. Copy the exact endpoint from the connector setup or Atlassian app configuration. If this URL is wrong or missing, profile lookup and authentication flows can fail.";
 		}
 		return super.getDescriptionForKey(key);
 	}

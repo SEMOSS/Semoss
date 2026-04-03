@@ -49,13 +49,13 @@ public class JiraGetCommentsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor retrieves all comments on a Jira issue. Returns id, author, created, updated, and body (plain text) for each comment.";
+		return "Retrieves all comments for a single Jira issue. Use this when the agent needs the discussion history for a ticket; JiraReadTicketReactor does not return comments. Returns a list of maps with id, author, created, updated, and body, where body is plain text extracted from Jira's document format. Preconditions: the current SEMOSS user must already have Jira credentials and jiraid must identify an existing Jira issue.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "The Jira issue key to retrieve comments for (e.g. PROJECT-123).";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor if unknown. Do not pass a project key or Jira numeric id. If the key is wrong or missing, Jira cannot return comments for the issue.";
 		}
 		return super.getDescriptionForKey(key);
 	}

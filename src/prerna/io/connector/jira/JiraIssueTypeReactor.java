@@ -55,13 +55,13 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor retrieves Jira issue types. Optionally scoped to a project. Returns id, name, subtask flag, and description for each type.";
+		return "Lists Jira issue types. Use this before JiraCreateTicketReactor to get the exact issue type name Jira accepts. If project is provided, the list is limited to issue types available for that project; if project is omitted, the reactor returns the broader instance-wide type list. Returns a list of maps containing id, name, and subtask. Preconditions: the current SEMOSS user must already have Jira credentials.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Optional. The Jira project key to scope issue types to (e.g. MYPROJECT). If omitted, returns all issue types for the instance.";
+			return "Optional. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. Supply this when you plan to create an issue in a specific project so you only see issue types valid for that project. If omitted, the reactor returns the broader instance-wide list. If the project key is wrong, the lookup fails.";
 		}
 		return super.getDescriptionForKey(key);
 	}

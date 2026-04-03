@@ -76,23 +76,23 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor lists Jira issues for a project with optional filters and pagination. Returns a paginated list with total count.";
+		return "Lists issues in a single Jira project with simple built-in filters. Use this when the agent already knows the project key and only needs project-scoped browsing; use JiraSearchReactor instead for arbitrary JQL, cross-project search, or advanced conditions. Returns a paginated map containing issues, isLast, maxResults, and optionally nextPageToken. Each issue entry includes key, summary, status, assignee, priority, issuetype, duedate, and labels. Preconditions: the current SEMOSS user must already have Jira credentials and project must be a valid Jira project key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "The Jira project key to list issues for (e.g. MYPROJECT).";
+			return "Required. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. This reactor only searches inside this single project. If the key is wrong or missing, the request fails or returns no issues.";
 		} else if (key.equals(STATUS)) {
-			return "Optional. Filter issues by status (e.g. 'In Progress', 'Done', 'To Do').";
+			return "Optional. Exact Jira status name used to filter the project issue list, for example 'To Do', 'In Progress', or 'Done'. Use Jira status values from Jira itself. If omitted, no status filter is applied. If the value does not match Jira's status names, the result can be empty.";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Filter issues by assignee accountId.";
+			return "Optional. Jira assignee accountId string used to filter results. Get this from JiraGetAssignableUsersReactor or from assigneeAccountId returned by JiraReadTicketReactor. Do not pass a display name. If omitted, no assignee filter is applied. If the accountId is wrong, the result can be empty.";
 		} else if (key.equals(PRIORITY)) {
-			return "Optional. Filter issues by priority (e.g. High, Medium, Low).";
+			return "Optional. Exact Jira priority name used to filter results, for example Highest, High, Medium, or Low. Get valid values from JiraGetPriorityReactor. If omitted, no priority filter is applied. If the name is wrong, the result can be empty.";
 		} else if (key.equals(NEXT_PAGE_TOKEN)) {
-			return "Optional. Token from a previous response to fetch the next page of results.";
+			return "Optional. Opaque pagination token returned by a previous JiraGetTicketsReactor response. Pass it back unchanged to fetch the next page. Do not invent, parse, or modify it. If omitted, the first page is returned. If the token is stale or invalid, Jira can reject the request.";
 		} else if (key.equals(MAX_RESULTS)) {
-			return "Optional. Maximum number of results to return per page. Default is 50.";
+			return "Optional. Maximum number of issues to return per page, provided as an integer string such as '25' or '100'. Default is 50 when omitted. If this value is non-numeric, the reactor fails before calling Jira.";
 		}
 		return super.getDescriptionForKey(key);
 	}

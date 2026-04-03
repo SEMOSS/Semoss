@@ -47,13 +47,13 @@ public class JiraReadTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor reads full details of a single Jira issue by its key. Returns id, key, summary, status, priority, issuetype, assignee, assigneeAccountId, duedate, labels, and description.";
+		return "Reads the full field details for a single Jira issue. Use this when the agent already knows the issue key and needs its current state, assigneeAccountId, priority, description, labels, or due date; use JiraGetTicketsReactor or JiraSearchReactor when the issue must first be located. Returns a map containing id, key, self, summary, status, priority, issuetype, assignee, assigneeAccountId, duedate, labels, and description. Description is returned as plain text and assignee can be 'Unassigned'. Preconditions: the current SEMOSS user must already have Jira credentials and jiraid must identify an existing Jira issue.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "The Jira issue key to fetch (e.g. PROJECT-123).";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get this from JiraGetTicketsReactor or JiraSearchReactor if the exact issue is not already known. Do not pass a project key or numeric id. If this value is wrong or missing, the issue cannot be read.";
 		}
 		return super.getDescriptionForKey(key);
 	}

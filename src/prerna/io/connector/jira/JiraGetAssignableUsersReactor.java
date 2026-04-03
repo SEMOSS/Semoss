@@ -57,15 +57,15 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor retrieves users assignable to a Jira project. Returns accountId, displayName, and emailAddress for each user. Use accountId when assigning issues.";
+		return "Lists the users who can be assigned issues in a specific Jira project. Use this before JiraCreateTicketReactor or JiraUpdateTicketReactor when you need a valid assignee accountId; do not guess from display name or email. Returns a list of maps containing accountId, displayName, and emailAddress. Preconditions: the current SEMOSS user must already have Jira credentials and project must be a valid Jira project key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "The Jira project key to fetch assignable users for (e.g. MYPROJECT).";
+			return "Required. Jira project key in uppercase, for example RTJ. Get this from JiraGetProjectsReactor if unknown. The returned users are only assignable within this project. If the key is wrong or missing, the lookup fails or returns no valid users.";
 		} else if (key.equals(QUERY)) {
-			return "Optional. Search query to filter users by name or email.";
+			return "Optional. Free-text search string used to narrow users by name or email address, for example 'jane' or 'jane@company.com'. If omitted, the reactor returns the unfiltered assignable-user list for the project. If no users match, the result is an empty list.";
 		}
 		return super.getDescriptionForKey(key);
 	}
