@@ -37,7 +37,7 @@ class TextToImageParams(BaseModel):
     """
     text: str
     negativeText: str
-    style: Optional[str]
+    style: Optional[str] = None
     conditionImage: Optional[str] = None
     controlMode: Optional[str] = None
     controlStrength: Optional[float] = None
