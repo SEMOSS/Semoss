@@ -330,7 +330,7 @@ public final class JiraHelper {
 	 * @param issueKey    issue key (for example, {@code PROJECT-123})
 	 * @return map containing issue fields
 	 */
-	public static Map<String, Object> getIssue(String accessToken, String baseUrl, String issueKey) {
+	public static Map<String, Object> readTicket(String accessToken, String baseUrl, String issueKey) {
 		try {
 			final String assigneeAccountId = "assigneeAccountId";
 			validateJiraContext(accessToken, baseUrl);
@@ -383,7 +383,7 @@ public final class JiraHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Error in getIssue '{}': {}", issueKey, e.getMessage(), e);
+			classLogger.error("Error in readTicket '{}': {}", issueKey, e.getMessage(), e);
 			throw new SemossPixelException("Failed to retrieve issue '" + issueKey + "'. Error: " + e.getMessage());
 		}
 	}
@@ -589,7 +589,7 @@ public final class JiraHelper {
 	 * @return list of maps, each containing {@code id}, {@code name}, and
 	 *         {@code toStatus}
 	 */
-	public static List<Map<String, Object>> getTransitions(String accessToken, String baseUrl, String issueKey) {
+	public static List<Map<String, Object>> getStatus(String accessToken, String baseUrl, String issueKey) {
 		try {
 			final String toStatus = "toStatus";
 			validateJiraContext(accessToken, baseUrl);
@@ -613,7 +613,7 @@ public final class JiraHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Error in getTransitions for '{}': {}", issueKey, e.getMessage(), e);
+			classLogger.error("Error in getStatus for '{}': {}", issueKey, e.getMessage(), e);
 			throw new SemossPixelException(
 					"Failed to get transitions for issue '" + issueKey + "'. Error: " + e.getMessage());
 		}

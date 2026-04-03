@@ -1,6 +1,5 @@
 package prerna.io.connector.jira;
 
-import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
@@ -14,13 +13,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraGetTransitionsReactor extends AbstractReactor {
+public class JiraReadTicketReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraGetTransitionsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraReadTicketReactor.class);
 
 	private static final String JIRAID = "jiraid";
 
-	public JiraGetTransitionsReactor() {
+	public JiraReadTicketReactor() {
 		this.keysToGet = new String[] { JIRAID };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -34,28 +33,27 @@ public class JiraGetTransitionsReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			List<Map<String, Object>> result = JiraHelper.getTransitions(accessToken, baseUrl, issueKey);
+			Map<String, Object> result = JiraHelper.readTicket(accessToken, baseUrl, issueKey);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while retrieving Jira transitions", e);
+			classLogger.error("Error while reading a Jira ticket", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to retrieve Jira transitions", e);
+			classLogger.error("Failed to read a Jira ticket", e);
 			throw new SemossPixelException(
-					"An error occurred while retrieving transitions for the Jira ticket. Error message: "
-							+ e.getMessage());
+					"An error occurred while reading the Jira ticket. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the available workflow transitions for a Jira issue. Use the transition name with the status field in JiraUpdateTicketReactor to move the issue to a new status.";
+		return "This reactor reads full details of a single Jira issue by its key. Returns id, key, summary, status, priority, issuetype, assignee, assigneeAccountId, duedate, labels, and description.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "The Jira issue key to get available transitions for (e.g. PROJECT-123).";
+			return "The Jira issue key to fetch (e.g. PROJECT-123).";
 		}
 		return super.getDescriptionForKey(key);
 	}
