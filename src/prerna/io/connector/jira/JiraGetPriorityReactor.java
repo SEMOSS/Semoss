@@ -13,7 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraGetPriorityReactor extends AbstractReactor {
 
@@ -35,10 +34,10 @@ public class JiraGetPriorityReactor extends AbstractReactor {
 			List<Map<String, Object>> result = JiraHelper.getPriorities(accessToken, baseUrl);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while retrieving Jira priorities", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve Jira priorities", e);
 			throw new SemossPixelException(
 					"An error occurred while retrieving Jira priorities. Error message: " + e.getMessage());
 		}

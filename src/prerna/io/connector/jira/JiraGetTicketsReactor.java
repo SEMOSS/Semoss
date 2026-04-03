@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraGetTicketsReactor extends AbstractReactor {
 
@@ -59,10 +58,10 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 					nullSafe(priorityFilter), nullSafe(nextPageToken), maxResults);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while retrieving Jira tickets", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve Jira tickets", e);
 			throw new SemossPixelException(
 					"An error occurred while retrieving Jira tickets. Error message: " + e.getMessage());
 		}

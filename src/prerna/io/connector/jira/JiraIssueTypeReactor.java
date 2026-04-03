@@ -13,7 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraIssueTypeReactor extends AbstractReactor {
 
@@ -38,10 +37,10 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, nullSafe(projectKey));
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while retrieving Jira issue types", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve Jira issue types", e);
 			throw new SemossPixelException(
 					"An error occurred while retrieving Jira issue types. Error message: " + e.getMessage());
 		}

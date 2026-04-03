@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraSearchReactor extends AbstractReactor {
 
@@ -50,10 +49,10 @@ public class JiraSearchReactor extends AbstractReactor {
 			Map<String, Object> result = JiraHelper.searchIssues(accessToken, baseUrl, jqlQuery, nullSafe(nextPageToken), maxResults);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while searching Jira issues", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to search Jira issues", e);
 			throw new SemossPixelException(
 					"An error occurred while searching Jira issues. Error message: " + e.getMessage());
 		}

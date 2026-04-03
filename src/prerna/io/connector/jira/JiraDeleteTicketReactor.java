@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraDeleteTicketReactor extends AbstractReactor {
 
@@ -42,11 +41,12 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, nullSafe(projectName), nullSafe(jiraId), deleteSubtasks);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while deleting a Jira ticket", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred while deleting ticket. Error message: " + e.getMessage());
+			classLogger.error("Failed to delete a Jira ticket", e);
+			throw new SemossPixelException(
+					"An error occurred while deleting the Jira ticket. Error message: " + e.getMessage());
 		}
 	}
 

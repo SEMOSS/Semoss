@@ -12,7 +12,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class JiraCreateTicketReactor extends AbstractReactor {
 
@@ -55,10 +54,10 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 					nullSafe(priority), nullSafe(dueDate), nullSafe(parentKey), nullSafe(status));
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while creating a Jira ticket", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create a Jira ticket", e);
 			throw new SemossPixelException(
 					"An error occurred while creating the Jira ticket. Error message: " + e.getMessage());
 		}
