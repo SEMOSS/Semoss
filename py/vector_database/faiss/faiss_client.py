@@ -16,13 +16,6 @@ from ..constants import ENCODING_OPTIONS
 from ..utils.bm25_client import BM25Searcher
 
 
-def _resolve_tokenizer(instance):
-    """If the tokenizer is a LazyTokenizer, resolve it and replace on the instance."""
-    from genai_client.tokenizers.lazy_tokenizer import LazyTokenizer
-    if isinstance(instance.tokenizer, LazyTokenizer):
-        instance.tokenizer = instance.tokenizer.resolve()
-
-
 class FAISSSearcher:
     """
     The primary class for a faiss database classes and searching document embeddings
@@ -273,7 +266,6 @@ class FAISSSearcher:
     ) -> List[Dict]:
         """Original vector-only search logic"""
         from genai_client import HuggingfaceTokenizer
-        _resolve_tokenizer(self)
         if columns_to_return is None:
             columns_to_return = list(self.ds.features)
 
@@ -828,7 +820,6 @@ class FAISSSearcher:
             `Dict` A dictionary listing which documents have been successfully created
         """
         from genai_client import HuggingfaceTokenizer
-        _resolve_tokenizer(self)
         # make sure they are all in indexed_files dir
         assert {
             os.path.basename(os.path.dirname(path)) for path in documentFileLocation
