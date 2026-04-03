@@ -31,7 +31,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.util.Constants;
 
 public class DeleteEngineRunner implements Runnable {
 
@@ -39,19 +38,20 @@ public class DeleteEngineRunner implements Runnable {
 
 	private final String ENGINE_ID;
 	private final IEngine.CATALOG_TYPE ENGINE_TYPE;
-	
+
 	public DeleteEngineRunner(String engineId, IEngine.CATALOG_TYPE engineType) {
 		this.ENGINE_ID = engineId;
 		this.ENGINE_TYPE = engineType;
 	}
-	
+
 	@Override
 	public void run() {
 		try {
 			ClusterUtil.deleteEngine(ENGINE_ID, ENGINE_TYPE);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}		
+			classLogger.error("An error occurred trying to delete the engine {} of type {} from cloud storage",
+					ENGINE_ID, ENGINE_TYPE, e);
+		}
 	}
 
 }

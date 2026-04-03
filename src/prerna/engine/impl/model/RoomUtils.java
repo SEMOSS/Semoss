@@ -43,7 +43,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -223,9 +222,9 @@ public final class RoomUtils {
 	}
 
 	/**
-	 * Ensures the room folder is symlinked into the user's chroot environment.
-	 * This is needed when an existing room is loaded after re-login, since the
-	 * chroot jail is destroyed on logout and recreated on the new session.
+	 * Ensures the room folder is symlinked into the user's chroot environment. This
+	 * is needed when an existing room is loaded after re-login, since the chroot
+	 * jail is destroyed on logout and recreated on the new session.
 	 */
 	private static void symlinkRoomFolderIfNeeded(Room room, Insight insight) {
 		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
@@ -390,6 +389,11 @@ public final class RoomUtils {
 		return hasVisibleFilesRecursive(folder);
 	}
 
+	/**
+	 * 
+	 * @param folder
+	 * @return
+	 */
 	private static boolean hasVisibleFilesRecursive(File folder) {
 		if (folder == null || !folder.exists() || !folder.isDirectory()) {
 			return false;
@@ -414,31 +418,6 @@ public final class RoomUtils {
 			}
 		}
 		return false;
-	}
-
-	public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
-		String userId = user.getPrimaryLoginToken().getId();
-
-		// Check if user is the owner of the active room
-		boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
-		if (!isOwner) {
-			throw new IllegalArgumentException("User is not the owner of the active room");
-		}
-
-		// Load the Room
-		Room room = getOrLoadRoom(roomId, insight);
-		if (room == null) {
-			throw new IllegalArgumentException("Room not found");
-		}
-		String roomFolder = room.getRoomFolderPath();
-
-		// If there are non-hidden files, push them
-		if (hasFiles(room)) {
-			ClusterUtil.pushRoom(room.getId());
-		}
-
-		// Set the insight's folder to the room's folder
-		insight.setInsightFolder(roomFolder);
 	}
 
 	/*
