@@ -5,14 +5,11 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 
@@ -24,7 +21,7 @@ public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 
 	public GoogleSpreadsheetUpdateSheetReactor() {
 		this.keysToGet = new String[] { TITLESHEETID, SHEETID, DATA };
-		this.keyRequired = new int[] { 1, 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -34,32 +31,29 @@ public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 		if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
 			throw new SemossPixelException("Spreadsheet ID is required to update a sheet in a Google spreadsheet");
 		}
-		String sheetID = this.keyValue.get(this.keysToGet[1]);
-		if (sheetID == null || sheetID.trim().isEmpty()) {
+		String sheetId = this.keyValue.get(this.keysToGet[1]);
+		if (sheetId == null || sheetId.trim().isEmpty()) {
 			throw new SemossPixelException("Sheet ID is required to update a sheet in a Google spreadsheet");
 		}
 		String rawData = this.keyValue.get(this.keysToGet[2]);
-		if (rawData == null || rawData.isEmpty()) {
-			throw new SemossPixelException("Data is required to update a sheet in a Google spreadsheet");
-		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			ObjectMapper mapper = new ObjectMapper();
-			List<List<String>> data = mapper.readValue(rawData, List.class);
-			return GoogleSpreadsheetHelper.updateData(spreadsheetId, sheetID, data, accessToken);
+			List<List<String>> data = GoogleSpreadsheetHelper.parseSheetData(rawData);
+			return GoogleSpreadsheetHelper.updateData(spreadsheetId, sheetId, data, accessToken);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update Google sheet {} in spreadsheet: {}", sheetId, spreadsheetId, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected failure while updating Google sheet {} in spreadsheet: {}", sheetId,
+					spreadsheetId, e);
 			throw new SemossPixelException("An error occurred in updating sheet. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor updates data in a Google spreadsheet sheet";
+		return "This reactor replaces the data in a Google spreadsheet sheet with the provided tabular payload.";
 	}
 
 	@Override
@@ -69,7 +63,7 @@ public class GoogleSpreadsheetUpdateSheetReactor extends AbstractReactor {
 		} else if (key.equals(SHEETID)) {
 			return "Sheet ID from the Google spreadsheet";
 		} else if (key.equals(DATA)) {
-			return "Data to update in the Google spreadsheet";
+			return "Optional JSON 2D array of row data to write into the Google spreadsheet; an empty payload clears the sheet";
 		}
 		return super.getDescriptionForKey(key);
 	}

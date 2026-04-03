@@ -1,6 +1,5 @@
 package prerna.io.connector.google.spreadsheet;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -14,7 +13,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleSpreadsheetGetAllSheetsReactor extends AbstractReactor {
 
@@ -27,16 +25,15 @@ public class GoogleSpreadsheetGetAllSheetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		List<Map<String, Object>> spreadsheets = new ArrayList<>();
 		try {
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			spreadsheets = GoogleSpreadsheetHelper.fetchSpreadsheetMetadata(accessToken);
+			List<Map<String, Object>> spreadsheets = GoogleSpreadsheetHelper.fetchSpreadsheetMetadata(accessToken);
 			return new NounMetadata(spreadsheets, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to fetch Google spreadsheet metadata for the authenticated user", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected failure while fetching Google spreadsheet metadata", e);
 			throw new SemossPixelException(
 					"An error occurred in getting sheet details. Error message: " + e.getMessage());
 		}

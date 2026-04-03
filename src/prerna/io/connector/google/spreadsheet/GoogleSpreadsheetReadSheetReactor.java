@@ -8,7 +8,6 @@ import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleSpreadsheetReadSheetReactor extends AbstractReactor {
 
@@ -29,19 +28,20 @@ public class GoogleSpreadsheetReadSheetReactor extends AbstractReactor {
 		if (spreadsheetId == null || spreadsheetId.trim().isEmpty()) {
 			throw new SemossPixelException("Spreadsheet ID is required to read a sheet from a Google spreadsheet");
 		}
-		String sheetID = this.keyValue.get(this.keysToGet[1]);
-		if (sheetID == null || sheetID.trim().isEmpty()) {
+		String sheetId = this.keyValue.get(this.keysToGet[1]);
+		if (sheetId == null || sheetId.trim().isEmpty()) {
 			throw new SemossPixelException("Sheet ID is required to read a sheet from a Google spreadsheet");
 		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			return GoogleSpreadsheetHelper.readData(spreadsheetId, sheetID, accessToken);
+			return GoogleSpreadsheetHelper.readData(spreadsheetId, sheetId, accessToken);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read Google sheet {} from spreadsheet: {}", sheetId, spreadsheetId, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected failure while reading Google sheet {} from spreadsheet: {}", sheetId,
+					spreadsheetId, e);
 			throw new SemossPixelException("An error occurred in reading sheet. Error message: " + e.getMessage());
 		}
 	}
@@ -60,5 +60,4 @@ public class GoogleSpreadsheetReadSheetReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
-
 }

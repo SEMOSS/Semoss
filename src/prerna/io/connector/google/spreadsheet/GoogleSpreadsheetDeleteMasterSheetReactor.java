@@ -8,7 +8,6 @@ import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleSpreadsheetDeleteMasterSheetReactor extends AbstractReactor {
 
@@ -33,10 +32,10 @@ public class GoogleSpreadsheetDeleteMasterSheetReactor extends AbstractReactor {
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			return GoogleSpreadsheetHelper.deleteSpreadsheet(spreadsheetId, accessToken);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete Google spreadsheet: {}", spreadsheetId, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected failure while deleting Google spreadsheet: {}", spreadsheetId, e);
 			throw new SemossPixelException(
 					"An error occurred while deleting the Google spreadsheet. Error message: " + e.getMessage());
 		}

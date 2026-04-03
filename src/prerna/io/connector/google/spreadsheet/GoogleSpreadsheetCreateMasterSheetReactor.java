@@ -8,7 +8,6 @@ import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleSpreadsheetCreateMasterSheetReactor extends AbstractReactor {
 
@@ -33,10 +32,10 @@ public class GoogleSpreadsheetCreateMasterSheetReactor extends AbstractReactor {
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			return GoogleSpreadsheetHelper.createNewSpreadsheet(spreadsheetName, accessToken);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create Google spreadsheet for name: {}", spreadsheetName, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected failure while creating Google spreadsheet for name: {}", spreadsheetName, e);
 			throw new SemossPixelException(
 					"An error occurred while creating the Google spreadsheet. Error message: " + e.getMessage());
 		}
