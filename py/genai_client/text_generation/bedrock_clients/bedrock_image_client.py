@@ -56,7 +56,7 @@ class BedrockImageClient(BedrockClient):
             if error is not None:
                 raise Exception(f"Image generation error. Error is {error}")
 
-            raw_images = response_body.get("images", [])
+            raw_images = response_body.get("images", []) # List of base64-encoded image strings
             mime_type = "image/png"
 
             parts = []
