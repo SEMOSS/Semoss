@@ -6,12 +6,11 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jobrunr.jobs.JobDetails;
+import org.jobrunr.configuration.JobRunr;
+import org.jobrunr.configuration.JobRunrConfiguration.JobRunrConfigurationResult;
 import org.jobrunr.jobs.JobId;
-import org.jobrunr.jobs.RecurringJob;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.scheduling.BackgroundJob;
-import org.jobrunr.scheduling.BackgroundJobRequest;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.StorageProviderUtils.DatabaseOptions;
@@ -63,13 +62,13 @@ public class JobRunrService {
 	 */
 	private boolean isEnabledFromConfig() {
 		try {
-			String enabled = Utility.getDIHelperProperty("scheduler.use-jobrunr");
+			String enabled = Utility.getDIHelperProperty("scheduler_use_jobrunr");
 			if (enabled == null) {
 				enabled = "false"; // Default to false
 			}
 			return Boolean.parseBoolean(enabled);
 		} catch (Exception e) {
-			LOGGER.debug("Could not read scheduler.use-jobrunr from DIHelper, defaulting to false");
+			LOGGER.debug("Could not read scheduler_use_jobrunr from DIHelper, defaulting to false");
 			return false;
 		}
 	}
@@ -79,7 +78,7 @@ public class JobRunrService {
 	 */
 	private StorageProvider initializeStorageProvider() {
 		if (!enabled) {
-			LOGGER.info("JobRunr is disabled via scheduler.use-jobrunr=false");
+			LOGGER.info("JobRunr is disabled via scheduler_use_jobrunr=false");
 			return null;
 		}
 
@@ -113,11 +112,27 @@ public class JobRunrService {
 
 			LOGGER.info(" DataSource obtained successfully");
 
-			// Create storage provider with SKIP_CREATE option
-//			DefaultSqlStorageProvider provider = new DefaultSqlStorageProvider(dataSource, Diale, "JOBRUNR_",
-//					DatabaseOptions.CREATE);
+			StorageProvider provider = new H2StorageProvider(dataSource, DatabaseOptions.CREATE);
 
-			H2StorageProvider provider = new H2StorageProvider(dataSource, DatabaseOptions.CREATE);
+			String jobrunrPortStr = Utility.getDIHelperProperty("jobrunr_dashboard_port");
+			int jobrunrPort = 8000; // default port
+
+			if (jobrunrPortStr != null && !jobrunrPortStr.trim().isEmpty()) {
+				try {
+					jobrunrPort = Integer.parseInt(jobrunrPortStr);
+				} catch (NumberFormatException e) {
+					LOGGER.warn("Invalid jobrunr_dashboard_port value: {}. Using default 8000", jobrunrPortStr);
+				}
+			}
+
+			// Initialize JobRunr using Fluent API
+			JobRunrConfigurationResult jobRunrConfiguration = JobRunr.configure()
+					.useStorageProvider(new H2StorageProvider(dataSource, DatabaseOptions.CREATE))
+					.useBackgroundJobServer().useDashboard(jobrunrPort).initialize();
+
+			// Get instances
+			this.jobRequestScheduler = jobRunrConfiguration.getJobRequestScheduler();
+			LOGGER.info("JobRunr initialized successfully");
 
 			LOGGER.info(" JobRunr SQL storage provider initialized successfully");
 			LOGGER.info("Tables will be auto-created when first job is scheduled");
@@ -384,57 +399,18 @@ public class JobRunrService {
 		}
 	}
 
-	/**
-	 * Schedule a recurring job with Cron expression
-	 * 
-	 * @param jobId          Unique job identifier
-	 * @param cronExpression Cron schedule (e.g., "0 0 9 * * ?")
-	 * @param request        Job request to execute
-	 * @return Scheduled JobId
-	 */
-	public String scheduleRecurring(String jobId, String cronExpression, JobRequest request) {
-
-		if (!enabled) {
-			throw new IllegalStateException("JobRunr not enabled");
-		}
-
-		if (storageProvider == null) {
-			throw new IllegalStateException("StorageProvider not initialized");
-		}
-
-		try {
-			JobDetails jobDetails = new JobDetails(request);
-
-			RecurringJob recurringJob = new RecurringJob(jobId, jobDetails, cronExpression,
-					ZoneId.systemDefault().getId());
-
-			storageProvider.saveRecurringJob(recurringJob);
-			LOGGER.info("Scheduled recurring job {} with cron {}", jobId, cronExpression);
-
-			return jobId;
-
-		} catch (Exception e) {
-			LOGGER.error("Failed to schedule recurring job {}", jobId, e);
-			throw new RuntimeException("Failed to schedule recurring job", e);
-		}
-	}
-
 	public String scheduleRecurring(String jobId, String cronExpression, String zoneId, JobRequest request) {
 
 		if (!enabled) {
 			throw new IllegalStateException("JobRunr not enabled");
 		}
 
-		if (storageProvider == null) {
-			throw new IllegalStateException("StorageProvider not initialized");
+		if (jobRequestScheduler == null) {
+			throw new IllegalStateException("JobRunr not initialized - JobRequestScheduler is null");
 		}
 
 		try {
-			JobDetails jobDetails = new JobDetails(request);
-
-			RecurringJob recurringJob = new RecurringJob(jobId, jobDetails, cronExpression, zoneId);
-
-			storageProvider.saveRecurringJob(recurringJob);
+			jobRequestScheduler.scheduleRecurrently(jobId, cronExpression, ZoneId.of(zoneId), request);
 
 			LOGGER.info("Scheduled recurring job {} with cron {} (timezone: {})", jobId, cronExpression, zoneId);
 
@@ -443,46 +419,6 @@ public class JobRunrService {
 		} catch (Exception e) {
 			LOGGER.error("Failed to schedule recurring job {}", jobId, e);
 			throw new RuntimeException("Failed to schedule recurring job", e);
-		}
-	}
-
-//	/**
-//	 * Enqueue a job for immediate execution
-//	 * 
-//	 * @param jobRequest Job request to execute
-//	 * @return Enqueued JobId
-//	 */
-//	public JobId enqueue1(PixelExecutionJobRequest jobRequest) {
-//		if (!enabled || storageProvider == null) {
-//			throw new IllegalStateException("JobRunr is not enabled or not properly configured");
-//		}
-//
-//		try {
-//			JobId jobId = BackgroundJob.enqueue((JobLambda) jobRequest);
-//			LOGGER.info("Enqueued job for immediate execution: {}", jobId);
-//			return jobId;
-//
-//		} catch (Exception e) {
-//			LOGGER.error("Failed to enqueue job", e);
-//			throw new RuntimeException("Failed to enqueue job: " + e.getMessage());
-//		}
-//	}
-
-	public JobId enqueue2(PixelExecutionJobRequest jobRequest) {
-		if (!enabled || storageProvider == null) {
-			throw new IllegalStateException("JobRunr is not enabled or not properly configured");
-		}
-
-		try {
-			// Use BackgroundJobRequest.enqueue() for JobRequest objects
-			JobId jobId = BackgroundJobRequest.enqueue(jobRequest);
-
-			LOGGER.info("Enqueued job for immediate execution: {}", jobId);
-			return jobId;
-
-		} catch (Exception e) {
-			LOGGER.error("Failed to enqueue job", e);
-			throw new RuntimeException("Failed to enqueue job: " + e.getMessage(), e);
 		}
 	}
 
@@ -502,43 +438,6 @@ public class JobRunrService {
 			throw new RuntimeException("Failed to enqueue job: " + e.getMessage(), e);
 		}
 	}
-
-	/**
-	 * Schedule a job to run at a specific time
-	 * 
-	 * @param scheduledAt When to run the job
-	 * @param request     Job request to execute
-	 * @return Scheduled JobId
-	 */
-//	public JobId schedule(LocalDateTime scheduledAt, JobRequest request) {
-//		if (!enabled || storageProvider == null) {
-//			throw new IllegalStateException("JobRunr is not enabled or not properly configured");
-//		}
-//
-//		try {
-//			// For JobRequest pattern, create Job manually and schedule it
-//			// BackgroundJob.schedule() only works with JobLambda
-//
-//			// Step 1: Get JobDetails from JobRequest
-//			org.jobrunr.jobs.JobDetails jobDetails = ((AbstractJob) request).getJobDetails();
-//
-//			// Step 2: Create Job object
-//			org.jobrunr.jobs.Job job = new org.jobrunr.jobs.Job(jobDetails, scheduledAt, null, // labels (can be null)
-//					null // job metadata (can be null)
-//			);
-//
-//			// Step 3: Save to storage provider (this schedules it)
-//			storageProvider.save(job);
-//
-//			JobId jobId = job.getId();
-//			LOGGER.info("Scheduled job for {}: {}", scheduledAt, jobId);
-//			return jobId;
-//
-//		} catch (Exception e) {
-//			LOGGER.error("Failed to schedule job", e);
-//			throw new RuntimeException("Failed to schedule job: " + e.getMessage());
-//		}
-//	}
 
 	/**
 	 * Delete a recurring job

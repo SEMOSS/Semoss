@@ -2563,7 +2563,7 @@
 		<dependency>
 			<groupId>org.jobrunr</groupId>
 			<artifactId>jobrunr</artifactId>
-			<version>6.0.0</version>
+			<version>7.3.2</version>
 			<exclusions>
 				<!-- Exclude asm to use SEMOSS version (avoid conflicts) -->
 				<exclusion>

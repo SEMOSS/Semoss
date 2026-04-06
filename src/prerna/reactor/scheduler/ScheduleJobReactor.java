@@ -183,7 +183,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			// inside the JobRequestHandler with a new execId each time
 			PixelExecutionJobRequest recurringJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
 					providerInfo.toString(), null, // execId will be generated per execution
-					jobId, jobGroup);
+					jobId, jobGroup, jobName);
 
 			// Schedule as recurring job with proper timezone
 			String zoneId = cronTimeZone != null ? cronTimeZone.getID() : ZoneId.systemDefault().getId();
@@ -200,7 +200,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			if (triggerNow || triggerOnLoad) {
 				String immediateExecId = UUID.randomUUID().toString();
 				PixelExecutionJobRequest immediateJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
-						providerInfo.toString(), immediateExecId, jobId, jobGroup);
+						providerInfo.toString(), immediateExecId, jobId, jobGroup, jobName);
 
 				jobRunrService.enqueue(immediateJobRequest);
 
@@ -216,67 +216,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Failed to schedule job with JobRunr: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Schedule job using JobRunr scheduler.
-	 */
-	private NounMetadata scheduleWithJobRunr2(String jobId, String jobName, String jobGroup, String cronExpression,
-			TimeZone cronTimeZone, String recipe, String recipeParameters, boolean triggerOnLoad, boolean triggerNow,
-			String uiState, List<String> jobTags) {
-
-		try {
-			// Get user access information
-			String userId = null;
-			User user = this.insight.getUser();
-			List<AuthProvider> authProviders = user.getLogins();
-			StringBuilder providerInfo = new StringBuilder();
-			for (int i = 0; i < authProviders.size(); i++) {
-				AuthProvider authProvider = authProviders.get(i);
-				AccessToken token = user.getAccessToken(authProvider);
-				// save user id for later insertion
-				userId = token.getId();
-				providerInfo.append(authProvider.name()).append(":").append(token.getId());
-				if (i != authProviders.size() - 1) {
-					providerInfo.append(",");
-				}
-			}
-
-			// Get JobRunr service
-			JobRunrService jobRunrService = SchedulerMigrationUtil.getJobRunrService();
-
-			// Create job request for JobRunr
-			String execId = UUID.randomUUID().toString();
-			PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
-					providerInfo.toString(), execId, jobId, jobGroup);
-
-			// Schedule as recurring job with Cron expression
-			jobRunrService.scheduleRecurring(jobId, cronExpression, jobRequest);
-
-			classLogger.info("Scheduled job with JobRunr: {} (Cron: {})", jobId, cronExpression);
-
-			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
-					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, jobTags);
-
-			if (triggerNow) {
-				jobRunrService.enqueue(jobRequest);
-				classLogger.info("Triggered JobRunr job immediately: {}", jobId);
-			}
-
-			if (triggerOnLoad) {
-				jobRunrService.enqueue(jobRequest);
-				classLogger.info("Triggered JobRunr job on load: {}", jobId);
-			}
-
-			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
-					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
-
-			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
-
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Failed to schedule job with JobRunr: " + e.getMessage());
 		}
 	}
 

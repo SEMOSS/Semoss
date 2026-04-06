@@ -75,7 +75,7 @@ public final class SchedulerMigrationUtil {
 	/**
 	 * Feature flag property name for enabling JobRunr
 	 */
-	private static final String JOBRUNR_ENABLED_FLAG = "scheduler.use-jobrunr";
+	private static final String JOBRUNR_ENABLED_FLAG = "scheduler_use_jobrunr";
 
 	/**
 	 * Default value for feature flag (disabled by default for safety)
@@ -159,10 +159,10 @@ public final class SchedulerMigrationUtil {
 
 			// Create job request
 			PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(pixelScript, pixelParameters, userAccess,
-					execId, jobId, jobGroup);
+					execId, jobId, jobGroup, null);
 
 			// Schedule as recurring job with Cron expression
-			return service.scheduleRecurring(jobId, cronExpression, jobRequest);
+			return service.scheduleRecurring(jobId, cronExpression, execId, jobRequest);
 
 		} catch (Exception e) {
 			System.err.println("Failed to schedule job with JobRunr: " + e.getMessage());
@@ -238,7 +238,7 @@ public final class SchedulerMigrationUtil {
 			JobRunrService service = getJobRunrService();
 
 			PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(pixelScript, pixelParameters, userAccess,
-					java.util.UUID.randomUUID().toString(), jobId, jobGroup);
+					java.util.UUID.randomUUID().toString(), jobId, jobGroup, jobGroup);
 
 			return service.enqueue(jobRequest);
 

@@ -144,7 +144,6 @@ import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
@@ -1047,9 +1046,9 @@ public class SchedulerDatabaseUtility {
 			throw new IllegalArgumentException("Must provide job group");
 		}
 
-		if (!CronExpression.isValidExpression(cronExpression)) {
-			throw new IllegalArgumentException("Must provide a valid cron expression!");
-		}
+//		if (!CronExpression.isValidExpression(cronExpression)) {
+//			throw new IllegalArgumentException("Must provide a valid cron expression!");
+//		}
 	}
 
 	/**

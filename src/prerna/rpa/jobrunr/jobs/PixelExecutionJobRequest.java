@@ -11,9 +11,10 @@ public class PixelExecutionJobRequest implements JobRequest {
 	private String execId;
 	private String jobId;
 	private String jobGroup;
+	private String jobName;
 
 	public PixelExecutionJobRequest() {
-		this(null, null, null, null, null, null);
+		this(null, null, null, null, null, null, null);
 	}
 
 	/**
@@ -27,13 +28,14 @@ public class PixelExecutionJobRequest implements JobRequest {
 	 * @param jobGroup        Job group identifier
 	 */
 	public PixelExecutionJobRequest(String pixelScript, String pixelParameters, String userAccess, String execId,
-			String jobId, String jobGroup) {
+			String jobId, String jobGroup, String jobName) {
 		this.pixelScript = pixelScript;
 		this.pixelParameters = pixelParameters;
 		this.userAccess = userAccess;
 		this.execId = execId;
 		this.jobId = jobId;
 		this.jobGroup = jobGroup;
+		this.jobName = jobName;
 	}
 
 	@Override
@@ -87,8 +89,16 @@ public class PixelExecutionJobRequest implements JobRequest {
 		return jobGroup;
 	}
 
+	public String getJobName() {
+		return jobName;
+	}
+
 	public void setJobGroup(String jobGroup) {
 		this.jobGroup = jobGroup;
+	}
+
+	public void setJobName(String jobName) {
+		this.jobName = jobName;
 	}
 
 	@Override
