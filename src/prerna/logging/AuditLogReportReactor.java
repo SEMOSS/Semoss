@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -109,11 +111,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 		if (projectId != null && !projectId.isEmpty()) {
 			Integer userPermissionLvl = SecurityProjectUtils
 					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
-			if (userPermissionLvl == null && !SecurityProjectUtils.projectIsGlobal(projectId)) {
-				throw new IllegalArgumentException(
-						"Project id '" + projectId + "' does not exist or user does not have access");
-			}
-			if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
 				userIsOwner = true;
 			}
 		}
@@ -122,11 +120,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 			if (engineId != null && !engineId.isEmpty()) {
 				Integer userPermissionLvl = SecurityEngineUtils
 						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
-				if (userPermissionLvl == null && !SecurityEngineUtils.engineIsGlobal(engineId)) {
-					throw new IllegalArgumentException(
-							"Engine id '" + engineId + "' does not exist or user does not have access");
-				}
-				if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
+				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
 					userIsOwner = true;
 				}
 			}
@@ -162,14 +156,26 @@ public class AuditLogReportReactor extends AbstractReactor {
 				endDateCustom);
 		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
+		Map<String, Object> searchMap = null;
+
+	    if (map.containsKey("search") && map.get("search") instanceof Map) {
+	         searchMap = (Map<String, Object>) map.get("search");
+	    }
+
+	     List<String> methodNames = getListFromSearch(searchMap, "methodName");
+	     List<String> args = getListFromSearch(searchMap, "args");
+	     List<String> engineTypes = getListFromSearch(searchMap, "engineType");
+	     
+	     String others = getString(map, "others");
+
 		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset);
+					roomId, sessionId, limit, offset, methodNames, engineTypes, others);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId);
+					roomId, sessionId, methodNames, engineTypes, others);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}
@@ -286,4 +292,27 @@ public class AuditLogReportReactor extends AbstractReactor {
 			return defaultValue;
 		}
 	}
+	
+	private boolean isBlank(String val) {
+        return val == null || val.trim().isEmpty();
+    }
+
+    private List<String> getListFromSearch(Map<String, Object> searchMap, String key) {
+        if (searchMap == null || !searchMap.containsKey(key)) {
+            return Collections.emptyList();
+        }
+
+        Object val = searchMap.get(key);
+
+        if (val instanceof List<?>) {
+            return ((List<?>) val).stream()
+                    .filter(Objects::nonNull)
+                    .map(Object::toString)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.toList());
+        }
+
+        return Collections.emptyList();
+    }
 }
