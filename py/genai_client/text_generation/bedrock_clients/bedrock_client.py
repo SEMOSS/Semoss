@@ -16,6 +16,7 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from botocore.config import Config
 
 
 class BedrockClient(AbstractTextGenerationClient):
@@ -42,7 +43,12 @@ class BedrockClient(AbstractTextGenerationClient):
         self.kwargs = kwargs
         self.model_id = modelId
 
-        self.client = self._create_client(region, access_key, secret_key, service_name)
+        retry_config = Config(
+            retries=kwargs.get("retries", {"max_attempts": 1, "mode": "standard"})
+        )
+
+        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=retry_config)
+
         self.guardrail_config = self._create_guardrail_config(
             guardrail_identifier, guardrail_version
         )
@@ -53,6 +59,7 @@ class BedrockClient(AbstractTextGenerationClient):
         access_key: str = None,
         secret_key: str = None,
         service_name: str = None,
+        retry_config: Config = None,
     ):
         """Create a boto3 client for Bedrock with appropriate authentication."""
         if access_key and secret_key:
@@ -61,11 +68,13 @@ class BedrockClient(AbstractTextGenerationClient):
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region,
+                config=retry_config,
             )
         else:
             return boto3.client(
                 service_name=service_name,
                 region_name=region,
+                config=retry_config,
             )
 
     def _create_guardrail_config(
