@@ -104,13 +104,14 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param messageSubject
-	 * @param bodyText
-	 * @param toEmailAddress
-	 * @return
-	 * @throws Exception
+	 * Sends an email through the Gmail API.
+	 *
+	 * @param accessToken    OAuth access token for Google APIs.
+	 * @param messageSubject subject line of the email.
+	 * @param bodyText       plain text email body.
+	 * @param toEmailAddress recipient email address.
+	 * @return a result map containing the sent message ID and success status.
+	 * @throws Exception if message encoding or send request fails.
 	 */
 	public static Map<String, Object> sendEmail(String accessToken, String messageSubject, String bodyText,
 			String toEmailAddress) throws Exception {
@@ -147,11 +148,12 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param limit
-	 * @return
-	 * @throws Exception
+	 * Retrieves a list of Gmail messages with basic metadata.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param limit       maximum number of messages to return.
+	 * @return list of message maps containing the message ID and subject.
+	 * @throws Exception if list or message-detail lookups fail.
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getEmailList(String accessToken, int limit) throws Exception {
@@ -193,11 +195,12 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param limit
-	 * @return
-	 * @throws Exception
+	 * Retrieves unread Gmail messages and normalizes their key fields.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param limit       maximum number of unread messages to return.
+	 * @return list of normalized unread message maps.
+	 * @throws Exception if list or message-detail lookups fail.
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getUnreadEmails(String accessToken, int limit) throws Exception {
@@ -224,11 +227,12 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param messageId
-	 * @return
-	 * @throws Exception
+	 * Reads a specific Gmail message and returns header/body details.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param messageId   Gmail message ID.
+	 * @return message map with sender, recipients, subject, body, and sent date.
+	 * @throws Exception if the message cannot be fetched or parsed.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> readEmail(String accessToken, String messageId) throws Exception {
@@ -256,10 +260,12 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @return
-	 * @throws Exception
+	 * Retrieves profile metadata for the logged-in Gmail user.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @return profile map including email address, message/thread counts, and
+	 *         history ID.
+	 * @throws Exception if the profile request fails.
 	 */
 	public static Map<String, Object> getGmailProfileById(String accessToken) throws Exception {
 		try {
@@ -281,30 +287,31 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param messageId
-	 * @return
+	 * Deletes a Gmail message by ID.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param messageId   Gmail message ID.
+	 * @return {@code true} if deletion succeeds, otherwise {@code false}.
 	 */
-	@SuppressWarnings("unused")
 	public static Boolean deleteEmail(String accessToken, String messageId) {
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(GOOGLE_GMAIL_READ_URL, messageId);
-			String response = HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
+			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
 			return true;
 		} catch (Exception e) {
 			classLogger.error("Failed to delete Gmail message id {}", messageId, e);
-			classLogger.warn("Failed to delete email", e.getMessage());
+			classLogger.warn("Unable to delete Gmail message id {}: {}", messageId, e.getMessage());
 			return false;
 		}
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param messageId
-	 * @return
+	 * Marks a Gmail message as read by removing the {@code UNREAD} label.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param messageId   Gmail message ID.
+	 * @return {@code true} if the update succeeds, otherwise {@code false}.
 	 */
 	public static Boolean markEmailAsRead(String accessToken, String messageId) {
 		try {
@@ -315,7 +322,7 @@ public final class GoogleGmailHelper {
 			labelsToRemove.add("UNREAD");
 			requestBody.put("removeLabelIds", labelsToRemove);
 			String jsonBody = GSON.toJson(requestBody);
-			String response = HttpHelperUtility.postRequestStringBody(url, headers, jsonBody, null, null, null, null);
+			HttpHelperUtility.postRequestStringBody(url, headers, jsonBody, null, null, null, null);
 			return true;
 		} catch (Exception e) {
 			classLogger.error("Failed to mark Gmail message as read id {}", messageId, e);
@@ -325,11 +332,13 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param accessToken
-	 * @param limit
-	 * @return
-	 * @throws Exception
+	 * Retrieves and normalizes the top {@code limit} Gmail messages for summary use
+	 * cases.
+	 *
+	 * @param accessToken OAuth access token for Google APIs.
+	 * @param limit       maximum number of messages to summarize.
+	 * @return list of normalized message summaries.
+	 * @throws Exception if message listing or lookup fails.
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> summarizeTopKEmails(String accessToken, int limit) throws Exception {
@@ -356,9 +365,10 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param msg
-	 * @return
+	 * Normalizes a raw Gmail message payload into a simplified map.
+	 *
+	 * @param msg raw Gmail message response map.
+	 * @return normalized map containing message ID, snippet, subject, and sender.
 	 */
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> normalizeGmailMessage(Map<String, Object> msg) {
@@ -388,10 +398,11 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param headers
-	 * @param name
-	 * @return
+	 * Finds a header value in a Gmail header list.
+	 *
+	 * @param headers message headers.
+	 * @param name    header name to search for.
+	 * @return matching header value, or {@code null} when not found.
 	 */
 	private static String getHeaderValue(List<Map<String, String>> headers, String name) {
 		for (Map<String, String> header : headers) {
@@ -403,9 +414,11 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param payload
-	 * @return
+	 * Extracts decoded message body text from a Gmail payload, searching nested
+	 * parts recursively.
+	 *
+	 * @param payload Gmail payload map.
+	 * @return decoded message body text, or {@code null} when unavailable.
 	 */
 	@SuppressWarnings("unchecked")
 	private static String extractBody(Map<String, Object> payload) {
@@ -426,9 +439,10 @@ public final class GoogleGmailHelper {
 	}
 
 	/**
-	 * 
-	 * @param map
-	 * @return
+	 * Attempts to decode a body fragment from the provided Gmail map.
+	 *
+	 * @param map Gmail payload or part map.
+	 * @return decoded UTF-8 text, or {@code null} if decoding is not possible.
 	 */
 	@SuppressWarnings("unchecked")
 	private static String extractBodyFromMap(Map<String, Object> map) {

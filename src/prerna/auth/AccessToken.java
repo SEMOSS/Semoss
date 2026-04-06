@@ -52,6 +52,7 @@ public class AccessToken implements Serializable {
 	String id = null;
 	String username = null;
 	String access_token = null;
+	String instance_url = null;
 	int expires_in = 0; // this is in seconds
 	String token_type = "Bearer";
 	long startTime = -1;
@@ -112,6 +113,14 @@ public class AccessToken implements Serializable {
 		return this.access_token;
 	}
 
+	public void setInstance_url(String instanceUrl) {
+		this.instance_url = instanceUrl;
+	}
+	
+	public String getInstance_url() {
+		return this.instance_url;
+	}
+	
 	/**
 	 * Gets the authentication provider associated with this token.
 	 * 

@@ -48,6 +48,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -65,8 +66,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
-
-import java.lang.reflect.Field;
 import java.util.function.Supplier;
 
 import org.apache.commons.io.FileUtils;
@@ -188,8 +187,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 
 			util.verify(() -> Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB), times(2));
-			connUtil.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null),
-					times(2));
+			connUtil.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null), times(2));
 		}
 	}
 
@@ -311,32 +309,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					.thenReturn(list);
 
 			assertEquals(expected, ModelInferenceLogsUtils.getProjectUsageFromModelInferenceLogs("projectId"));
-		}
-	}
-
-	@Test
-	void doCreateNewUser() throws Exception {
-
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-			when(engine.getPreparedStatement("INSERT INTO USERS (USER_ID, USERNAME, EMAIL) VALUES (?, ?, ?)"))
-					.thenReturn(ps).thenThrow(SQLException.class);
-
-			when(user.getPrimaryLoginToken()).thenReturn(access);
-			when(access.getId()).thenReturn("id");
-			when(access.getUsername()).thenReturn("username");
-			when(access.getEmail()).thenReturn("email");
-
-			when(ps.getConnection()).thenReturn(conn);
-			when(conn.getAutoCommit()).thenReturn(false);
-
-			ModelInferenceLogsUtils.doCreateNewUser(user);
-			ModelInferenceLogsUtils.doCreateNewUser(user);
-
-			verify(ps, times(2)).getConnection();
-			verify(conn).getAutoCommit();
-			verify(conn).commit();
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null));
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, null, null));
 		}
 	}
 
@@ -875,7 +847,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		verify(engine, times(3)).getConnection();
 		verify(conn, times(4)).prepareStatement(anyString());
-		verify(ps, times(14)).setString(anyInt(), anyString());
+		verify(ps, times(14 - 3)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(3)).execute();
@@ -928,7 +900,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(conn, times(5)).getAutoCommit();
 		verify(conn, times(5)).commit();
 
-		verify(ps, times(13)).setString(anyInt(), anyString());
+		verify(ps, times(13 - 3)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(5)).execute();
@@ -1115,9 +1087,9 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushClobToString(any(Clob.class))).thenReturn("clob");
 			staticQueryUtil.when(() -> AbstractSqlQueryUtil.flushBlobToString(any(Blob.class))).thenReturn("blob");
 
-			assertNull(ModelInferenceLogsUtils.getWorkspaceResourcesByType("workspaceId", "resourceType"));
-			assertTrue(expected.toString().equals(
-					ModelInferenceLogsUtils.getWorkspaceResourcesByType("workspaceId", "resourceType").toString()));
+			assertNull(ModelInferenceLogsUtils.getWorkspaceResourcesByType("workspaceId", List.of("resourceType")));
+			assertTrue(expected.toString().equals(ModelInferenceLogsUtils
+					.getWorkspaceResourcesByType("workspaceId", List.of("resourceType")).toString()));
 		}
 	}
 
@@ -1141,27 +1113,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(engine, times(2)).getConnection();
 		verify(conn, times(2)).prepareStatement(anyString());
 		verify(ps, times(10)).setString(anyInt(), anyString());
-		verify(ps, times(2)).execute();
-		verify(conn).getAutoCommit();
-		verify(conn).commit();
-	}
-
-	@Test
-	void deleteWorkspaceResource() throws Exception {
-		when(engine.getConnection()).thenReturn(conn);
-		when(conn.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_RESOURCE_ID = ?")).thenReturn(ps);
-		when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
-		when(conn.getAutoCommit()).thenReturn(false);
-
-		Exception e = assertThrows(IllegalArgumentException.class,
-				() -> ModelInferenceLogsUtils.deleteWorkspaceResource("workspaceResourceId"));
-		assertEquals("Error deleting workspace resource: null", e.getMessage());
-
-		ModelInferenceLogsUtils.deleteWorkspaceResource("workspaceResourceId");
-
-		verify(engine, times(2)).getConnection();
-		verify(conn, times(2)).prepareStatement(anyString());
-		verify(ps, times(2)).setString(anyInt(), anyString());
 		verify(ps, times(2)).execute();
 		verify(conn).getAutoCommit();
 		verify(conn).commit();
