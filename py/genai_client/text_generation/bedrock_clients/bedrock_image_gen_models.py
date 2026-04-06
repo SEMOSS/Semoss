@@ -129,12 +129,13 @@ def build_request_body(
     task_type: str,
     param_map: Dict[str, Any] = None,
 ) -> Dict[str, Any]:
-    task = BedrockImageGenTaskType(task_type)
+    
+    try:
+        task = BedrockImageGenTaskType(task_type)
+    except ValueError as e:
+        raise ValueError(f"Unsupported task type: {task_type}") from e
+    
     param_map = param_map or {}
-
-    if task not in _TASK_PARAMS:
-        raise ValueError(f"Unsupported task type: {task_type}")
-
     param_key, param_cls = _TASK_PARAMS[task]
 
     body: Dict[str, Any] = {
