@@ -90,8 +90,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteThread = new Thread(new DeleteProjectRunner(projectId));
-				deleteThread.start();
+				Thread.ofVirtual().start(new DeleteProjectRunner(projectId));
 			}
 		}
 
