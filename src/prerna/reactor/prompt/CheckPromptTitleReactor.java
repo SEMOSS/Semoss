@@ -39,14 +39,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Checks whether a prompt with the given title exists and is accessible to the
- * user.
- * Only matches prompts that are global or created by the requesting user.
+ * user. Only matches prompts that are global or created by the requesting user.
  *
- * Pixel usage:
- * CheckPromptTitle(promptTitle="My Prompt");
+ * Pixel usage: CheckPromptTitle(promptTitle="My Prompt");
  *
- * Parameters:
- * promptTitle (String, required) - The title to check
+ * Parameters: promptTitle (String, required) - The title to check
  *
  * Returns: BOOLEAN - true if a matching accessible prompt exists, false
  * otherwise.
@@ -61,9 +58,8 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create prompt", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create prompt",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -78,8 +74,7 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 		organizeKeys();
 		String promptTitle = this.keyValue.get(this.keysToGet[0]);
 		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle, user);
-		NounMetadata nm = new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
-		return nm;
+		return new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
 	}
 
 }

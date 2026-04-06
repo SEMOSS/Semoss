@@ -797,7 +797,7 @@ class OpenAIMessageBuilder:
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ) -> tuple[List[OpenAIMessage], Dict[str, Any]]:
         if param_map.get("system_prompt"):
             param_map["instructions"] = param_map.pop("system_prompt")
 
@@ -808,6 +808,17 @@ class OpenAIMessageBuilder:
         )
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
+
+        if "stream" not in param_map:
+            param_map["stream"] = True
+        else:
+            streaming = param_map["stream"]
+            streaming_bool = (
+                string_to_bool(streaming)
+                if isinstance(streaming, str)
+                else bool(streaming)
+            )
+            param_map["stream"] = streaming_bool
 
         # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
@@ -848,6 +859,22 @@ class OpenAIMessageBuilder:
         )
         if max_tokens:
             param_map["max_completion_tokens"] = max_tokens
+
+        if "stream" not in param_map:
+            param_map["stream"] = True
+            param_map["stream_options"] = {"include_usage": True}
+        else:
+            streaming = param_map["stream"]
+            streaming_bool = (
+                string_to_bool(streaming)
+                if isinstance(streaming, str)
+                else bool(streaming)
+            )
+            param_map["stream"] = streaming_bool
+            if streaming_bool:
+                param_map["stream_options"] = {"include_usage": True}
+            else:
+                param_map.pop("stream_options", None)
 
         # Removing any unhanlded semoss specific params
         param_map.pop("max_output_tokens", None)
