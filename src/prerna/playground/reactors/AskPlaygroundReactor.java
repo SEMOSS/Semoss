@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -47,7 +48,6 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -114,7 +114,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
