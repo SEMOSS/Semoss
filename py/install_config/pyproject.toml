@@ -1,6 +1,6 @@
 [project]
 name = "semoss"
-version = "5.0.0"
+version = "5.2.0"
 description = "semoss"
 authors = [
     {name = "Ryan Weiler", email = "ryanweiler92@gmail.com"}
@@ -132,4 +132,9 @@ torchvision = [
 torchaudio = [
   { index = "pytorch-cpu", marker = "extra == 'cpu' and extra != 'gpu'" },
   { index = "pytorch-cu126", marker = "extra == 'gpu' and extra != 'cpu'" }
+]
+
+[dependency-groups]
+dev = [
+    "boto3-stubs[bedrock,bedrock-runtime]>=1.42.83",
 ]

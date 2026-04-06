@@ -2,23 +2,25 @@ from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
 
+    from mypy_boto3_bedrock_runtime import BedrockRuntimeClient
+
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
 
 
 import json, boto3, re
-from botocore.client import BaseClient # doesn't provide service-specific type annotations
 from smss_thread_local import get_smss_stream
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
-from botocore.config import Config
 
 
 class BedrockClient(AbstractTextGenerationClient):
+    client: "BedrockRuntimeClient"
+
     def __init__(
         self,
         modelId: str,
@@ -40,11 +42,7 @@ class BedrockClient(AbstractTextGenerationClient):
         self.kwargs = kwargs
         self.model_id = modelId
 
-        retry_config = Config(
-            retries=kwargs.get("retries", {"max_attempts": 1, "mode": "standard"})
-        )
-
-        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=retry_config)
+        self.client = self._create_client(region, access_key, secret_key, service_name)
         self.guardrail_config = self._create_guardrail_config(
             guardrail_identifier, guardrail_version
         )
@@ -55,8 +53,7 @@ class BedrockClient(AbstractTextGenerationClient):
         access_key: str = None,
         secret_key: str = None,
         service_name: str = None,
-        retry_config: Config = None,
-        ) -> BaseClient:
+    ):
         """Create a boto3 client for Bedrock with appropriate authentication."""
         if access_key and secret_key:
             return boto3.client(
@@ -64,13 +61,11 @@ class BedrockClient(AbstractTextGenerationClient):
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region,
-                config=retry_config,
             )
         else:
             return boto3.client(
                 service_name=service_name,
                 region_name=region,
-                config=retry_config,
             )
 
     def _create_guardrail_config(
