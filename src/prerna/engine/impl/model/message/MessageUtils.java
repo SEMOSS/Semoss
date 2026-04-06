@@ -27,27 +27,18 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -58,7 +49,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
@@ -326,80 +316,6 @@ public class MessageUtils {
 			}
 		}
 		return result;
-	}
-
-	/**
-	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room
-	 * folder.
-	 * <p>
-	 * This is used for model-generated media (e.g., Gemini inline images) that
-	 * arrive as base64.
-	 *
-	 * @param message message to inspect for file-based media parts
-	 * @param room    room context used to resolve destination folder
-	 */
-	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
-		if (message == null || room == null || room.getRoomFolderPath() == null) {
-			return;
-		}
-		if (!message.hasMediaPart()) {
-			return;
-		}
-
-		String roomFolder = room.getRoomFolderPath();
-		try {
-			Files.createDirectories(Paths.get(roomFolder));
-		} catch (IOException e) {
-			classLogger.warn("Unable to create room folder: " + roomFolder, e);
-			return;
-		}
-
-		for (MessagePart part : message.getParts()) {
-			if (!(part instanceof MediaMessagePart)) {
-				continue;
-			}
-			MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
-			if (media == null || media.getMediaInputType() == null) {
-				continue;
-			}
-			if (media.getMediaInputType() != MessageInputMedia.MEDIA_INPUT_TYPE.FILE) {
-				continue;
-			}
-
-			String base64Data = media.getBase64Data();
-			if (base64Data == null || base64Data.isEmpty()) {
-				continue;
-			}
-
-			String fileName = media.getFileName();
-			fileName = MessageInputMedia.extractFileName(fileName);
-			if (fileName == null || fileName.trim().isEmpty()) {
-				String ext = media.getFileFormat();
-				if (ext == null || ext.trim().isEmpty()) {
-					ext = "bin";
-				}
-				fileName = GUID.v7().toUUID().toString() + "." + ext;
-			}
-
-			Path target = Paths.get(roomFolder).resolve(fileName).normalize();
-			if (!target.startsWith(Paths.get(roomFolder))) {
-				classLogger.warn("Skipping unsafe media filename: " + fileName);
-				continue;
-			}
-
-			if (!Files.exists(target)) {
-				try {
-					byte[] bytes = Base64.getDecoder().decode(base64Data);
-					Files.write(target, bytes);
-				} catch (Exception e) {
-					classLogger.warn("Unable to persist media part to " + target, e);
-					continue;
-				}
-			}
-
-			media.setRoomFolder(roomFolder);
-			ClusterUtil.pushRoom(room.getId());
-		}
 	}
 
 	// --- Core two serialization methods ---
@@ -961,212 +877,6 @@ public class MessageUtils {
 	 */
 	public static String getMessagesForPy(List<AbstractMessage> msgs) {
 		return toJsonArrayWithImageData(msgs);
-	}
-
-	// ---- Image move utilities ---- This should be used over copy
-
-	/**
-	 * Moves files from an insight folder into the room folder.
-	 *
-	 * @param relativePathToFiles paths relative to the insight folder
-	 * @param room                destination room context
-	 * @param insight             source insight context
-	 * @return absolute destination paths for files that were moved
-	 */
-	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> roomFilePaths = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to move.");
-			return roomFilePaths;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return roomFilePaths;
-		}
-		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.move(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				classLogger.warn("Failed to move file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-				continue;
-			}
-			roomFilePaths.add(destination.toString());
-		}
-		return roomFilePaths;
-	}
-
-	/**
-	 * Copies files (or supported base64 data URIs) into the room folder.
-	 *
-	 * @param relativePathToFiles source relative file paths or data URI strings
-	 * @param room                destination room context
-	 * @param insight             source insight context
-	 * @return destination file names for successfully copied/decoded assets
-	 */
-	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> copiedFileNames = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to copy.");
-			return copiedFileNames;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return copiedFileNames;
-		}
-		for (String relPath : relativePathToFiles) {
-			if (isBase64MediaDataUri(relPath)) {
-				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
-				if (fileName != null) {
-					copiedFileNames.add(fileName);
-				}
-				continue;
-			}
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-				copiedFileNames.add(fileName); // only add if copy succeeded
-			} catch (IOException e) {
-				classLogger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-			}
-		}
-		return copiedFileNames;
-	}
-
-	/**
-	 * Checks whether a value is a supported base64 media data URI.
-	 *
-	 * @param value input string
-	 * @return {@code true} for supported image/pdf data URIs
-	 */
-	private static boolean isBase64MediaDataUri(String value) {
-		if (value == null) {
-			return false;
-		}
-		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
-		String trimmed = value.trim();
-		if (!trimmed.contains(";base64,")) {
-			return false;
-		}
-		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
-	}
-
-	/**
-	 * Decodes a base64 image/pdf data URI and writes it to the target directory.
-	 *
-	 * @param dataUri   media data URI
-	 * @param targetDir destination directory
-	 * @return written file name, or {@code null} on validation/IO/decode failure
-	 */
-	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
-		try {
-			Files.createDirectories(targetDir);
-
-			String trimmed = dataUri.trim();
-			int commaIdx = trimmed.indexOf(',');
-			if (commaIdx < 0) {
-				classLogger.info("Invalid data URI (no comma separator)");
-				return null;
-			}
-
-			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
-			String base64 = trimmed.substring(commaIdx + 1);
-			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			int colonIdx = meta.indexOf(':');
-			int semiIdx = meta.indexOf(';');
-			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
-			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
-				classLogger.info("Unsupported data URI mime type: " + mimeType);
-				return null;
-			}
-
-			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
-			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
-			return fileName;
-		} catch (IllegalArgumentException e) {
-			// base64 decoder throws IllegalArgumentException on bad input
-			classLogger.warn("Failed to decode base64 data URI image", e);
-			return null;
-		} catch (IOException e) {
-			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
-			return null;
-		}
-	}
-
-	/**
-	 * Resolves an output file extension from mime type.
-	 *
-	 * @param mimeType mime type string
-	 * @return normalized file extension (without dot)
-	 */
-	private static String extensionFromMimeType(String mimeType) {
-		if ("application/pdf".equals(mimeType)) {
-			return "pdf";
-		}
-		if (mimeType == null || !mimeType.startsWith("image/")) {
-			return "png";
-		}
-		switch (mimeType) {
-		case "image/jpg":
-		case "image/jpeg":
-			return "jpeg";
-		case "image/png":
-			return "png";
-		case "image/gif":
-			return "gif";
-		case "image/webp":
-			return "webp";
-		case "image/bmp":
-			return "bmp";
-		case "image/svg+xml":
-			return "svg";
-		case "image/x-icon":
-		case "image/vnd.microsoft.icon":
-			return "ico";
-		default:
-			String subtype = mimeType.substring("image/".length());
-			int plusIdx = subtype.indexOf('+');
-			if (plusIdx > 0) {
-				subtype = subtype.substring(0, plusIdx);
-			}
-			subtype = subtype.replaceAll("[^a-z0-9]", "");
-			return subtype.isEmpty() ? "png" : subtype;
-		}
 	}
 
 	/**

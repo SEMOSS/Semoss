@@ -608,7 +608,7 @@ public class Room {
 		response.setRoom(this);
 		response.setParentMessageId(parentMessage == null ? null : parentMessage.getMessageId());
 		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-		MessageUtils.persistMediaPartsToRoomFolder(response, this);
+		RoomUtils.persistMediaPartsToRoomFolder(response, this);
 		return response;
 	}
 
