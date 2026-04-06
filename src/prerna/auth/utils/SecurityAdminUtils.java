@@ -82,8 +82,9 @@ import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
-	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
+
+	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 
 	private SecurityAdminUtils() {
 
@@ -106,10 +107,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean userIsAdmin(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT * FROM SMSS_USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
