@@ -1029,7 +1029,8 @@
 			<artifactId>commons-io</artifactId>
 			<version>2.21.0</version>
 		</dependency>
-		<dependency>
+		<!--Mend issue: commons-lang-2.6.jar to upgrade -->
+		<!--<dependency>
 			<groupId>commons-lang</groupId>
 			<artifactId>commons-lang</artifactId>
 			<version>2.6</version>
@@ -1039,7 +1040,7 @@
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
-		</dependency>
+		</dependency>-->
 		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
