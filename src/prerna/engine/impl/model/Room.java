@@ -527,13 +527,15 @@ public class Room {
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
 				// remove the last tool since it failed
-				toolResultsMessage.getParts().removeLast();
+				List<MessagePart> p = toolResultsMessage.getParts();
+				p.removeLast();
+				toolResultsMessage.setParts(p);
 				classLogger.error("Error adding tool result and getting model response", e);
 				throw e;
 			}
 			// we have already added to the messages above
 			// we dont need to add again, only the response
-//			messages.add(toolResultsMessage);
+			// messages.add(toolResultsMessage);
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
