@@ -1129,21 +1129,25 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Records a message row with full metadata, including optional transaction id.
 	 *
-	 * @param messageId     message id
-	 * @param transactionId transaction id (nullable)
-	 * @param messageType   message type
-	 * @param messageData   serialized message payload
-	 * @param messageMethod message method
-	 * @param tokenSize     token count
-	 * @param reponseTime   model response time
-	 * @param dateCreated   created time
-	 * @param agentId       agent/model id
-	 * @param insightId     insight id
-	 * @param sessionId     session id
-	 * @param roomId        room id
-	 * @param userId        user id
-	 * @param userName      user display name
-	 * @param userEmail     user email
+	 * @param messageId       message id
+	 * @param transactionId   transaction id (nullable)
+	 * @param messageType     message type
+	 * @param messageData     serialized message payload
+	 * @param messageMethod   message method
+	 * @param tokenSize       token count
+	 * @param inputTokenSize  input token count (nullable)
+	 * @param outputTokenSize output token count (nullable)
+	 * @param thinkingTokens  thinking token count (nullable)
+	 * @param cachedTokens    cached token count (nullable)
+	 * @param reponseTime     model response time
+	 * @param dateCreated     created time
+	 * @param agentId         agent/model id
+	 * @param insightId       insight id
+	 * @param sessionId       session id
+	 * @param roomId          room id
+	 * @param userId          user id
+	 * @param userName        user display name
+	 * @param userEmail       user email
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize, Integer inputTokenSize, Integer outputTokenSize,
