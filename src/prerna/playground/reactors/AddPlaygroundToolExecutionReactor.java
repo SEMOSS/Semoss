@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -45,7 +46,6 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -133,22 +133,25 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
 			} else {
 				// parse the response for code blocks
+				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
 					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
 					room.updateToolResponseMeta(lastMessage);
 				}
+				Map<String, Object> inputMap = jsonToMap(MessageUtils.toJson(inputMessage));
 				Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
-	//			MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+				// MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+				pixelReturn.put("inputMessage", inputMap);
 				pixelReturn.put("responseMessage", responseMap);
 				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 		} finally {
-			classLogger.info("AddPlaygroundToolExecution - pushing room '{}' to cloud storage", roomId);
-			ClusterUtil.pushRoom(roomId);
+			// there might be times when this is unnecessary
+			// but we dont know if a tool output generated a file in the room
+			ClusterUtil.pushRoomAsync(room.getId());
 		}
 	}
 

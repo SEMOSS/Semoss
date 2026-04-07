@@ -42,6 +42,10 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.om.HeadersException;
 
+/**
+ * Analyzes a single sheet to identify contiguous data blocks and expose cleaned
+ * header metadata for each block.
+ */
 public class ExcelSheetPreProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(ExcelSheetPreProcessor.class);
@@ -57,19 +61,40 @@ public class ExcelSheetPreProcessor {
 	private Map<Integer, String[]> cachedHeaders = new HashMap<>();
 	private boolean hasProcessed = false;
 
+	/**
+	 * Creates a preprocessor for a single sheet.
+	 *
+	 * @param sheet sheet to preprocess
+	 */
 	public ExcelSheetPreProcessor(Sheet sheet) {
 		this.sheet = sheet;
 		this.sheetName = sheet.getSheetName();
 	}
 
+	/**
+	 * Gets the wrapped sheet.
+	 *
+	 * @return source sheet
+	 */
 	public Sheet getSheet() {
 		return this.sheet;
 	}
 
+	/**
+	 * Gets all discovered data blocks in the sheet.
+	 *
+	 * @return detected data blocks
+	 */
 	public List<ExcelBlock> getAllBlocks() {
 		return this.allBlocks;
 	}
 
+	/**
+	 * Returns raw headers for a specific range from the cached header row.
+	 *
+	 * @param range range to resolve headers for
+	 * @return raw header values for the range columns
+	 */
 	public String[] getRangeHeaders(ExcelRange range) {
 		if (!hasProcessed) {
 			throw new IllegalStateException("Must call determineSheetRanges() before getRangeHeaders()");
@@ -102,6 +127,12 @@ public class ExcelSheetPreProcessor {
 		return curHeaders;
 	}
 
+	/**
+	 * Returns cleaned, unique headers for the provided range.
+	 *
+	 * @param range range to resolve headers for
+	 * @return cleaned and de-duplicated headers
+	 */
 	public String[] getCleanedRangeHeaders(ExcelRange range) {
 		String[] oHeaders = getRangeHeaders(range);
 
@@ -121,13 +152,14 @@ public class ExcelSheetPreProcessor {
 			newUniqueCleanHeaders.add(newHeader);
 		}
 
-		return newUniqueCleanHeaders.toArray(new String[] {});
+		return newUniqueCleanHeaders.toArray(new String[0]);
 	}
 
 	/**
-	 * 
-	 * @param oHeaders
-	 * @return
+	 * Cleans and deduplicates a list of raw header values.
+	 *
+	 * @param oHeaders raw headers
+	 * @return cleaned and unique headers
 	 */
 	public static String[] getCleanedRangeHeaders(String[] oHeaders) {
 		// grab the headerChecker
@@ -146,7 +178,7 @@ public class ExcelSheetPreProcessor {
 			newUniqueCleanHeaders.add(newHeader);
 		}
 
-		return newUniqueCleanHeaders.toArray(new String[] {});
+		return newUniqueCleanHeaders.toArray(new String[0]);
 	}
 
 	/**
@@ -217,7 +249,7 @@ public class ExcelSheetPreProcessor {
 			}
 
 			// Cache header row (first row of each block or potential header rows)
-			if (isFirstRowOfBlock || filledInColumns == 0) {
+			if (isFirstRowOfBlock) {
 				cacheHeaderRow(thisRow, rowNum, lastCol);
 			}
 

@@ -34,10 +34,16 @@ from ..semoss_base.semoss_models import (
 
 class OpenAIMessageBuilder:
 
-    def __init__(self, model_settings: ModelSettings, chat_type: str):
+    def __init__(
+        self,
+        model_settings: ModelSettings,
+        chat_type: str,
+        simplify_messages: bool = False,
+    ):
         """Initialize the OpenAI message builder with a specific model name."""
         self.model_settings = model_settings
         self.chat_type = chat_type
+        self.simplify_messages = simplify_messages
 
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
@@ -375,6 +381,15 @@ class OpenAIMessageBuilder:
                 # this message might be a tool result with no other content
                 # in that case we don't want to add an additional message with empty content
                 elif content_parts:
+                    if (
+                        len(content_parts) == 1
+                        and isinstance(content_parts[0], OpenAITextContentPart)
+                        and self.simplify_messages
+                    ):
+                        content = content_parts[0].text
+                    else:
+                        content = content_parts
+
                     openai_messages.append(
                         OpenAIMessage(
                             role=(
@@ -382,7 +397,7 @@ class OpenAIMessageBuilder:
                                 if message.io == "INPUT"
                                 else OpenAIRoles.ASSISTANT.value
                             ),
-                            content=content_parts,
+                            content=content,
                         )
                     )
 
@@ -782,7 +797,7 @@ class OpenAIMessageBuilder:
 
     def _clean_param_map_for_responses(
         self, openai_messages: List[OpenAIMessage], param_map: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    ) -> tuple[List[OpenAIMessage], Dict[str, Any]]:
         if param_map.get("system_prompt"):
             param_map["instructions"] = param_map.pop("system_prompt")
 
@@ -793,6 +808,17 @@ class OpenAIMessageBuilder:
         )
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
+
+        if "stream" not in param_map:
+            param_map["stream"] = True
+        else:
+            streaming = param_map["stream"]
+            streaming_bool = (
+                string_to_bool(streaming)
+                if isinstance(streaming, str)
+                else bool(streaming)
+            )
+            param_map["stream"] = streaming_bool
 
         # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
@@ -833,6 +859,22 @@ class OpenAIMessageBuilder:
         )
         if max_tokens:
             param_map["max_completion_tokens"] = max_tokens
+
+        if "stream" not in param_map:
+            param_map["stream"] = True
+            param_map["stream_options"] = {"include_usage": True}
+        else:
+            streaming = param_map["stream"]
+            streaming_bool = (
+                string_to_bool(streaming)
+                if isinstance(streaming, str)
+                else bool(streaming)
+            )
+            param_map["stream"] = streaming_bool
+            if streaming_bool:
+                param_map["stream_options"] = {"include_usage": True}
+            else:
+                param_map.pop("stream_options", None)
 
         # Removing any unhanlded semoss specific params
         param_map.pop("max_output_tokens", None)
