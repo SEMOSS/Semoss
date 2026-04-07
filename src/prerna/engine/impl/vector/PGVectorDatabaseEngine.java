@@ -1218,7 +1218,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 					}
 
 					extractedFiles.add(extractedFile);
-				} catch (IOException e) {
+				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error("Failed to process document: " + destinationFile.getName(), e);
 					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
