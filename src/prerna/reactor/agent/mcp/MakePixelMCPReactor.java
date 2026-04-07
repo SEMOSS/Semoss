@@ -30,7 +30,6 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -41,7 +40,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -139,56 +137,13 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			if (project.getAvailableReactors().isEmpty()) {
 				project.getReactor("__trigger_compile__");
 			}
-			TreeSet<String> availableReactors = project.getAvailableReactors();
-			if (availableReactors != null && !availableReactors.isEmpty()) {
-				for (String availableName : availableReactors) {
-					IReactor reactor = project.getReactor(availableName);
-					if (reactor == null) {
-						continue;
-					}
-					Class<?> reactorClass = reactor.getClass();
-
-					// Must not be abstract
-					if (Modifier.isAbstract(reactorClass.getModifiers())) {
-						continue;
-					}
-
-					// Must have MCP tool metadata (non-null getMcpToolMetadata)
-					if (!(reactor instanceof AbstractReactor)) {
-						continue;
-					}
-					Map<String, String> mcpMeta = ((AbstractReactor) reactor).getMcpToolMetadata();
-					if (mcpMeta == null) {
-						continue;
-					}
-
-					// Check if reactor's package matches any of the requested packages
-					String reactorPackage = reactorClass.getPackageName();
-					boolean packageMatch = false;
-					for (String pkg : packageNames) {
-						if (reactorPackage.equals(pkg) || reactorPackage.startsWith(pkg + ".")) {
-							packageMatch = true;
-							break;
-						}
-					}
-					if (!packageMatch) {
-						continue;
-					}
-
-					// Generate the tool JSON — metadata is populated by asMcpTool()
+			for (String availableName : project.getAvailableReactors()) {
+				IReactor reactor = project.getReactor(availableName);
+				if (reactor instanceof AbstractReactor
+						&& ((AbstractReactor) reactor).getMcpToolMetadata() != null
+						&& matchesPackage(reactor.getClass().getPackageName(), packageNames)) {
 					JSONObject reactorTool = reactor.asMcpTool();
 					String functionName = reactorTool.getString("name");
-
-					// Ensure _meta exists with function name
-					JSONObject meta = reactorTool.optJSONObject("_meta");
-					if (meta == null) {
-						meta = new JSONObject();
-						meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
-						meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto"));
-						meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
-						reactorTool.put("_meta", meta);
-					}
-
 					toolsArray.put(reactorTool);
 					addedReactorNames.add(functionName.toUpperCase());
 				}
@@ -355,6 +310,19 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					+ "Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	/**
+	 * Checks if a reactor's package matches any of the requested package prefixes.
+	 * Matches the exact package or any sub-package.
+	 */
+	private boolean matchesPackage(String reactorPackage, List<String> packageNames) {
+		for (String pkg : packageNames) {
+			if (reactorPackage.equals(pkg) || reactorPackage.startsWith(pkg + ".")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 }
