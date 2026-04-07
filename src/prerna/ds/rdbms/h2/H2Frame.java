@@ -82,7 +82,7 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class H2Frame extends AbstractRdbmsFrame {
 
 	private Logger logger = LogManager.getLogger(H2Frame.class);
-	
+
 	private String fileLocation;
 	private String fileNameToUse;
 
@@ -113,37 +113,38 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String insightId = ThreadStore.getInsightId();
 
 		String folderToUsePath = null;
-		if(sessionId != null && insightId != null) {
+		if (sessionId != null && insightId != null) {
 			sessionId = InsightUtility.getFolderDirSessionId(sessionId);
-			folderToUsePath = Utility.getInsightCacheDir() + 
-					DIR_SEPARATOR + sessionId +  DIR_SEPARATOR + insightId;
-			this.fileNameToUse = "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_") + ".mv.db";
+			folderToUsePath = Utility.getInsightCacheDir() +
+					DIR_SEPARATOR + sessionId + DIR_SEPARATOR + insightId;
+			this.fileNameToUse = "H2_Store_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_")
+					+ ".mv.db";
 		} else {
-			folderToUsePath = Utility.getInsightCacheDir() + 
-					DIR_SEPARATOR + "H2_Store_" +  UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
+			folderToUsePath = Utility.getInsightCacheDir() +
+					DIR_SEPARATOR + "H2_Store_" + UUID.randomUUID().toString().toUpperCase().replaceAll("-", "_");
 			this.fileNameToUse = "database.mv.db";
 		}
 
 		// create the location of the file if it doesn't exist
 		File folderToUse = new File(folderToUsePath);
-		if(!folderToUse.exists()) {
+		if (!folderToUse.exists()) {
 			folderToUse.mkdirs();
 		}
 
 		this.fileLocation = folderToUsePath + DIR_SEPARATOR + this.fileNameToUse;
 		// make the actual file so the connection helper knows its not a tcp protocol
 		File fileToUse = new File(this.fileLocation);
-		if(!fileToUse.exists()) {
+		if (!fileToUse.exists()) {
 			fileToUse.createNewFile();
 		}
 
 		// build the connection url
 		Map<String, Object> connDetails = new HashMap<>();
 		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, fileLocation);
-		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "LOG=0;CACHE_SIZE=65536;LOCK_MODE=1;UNDO_LOG=0");
+		connDetails.put(AbstractSqlQueryUtil.ADDITIONAL, "CACHE_SIZE=65536;LOCK_MODE=1");
 		String connectionUrl = this.util.setConnectionDetailsfromMap(connDetails);
 		// get the connection
-		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl,  "sa", "");
+		this.conn = AbstractSqlQueryUtil.makeConnection(RdbmsTypeEnum.H2_DB, connectionUrl, "sa", "");
 		// set the builder
 		this.builder = new RdbmsFrameBuilder(this.conn, this.database, this.schema, this.util);
 		this.util.enhanceConnection(this.conn);
@@ -153,14 +154,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 	public void close() {
 		super.close();
 		File f = new File(Utility.normalizePath(this.fileLocation));
-		DeleteDbFiles.execute(f.getParent().replace('\\','/'), this.fileNameToUse.replace(".mv.db", ""), false);
-		if(f.exists()) {
+		DeleteDbFiles.execute(f.getParent().replace('\\', '/'), this.fileNameToUse.replace(".mv.db", ""), false);
+		if (f.exists()) {
 			f.delete();
 		}
 		// also delete the parent folder
 		File pF = f.getParentFile();
 		// this condition should always be the case
-		if(pF.listFiles() != null && pF.listFiles().length == 0) {
+		if (pF.listFiles() != null && pF.listFiles().length == 0) {
 			f.getParentFile().delete();
 		}
 	}
@@ -172,7 +173,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		String frameName = this.getName();
 		cf.setFrameName(frameName);
 
-		//save frame
+		// save frame
 		String frameFileName = folderDir + DIR_SEPARATOR + frameName + ".gz";
 
 		String saveScript = "SCRIPT TO '" + frameFileName + "' COMPRESSION GZIP TABLE " + frameName;
@@ -187,7 +188,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		} catch (Exception e) {
 			throw new IOException("Error occurred attempting to cache SQL Frame", e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -196,10 +197,10 @@ public class H2Frame extends AbstractRdbmsFrame {
 			}
 		}
 
-		if(!new File(frameFileName).exists()) {
+		if (!new File(frameFileName).exists()) {
 			throw new IllegalArgumentException("Unable to save the H2 frame");
 		}
-		if(new File(frameFileName).length() == 0){
+		if (new File(frameFileName).length() == 0) {
 			throw new IllegalArgumentException("Attempting to save an empty H2 frame");
 		}
 
@@ -211,7 +212,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 	@Override
 	public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
-		//set the frame name to that of the cached frame name
+		// set the frame name to that of the cached frame name
 		this.frameName = cf.getFrameName();
 
 		// load the frame
@@ -219,27 +220,27 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise
-		//		Statement stmt = null;
-		//		try {
-		//			stmt = this.conn.createStatement();
-		//			stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
-		//		} catch (SQLException e1) {
-		//			classLogger.error(Constants.STACKTRACE, e1);
-		//		} finally {
-		//			if(stmt != null) {
-		//				try {
-		//					stmt.close();
-		//				} catch (SQLException e) {
-		//					logger.error(Constants.STACKTRACE, e);
-		//				}
-		//			}
-		//		}
+		// Statement stmt = null;
+		// try {
+		// stmt = this.conn.createStatement();
+		// stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
+		// } catch (SQLException e1) {
+		// classLogger.error(Constants.STACKTRACE, e1);
+		// } finally {
+		// if(stmt != null) {
+		// try {
+		// stmt.close();
+		// } catch (SQLException e) {
+		// logger.error(Constants.STACKTRACE, e);
+		// }
+		// }
+		// }
 
 		Reader r = null;
 		GZIPInputStream gis = null;
 		FileInputStream fis = null;
 		try {
-			//load the frame
+			// load the frame
 			fis = new FileInputStream(filePath);
 			gis = new GZIPInputStream(fis);
 			r = new InputStreamReader(gis);
@@ -249,19 +250,18 @@ public class H2Frame extends AbstractRdbmsFrame {
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			try {
-				if(fis != null) {
+				if (fis != null) {
 					fis.close();
 				}
-				if(gis != null) {
+				if (gis != null) {
 					gis.close();
 				}
-				if(r != null) {
+				if (r != null) {
 					r.close();
 				}
 			} catch (IOException e) {
 				logger.error(Constants.STACKTRACE, e);
 			}
-
 
 			// open the meta details
 			this.openCacheMeta(cf, cipher);
@@ -282,7 +282,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	public String connectFrame(String pass) {
 		if (server == null) {
 			try {
-				String port = PortAllocator.getInstance().getNextAvailablePort()+"";
+				String port = PortAllocator.getInstance().getNextAvailablePort() + "";
 				// create a random user and password
 				// get the connection object and start up the frame
 				server = Server.createTcpServer("-tcpPort", port, "-tcpAllowOthers");
@@ -312,14 +312,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 			while (rs.next()) {
 				System.out.println("Table name is " + rs.getString(1));
 			}
-			
+
 			// String schema = this.conn.getSchema();
 			System.out.println(".. " + conn.getMetaData().getURL());
 			System.out.println(".. " + conn.getMetaData().getUserName());
 		} catch (ClassNotFoundException | SQLException e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(conn!=null) {
+			if (conn != null) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
@@ -327,7 +327,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				}
 			}
 
-			if(rs != null) {
+			if (rs != null) {
 				try {
 					rs.close();
 				} catch (SQLException e) {
@@ -338,7 +338,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 	}
 
 	public String[] createUser(String tableName) {
-		if(tablePermissions == null) {
+		if (tablePermissions == null) {
 			tablePermissions = new Hashtable<>();
 		}
 		// really simple
@@ -378,14 +378,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 				query = "GRANT " + tableName + "READONLY TO " + userName;
 				stmt.executeUpdate(query);
 
-				//System.out.println("username " + userName);
-				//System.out.println("Pass word " + password);
+				// System.out.println("username " + userName);
+				// System.out.println("Pass word " + password);
 
 				tablePermissions.put(tableName, retString);
 			} catch (SQLException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(stmt != null){
+				if (stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
@@ -416,8 +416,9 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 	/**
 	 * Execute and get back a result set
-	 * Responsibility of the method to grab the statement and close it 
+	 * Responsibility of the method to grab the statement and close it
 	 * from the result set
+	 * 
 	 * @param query
 	 * @return
 	 */
@@ -425,16 +426,16 @@ public class H2Frame extends AbstractRdbmsFrame {
 		PreparedStatement stmt = null;
 		boolean error = false;
 		try {
-			//Statement stmt = this.conn.createStatement();
+			// Statement stmt = this.conn.createStatement();
 			stmt = this.conn.prepareStatement(query);
 			return stmt.executeQuery();
 		} catch (SQLException e) {
 			error = true;
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			// it is the responsibility of the code executing this 
+			// it is the responsibility of the code executing this
 			// to take the statement and close it if no error
-			if(error && stmt != null) {
+			if (error && stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
@@ -477,7 +478,8 @@ public class H2Frame extends AbstractRdbmsFrame {
 				joinMap.put(joinCol2, joinCol1); // physical in query struct
 				// ----> logical in existing
 				// data maker
-				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(this.getName()+"__"+joinCol1, joinType, joinCol2);
+				prerna.sablecc2.om.Join colJoin = new prerna.sablecc2.om.Join(this.getName() + "__" + joinCol1,
+						joinType, joinCol2);
 				joins.add(colJoin);
 				joinColList.add(joinMap);
 			}
@@ -503,12 +505,12 @@ public class H2Frame extends AbstractRdbmsFrame {
 			}
 			Set<IRelation> rels = new RelationSet();
 			Map<String, Map<String, List>> curRels = qs.getRelations();
-			for(String up : curRels.keySet()) {
+			for (String up : curRels.keySet()) {
 				Map<String, List> innerMap = curRels.get(up);
-				for(String jType : innerMap.keySet()) {
+				for (String jType : innerMap.keySet()) {
 					List downs = innerMap.get(jType);
-					for(Object d : downs) {
-						rels.add(new BasicRelationship(new String[]{up, jType, d.toString()}));
+					for (Object d : downs) {
+						rels.add(new BasicRelationship(new String[] { up, jType, d.toString() }));
 					}
 				}
 			}
@@ -531,82 +533,117 @@ public class H2Frame extends AbstractRdbmsFrame {
 		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
 	}
 
-	//	@Override
-	//	@Deprecated
-	//	public Map<String, String> getScriptReactors() {
-	//		Map<String, String> reactorNames = super.getScriptReactors();
-	//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-	//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-	//		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-	//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-	//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-	//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-	//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-	//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-	//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-	//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-	//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-	//		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-	//		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-	//		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-	//		
-	//		// h2 specific reactors
-	//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
-	//		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
-	//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
-	//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
-	////		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
+	// @Override
+	// @Deprecated
+	// public Map<String, String> getScriptReactors() {
+	// Map<String, String> reactorNames = super.getScriptReactors();
+	// reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+	// reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+	// reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+	// reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it
+	// almost feels like I need a way to tell when to do this and when not but let
+	// me see
+	// reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+	// reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+	// reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+	// reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+	// reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+	// reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+	// reactorNames.put(PKQLEnum.UNFILTER_DATA,
+	// "prerna.sablecc.ColUnfilterReactor");
+	// reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+	// reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+	// reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+	// reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
 	//
-	//		// rdbms connection logic
-	//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
-	//		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
-	//		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-	//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
-	//		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
-	//		
-	//		// h2 specific expression handlers		
-	//		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");
-	//		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.sql.SqlMaxReactor");
-	//		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.sql.SqlMinReactor");
-	//		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.sql.SqlAverageReactor");
-	//		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.sql.SqlCountReactor");
-	//		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
-	//		reactorNames.put(PKQLEnum.CONCAT, "prerna.sablecc.expressions.sql.SqlConcatReactor");
-	//		reactorNames.put(PKQLEnum.GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
-	//		reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
-	//		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
-	//		reactorNames.put(PKQLEnum.ROUND, "prerna.sablecc.expressions.sql.SqlRoundReactor");
-	//		reactorNames.put(PKQLEnum.COS, "prerna.sablecc.expressions.sql.SqlCosReactor");
-	//		reactorNames.put(PKQLEnum.SIN, "prerna.sablecc.expressions.sql.SqlSinReactor");
-	//		reactorNames.put(PKQLEnum.TAN, "prerna.sablecc.expressions.sql.SqlTanReactor");
-	//		reactorNames.put(PKQLEnum.CEILING, "prerna.sablecc.expressions.sql.SqlCeilingReactor");
-	//		reactorNames.put(PKQLEnum.FLOOR, "prerna.sablecc.expressions.sql.SqlFloorReactor");
-	//		reactorNames.put(PKQLEnum.LOG, "prerna.sablecc.expressions.sql.SqlLogReactor");
-	//		reactorNames.put(PKQLEnum.LOG10, "prerna.sablecc.expressions.sql.SqlLog10Reactor");
-	//		reactorNames.put(PKQLEnum.SQRT, "prerna.sablecc.expressions.sql.SqlSqrtReactor");
-	//		reactorNames.put(PKQLEnum.POWER, "prerna.sablecc.expressions.sql.SqlPowerReactor");
-	//		reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM, "prerna.ds.h2.H2CorrelationReactor");
+	// // h2 specific reactors
+	// reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
+	// reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
+	// reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
+	// reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES,
+	// "prerna.sablecc.H2DuplicatesReactor");
+	// reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE,
+	// "prerna.sablecc.H2ChangeTypeReactor");
+	// reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
+	//// reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+	// reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH,
+	// "prerna.sablecc.FlatTableSetEdgeHash");
 	//
-	//		// default to sample stdev
-	//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-	//		reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-	//		reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
-	////		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.sql.SqlMedianReactor");
-	//		
-	//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-	//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-	//		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
-	//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-	//		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
-	//		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2RawQueryApiReactor");
+	// // rdbms connection logic
+	// reactorNames.put(PKQLEnum.DASHBOARD_JOIN,
+	// "prerna.sablecc.DashboardJoinReactor");
+	// reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
+	// reactorNames.put(PKQLEnum.NETWORK_DISCONNECT,
+	// "prerna.sablecc.DisConnectReactor");
+	// reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES,
+	// "prerna.sablecc.H2DuplicatesReactor");
+	// reactorNames.put(PKQLEnum.COL_FILTER_MODEL,
+	// "prerna.sablecc.H2ColFilterModelReactor");
 	//
-	//		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
-	//		
-	//		return reactorNames;
-	//	}
+	// // h2 specific expression handlers
+	// reactorNames.put(PKQLEnum.SUM,
+	// "prerna.sablecc.expressions.sql.SqlSumReactor");
+	// reactorNames.put(PKQLEnum.MAX,
+	// "prerna.sablecc.expressions.sql.SqlMaxReactor");
+	// reactorNames.put(PKQLEnum.MIN,
+	// "prerna.sablecc.expressions.sql.SqlMinReactor");
+	// reactorNames.put(PKQLEnum.AVERAGE,
+	// "prerna.sablecc.expressions.sql.SqlAverageReactor");
+	// reactorNames.put(PKQLEnum.COUNT,
+	// "prerna.sablecc.expressions.sql.SqlCountReactor");
+	// reactorNames.put(PKQLEnum.COUNT_DISTINCT,
+	// "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
+	// reactorNames.put(PKQLEnum.CONCAT,
+	// "prerna.sablecc.expressions.sql.SqlConcatReactor");
+	// reactorNames.put(PKQLEnum.GROUP_CONCAT,
+	// "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
+	// reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT,
+	// "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
+	// reactorNames.put(PKQLEnum.ABSOLUTE,
+	// "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
+	// reactorNames.put(PKQLEnum.ROUND,
+	// "prerna.sablecc.expressions.sql.SqlRoundReactor");
+	// reactorNames.put(PKQLEnum.COS,
+	// "prerna.sablecc.expressions.sql.SqlCosReactor");
+	// reactorNames.put(PKQLEnum.SIN,
+	// "prerna.sablecc.expressions.sql.SqlSinReactor");
+	// reactorNames.put(PKQLEnum.TAN,
+	// "prerna.sablecc.expressions.sql.SqlTanReactor");
+	// reactorNames.put(PKQLEnum.CEILING,
+	// "prerna.sablecc.expressions.sql.SqlCeilingReactor");
+	// reactorNames.put(PKQLEnum.FLOOR,
+	// "prerna.sablecc.expressions.sql.SqlFloorReactor");
+	// reactorNames.put(PKQLEnum.LOG,
+	// "prerna.sablecc.expressions.sql.SqlLogReactor");
+	// reactorNames.put(PKQLEnum.LOG10,
+	// "prerna.sablecc.expressions.sql.SqlLog10Reactor");
+	// reactorNames.put(PKQLEnum.SQRT,
+	// "prerna.sablecc.expressions.sql.SqlSqrtReactor");
+	// reactorNames.put(PKQLEnum.POWER,
+	// "prerna.sablecc.expressions.sql.SqlPowerReactor");
+	// reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM,
+	// "prerna.ds.h2.H2CorrelationReactor");
+	//
+	// // default to sample stdev
+	// reactorNames.put(PKQLEnum.STANDARD_DEVIATION,
+	// "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+	// reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION,
+	// "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+	// reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION,
+	// "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
+	//// reactorNames.put(PKQLEnum.MEDIAN,
+	// "prerna.sablecc.expressions.sql.SqlMedianReactor");
+	//
+	// reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+	// reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+	// reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
+	// reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+	// reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
+	// reactorNames.put(PKQLEnum.FRAME_RAW_API,
+	// "prerna.sablecc.H2RawQueryApiReactor");
+	//
+	// reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
+	//
+	// return reactorNames;
+	// }
 }
-
