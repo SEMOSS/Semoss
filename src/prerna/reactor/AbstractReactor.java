@@ -889,7 +889,7 @@ public abstract class AbstractReactor implements IReactor {
 	 *
 	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP tool
 	 */
-	protected Map<String, String> getMcpToolMetadata() {
+	public Map<String, String> getMcpToolMetadata() {
 		return null;
 	}
 
