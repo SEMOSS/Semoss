@@ -1053,6 +1053,22 @@ public class ClusterUtil {
 		}
 	}
 
+	public static void pushRoomAsync(String roomId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread.ofVirtual().start(() -> {
+				classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
+				try {
+					getCentralStorageClient().pushRoomFolderToCloud(roomId);
+				} catch (Exception e) {
+					classLogger.error("Failed to push room '{}' to cloud storage", roomId, e);
+					SemossPixelException err = new SemossPixelException("Failed to push room to cloud storage");
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			});
+		}
+	}
+
 	public static void pullRoom(String roomId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
