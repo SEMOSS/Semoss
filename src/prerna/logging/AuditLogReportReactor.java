@@ -172,10 +172,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset, methodNames, engineTypes, others);
+					roomId, sessionId, limit, offset, methodNames, args, engineTypes, others);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, methodNames, engineTypes, others);
+					roomId, sessionId, methodNames, args, engineTypes, others);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}

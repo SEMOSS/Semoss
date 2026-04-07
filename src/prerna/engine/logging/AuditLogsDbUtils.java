@@ -55,6 +55,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -70,7 +71,7 @@ public class AuditLogsDbUtils {
 	}
 
 	public static void loadAuditLogsDatabase() throws Exception {
-		auditLogsDb = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 		initEngineAsAuditDatabase(auditLogsDb);
 		initialized = true;
 	}
@@ -244,7 +245,7 @@ public class AuditLogsDbUtils {
 	 * @throws SQLException
 	 */
 	public static List<LogActivityRecord> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
-			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset,  List<String> methodNames, List<String> engineTypes, String others)
+			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset,  List<String> methodNames, List<String> args, List<String> engineTypes, String others)
 			throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -274,7 +275,7 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addSingleValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 	    addSingleValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
-//	    addLikeFilter(qs, "AUDIT_LOGS__ARGS", args);
+	    addLikeFilter(qs, "AUDIT_LOGS__REQUEST", args);
 	    addGlobalSearchFilter(qs, others);
 	    
 		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
@@ -308,7 +309,7 @@ public class AuditLogsDbUtils {
 		addFilter(minMaxDuration, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addSingleValueFilter(minMaxDuration, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addSingleValueFilter(minMaxDuration, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
-//	    addLikeFilter(minMaxDuration, "AUDIT_LOGS__ARGS", args);
+	    addLikeFilter(minMaxDuration, "AUDIT_LOGS__REQUEST", args);
 	    addGlobalSearchFilter(minMaxDuration, others);
 
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -475,7 +476,7 @@ public class AuditLogsDbUtils {
 	 * @return
 	 */
 	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
-			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> engineTypes, String others ) {
+			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> args, List<String> engineTypes, String others ) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
 		// COUNT(AUDIT_LOGS__LOG_ID) selector
@@ -503,10 +504,10 @@ public class AuditLogsDbUtils {
 	        addSingleValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
 	    }
 
-	    // args - LIKE (partial match)
-//	    if (args != null && !args.isEmpty()) {
-//	        addLikeFilter(qs, "AUDIT_LOGS__ARGS", args);
-//	    }
+//	     args - LIKE (partial match)
+	    if (args != null && !args.isEmpty()) {
+	        addLikeFilter(qs, "AUDIT_LOGS__REQUEST", args);
+	    }
 	    
 	    addGlobalSearchFilter(qs, others);
 
