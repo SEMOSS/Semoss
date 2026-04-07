@@ -158,81 +158,71 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			JSONObject reactorTool = thisReactor.asMcpTool();
 			String functionName = reactorTool.getString("name");
 
-			// Skip if already added by package scan
-			if (addedReactorNames.contains(functionName.toUpperCase())) {
-				classLogger.info("Reactor '{}' already added via package scan, skipping explicit entry.",
-						functionName);
-				continue;
-			}
-
-			JSONObject meta = reactorTool.optJSONObject("_meta");
-			if (meta == null) {
-				meta = new JSONObject();
-			}
-			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
-
-			// Determine if explicit mcpMetadata was provided for this reactor
-			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
-			boolean hasMethodMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
-
-			// execution mode: mcpMetadata overrides getMcpToolMetadata(), which overrides default
-			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_EXECUTION)) {
-				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
-				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-				if (execModeEnum == null && !execModeInput.isBlank()) {
-					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + " can only be a value of: "
-							+ Arrays.toString(MCPExecution.values()));
+			if (!addedReactorNames.contains(functionName.toUpperCase())) {
+				JSONObject meta = reactorTool.optJSONObject("_meta");
+				if (meta == null) {
+					meta = new JSONObject();
 				}
-				if (execModeEnum != null) {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
-				} else {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
-							execModeInput, reactorNames.get(i));
-				}
-			} else if (!hasMethodMeta) {
-				// No mcpMetadata and no getMcpToolMetadata() override — use default "ask"
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-			}
-			// else: getMcpToolMetadata() value already set by asMcpTool() — keep it
+				meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
 
-			// UI: mcpMetadata overrides getMcpToolMetadata() values
-			Map<String, Object> uiMap = new HashMap<>();
-			try {
-				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
-			} catch (ClassCastException e) {
-				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
-						reactorNames.get(i));
-			}
+				// Determine if explicit mcpMetadata was provided for this reactor
+				Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
+				boolean hasMethodMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
 
-			if (!uiMap.isEmpty()) {
-				// Explicit mcpMetadata UI provided — override method values
-				JSONObject uiJson = new JSONObject();
-				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
-					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
-				}
-				if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
-					uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
-				}
-				if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
-					String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
-					MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
-					if (displayEnum == null && !displayLocation.isBlank()) {
-						throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
-								+ Arrays.toString(MCPDisplayOption.values()));
+				// execution mode: mcpMetadata overrides getMcpToolMetadata(), which overrides default
+				if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_EXECUTION)) {
+					String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
+					MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+					if (execModeEnum == null && !execModeInput.isBlank()) {
+						throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + " can only be a value of: "
+								+ Arrays.toString(MCPExecution.values()));
 					}
-					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+					if (execModeEnum != null) {
+						meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
+					} else {
+						meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+						classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+								execModeInput, reactorNames.get(i));
+					}
+				} else if (!hasMethodMeta) {
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 				}
-				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
-			} else if (!meta.has(MCPUtility.SMSS_MCP_UI)) {
-				// No mcpMetadata UI and no getMcpToolMetadata() UI — set empty default
-				meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
-			}
-			// else: getMcpToolMetadata() UI values already set by asMcpTool() — keep them
 
-			reactorTool.put("_meta", meta);
-			toolsArray.put(reactorTool);
+				// UI: mcpMetadata overrides getMcpToolMetadata() values
+				Map<String, Object> uiMap = new HashMap<>();
+				try {
+					uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
+				} catch (ClassCastException e) {
+					classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
+							reactorNames.get(i));
+				}
+
+				if (!uiMap.isEmpty()) {
+					JSONObject uiJson = new JSONObject();
+					if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+						uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
+					}
+					if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+						uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+					}
+					if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+						String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+						MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+						if (displayEnum == null && !displayLocation.isBlank()) {
+							throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+									+ Arrays.toString(MCPDisplayOption.values()));
+						}
+						String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+						uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+					}
+					meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+				} else if (!meta.has(MCPUtility.SMSS_MCP_UI)) {
+					meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
+				}
+
+				reactorTool.put("_meta", meta);
+				toolsArray.put(reactorTool);
+			}
 		}
 
 		JSONObject mcpJson = new JSONObject();
