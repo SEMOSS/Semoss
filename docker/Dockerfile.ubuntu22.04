@@ -112,7 +112,8 @@ RUN	cd /opt/semoss-artifacts \
 
 # Install playwright dependencies
 RUN	cd /tmp \
-	&& ./install_Playwright_linux_dependencies.sh
+	&& ./install_Playwright_linux_dependencies.sh \
+	&& rm -rf /root/.m2
 
 RUN apt install -y debootstrap fakechroot fakeroot
 
