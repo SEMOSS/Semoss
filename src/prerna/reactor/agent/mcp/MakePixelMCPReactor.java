@@ -30,14 +30,18 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,6 +59,7 @@ import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.annotation.MCPTool;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -67,10 +72,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakePixelMCPReactor.class);
 
+	private static final String PACKAGE_KEY = "package";
+
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey() };
-		this.keyRequired = new int[] { 0, 0, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey(), PACKAGE_KEY };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -103,6 +110,10 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
+		if (reactorNames == null) {
+			reactorNames = new ArrayList<>();
+		}
+		List<String> packageNames = getNounAsStringList(PACKAGE_KEY);
 		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
 		boolean mcpMetaExists = false;
 		if (mcpMetadataList != null) {
@@ -113,38 +124,116 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			}
 		}
 
+		if (reactorNames.isEmpty() && (packageNames == null || packageNames.isEmpty())) {
+			throw new IllegalArgumentException(
+					"Must provide at least one reactor name via 'reactor' or a package to scan via 'package'.");
+		}
+
+		// Track reactor names already added to avoid duplicates when both package and reactor are provided
+		Set<String> addedReactorNames = new LinkedHashSet<>();
+
+		// Phase 1: Scan packages for @MCPTool annotated reactors
+		if (packageNames != null && !packageNames.isEmpty()) {
+			TreeSet<String> availableReactors = project.getAvailableReactors();
+			if (availableReactors != null && !availableReactors.isEmpty()) {
+				for (String availableName : availableReactors) {
+					IReactor reactor = project.getReactor(availableName);
+					if (reactor == null) {
+						continue;
+					}
+					Class<?> reactorClass = reactor.getClass();
+
+					// Must have @MCPTool annotation
+					MCPTool mcpAnnotation = reactorClass.getAnnotation(MCPTool.class);
+					if (mcpAnnotation == null) {
+						continue;
+					}
+
+					// Must not be abstract
+					if (Modifier.isAbstract(reactorClass.getModifiers())) {
+						continue;
+					}
+
+					// Check if reactor's package matches any of the requested packages
+					String reactorPackage = reactorClass.getPackageName();
+					boolean packageMatch = false;
+					for (String pkg : packageNames) {
+						if (reactorPackage.equals(pkg) || reactorPackage.startsWith(pkg + ".")) {
+							packageMatch = true;
+							break;
+						}
+					}
+					if (!packageMatch) {
+						continue;
+					}
+
+					// Generate the tool JSON — annotation metadata is populated by asMcpTool()
+					JSONObject reactorTool = reactor.asMcpTool();
+					String functionName = reactorTool.getString("name");
+
+					// Ensure _meta exists with function name
+					JSONObject meta = reactorTool.optJSONObject("_meta");
+					if (meta == null) {
+						meta = new JSONObject();
+						meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
+						meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpAnnotation.execution());
+						meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
+						reactorTool.put("_meta", meta);
+					}
+
+					toolsArray.put(reactorTool);
+					addedReactorNames.add(functionName.toUpperCase());
+				}
+			}
+		}
+
+		// Phase 2: Process explicitly listed reactors (existing behavior)
+
 		for (int i = 0; i < reactorNames.size(); i++) {
 			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
 					this.insight.getCurFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
 			String functionName = reactorTool.getString("name");
+
+			// Skip if already added by package scan
+			if (addedReactorNames.contains(functionName.toUpperCase())) {
+				classLogger.info("Reactor '{}' already added via package scan, skipping explicit entry.",
+						functionName);
+				continue;
+			}
+
 			JSONObject meta = reactorTool.optJSONObject("_meta");
 			if (meta == null) {
 				meta = new JSONObject();
 			}
 			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
-			// Populate additional metadata from the parameter
-			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
-			// Parse for specific known keys
 
-			// execution mode
-			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
-			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-			if (execModeEnum == null && !execModeInput.isBlank()) {
-				throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + "can only be a value of: "
-						+ Arrays.toString(MCPExecution.values()));
-			}
-			if (execModeEnum != null) {
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
-			} else {
-				// default to ASK
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-				if (execModeInput != null) {
+			// Determine if explicit mcpMetadata was provided for this reactor
+			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
+			boolean hasAnnotationMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
+
+			// execution mode: mcpMetadata overrides annotation, annotation overrides default
+			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_EXECUTION)) {
+				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
+				if (execModeEnum == null && !execModeInput.isBlank()) {
+					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + " can only be a value of: "
+							+ Arrays.toString(MCPExecution.values()));
+				}
+				if (execModeEnum != null) {
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
+				} else {
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
 							execModeInput, reactorNames.get(i));
 				}
+			} else if (!hasAnnotationMeta) {
+				// No mcpMetadata and no @MCPTool annotation — use default "ask"
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 			}
-			// UI
+			// else: @MCPTool annotation value already set by asMcpTool() — keep it
+
+			// UI: mcpMetadata overrides annotation values
 			Map<String, Object> uiMap = new HashMap<>();
 			try {
 				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
@@ -153,24 +242,31 @@ public class MakePixelMCPReactor extends AbstractReactor {
 						reactorNames.get(i));
 			}
 
-			JSONObject uiJson = new JSONObject();
-			if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
-				uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
-				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
-			}
-			if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
-				String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
-				MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
-				if (displayEnum == null && !displayLocation.isBlank()) {
-					throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
-							+ Arrays.toString(MCPDisplayOption.values()));
+			if (!uiMap.isEmpty()) {
+				// Explicit mcpMetadata UI provided — override annotation values
+				JSONObject uiJson = new JSONObject();
+				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
+					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
 				}
-				String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
+					uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
+				}
+				if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
+					String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
+					MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
+					if (displayEnum == null && !displayLocation.isBlank()) {
+						throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
+								+ Arrays.toString(MCPDisplayOption.values()));
+					}
+					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
+					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
+				}
+				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+			} else if (!meta.has(MCPUtility.SMSS_MCP_UI)) {
+				// No mcpMetadata UI and no annotation UI — set empty default
+				meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
 			}
-			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+			// else: @MCPTool annotation UI values already set by asMcpTool() — keep them
 
 			reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
@@ -232,7 +328,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Generates a mcp/pixel_mcp.json file from a set of reactors";
+		return "Generates a mcp/pixel_mcp.json file from a set of reactors. "
+				+ "Reactors can be listed explicitly via 'reactor' or discovered automatically "
+				+ "by scanning Java packages for @MCPTool annotated classes via 'package'.";
 	}
 
 	@Override
@@ -243,6 +341,10 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals(PACKAGE_KEY)) {
+			return "Java package(s) to scan for @MCPTool annotated reactor classes. "
+					+ "Scans the project's compiled reactors and includes those whose package matches. "
+					+ "Example: 'reactors.vaapi' includes all annotated reactors in reactors.vaapi and sub-packages.";
 		}
 		return super.getDescriptionForKey(key);
 	}
