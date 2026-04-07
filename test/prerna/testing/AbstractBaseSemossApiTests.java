@@ -37,6 +37,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 
+import prerna.auth.AuthProvider;
+
 public abstract class AbstractBaseSemossApiTests {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractBaseSemossApiTests.class);
@@ -68,7 +70,7 @@ public abstract class AbstractBaseSemossApiTests {
 			ApiSemossTestSetupUtils.setup(false);
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
-					"Native", true);
+					AuthProvider.NATIVE.toString(), true);
 
 			
 			ApiRTestUtils.setup();

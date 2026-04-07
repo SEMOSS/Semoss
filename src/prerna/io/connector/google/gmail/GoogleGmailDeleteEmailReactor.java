@@ -43,11 +43,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GoogleGmailDeleteEmailReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailDeleteEmailReactor.class);
-	
+
 	private static final String STATUS_KEY = "status";
-	
+
 	public GoogleGmailDeleteEmailReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -57,6 +57,9 @@ public class GoogleGmailDeleteEmailReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String id = this.keyValue.get(this.keysToGet[0]);
+		if (id == null || id.trim().isEmpty()) {
+			throw new SemossPixelException("Email ID is required.");
+		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
@@ -64,7 +67,7 @@ public class GoogleGmailDeleteEmailReactor extends AbstractReactor {
 			Map<String, Object> map = new HashMap<>();
 			map.put(STATUS_KEY, result);
 			return new NounMetadata(map, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch(SemossPixelException e) {
+		} catch (SemossPixelException e) {
 			classLogger.error("Error while deleting Gmail email id {}", id, e);
 			throw e;
 		} catch (Exception e) {
@@ -72,18 +75,18 @@ public class GoogleGmailDeleteEmailReactor extends AbstractReactor {
 			throw new SemossPixelException("An error occurred deleting the email. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Delete an email";
+		return "Delete an email by ID.";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-	    if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	        return "Unique identifier of the Google email to be deleted " + ReactorKeysEnum.ID.getKey();
-	    }
-	    return super.getDescriptionForKey(key);
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Unique identifier of the Gmail message to delete (" + ReactorKeysEnum.ID.getKey() + ").";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

@@ -25,54 +25,62 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.io.connector.google.drive;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
+import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ClaudeCodeReactor extends AbstractReactor {
-	public ClaudeCodeReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.COMMAND.getKey(),
-				ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey(),
-				"allowedTools",
-				"permissionMode",
-		};
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0};
+public class GoogleDriveReadReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GoogleDriveReadReactor.class);
+
+	public GoogleDriveReadReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
-		String command = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String permissionMode = this.keyValue.get("permissionMode");
-	    GenRowStruct grs = this.store.getGenRowStruct("allowedTools");
-	    List<String> allowedTools = (grs != null && !grs.isEmpty()) 
-	        ? grs.getAllStrValues() 
-	        : new ArrayList<>();
-		
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
+		this.organizeKeys();
+		String fileId = this.keyValue.get(this.keysToGet[0]);
+		if (fileId == null || fileId.trim().isEmpty()) {
+			throw new SemossPixelException("File ID is required to read a Google Drive file.");
+		}
 		try {
-			String response = manager.query(this.insight, user, projectId, command, roomId, allowedTools, permissionMode);
-			return new NounMetadata(response, PixelDataType.CONST_STRING,
-					PixelOperationType.OPERATION);
-		} catch(Exception e){
-			throw new SemossPixelException("Unable to load python file as module. Error: " + e.getMessage(), e);
+			User user = this.insight.getUser();
+			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+			Map<String, Object> result = GoogleDriveHelper.readFile(accessToken, fileId);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (SemossPixelException e) {
+			classLogger.error("Error while reading a Google Drive file", e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to read a Google Drive file", e);
+			throw new SemossPixelException("An error occurred reading the file. Error message: " + e.getMessage());
 		}
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Read metadata for a file in the user's Google Drive.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Google Drive file ID for the file to read.";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

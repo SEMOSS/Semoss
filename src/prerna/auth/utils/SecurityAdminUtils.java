@@ -35,6 +35,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -72,6 +73,7 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -80,8 +82,9 @@ import prerna.util.Utility;
 
 public class SecurityAdminUtils extends AbstractSecurityUtils {
 
-	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
+
+	private static SecurityAdminUtils instance = new SecurityAdminUtils();
 
 	private SecurityAdminUtils() {
 
@@ -104,10 +107,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean userIsAdmin(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT * FROM SMSS_USER WHERE ADMIN=TRUE AND ID IN " + userFilters + " LIMIT 1;";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
@@ -116,7 +115,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify whether the user has admin access", e);
 		}
 
 		return false;
@@ -140,7 +139,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify whether the user has admin access", e);
 		}
 
 		return false;
@@ -163,7 +162,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check whether another admin exists", e);
 		}
 
 		return false;
@@ -704,7 +703,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).intValue();
 			} catch (ClassCastException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 				throw new IllegalArgumentException("model_max_tokens must be a valid integer value");
 			}
 		}
@@ -713,7 +712,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				modelMaxResponseTime = ((Number) userInfo.get("model_max_response_time")).doubleValue();
 			} catch (ClassCastException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 				throw new IllegalArgumentException("model_max_response_time must be a valid double value");
 			}
 		}
@@ -774,7 +773,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				validEmail(email, false);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 				error += e.getMessage();
 			}
 		}
@@ -782,7 +781,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				validPassword(userId, AuthProvider.NATIVE, password);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 				error += e.getMessage();
 			}
 			if (error.isEmpty()) {
@@ -794,7 +793,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				phone = formatPhone(phone);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 				error += e.getMessage();
 			}
 		}
@@ -869,7 +868,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user account information in the security database", e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
@@ -883,7 +882,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				SecurityNativeUserUtils.storeUserPassword(userId, type, newHashPass, newSalt, timestamp);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update user account information in the security database", e);
 			}
 		}
 		return true;
@@ -915,7 +914,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete user records from the security database", e);
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
@@ -935,7 +934,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete user records from the security database", e);
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
@@ -958,7 +957,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //						ps.getConnection().commit();
 //					}
 //				} catch (SQLException e) {
-//					logger.error(Constants.STACKTRACE, e);
+//					logger.error("Failed to delete user records from the security database", e);
 //				} finally {
 //					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 //				}
@@ -992,7 +991,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user email", e);
 			throw new IllegalArgumentException("An error occurred updating this user's email");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1019,7 +1018,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1046,7 +1045,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user exporter privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as an exporter");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1085,7 +1084,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user lock status", e);
 			throw new IllegalArgumentException("An error occurred setting this user as locked/unlocked");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1122,7 +1121,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -1159,7 +1158,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update user metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1187,6 +1186,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
 			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset) {
+		return getAllEngineSettings(engineFilter, engineTypes, engineMetadataFilter, searchTerm, limit, offset, null);
+	}
+
+	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
+			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields) {
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
@@ -1201,6 +1206,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
@@ -1210,12 +1216,14 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
 				"low_database_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
@@ -1248,7 +1256,26 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		// add the sort
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+		if (sortFields == null || sortFields.isEmpty()) {
+			qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
+		} else {
+			Set<String> sortKeys = sortFields.keySet();
+			Set<String> validSorts = new HashSet<>(Arrays.asList("ENGINENAME", "DATECREATED"));
+			if (sortFields.containsKey(null) || sortFields.containsValue(null)) {
+				throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+			}
+			if (!validSorts.containsAll(sortKeys)) {
+				throw new SemossPixelException(
+						"Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
+			}
+			for (String s : sortKeys) {
+				if ("ENGINENAME".equals(s)) {
+					qs.addOrderBy("low_engine_name", sortFields.getOrDefault(s, "ASC"));
+				} else {
+					qs.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+				}
+			}
+		}
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -1275,6 +1302,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
+		return getAllProjectSettings(projectFilter, typeFilter, projectMetadataFilter, searchTerm, limit, offset, null);
+	}
+
+	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
+			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields) {
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
@@ -1339,7 +1372,28 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		if (sortFields == null || sortFields.isEmpty()) {
+			qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		} else {
+			for (Map.Entry<String, String> sortEntry : sortFields.entrySet()) {
+				String sortKey = sortEntry.getKey();
+				String sortDirection = sortEntry.getValue();
+				if (sortKey == null || sortDirection == null) {
+					throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+				}
+				String normalizedKey = sortKey.replace("_", "").toUpperCase();
+				if ("PROJECTNAME".equals(normalizedKey)) {
+					qs.addOrderBy("low_project_name", sortDirection);
+				} else if ("DATECREATED".equals(normalizedKey)) {
+					qs.addOrderBy(projectPrefix + "DATECREATED", sortDirection);
+				} else if ("DATELASTEDITED".equals(normalizedKey)) {
+					qs.addOrderBy(projectPrefix + "DATELASTEDITED", sortDirection);
+				} else {
+					throw new SemossPixelException(
+							"Invalid Sort Parameters passed: Only \"PROJECTNAME\", \"DATECREATED\", and \"DATELASTEDITED\" are supported");
+				}
+			}
+		}
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -1373,7 +1427,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1402,7 +1456,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine discoverable flag");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1428,7 +1482,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1463,7 +1517,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project portal availability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project portal active");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1491,7 +1545,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1657,7 +1711,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add engine user", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1748,7 +1802,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add engine user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1814,7 +1868,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add project user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
@@ -1877,7 +1931,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add insight user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this insight. Detailed error message = "
 							+ e.getMessage());
@@ -1929,7 +1983,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add project user", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
@@ -1971,7 +2025,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				values.put((String) row[0], (Boolean) row[1]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve projects with explicit user visibility settings", e);
 		}
 
 		return values;
@@ -2020,7 +2074,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to grant access to all projects", e);
 				throw new IllegalArgumentException(
 						"An error occurred granting the user permission for all the projects");
 			} finally {
@@ -2045,7 +2099,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to grant access to all projects", e);
 					throw new IllegalArgumentException(
 							"An error occurred granting the user permission for all the projects");
 				} finally {
@@ -2079,7 +2133,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to grant access to all projects", e);
 					throw new IllegalArgumentException(
 							"An error occurred granting the user permission for all the projects");
 				} finally {
@@ -2131,7 +2185,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				values.put((String) row[0], (Boolean) row[1]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve engines with explicit user visibility settings", e);
 		}
 
 		return values;
@@ -2185,7 +2239,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to grant access to all engines", e);
 				throw new IllegalArgumentException(
 						"An error occurred granting the user permission for all the engines of type " + logETypes);
 			} finally {
@@ -2211,7 +2265,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to grant access to all engines", e);
 					throw new IllegalArgumentException(
 							"An error occurred granting the user permission for all the engines of type " + logETypes);
 				} finally {
@@ -2245,7 +2299,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to grant access to all engines", e);
 					throw new IllegalArgumentException(
 							"An error occurred granting the user permission for all the engines of type " + logETypes);
 				} finally {
@@ -2298,7 +2352,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to grant default engine access to new users", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for engine " + engineId
 					+ " with permission " + permission);
 		} finally {
@@ -2348,7 +2402,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to grant default project access to new users", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2404,7 +2458,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to grant access to all project insights", e);
 			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
@@ -2481,7 +2535,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permission", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -2582,7 +2636,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -2636,7 +2690,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project user permission", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
@@ -2709,7 +2763,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
@@ -2782,7 +2836,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update insight user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this insight. Detailed error message = "
 							+ e.getMessage());
@@ -2818,7 +2872,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the users access to this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2860,7 +2914,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove engine users", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2902,7 +2956,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove project users", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2943,7 +2997,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove insight users", e);
 			throw new IllegalArgumentException("An error occurred removing insight permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2977,7 +3031,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove project user", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3161,7 +3215,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add insight user", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3216,7 +3270,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updateInsightUserPermissions(projectId, insightId, permission, user, null);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add all insight users", e);
 			throw new IllegalArgumentException("An error occurred adding all users for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3271,7 +3325,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update insight user permission", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3310,7 +3364,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove insight user", e);
 			throw new IllegalArgumentException("An error occurred deleting user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3340,7 +3394,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update insight global within project", e);
 			throw new IllegalArgumentException("An error occurred setting this insight global");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3510,7 +3564,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3552,7 +3606,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project user permissions", e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3605,7 +3659,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updateEngineUserPermissions(engineId, permission, user, endDate);
 			}
 		} catch (SQLException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to add all engine users", e1);
 			throw new IllegalArgumentException("An error occurred adding all users to this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3658,7 +3712,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updateProjectUserPermissions(projectId, permission, user, endDate);
 			}
 		} catch (SQLException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to add all project users", e1);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3703,7 +3757,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update insight user permissions", e);
 			throw new IllegalArgumentException("An error occurred updating the permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3766,7 +3820,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to grant default insight access to new users", e);
 			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3797,7 +3851,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to lock user accounts that exceed the inactivity threshold", e);
 			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3822,7 +3876,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			daysToLock = passReqInstance.getDaysToLock();
 			daysToLockEmail = passReqInstance.getDaysToLockEmail();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve user emails for lock warning notifications", e);
 		}
 		if (daysToLock < 0) {
 			return new ArrayList<>();
@@ -3869,7 +3923,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve user emails for lock warning notifications", e);
 		}
 
 		/*
@@ -3893,7 +3947,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //				}
 //			}
 //		} catch (Exception e) {
-//			logger.error(Constants.STACKTRACE, e);
+//			logger.error("Failed to retrieve user emails for lock warning notifications", e);
 //		} finally {
 //			if(wrapper != null) {
 //				wrapper.cleanUp();
@@ -3934,7 +3988,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to apply account lock settings and recalculate lock status", e);
 				throw new IllegalArgumentException(
 						"An error occurred granting the user permission for all the projects");
 			} finally {
@@ -3965,7 +4019,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve the number of admin users", e);
 		}
 
 		return 0;
@@ -3987,7 +4041,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve admin user identifiers and types", e);
 		}
 
 		return null;
@@ -4026,7 +4080,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		} finally {
@@ -4055,7 +4109,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
@@ -4086,7 +4140,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4127,7 +4181,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to deny engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4168,7 +4222,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
@@ -4197,7 +4251,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred inserting user project permissions on request approval");
 		} finally {
@@ -4228,7 +4282,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4269,7 +4323,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to deny project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4312,7 +4366,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve insight user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
@@ -4341,7 +4395,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve insight user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred inserting user insight permissions on request approval");
 		} finally {
@@ -4372,7 +4426,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve insight user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4414,7 +4468,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to deny insight user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
