@@ -14,14 +14,14 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
-public class ServiceNowDeleteReactor extends AbstractReactor {
+public class ServiceNowDeleteRecordReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ServiceNowDeleteReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ServiceNowDeleteRecordReactor.class);
 	
 	private static final String SYS_ID = "sysId";
 	private static final String INSTANCE_URL = "instanceURL";
 
-	public ServiceNowDeleteReactor() {
+	public ServiceNowDeleteRecordReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.TABLE.getKey(), SYS_ID, INSTANCE_URL };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
