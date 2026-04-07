@@ -617,7 +617,7 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.126.Final</version>
+				<version>4.1.132.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -642,6 +642,18 @@
 				<groupId>org.assertj</groupId>
 				<artifactId>assertj-core</artifactId>
 				<version>3.27.7</version>
+			</dependency>
+			<!-- CVE force: CVE-2025-12183/CVE-2025-66566 - override transitive org.lz4:lz4-java version (1.8.0) -->
+			<dependency>
+				<groupId>org.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+				<version>1.8.1</version>
+			</dependency>
+			<!-- CVE force: CVE-2025-67030 - override transitive plexus-utils versions (3.3.0/4.0.2) -->
+			<dependency>
+				<groupId>org.codehaus.plexus</groupId>
+				<artifactId>plexus-utils</artifactId>
+				<version>4.0.3</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -2426,12 +2438,7 @@
 			<artifactId>objenesis</artifactId>
 			<version>3.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils -->
-		<dependency>
-			<groupId>org.codehaus.plexus</groupId>
-			<artifactId>plexus-utils</artifactId>
-			<version>3.3.0</version>
-		</dependency>
+
 		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-classworlds -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
