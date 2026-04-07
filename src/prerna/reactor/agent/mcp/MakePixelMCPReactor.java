@@ -70,12 +70,11 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(MakePixelMCPReactor.class);
 
 	private static final String PACKAGE_KEY = "package";
-	private static final String SCAN_ALL_KEY = "scanAll";
 
 	public MakePixelMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.REACTOR.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey(), PACKAGE_KEY, SCAN_ALL_KEY };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.MCP_METADATA.getKey(), PACKAGE_KEY };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -112,7 +111,6 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			reactorNames = new ArrayList<>();
 		}
 		List<String> packageNames = getNounAsStringList(PACKAGE_KEY);
-		boolean scanAll = Boolean.parseBoolean(this.keyValue.get(SCAN_ALL_KEY));
 		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
 		boolean mcpMetaExists = false;
 		if (mcpMetadataList != null) {
@@ -124,16 +122,16 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 
 		boolean hasPackages = packageNames != null && !packageNames.isEmpty();
-		if (reactorNames.isEmpty() && !hasPackages && !scanAll) {
-			throw new IllegalArgumentException(
-					"Must provide at least one reactor name via 'reactor', a package to scan via 'package', or 'scanAll=[true]' to discover all MCP reactors.");
-		}
+		boolean hasReactors = !reactorNames.isEmpty();
+		// Default behavior: if no reactor or package is specified, scan all app reactors
+		boolean scanAll = !hasReactors && !hasPackages;
 
 		// Track reactor names already added to avoid duplicates when both scan and reactor are provided
 		Set<String> addedReactorNames = new LinkedHashSet<>();
 
 		// Phase 1: Scan for reactors that override getMcpToolMetadata()
-		// scanAll=true scans every reactor in the app; package=[] filters by package prefix
+		// If neither reactor nor package is provided, scans every reactor in the app
+		// If package is provided, filters by package prefix
 		if (scanAll || hasPackages) {
 			// Trigger compilation if reactors haven't been loaded yet.
 			// getAvailableReactors() only returns the cache — calling getReactor()
@@ -286,9 +284,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Generates a mcp/pixel_mcp.json file from a set of reactors. "
-				+ "Reactors can be listed explicitly via 'reactor', discovered by scanning Java packages "
-				+ "for reactors that override getMcpToolMetadata() via 'package', or discovered across the "
-				+ "entire app via 'scanAll'.";
+				+ "By default, scans all of the app's reactors and includes those that override getMcpToolMetadata(). "
+				+ "Optionally filter by Java package via 'package', or list reactors explicitly via 'reactor'.";
 	}
 
 	@Override
@@ -303,9 +300,6 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "Java package(s) to scan for reactor classes that override getMcpToolMetadata(). "
 					+ "Scans the project's compiled reactors and includes those whose package matches. "
 					+ "Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.";
-		} else if (key.equals(SCAN_ALL_KEY)) {
-			return "When true, scans all of the project's compiled reactors and includes every reactor "
-					+ "that overrides getMcpToolMetadata(). No package filter is applied.";
 		}
 		return super.getDescriptionForKey(key);
 	}
