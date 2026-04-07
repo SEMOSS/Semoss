@@ -64,7 +64,6 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.reactor.annotation.MCPTool;
 import prerna.sablecc2.comm.InMemoryConsole;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -848,28 +847,50 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
 
-		// Read @MCPTool annotation if present and populate _meta
-		MCPTool mcpAnnotation = this.getClass().getAnnotation(MCPTool.class);
-		if (mcpAnnotation != null) {
+		// Read MCP tool metadata if present and populate _meta
+		Map<String, String> mcpMeta = getMcpToolMetadata();
+		if (mcpMeta != null) {
 			JSONObject meta = new JSONObject();
 			meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
-			meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpAnnotation.execution());
+			meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto"));
 
 			JSONObject uiJson = new JSONObject();
-			if (!mcpAnnotation.displayLocation().isEmpty()) {
-				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, mcpAnnotation.displayLocation());
+			String displayLocation = mcpMeta.get(MCPUtility.UI_DISPLAY_LOCATION);
+			if (displayLocation != null && !displayLocation.isEmpty()) {
+				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayLocation);
 			}
-			if (!mcpAnnotation.loadingMessage().isEmpty()) {
-				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, mcpAnnotation.loadingMessage());
+			String loadingMessage = mcpMeta.get(MCPUtility.UI_LOADING_MESSAGE);
+			if (loadingMessage != null && !loadingMessage.isEmpty()) {
+				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
 			}
-			if (!mcpAnnotation.resourceURI().isEmpty()) {
-				uiJson.put(MCPUtility.UI_RESOURCE_URI, mcpAnnotation.resourceURI());
+			String resourceURI = mcpMeta.get(MCPUtility.UI_RESOURCE_URI);
+			if (resourceURI != null && !resourceURI.isEmpty()) {
+				uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			tool.put("_meta", meta);
 		}
 
 		return tool;
+	}
+
+	/**
+	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
+	 * is not an MCP tool. Reactors that should be discoverable by package scanning
+	 * in {@code MakePixelMCPReactor} must override this method and return a non-null map.
+	 * <p>
+	 * Supported keys (use {@link MCPUtility} constants):
+	 * <ul>
+	 * <li>{@code SMSS_MCP_EXECUTION} — "auto", "ask", or "disabled" (defaults to "auto" if omitted)</li>
+	 * <li>{@code displayLocation} — "sidebar", "inline", or "hidden"</li>
+	 * <li>{@code loadingMessage} — custom loading text shown during execution</li>
+	 * <li>{@code resourceURI} — portal page path for the tool's UI</li>
+	 * </ul>
+	 *
+	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP tool
+	 */
+	protected Map<String, String> getMcpToolMetadata() {
+		return null;
 	}
 
 	/**

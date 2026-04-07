@@ -59,7 +59,6 @@ import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
-import prerna.reactor.annotation.MCPTool;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -132,8 +131,14 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		// Track reactor names already added to avoid duplicates when both package and reactor are provided
 		Set<String> addedReactorNames = new LinkedHashSet<>();
 
-		// Phase 1: Scan packages for @MCPTool annotated reactors
+		// Phase 1: Scan packages for reactors that override getMcpToolMetadata()
 		if (packageNames != null && !packageNames.isEmpty()) {
+			// Trigger compilation if reactors haven't been loaded yet.
+			// getAvailableReactors() only returns the cache — calling getReactor()
+			// on any name forces the project to compile and populate the cache.
+			if (project.getAvailableReactors().isEmpty()) {
+				project.getReactor("__trigger_compile__");
+			}
 			TreeSet<String> availableReactors = project.getAvailableReactors();
 			if (availableReactors != null && !availableReactors.isEmpty()) {
 				for (String availableName : availableReactors) {
@@ -143,14 +148,17 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					}
 					Class<?> reactorClass = reactor.getClass();
 
-					// Must have @MCPTool annotation
-					MCPTool mcpAnnotation = reactorClass.getAnnotation(MCPTool.class);
-					if (mcpAnnotation == null) {
+					// Must not be abstract
+					if (Modifier.isAbstract(reactorClass.getModifiers())) {
 						continue;
 					}
 
-					// Must not be abstract
-					if (Modifier.isAbstract(reactorClass.getModifiers())) {
+					// Must have MCP tool metadata (non-null getMcpToolMetadata)
+					if (!(reactor instanceof AbstractReactor)) {
+						continue;
+					}
+					Map<String, String> mcpMeta = ((AbstractReactor) reactor).getMcpToolMetadata();
+					if (mcpMeta == null) {
 						continue;
 					}
 
@@ -167,7 +175,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 						continue;
 					}
 
-					// Generate the tool JSON — annotation metadata is populated by asMcpTool()
+					// Generate the tool JSON — metadata is populated by asMcpTool()
 					JSONObject reactorTool = reactor.asMcpTool();
 					String functionName = reactorTool.getString("name");
 
@@ -176,7 +184,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					if (meta == null) {
 						meta = new JSONObject();
 						meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
-						meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpAnnotation.execution());
+						meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto"));
 						meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
 						reactorTool.put("_meta", meta);
 					}
@@ -210,9 +218,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 
 			// Determine if explicit mcpMetadata was provided for this reactor
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
-			boolean hasAnnotationMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
+			boolean hasMethodMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
 
-			// execution mode: mcpMetadata overrides annotation, annotation overrides default
+			// execution mode: mcpMetadata overrides getMcpToolMetadata(), which overrides default
 			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_EXECUTION)) {
 				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
 				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
@@ -227,13 +235,13 @@ public class MakePixelMCPReactor extends AbstractReactor {
 					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
 							execModeInput, reactorNames.get(i));
 				}
-			} else if (!hasAnnotationMeta) {
-				// No mcpMetadata and no @MCPTool annotation — use default "ask"
+			} else if (!hasMethodMeta) {
+				// No mcpMetadata and no getMcpToolMetadata() override — use default "ask"
 				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
 			}
-			// else: @MCPTool annotation value already set by asMcpTool() — keep it
+			// else: getMcpToolMetadata() value already set by asMcpTool() — keep it
 
-			// UI: mcpMetadata overrides annotation values
+			// UI: mcpMetadata overrides getMcpToolMetadata() values
 			Map<String, Object> uiMap = new HashMap<>();
 			try {
 				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
@@ -243,7 +251,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			}
 
 			if (!uiMap.isEmpty()) {
-				// Explicit mcpMetadata UI provided — override annotation values
+				// Explicit mcpMetadata UI provided — override method values
 				JSONObject uiJson = new JSONObject();
 				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
 					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
@@ -263,10 +271,10 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				}
 				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			} else if (!meta.has(MCPUtility.SMSS_MCP_UI)) {
-				// No mcpMetadata UI and no annotation UI — set empty default
+				// No mcpMetadata UI and no getMcpToolMetadata() UI — set empty default
 				meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
 			}
-			// else: @MCPTool annotation UI values already set by asMcpTool() — keep them
+			// else: getMcpToolMetadata() UI values already set by asMcpTool() — keep them
 
 			reactorTool.put("_meta", meta);
 			toolsArray.put(reactorTool);
@@ -330,7 +338,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return "Generates a mcp/pixel_mcp.json file from a set of reactors. "
 				+ "Reactors can be listed explicitly via 'reactor' or discovered automatically "
-				+ "by scanning Java packages for @MCPTool annotated classes via 'package'.";
+				+ "by scanning Java packages for reactors that override getMcpToolMetadata() via 'package'.";
 	}
 
 	@Override
@@ -342,9 +350,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
 		} else if (key.equals(PACKAGE_KEY)) {
-			return "Java package(s) to scan for @MCPTool annotated reactor classes. "
+			return "Java package(s) to scan for reactor classes that override getMcpToolMetadata(). "
 					+ "Scans the project's compiled reactors and includes those whose package matches. "
-					+ "Example: 'reactors.vaapi' includes all annotated reactors in reactors.vaapi and sub-packages.";
+					+ "Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.";
 		}
 		return super.getDescriptionForKey(key);
 	}
