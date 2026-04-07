@@ -98,7 +98,7 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 
 		// push room to cloud storage
 		if (this.insight.getRoomId() != null) {
-			ClusterUtil.pushRoom(this.insight.getRoomId());
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
