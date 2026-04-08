@@ -713,6 +713,30 @@ public class Room {
 			}
 		}
 
+		// Inject built-in askUser tool if enabled (default: true)
+		boolean askUserEnabled = true;
+		if (o.containsKey("askUserEnabled")) {
+			Object val = o.get("askUserEnabled");
+			if (val instanceof Boolean) {
+				askUserEnabled = (Boolean) val;
+			} else if (val != null) {
+				askUserEnabled = Boolean.parseBoolean(val.toString());
+			}
+		}
+		if (askUserEnabled) {
+			Map<String, Object> askUserTool = buildAskUserToolDefinition();
+			aggregated.add(askUserTool);
+
+			Map<String, Object> lookupMeta = new HashMap<>();
+			lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, "askUser");
+			lookupMeta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+			Map<String, Object> lookupEntry = new HashMap<>();
+			lookupEntry.put("title", "Ask User");
+			lookupEntry.put("description", "Ask the user a question and wait for their response.");
+			lookupEntry.put("_meta", lookupMeta);
+			toolLookupByLLMName.put("askUser", lookupEntry);
+		}
+
 		if (o.containsKey("workspace")) {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
@@ -829,6 +853,68 @@ public class Room {
 
 		// Fallback: always return an empty list if nothing found
 		return Collections.emptyList();
+	}
+
+	/**
+	 * Builds the tool definition map for the built-in askUser tool. This follows
+	 * the same structure as tools loaded from MCP JSON files.
+	 *
+	 * @return tool definition map ready to include in the aggregated tools list
+	 */
+	private static Map<String, Object> buildAskUserToolDefinition() {
+		Map<String, Object> tool = new HashMap<>();
+		tool.put("name", "askUser");
+		tool.put("title", "Ask User");
+		tool.put("description",
+				"Ask the user a question and wait for their response. "
+						+ "Use when you need clarification, a choice, confirmation, or any user input before proceeding.");
+
+		// inputSchema following the standard MCP tool JSON schema format
+		Map<String, Object> inputSchema = new HashMap<>();
+		inputSchema.put("type", "object");
+
+		Map<String, Object> properties = new HashMap<>();
+
+		Map<String, Object> questionProp = new HashMap<>();
+		questionProp.put("type", "string");
+		questionProp.put("description", "The question to ask the user");
+		properties.put("question", questionProp);
+
+		Map<String, Object> inputTypeProp = new HashMap<>();
+		inputTypeProp.put("type", "string");
+		inputTypeProp.put("enum", Arrays.asList("text", "single_select", "multi_select", "yes_no", "buttons"));
+		inputTypeProp.put("description",
+				"Type of input to collect: text (free-form), single_select (pick one), "
+						+ "multi_select (pick many), yes_no (binary choice), buttons (custom action buttons)");
+		properties.put("input_type", inputTypeProp);
+
+		Map<String, Object> optionsProp = new HashMap<>();
+		optionsProp.put("type", "array");
+		Map<String, Object> optionsItems = new HashMap<>();
+		optionsItems.put("type", "string");
+		optionsProp.put("items", optionsItems);
+		optionsProp.put("description",
+				"Options for single_select, multi_select, or buttons types. Not needed for text or yes_no.");
+		properties.put("options", optionsProp);
+
+		Map<String, Object> placeholderProp = new HashMap<>();
+		placeholderProp.put("type", "string");
+		placeholderProp.put("description", "Optional placeholder text for text input fields");
+		properties.put("placeholder", placeholderProp);
+
+		inputSchema.put("properties", properties);
+		inputSchema.put("required", Arrays.asList("question", "input_type"));
+		tool.put("inputSchema", inputSchema);
+
+		// _meta using existing platform constants
+		Map<String, Object> meta = new HashMap<>();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+		Map<String, Object> uiMeta = new HashMap<>();
+		uiMeta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue());
+		meta.put(MCPUtility.SMSS_MCP_UI, uiMeta);
+		tool.put("_meta", meta);
+
+		return tool;
 	}
 
 	/**

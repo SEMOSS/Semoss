@@ -337,6 +337,12 @@ public class RoomAgentHarness implements IAgentHarness {
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
                                               GenericAgentContext ctx) {
+        // Built-in askUser tool requires frontend interaction — cannot auto-execute in agent harness
+        if ("askUser".equals(rawToolName)) {
+            return new ToolExecOutcome(
+                    "This tool requires interactive user input and cannot be executed automatically.", false);
+        }
+
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
