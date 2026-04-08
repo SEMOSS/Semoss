@@ -3176,36 +3176,4 @@ public class ModelInferenceLogsUtils {
 			qs.addExplicitFilter(andFilters);
 		}
 	}
-
-	public static List<Map<String, Object>> getMessageById(String roomId, String messageId, String userId) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-
-		qs.addSelector(new QueryColumnSelector("MESSAGE_ID"));
-		qs.addSelector(new QueryColumnSelector("TRANSACTION_ID"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE_TYPE"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE_DATA"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE_TOKENS"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE_METHOD"));
-		qs.addSelector(new QueryColumnSelector("RESPONSE_TIME"));
-		qs.addSelector(new QueryColumnSelector("DATE_CREATED"));
-		qs.addSelector(new QueryColumnSelector("AGENT_ID"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM_ID"));
-		qs.addSelector(new QueryColumnSelector("SESSIONID"));
-		qs.addSelector(new QueryColumnSelector("USER_ID"));
-		qs.addSelector(new QueryColumnSelector("USER_NAME"));
-		qs.addSelector(new QueryColumnSelector("USER_EMAIL_ID"));
-
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE_ID", "==", messageId));
-		if (roomId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM_ID", "==", roomId));
-		}
-		if (userId != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_ID", "==", userId));
-		}
-
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-	}
-
 }
