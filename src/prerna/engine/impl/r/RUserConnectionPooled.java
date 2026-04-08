@@ -29,14 +29,14 @@ package prerna.engine.impl.r;
 
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.rosuda.REngine.REXP;
 
 public class RUserConnectionPooled extends AbstractRUserConnection {
 
 	private static final long ACTIVE_HEALTH_TIMEOUT = 12L; // TODO >>>timb: R - make this configurable in rdf map
 	private static final TimeUnit ACTIVE_HEALTH_TIMEOUT_UNIT = TimeUnit.SECONDS;
-	
+
 	private final RserveConnectionMeta rconMeta;
 
 	public RUserConnectionPooled(String rDataFile) {
@@ -49,9 +49,10 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 		super();
 		this.rconMeta = RserveConnectionPool.getInstance().getConnection();
 	}
-	
+
 	// Because windows reuses rcon, need to track when active
-	// so we can moderate how long a user is allowed to block other user's execution of r scripts
+	// so we can moderate how long a user is allowed to block other user's execution
+	// of r scripts
 	@Override
 	public REXP eval(String rScript) {
 		if (SystemUtils.IS_OS_WINDOWS) {
@@ -69,7 +70,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			return super.eval(rScript);
 		}
 	}
-	
+
 	@Override
 	public void voidEval(String rScript) {
 		if (SystemUtils.IS_OS_WINDOWS) {
@@ -87,7 +88,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			super.voidEval(rScript);
 		}
 	}
-	
+
 	@Override
 	public void initializeConnection() throws Exception {
 		if (SystemUtils.IS_OS_WINDOWS) { // On windows, we need to recycle the rcon
@@ -101,12 +102,14 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			reloadRcon();
 		}
 	}
-	
+
 	private void reloadRcon() throws Exception {
-		if (rcon != null) rcon.close(); // Close the old rcon and get a new one
+		if (rcon != null) {
+			rcon.close(); // Close the old rcon and get a new one
+		}
 		rcon = RserveUtil.connect(rconMeta.getHost(), rconMeta.getPort());
 	}
-	
+
 	@Override
 	protected void recoverConnection() throws Exception {
 		// First try to reestablish the connection without restarting Rserve itself
@@ -118,14 +121,14 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 			initializeConnection();
 			loadDefaultPackages();
 		}
-		
+
 		// Make sure R is healthy
 		if (!isHealthy()) {
 			throw new IllegalArgumentException("Basic R heath check failed after restarting R.");
 		}
 		this.stoppedR = false;
 	}
-	
+
 	@Override
 	public void stopR() throws Exception {
 		if (rcon != null) {
@@ -137,7 +140,7 @@ public class RUserConnectionPooled extends AbstractRUserConnection {
 
 	@Override
 	public void cancelExecution() throws Exception {
-		// TODO >>>timb: R - need to complete cancellation here	(later)	
+		// TODO >>>timb: R - need to complete cancellation here (later)
 	}
 
 }
