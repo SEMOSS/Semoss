@@ -33,6 +33,7 @@ import prerna.auth.User;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.reactor.AbstractReactor;
@@ -87,19 +88,26 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 			// Get messages
 			List<AbstractMessage> messagesList = room.getMessages();
 
+			// Find the target message
+			AbstractMessage targetMessage = messagesList.parallelStream()
+					.filter(msg -> msg.getMessageId().equals(messageId))
+					.findFirst()
+					.orElseThrow(() -> new SemossPixelException("Message not found with id: " + messageId));
+
+			// Validate the message is a response
+			if (targetMessage.getIo() != MessageIO.OUTPUT) {
+				throw new SemossPixelException("Feedback can only be submitted on response messages");
+			}
+
 			// Create feedback object
 			MessageFeedback feedback = new MessageFeedback(messageId, feedbackText, rating);
 
 			// Add feedback to message
-			messagesList.parallelStream().forEach(msg -> {
-				if (msg.getMessageId().equals(feedback.getMessageId())) {
-					if (rating != null) {
-						msg.setFeedback(feedback);
-					} else {
-						msg.setFeedback(null);
-					}
-				}
-			});
+			if (rating != null) {
+				targetMessage.setFeedback(feedback);
+			} else {
+				targetMessage.setFeedback(null);
+			}
 
 			// Flush messages to db
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
