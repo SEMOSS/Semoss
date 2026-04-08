@@ -7,9 +7,9 @@ ARG BASE_TAG=22.04
 ARG CODEX_VERSION=0.80.0
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.115
+ARG TOMCAT_VERSION=9.0.117
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
-ARG MAVEN_HOME=/opt/apache-maven-3.8.5
+ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
@@ -112,7 +112,8 @@ RUN	cd /opt/semoss-artifacts \
 
 # Install playwright dependencies
 RUN	cd /tmp \
-	&& ./install_Playwright_linux_dependencies.sh
+	&& ./install_Playwright_linux_dependencies.sh \
+	&& rm -rf /root/.m2
 
 RUN apt install -y debootstrap fakechroot fakeroot
 

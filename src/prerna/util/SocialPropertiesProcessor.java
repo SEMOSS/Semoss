@@ -40,8 +40,11 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -216,7 +219,7 @@ public class SocialPropertiesProcessor {
 	 * @param mods
 	 * @throws ConfigurationException
 	 */
-	public void updateProviderProperties(String provider, Map<String, String> mods) throws ConfigurationException {
+	public void updateProviderProperties(String provider, Map<String, String> mods) throws Exception {
 		Map<String, String> updates = new HashMap<>(mods.size());
 		for (String mod : mods.keySet()) {
 			updates.put(provider + "_" + mod, mods.get(mod));
@@ -229,27 +232,35 @@ public class SocialPropertiesProcessor {
 	 * @param mods
 	 * @throws ConfigurationException
 	 */
-	public void updateAllProperties(Map<String, String> mods) throws ConfigurationException {
-		PropertiesConfiguration config = null;
+	public void updateAllProperties(Map<String, String> mods) throws Exception {
+		Parameters params = new Parameters();
+		FileBasedConfigurationBuilder<FileBasedConfiguration> builder = new FileBasedConfigurationBuilder<FileBasedConfiguration>(
+				PropertiesConfiguration.class).configure(params.properties().setFile(new File(this.socialPropFile)));
+
+		// Load
+		FileBasedConfiguration config;
 		try {
-			config = new PropertiesConfiguration(this.socialPropFile);
-		} catch (ConfigurationException e1) {
-			logger.error("Error loading PropertiesConfiguration for social properties file: {}", this.socialPropFile, e1);
-			throw new ConfigurationException(
+			config = builder.getConfiguration();
+		} catch (Exception e1) {
+			logger.error("Error loading PropertiesConfiguration for social properties file: {}", this.socialPropFile,
+					e1);
+			throw new IllegalArgumentException(
 					"An unexpected error happened trying to access the properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
 					e1);
 		}
 
+		// Modify
 		for (String mod : mods.keySet()) {
 			config.setProperty(mod, mods.get(mod));
 		}
 
+		// Save via the builder
 		try {
-			config.save();
+			builder.save();
 			reloadProps();
-		} catch (ConfigurationException e1) {
-			throw new ConfigurationException(
+		} catch (Exception e1) {
+			throw new IllegalArgumentException(
 					"An unexpected error happened when saving the new login properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
 					e1);
@@ -290,7 +301,8 @@ public class SocialPropertiesProcessor {
 				try (FileWriter fw = new FileWriter(currentSocialProperties, false)) {
 					fw.write(currentContent);
 				} catch (IOException e2) {
-					logger.error("Error reverting social properties file to previous content: {}", this.socialPropFile, e2);
+					logger.error("Error reverting social properties file to previous content: {}", this.socialPropFile,
+							e2);
 					throw new IOException(
 							"A fatal error occurred and could not revert the social properties to an operational state. Detailed message = "
 									+ e2.getMessage());
