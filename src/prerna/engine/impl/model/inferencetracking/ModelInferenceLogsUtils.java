@@ -3177,4 +3177,320 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
+	// =========================================================================
+	// MEMORY CRUD — Persistent AI Memory System
+	// Tables: MEMORY (facts/preferences/summaries) + MEMORY_EMBEDDING (vectors)
+	// Follows the same CRUD pattern as WORKSPACE operations above.
+	// =========================================================================
+
+	/** Query-struct table prefix for the MEMORY table. */
+	private static final String MEMORY_TABLE_NAME = "MEMORY__";
+
+	/**
+	 * Inserts a new memory record into the MEMORY table.
+	 *
+	 * @param memoryId   unique memory identifier (UUID)
+	 * @param userId     owning user identifier (from auth token)
+	 * @param roomId     optional source room identifier (may be {@code null} for manual memories)
+	 * @param memoryType memory category — one of FACT, PREFERENCE, SUMMARY, EPISODE
+	 * @param content    the memory text content (required, stored as CLOB)
+	 * @param metadata   optional JSON metadata string (may be {@code null})
+	 * @throws IllegalArgumentException if the database insert fails
+	 */
+	public static void insertMemory(String memoryId, String userId, String roomId,
+			String memoryType, String content, String metadata) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"INSERT INTO MEMORY (MEMORY_ID, USER_ID, ROOM_ID, MEMORY_TYPE, CONTENT, METADATA, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) "
+					+ "VALUES (?,?,?,?,?,?,?,?,?)")) {
+				int index = 1;
+				ps.setString(index++, memoryId);
+				ps.setString(index++, userId);
+				ps.setString(index++, roomId);
+				ps.setString(index++, memoryType);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, content, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, metadata, index++, GSON);
+				ps.setBoolean(index++, true);
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index++, now);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to insert memory '{}' for user '{}'.", memoryId, userId, e);
+			throw new IllegalArgumentException("Error inserting memory: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Returns active memories for a user, optionally filtered by type.
+	 * <p>
+	 * Results are ordered by {@code DATE_CREATED} descending (newest first).
+	 * CLOB and date values are converted to strings for easy JSON serialization.
+	 *
+	 * @param userId     user identifier (from auth token)
+	 * @param memoryType optional type filter — {@code null} or empty returns all types
+	 * @param limit      maximum number of results to return
+	 * @param offset     number of rows to skip for pagination
+	 * @return list of memory maps; each map contains memory_id, user_id, room_id,
+	 *         memory_type, content, metadata, is_active, date_created, date_updated
+	 */
+	public static List<Map<String, Object>> getMemoriesForUser(String userId, String memoryType,
+			long limit, long offset) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "MEMORY_ID", "memory_id"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "USER_ID", "user_id"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "ROOM_ID", "room_id"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "MEMORY_TYPE", "memory_type"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "CONTENT", "content"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "METADATA", "metadata"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "IS_ACTIVE", "is_active"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "DATE_UPDATED", "date_updated"));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "IS_ACTIVE", "==", true));
+
+		if (memoryType != null && !memoryType.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "MEMORY_TYPE", "==", memoryType));
+		}
+
+		qs.addOrderBy(new QueryColumnOrderBySelector(MEMORY_TABLE_NAME + "DATE_CREATED", "DESC"));
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
+
+		List<Map<String, Object>> results = new ArrayList<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			while (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				Map<String, Object> row = new HashMap<>();
+				for (int i = 0; i < headers.length; i++) {
+					if (values[i] instanceof java.sql.Clob) {
+						row.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
+					} else if (values[i] instanceof prerna.date.SemossDate) {
+						row.put(headers[i], ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+					} else {
+						row.put(headers[i], values[i]);
+					}
+				}
+				results.add(row);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to fetch memories for user '{}'.", userId, e);
+		}
+		return results;
+	}
+
+	/**
+	 * Soft-deletes a memory by setting {@code IS_ACTIVE = false}.
+	 * <p>
+	 * Includes an ownership check — the {@code USER_ID} must match the provided
+	 * userId, preventing users from deleting other users' memories.
+	 *
+	 * @param memoryId memory identifier to deactivate
+	 * @param userId   user identifier — must match the memory's owner
+	 * @throws IllegalArgumentException if the memory does not exist, does not belong
+	 *         to the user, or the database operation fails
+	 */
+	public static void deleteMemory(String memoryId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE MEMORY SET IS_ACTIVE = ?, DATE_UPDATED = ? WHERE MEMORY_ID = ? AND USER_ID = ?")) {
+				int index = 1;
+				ps.setBoolean(index++, false);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, memoryId);
+				ps.setString(index++, userId);
+				int affected = ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+				if (affected == 0) {
+					throw new IllegalArgumentException(
+							"Memory " + memoryId + " does not exist or does not belong to user");
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to delete memory '{}' for user '{}'.", memoryId, userId, e);
+			throw new IllegalArgumentException("Error deleting memory: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Returns aggregate memory statistics for a user.
+	 * <p>
+	 * Counts active memories grouped by {@code MEMORY_TYPE} and returns
+	 * both the per-type breakdown and a total count.
+	 *
+	 * @param userId user identifier (from auth token)
+	 * @return map with {@code "total"} (long) and {@code "byType"} (Map of type name to count)
+	 */
+	public static Map<String, Object> getMemoryStats(String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "MEMORY_TYPE"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				MEMORY_TABLE_NAME + "MEMORY_ID", "CNT"));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "IS_ACTIVE", "==", true));
+		qs.addGroupBy(new QueryColumnSelector(MEMORY_TABLE_NAME + "MEMORY_TYPE"));
+
+		Map<String, Long> byType = new HashMap<>();
+		long total = 0;
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		for (Map<String, Object> row : rows) {
+			String type = (String) row.get("MEMORY_TYPE");
+			long count = ((Number) row.get("CNT")).longValue();
+			byType.put(type, count);
+			total += count;
+		}
+
+		Map<String, Object> stats = new HashMap<>();
+		stats.put("total", total);
+		stats.put("byType", byType);
+		return stats;
+	}
+
+	/**
+	 * Retrieves all memory embeddings for a given user and embedding model.
+	 * <p>
+	 * Joins {@code MEMORY_EMBEDDING} with {@code MEMORY} to scope results by user
+	 * and only returns embeddings for active memories. Uses the standard
+	 * {@link SelectQueryStruct} pattern with manual iteration to preserve raw
+	 * {@code byte[]} for embedding BLOBs (the standard {@code flushRsToMap}
+	 * converts BLOBs to strings).
+	 *
+	 * @param userId  user identifier for scoping
+	 * @param modelId the embedding model ID used to generate the vectors
+	 * @return list of maps with keys {@code "memory_id"}, {@code "embedding"} (byte[]),
+	 *         and {@code "content"} (String)
+	 */
+	public static List<Map<String, Object>> getMemoryEmbeddings(String userId, String modelId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("MEMORY_EMBEDDING__MEMORY_ID", "memory_id"));
+		qs.addSelector(new QueryColumnSelector("MEMORY_EMBEDDING__EMBEDDING", "embedding"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE_NAME + "CONTENT", "content"));
+
+		qs.addRelation("MEMORY_EMBEDDING__MEMORY_ID", MEMORY_TABLE_NAME + "MEMORY_ID", "inner.join");
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "USER_ID", "==", userId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE_NAME + "IS_ACTIVE", "==", true));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MEMORY_EMBEDDING__MODEL_ID", "==", modelId));
+
+		List<Map<String, Object>> results = new ArrayList<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			while (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				String[] headers = headerRow.getHeaders();
+				Object[] values = headerRow.getValues();
+				Map<String, Object> row = new HashMap<>();
+				for (int i = 0; i < headers.length; i++) {
+					if (values[i] instanceof java.sql.Blob) {
+						row.put(headers[i], flushBlobToBytes((java.sql.Blob) values[i]));
+					} else if (values[i] instanceof java.sql.Clob) {
+						row.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
+					} else {
+						row.put(headers[i], values[i]);
+					}
+				}
+				results.add(row);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to fetch memory embeddings for user '{}' with model '{}'.", userId, modelId, e);
+		}
+		return results;
+	}
+
+	/**
+	 * Converts a {@link java.sql.Blob} to a raw {@code byte[]} without string conversion.
+	 * Used for embedding vectors that must remain as binary data.
+	 *
+	 * @param blob the BLOB to read
+	 * @return the raw bytes, or {@code null} if the blob is null or unreadable
+	 */
+	private static byte[] flushBlobToBytes(java.sql.Blob blob) {
+		if (blob == null) {
+			return null;
+		}
+		try {
+			return blob.getBytes(1, (int) blob.length());
+		} catch (SQLException e) {
+			classLogger.error("Failed to read BLOB bytes.", e);
+			return null;
+		}
+	}
+
+	/**
+	 * Inserts or replaces an embedding vector for an existing memory record.
+	 * <p>
+	 * Stores the serialized embedding byte array as a BLOB in the
+	 * {@code MEMORY_EMBEDDING} table, linked to the memory by ID.
+	 * If an embedding already exists for the same memory and model,
+	 * the old row is deleted first (portable across RDBMS engines).
+	 *
+	 * @param memoryId  the memory ID to associate the embedding with
+	 * @param embedding serialized embedding vector (double[] → byte[] via DataOutputStream)
+	 * @param modelId   the embedding model ID that generated this vector
+	 */
+	public static void insertMemoryEmbedding(String memoryId, byte[] embedding, String modelId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+
+			// Remove existing embedding for this memory+model pair (idempotent upsert)
+			try (PreparedStatement deletePs = con.prepareStatement(
+					"DELETE FROM MEMORY_EMBEDDING WHERE MEMORY_ID = ? AND MODEL_ID = ?")) {
+				int index = 1;
+				deletePs.setString(index++, memoryId);
+				deletePs.setString(index++, modelId);
+				deletePs.executeUpdate();
+			}
+
+			try (PreparedStatement insertPs = con.prepareStatement(
+					"INSERT INTO MEMORY_EMBEDDING (MEMORY_ID, EMBEDDING, MODEL_ID) VALUES (?, ?, ?)")) {
+				int index = 1;
+				insertPs.setString(index++, memoryId);
+				insertPs.setBytes(index++, embedding);
+				insertPs.setString(index++, modelId);
+				insertPs.executeUpdate();
+			}
+
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to insert memory embedding for memory '{}' with model '{}'.", memoryId, modelId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
 }

@@ -42,12 +42,14 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.MCPFactory;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -337,6 +339,7 @@ public class RoomAgentHarness implements IAgentHarness {
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
                                               GenericAgentContext ctx) {
+
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
