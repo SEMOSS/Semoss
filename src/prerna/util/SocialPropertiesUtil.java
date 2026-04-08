@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -84,7 +83,7 @@ public class SocialPropertiesUtil {
 		return instance;
 	}
 
-	public void updateSocialProperties(String provider, Map<String, String> mods) throws ConfigurationException {
+	public void updateSocialProperties(String provider, Map<String, String> mods) throws Exception {
 		SocialPropertiesUtil.processor.updateProviderProperties(provider, mods);
 	}
 
