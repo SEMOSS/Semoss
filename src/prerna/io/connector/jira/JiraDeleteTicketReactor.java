@@ -32,13 +32,13 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			this.organizeKeys();
 			String projectName = this.keyValue.get(PROJECT);
 			String jiraId = this.keyValue.get(JIRAID);
-			String deleteSubtasksRaw = nullSafe(this.keyValue.get(DELETE_SUBTASKS));
+			String deleteSubtasksRaw = JiraUtils.nullSafe(this.keyValue.get(DELETE_SUBTASKS));
 			boolean deleteSubtasks = "true".equalsIgnoreCase(deleteSubtasksRaw);
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, nullSafe(projectName), nullSafe(jiraId), deleteSubtasks);
+			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, JiraUtils.nullSafe(projectName), JiraUtils.nullSafe(jiraId), deleteSubtasks);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while deleting a Jira ticket", e);
@@ -48,13 +48,6 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while deleting the Jira ticket. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

@@ -30,13 +30,13 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String projectKey = this.keyValue.get(PROJECT);
+			String projectKey = JiraUtils.nullSafe(this.keyValue.get(PROJECT));
 			String query = this.keyValue.get(QUERY);
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			List<Map<String, Object>> result = JiraHelper.getAssignableUsers(accessToken, baseUrl, projectKey, nullSafe(query));
+			List<Map<String, Object>> result = JiraHelper.getAssignableUsers(accessToken, baseUrl, projectKey, JiraUtils.nullSafe(query));
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while retrieving Jira assignable users", e);
@@ -46,13 +46,6 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while retrieving assignable users. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

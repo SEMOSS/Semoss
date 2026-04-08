@@ -33,7 +33,7 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String projectKey = this.keyValue.get(PROJECT);
+			String projectKey = JiraUtils.nullSafe(this.keyValue.get(PROJECT));
 			String statusFilter = this.keyValue.get(STATUS);
 			String assigneeFilter = this.keyValue.get(ASSIGNEE);
 			String priorityFilter = this.keyValue.get(PRIORITY);
@@ -54,8 +54,8 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
 			Map<String, Object> result = JiraHelper.listIssues(accessToken, baseUrl, projectKey,
-					nullSafe(statusFilter), nullSafe(assigneeFilter),
-					nullSafe(priorityFilter), nullSafe(nextPageToken), maxResults);
+					JiraUtils.nullSafe(statusFilter), JiraUtils.nullSafe(assigneeFilter),
+					JiraUtils.nullSafe(priorityFilter), JiraUtils.nullSafe(nextPageToken), maxResults);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while retrieving Jira tickets", e);
@@ -65,13 +65,6 @@ public class JiraGetTicketsReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while retrieving Jira tickets. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

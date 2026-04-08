@@ -34,20 +34,20 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String jiraId = this.keyValue.get(JIRAID);
-			String summary = this.keyValue.get(SUMMARY);
-			String description = this.keyValue.get(DESCRIPTION);
-			String assignee = this.keyValue.get(ASSIGNEE);
-			String priority = this.keyValue.get(PRIORITY);
-			String dueDate = this.keyValue.get(DUEDATE);
-			String status = this.keyValue.get(STATUS);
+			String jiraId = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
+			String summary = JiraUtils.nullSafe(this.keyValue.get(SUMMARY));
+			String description = JiraUtils.nullSafe(this.keyValue.get(DESCRIPTION));
+			String assignee = JiraUtils.nullSafe(this.keyValue.get(ASSIGNEE));
+			String priority = JiraUtils.nullSafe(this.keyValue.get(PRIORITY));
+			String dueDate = JiraUtils.nullSafe(this.keyValue.get(DUEDATE));
+			String status = JiraUtils.nullSafe(this.keyValue.get(STATUS));
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.updateIssue(accessToken, baseUrl, jiraId, nullSafe(summary),
-					nullSafe(description), nullSafe(assignee), nullSafe(priority),
-					nullSafe(dueDate), nullSafe(status));
+			JiraUtils.validateDateFormat(dueDate, "duedate");
+			Map<String, Object> result = JiraHelper.updateIssue(accessToken, baseUrl, jiraId, summary,
+					description, assignee, priority, dueDate, status);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while updating a Jira ticket", e);
@@ -57,13 +57,6 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while updating the Jira ticket. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

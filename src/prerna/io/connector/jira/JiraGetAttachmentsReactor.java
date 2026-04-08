@@ -1,5 +1,6 @@
 package prerna.io.connector.jira;
 
+import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
@@ -13,13 +14,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraReadTicketReactor extends AbstractReactor {
+public class JiraGetAttachmentsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraReadTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraGetAttachmentsReactor.class);
 
 	private static final String JIRAID = "jiraid";
 
-	public JiraReadTicketReactor() {
+	public JiraGetAttachmentsReactor() {
 		this.keysToGet = new String[] { JIRAID };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -33,27 +34,27 @@ public class JiraReadTicketReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.readTicket(accessToken, baseUrl, issueKey);
+			List<Map<String, Object>> result = JiraHelper.getAttachments(accessToken, baseUrl, issueKey);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while reading a Jira ticket", e);
+			classLogger.error("Error while retrieving Jira attachments", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to read a Jira ticket", e);
+			classLogger.error("Failed to retrieve Jira attachments", e);
 			throw new SemossPixelException(
-					"An error occurred while reading the Jira ticket. Error message: " + e.getMessage());
+					"An error occurred while retrieving Jira attachments. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Reads one Jira issue in detail. Use when you already know the issue key and need current fields; use JiraGetTicketsReactor or JiraSearchReactor to find issues first. Returns id, key, self, summary, status, priority, issuetype, assignee, assigneeAccountId, reporter, duedate, created, updated, resolution, labels, parentKey, issuelinks (each with id, type, direction, linkedIssueKey, linkedIssueSummary, linkedIssueStatus), and description. Requires Jira auth.";
+		return "Lists all file attachments on a Jira issue. Use to see what files are attached before downloading or adding more. Returns id, filename, mimeType, size, created, contentUrl, and author. Requires Jira auth.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor or JiraSearchReactor. Not a project key or numeric id. Fails if missing or invalid.";
+			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Fails if missing or invalid.";
 		}
 		return super.getDescriptionForKey(key);
 	}

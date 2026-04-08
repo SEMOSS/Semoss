@@ -34,7 +34,7 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, nullSafe(projectKey));
+			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, JiraUtils.nullSafe(projectKey));
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while retrieving Jira issue types", e);
@@ -44,13 +44,6 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while retrieving Jira issue types. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

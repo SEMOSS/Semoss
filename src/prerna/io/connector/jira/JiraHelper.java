@@ -1,5 +1,6 @@
 package prerna.io.connector.jira;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -8,8 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.mime.FileBody;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,6 +51,7 @@ public final class JiraHelper {
 	private static final String FIELD_ASSIGNEE = "assignee";
 	private static final String FIELD_AUTHOR = "author";
 	private static final String FIELD_BODY = "body";
+	private static final String FIELD_COMMENT = "comment";
 	private static final String FIELD_COMMENTS = "comments";
 	private static final String FIELD_CREATED = "created";
 	private static final String FIELD_DESCRIPTION = "description";
@@ -269,19 +278,15 @@ public final class JiraHelper {
 		try {
 			validateJiraContext(accessToken, baseUrl);
 			validateRequiredString(projectKey, "Project key");
-			String escapedProject = projectKey.replace("\\", "\\\\").replace("\"", "\\\"");
-			StringBuilder jql = new StringBuilder("project = \"").append(escapedProject).append("\"");
+			StringBuilder jql = new StringBuilder("project = \"").append(JiraUtils.escapeJqlString(projectKey)).append("\"");
 			if (statusFilter != null && !statusFilter.trim().isEmpty()) {
-				String escapedStatus = statusFilter.replace("\\", "\\\\").replace("\"", "\\\"");
-				jql.append(" AND status = \"").append(escapedStatus).append("\"");
+				jql.append(" AND status = \"").append(JiraUtils.escapeJqlString(statusFilter)).append("\"");
 			}
 			if (assigneeFilter != null && !assigneeFilter.trim().isEmpty()) {
-				String escapedAssignee = assigneeFilter.replace("\\", "\\\\").replace("\"", "\\\"");
-				jql.append(" AND assignee = \"").append(escapedAssignee).append("\"");
+				jql.append(" AND assignee = \"").append(JiraUtils.escapeJqlString(assigneeFilter)).append("\"");
 			}
 			if (priorityFilter != null && !priorityFilter.trim().isEmpty()) {
-				String escapedPriority = priorityFilter.replace("\\", "\\\\").replace("\"", "\\\"");
-				jql.append(" AND priority = \"").append(escapedPriority).append("\"");
+				jql.append(" AND priority = \"").append(JiraUtils.escapeJqlString(priorityFilter)).append("\"");
 			}
 			jql.append(" ORDER BY created DESC");
 
@@ -333,6 +338,11 @@ public final class JiraHelper {
 	public static Map<String, Object> readTicket(String accessToken, String baseUrl, String issueKey) {
 		try {
 			final String assigneeAccountId = "assigneeAccountId";
+			final String reporter = "reporter";
+			final String created = "created";
+			final String updated = "updated";
+			final String resolution = "resolution";
+			final String parentKey = "parentKey";
 			validateJiraContext(accessToken, baseUrl);
 			validateRequiredString(issueKey, "Issue key");
 			Map<String, String> headers = buildHeaders(accessToken);
@@ -352,32 +362,55 @@ public final class JiraHelper {
 			ticket.put(FIELD_ISSUE_TYPE, f.path(FIELD_ISSUE_TYPE).path(FIELD_NAME).asText());
 			ticket.put(FIELD_ASSIGNEE, f.path(FIELD_ASSIGNEE).path(FIELD_DISPLAY_NAME).asText(DEFAULT_UNASSIGNED));
 			ticket.put(assigneeAccountId, f.path(FIELD_ASSIGNEE).path(FIELD_ACCOUNT_ID).asText());
+			ticket.put(reporter, f.path(reporter).path(FIELD_DISPLAY_NAME).asText(""));
 			ticket.put(FIELD_DUE_DATE, f.path(FIELD_DUE_DATE).asText());
-			ticket.put(FIELD_LABELS, f.path(FIELD_LABELS).toString());
-			JsonNode descriptionNode = f.path(FIELD_DESCRIPTION);
-			if (descriptionNode == null || descriptionNode.isNull() || descriptionNode.isMissingNode()) {
-				ticket.put(FIELD_DESCRIPTION, "");
-			} else {
-				StringBuilder descriptionTextBuilder = new StringBuilder();
-				List<JsonNode> nodes = new ArrayList<>();
-				nodes.add(descriptionNode);
-				while (!nodes.isEmpty()) {
-					JsonNode currentNode = nodes.remove(nodes.size() - 1);
-					if (currentNode.has(ADF_TEXT)) {
-						descriptionTextBuilder.append(currentNode.get(ADF_TEXT).asText()).append(" ");
-					}
-					if (currentNode.has(ADF_CONTENT)) {
-						List<JsonNode> children = new ArrayList<>();
-						for (JsonNode child : currentNode.get(ADF_CONTENT)) {
-							children.add(child);
-						}
-						for (int i = children.size() - 1; i >= 0; i--) {
-							nodes.add(children.get(i));
-						}
-					}
+			ticket.put(created, f.path(created).asText());
+			ticket.put(updated, f.path(updated).asText());
+			ticket.put(resolution, f.path(resolution).path(FIELD_NAME).asText(""));
+
+			// Parse labels into a proper list
+			JsonNode labelsNode = f.path(FIELD_LABELS);
+			List<String> labels = new ArrayList<>();
+			if (labelsNode.isArray()) {
+				for (JsonNode lbl : labelsNode) {
+					labels.add(lbl.asText());
 				}
-				ticket.put(FIELD_DESCRIPTION, descriptionTextBuilder.toString().trim());
 			}
+			ticket.put(FIELD_LABELS, labels);
+
+			// Parent key for subtasks
+			JsonNode parentNode = f.path("parent");
+			if (!parentNode.isMissingNode() && !parentNode.isNull()) {
+				ticket.put(parentKey, parentNode.path(FIELD_KEY).asText());
+			}
+
+			// Parse issue links for unlink support
+			JsonNode issueLinksNode = f.path("issuelinks");
+			List<Map<String, Object>> issueLinks = new ArrayList<>();
+			if (issueLinksNode.isArray()) {
+				for (JsonNode link : issueLinksNode) {
+					Map<String, Object> linkMap = new HashMap<>();
+					linkMap.put(FIELD_ID, link.path(FIELD_ID).asText());
+					linkMap.put(ADF_TYPE, link.path(ADF_TYPE).path(FIELD_NAME).asText());
+					if (link.has("inwardIssue")) {
+						JsonNode inward = link.path("inwardIssue");
+						linkMap.put("direction", "inward");
+						linkMap.put("linkedIssueKey", inward.path(FIELD_KEY).asText());
+						linkMap.put("linkedIssueSummary", inward.path(FIELD_FIELDS).path(FIELD_SUMMARY).asText());
+						linkMap.put("linkedIssueStatus", inward.path(FIELD_FIELDS).path(FIELD_STATUS).path(FIELD_NAME).asText());
+					} else if (link.has("outwardIssue")) {
+						JsonNode outward = link.path("outwardIssue");
+						linkMap.put("direction", "outward");
+						linkMap.put("linkedIssueKey", outward.path(FIELD_KEY).asText());
+						linkMap.put("linkedIssueSummary", outward.path(FIELD_FIELDS).path(FIELD_SUMMARY).asText());
+						linkMap.put("linkedIssueStatus", outward.path(FIELD_FIELDS).path(FIELD_STATUS).path(FIELD_NAME).asText());
+					}
+					issueLinks.add(linkMap);
+				}
+			}
+			ticket.put("issuelinks", issueLinks);
+
+			ticket.put(FIELD_DESCRIPTION, parseAdfToPlainText(f.path(FIELD_DESCRIPTION)));
 			return ticket;
 
 		} catch (SemossPixelException e) {
@@ -444,9 +477,16 @@ public final class JiraHelper {
 
 			String createdKey = resp.get(FIELD_KEY) != null ? resp.get(FIELD_KEY).toString() : null;
 			String appliedStatus = null;
+			String statusWarning = null;
 			if (status != null && !status.trim().isEmpty() && createdKey != null) {
-				appliedStatus = applyTransitionByName(baseUrl, accessToken, createdKey, status);
-				classLogger.info("Post-create transition applied for '{}': {}", createdKey, appliedStatus);
+				try {
+					appliedStatus = applyTransitionByName(baseUrl, accessToken, createdKey, status);
+					classLogger.info("Post-create transition applied for '{}': {}", createdKey, appliedStatus);
+				} catch (Exception te) {
+					statusWarning = "Issue created successfully but status transition to '"
+							+ status + "' failed: " + te.getMessage();
+					classLogger.warn(statusWarning, te);
+				}
 			}
 
 			Map<String, Object> result = new HashMap<>();
@@ -457,6 +497,9 @@ public final class JiraHelper {
 			result.put(FIELD_SUCCESS, true);
 			if (appliedStatus != null) {
 				result.put(FIELD_STATUS, appliedStatus);
+			}
+			if (statusWarning != null) {
+				result.put("statusWarning", statusWarning);
 			}
 			return result;
 
@@ -518,8 +561,15 @@ public final class JiraHelper {
 						GSON.toJson(Map.of(FIELD_FIELDS, fields)), ContentType.APPLICATION_JSON, null, null, null);
 			}
 			String appliedStatus = null;
+			String statusWarning = null;
 			if (hasStatusUpdate) {
-				appliedStatus = applyTransitionByName(baseUrl, accessToken, jiraId, status);
+				try {
+					appliedStatus = applyTransitionByName(baseUrl, accessToken, jiraId, status);
+				} catch (Exception te) {
+					statusWarning = "Fields updated successfully but status transition to '"
+							+ status + "' failed: " + te.getMessage();
+					classLogger.warn(statusWarning, te);
+				}
 			}
 
 			Map<String, Object> result = new HashMap<>();
@@ -527,6 +577,9 @@ public final class JiraHelper {
 			result.put(FIELD_SUCCESS, true);
 			if (appliedStatus != null) {
 				result.put(FIELD_STATUS, appliedStatus);
+			}
+			if (statusWarning != null) {
+				result.put("statusWarning", statusWarning);
 			}
 			return result;
 
@@ -646,30 +699,7 @@ public final class JiraHelper {
 				comment.put(FIELD_AUTHOR, c.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
 				comment.put(FIELD_CREATED, c.path(FIELD_CREATED).asText());
 				comment.put(updated, c.path(updated).asText());
-				JsonNode bodyNode = c.path(FIELD_BODY);
-				if (bodyNode == null || bodyNode.isNull() || bodyNode.isMissingNode()) {
-					comment.put(FIELD_BODY, "");
-				} else {
-					StringBuilder bodyTextBuilder = new StringBuilder();
-					List<JsonNode> nodes = new ArrayList<>();
-					nodes.add(bodyNode);
-					while (!nodes.isEmpty()) {
-						JsonNode currentNode = nodes.remove(nodes.size() - 1);
-						if (currentNode.has(ADF_TEXT)) {
-							bodyTextBuilder.append(currentNode.get(ADF_TEXT).asText()).append(" ");
-						}
-						if (currentNode.has(ADF_CONTENT)) {
-							List<JsonNode> children = new ArrayList<>();
-							for (JsonNode child : currentNode.get(ADF_CONTENT)) {
-								children.add(child);
-							}
-							for (int i = children.size() - 1; i >= 0; i--) {
-								nodes.add(children.get(i));
-							}
-						}
-					}
-					comment.put(FIELD_BODY, bodyTextBuilder.toString().trim());
-				}
+				comment.put(FIELD_BODY, parseAdfToPlainText(c.path(FIELD_BODY)));
 				commentList.add(comment);
 			}
 			return commentList;
@@ -730,9 +760,11 @@ public final class JiraHelper {
 		final String isLast = "isLast";
 		Map<String, String> headers = buildHeaders(accessToken);
 
+		int safeMax = JiraUtils.clampMaxResults(maxResults);
+
 		Map<String, Object> body = new HashMap<>();
 		body.put(FIELD_JQL, jql);
-		body.put(FIELD_MAX_RESULTS, maxResults > 0 ? maxResults : 50);
+		body.put(FIELD_MAX_RESULTS, safeMax);
 		body.put(FIELD_FIELDS, Arrays.asList(FIELD_SUMMARY, FIELD_STATUS, FIELD_ASSIGNEE, FIELD_PRIORITY,
 				FIELD_ISSUE_TYPE, FIELD_DUE_DATE, FIELD_LABELS));
 		if (nextPageToken != null && !nextPageToken.trim().isEmpty()) {
@@ -751,7 +783,7 @@ public final class JiraHelper {
 		Map<String, Object> result = new HashMap<>();
 		result.put(FIELD_ISSUES, issueList);
 		result.put(isLast, root.path(isLast).asBoolean(true));
-		result.put(FIELD_MAX_RESULTS, maxResults > 0 ? maxResults : 50);
+		result.put(FIELD_MAX_RESULTS, safeMax);
 		if (root.has(FIELD_NEXT_PAGE_TOKEN)) {
 			result.put(FIELD_NEXT_PAGE_TOKEN, root.path(FIELD_NEXT_PAGE_TOKEN).asText());
 		}
@@ -800,6 +832,7 @@ public final class JiraHelper {
 		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
 		headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
 		headers.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
+		headers.put(HttpHeaders.USER_AGENT, "Semoss-Jira-Connector/1.0");
 		return headers;
 	}
 
@@ -829,16 +862,642 @@ public final class JiraHelper {
 		ticket.put(FIELD_PRIORITY, f.path(FIELD_PRIORITY).path(FIELD_NAME).asText());
 		ticket.put(FIELD_ISSUE_TYPE, f.path(FIELD_ISSUE_TYPE).path(FIELD_NAME).asText());
 		ticket.put(FIELD_ASSIGNEE, f.path(FIELD_ASSIGNEE).path(FIELD_DISPLAY_NAME).asText(DEFAULT_UNASSIGNED));
+		ticket.put(FIELD_ACCOUNT_ID, f.path(FIELD_ASSIGNEE).path(FIELD_ACCOUNT_ID).asText(""));
 		ticket.put(FIELD_DUE_DATE, f.path(FIELD_DUE_DATE).asText());
+		JsonNode labelsNode = f.path(FIELD_LABELS);
+		List<String> labels = new ArrayList<>();
+		if (labelsNode.isArray()) {
+			for (JsonNode lbl : labelsNode) {
+				labels.add(lbl.asText());
+			}
+		}
+		ticket.put(FIELD_LABELS, labels);
 		return ticket;
 	}
 
+	/**
+	 * Extracts plain text from an Atlassian Document Format (ADF) JSON node.
+	 * Uses an iterative depth-first traversal to concatenate all text nodes.
+	 *
+	 * @param adfNode the ADF root node (may be null, missing, or empty)
+	 * @return extracted plain text, or empty string if no text found
+	 */
+	private static String parseAdfToPlainText(JsonNode adfNode) {
+		if (adfNode == null || adfNode.isNull() || adfNode.isMissingNode()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		List<JsonNode> stack = new ArrayList<>();
+		stack.add(adfNode);
+		while (!stack.isEmpty()) {
+			JsonNode current = stack.remove(stack.size() - 1);
+			if (current.has(ADF_TEXT)) {
+				sb.append(current.get(ADF_TEXT).asText()).append(" ");
+			}
+			if (current.has(ADF_CONTENT)) {
+				JsonNode children = current.get(ADF_CONTENT);
+				for (int i = children.size() - 1; i >= 0; i--) {
+					stack.add(children.get(i));
+				}
+			}
+		}
+		return sb.toString().trim();
+	}
+
+	/**
+	 * Builds an Atlassian Document Format (ADF) document from plain text.
+	 * Splits on double newlines for paragraphs and single newlines for hard breaks.
+	 *
+	 * @param text plain text input
+	 * @return ADF document structure as a Map
+	 */
 	static Map<String, Object> buildAdfDocument(String text) {
 		final String doc = "doc";
 		final String version = "version";
 		final String paragraph = "paragraph";
-		return Map.of(ADF_TYPE, doc, version, 1, ADF_CONTENT,
-				List.of(Map.of(ADF_TYPE, paragraph, ADF_CONTENT,
-						List.of(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, text)))));
+		final String hardBreak = "hardBreak";
+
+		List<Map<String, Object>> paragraphs = new ArrayList<>();
+		String[] blocks = text.split("\\n\\n");
+		for (String block : blocks) {
+			List<Map<String, Object>> inlineContent = new ArrayList<>();
+			String[] lines = block.split("\\n");
+			for (int i = 0; i < lines.length; i++) {
+				if (i > 0) {
+					inlineContent.add(Map.of(ADF_TYPE, hardBreak));
+				}
+				if (!lines[i].isEmpty()) {
+					inlineContent.add(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, lines[i]));
+				}
+			}
+			if (!inlineContent.isEmpty()) {
+				paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT, inlineContent));
+			}
+		}
+		if (paragraphs.isEmpty()) {
+			paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT,
+					List.of(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, text))));
+		}
+		return Map.of(ADF_TYPE, doc, version, 1, ADF_CONTENT, paragraphs);
+	}
+
+	// =========================================================================
+	// New methods for enhanced Jira connector capabilities
+	// =========================================================================
+
+	/**
+	 * Edits an existing comment on a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param commentId   the numeric comment ID
+	 * @param commentText updated plain text comment body
+	 * @return map containing {@code id}, {@code author}, {@code created}, {@code updated}, and {@code success}
+	 */
+	public static Map<String, Object> editComment(String accessToken, String baseUrl, String issueKey,
+			String commentId, String commentText) {
+		try {
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(commentId, "Comment ID");
+			validateRequiredString(commentText, "Comment text");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + API_SUFFIX_COMMENT + "/" + commentId;
+			String response = HttpHelperUtility.putRequestStringBody(url, headers,
+					GSON.toJson(Map.of(FIELD_BODY, buildAdfDocument(commentText))), ContentType.APPLICATION_JSON,
+					null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_ID, root.path(FIELD_ID).asText());
+			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+			result.put(FIELD_CREATED, root.path(FIELD_CREATED).asText());
+			result.put("updated", root.path("updated").asText());
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in editComment for '{}' comment '{}': {}", issueKey, commentId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to edit comment '" + commentId + "' on issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Deletes a comment from a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param commentId   the numeric comment ID
+	 * @return map containing {@code success}
+	 */
+	public static Map<String, Object> deleteComment(String accessToken, String baseUrl, String issueKey,
+			String commentId) {
+		try {
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(commentId, "Comment ID");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + API_SUFFIX_COMMENT + "/" + commentId;
+			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in deleteComment for '{}' comment '{}': {}", issueKey, commentId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to delete comment '" + commentId + "' on issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Assigns a Jira issue to a user, or removes the assignment.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param accountId   the assignee's account ID, or {@code null}/empty to unassign
+	 * @return map containing {@code key}, {@code assignee}, and {@code success}
+	 */
+	public static Map<String, Object> assignIssue(String accessToken, String baseUrl, String issueKey,
+			String accountId) {
+		try {
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + "/assignee";
+			// null accountId means unassign; Jira expects {"accountId": null} or
+			// {"accountId": "-1"} for automatic, but null accountId sets unassigned
+			Map<String, Object> body = new HashMap<>();
+			body.put(FIELD_ACCOUNT_ID, (accountId != null && !accountId.trim().isEmpty()) ? accountId : null);
+			HttpHelperUtility.putRequestStringBody(url, headers, GSON.toJson(body), ContentType.APPLICATION_JSON,
+					null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_KEY, issueKey);
+			result.put(FIELD_ASSIGNEE, (accountId != null && !accountId.trim().isEmpty()) ? accountId : DEFAULT_UNASSIGNED);
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in assignIssue '{}': {}", issueKey, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to assign issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves attachments for a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @return list of maps, each containing {@code id}, {@code filename}, {@code mimeType},
+	 *         {@code size}, {@code created}, and {@code contentUrl}
+	 */
+	public static List<Map<String, Object>> getAttachments(String accessToken, String baseUrl, String issueKey) {
+		try {
+			final String attachment = "attachment";
+			final String filename = "filename";
+			final String mimeType = "mimeType";
+			final String size = "size";
+			final String contentUrl = "content";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			Map<String, String> headers = buildHeaders(accessToken);
+			String response = HttpHelperUtility.getRequest(
+					baseUrl + API_PATH_ISSUE + "/" + issueKey + "?fields=attachment", headers, null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+			JsonNode attachments = root.path(FIELD_FIELDS).path(attachment);
+
+			List<Map<String, Object>> attachmentList = new ArrayList<>();
+			for (JsonNode a : attachments) {
+				Map<String, Object> att = new HashMap<>();
+				att.put(FIELD_ID, a.path(FIELD_ID).asText());
+				att.put(filename, a.path(filename).asText());
+				att.put(mimeType, a.path(mimeType).asText());
+				att.put(size, a.path(size).asLong());
+				att.put(FIELD_CREATED, a.path(FIELD_CREATED).asText());
+				att.put(contentUrl, a.path(contentUrl).asText());
+				att.put(FIELD_AUTHOR, a.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+				attachmentList.add(att);
+			}
+			return attachmentList;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in getAttachments for '{}': {}", issueKey, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to get attachments for issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Adds a file attachment to a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param filePath    absolute path to the file to attach
+	 * @return map containing {@code id}, {@code filename}, {@code size}, and {@code success}
+	 */
+	public static Map<String, Object> addAttachment(String accessToken, String baseUrl, String issueKey,
+			String filePath) {
+		try {
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(filePath, "File path");
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + "/attachments";
+
+			File file = new File(filePath);
+			if (!file.exists() || !file.isFile()) {
+				throw new SemossPixelException("File not found: " + filePath);
+			}
+
+			// Jira attachment API requires multipart/form-data with X-Atlassian-Token: no-check
+			String response;
+			try (CloseableHttpClient httpClient = HttpClientBuilder.create().useSystemProperties().build()) {
+				HttpPost post = new HttpPost(url);
+				post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+				post.addHeader(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
+				post.addHeader("X-Atlassian-Token", "no-check");
+
+				HttpEntity entity = MultipartEntityBuilder.create()
+						.addPart("file", new FileBody(file, ContentType.APPLICATION_OCTET_STREAM))
+						.build();
+				post.setEntity(entity);
+
+				response = httpClient.execute(post, resp -> EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8));
+			}
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+			JsonNode firstAttachment = root.isArray() && root.size() > 0 ? root.get(0) : root;
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_ID, firstAttachment.path(FIELD_ID).asText());
+			result.put("filename", firstAttachment.path("filename").asText());
+			result.put("size", firstAttachment.path("size").asLong());
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in addAttachment for '{}': {}", issueKey, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to add attachment to issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Creates a link between two Jira issues.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param linkType    the link type name (for example, {@code "Blocks"}, {@code "Relates"})
+	 * @param inwardIssue the issue key for the inward side of the link
+	 * @param outwardIssue the issue key for the outward side of the link
+	 * @return map containing {@code success}
+	 */
+	public static Map<String, Object> linkIssues(String accessToken, String baseUrl, String linkType,
+			String inwardIssue, String outwardIssue) {
+		try {
+			final String issueLinkUrl = "/rest/api/3/issueLink";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(linkType, "Link type");
+			validateRequiredString(inwardIssue, "Inward issue key");
+			validateRequiredString(outwardIssue, "Outward issue key");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			Map<String, Object> body = new HashMap<>();
+			body.put("type", Map.of(FIELD_NAME, linkType));
+			body.put("inwardIssue", Map.of(FIELD_KEY, inwardIssue));
+			body.put("outwardIssue", Map.of(FIELD_KEY, outwardIssue));
+
+			HttpHelperUtility.postRequestStringBody(baseUrl + issueLinkUrl, headers,
+					GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_SUCCESS, true);
+			result.put("linkType", linkType);
+			result.put("inwardIssue", inwardIssue);
+			result.put("outwardIssue", outwardIssue);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in linkIssues: {}", e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to link issues '" + inwardIssue + "' and '" + outwardIssue + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves all issue link types available in the Jira instance.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @return list of maps, each containing {@code id}, {@code name}, {@code inward}, and {@code outward}
+	 */
+	public static List<Map<String, Object>> getIssueLinkTypes(String accessToken, String baseUrl) {
+		try {
+			final String issueLinkTypeUrl = "/rest/api/3/issueLinkType";
+			final String issueLinkTypes = "issueLinkTypes";
+			final String inward = "inward";
+			final String outward = "outward";
+			validateJiraContext(accessToken, baseUrl);
+			Map<String, String> headers = buildHeaders(accessToken);
+			String response = HttpHelperUtility.getRequest(baseUrl + issueLinkTypeUrl, headers, null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+			JsonNode linkTypes = root.path(issueLinkTypes);
+
+			List<Map<String, Object>> linkTypeList = new ArrayList<>();
+			for (JsonNode lt : linkTypes) {
+				Map<String, Object> linkType = new HashMap<>();
+				linkType.put(FIELD_ID, lt.path(FIELD_ID).asText());
+				linkType.put(FIELD_NAME, lt.path(FIELD_NAME).asText());
+				linkType.put(inward, lt.path(inward).asText());
+				linkType.put(outward, lt.path(outward).asText());
+				linkTypeList.add(linkType);
+			}
+			return linkTypeList;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in getIssueLinkTypes: {}", e.getMessage(), e);
+			throw new SemossPixelException("Failed to retrieve issue link types. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Logs work against a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param timeSpent   time in Jira notation (for example, {@code "2h 30m"}, {@code "1d"})
+	 * @param comment     optional comment for the worklog entry
+	 * @param started     optional start datetime in ISO format; defaults to now
+	 * @return map containing worklog entry details and {@code success}
+	 */
+	public static Map<String, Object> logWork(String accessToken, String baseUrl, String issueKey,
+			String timeSpent, String comment, String started) {
+		try {
+			final String worklogUrl = "/worklog";
+			final String timeSpentField = "timeSpent";
+			final String startedField = "started";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(timeSpent, "Time spent");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			Map<String, Object> body = new HashMap<>();
+			body.put(timeSpentField, timeSpent);
+			if (comment != null && !comment.trim().isEmpty()) {
+				body.put(FIELD_COMMENT, buildAdfDocument(comment));
+			}
+			if (started != null && !started.trim().isEmpty()) {
+				body.put(startedField, started);
+			}
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + worklogUrl;
+			String response = HttpHelperUtility.postRequestStringBody(url, headers,
+					GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_ID, root.path(FIELD_ID).asText());
+			result.put(timeSpentField, root.path(timeSpentField).asText());
+			result.put("timeSpentSeconds", root.path("timeSpentSeconds").asLong());
+			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+			result.put(FIELD_CREATED, root.path(FIELD_CREATED).asText());
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in logWork for '{}': {}", issueKey, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to log work on issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Retrieves worklog entries for a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @return list of maps, each containing worklog entry details
+	 */
+	public static List<Map<String, Object>> getWorklogs(String accessToken, String baseUrl, String issueKey) {
+		try {
+			final String worklogUrl = "/worklog";
+			final String worklogs = "worklogs";
+			final String timeSpentField = "timeSpent";
+			final String startedField = "started";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			Map<String, String> headers = buildHeaders(accessToken);
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + worklogUrl;
+			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+
+			List<Map<String, Object>> worklogList = new ArrayList<>();
+			for (JsonNode w : root.path(worklogs)) {
+				Map<String, Object> entry = new HashMap<>();
+				entry.put(FIELD_ID, w.path(FIELD_ID).asText());
+				entry.put(FIELD_AUTHOR, w.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+				entry.put(timeSpentField, w.path(timeSpentField).asText());
+				entry.put("timeSpentSeconds", w.path("timeSpentSeconds").asLong());
+				entry.put(startedField, w.path(startedField).asText());
+				entry.put(FIELD_CREATED, w.path(FIELD_CREATED).asText());
+				entry.put("updated", w.path("updated").asText());
+				entry.put(FIELD_BODY, parseAdfToPlainText(w.path("comment")));
+				worklogList.add(entry);
+			}
+			return worklogList;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in getWorklogs for '{}': {}", issueKey, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to get worklogs for issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Removes a link between two Jira issues.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param linkId      the issue link ID to remove
+	 * @return map containing {@code success}
+	 */
+	public static Map<String, Object> unlinkIssues(String accessToken, String baseUrl, String linkId) {
+		try {
+			final String issueLinkUrl = "/rest/api/3/issueLink/";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(linkId, "Link ID");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			HttpHelperUtility.deleteRequestStringBody(baseUrl + issueLinkUrl + linkId, headers, null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in unlinkIssues for link '{}': {}", linkId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to remove issue link '" + linkId + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Deletes an attachment from a Jira issue.
+	 *
+	 * @param accessToken  Jira OAuth access token
+	 * @param baseUrl      Jira API base URL including cloud ID
+	 * @param attachmentId the attachment ID to delete
+	 * @return map containing {@code success}
+	 */
+	public static Map<String, Object> deleteAttachment(String accessToken, String baseUrl, String attachmentId) {
+		try {
+			final String attachmentUrl = "/rest/api/3/attachment/";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(attachmentId, "Attachment ID");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			HttpHelperUtility.deleteRequestStringBody(baseUrl + attachmentUrl + attachmentId, headers, null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in deleteAttachment '{}': {}", attachmentId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to delete attachment '" + attachmentId + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Updates an existing worklog entry on a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param worklogId   the worklog entry ID to update
+	 * @param timeSpent   updated time in Jira notation (for example, {@code "3h"}, {@code "1d 2h"})
+	 * @param comment     optional updated comment for the worklog entry
+	 * @param started     optional updated start datetime in ISO format
+	 * @return map containing updated worklog entry details and {@code success}
+	 */
+	public static Map<String, Object> updateWorklog(String accessToken, String baseUrl, String issueKey,
+			String worklogId, String timeSpent, String comment, String started) {
+		try {
+			final String worklogUrl = "/worklog/";
+			final String timeSpentField = "timeSpent";
+			final String startedField = "started";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(worklogId, "Worklog ID");
+			validateRequiredString(timeSpent, "Time spent");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			Map<String, Object> body = new HashMap<>();
+			body.put(timeSpentField, timeSpent);
+			if (comment != null && !comment.trim().isEmpty()) {
+				body.put(FIELD_COMMENT, buildAdfDocument(comment));
+			}
+			if (started != null && !started.trim().isEmpty()) {
+				body.put(startedField, started);
+			}
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + worklogUrl + worklogId;
+			String response = HttpHelperUtility.putRequestStringBody(url, headers,
+					GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null);
+
+			JsonNode root = OBJECT_MAPPER.readTree(response);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_ID, root.path(FIELD_ID).asText());
+			result.put(timeSpentField, root.path(timeSpentField).asText());
+			result.put("timeSpentSeconds", root.path("timeSpentSeconds").asLong());
+			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+			result.put("updated", root.path("updated").asText());
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in updateWorklog for '{}' worklog '{}': {}", issueKey, worklogId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to update worklog '" + worklogId + "' on issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Deletes a worklog entry from a Jira issue.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @param issueKey    issue key (for example, {@code PROJECT-123})
+	 * @param worklogId   the worklog entry ID to delete
+	 * @return map containing {@code success}
+	 */
+	public static Map<String, Object> deleteWorklog(String accessToken, String baseUrl, String issueKey,
+			String worklogId) {
+		try {
+			final String worklogUrl = "/worklog/";
+			validateJiraContext(accessToken, baseUrl);
+			validateRequiredString(issueKey, "Issue key");
+			validateRequiredString(worklogId, "Worklog ID");
+			Map<String, String> headers = buildHeaders(accessToken);
+
+			String url = baseUrl + API_PATH_ISSUE + "/" + issueKey + worklogUrl + worklogId;
+			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
+
+			Map<String, Object> result = new HashMap<>();
+			result.put(FIELD_SUCCESS, true);
+			return result;
+
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Error in deleteWorklog for '{}' worklog '{}': {}", issueKey, worklogId, e.getMessage(), e);
+			throw new SemossPixelException(
+					"Failed to delete worklog '" + worklogId + "' on issue '" + issueKey + "'. Error: " + e.getMessage());
+		}
 	}
 }

@@ -29,7 +29,7 @@ public class JiraGetCommentsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String issueKey = this.keyValue.get(JIRAID);
+			String issueKey = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();

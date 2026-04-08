@@ -49,9 +49,19 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.createIssue(accessToken, baseUrl, nullSafe(projectKey), nullSafe(summary),
-					nullSafe(description), nullSafe(issueType), nullSafe(assigneeAccountId),
-					nullSafe(priority), nullSafe(dueDate), nullSafe(parentKey), nullSafe(status));
+			projectKey = JiraUtils.nullSafe(projectKey);
+			summary = JiraUtils.nullSafe(summary);
+			description = JiraUtils.nullSafe(description);
+			issueType = JiraUtils.nullSafe(issueType);
+			assigneeAccountId = JiraUtils.nullSafe(assigneeAccountId);
+			priority = JiraUtils.nullSafe(priority);
+			dueDate = JiraUtils.nullSafe(dueDate);
+			parentKey = JiraUtils.nullSafe(parentKey);
+			status = JiraUtils.nullSafe(status);
+			JiraUtils.validateDateFormat(dueDate, "duedate");
+			Map<String, Object> result = JiraHelper.createIssue(accessToken, baseUrl, projectKey, summary,
+					description, issueType, assigneeAccountId,
+					priority, dueDate, parentKey, status);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while creating a Jira ticket", e);
@@ -61,13 +71,6 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while creating the Jira ticket. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

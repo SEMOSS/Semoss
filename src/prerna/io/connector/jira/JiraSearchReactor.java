@@ -30,7 +30,7 @@ public class JiraSearchReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String jqlQuery = this.keyValue.get(JQL);
+			String jqlQuery = JiraUtils.nullSafe(this.keyValue.get(JQL));
 			String nextPageToken = this.keyValue.get(NEXT_PAGE_TOKEN);
 
 			int maxResults = 50;
@@ -46,7 +46,7 @@ public class JiraSearchReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.searchIssues(accessToken, baseUrl, jqlQuery, nullSafe(nextPageToken), maxResults);
+			Map<String, Object> result = JiraHelper.searchIssues(accessToken, baseUrl, jqlQuery, JiraUtils.nullSafe(nextPageToken), maxResults);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while searching Jira issues", e);
@@ -56,13 +56,6 @@ public class JiraSearchReactor extends AbstractReactor {
 			throw new SemossPixelException(
 					"An error occurred while searching Jira issues. Error message: " + e.getMessage());
 		}
-	}
-
-	private static String nullSafe(String value) {
-		if (value == null || value.trim().isEmpty() || value.trim().equalsIgnoreCase("null")) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

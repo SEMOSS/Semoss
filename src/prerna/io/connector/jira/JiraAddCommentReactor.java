@@ -29,8 +29,8 @@ public class JiraAddCommentReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String issueKey = this.keyValue.get(JIRAID);
-			String comment = this.keyValue.get(COMMENT);
+			String issueKey = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
+			String comment = JiraUtils.nullSafe(this.keyValue.get(COMMENT));
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
