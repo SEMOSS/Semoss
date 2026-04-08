@@ -49,10 +49,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class FilterEmptyValuesReactor extends AbstractPyFrameReactor {
 
 	protected static final String CLASS_NAME = FilterEmptyValuesReactor.class.getName();
-	private static final String AXIS = "axis";
 	
 	public FilterEmptyValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), AXIS };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
 
 	@Override
