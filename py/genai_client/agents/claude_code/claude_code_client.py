@@ -1,5 +1,6 @@
 from typing import Optional
 import asyncio
+import json
 from pydantic import BaseModel
 from claude_agent_sdk import (
     query,
@@ -12,16 +13,17 @@ from claude_agent_sdk import (
 )
 from .claude_code_utils import _build_change_logger
 
-# from ...debug_logger.debug_logger import DebugLogger
+from ...debug_logger.debug_logger import DebugLogger
 
-# logger = DebugLogger(
-#     log_dir="/Users/rweiler/Desktop/LOG_FILES",
-#     log_file_name="claude-code-client.txt",
-#     class_name=__name__,
-# ).logger
+logger = DebugLogger(
+    log_dir="/Users/rweiler/Desktop/LOG_FILES",
+    log_file_name="claude-code-client.txt",
+    class_name=__name__,
+).logger
 
-# def _stderr_handler(line: str):
-#     logger.debug(f"Claude-Code-stderr:: {line.rstrip()}")
+
+def _stderr_handler(line: str):
+    logger.debug(f"Claude-Code-stderr:: {line.rstrip()}")
 
 
 class MCP(BaseModel):
@@ -56,7 +58,7 @@ class ClaudeCodeClient:
 
         self.agent_options = ClaudeAgentOptions(
             # permission_mode=self.configuration.permission_mode,
-            # stderr=_stderr_handler,
+            stderr=_stderr_handler,
             permission_mode="bypassPermissions",
             max_turns=10,
             setting_sources=["project"],
@@ -90,10 +92,11 @@ class ClaudeCodeClient:
             env={
                 "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
                 "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
-                "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
+                # "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}",
+                "ANTHROPIC_API_KEY": f"room-{self.configuration.room_id}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
                 "ENABLE_TOOL_SEARCH": "true",
-                # "ANTHROPIC_LOG": "debug",
+                "ANTHROPIC_LOG": "debug",
                 "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
                 "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
                 "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
@@ -123,18 +126,18 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
-        new_prompt = f"[[SEMOSS_CONTEXT:insightId={self.configuration.insight_id},roomId={self.configuration.room_id}]]\n{prompt}"
-        model_tag = f"[[SEMOSS_MODEL:{self.configuration.model}]]"
-        if system_prompt:
-            self.agent_options.system_prompt = f"{model_tag}\n{system_prompt}"
-        else:
-            self.agent_options.system_prompt = model_tag
+        # new_prompt = f"[[SEMOSS_CONTEXT:insightId={self.configuration.insight_id},roomId={self.configuration.room_id}]]\n{prompt}"
+        # parent_room_tag = f"[[PARENT_ROOM_ID={self.configuration.room_id}]]"
+        # if system_prompt:
+        #     self.agent_options.system_prompt = f"{parent_room_tag}\n{system_prompt}"
+        # else:
+        #     self.agent_options.system_prompt = parent_room_tag
         final_message = ""
         async for message in query(
-            prompt=new_prompt,
+            prompt=prompt,
             options=self.agent_options,
         ):
-            # logger.info(f"Claude-Code-chunk:: {message}")
+            logger.info(f"Claude-Code-chunk:: {message}")
             if isinstance(message, AssistantMessage):
                 for block in message.content:
                     if isinstance(block, TextBlock):

@@ -810,8 +810,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
+				isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -836,7 +836,7 @@ public class ModelInferenceLogsUtils {
 			String projectName) {
 
 		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+				agentId, isActive, projectId, projectName, null, null, null);
 	}
 
 	/**
@@ -861,7 +861,7 @@ public class ModelInferenceLogsUtils {
 			String projectId, String projectName, Map<String, Object> options) {
 
 		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+				agentId, isActive, projectId, projectName, null, null, null);
 	}
 
 	/**
@@ -884,12 +884,13 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doCreateNewConversation(String insightId, String roomId, String roomName, String roomContext,
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
-			String projectId, String projectName, String workspaceId, Map<String, Object> options) {
+			String projectId, String projectName, String workspaceId, Map<String, Object> options,
+			String parentRoomId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
-				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
@@ -942,6 +943,11 @@ public class ModelInferenceLogsUtils {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			if (parentRoomId != null) {
+				ps.setString(index++, parentRoomId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -2119,7 +2125,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
 						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"));
+						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);

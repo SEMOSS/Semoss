@@ -110,6 +110,8 @@ public class Room {
 	private String modelId;
 	private String messagesJson;
 
+	private String parentRoomId;
+
 	private Insight insight;
 	private String roomFolderPath;
 
@@ -145,10 +147,11 @@ public class Room {
 	 * @param pinned        whether the room is pinned
 	 * @param options       room options JSON
 	 * @param modelId       model/engine identifier associated to the room
+	 * @param parentRoomId  parent room identifier for sub-conversations (nullable)
 	 */
 	public Room(String room_id, String userId, String roomName, String systemMessage, String projectId, String shareId,
 			boolean isActive, Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned,
-			String options, String modelId) {
+			String options, String modelId, String parentRoomId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
@@ -160,6 +163,7 @@ public class Room {
 		this.pinned = pinned;
 		this.options = options;
 		this.modelId = modelId;
+		this.parentRoomId = parentRoomId;
 		this.messagesJson = messagesJson;
 		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
 
@@ -1476,6 +1480,14 @@ public class Room {
 	 */
 	public void setModelId(String modelId) {
 		this.modelId = modelId;
+	}
+
+	public String getParentRoomId() {
+		return parentRoomId;
+	}
+
+	public void setParentRoomId(String parentRoomId) {
+		this.parentRoomId = parentRoomId;
 	}
 
 	/**
