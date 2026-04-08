@@ -754,197 +754,6 @@ public final class JiraHelper {
 		}
 	}
 
-	private static Map<String, Object> executeJqlSearch(String accessToken, String baseUrl, String jql,
-			String nextPageToken, int maxResults) throws Exception {
-		final String jiraSearchUrl = "/rest/api/3/search/jql";
-		final String isLast = "isLast";
-		Map<String, String> headers = buildHeaders(accessToken);
-
-		int safeMax = JiraUtils.clampMaxResults(maxResults);
-
-		Map<String, Object> body = new HashMap<>();
-		body.put(FIELD_JQL, jql);
-		body.put(FIELD_MAX_RESULTS, safeMax);
-		body.put(FIELD_FIELDS, Arrays.asList(FIELD_SUMMARY, FIELD_STATUS, FIELD_ASSIGNEE, FIELD_PRIORITY,
-				FIELD_ISSUE_TYPE, FIELD_DUE_DATE, FIELD_LABELS));
-		if (nextPageToken != null && !nextPageToken.trim().isEmpty()) {
-			body.put(FIELD_NEXT_PAGE_TOKEN, nextPageToken);
-		}
-
-		String response = HttpHelperUtility.postRequestStringBody(baseUrl + jiraSearchUrl, headers,
-				GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null);
-		JsonNode root = OBJECT_MAPPER.readTree(response);
-
-		List<Map<String, Object>> issueList = new ArrayList<>();
-		for (JsonNode issue : root.path(FIELD_ISSUES)) {
-			issueList.add(parseIssueSummary(issue));
-		}
-
-		Map<String, Object> result = new HashMap<>();
-		result.put(FIELD_ISSUES, issueList);
-		result.put(isLast, root.path(isLast).asBoolean(true));
-		result.put(FIELD_MAX_RESULTS, safeMax);
-		if (root.has(FIELD_NEXT_PAGE_TOKEN)) {
-			result.put(FIELD_NEXT_PAGE_TOKEN, root.path(FIELD_NEXT_PAGE_TOKEN).asText());
-		}
-		return result;
-	}
-
-	private static String resolveProjectId(String urlBase, String accessToken, String projectIdOrKey) throws Exception {
-		if (projectIdOrKey == null || projectIdOrKey.trim().isEmpty()) {
-			throw new SemossPixelException("Project key is required.");
-		}
-		if (projectIdOrKey.chars().allMatch(Character::isDigit)) {
-			return projectIdOrKey;
-		}
-		Map<String, String> headers = buildHeaders(accessToken);
-		String projectUrl = urlBase + API_PATH_PROJECT + "/"
-				+ URLEncoder.encode(projectIdOrKey, StandardCharsets.UTF_8);
-		String response = HttpHelperUtility.getRequest(projectUrl, headers, null, null, null);
-		JsonNode projectNode = OBJECT_MAPPER.readTree(response);
-		String resolvedId = projectNode.path(FIELD_ID).asText();
-		if (resolvedId == null || resolvedId.trim().isEmpty()) {
-			throw new SemossPixelException("Unable to resolve project ID for project '" + projectIdOrKey
-					+ "'. Check the project key is correct.");
-		}
-		return resolvedId;
-	}
-
-	private static String applyTransitionByName(String urlBase, String accessToken,
-			String issueKey, String statusName) throws Exception {
-		String url = urlBase + API_PATH_ISSUE + "/" + issueKey + API_SUFFIX_TRANSITIONS;
-		Map<String, String> headers = buildHeaders(accessToken);
-		String getResponse = HttpHelperUtility.getRequest(url, headers, null, null, null);
-		JsonNode transitions = OBJECT_MAPPER.readTree(getResponse).path(FIELD_TRANSITIONS);
-		for (JsonNode t : transitions) {
-			if (t.path(FIELD_TO).path(FIELD_NAME).asText("").equalsIgnoreCase(statusName)) {
-				HttpHelperUtility.postRequestStringBody(url, headers,
-						GSON.toJson(Map.of(FIELD_TRANSITION, Map.of(FIELD_ID, t.path(FIELD_ID).asText()))),
-						ContentType.APPLICATION_JSON, null, null, null);
-				return statusName;
-			}
-		}
-		throw new SemossPixelException("Could not transition issue " + issueKey + " to '" + statusName + "'.");
-	}
-
-	private static Map<String, String> buildHeaders(String accessToken) {
-		Map<String, String> headers = new HashMap<>();
-		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-		headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
-		headers.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
-		headers.put(HttpHeaders.USER_AGENT, "Semoss-Jira-Connector/1.0");
-		return headers;
-	}
-
-	private static void validateJiraContext(String accessToken, String baseUrl) {
-		if (accessToken == null || accessToken.trim().isEmpty()) {
-			throw new SemossPixelException("Jira access token must not be empty.");
-		}
-		if (baseUrl == null || baseUrl.trim().isEmpty()) {
-			throw new SemossPixelException("Jira base URL must not be empty.");
-		}
-	}
-
-	private static void validateRequiredString(String value, String fieldName) {
-		if (value == null || value.trim().isEmpty()) {
-			throw new SemossPixelException(fieldName + " must not be empty.");
-		}
-	}
-
-	private static Map<String, Object> parseIssueSummary(JsonNode issue) {
-		JsonNode f = issue.path(FIELD_FIELDS);
-		Map<String, Object> ticket = new HashMap<>();
-		ticket.put(FIELD_ID, issue.path(FIELD_ID).asText());
-		ticket.put(FIELD_KEY, issue.path(FIELD_KEY).asText());
-		ticket.put(FIELD_SELF, issue.path(FIELD_SELF).asText());
-		ticket.put(FIELD_SUMMARY, f.path(FIELD_SUMMARY).asText());
-		ticket.put(FIELD_STATUS, f.path(FIELD_STATUS).path(FIELD_NAME).asText());
-		ticket.put(FIELD_PRIORITY, f.path(FIELD_PRIORITY).path(FIELD_NAME).asText());
-		ticket.put(FIELD_ISSUE_TYPE, f.path(FIELD_ISSUE_TYPE).path(FIELD_NAME).asText());
-		ticket.put(FIELD_ASSIGNEE, f.path(FIELD_ASSIGNEE).path(FIELD_DISPLAY_NAME).asText(DEFAULT_UNASSIGNED));
-		ticket.put(FIELD_ACCOUNT_ID, f.path(FIELD_ASSIGNEE).path(FIELD_ACCOUNT_ID).asText(""));
-		ticket.put(FIELD_DUE_DATE, f.path(FIELD_DUE_DATE).asText());
-		JsonNode labelsNode = f.path(FIELD_LABELS);
-		List<String> labels = new ArrayList<>();
-		if (labelsNode.isArray()) {
-			for (JsonNode lbl : labelsNode) {
-				labels.add(lbl.asText());
-			}
-		}
-		ticket.put(FIELD_LABELS, labels);
-		return ticket;
-	}
-
-	/**
-	 * Extracts plain text from an Atlassian Document Format (ADF) JSON node.
-	 * Uses an iterative depth-first traversal to concatenate all text nodes.
-	 *
-	 * @param adfNode the ADF root node (may be null, missing, or empty)
-	 * @return extracted plain text, or empty string if no text found
-	 */
-	private static String parseAdfToPlainText(JsonNode adfNode) {
-		if (adfNode == null || adfNode.isNull() || adfNode.isMissingNode()) {
-			return "";
-		}
-		StringBuilder sb = new StringBuilder();
-		List<JsonNode> stack = new ArrayList<>();
-		stack.add(adfNode);
-		while (!stack.isEmpty()) {
-			JsonNode current = stack.remove(stack.size() - 1);
-			if (current.has(ADF_TEXT)) {
-				sb.append(current.get(ADF_TEXT).asText()).append(" ");
-			}
-			if (current.has(ADF_CONTENT)) {
-				JsonNode children = current.get(ADF_CONTENT);
-				for (int i = children.size() - 1; i >= 0; i--) {
-					stack.add(children.get(i));
-				}
-			}
-		}
-		return sb.toString().trim();
-	}
-
-	/**
-	 * Builds an Atlassian Document Format (ADF) document from plain text.
-	 * Splits on double newlines for paragraphs and single newlines for hard breaks.
-	 *
-	 * @param text plain text input
-	 * @return ADF document structure as a Map
-	 */
-	static Map<String, Object> buildAdfDocument(String text) {
-		final String doc = "doc";
-		final String version = "version";
-		final String paragraph = "paragraph";
-		final String hardBreak = "hardBreak";
-
-		List<Map<String, Object>> paragraphs = new ArrayList<>();
-		String[] blocks = text.split("\\n\\n");
-		for (String block : blocks) {
-			List<Map<String, Object>> inlineContent = new ArrayList<>();
-			String[] lines = block.split("\\n");
-			for (int i = 0; i < lines.length; i++) {
-				if (i > 0) {
-					inlineContent.add(Map.of(ADF_TYPE, hardBreak));
-				}
-				if (!lines[i].isEmpty()) {
-					inlineContent.add(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, lines[i]));
-				}
-			}
-			if (!inlineContent.isEmpty()) {
-				paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT, inlineContent));
-			}
-		}
-		if (paragraphs.isEmpty()) {
-			paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT,
-					List.of(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, text))));
-		}
-		return Map.of(ADF_TYPE, doc, version, 1, ADF_CONTENT, paragraphs);
-	}
-
-	// =========================================================================
-	// New methods for enhanced Jira connector capabilities
-	// =========================================================================
-
 	/**
 	 * Edits an existing comment on a Jira issue.
 	 *
@@ -1499,5 +1308,192 @@ public final class JiraHelper {
 			throw new SemossPixelException(
 					"Failed to delete worklog '" + worklogId + "' on issue '" + issueKey + "'. Error: " + e.getMessage());
 		}
+	}
+
+	private static Map<String, Object> executeJqlSearch(String accessToken, String baseUrl, String jql,
+			String nextPageToken, int maxResults) throws Exception {
+		final String jiraSearchUrl = "/rest/api/3/search/jql";
+		final String isLast = "isLast";
+		Map<String, String> headers = buildHeaders(accessToken);
+
+		int safeMax = JiraUtils.clampMaxResults(maxResults);
+
+		Map<String, Object> body = new HashMap<>();
+		body.put(FIELD_JQL, jql);
+		body.put(FIELD_MAX_RESULTS, safeMax);
+		body.put(FIELD_FIELDS, Arrays.asList(FIELD_SUMMARY, FIELD_STATUS, FIELD_ASSIGNEE, FIELD_PRIORITY,
+				FIELD_ISSUE_TYPE, FIELD_DUE_DATE, FIELD_LABELS));
+		if (nextPageToken != null && !nextPageToken.trim().isEmpty()) {
+			body.put(FIELD_NEXT_PAGE_TOKEN, nextPageToken);
+		}
+
+		String response = HttpHelperUtility.postRequestStringBody(baseUrl + jiraSearchUrl, headers,
+				GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null);
+		JsonNode root = OBJECT_MAPPER.readTree(response);
+
+		List<Map<String, Object>> issueList = new ArrayList<>();
+		for (JsonNode issue : root.path(FIELD_ISSUES)) {
+			issueList.add(parseIssueSummary(issue));
+		}
+
+		Map<String, Object> result = new HashMap<>();
+		result.put(FIELD_ISSUES, issueList);
+		result.put(isLast, root.path(isLast).asBoolean(true));
+		result.put(FIELD_MAX_RESULTS, safeMax);
+		if (root.has(FIELD_NEXT_PAGE_TOKEN)) {
+			result.put(FIELD_NEXT_PAGE_TOKEN, root.path(FIELD_NEXT_PAGE_TOKEN).asText());
+		}
+		return result;
+	}
+
+	private static String resolveProjectId(String urlBase, String accessToken, String projectIdOrKey) throws Exception {
+		if (projectIdOrKey == null || projectIdOrKey.trim().isEmpty()) {
+			throw new SemossPixelException("Project key is required.");
+		}
+		if (projectIdOrKey.chars().allMatch(Character::isDigit)) {
+			return projectIdOrKey;
+		}
+		Map<String, String> headers = buildHeaders(accessToken);
+		String projectUrl = urlBase + API_PATH_PROJECT + "/"
+				+ URLEncoder.encode(projectIdOrKey, StandardCharsets.UTF_8);
+		String response = HttpHelperUtility.getRequest(projectUrl, headers, null, null, null);
+		JsonNode projectNode = OBJECT_MAPPER.readTree(response);
+		String resolvedId = projectNode.path(FIELD_ID).asText();
+		if (resolvedId == null || resolvedId.trim().isEmpty()) {
+			throw new SemossPixelException("Unable to resolve project ID for project '" + projectIdOrKey
+					+ "'. Check the project key is correct.");
+		}
+		return resolvedId;
+	}
+
+	private static String applyTransitionByName(String urlBase, String accessToken,
+			String issueKey, String statusName) throws Exception {
+		String url = urlBase + API_PATH_ISSUE + "/" + issueKey + API_SUFFIX_TRANSITIONS;
+		Map<String, String> headers = buildHeaders(accessToken);
+		String getResponse = HttpHelperUtility.getRequest(url, headers, null, null, null);
+		JsonNode transitions = OBJECT_MAPPER.readTree(getResponse).path(FIELD_TRANSITIONS);
+		for (JsonNode t : transitions) {
+			if (t.path(FIELD_TO).path(FIELD_NAME).asText("").equalsIgnoreCase(statusName)) {
+				HttpHelperUtility.postRequestStringBody(url, headers,
+						GSON.toJson(Map.of(FIELD_TRANSITION, Map.of(FIELD_ID, t.path(FIELD_ID).asText()))),
+						ContentType.APPLICATION_JSON, null, null, null);
+				return statusName;
+			}
+		}
+		throw new SemossPixelException("Could not transition issue " + issueKey + " to '" + statusName + "'.");
+	}
+
+	private static Map<String, String> buildHeaders(String accessToken) {
+		Map<String, String> headers = new HashMap<>();
+		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+		headers.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+		headers.put(HttpHeaders.ACCEPT, ContentType.APPLICATION_JSON.getMimeType());
+		headers.put(HttpHeaders.USER_AGENT, "Semoss-Jira-Connector/1.0");
+		return headers;
+	}
+
+	private static void validateJiraContext(String accessToken, String baseUrl) {
+		if (accessToken == null || accessToken.trim().isEmpty()) {
+			throw new SemossPixelException("Jira access token must not be empty.");
+		}
+		if (baseUrl == null || baseUrl.trim().isEmpty()) {
+			throw new SemossPixelException("Jira base URL must not be empty.");
+		}
+	}
+
+	private static void validateRequiredString(String value, String fieldName) {
+		if (value == null || value.trim().isEmpty()) {
+			throw new SemossPixelException(fieldName + " must not be empty.");
+		}
+	}
+
+	private static Map<String, Object> parseIssueSummary(JsonNode issue) {
+		JsonNode f = issue.path(FIELD_FIELDS);
+		Map<String, Object> ticket = new HashMap<>();
+		ticket.put(FIELD_ID, issue.path(FIELD_ID).asText());
+		ticket.put(FIELD_KEY, issue.path(FIELD_KEY).asText());
+		ticket.put(FIELD_SELF, issue.path(FIELD_SELF).asText());
+		ticket.put(FIELD_SUMMARY, f.path(FIELD_SUMMARY).asText());
+		ticket.put(FIELD_STATUS, f.path(FIELD_STATUS).path(FIELD_NAME).asText());
+		ticket.put(FIELD_PRIORITY, f.path(FIELD_PRIORITY).path(FIELD_NAME).asText());
+		ticket.put(FIELD_ISSUE_TYPE, f.path(FIELD_ISSUE_TYPE).path(FIELD_NAME).asText());
+		ticket.put(FIELD_ASSIGNEE, f.path(FIELD_ASSIGNEE).path(FIELD_DISPLAY_NAME).asText(DEFAULT_UNASSIGNED));
+		ticket.put(FIELD_ACCOUNT_ID, f.path(FIELD_ASSIGNEE).path(FIELD_ACCOUNT_ID).asText(""));
+		ticket.put(FIELD_DUE_DATE, f.path(FIELD_DUE_DATE).asText());
+		JsonNode labelsNode = f.path(FIELD_LABELS);
+		List<String> labels = new ArrayList<>();
+		if (labelsNode.isArray()) {
+			for (JsonNode lbl : labelsNode) {
+				labels.add(lbl.asText());
+			}
+		}
+		ticket.put(FIELD_LABELS, labels);
+		return ticket;
+	}
+
+	/**
+	 * Extracts plain text from an Atlassian Document Format (ADF) JSON node.
+	 * Uses an iterative depth-first traversal to concatenate all text nodes.
+	 *
+	 * @param adfNode the ADF root node (may be null, missing, or empty)
+	 * @return extracted plain text, or empty string if no text found
+	 */
+	private static String parseAdfToPlainText(JsonNode adfNode) {
+		if (adfNode == null || adfNode.isNull() || adfNode.isMissingNode()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		List<JsonNode> stack = new ArrayList<>();
+		stack.add(adfNode);
+		while (!stack.isEmpty()) {
+			JsonNode current = stack.remove(stack.size() - 1);
+			if (current.has(ADF_TEXT)) {
+				sb.append(current.get(ADF_TEXT).asText()).append(" ");
+			}
+			if (current.has(ADF_CONTENT)) {
+				JsonNode children = current.get(ADF_CONTENT);
+				for (int i = children.size() - 1; i >= 0; i--) {
+					stack.add(children.get(i));
+				}
+			}
+		}
+		return sb.toString().trim();
+	}
+
+	/**
+	 * Builds an Atlassian Document Format (ADF) document from plain text.
+	 * Splits on double newlines for paragraphs and single newlines for hard breaks.
+	 *
+	 * @param text plain text input
+	 * @return ADF document structure as a Map
+	 */
+	static Map<String, Object> buildAdfDocument(String text) {
+		final String doc = "doc";
+		final String version = "version";
+		final String paragraph = "paragraph";
+		final String hardBreak = "hardBreak";
+
+		List<Map<String, Object>> paragraphs = new ArrayList<>();
+		String[] blocks = text.split("\\n\\n");
+		for (String block : blocks) {
+			List<Map<String, Object>> inlineContent = new ArrayList<>();
+			String[] lines = block.split("\\n");
+			for (int i = 0; i < lines.length; i++) {
+				if (i > 0) {
+					inlineContent.add(Map.of(ADF_TYPE, hardBreak));
+				}
+				if (!lines[i].isEmpty()) {
+					inlineContent.add(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, lines[i]));
+				}
+			}
+			if (!inlineContent.isEmpty()) {
+				paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT, inlineContent));
+			}
+		}
+		if (paragraphs.isEmpty()) {
+			paragraphs.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT,
+					List.of(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, text))));
+		}
+		return Map.of(ADF_TYPE, doc, version, 1, ADF_CONTENT, paragraphs);
 	}
 }
