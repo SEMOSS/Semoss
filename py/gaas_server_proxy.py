@@ -11,8 +11,6 @@ class ServerProxy:
         """
         Initialize the ServerProxy instance.
         """
-        self.condition = threading.Condition()
-
         from gaas_tcp_server_handler import TCPServerHandler
 
         self.server = TCPServerHandler.da_server
@@ -86,14 +84,17 @@ class ServerProxy:
             "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
+        # create a per-call condition so concurrent requests don't share the same
+        # condition and accidentally wake each other up via notifyAll()
+        condition = threading.Condition()
         # adds itself to the monitor block
-        self.server.monitors.update({epoc: self.condition})
+        self.server.monitors.update({epoc: condition})
         # acquires and goes into wait
-        self.condition.acquire()
+        condition.acquire()
         self.server.send_request(payload)  # send the request
-        self.condition.wait()
+        condition.wait()
         # once it gets the response removes it from the monitors
-        self.condition.release()
+        condition.release()
 
     def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
         """
