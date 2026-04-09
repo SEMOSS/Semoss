@@ -621,6 +621,17 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- GHSA-2m67-wjpj-xhg9 / CVE-2026-29062: force transitive tools.jackson.core (Jackson 3.x) from mcp-json-jackson3 up to fixed version -->
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>3.1.1</version>
+			</dependency>
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>3.1.1</version>
+			</dependency>
 			<!-- GHSA-72hv-8253-57qq: force transitive jackson 2.15.x/2.17.x up to fixed version -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
