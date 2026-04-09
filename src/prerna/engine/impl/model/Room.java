@@ -526,11 +526,10 @@ public class Room {
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
-				// remove the last tool since it failed
-				List<MessagePart> p = toolResultsMessage.getParts();
-				p.removeLast();
-				toolResultsMessage.setParts(p);
-				classLogger.error("Error adding tool result and getting model response", e);
+				// remove the entire input message since it failed
+				messages.removeLast();
+				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						e.getMessage(), e);
 				throw e;
 			}
 			// we have already added to the messages above
