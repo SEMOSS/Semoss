@@ -1,12 +1,13 @@
 import json
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 import uuid
 
 from pydantic_core import ErrorDetails
 
+from .bedrock_image_gen_models import _TASK_PARAMS, BedrockImageGenTaskType, ImageGenerationConfig
+
 from .bedrock_client import BedrockClient
-from .bedrock_image_gen_models import build_request_body
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...message_builders.semoss_base.semoss_models import SEMOSSMessagePartType
 from ..model_engine_exception import ModelEngineException
@@ -39,10 +40,17 @@ class BedrockImageClient(BedrockClient):
             param_map["text"] = prompt
 
             task_type = param_map.pop("taskType", None)
-            body = build_request_body(
-                task_type=task_type,
-                param_map=param_map,
-            )
+            task = None
+            if task_type is not None:
+                try:
+                    task = BedrockImageGenTaskType(task_type)
+                except ValueError as e:
+                    raise ValueError(f"Unsupported task type: {task_type}") from e
+
+            build_kwargs: Dict[str, Any] = {"param_map": param_map}
+            if task is not None:
+                build_kwargs["task_type"] = task
+            body = self.build_request_body(**build_kwargs)
 
             response = self.client.invoke_model(
                 body=json.dumps(body),
@@ -111,3 +119,22 @@ class BedrockImageClient(BedrockClient):
             "mimeType": mime_type,
             "mediaInputType": "FILE",
         }
+    
+    def build_request_body(
+        self,
+        task_type: BedrockImageGenTaskType = BedrockImageGenTaskType.TEXT_IMAGE,
+        param_map: Dict[str, Any] = None,
+    ) -> Dict[str, Any]:
+        
+        param_map = param_map or {}
+        param_key, param_cls = _TASK_PARAMS[task_type]
+
+        body: Dict[str, Any] = {
+            "taskType": task_type.value,
+            param_key: param_cls.model_validate({**param_map}).model_dump(exclude_none=True),
+        }
+
+        if task_type != BedrockImageGenTaskType.BACKGROUND_REMOVAL:
+            body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(param_map).model_dump(exclude_none=True)
+
+        return body

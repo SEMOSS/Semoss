@@ -36,7 +36,7 @@ class TextToImageParams(BaseModel):
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
     text: str
-    negativeText: str
+    negativeText: str = None
     style: Optional[str] = None
     conditionImage: Optional[str] = None
     controlMode: Optional[str] = None
@@ -123,27 +123,3 @@ _TASK_PARAMS: Dict[BedrockImageGenTaskType, Tuple[str, BaseModel]] = {
     BedrockImageGenTaskType.BACKGROUND_REMOVAL: ("backgroundRemovalParams", BackgroundRemovalParams),
     BedrockImageGenTaskType.VIRTUAL_TRY_ON: ("virtualTryOnParams", VirtualTryOnParams),
 }
-
-
-def build_request_body(
-    task_type: str,
-    param_map: Dict[str, Any] = None,
-) -> Dict[str, Any]:
-    
-    try:
-        task = BedrockImageGenTaskType(task_type)
-    except ValueError as e:
-        raise ValueError(f"Unsupported task type: {task_type}") from e
-    
-    param_map = param_map or {}
-    param_key, param_cls = _TASK_PARAMS[task]
-
-    body: Dict[str, Any] = {
-        "taskType": task.value,
-        param_key: param_cls.model_validate({**param_map}).model_dump(exclude_none=True),
-    }
-
-    if task != BedrockImageGenTaskType.BACKGROUND_REMOVAL:
-        body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(param_map).model_dump(exclude_none=True)
-
-    return body

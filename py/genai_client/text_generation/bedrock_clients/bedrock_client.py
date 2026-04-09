@@ -33,6 +33,7 @@ class BedrockClient(AbstractTextGenerationClient):
         template_name: str = None,
         guardrail_identifier: str = None,
         guardrail_version: str = None,
+        retry_config: Dict[str, Any] = None,
         **kwargs,
     ):
         init_params = {
@@ -43,11 +44,7 @@ class BedrockClient(AbstractTextGenerationClient):
         self.kwargs = kwargs
         self.model_id = modelId
 
-        retry_config = Config(
-            retries=kwargs.get("retries", {"max_attempts": 1, "mode": "standard"})
-        )
-
-        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=retry_config)
+        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=Config(retries=retry_config))
 
         self.guardrail_config = self._create_guardrail_config(
             guardrail_identifier, guardrail_version
