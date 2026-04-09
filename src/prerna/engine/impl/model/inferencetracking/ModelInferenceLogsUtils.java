@@ -3206,8 +3206,8 @@ public class ModelInferenceLogsUtils {
 		try {
 			con = modelInferenceLogsDb.getConnection();
 			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO MEMORY (MEMORY_ID, USER_ID, ROOM_ID, MEMORY_TYPE, CONTENT, METADATA, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) "
-					+ "VALUES (?,?,?,?,?,?,?,?,?)")) {
+					"INSERT INTO MEMORY (MEMORY_ID, USER_ID, ROOM_ID, MEMORY_TYPE, CONTENT, METADATA, IS_ACTIVE, ACCESS_COUNT, LAST_ACCESSED, DATE_CREATED, DATE_UPDATED) "
+					+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
 				int index = 1;
 				ps.setString(index++, memoryId);
 				ps.setString(index++, userId);
@@ -3216,6 +3216,8 @@ public class ModelInferenceLogsUtils {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, content, index++, GSON);
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, metadata, index++, GSON);
 				ps.setBoolean(index++, true);
+				ps.setInt(index++, 0);
+				ps.setTimestamp(index++, null);
 				ps.setTimestamp(index++, now);
 				ps.setTimestamp(index++, now);
 				ps.execute();
@@ -3294,6 +3296,118 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Searches active memories for a user by keyword matching against the
+	 * {@code CONTENT} column. Keywords are matched case-insensitively using
+	 * SQL {@code LIKE '%keyword%'} with {@code OR} logic (any keyword match).
+	 * <p>
+	 * Results are ordered by {@code DATE_UPDATED} descending (most recently
+	 * updated first) so that the most current facts appear at the top.
+	 *
+	 * @param userId   user identifier (from auth token)
+	 * @param keywords list of keywords to search for (case-insensitive)
+	 * @param limit    maximum number of results to return
+	 * @return list of matching memory maps; empty list if no matches
+	 */
+	public static List<Map<String, Object>> searchMemoriesByKeywords(String userId,
+			List<String> keywords, int limit) {
+		if (userId == null || keywords == null || keywords.isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		// Build the SQL with LIKE clauses for each keyword
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT MEMORY_ID, USER_ID, ROOM_ID, MEMORY_TYPE, CONTENT, METADATA, ")
+		   .append("IS_ACTIVE, ACCESS_COUNT, LAST_ACCESSED, DATE_CREATED, DATE_UPDATED ")
+		   .append("FROM MEMORY WHERE USER_ID = ? AND IS_ACTIVE = TRUE AND (");
+
+		for (int i = 0; i < keywords.size(); i++) {
+			if (i > 0) {
+				sql.append(" OR ");
+			}
+			sql.append("UPPER(CAST(CONTENT AS VARCHAR(10000))) LIKE ?");
+		}
+		sql.append(") ORDER BY DATE_UPDATED DESC");
+		if (limit > 0) {
+			sql.append(" LIMIT ").append(limit);
+		}
+
+		Connection con = null;
+		List<Map<String, Object>> results = new ArrayList<>();
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
+				int index = 1;
+				ps.setString(index++, userId);
+				for (String keyword : keywords) {
+					ps.setString(index++, "%" + keyword.toUpperCase() + "%");
+				}
+
+				try (ResultSet rs = ps.executeQuery()) {
+					while (rs.next()) {
+						Map<String, Object> row = new HashMap<>();
+						row.put("memory_id", rs.getString("MEMORY_ID"));
+						row.put("user_id", rs.getString("USER_ID"));
+						row.put("room_id", rs.getString("ROOM_ID"));
+						row.put("memory_type", rs.getString("MEMORY_TYPE"));
+						row.put("content", rs.getString("CONTENT"));
+						row.put("metadata", rs.getString("METADATA"));
+						row.put("is_active", rs.getBoolean("IS_ACTIVE"));
+						row.put("access_count", rs.getInt("ACCESS_COUNT"));
+						Timestamp lastAccessed = rs.getTimestamp("LAST_ACCESSED");
+						row.put("last_accessed", lastAccessed != null ? lastAccessed.toString() : null);
+						row.put("date_created", rs.getTimestamp("DATE_CREATED").toString());
+						row.put("date_updated", rs.getTimestamp("DATE_UPDATED").toString());
+						results.add(row);
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to search memories by keywords for user '{}'.", userId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+		return results;
+	}
+
+	/**
+	 * Updates access tracking for a list of recalled memories.
+	 * Increments {@code ACCESS_COUNT} by 1 and sets {@code LAST_ACCESSED} to now.
+	 *
+	 * @param memoryIds list of memory IDs that were recalled
+	 */
+	public static void touchMemories(List<String> memoryIds) {
+		if (memoryIds == null || memoryIds.isEmpty()) {
+			return;
+		}
+
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE MEMORY SET ACCESS_COUNT = ACCESS_COUNT + 1, LAST_ACCESSED = ? WHERE MEMORY_ID = ?")) {
+				for (String memoryId : memoryIds) {
+					ps.setTimestamp(1, now);
+					ps.setString(2, memoryId);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update access tracking for {} memories.", memoryIds.size(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
 	 * Soft-deletes a memory by setting {@code IS_ACTIVE = false}.
 	 * <p>
 	 * Includes an ownership check — the {@code USER_ID} must match the provided
@@ -3332,6 +3446,82 @@ public class ModelInferenceLogsUtils {
 		} catch (Exception e) {
 			classLogger.error("Failed to delete memory '{}' for user '{}'.", memoryId, userId, e);
 			throw new IllegalArgumentException("Error deleting memory: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Updates the content of an existing active memory.
+	 * Includes an ownership check — the USER_ID must match the provided userId.
+	 *
+	 * @param memoryId memory identifier
+	 * @param userId   user identifier — must match the memory's owner
+	 * @param content  new content text
+	 * @throws IllegalArgumentException if the memory does not exist, does not belong
+	 *         to the user, is not active, or the database operation fails
+	 */
+	public static void updateMemoryContent(String memoryId, String userId, String content) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE MEMORY SET CONTENT = ?, DATE_UPDATED = ? WHERE MEMORY_ID = ? AND USER_ID = ? AND IS_ACTIVE = TRUE")) {
+				int index = 1;
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, content, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, memoryId);
+				ps.setString(index++, userId);
+				int affected = ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+				if (affected == 0) {
+					throw new IllegalArgumentException(
+							"Memory " + memoryId + " does not exist, does not belong to user, or is inactive");
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to update memory '{}' for user '{}'.", memoryId, userId, e);
+			throw new IllegalArgumentException("Error updating memory: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Soft-deletes all active memories for a user (GDPR right-to-be-forgotten).
+	 *
+	 * @param userId user identifier
+	 * @return number of memories deactivated
+	 */
+	public static int deleteAllUserMemories(String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE MEMORY SET IS_ACTIVE = ?, DATE_UPDATED = ? WHERE USER_ID = ? AND IS_ACTIVE = TRUE")) {
+				int index = 1;
+				ps.setBoolean(index++, false);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, userId);
+				int affected = ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+				return affected;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to delete all memories for user '{}'.", userId, e);
+			throw new IllegalArgumentException("Error deleting all memories: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}

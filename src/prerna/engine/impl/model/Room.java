@@ -114,12 +114,6 @@ public class Room {
 	private String roomFolderPath;
 
 	/**
-	 * Internal project ID used for memory tools so that {@code RunMCPToolReactor}
-	 * can identify and dispatch them without a real MCP engine.
-	 */
-	public static final String MEMORY_TOOL_PROJECT_ID = "SEMOSS_MEMORY";
-
-	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
 	 * (containing engine metadata and original untruncated function name).
 	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
@@ -739,92 +733,7 @@ public class Room {
 			}
 		}
 
-		// Add memory tools when memory is enabled for this room
-		if (isMemoryEnabled()) {
-			aggregated.addAll(getMemoryToolDefinitions());
-		}
-
 		return aggregated;
-	}
-
-	/**
-	 * Builds tool definitions for the persistent memory system (store and recall).
-	 * Each tool includes proper {@code _meta} with {@link #MEMORY_TOOL_PROJECT_ID}
-	 * so that {@code RunMCPToolReactor} can route execution without a real MCP engine.
-	 * Also populates {@link #toolLookupByLLMName} for response enrichment.
-	 *
-	 * @return list of memory tool definition maps
-	 */
-	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getMemoryToolDefinitions() {
-		List<Map<String, Object>> tools = new ArrayList<>();
-
-		tools.add(buildMemoryTool(
-				"store_memory",
-				"Store a fact, preference, or important detail about the user for future conversations. "
-						+ "Call this whenever the user shares personal information, preferences, decisions, "
-						+ "or anything worth remembering across sessions.",
-				Map.of(
-						"type", "object",
-						"properties", Map.of(
-								"content", Map.of(
-										"type", "string",
-										"description", "The fact or preference to remember (e.g. 'User has a dog named Leo')"),
-								"memoryType", Map.of(
-										"type", "string",
-										"enum", List.of("FACT", "PREFERENCE", "EPISODE"),
-										"description", "Category: FACT for objective info, PREFERENCE for likes/dislikes, EPISODE for events")),
-						"required", List.of("content", "memoryType"))));
-
-		tools.add(buildMemoryTool(
-				"recall_memory",
-				"Search your memory for previously stored facts about the user. "
-						+ "Call this when the user asks about something you might have learned before, "
-						+ "or when context about the user would help you give a better answer.",
-				Map.of(
-						"type", "object",
-						"properties", Map.of(
-								"query", Map.of(
-										"type", "string",
-										"description", "Search query to find relevant memories (e.g. 'pets', 'favorite color')"),
-								"memoryType", Map.of(
-										"type", "string",
-										"enum", List.of("FACT", "PREFERENCE", "EPISODE"),
-										"description", "Optional: filter by memory type")),
-						"required", List.of("query"))));
-
-		return tools;
-	}
-
-	/**
-	 * Builds a single memory tool definition map and registers it in the
-	 * reverse-lookup table for response metadata enrichment.
-	 *
-	 * @param name        LLM-facing tool name
-	 * @param description tool description for the LLM
-	 * @param inputSchema JSON-schema map describing the tool's parameters
-	 * @return fully assembled tool definition with {@code _meta}
-	 */
-	private Map<String, Object> buildMemoryTool(String name, String description, Map<String, Object> inputSchema) {
-		Map<String, Object> meta = new HashMap<>();
-		meta.put(MCPUtility.SMSS_PROJECT_ID, MEMORY_TOOL_PROJECT_ID);
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
-		meta.put(MCPUtility.SMSS_MCP_UI, Map.of("displayLocation", "hidden"));
-		meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, name);
-
-		Map<String, Object> tool = new HashMap<>();
-		tool.put("name", name);
-		tool.put("description", description);
-		tool.put("inputSchema", inputSchema);
-		tool.put("_meta", meta);
-
-		// Register in lookup for updateToolResponseMeta enrichment
-		Map<String, Object> lookupEntry = new HashMap<>();
-		lookupEntry.put("description", description);
-		lookupEntry.put("_meta", meta);
-		toolLookupByLLMName.put(name, lookupEntry);
-
-		return tool;
 	}
 
 	/**
@@ -1695,42 +1604,6 @@ public class Room {
 	 */
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
-	}
-
-	// --- Memory System Helpers ---
-
-	/**
-	 * Checks whether the persistent AI memory feature is enabled for this room.
-	 * <p>
-	 * Reads the {@code memoryEnabled} boolean from the room options map.
-	 * Defaults to {@code false} when the key is absent or not a boolean.
-	 *
-	 * @return {@code true} when memory is enabled for this room
-	 */
-	public boolean isMemoryEnabled() {
-		Map<String, Object> opts = getOptionsMap();
-		Object val = opts.get("memoryEnabled");
-		if (val instanceof Boolean) {
-			return (Boolean) val;
-		}
-		return false;
-	}
-
-	/**
-	 * Returns the maximum number of memories to inject into the system prompt.
-	 * <p>
-	 * Reads {@code memoryLimit} from room options. Defaults to {@code 10}
-	 * when the key is absent or not a valid number.
-	 *
-	 * @return maximum memory recall count (minimum 1)
-	 */
-	public int getMemoryLimit() {
-		Map<String, Object> opts = getOptionsMap();
-		Object val = opts.get("memoryLimit");
-		if (val instanceof Number) {
-			return Math.max(1, ((Number) val).intValue());
-		}
-		return 10;
 	}
 
 }

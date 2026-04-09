@@ -94,6 +94,10 @@ class BedrockMessageBuilder:
                 # handle parameters update based on last message same as w/o parts
                 if is_last:
                     system_prompt = message.param_map.pop("system_prompt", None)
+                    # Inject user memory context alongside the system prompt
+                    memory_context = message.param_map.pop("memory_context", None)
+                    if memory_context:
+                        system_prompt = (system_prompt + "\n\n" + memory_context) if system_prompt else memory_context
                     if system_prompt:
                         system_block = self.build_system_block(system_prompt)
                     elif system_prompt is None and "instructions" in message.param_map:
@@ -191,6 +195,9 @@ class BedrockMessageBuilder:
 
                 if is_last:
                     system_prompt = message.param_map.pop("system_prompt", None)
+                    memory_context = message.param_map.pop("memory_context", None)
+                    if memory_context:
+                        system_prompt = (system_prompt + "\n\n" + memory_context) if system_prompt else memory_context
                     if system_prompt:
                         system_block = self.build_system_block(system_prompt)
                     elif system_prompt is None and "instructions" in message.param_map:

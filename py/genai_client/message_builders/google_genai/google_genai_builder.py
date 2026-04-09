@@ -278,6 +278,14 @@ class GoogleGenAIMessageBuilder:
         if instructions and not system_prompt:
             system_prompt = instructions
 
+        # Inject user memory context alongside the system prompt
+        memory_context = kwargs.pop("memory_context", None)
+        if memory_context:
+            if system_prompt:
+                system_prompt = system_prompt + "\n\n" + memory_context
+            else:
+                system_prompt = memory_context
+
         structured_response_schema = kwargs.pop("schema", None)
 
         tools, tool_config = self.build_tools(kwargs)

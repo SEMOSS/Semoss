@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -35,8 +34,6 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -85,11 +82,6 @@ public class RunMCPToolReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
 		}
 
-		// Internal memory tools — dispatch without an MCP engine
-		if (Room.MEMORY_TOOL_PROJECT_ID.equals(engineId)) {
-			return executeMemoryTool(toolName, getMap());
-		}
-
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -110,104 +102,6 @@ public class RunMCPToolReactor extends AbstractReactor {
 		IMCP mcp = MCPFactory.build(engine);
 		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
 				PixelOperationType.MCP_TOOL_EXECUTION);
-	}
-
-	private static final List<String> VALID_MEMORY_TYPES = Arrays.asList("FACT", "PREFERENCE", "EPISODE", "SUMMARY");
-
-	private static final String STORE_MEMORY_TOOL = "store_memory";
-	private static final String RECALL_MEMORY_TOOL = "recall_memory";
-
-	/**
-	 * Dispatches a memory tool call to the appropriate handler.
-	 *
-	 * @param toolName the memory tool name ({@code store_memory} or {@code recall_memory})
-	 * @param paramMap the tool parameters from the LLM
-	 * @return tool execution result as a {@link NounMetadata} string
-	 */
-	private NounMetadata executeMemoryTool(String toolName, Map<String, Object> paramMap) {
-		String userId = getAuthenticatedUserId();
-
-		switch (toolName) {
-		case STORE_MEMORY_TOOL:
-			return handleStoreMemory(userId, paramMap);
-		case RECALL_MEMORY_TOOL:
-			return handleRecallMemory(userId, paramMap);
-		default:
-			throw new IllegalArgumentException("Unknown memory tool: " + toolName);
-		}
-	}
-
-	/**
-	 * Extracts and validates the authenticated user ID from the current insight.
-	 *
-	 * @return the user's primary login token ID
-	 * @throws IllegalArgumentException if the user is not authenticated
-	 */
-	private String getAuthenticatedUserId() {
-		User user = this.insight.getUser();
-		if (user == null || user.getPrimaryLoginToken() == null) {
-			throw new IllegalArgumentException("User must be authenticated to use memory tools");
-		}
-		return user.getPrimaryLoginToken().getId();
-	}
-
-	/**
-	 * Handles the {@code store_memory} tool — persists a new memory for the user.
-	 *
-	 * @param userId   authenticated user identifier
-	 * @param paramMap tool parameters containing {@code content} and optional {@code memoryType}
-	 * @return confirmation message
-	 */
-	private NounMetadata handleStoreMemory(String userId, Map<String, Object> paramMap) {
-		String content = paramMap != null ? (String) paramMap.get("content") : null;
-		if (content == null || content.trim().isEmpty()) {
-			return toolResult("Error: content is required");
-		}
-
-		String memoryType = paramMap != null ? (String) paramMap.getOrDefault("memoryType", "FACT") : "FACT";
-		if (!VALID_MEMORY_TYPES.contains(memoryType.toUpperCase())) {
-			memoryType = "FACT";
-		}
-
-		String memoryId = java.util.UUID.randomUUID().toString();
-		String metadata = GSON.toJson(Map.of("source", "tool_call"));
-		ModelInferenceLogsUtils.insertMemory(memoryId, userId, null, memoryType.toUpperCase(), content.trim(), metadata);
-		return toolResult("Memory stored: " + content.trim());
-	}
-
-	/**
-	 * Handles the {@code recall_memory} tool — retrieves stored memories for the user.
-	 *
-	 * @param userId   authenticated user identifier
-	 * @param paramMap tool parameters containing optional {@code memoryType} filter
-	 * @return formatted list of matching memories, or a "no memories found" message
-	 */
-	private NounMetadata handleRecallMemory(String userId, Map<String, Object> paramMap) {
-		String memoryType = paramMap != null ? (String) paramMap.get("memoryType") : null;
-		int limit = 10;
-
-		List<Map<String, Object>> memories = ModelInferenceLogsUtils
-				.getMemoriesForUser(userId, memoryType, limit, 0);
-		if (memories == null || memories.isEmpty()) {
-			return toolResult("No memories found.");
-		}
-
-		StringBuilder sb = new StringBuilder();
-		for (Map<String, Object> mem : memories) {
-			String type = (String) mem.get("memory_type");
-			String content = (String) mem.get("content");
-			if (content != null) {
-				sb.append("- [").append(type != null ? type : "FACT").append("] ").append(content).append("\n");
-			}
-		}
-		return toolResult(sb.toString());
-	}
-
-	/**
-	 * Creates a tool execution result {@link NounMetadata}.
-	 */
-	private static NounMetadata toolResult(String message) {
-		return new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
 	/**

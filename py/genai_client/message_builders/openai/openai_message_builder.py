@@ -801,6 +801,13 @@ class OpenAIMessageBuilder:
         if param_map.get("system_prompt"):
             param_map["instructions"] = param_map.pop("system_prompt")
 
+        # Inject user memory context as a separate system instruction block
+        memory_context = param_map.pop("memory_context", None)
+        if memory_context and param_map.get("instructions"):
+            param_map["instructions"] = param_map["instructions"] + "\n\n" + memory_context
+        elif memory_context:
+            param_map["instructions"] = memory_context
+
         max_tokens = (
             param_map.pop("max_tokens", None)
             or param_map.pop("max_new_tokens", None)
@@ -850,6 +857,15 @@ class OpenAIMessageBuilder:
         if param_map.get("system_prompt"):
             openai_messages = self._create_system_message(
                 param_map.pop("system_prompt"), openai_messages
+            )
+
+        # Inject user memory context as a separate system message after the main system prompt
+        memory_context = param_map.pop("memory_context", None)
+        if memory_context:
+            # Insert as a second system message right after the first one
+            insert_idx = 1 if openai_messages and openai_messages[0].role == OpenAIRoles.SYSTEM.value else 0
+            openai_messages.insert(
+                insert_idx, OpenAIMessage(role=OpenAIRoles.SYSTEM.value, content=memory_context)
             )
 
         max_tokens = (

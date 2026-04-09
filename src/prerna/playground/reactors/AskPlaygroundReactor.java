@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +43,8 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.memory.MemoryConstants;
+import prerna.engine.impl.model.memory.MemoryService;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -56,6 +59,8 @@ import prerna.util.Utility;
 public class AskPlaygroundReactor extends AbstractReactor {
 
 	private static Logger classLogger = LogManager.getLogger(AskPlaygroundReactor.class);
+
+	private static final MemoryService memoryService = new MemoryService();
 
 	public AskPlaygroundReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
@@ -101,6 +106,26 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
+		// ---- Pre-turn memory recall (fast SQL search, ~5ms) ----
+		boolean memoryEnabled = isMemoryEnabled(room);
+		String userId = user.getPrimaryLoginToken().getId();
+		if (memoryEnabled) {
+			try {
+				int recallLimit = getMemoryRecallLimit(room);
+				int tokenBudget = getMemoryTokenBudget(room);
+				List<Map<String, Object>> memories = memoryService.recallRelevant(
+						userId, question, recallLimit, tokenBudget);
+				if (!memories.isEmpty()) {
+					String memoryContext = memoryService.formatForInjection(memories);
+					if (memoryContext != null) {
+						paramMap.put(MemoryConstants.MEMORY_CONTEXT_KEY, memoryContext);
+					}
+				}
+			} catch (Exception e) {
+				classLogger.debug("Memory recall failed, proceeding without memories", e);
+			}
+		}
+
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
 				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
@@ -117,6 +142,23 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 			room.updateToolResponseMeta(response);
+		}
+
+		// ---- Post-turn async memory extraction (fire-and-forget) ----
+		if (memoryEnabled && isMemoryExtractionEnabled(room)) {
+			final String finalUserId = userId;
+			final String finalRoomId = room.getId();
+			final String finalQuestion = question;
+			final String responseText = response.getContent();
+			CompletableFuture.runAsync(() -> {
+				try {
+					memoryService.extractAndStore(
+							finalUserId, finalRoomId, finalQuestion, responseText,
+							modelEngine, insight);
+				} catch (Exception e) {
+					classLogger.debug("Async memory extraction failed silently", e);
+				}
+			});
 		}
 
 		// ---- Return both messages as a Map
@@ -168,6 +210,53 @@ public class AskPlaygroundReactor extends AbstractReactor {
 							ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey()).toString());
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	// =========================================================================
+	// Memory configuration helpers — read from Room options
+	// =========================================================================
+
+	/**
+	 * Checks whether memory is enabled for this room via its options map.
+	 */
+	private boolean isMemoryEnabled(Room room) {
+		Map<String, Object> opts = room.getOptionsMap();
+		Object val = opts.get(MemoryConstants.OPT_MEMORY_ENABLED);
+		if (val instanceof Boolean) {
+			return (Boolean) val;
+		}
+		return false;
+	}
+
+	/**
+	 * Checks whether async memory extraction is enabled (separate from recall).
+	 * Defaults to true when memory is enabled and this key is absent.
+	 */
+	private boolean isMemoryExtractionEnabled(Room room) {
+		Map<String, Object> opts = room.getOptionsMap();
+		Object val = opts.get(MemoryConstants.OPT_MEMORY_EXTRACTION_ENABLED);
+		if (val instanceof Boolean) {
+			return (Boolean) val;
+		}
+		return true;
+	}
+
+	private int getMemoryRecallLimit(Room room) {
+		Map<String, Object> opts = room.getOptionsMap();
+		Object val = opts.get(MemoryConstants.OPT_MEMORY_RECALL_LIMIT);
+		if (val instanceof Number) {
+			return Math.max(1, ((Number) val).intValue());
+		}
+		return MemoryConstants.DEFAULT_RECALL_LIMIT;
+	}
+
+	private int getMemoryTokenBudget(Room room) {
+		Map<String, Object> opts = room.getOptionsMap();
+		Object val = opts.get(MemoryConstants.OPT_MEMORY_TOKEN_BUDGET);
+		if (val instanceof Number) {
+			return Math.max(50, ((Number) val).intValue());
+		}
+		return MemoryConstants.DEFAULT_TOKEN_BUDGET;
 	}
 
 }

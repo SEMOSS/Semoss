@@ -717,6 +717,14 @@ class AnthropicMessageBuilder:
         if instructions and not system_prompt:
             system_prompt = instructions
 
+        # Inject user memory context alongside the system prompt
+        memory_context = kwargs.pop("memory_context", None)
+        if memory_context:
+            if system_prompt:
+                system_prompt = system_prompt + "\n\n" + memory_context
+            else:
+                system_prompt = memory_context
+
         tools = kwargs.pop("tools", None)
 
         thinking_map = self._resolve_extended_thinking(

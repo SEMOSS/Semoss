@@ -194,6 +194,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("CONTENT", CLOB_DATATYPE_NAME),        // the memory text content
 				Pair.with("METADATA", CLOB_DATATYPE_NAME),       // optional JSON metadata (source, confidence, tags)
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),   // soft-delete flag
+				Pair.with("ACCESS_COUNT", "INT"),                 // how often this memory has been recalled
+				Pair.with("LAST_ACCESSED", TIMESTAMP_DATATYPE_NAME), // last time this memory was recalled
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
 			);
