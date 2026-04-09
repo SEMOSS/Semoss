@@ -5,7 +5,11 @@ import uuid
 
 from pydantic_core import ErrorDetails
 
-from .bedrock_image_gen_models import _TASK_PARAMS, BedrockImageGenTaskType, ImageGenerationConfig
+from .bedrock_image_gen_models import (
+    _TASK_PARAMS,
+    BedrockImageGenTaskType,
+    ImageGenerationConfig,
+)
 
 from .bedrock_client import BedrockClient
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
@@ -16,7 +20,9 @@ from ...constants import AskModelEngineResponse2
 
 class BedrockImageClient(BedrockClient):
 
-    def ask_call(self, prefix: str = "", **kwargs) -> AskModelEngineResponse2 | ErrorDetails:
+    def ask_call(
+        self, prefix: str = "", **kwargs
+    ) -> AskModelEngineResponse2 | ErrorDetails:
         if self.client is None:
             raise RuntimeError("Bedrock client is not initialized.")
 
@@ -33,24 +39,25 @@ class BedrockImageClient(BedrockClient):
 
             param_map = bedrock_request.get("additionalModelRequestFields", {})
 
-            # Extract text prompt from the last input message's text part
+            if (
+                hasattr(self.model_settings, "global_param_override")
+                and self.model_settings.global_param_override
+            ):
+                param_map.update(self.model_settings.global_param_override)
+
             prompt = self._extract_last_input_text(semoss_messages)
             if not prompt:
                 raise ValueError("No text prompt found in the input messages.")
             param_map["text"] = prompt
 
-            task_type = param_map.pop("taskType", None)
-            task = None
-            if task_type is not None:
+            task_type = param_map.pop("taskType", BedrockImageGenTaskType.TEXT_IMAGE)
+            if isinstance(task_type, str):
                 try:
-                    task = BedrockImageGenTaskType(task_type)
+                    task_type = BedrockImageGenTaskType(task_type)
                 except ValueError as e:
                     raise ValueError(f"Unsupported task type: {task_type}") from e
 
-            build_kwargs: Dict[str, Any] = {"param_map": param_map}
-            if task is not None:
-                build_kwargs["task_type"] = task
-            body = self.build_request_body(**build_kwargs)
+            body = self.build_request_body(task_type=task_type, param_map=param_map)
 
             response = self.client.invoke_model(
                 body=json.dumps(body),
@@ -64,12 +71,14 @@ class BedrockImageClient(BedrockClient):
             if error is not None:
                 raise Exception(f"Image generation error. Error is {error}")
 
-            raw_images = response_body.get("images", []) # List of base64-encoded image strings
+            raw_images = response_body.get("images", [])
             mime_type = "image/png"
 
             parts = []
             for raw_b64 in raw_images:
-                media_info = self._create_media_info(mime_type=mime_type, base64_data=raw_b64)
+                media_info = self._create_media_info(
+                    mime_type=mime_type, base64_data=raw_b64
+                )
                 parts.append({"type": "MEDIA", "media_info": media_info})
 
             return AskModelEngineResponse2(
@@ -103,7 +112,7 @@ class BedrockImageClient(BedrockClient):
             if content:
                 return content
         return None
-    
+
     def _create_media_info(self, mime_type: str, base64_data: str) -> Dict:
         """
         Create a MessageInputMedia-shaped dict for Java to persist into the room folder.
@@ -119,22 +128,26 @@ class BedrockImageClient(BedrockClient):
             "mimeType": mime_type,
             "mediaInputType": "FILE",
         }
-    
+
     def build_request_body(
         self,
         task_type: BedrockImageGenTaskType = BedrockImageGenTaskType.TEXT_IMAGE,
         param_map: Dict[str, Any] = None,
     ) -> Dict[str, Any]:
-        
+
         param_map = param_map or {}
         param_key, param_cls = _TASK_PARAMS[task_type]
 
         body: Dict[str, Any] = {
             "taskType": task_type.value,
-            param_key: param_cls.model_validate({**param_map}).model_dump(exclude_none=True),
+            param_key: param_cls.model_validate({**param_map}).model_dump(
+                exclude_none=True
+            ),
         }
 
         if task_type != BedrockImageGenTaskType.BACKGROUND_REMOVAL:
-            body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(param_map).model_dump(exclude_none=True)
+            body["imageGenerationConfig"] = ImageGenerationConfig.model_validate(
+                param_map
+            ).model_dump(exclude_none=True)
 
         return body

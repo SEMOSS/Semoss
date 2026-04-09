@@ -104,6 +104,12 @@ class BedrockClient(AbstractTextGenerationClient):
                     semoss_messages
                 )
 
+                if (
+                    hasattr(self.model_settings, "global_param_override")
+                    and self.model_settings.global_param_override
+                ):
+                    bedrock_request.update(self.model_settings.global_param_override)
+
                 stream = bedrock_request.pop("stream", True)
                 self.has_schema = bedrock_request.pop("has_schema", False)
                 bedrock_request["guardrailConfig"] = self.guardrail_config
