@@ -533,7 +533,7 @@ public class Room {
 			}
 			// we have already added to the messages above
 			// we dont need to add again, only the response
-//			messages.add(toolResultsMessage);
+			// messages.add(toolResultsMessage);
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
@@ -866,7 +866,8 @@ public class Room {
 		tool.put("name", "askUser");
 		tool.put("title", "Ask User");
 		tool.put("description",
-				"Ask the user a question and wait for their response. "
+				"Ask the user one or more questions and wait for their responses. "
+						+ "You may send multiple questions in a single call to collect all needed information at once. "
 						+ "Use when you need clarification, a choice, confirmation, or any user input before proceeding.");
 
 		// inputSchema following the standard MCP tool JSON schema format
@@ -875,9 +876,11 @@ public class Room {
 
 		Map<String, Object> properties = new HashMap<>();
 
+		// Single question fields (for backwards compatibility)
 		Map<String, Object> questionProp = new HashMap<>();
 		questionProp.put("type", "string");
-		questionProp.put("description", "The question to ask the user");
+		questionProp.put("description",
+				"The question to ask the user (use this for a single question, or use 'questions' array for multiple)");
 		properties.put("question", questionProp);
 
 		Map<String, Object> inputTypeProp = new HashMap<>();
@@ -902,8 +905,55 @@ public class Room {
 		placeholderProp.put("description", "Optional placeholder text for text input fields");
 		properties.put("placeholder", placeholderProp);
 
+		// Multiple questions array for batch requests
+		Map<String, Object> questionsProp = new HashMap<>();
+		questionsProp.put("type", "array");
+		questionsProp.put("description",
+				"Array of question objects to ask the user multiple questions in a single call. "
+						+ "Each object has: question (string, required), input_type (string, required), "
+						+ "options (array of strings, optional), placeholder (string, optional). "
+						+ "Prefer this over making multiple separate askUser calls.");
+
+		Map<String, Object> questionsItemSchema = new HashMap<>();
+		questionsItemSchema.put("type", "object");
+
+		Map<String, Object> questionsItemProps = new HashMap<>();
+
+		Map<String, Object> itemQuestionProp = new HashMap<>();
+		itemQuestionProp.put("type", "string");
+		itemQuestionProp.put("description", "The question to ask the user");
+		questionsItemProps.put("question", itemQuestionProp);
+
+		Map<String, Object> itemInputTypeProp = new HashMap<>();
+		itemInputTypeProp.put("type", "string");
+		itemInputTypeProp.put("enum", Arrays.asList("text", "single_select", "multi_select", "yes_no", "buttons"));
+		itemInputTypeProp.put("description",
+				"Type of input to collect: text (free-form), single_select (pick one), "
+						+ "multi_select (pick many), yes_no (binary choice), buttons (custom action buttons)");
+		questionsItemProps.put("input_type", itemInputTypeProp);
+
+		Map<String, Object> itemOptionsProp = new HashMap<>();
+		itemOptionsProp.put("type", "array");
+		Map<String, Object> itemOptionsItems = new HashMap<>();
+		itemOptionsItems.put("type", "string");
+		itemOptionsProp.put("items", itemOptionsItems);
+		itemOptionsProp.put("description",
+				"Options for single_select, multi_select, or buttons types. Not needed for text or yes_no.");
+		questionsItemProps.put("options", itemOptionsProp);
+
+		Map<String, Object> itemPlaceholderProp = new HashMap<>();
+		itemPlaceholderProp.put("type", "string");
+		itemPlaceholderProp.put("description", "Optional placeholder text for text input fields");
+		questionsItemProps.put("placeholder", itemPlaceholderProp);
+
+		questionsItemSchema.put("properties", questionsItemProps);
+		questionsItemSchema.put("required", Arrays.asList("question", "input_type"));
+		questionsProp.put("items", questionsItemSchema);
+
+		properties.put("questions", questionsProp);
+
 		inputSchema.put("properties", properties);
-		inputSchema.put("required", Arrays.asList("question", "input_type"));
+		inputSchema.put("required", Collections.emptyList());
 		tool.put("inputSchema", inputSchema);
 
 		// _meta using existing platform constants
