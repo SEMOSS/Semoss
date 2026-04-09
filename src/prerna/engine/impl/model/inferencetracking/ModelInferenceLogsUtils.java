@@ -3156,21 +3156,37 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Adds a date range filter on FEEDBACK__FEEDBACK_DATE.
+	 * Adds a date range filter on FEEDBACK__FEEDBACK_DATE, comparing only the date
+	 * portion (time is stripped via CAST). Both bounds are inclusive.
 	 *
 	 * @param qs        the query struct to modify
 	 * @param startDate inclusive lower bound (nullable)
 	 * @param endDate   inclusive upper bound (nullable)
 	 */
 	private static void addFeedbackDateFilter(SelectQueryStruct qs, String startDate, String endDate) {
-		if ((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
-			AndQueryFilter andFilters = new AndQueryFilter();
-			andFilters.addFilter(
-					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", ">=", startDate));
-			andFilters.addFilter(
-					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "<=", endDate));
-			qs.addExplicitFilter(andFilters);
+		boolean hasStart = startDate != null && !startDate.trim().isEmpty();
+		boolean hasEnd = endDate != null && !endDate.trim().isEmpty();
+		if (!hasStart && !hasEnd) {
+			return;
 		}
+		if (hasStart ^ hasEnd) {
+			throw new IllegalArgumentException(
+					"Both startDate and endDate must be provided for the feedback date filter");
+		}
+
+		// Build a CAST(FEEDBACK.FEEDBACK_DATE AS DATE) selector so we compare
+		// only the date portion, making both start and end fully inclusive.
+		QueryFunctionSelector castSelector = new QueryFunctionSelector();
+		castSelector.setFunction(QueryFunctionHelper.CAST);
+		castSelector.addInnerSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE"));
+		castSelector.setDataType("DATE");
+
+		AndQueryFilter andFilters = new AndQueryFilter();
+		andFilters.addFilter(
+				SimpleQueryFilter.makeColToValFilter(castSelector, ">=", startDate, PixelDataType.CONST_STRING));
+		andFilters.addFilter(
+				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(andFilters);
 	}
 
 }
