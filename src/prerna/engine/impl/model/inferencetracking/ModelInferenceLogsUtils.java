@@ -2026,7 +2026,9 @@ public class ModelInferenceLogsUtils {
 			mType = "RESPONSE";
 		}
 		if (mType == null) {
-			throw new IllegalArgumentException("Incorrect message type");
+			// Non-persisted message types (e.g. RESPONSE_TOOL, INPUT_TOOL_EXEC) have no
+			// corresponding MESSAGE table row -- silently skip rather than error.
+			return;
 		}
 
 		PreparedStatement updateStmt = null;
