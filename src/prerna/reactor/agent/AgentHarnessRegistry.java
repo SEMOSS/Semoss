@@ -37,10 +37,11 @@ import org.apache.logging.log4j.Logger;
 /**
  * Static registry for {@link IAgentHarness} implementations.
  *
- * <p>Two built-in harnesses are registered at class-load time:
+ * <p>Three built-in harnesses are registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness}
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "room_loop"} -&gt; {@link RoomAgentHarness}
+ *   <li>{@code "claude_code"} -&gt; {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "github_copilot"} -&gt; {@link GitHubCopilotAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
@@ -56,10 +57,12 @@ public final class AgentHarnessRegistry {
 
     static {
         Map<String, IAgentHarness> m = new HashMap<>();
-        IAgentHarness roomLoop   = new RoomAgentHarness();
-        IAgentHarness claudeCode = new ClaudeCodeAgentHarness();
+        IAgentHarness roomLoop     = new RoomAgentHarness();
+        IAgentHarness claudeCode   = new ClaudeCodeAgentHarness();
+        IAgentHarness ghCopilot    = new GitHubCopilotAgentHarness();
         m.put(roomLoop.getName(),   roomLoop);
         m.put(claudeCode.getName(), claudeCode);
+        m.put(ghCopilot.getName(),  ghCopilot);
         REGISTRY = Collections.synchronizedMap(m);
     }
 
@@ -97,7 +100,7 @@ public final class AgentHarnessRegistry {
         if (name != null && !name.trim().isEmpty()) {
             IAgentHarness h = REGISTRY.get(name.trim());
             if (h != null) return h;
-            logger.warn("AgentHarnessRegistry: unknown harness '{}' — falling back to '{}'",
+            logger.warn("AgentHarnessRegistry: unknown harness '{}' - falling back to '{}'",
                     name, DEFAULT_HARNESS);
         }
         return REGISTRY.get(DEFAULT_HARNESS);
