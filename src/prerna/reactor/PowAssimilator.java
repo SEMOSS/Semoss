@@ -32,9 +32,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.plexus.util.StringUtils;
 
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -111,7 +111,7 @@ public class PowAssimilator extends Assimilator {
 		LOGGER.debug("Original left signature value = " + this.lSignature);
 		this.lSignature = StringUtils.replaceOnce( this.lSignature, stringToFind, stringReplacement);
 		LOGGER.debug("New left signature value = " + this.lSignature);
-		
+
 		LOGGER.debug("Original right signature value = " + this.rSignature);
 		this.rSignature = StringUtils.replaceOnce( this.rSignature, stringToFind, stringReplacement);
 		LOGGER.debug("New right signature value = " + this.rSignature);

@@ -149,8 +149,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 		} finally {
-			classLogger.info("AddPlaygroundToolExecution - pushing room '{}' to cloud storage", roomId);
-			ClusterUtil.pushRoom(roomId);
+			// there might be times when this is unnecessary
+			// but we dont know if a tool output generated a file in the room
+			ClusterUtil.pushRoomAsync(room.getId());
 		}
 	}
 

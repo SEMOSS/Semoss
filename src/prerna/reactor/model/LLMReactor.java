@@ -33,14 +33,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -68,7 +66,6 @@ public class LLMReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
-		AccessToken userToken = user.getPrimaryLoginToken();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
@@ -94,12 +91,9 @@ public class LLMReactor extends AbstractReactor {
 		List<String> inputImageURLs = getImageURLs();
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
-		///// MESSAGE CREATION //////////
-
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-		InputMessage msg;
-		msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedImages, room)
 				.withMediaUrls(inputImageURLs).build();
 
