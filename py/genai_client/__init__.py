@@ -20,6 +20,12 @@ def __getattr__(name: str) -> Any:
         from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient
+    
+    elif name == "BedrockImageClient":
+        from .text_generation.bedrock_clients.bedrock_image_client import BedrockImageClient
+
+        return BedrockImageClient
+    
     elif name == "VertexClient":
         from .text_generation.google_clients.vertex_controller import (
             VertexAiClientController as VertexClient,

@@ -207,7 +207,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	@Override
 	public List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters)
 			throws Exception {
-		List<FileEmbeddingStatus> resultList = new ArrayList<>();
+		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -265,8 +265,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		List<File> movedDocuments = new ArrayList<>();
 		try {
 			// first we need to extract the text from the document
-			// TODO change this to json so we never have an encoding issue
-
 			File indexDirectory = new File(this.schemaFolder, indexClass);
 			File documentDir = new File(indexDirectory, DOCUMENTS_FOLDER_NAME);
 			if (!documentDir.exists()) {
@@ -281,8 +279,9 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			}
 
 			List<File> extractedFiles = new ArrayList<>();
-			List<String> filesToCopyToCloud = new ArrayList<>(); // create a list to store all the net new files so we
-																	// can push them to the cloud
+			// create a list to store all the net new files so we
+			// can push them to the cloud
+			List<String> filesToCopyToCloud = new ArrayList<>();
 			String chunkingStrategy = PyUtils.determineStringType(parameters.getOrDefault("chunkingStrategy", "ALL"));
 
 			// move the documents from insight into documents folder and extract text
@@ -303,7 +302,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					}
 					FileUtils.copyFileToDirectory(fileInInsightFolder, documentDir, true);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to copy document '" + fileInInsightFolder.getAbsolutePath()
+							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ destinationFile.getName() + " or move it to the document directory");
 				}
@@ -328,7 +328,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						try {
 							validCsv = VectorDatabaseCSVTable.validateCSVTable(destinationFile);
 						} catch (Exception e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to validate CSV format for document: " + destinationFile.getName(), e);
 							validCsv = false;
 						}
 
@@ -396,6 +397,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							// no text was extracted so delete the file
 							FileUtils.forceDelete(extractedFile); // delete the csv
 							FileUtils.forceDelete(destinationFile); // delete the input file e.g pdf
+							filesToCopyToCloud.remove(destinationFile.getAbsolutePath());
 							continue;
 						}
 						setVectorFolderPermissions();
@@ -415,11 +417,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					extractedFiles.add(extractedFile);
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
-					classLogger.error(Constants.STACKTRACE, errorMessage, e);
+					classLogger.error("Failed to process document: " + destinationFile.getName(), e);
 					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
 							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
-					resultList.add(failedStatus);
+					fileStatusList.add(failedStatus);
 					extractedFile.delete(); // delete the csv if it was created
 					destinationFile.delete(); // delete the input file e.g pdf
 				}
@@ -438,7 +440,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				throw new IllegalArgumentException("Unable to extract any text from " + fileNamesAttemptedUpload);
 			}
 
-			resultList.addAll(addEmbeddingFiles(extractedFiles, insight, parameters));
+			fileStatusList.addAll(addEmbeddingFiles(extractedFiles, insight, parameters));
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
@@ -447,7 +449,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				copyFilesToCloudThread.start();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add documents to vector database for index class: " + indexClass, e);
 			// delete files moved into vector db documents folder
 			for (File document : movedDocuments) {
 				document.delete();
@@ -456,7 +458,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		} finally {
 			cleanUpAddDocument(indexFilesDir);
 		}
-		return resultList;
+		return fileStatusList;
 	}
 
 	protected void addIndexClass(String indexClass) {
@@ -467,7 +469,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		try {
 			FileUtils.forceDelete(file);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to clean up temporary add-document file/folder: " + file.getAbsolutePath(), e);
 		}
 	}
 
@@ -548,7 +550,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				}
 				fileStatusList.addAll(resultList);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to add embeddings from CSV file: " + vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
 				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
@@ -562,6 +564,12 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		return fileStatusList;
 	}
 
+	/**
+	 * 
+	 * @param message
+	 * @param e
+	 * @return
+	 */
 	private Map<String, Object> buildEmbeddingError(String message, Exception e) {
 		Map<String, Object> error = new HashMap<>();
 		error.put(Constants.ERROR_MESSAGE, message != null ? message : "Embedding failed");
@@ -823,7 +831,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 					debug, timeout, loggerLevel);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create python process client for vector database: "
+					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
 		}
 
@@ -854,7 +863,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			// set the model props to false
 			// incase those values were incorrect
 			modelPropsLoaded = false;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize python start commands for vector database: "
+					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			if (cpwToInit != null) {
 				classLogger.warn("Able to start the python process for the vector database "
 						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
@@ -949,9 +959,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			try {
 				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
+						+ this.schemaFolder.getAbsolutePath(), e);
 			} catch (InterruptedException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
+						+ this.schemaFolder.getAbsolutePath(), e);
 			}
 		}
 	}
