@@ -419,17 +419,17 @@ public class MessageUtils {
 			history.add(messages.getLast());
 		}
 		String currentId = history.getLast().getParentMessageId();
-		boolean pruneTools = false;
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
 			}
 			if (m.getPruneTools()) {
-				pruneTools = true;
+				shouldPruneTools = true;
 			}
-			if (pruneTools) {
-				pruneTools(m);
+			if (shouldPruneTools) {
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -463,17 +463,17 @@ public class MessageUtils {
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
 		String currentId = parentMessageId;
-		boolean pruneTools = false;
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
 			}
 			if (m.getPruneTools()) {
-				pruneTools = true;
+				shouldPruneTools = true;
 			}
-			if (pruneTools) {
-				pruneTools(m);
+			if (shouldPruneTools) {
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -487,7 +487,7 @@ public class MessageUtils {
 		return history;
 	}
 
-	private static void pruneTools(AbstractMessage m) {
+	private static void pruneToolsPartFromMessage(AbstractMessage m) {
 		List<MessagePart> p = m.getParts();
 		for (MessagePart part : p) {
 			if (part instanceof ToolResultMessagePart) {
