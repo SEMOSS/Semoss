@@ -1,5 +1,6 @@
 package prerna.io.connector.servicenow;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -199,15 +200,17 @@ public class ServiceNowUtility {
 
 			List<Map<String, Object>> allTables = (List<Map<String, Object>>) jsonMap.get("result");
 
-			// FILTER ONLY USER-CREATED TABLES (u_)
-			List<Map<String, Object>> userTables = allTables.stream()
-					.filter(t -> {
-						Object value = t.get("value");
-						return value instanceof String && ((String) value).startsWith("u_");
-					})
-					.toList();
+			// extract only table names
+			List<String> tableNames = new ArrayList<>();
+			
+			for(Map<String, Object> table : allTables) {
+				Object value = table.get("value");
+				if (value instanceof String) {
+					tableNames.add((String)value);
+				}
+			}
 			Map<String, Object> responseMap = new HashMap<>();
-			responseMap.put(TABLES_KEY, userTables);
+			responseMap.put(TABLES_KEY, tableNames);
 			return responseMap;
 
 		} catch (Exception e) {
