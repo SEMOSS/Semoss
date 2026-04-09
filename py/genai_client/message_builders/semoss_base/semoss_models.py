@@ -210,7 +210,7 @@ class SEMOSSMessage(BaseModel):
                 SEMOSSUnknownMessagePart,
             ]
         ]
-    ] = (None,)
+    ] = None
     io: Literal["INPUT", "OUTPUT"]
 
     class Config:
