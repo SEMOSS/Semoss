@@ -157,8 +157,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.msg_index = 0
         self.residue = None
 
-        self.monitor = threading.Condition()
-
         TCPServerHandler.da_server = self
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)

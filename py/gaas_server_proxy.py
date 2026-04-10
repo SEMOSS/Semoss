@@ -88,17 +88,23 @@ class ServerProxy:
         # condition and accidentally wake each other up via notifyAll()
         condition = threading.Condition()
         # adds itself to the monitor block
-        self.server.monitors.update({epoc: condition})
-        # acquires and goes into wait
-        condition.acquire()
-        self.server.send_request(payload)  # send the request
-        condition.wait()
-        # once it gets the response removes it from the monitors
-        condition.release()
+        self.server.monitors[epoc] = condition
+        try:
+            with condition:
+                self.server.send_request(payload)
+                # in case of spurious wakeups, we need to keep waiting until the server responds and removes the monitor
+                while self.server.monitors.get(epoc) is condition:
+                    condition.wait()
+        except Exception:
+            # cleanup stale unresolved entry
+            if self.server.monitors.get(epoc) is condition:
+                self.server.monitors.pop(epoc, None)
+            raise
 
     def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
         """
-        This method is responsible for initiating a pixel call communication with the server using a separate thread, which calls the `comm` method.
+        This method is responsible for initiating a pixel call communication with the server by calling `comm` directly.
+        A separate thread is not required because each request gets its own monitor entry keyed by epoc.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -108,26 +114,18 @@ class ServerProxy:
         Returns:
             `List[Dict]`: A list that contains the response from the Tomcat server engine.
         """
-        orig_payload = getattr(self.server.thread_local, "payload", None)
+        self.comm(
+            epoc=epoc,
+            engine_type=None,
+            engine_id=None,
+            method_name=None,
+            method_args=[pixel],
+            method_arg_types=None,
+            insight_id=insight_id,
+            operation="REACTOR",
+        )
 
-        # Setting the thread-local storage for the new thread
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type=None,
-                engine_id=None,
-                method_name=None,
-                method_args=[pixel],
-                method_arg_types=None,
-                insight_id=insight_id,
-                operation="REACTOR",
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()  # start the thread
-        thread.join()  # wait for it to finish
-
+        # after comm the epoc should now return the response payload struct that the server sent back and we can pop it from the monitors using the epoc
         new_payload_struct = self.server.monitors.pop(epoc)
 
         if "ex" in new_payload_struct:
@@ -147,7 +145,8 @@ class ServerProxy:
         insight_id: Optional[str] = None,
     ):
         """
-        This method is responsible for initiating a remote engine communication with the server using a separate thread, which calls the `comm` method.
+        This method is responsible for initiating a remote engine communication with the server by calling `comm` directly.
+        A separate thread is not required because each request gets its own monitor entry keyed by epoc.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -161,26 +160,18 @@ class ServerProxy:
         Returns:
             `List[Dict]`: A list that contains the response from the Tomcat server engine.
         """
-        orig_payload = getattr(self.server.thread_local, "payload", None)
+        self.comm(
+            epoc=epoc,
+            engine_type=engine_type,
+            engine_id=engine_id,
+            method_name=method_name,
+            method_args=method_args,
+            method_arg_types=method_arg_types,
+            insight_id=insight_id,
+            operation="ENGINE",
+        )
 
-        # Setting the thread-local storage for the new thread
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type=engine_type,
-                engine_id=engine_id,
-                method_name=method_name,
-                method_args=method_args,
-                method_arg_types=method_arg_types,
-                insight_id=insight_id,
-                operation="ENGINE",
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()  # start the thread
-        thread.join()  # wait for it to finish
-
+        # after comm the epoc should now return the response payload struct that the server sent back and we can pop it from the monitors using the epoc
         new_payload_struct = self.server.monitors.pop(epoc)
 
         if "ex" in new_payload_struct:
