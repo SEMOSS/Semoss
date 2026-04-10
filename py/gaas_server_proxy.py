@@ -31,13 +31,17 @@ class ServerProxy:
         operation: str = "REACTOR",
     ):
         """
-        This method in responsible for:
-            - converting the args into a PayloadStruct
-            - adds itself to the monitor block
-            - calls the server to deliver the message
-            - acquires and goes into wait
-            - once it gets the response removes it from the monitors
-            - returns the response back
+        Send a request to Java and block until the matching response arrives.
+
+        Monitor lifecycle for a single request:
+        1. Build the outbound payload with a unique `epoc`.
+        2. Store `self.server.monitors[epoc] = Condition`.
+        3. Send the request over the socket.
+        4. Wait while the monitor entry is still that same `Condition`.
+        5. `TCPServerHandler.handle_response()` swaps the entry to
+           `self.server.monitors[epoc] = response_payload` and notifies.
+        6. The wait loop exits and this method returns; callers then pop the
+           response payload from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct
@@ -49,7 +53,8 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the tomcat server engine.
+            `None`: This method only performs request/response synchronization.
+            The parsed response payload is read by caller methods.
         """
         # get the original payload from the current thread so that we can get the insight id
         # orig_payload = getattr(current_thread(), "payload", None)
@@ -103,8 +108,12 @@ class ServerProxy:
 
     def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
         """
-        This method is responsible for initiating a pixel call communication with the server by calling `comm` directly.
-        A separate thread is not required because each request gets its own monitor entry keyed by epoc.
+        Execute a Pixel reactor call against Java and return the response payload.
+
+        This method calls `comm()` directly (no extra worker thread). `comm()`
+        blocks until `handle_response()` swaps the monitor entry for this `epoc`
+        from `Condition` to response payload. After `comm()` returns, this method
+        pops that payload struct from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -112,7 +121,10 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the Tomcat server engine.
+            `Any`: The response payload returned by the Java reactor call.
+
+        Raises:
+            Exception: If the response payload includes an `"ex"` key.
         """
         self.comm(
             epoc=epoc,
@@ -145,8 +157,12 @@ class ServerProxy:
         insight_id: Optional[str] = None,
     ):
         """
-        This method is responsible for initiating a remote engine communication with the server by calling `comm` directly.
-        A separate thread is not required because each request gets its own monitor entry keyed by epoc.
+        Execute a Java engine method call and return the response payload.
+
+        This method calls `comm()` directly (no extra worker thread). `comm()`
+        blocks until `handle_response()` swaps the monitor entry for this `epoc`
+        from `Condition` to response payload. After `comm()` returns, this method
+        pops that payload struct from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -158,7 +174,10 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the Tomcat server engine.
+            `Any`: The response payload returned by the Java engine call.
+
+        Raises:
+            Exception: If the response payload includes an `"ex"` key.
         """
         self.comm(
             epoc=epoc,
