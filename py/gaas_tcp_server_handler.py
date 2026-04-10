@@ -157,8 +157,6 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.msg_index = 0
         self.residue = None
 
-        self.monitor = threading.Condition()
-
         TCPServerHandler.da_server = self
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
@@ -489,17 +487,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         except Exception as e:
             print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
-            payload = {"epoc": str(epoc), "ex": [output]}
+            error_payload = {"epoc": epoc, "ex": [output]}
             # there is a possibility this is a response from the previous
-            if epoc in self.monitors:
-                condition = self.monitors[epoc]
-                self.monitors.update({epoc: payload})
-                condition.acquire()
-                condition.notifyAll()
-                condition.release()
+            condition = self.monitors.get(epoc)
+            if isinstance(condition, threading.Condition):
+                with condition:
+                    if self.monitors.get(epoc) is condition:
+                        self.monitors[epoc] = error_payload
+                        condition.notify_all()
             else:
                 # This is really the only instance where we need to set the payload outside of the normal flow
-                self.thread_local.payload = payload
+                self.thread_local.payload = error_payload
                 self.send_output(
                     output, operation="PYTHON", response=True, exception=True
                 )
@@ -1055,24 +1053,36 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             return ("".join(full_trace), True, False)
 
     def handle_response(self):
-        """Handles a response from the client."""
+        """
+        Handle a Java response for a previously issued Python request.
+
+        The request thread stores `epoc -> Condition` in `self.monitors` and waits
+        on that condition in `gaas_server_proxy.comm()`. When the matching response
+        arrives, this method:
+        1. Finds the waiting monitor entry by `epoc`.
+        2. Replaces `epoc -> Condition` with `epoc -> payload`.
+        3. Calls `notify_all()` to wake the waiting request thread.
+
+        Identity/type checks guard against stale or already-cleaned monitor entries.
+        """
         payload = self.thread_local.payload
-        # print("In the response block")
+        epoc = payload.get("epoc", "EPOC NOT FOUND")
+
         # this is a response coming back from a request from the java container
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - START ---------\n")
         self.custom_dev_logger(
-            f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
+            f"handle_response() -- Handling response which is going to check the monitors for epoc {epoc}. Here are the monitors: {self.monitors}"
         )
-        if payload["epoc"] in self.monitors:
+        if epoc in self.monitors:
             self.prod_logger(
                 f"\nhandle_response() -- Payload Response: {json.dumps(payload, ensure_ascii=False, indent=4)}"
             )
-
-            condition = self.monitors[payload["epoc"]]
-            self.monitors.update({payload["epoc"]: payload})
-            condition.acquire()
-            condition.notifyAll()
-            condition.release()
+            condition = self.monitors.get(epoc)
+            if isinstance(condition, threading.Condition):
+                with condition:
+                    if self.monitors.get(epoc) is condition:
+                        self.monitors[epoc] = payload
+                        condition.notify_all()
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
