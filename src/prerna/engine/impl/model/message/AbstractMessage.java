@@ -74,6 +74,7 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
+	protected String siblingMessageId;
 	protected MessageFeedback feedback;
 	protected int tokens;
 
@@ -242,6 +243,14 @@ public abstract class AbstractMessage {
 
 	public void setParentMessageId(String parentMessageId) {
 		this.parentMessageId = parentMessageId;
+	}
+
+	public String getSiblingMessageId() {
+		return siblingMessageId;
+	}
+
+	public void setSiblingMessageId(String siblingMessageId) {
+		this.siblingMessageId = siblingMessageId;
 	}
 
 	public MessageFeedback getFeedback() {
