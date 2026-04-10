@@ -2026,7 +2026,9 @@ public class ModelInferenceLogsUtils {
 			mType = "RESPONSE";
 		}
 		if (mType == null) {
-			throw new IllegalArgumentException("Incorrect message type");
+			// Non-persisted message types (e.g. RESPONSE_TOOL, INPUT_TOOL_EXEC) have no
+			// corresponding MESSAGE table row -- silently skip rather than error.
+			return;
 		}
 
 		PreparedStatement updateStmt = null;
@@ -3062,6 +3064,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
 
 		// Room columns for project context
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
