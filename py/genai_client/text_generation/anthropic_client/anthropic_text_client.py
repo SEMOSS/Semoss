@@ -114,14 +114,57 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
 
     @staticmethod
+    def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
+        """
+        Add cache_control to the last tool definition. Tools are evaluated
+        first in Anthropic's cache breakpoint order (tools → system → messages),
+        so caching them saves tokens whenever the tool list is large and static.
+        """
+        tools = request_config.tools
+        if not tools:
+            return
+        tools[-1]["cache_control"] = {"type": "ephemeral"}
+
+    @staticmethod
+    def _apply_cache_to_system(request_config: "AnthropicRequestConfig") -> None:
+        """
+        Convert the system prompt to list form and attach cache_control to its
+        last text block. This caches the system prompt on the first call so
+        subsequent turns pay only the cache-read price for those tokens.
+
+        Only called for providers (Bedrock, Vertex) that don't support the
+        top-level automatic cache_control field.
+        """
+        system = request_config.system
+        if not system:
+            return
+        if isinstance(system, str):
+            request_config.system = [
+                {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
+            ]
+        elif isinstance(system, list):
+            # Already a list — attach to the last text block.
+            for block in reversed(system):
+                if isinstance(block, dict) and block.get("type") == "text":
+                    block["cache_control"] = {"type": "ephemeral"}
+                    break
+
+    # Block types that Anthropic supports cache_control on.
+    _CACHEABLE_BLOCK_TYPES = {"text", "tool_result", "image", "document"}
+
+    @staticmethod
     def _apply_cache_to_last_block(messages: List[Dict[str, Any]]) -> None:
         """
-        Add cache_control to the last text block of the last message. This
+        Add cache_control to the last cacheable block of the last message. This
         replicates Anthropic's automatic caching behaviour for providers
         (Bedrock, Vertex) that only support block-level cache_control.
 
         On each turn the last message is the newest one, so the marker
         naturally moves forward through the conversation as history grows.
+
+        Supports text, tool_result, image, and document blocks — not just text —
+        so that tool execution turns (whose last message contains tool_result
+        blocks) are also cached correctly.
         """
         if not messages:
             return
@@ -135,7 +178,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ]
         elif isinstance(content, list):
             for block in reversed(content):
-                if isinstance(block, dict) and block.get("type") == "text":
+                if isinstance(block, dict) and block.get("type") in AnthropicTextClient._CACHEABLE_BLOCK_TYPES:
                     block["cache_control"] = {"type": "ephemeral"}
                     break
 
@@ -198,9 +241,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     request_config.cache_control = {"type": "ephemeral"}
                 elif self.provider in ("bedrock", "google"):
                     # Bedrock and Vertex don't support the top-level automatic
-                    # field, but do support block-level cache_control. Replicate
-                    # the same "marker moves forward" behaviour by attaching
-                    # cache_control to the last text block of the last message.
+                    # field, but do support block-level cache_control.
+                    # Apply breakpoints in Anthropic's evaluation order:
+                    # tools → system → messages (up to 4 total allowed).
+                    self._apply_cache_to_tools(request_config)
+                    self._apply_cache_to_system(request_config)
                     self._apply_cache_to_last_block(request_config.messages)
 
             if streaming:
@@ -247,6 +292,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
             )
+            cache_read_tokens = getattr(response.usage, "cache_read_input_tokens", None) or None
+            cache_creation_tokens = getattr(response.usage, "cache_creation_input_tokens", None) or None
+
+            if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
+                print(
+                    f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                    f"cache_creation_tokens={cache_creation_tokens}",
+                    flush=True,
+                )
 
             parts = []
             if response_text:
@@ -258,6 +312,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 response=response_text,
                 response_tokens=usage.output_tokens,
                 prompt_tokens=usage.input_tokens,
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -317,6 +373,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         input_tokens = 0
         output_tokens = 0
+        cache_read_tokens: Optional[int] = None
+        cache_creation_tokens: Optional[int] = None
         stop_reason: Optional[str] = None
 
         content_array = []
@@ -346,6 +404,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             for event in stream:
                 if event.type == "message_start":
                     input_tokens = event.message.usage.input_tokens
+                    cache_read_tokens = getattr(event.message.usage, "cache_read_input_tokens", None) or None
+                    cache_creation_tokens = getattr(event.message.usage, "cache_creation_input_tokens", None) or None
 
                 elif event.type == "content_block_start":
                     this_content_block_type = event.content_block.type
@@ -634,6 +694,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if current_text_block is not None:
             parts.append(current_text_block)
 
+        if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
+            print(
+                f"[prompt_caching] cache_read_tokens={cache_read_tokens} "
+                f"cache_creation_tokens={cache_creation_tokens}",
+                flush=True,
+            )
+
         if tool_result:
             if self.has_schema:
                 # TODO: come back to this method and have it properly mantain and update the existing parts instead of making a new one
@@ -650,6 +717,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        cache_read_tokens=cache_read_tokens,
+                        cache_creation_tokens=cache_creation_tokens,
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
@@ -660,6 +729,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -670,6 +741,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response=final_response,
             prompt_tokens=input_tokens,
             response_tokens=output_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,

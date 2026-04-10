@@ -111,7 +111,7 @@ class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     betas: Optional[List[str]] = None
-    system: Optional[str] = None
+    system: Optional[Union[str, List[Dict[str, Any]]]] = None
     cache_control: Optional[Dict[str, Any]] = None
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
