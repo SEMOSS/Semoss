@@ -42,6 +42,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ExecuteScheduledJobReactor extends AbstractReactor {
 
@@ -50,39 +51,73 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 	public ExecuteScheduledJobReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
+
 		organizeKeys();
 
 		// Get inputs
-		String jobId= this.keyValue.get(this.keysToGet[0]);
+		String jobId = this.keyValue.get(this.keysToGet[0]);
 		String jobGroup = this.keyValue.get(this.keysToGet[1]);
-		
+
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
+		// Check if JobRunr is enabled
+		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+
+		if (useJobRunr) {
+			return executeWithJobRunr(jobId, jobGroup);
+		} else {
+			return executeWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Execute job immediately using JobRunr
+	 */
+	private NounMetadata executeWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Trigger the job to run immediately
+			jobRunrService.triggerRecurringJobNow(jobId);
+
+			logger.info("Triggered JobRunr job: {} to execute immediately", jobId);
+
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to execute job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Execute job immediately using Quartz (existing implementation)
+	 */
+	private NounMetadata executeWithQuartz(String jobId, String jobGroup) {
 		JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
 		try {
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.triggerJob(jobKey);
 			} else {
-				throw new IllegalArgumentException("Could not find job with name = " + jobId+ " and group = " + jobGroup);
+				throw new IllegalArgumentException(
+						"Could not find job with name = " + jobId + " and group = " + jobGroup);
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

@@ -65,6 +65,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
+import prerna.util.scheduler.SchedulerMigrationUtil;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
@@ -178,7 +179,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			}
 
 			// Get JobRunr service
-			JobRunrService jobRunrService = SchedulerMigrationUtil.getJobRunrService();
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
 
 			// inside the JobRequestHandler with a new execId each time
 			PixelExecutionJobRequest recurringJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,

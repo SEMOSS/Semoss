@@ -47,6 +47,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
@@ -58,12 +59,13 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
+
 		/**
-		 * RescheduleJobFromDB(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+		 * RescheduleJobFromDB(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
 		 * 
 		 * This reactor will reschedule existing unscheduled jobs in Quartz.
 		 */
@@ -77,12 +79,51 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
+		// Check if JobRunr is enabled
+		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+
+		if (useJobRunr) {
+			return resumeWithJobRunr(jobId, jobGroup);
+		} else {
+			return resumeWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Resume job using JobRunr
+	 */
+	private NounMetadata resumeWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Resume the recurring job
+			jobRunrService.resumeRecurringJob(jobId);
+
+			logger.info("Resumed JobRunr recurring job: {}", jobId);
+
+			// Save metadata into a map and return
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.RESCHEDULE_JOB);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to resume job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Resume job using Quartz (existing implementation)
+	 */
+	private NounMetadata resumeWithQuartz(String jobId, String jobGroup) {
 		// resume the job in quartz
-		// later grab cron expression and add functionality to resume specific trigger under job
+		// later grab cron expression and add functionality to resume specific trigger
+		// under job
 		try {
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			String triggerName = jobId.concat("Trigger");

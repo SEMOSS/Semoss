@@ -44,6 +44,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.jobrunr.JobRunrService;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
 
@@ -55,15 +56,16 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if(Utility.schedulerForceDisable()) {
+		if (Utility.schedulerForceDisable()) {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
-		
+
 		/**
-		 * PauseJobTrigger(jobName = ["sample_job_name"], jobGroup=["sample_job_group"]);
+		 * PauseJobTrigger(jobName = ["sample_job_name"],
+		 * jobGroup=["sample_job_group"]);
 		 * 
-		 * This reactor will pause the job in Quartz but keep the job stored in the database.
-		 * The jobs that are paused can be resumed in the future.
+		 * This reactor will pause the job in Quartz but keep the job stored in the
+		 * database. The jobs that are paused can be resumed in the future.
 		 */
 
 		organizeKeys();
@@ -75,10 +77,43 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 		// user must be an admin or editor of the app
 		// to add a scheduled job
 		User user = this.insight.getUser();
-		if(!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
+		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityProjectUtils.userCanEditProject(user, jobGroup)) {
 			throw new IllegalArgumentException("User does not have proper permissions to schedule jobs");
 		}
-		
+
+		// Check if JobRunr is enabled
+		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+
+		if (useJobRunr) {
+			return pauseWithJobRunr(jobId, jobGroup);
+		} else {
+			return pauseWithQuartz(jobId, jobGroup);
+		}
+	}
+
+	/**
+	 * Pause job using JobRunr
+	 */
+	private NounMetadata pauseWithJobRunr(String jobId, String jobGroup) {
+		try {
+			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
+
+			// Pause the recurring job
+			jobRunrService.pauseRecurringJob(jobId);
+
+			logger.info("Paused JobRunr recurring job: {}", jobId);
+
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+		} catch (Exception e) {
+			logger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Failed to pause job with JobRunr: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Pause job using Quartz (existing implementation)
+	 */
+	private NounMetadata pauseWithQuartz(String jobId, String jobGroup) {
 		try {
 			String triggerName = jobId.concat("Trigger");
 			String triggerGroup = jobGroup.concat("TriggerGroup");
