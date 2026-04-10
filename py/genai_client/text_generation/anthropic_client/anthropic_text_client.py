@@ -51,6 +51,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
+        prompt_caching: Optional[Union[str, bool]] = False,
         **kwargs,
     ):
         super().__init__(
@@ -64,6 +65,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             use_beta_header.lower() in ["true", "1", "yes", "on"]
             if isinstance(use_beta_header, str)
             else use_beta_header
+        )
+        self.prompt_caching = (
+            prompt_caching.lower() in ["true", "1", "yes", "on"]
+            if isinstance(prompt_caching, str)
+            else prompt_caching
         )
         self.beta_feature_name = kwargs.pop("beta_feature_name", None)
         if self.use_beta_header and not self.beta_feature_name:
@@ -158,9 +164,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
 
-            # Automatic prompt caching: supported on Anthropic direct and Azure
-            # only. Bedrock and Vertex AI do not support it yet.
-            if self.provider in ("anthropic", "azure"):
+            # Automatic prompt caching: only on Anthropic direct and Azure;
+            # Bedrock and Vertex AI do not support it yet.
+            if self.prompt_caching and self.provider in ("anthropic", "azure"):
                 request_config.cache_control = {"type": "ephemeral"}
 
             if streaming:
