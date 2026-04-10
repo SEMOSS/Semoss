@@ -1912,11 +1912,11 @@ public class PandasInterpreter extends AbstractQueryInterpreter {
 				}
 				retBuilder.append("(").append(frameName).append("[").append(leftSelectorExpression)
 						.append("].apply(lambda x: x").append(thisComparator);
-						if (objects.get(i) instanceof String && ((String)objects.get(i)).isEmpty()) {
-							retBuilder.append("\"\"").append("))");
-						} else {
-							retBuilder.append(objects.get(i)).append("))");
-						}
+				if (objects.get(i) instanceof String && ((String) objects.get(i)).isEmpty()) {
+					retBuilder.append("\"\"").append("))");
+				} else {
+					retBuilder.append(objects.get(i)).append("))");
+				}
 			}
 		}
 

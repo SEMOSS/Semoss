@@ -29,10 +29,8 @@ package prerna.reactor.frame.py;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.ds.py.PandasFrame;
-import prerna.ds.py.PyTranslator;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -49,7 +47,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class FilterEmptyValuesReactor extends AbstractPyFrameReactor {
 
 	protected static final String CLASS_NAME = FilterEmptyValuesReactor.class.getName();
-	
+
 	public FilterEmptyValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
@@ -62,22 +60,21 @@ public class FilterEmptyValuesReactor extends AbstractPyFrameReactor {
 		String frameName = frame.getName();
 		String wrapperFrameName = frame.getWrapperName();
 		String wrapperDataIndexed = wrapperFrameName + ".cache['data']";
-		
+
 		GenRowFilters grf = getFilters();
-		
+
 		StringBuilder pyFilterBuilder = new StringBuilder();
 		PandasInterpreter pi = new PandasInterpreter();
 		pi.setDataTableName(frameName, wrapperFrameName + ".cache['data']");
 		pi.setDataTypeMap(frame.getMetaData().getHeaderToTypeMap());
 		pi.addFilters(grf.getFilters(), wrapperFrameName, pyFilterBuilder, true);
-		
+
 		String script = wrapperDataIndexed + " = " + wrapperDataIndexed + "[" + pyFilterBuilder.toString() + "]";
 		frame.runScript(script);
 		this.addExecutedCode(script);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
-	// to group by this list of columns
+
 	private List<String> getColumns() {
 		List<String> cols = new ArrayList<String>();
 
@@ -101,15 +98,15 @@ public class FilterEmptyValuesReactor extends AbstractPyFrameReactor {
 
 		throw new IllegalArgumentException("Need to define the columns to filter");
 	}
-	
-	public GenRowFilters getFilters() {
+
+	private GenRowFilters getFilters() {
 		// generate a grf with the wanted filters
 		GenRowFilters grf = new GenRowFilters();
 		List<String> columns = getColumns();
 		List<Object> values = new ArrayList<Object>();
 		values.add("");
 		values.add(null);
-		for(String col : columns) {
+		for (String col : columns) {
 			grf.addFilters(SimpleQueryFilter.makeColToValFilter(col, "!=", values));
 		}
 		return grf;

@@ -40,18 +40,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /*
  * This reactor will impute the null values for the specified columns.
- * 
  * For a numeric valued column, nulls will be replaced by the column mean.
- * 
  * For date-times, the value will be forward filled, or replaced by the last valid observation
- * 
  * For Strings, null values will be replaced by the mode of the column or the string "Unknown" if no mode exists
- * 
  */
 public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 
 	protected static final String CLASS_NAME = ImputeNullValuesReactor.class.getName();
-	
+
 	public ImputeNullValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
@@ -61,7 +57,6 @@ public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 		organizeKeys();
 		// get frame
 		PandasFrame frame = (PandasFrame) getFrame();
-		String frameName = frame.getName();
 		String wrapperFrameName = frame.getWrapperName();
 		String wrapperDataIndexed = wrapperFrameName + ".cache['data']";
 
@@ -75,12 +70,16 @@ public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 		for (String column : columnNames) {
 			SemossDataType columnDataType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
 			if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
-				scripts.add( wrapperDataIndexed + "['" + column + "'] = " + wrapperDataIndexed + "['" + column + "'].fillna(" + wrapperDataIndexed + "['" + column + "'].mean(skipna=True))" );
+				scripts.add(wrapperDataIndexed + "['" + column + "'] = " + wrapperDataIndexed + "['" + column
+						+ "'].fillna(" + wrapperDataIndexed + "['" + column + "'].mean(skipna=True))");
 			} else if (columnDataType == SemossDataType.DATE || columnDataType == SemossDataType.TIMESTAMP) {
-				scripts.add( wrapperDataIndexed + "['" + column + "'].fillna(value=pd.to_datetime(" + wrapperDataIndexed + "['" + column + "']).ffill(),inplace=True)");
+				scripts.add(wrapperDataIndexed + "['" + column + "'].fillna(value=pd.to_datetime(" + wrapperDataIndexed
+						+ "['" + column + "']).ffill(),inplace=True)");
 			} else if (columnDataType == SemossDataType.STRING) {
-				String modeconditional = "'Unknown' if " + wrapperDataIndexed + "['" + column + "'].mode(dropna=True).empty else " + wrapperDataIndexed + "['" + column + "'].mode(dropna=True)";
-				scripts.add( wrapperDataIndexed + "['" + column + "'].fillna(" + modeconditional + ", inplace=True)" );
+				String modeconditional = "'Unknown' if " + wrapperDataIndexed + "['" + column
+						+ "'].mode(dropna=True).empty else " + wrapperDataIndexed + "['" + column
+						+ "'].mode(dropna=True)";
+				scripts.add(wrapperDataIndexed + "['" + column + "'].fillna(" + modeconditional + ", inplace=True)");
 			}
 		}
 
@@ -91,8 +90,7 @@ public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
-	// to group by this list of columns
+
 	private List<String> getColumns() {
 		List<String> cols = new ArrayList<String>();
 
