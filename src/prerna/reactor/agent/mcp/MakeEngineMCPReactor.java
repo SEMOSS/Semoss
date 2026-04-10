@@ -185,6 +185,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				JSONObject engineObj = properties.getJSONObject(paramName);
 				if (engineObj != null) {
 					engineObj.put("enum", new JSONArray().put(engineId));
+					engineObj.put("default", engineId);
 				}
 			} catch (Exception e) {
 				throw new IllegalArgumentException(
