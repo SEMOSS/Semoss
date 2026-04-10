@@ -43,7 +43,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.plexus.util.FileUtils;
+import org.apache.commons.io.FileUtils;
 
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
@@ -255,7 +255,7 @@ public class ClientProcessWrapper {
 						while (!result && attempt < 3) {
 							try {
 								if (serverDir.exists()) {
-									FileUtils.deleteDirectory(this.serverDirectory);
+									FileUtils.deleteDirectory(new File(this.serverDirectory));
 									classLogger.info("Sucessfully cleaned up the directory");
 								} else {
 									classLogger.info("Server directory does not exist");
