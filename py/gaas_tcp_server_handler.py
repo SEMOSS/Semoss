@@ -485,16 +485,15 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     exception=True,
                 )
         except Exception as e:
-            epoc_key = str(epoc)
-            print(f"in the exception block  {epoc_key}")
+            print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
-            error_payload = {"epoc": epoc_key, "ex": [output]}
+            error_payload = {"epoc": epoc, "ex": [output]}
             # there is a possibility this is a response from the previous
-            condition = self.monitors.get(epoc_key)
+            condition = self.monitors.get(epoc)
             if isinstance(condition, threading.Condition):
                 with condition:
-                    if self.monitors.get(epoc_key) is condition:
-                        self.monitors[epoc_key] = error_payload
+                    if self.monitors.get(epoc) is condition:
+                        self.monitors[epoc] = error_payload
                         condition.notify_all()
             else:
                 # This is really the only instance where we need to set the payload outside of the normal flow
