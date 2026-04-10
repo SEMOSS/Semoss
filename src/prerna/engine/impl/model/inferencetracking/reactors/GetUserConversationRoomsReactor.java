@@ -58,12 +58,13 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
     public GetUserConversationRoomsReactor() {
         this.keysToGet = new String[] {
                 ReactorKeysEnum.PROJECT.getKey(),
-                ReactorKeysEnum.LIMIT.getKey(),   
-                ReactorKeysEnum.OFFSET.getKey(),  
-                ReactorKeysEnum.SEARCH.getKey(), 
-                ReactorKeysEnum.SORT.getKey() 
+                ReactorKeysEnum.LIMIT.getKey(),
+                ReactorKeysEnum.OFFSET.getKey(),
+                ReactorKeysEnum.SEARCH.getKey(),
+                ReactorKeysEnum.SORT.getKey(),
+                ReactorKeysEnum.PINNED.getKey()
             };
-        this.keyRequired = new int[] {0,0,0,0,0};
+        this.keyRequired = new int[] {0,0,0,0,0,0};
     }
     
 	@Override
@@ -85,12 +86,15 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
         String sortDir = this.keyValue.getOrDefault("sort", "DESC");
         sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
         if (!sortDir.equals("ASC") && !sortDir.equals("DESC")) sortDir = "DESC";
-        
-		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
-		if (search != null) {
-			search = Utility.decodeURIComponent(search);
-		}
-		     
+
+        String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
+        if (search != null) {
+            search = Utility.decodeURIComponent(search);
+        }
+
+        String pinnedStr = this.keyValue.get(ReactorKeysEnum.PINNED.getKey());
+        boolean includePinned = pinnedStr != null && Boolean.parseBoolean(pinnedStr);
+
         // Call new overload of getUserConversations
         List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
             user.getPrimaryLoginToken().getId(),
@@ -98,7 +102,8 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
             limit,
             offset,
             sortDir,
-            search
+            search,
+            includePinned
         );
         
         // Register insights for each room_id returned

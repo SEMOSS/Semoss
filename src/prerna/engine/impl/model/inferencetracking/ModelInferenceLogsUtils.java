@@ -1537,16 +1537,15 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, false);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, boolean includePinned) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
-		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
-		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
+		Set<String> mapKeys = new HashSet<>();
+		mapKeys.add("OPTIONS");
 
 		// Subquery to filter only rooms with at least 1 message and correct
 		// user/project/active
@@ -1560,28 +1559,70 @@ public class ModelInferenceLogsUtils {
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 
-		// SEARCH
+		// Paged query
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
 		}
-
-		// LIMIT/OFFSET
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		// SORTING
-		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
 
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
+		List<Map<String, Object>> pagedResults = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
+
+		if (!includePinned) {
+			return pagedResults;
+		}
+
+		// Pinned query — all pinned rooms, no limit/offset
+		SelectQueryStruct pinnedQs = new SelectQueryStruct();
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
+		pinnedQs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
+		pinnedQs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		pinnedQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true, PixelDataType.BOOLEAN));
+		if (search != null && !search.trim().isEmpty()) {
+			pinnedQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
+					PixelDataType.CONST_STRING));
+		}
+		pinnedQs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
+
+		List<Map<String, Object>> pinnedResults = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, pinnedQs, mapKeys);
+
+		// Merge: pinned rooms first, then paged results, deduplicating by ROOM_ID
+		Set<Object> seenIds = new HashSet<>();
+		List<Map<String, Object>> merged = new ArrayList<>();
+		for (Map<String, Object> row : pinnedResults) {
+			seenIds.add(row.get("ROOM_ID"));
+			merged.add(row);
+		}
+		for (Map<String, Object> row : pagedResults) {
+			if (seenIds.add(row.get("ROOM_ID"))) {
+				merged.add(row);
+			}
+		}
+		return merged;
 	}
 
 	/**
