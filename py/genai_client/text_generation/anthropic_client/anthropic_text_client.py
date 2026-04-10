@@ -113,6 +113,32 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 f"Provider '{self.provider}' is not supported for Anthropic Text Client."
             )
 
+    @staticmethod
+    def _apply_cache_to_last_block(messages: List[Dict[str, Any]]) -> None:
+        """
+        Add cache_control to the last text block of the last message. This
+        replicates Anthropic's automatic caching behaviour for providers
+        (Bedrock, Vertex) that only support block-level cache_control.
+
+        On each turn the last message is the newest one, so the marker
+        naturally moves forward through the conversation as history grows.
+        """
+        if not messages:
+            return
+        last_msg = messages[-1]
+        content = last_msg.get("content")
+        if isinstance(content, str):
+            # Plain-string content — convert to block form so we can attach
+            # cache_control without mutating shared state.
+            last_msg["content"] = [
+                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
+            ]
+        elif isinstance(content, list):
+            for block in reversed(content):
+                if isinstance(block, dict) and block.get("type") == "text":
+                    block["cache_control"] = {"type": "ephemeral"}
+                    break
+
     def ask_call(
         self,
         prefix="",
@@ -164,10 +190,18 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
 
-            # Automatic prompt caching: only on Anthropic direct and Azure;
-            # Bedrock and Vertex AI do not support it yet.
-            if self.prompt_caching and self.provider in ("anthropic", "azure"):
-                request_config.cache_control = {"type": "ephemeral"}
+            if self.prompt_caching:
+                if self.provider in ("anthropic", "azure"):
+                    # Automatic prompt caching: single top-level field; the API
+                    # moves the cache breakpoint to the last cacheable block
+                    # automatically on every turn.
+                    request_config.cache_control = {"type": "ephemeral"}
+                elif self.provider in ("bedrock", "google"):
+                    # Bedrock and Vertex don't support the top-level automatic
+                    # field, but do support block-level cache_control. Replicate
+                    # the same "marker moves forward" behaviour by attaching
+                    # cache_control to the last text block of the last message.
+                    self._apply_cache_to_last_block(request_config.messages)
 
             if streaming:
                 return self._handle_streaming(
