@@ -96,24 +96,30 @@ class Server(socketserver.ThreadingTCPServer):
         self.logger.info("Handling requests, press <Ctrl-C> to quit")
         try:
             while not self.stop:
-                if self.max_count > self.cur_count:
-                    print("Listening on port " + str(self.port))
-                    self.handle_request()
-                    self.timed_out = False
-                    self.cur_count = self.cur_count + 1
-                else:
-                    with self.monitor:
-                        # go into wait so this thread doesnt get killed otherwise leads to thread issues
-                        print("Waiting for request")
+                # guard the capacity check with the same condition lock we use when notify is called in remove_handler
+                with self.monitor:
+                    while not self.stop and self.cur_count >= self.max_count:
+                        print("Max connections reached. Waiting for a slot to be free.")
                         self.monitor.wait()
+
+                    if self.stop:
+                        break
+
+                print("Listening on port " + str(self.port))
+                self.handle_request()
+
+                # also keep count updates synchronized with remove_handler
+                with self.monitor:
+                    self.timed_out = False
+                    self.cur_count += 1
         except Exception as e:
             self.logger.error(f"Error: {e}", exc_info=True)
             self.stop_it()
         return
 
     def remove_handler(self):
-        self.cur_count = self.cur_count - 1
         with self.monitor:
+            self.cur_count = self.cur_count - 1
             self.monitor.notify()
 
     def stop_it(self):
