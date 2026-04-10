@@ -114,10 +114,21 @@ class OpenAIMessageBuilder:
                         )
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_parts.append(media_content)
+                        if message.io != "INPUT":
+                            # OpenAI does not allow image blocks in assistant turns;
+                            # replace with a text placeholder.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_parts.append(
+                                self._build_text_content_part(
+                                    f"[Generated image: {file_name}]",
+                                    type="output_text",
+                                )
+                            )
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         # other provider messages might have text with tool calls
@@ -303,10 +314,20 @@ class OpenAIMessageBuilder:
                         content_parts.append(self._build_text_content_part(p.text))
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_parts.append(media_content)
+                        if message.io != "INPUT":
+                            # OpenAI does not allow image blocks in assistant turns;
+                            # replace with a text placeholder.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_parts.append(
+                                self._build_text_content_part(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         # other provider messages might have text with tool calls

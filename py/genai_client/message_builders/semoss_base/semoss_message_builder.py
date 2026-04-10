@@ -74,9 +74,10 @@ class SEMOSSMessageBuilder:
 
                     elif p.get("type") == "MEDIA":
                         media_part = self._parse_media_from_part_dict(p)
-                        process_parts.append(
-                            SEMOSSMediaMessagePart(media_info=media_part)
-                        )
+                        if media_part is not None:
+                            process_parts.append(
+                                SEMOSSMediaMessagePart(media_info=media_part)
+                            )
 
                     elif p.get("type") == "TOOL_CALL":
                         tc = p.get("toolCall") or p.get("tool_call")
