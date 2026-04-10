@@ -15,7 +15,6 @@ from .anthropic_models import (
     AnthropicToolResultContentPart,
     AnthropicRequestConfig,
     AnthropicMessageBuilderResponse,
-    PROMPT_CACHING_BETA,
 )
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
@@ -757,32 +756,11 @@ class AnthropicMessageBuilder:
             if string_to_bool(use_history) is False:
                 history = history[-1:] if history else []
 
-        # Auto-cache the system prompt when present — wraps it as a cacheable
-        # content block, which avoids re-processing it on every call.
-        cacheable_system = None
-        if system_prompt:
-            cacheable_system = [
-                {
-                    "type": "text",
-                    "text": system_prompt,
-                    "cache_control": {"type": "ephemeral"},
-                }
-            ]
-
-        # Collect beta headers: always include prompt-caching when a system
-        # prompt is present; extend with extended-thinking if already enabled.
-        betas: list[str] = []
-        if self.use_beta_header and self.beta_feature_name:
-            betas.append(self.beta_feature_name)
-        if cacheable_system:
-            betas.append(PROMPT_CACHING_BETA)
-        betas = betas if betas else None
-
         return AnthropicRequestConfig(
             model=self.model_name,
-            system=cacheable_system if cacheable_system else system_prompt,
+            system=system_prompt,
             messages=[message.model_dump(mode="json") for message in history],
-            betas=betas,
+            betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,

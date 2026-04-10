@@ -107,14 +107,12 @@ class AnthropicMessage(BaseModel):
     ]
 
 
-PROMPT_CACHING_BETA = "prompt-caching-2024-07-31"
-
-
 class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     betas: Optional[List[str]] = None
-    system: Optional[Union[str, List[Dict[str, Any]]]] = None
+    system: Optional[str] = None
+    cache_control: Optional[Dict[str, Any]] = None
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None

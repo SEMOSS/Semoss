@@ -158,6 +158,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
 
+            # Automatic prompt caching: supported on Anthropic direct and Azure
+            # only. Bedrock and Vertex AI do not support it yet.
+            if self.provider in ("anthropic", "azure"):
+                request_config.cache_control = {"type": "ephemeral"}
+
             if streaming:
                 return self._handle_streaming(
                     request_config,
