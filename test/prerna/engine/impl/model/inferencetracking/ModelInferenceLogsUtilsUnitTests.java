@@ -88,7 +88,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -221,13 +220,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			doThrow(IOException.class).doNothing().when(rawWrapper).close();
 
 			when(engine.getPreparedStatement(
-					"INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)"))
+					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)"))
 					.thenReturn(ps);
 			when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
-			MessageFeedback testFeedback = new MessageFeedback("messageId", MessageType.RESPONSE_TEXT, "feedback",
+			MessageFeedback testFeedback = new MessageFeedback("messageId", "feedback",
 					true);
 			SemossPixelException spe = assertThrows(SemossPixelException.class,
 					() -> ModelInferenceLogsUtils.recordFeedback(testFeedback));
@@ -239,7 +238,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			// Goes into insertFeedback
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
 			verify(engine, times(1)).getPreparedStatement(
-					"INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)");
+					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)");
 			verify(ps, times(1)).execute();
 			verify(ps, times(2)).getConnection();
 			verify(conn).getAutoCommit();
