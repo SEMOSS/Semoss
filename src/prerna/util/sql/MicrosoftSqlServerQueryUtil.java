@@ -656,8 +656,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public boolean isTablePartitioned(Connection conn, String tableName) throws SQLException {
-		// In SQL Server, partitioned tables have entries in sys.partitions with more
-		// than one partition
+		// Check entries in sys.partitions
 		String sql = "SELECT COUNT(DISTINCT partition_id) AS cnt " + "FROM sys.partitions p "
 				+ "JOIN sys.objects o ON p.object_id = o.object_id " + "WHERE o.name = ?";
 		try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -671,11 +670,6 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		return false;
 	}
 
-	/**
-	 * Generate SQL statements to create a partition function, partition scheme and
-	 * create the table on the scheme. NOTE: This is a best-effort generator. Real
-	 * deployments may require DBAs (filegroups, permissions).
-	 */
 	@Override
 	public List<String> getCreatePartitionedTableSql(String tableName, String partitionColumn, String columnDefinitions,
 			PartitionFrequency freq, int ahead) {
@@ -707,7 +701,6 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		sqls.add(createPs);
 
 		// 3) Create table on partition scheme
-		// columnDefinitions is like "LOG_ID VARCHAR(255), ... , LOG_TIMESTAMP DATETIME"
 		String createTable = String.format("CREATE TABLE %s (%s) ON %s(%s)", tableName, columnDefinitions, psName,
 				partitionColumn);
 		sqls.add(createTable);
@@ -715,11 +708,6 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		return sqls;
 	}
 
-	/**
-	 * Ensure future partitions for MSSQL by splitting the partition function for
-	 * each missing month. This method executes ALTER PARTITION FUNCTION ... SPLIT
-	 * RANGE ( 'YYYY-MM-DD' ) statements.
-	 */
 	@Override
 	public void getEnsureFuturePartitionsSql(Connection conn, String tableName, String partitionColumn,
 			PartitionFrequency freq, int ahead) {
@@ -740,7 +728,6 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			// Some SQL Server versions may not expose partition_range_values the same way;
 			// fallback will attempt to SPLIT and ignore duplicates
 		}
 
@@ -761,9 +748,6 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		}
 	}
 
-	/**
-	 * MSSQL conversion is not implemented here (requires careful migration).
-	 */
 	@Override
 	public List<String> getConvertTableToPartitionedSql(Connection conn, String tableName, String partitionColumn,
 			String columnDefinitions, PartitionFrequency freq, int ahead) throws SQLException {

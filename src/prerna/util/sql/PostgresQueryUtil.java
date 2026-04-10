@@ -498,6 +498,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public boolean isTablePartitioned(Connection conn, String tableName) throws SQLException {
 		String checkSql = "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON pt.partrelid = c.oid WHERE c.relname = ?";
+
 		try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
 			ps.setString(1, tableName.toLowerCase());
 			try (ResultSet rs = ps.executeQuery()) {
@@ -525,19 +526,21 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		if (columnDefinitions == null) {
 			return Collections.emptyList();
 		}
-//		if (freq != PartitionFrequency.MONTHLY) {
-//			// implement other frequencies later
-//			throw new UnsupportedOperationException("Only MONTHLY implemented for Postgres");
-//		}
+		if (freq != PartitionFrequency.MONTHLY) {
+			// implement other frequencies later
+			throw new UnsupportedOperationException("Only MONTHLY implemented for Postgres");
+		}
+
 		List<String> sqls = new ArrayList<>();
 		sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s (%s) PARTITION BY RANGE (%s)", tableName,
 				columnDefinitions, partitionColumn));
 		// default partition
 		sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT", tableName, tableName));
+
 		LocalDate start = LocalDate.now().withDayOfMonth(1);
 		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 		sqls.addAll(createMonthlyPartitionStatements(tableName, start, ahead, fmt));
-		// add per-partition indexes for the created partitions (best effort)
+		// add per-partition indexes for the created partitions
 		for (int i = 0; i < ahead; i++) {
 			LocalDate s = start.plusMonths(i);
 			String partName = String.format("%s_%d_%02d", tableName, s.getYear(), s.getMonthValue());
@@ -637,7 +640,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void ensureMonthlyPartitions(Connection conn, String parentTable, int monthsAhead) {
 
 		String createPartitionFunction = """
-				CREATE OR REPLACE FUNCTION create_monthly_partition(parent_table regclass, target_date date)
+				CREATE OR REPLACE FUNCTION SMSS_create_monthly_partition(parent_table regclass, target_date date)
 				RETURNS VOID AS $$
 				DECLARE
 				    partition_name TEXT;
@@ -669,7 +672,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				""";
 
 		String createBatchFunction = """
-				CREATE OR REPLACE FUNCTION create_monthly_partitions(parent_table regclass, start_date date, months int)
+				CREATE OR REPLACE FUNCTION SMSS_create_monthly_partitions(parent_table regclass, start_date date, months int)
 				RETURNS VOID AS $$
 				DECLARE
 				    i INT;
@@ -679,7 +682,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				    END IF;
 
 				    FOR i IN 0..months-1 LOOP
-				        PERFORM create_monthly_partition(parent_table, (start_date + (i || ' month')::interval)::date);
+				        PERFORM SMSS_create_monthly_partition(parent_table, (start_date + (i || ' month')::interval)::date);
 				    END LOOP;
 				END;
 				$$ LANGUAGE plpgsql;
@@ -689,7 +692,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 			stmt.execute(createPartitionFunction);
 			stmt.execute(createBatchFunction);
 
-			String callSql = "SELECT create_monthly_partitions(?::regclass, ?::date, ?)";
+			String callSql = "SELECT SMSS_create_monthly_partitions(?::regclass, ?::date, ?)";
 
 			try (PreparedStatement ps = conn.prepareStatement(callSql)) {
 				ps.setString(1, parentTable);

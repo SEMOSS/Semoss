@@ -102,21 +102,34 @@ public class AuditLogsDbUtils {
 			String tableName = tableSchema.getValue0();
 
 			if (partitioningSupported && "AUDIT_LOGS".equalsIgnoreCase(tableName)) {
+				// build Audit_Logs table columns definition
 				auditLogColDefs = buildColumnDefinitions(tableSchema.getValue1());
 				classLogger.info("Partitioning enabled. AUDIT_LOGS creation will be handled separately.");
 				continue;
 			}
-
+			// table creation or update
 			createOrUpdateTable(conn, queryUtil, engine, database, schema, tableSchema, allowIfExistsTable);
 		}
-
+		// create partition for Audit_Logs table
 		if (partitioningSupported && auditLogColDefs != null) {
 			ensureAuditLogsPartitioning(conn, queryUtil, engine, database, schema, auditLogColDefs);
 		}
-
+		// create Indexes for Audit_Logs table
 		createAuditLogsIndexes(conn, queryUtil, auditLogsDb, database, schema, allowIfExistsIndexs);
 	}
 
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param engine
+	 * @param database
+	 * @param schema
+	 * @param tableSchema
+	 * @param allowIfExistsTable
+	 * @return
+	 * @throws SQLException
+	 */
 	private static void createOrUpdateTable(Connection conn, AbstractSqlQueryUtil queryUtil, IRDBMSEngine engine,
 			String database, String schema, Pair<String, List<Pair<String, String>>> tableSchema,
 			boolean allowIfExistsTable) throws SQLException {
@@ -176,6 +189,17 @@ public class AuditLogsDbUtils {
 		return sb.toString();
 	}
 
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param engine
+	 * @param database
+	 * @param schema
+	 * @param auditLogColDefs
+	 * @return
+	 * @throws SQLException
+	 */
 	private static void ensureAuditLogsPartitioning(Connection conn, AbstractSqlQueryUtil queryUtil,
 			IRDBMSEngine engine, String database, String schema, String auditLogColDefs) {
 		try {
@@ -188,6 +212,17 @@ public class AuditLogsDbUtils {
 		}
 	}
 
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param auditLogsDb
+	 * @param database
+	 * @param schema
+	 * @param allowIfExistsIndexs
+	 * @return
+	 * @throws SQLException
+	 */
 	private static void createAuditLogsIndexes(Connection conn, AbstractSqlQueryUtil queryUtil,
 			IRDBMSEngine auditLogsDb, String database, String schema, boolean allowIfExistsIndexs) throws SQLException {
 

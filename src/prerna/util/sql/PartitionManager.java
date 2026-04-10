@@ -34,6 +34,7 @@ public class PartitionManager {
 
 		try {
 			if (!exists) {
+				// Create fresh partitioned table
 				logger.info("{} does not exist — creating partitioned table", tableName);
 				List<String> createSqls = queryUtil.getCreatePartitionedTableSql(tableName, partitionColumn,
 						columnDefinitions, freq, monthsAhead);
@@ -43,6 +44,7 @@ public class PartitionManager {
 
 			boolean alreadyPartitioned = queryUtil.isTablePartitioned(conn, tableName);
 			if (alreadyPartitioned) {
+				// Ensure future partitions for table
 				logger.info("{} is already partitioned — ensuring future partitions (next {})", tableName, monthsAhead);
 				queryUtil.getEnsureFuturePartitionsSql(conn, tableName, partitionColumn, freq, monthsAhead);
 				return;
@@ -106,11 +108,8 @@ public class PartitionManager {
 					logger.info("Running sql: " + sql);
 					st.execute(sql);
 				} catch (SQLException e) {
-					// Log non-fatal but *do not* keep running subsequent statements inside the same
-					// transaction
 					logger.warn("Statement failed (non-fatal): {} => {}", sql, e.getMessage());
-					// For safety: if the DB reported the transaction as aborted, explicitly
-					// rollback to reset state.
+					// Roll back to reset state.
 					try {
 						if (!conn.getAutoCommit()) {
 							conn.rollback();
@@ -118,11 +117,10 @@ public class PartitionManager {
 					} catch (SQLException rbEx) {
 						logger.debug("Rollback after failure failed: {}", rbEx.getMessage());
 					}
-					// continue with next statement (because we run each one in its own transaction)
 				}
 			}
 		} finally {
-			// restore original autocommit
+			// Restore original auto-commit
 			try {
 				if (!originalAuto) {
 					conn.setAutoCommit(originalAuto);
@@ -158,15 +156,15 @@ public class PartitionManager {
 						} catch (SQLException rb) {
 							logger.error("Rollback failed: {}", rb.getMessage(), rb);
 						}
-						// propagate an exception so the caller knows conversion failed
+						// Propagate an exception so the caller knows conversion failed
 						throw e;
 					}
 				}
-				// commit if all statements succeeded
+				// Commit if all statements succeeded
 				conn.commit();
 			}
 		} finally {
-			// restore autocommit
+			// Restore autocommit
 			try {
 				if (originalAuto) {
 					conn.setAutoCommit(true);

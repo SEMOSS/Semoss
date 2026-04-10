@@ -175,7 +175,6 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public boolean supportsPartitioning() {
-		// Modern MySQL (5.7+, 8.0) supports partitioning for InnoDB/MyISAM.
 		return true;
 	}
 
@@ -199,18 +198,12 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public List<String> getCreatePartitionedTableSql(String tableName, String partitionColumn, String columnDefinitions,
 			PartitionFrequency freq, int ahead) {
-		// Build a CREATE TABLE ... PARTITION BY RANGE COLUMNS(...) statement with ahead
-		// partitions.
-		// Note: columnDefinitions is expected to be like "COL1 TYPE, COL2 TYPE, ...,
-		// LOG_TIMESTAMP TIMESTAMP"
 		List<String> sqls = new ArrayList<>();
 
-		// base CREATE TABLE statement (we'll include a few partitions inline)
+		// base CREATE TABLE statement
 		String createBase = "CREATE TABLE IF NOT EXISTS " + tableName + " (" + columnDefinitions + ")";
 
 		// Partition clause
-		// We will create 'ahead' months worth of partitions starting from current
-		// month.
 		LocalDate start = LocalDate.now().withDayOfMonth(1);
 		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -231,16 +224,13 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 		partitionSb.append(", PARTITION `").append(tableName).append("_max` VALUES LESS THAN (MAXVALUE))");
 
 		String createStatement = createBase + partitionSb.toString();
-		// MySQL requires partition clause at CREATE time — return single statement
 		sqls.add(createStatement);
 
 		return sqls;
 	}
 
 	/**
-	 * Ensure future partitions for MySQL by executing ALTER TABLE ... ADD PARTITION
-	 * statements. This method executes statements directly (void) since
-	 * PartitionManager expects void.
+	 * Ensure future partitions for MySQL by executing ALTER TABLE
 	 */
 	@Override
 	public void getEnsureFuturePartitionsSql(Connection conn, String tableName, String partitionColumn,
@@ -253,7 +243,6 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 		try {
 			schema = (this.database != null && !this.database.isEmpty()) ? this.database : conn.getCatalog();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		String listSql = "SELECT PARTITION_NAME FROM INFORMATION_SCHEMA.PARTITIONS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_NAME IS NOT NULL";
@@ -288,15 +277,11 @@ public class MySQLQueryUtil extends AnsiSqlQueryUtil {
 			try (Statement st = conn.createStatement()) {
 				st.execute(alterSql);
 			} catch (SQLException e) {
-				// Non-fatal; log and continue
+				// Non-fatal;
 			}
 		}
 	}
 
-	/**
-	 * Conversion SQL generation for MySQL is not provided here (complex & risky).
-	 * Return an empty list so PartitionManager will skip conversion for MySQL.
-	 */
 	@Override
 	public List<String> getConvertTableToPartitionedSql(Connection conn, String tableName, String partitionColumn,
 			String columnDefinitions, PartitionFrequency freq, int ahead) throws SQLException {
