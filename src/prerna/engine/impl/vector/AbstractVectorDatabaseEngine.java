@@ -353,6 +353,9 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						int rowsCreated = -1;
 						if (extractionMethod.equals("fitz")
 								&& destinationFile.getName().toLowerCase().endsWith(".pdf")) {
+							classLogger.warn("The 'fitz' extraction method is deprecated. "
+									+ "PyMuPDF and PaddleOCR dependencies have been removed. "
+									+ "Use CUSTOM_DOCUMENT_PROCESSOR with a Tesseract or cloud OCR function engine instead.");
 							StringBuilder extractTextFromDocScript = new StringBuilder();
 							extractTextFromDocScript.append("vector_database.extract_text(source_file_name = '")
 									.append(destinationFile.getAbsolutePath().replace("\\", FILE_SEPARATOR))

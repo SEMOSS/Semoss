@@ -38,6 +38,7 @@ import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.TesseractOCRCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 
 public enum FunctionTypeEnum {
@@ -62,7 +63,9 @@ public enum FunctionTypeEnum {
 			GoogleOCRCustomEmbeddingsFunctionEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS",
-			LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),;
+			LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),
+	TESSERACT_OCR_CUSTOM_EMBEDDINGS("TESSERACT_OCR_CUSTOM_EMBEDDINGS",
+			TesseractOCRCustomEmbeddingsFunctionEngine.class.getName());
 
 	private String functionName;
 	private String functionClass;
