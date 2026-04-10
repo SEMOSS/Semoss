@@ -563,13 +563,13 @@ public abstract class AbstractReactor implements IReactor {
 	public String getReactorDescription() {
 		return null;
 	}
-	
+
 	/**
-	 * Override in child reactors to define the output schema.
-	 * Returns null by default, meaning no output schema is defined.
+	 * Override in child reactors to define the output schema. Returns null by
+	 * default, meaning no output schema is defined.
 	 */
 	public JSONObject getResponseSchema() {
-	    return null;
+		return null;
 	}
 
 	@Override
@@ -599,14 +599,13 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		help.append("\nMCP Schema:\n");
 		help.append(this.asMcpTool().toString(4));
-		
-	   JSONObject responseSchema = getResponseSchema();
-	    if (responseSchema != null) {
-	        help.append("\nResponse Schema:\n");
-	        help.append(responseSchema.toString(4));
-	    }
-		    
-		    
+
+		JSONObject responseSchema = getResponseSchema();
+		if (responseSchema != null) {
+			help.append("\nResponse Schema:\n");
+			help.append(responseSchema.toString(4));
+		}
+
 		return help.toString();
 	}
 
@@ -877,17 +876,20 @@ public abstract class AbstractReactor implements IReactor {
 	/**
 	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
 	 * is not an MCP tool. Reactors that should be discoverable by package scanning
-	 * in {@code MakePixelMCPReactor} must override this method and return a non-null map.
+	 * in {@code MakePixelMCPReactor} must override this method and return a
+	 * non-null map.
 	 * <p>
 	 * Supported keys (use {@link MCPUtility} constants):
 	 * <ul>
-	 * <li>{@code SMSS_MCP_EXECUTION} — "auto", "ask", or "disabled" (defaults to "auto" if omitted)</li>
-	 * <li>{@code displayLocation} — "sidebar", "inline", or "hidden"</li>
-	 * <li>{@code loadingMessage} — custom loading text shown during execution</li>
-	 * <li>{@code resourceURI} — portal page path for the tool's UI</li>
+	 * <li>{@code SMSS_MCP_EXECUTION} - "auto", "ask", or "disabled" (defaults to
+	 * "auto" if omitted)</li>
+	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
+	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
+	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
 	 * </ul>
 	 *
-	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP tool
+	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP
+	 *         tool
 	 */
 	public Map<String, String> getMcpToolMetadata() {
 		return null;
