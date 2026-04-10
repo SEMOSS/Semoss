@@ -79,7 +79,7 @@ public abstract class AbstractMessage {
 	protected int tokens;
 
 	protected boolean visible = true;
-	protected boolean pruneTools = false;
+	protected boolean pruneToolsAbove = false;
 
 	@SerializedName("platform_generated")
 	protected boolean platformGenerated = false;
@@ -185,12 +185,12 @@ public abstract class AbstractMessage {
 		return hasPartType(MessagePartType.TOOL_RESULT);
 	}
 
-	public boolean getPruneTools() {
-		return this.pruneTools;
+	public boolean getPruneToolsAbove() {
+		return this.pruneToolsAbove;
 	}
 
-	public void setPruneTools(boolean pruneTools) {
-		this.pruneTools = pruneTools;
+	public void setPruneToolsAbove(boolean pruneToolsAbove) {
+		this.pruneToolsAbove = pruneToolsAbove;
 	}
 
 	public boolean hasThinkingPart() {

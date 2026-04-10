@@ -199,7 +199,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     private void addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId) {
         for (AbstractMessage message : messages) {
             if (parentMessageId.equals(message.getMessageId())) {
-                message.setPruneTools(true);
+                message.setPruneToolsAbove(true);
                 break;
             }
         }

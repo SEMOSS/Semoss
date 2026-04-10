@@ -425,7 +425,7 @@ public class MessageUtils {
 			if (m == null) {
 				break;
 			}
-			if (m.getPruneTools()) {
+			if (m.getPruneToolsAbove()) {
 				shouldPruneTools = true;
 			}
 			if (shouldPruneTools) {
@@ -469,7 +469,7 @@ public class MessageUtils {
 			if (m == null) {
 				break;
 			}
-			if (m.getPruneTools()) {
+			if (m.getPruneToolsAbove()) {
 				shouldPruneTools = true;
 			}
 			if (shouldPruneTools) {
