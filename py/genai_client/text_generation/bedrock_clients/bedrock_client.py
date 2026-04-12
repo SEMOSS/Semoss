@@ -2,6 +2,8 @@ from typing import Dict, Any, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
 
+    from mypy_boto3_bedrock_runtime import BedrockRuntimeClient
+
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
     ) -> None: ...
@@ -14,9 +16,12 @@ from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.bedrock.bedrock_message_builder import BedrockMessageBuilder
 from ...constants import AskModelEngineResponse2
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from botocore.config import Config
 
 
 class BedrockClient(AbstractTextGenerationClient):
+    client: "BedrockRuntimeClient"
+
     def __init__(
         self,
         modelId: str,
@@ -28,6 +33,7 @@ class BedrockClient(AbstractTextGenerationClient):
         template_name: str = None,
         guardrail_identifier: str = None,
         guardrail_version: str = None,
+        retry_config: Dict[str, Any] = None,
         **kwargs,
     ):
         init_params = {
@@ -38,7 +44,8 @@ class BedrockClient(AbstractTextGenerationClient):
         self.kwargs = kwargs
         self.model_id = modelId
 
-        self.client = self._create_client(region, access_key, secret_key, service_name)
+        self.client = self._create_client(region, access_key, secret_key, service_name, retry_config=Config(retries=retry_config))
+
         self.guardrail_config = self._create_guardrail_config(
             guardrail_identifier, guardrail_version
         )
@@ -49,6 +56,7 @@ class BedrockClient(AbstractTextGenerationClient):
         access_key: str = None,
         secret_key: str = None,
         service_name: str = None,
+        retry_config: Config = None,
     ):
         """Create a boto3 client for Bedrock with appropriate authentication."""
         if access_key and secret_key:
@@ -57,11 +65,13 @@ class BedrockClient(AbstractTextGenerationClient):
                 aws_access_key_id=access_key,
                 aws_secret_access_key=secret_key,
                 region_name=region,
+                config=retry_config,
             )
         else:
             return boto3.client(
                 service_name=service_name,
                 region_name=region,
+                config=retry_config,
             )
 
     def _create_guardrail_config(
@@ -93,6 +103,12 @@ class BedrockClient(AbstractTextGenerationClient):
                 bedrock_request = BedrockMessageBuilder().build_messages(
                     semoss_messages
                 )
+
+                if (
+                    hasattr(self.model_settings, "global_param_override")
+                    and self.model_settings.global_param_override
+                ):
+                    bedrock_request.update(self.model_settings.global_param_override)
 
                 stream = bedrock_request.pop("stream", True)
                 self.has_schema = bedrock_request.pop("has_schema", False)
