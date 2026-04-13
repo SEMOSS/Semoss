@@ -44,6 +44,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import prerna.SemossUnitTest;
+import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -103,7 +105,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 
 	@AfterAll
 	public static void tearDown() throws IOException, SQLException {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		try (Connection c = securityDb.getConnection(); Statement s = c.createStatement()) {
 			assertTrue(c.getMetaData().getURL().contains("junit"));
