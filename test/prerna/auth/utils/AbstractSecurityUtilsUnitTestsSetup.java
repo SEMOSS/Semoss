@@ -111,9 +111,10 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 			assertTrue(c.getMetaData().getURL().contains("junit"));
 			s.execute("SHUTDOWN");
 		}
+		DIHelper.getInstance();
 		securityDb.closeDataSource();
 		securityDb.close();
-		securityDb.delete();
+//		securityDb.delete();
 	}
 
 }

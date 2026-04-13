@@ -45,6 +45,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessToken;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.ConnectionUtils;
@@ -66,7 +67,7 @@ public class SecurityUserUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSe
 
 	@BeforeEach
 	void tearDownAndSetUpUserMetaTables() throws SQLException {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		// clear out tables
 		Connection conn = null;
 		Statement s = null;
