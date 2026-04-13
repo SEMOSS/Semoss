@@ -40,7 +40,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 
-public class PixelJobManager {
+public final class PixelJobManager {
 
 	public enum InterruptResult {
 		NOT_FOUND, ALREADY_DONE, CANCEL_REQUESTED
@@ -71,7 +71,7 @@ public class PixelJobManager {
 		private final Lock lock = new ReentrantLock();
 	}
 
-	private static PixelJobManager manager = new PixelJobManager();
+	private static volatile PixelJobManager manager = new PixelJobManager();
 
 	// keeps the job to thread
 	private Map<String, PixelJobThread> threadPool = new ConcurrentHashMap<>();

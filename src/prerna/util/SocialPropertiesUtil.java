@@ -43,12 +43,12 @@ import prerna.auth.AuthProvider;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LdapAuthenticationFactory;
 
-public class SocialPropertiesUtil {
+public final class SocialPropertiesUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(SocialPropertiesUtil.class);
 
-	private static SocialPropertiesUtil instance = null;
-	private static SocialPropertiesProcessor processor = null;
+	private static volatile SocialPropertiesUtil instance = null;
+	private static volatile SocialPropertiesProcessor processor = null;
 	private static String socialPropFile = null;
 
 	/**

@@ -52,7 +52,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import prerna.auth.AuthProvider;
 
-public class SocialPropertiesProcessor {
+public final class SocialPropertiesProcessor {
 
 	public static final String SMTP_ENABLED = "smtp_enabled";
 	public static final String SMTP_ONLY_CUSTOM_PROPS = "smtp_only_custom_props";
