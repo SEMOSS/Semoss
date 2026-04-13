@@ -27,9 +27,11 @@
  *******************************************************************************/
 package prerna.tcp.client;
 
+import java.io.File;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.plexus.util.FileUtils;
+import org.apache.commons.io.FileUtils;
 
 import prerna.util.Constants;
 
@@ -50,7 +52,7 @@ public class CleanerThread extends Thread {
 		boolean deleted = false;
 		while(attempt < 10 && !deleted) {
 			try {
-				FileUtils.deleteDirectory(folder);
+				FileUtils.deleteDirectory(new File(folder));
 				deleted = true;
 			} catch (Exception ignored) {
 				attempt++;
