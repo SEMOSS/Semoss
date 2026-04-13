@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,8 +45,6 @@ import javax.xml.stream.XMLInputFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.commonmark.Extension;
-import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -295,16 +292,11 @@ public class ToDocxReactor extends AbstractReactor {
 	 * @return A full HTML document string
 	 */
 	private String convertMarkdownToHtml(String markdown) {
-		List<Extension> extensions = Arrays.asList(TablesExtension.create());
-		Parser parser = Parser.builder().extensions(extensions).build();
-		HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
+		Parser parser = Parser.builder().build();
+		HtmlRenderer renderer = HtmlRenderer.builder().build();
 		Node document = parser.parse(markdown);
 		String body = renderer.render(document);
-		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">" +
-				"<style>table { border-collapse: collapse; width: 100%; } " +
-				"th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } " +
-				"th { background-color: #f2f2f2; font-weight: bold; }</style>" +
-				"</head><body>" + body + "</body></html>";
+		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>" + body + "</body></html>";
 	}
 
 	/**
