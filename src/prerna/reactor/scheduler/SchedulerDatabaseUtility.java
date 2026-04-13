@@ -1799,4 +1799,84 @@ public class SchedulerDatabaseUtility {
 			return "org.quartz.impl.jdbcjobstore.StdJDBCDelegate";
 		}
 	}
+
+	public static boolean updateJobStatus(String jobId, String status) {
+	    IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+	    Connection conn = connectToScheduler();
+
+	    try (PreparedStatement statement = conn.prepareStatement(
+	            "UPDATE SMSS_JOB_RECIPES SET JOB_STATUS = ? WHERE JOB_ID = ?")) {
+
+	        statement.setString(1, status);
+	        statement.setString(2, jobId);
+
+	        int rowsUpdated = statement.executeUpdate();
+
+	        if (rowsUpdated > 0) {
+	            classLogger.info("Updated job {} status to {}", jobId, status);
+	            return true;
+	        } else {
+	            classLogger.warn("No job found with ID {}", jobId);
+	            return false;
+	        }
+
+	    } catch (SQLException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        return false;
+
+	    } finally {
+	        if (schedulerDb.isConnectionPooling()) {
+	            try {
+	                conn.close();
+	            } catch (SQLException e) {
+	                classLogger.error(Constants.STACKTRACE, e);
+	            }
+	        }
+	    }
+	}
+
+	public static Map<String, String> getJobById(String jobId) {
+	    IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+	    Connection conn = connectToScheduler();
+
+	    try (PreparedStatement statement = conn.prepareStatement(
+	            "SELECT USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, " +
+	            "PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS " +
+	            "FROM SMSS_JOB_RECIPES WHERE JOB_ID = ?")) {
+	    	
+	        statement.setString(1, jobId);
+
+	        try (ResultSet rs = statement.executeQuery()) {
+	            if (rs.next()) {
+	                Map<String, String> result = new HashMap<>();
+
+	                result.put("jobId", rs.getString("JOB_ID"));
+	                result.put("jobName", rs.getString("JOB_NAME"));
+	                result.put("jobGroup", rs.getString("JOB_GROUP"));
+	                result.put("cronExpression", rs.getString("CRON_EXPRESSION"));
+	                result.put("cronTz", rs.getString("CRON_TIMEZONE"));
+	                result.put("recipe", rs.getString("PIXEL_RECIPE"));
+	                result.put("recipeParameters", rs.getString("PIXEL_RECIPE_PARAMETERS"));
+
+	                return result;
+	            } else {
+	                classLogger.warn("Job {} not found in database", jobId);
+	                return null;
+	            }
+	        }
+
+	    } catch (SQLException e) {
+	        classLogger.error(Constants.STACKTRACE, e);
+	        return null;
+
+	    } finally {
+	        if (schedulerDb.isConnectionPooling()) {
+	            try {
+	                conn.close();
+	            } catch (SQLException e) {
+	                classLogger.error(Constants.STACKTRACE, e);
+	            }
+	        }
+	    }
+	}
 }

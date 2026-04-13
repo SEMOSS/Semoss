@@ -2585,7 +2585,7 @@
 		<dependency>
 			<groupId>org.jobrunr</groupId>
 			<artifactId>jobrunr</artifactId>
-			<version>7.3.2</version>
+			<version>8.5.2</version>
 			<exclusions>
 				<!-- Exclude asm to use SEMOSS version (avoid conflicts) -->
 				<exclusion>

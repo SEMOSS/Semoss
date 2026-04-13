@@ -65,7 +65,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
-import prerna.util.scheduler.SchedulerMigrationUtil;
 
 public class ScheduleJobReactor extends AbstractReactor {
 
@@ -145,7 +144,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			throw new NullPointerException("UI State is null and needs to be passed");
 		}
 
-		boolean useJobRunr = SchedulerMigrationUtil.isJobRunrEnabled();
+		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
 
 		if (useJobRunr) {
 			// Use JobRunr for scheduling
