@@ -38,7 +38,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.snowflake.client.jdbc.internal.microsoft.azure.storage.core.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
@@ -49,7 +48,6 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.playground.reactors.AskPlaygroundReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -176,9 +174,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         int toolTokens = 0;
         for (AbstractMessage m : branch) {
-            int t = m.getTokensInMessage();
             if (m.hasToolResultPart() || m.hasToolCallPart()) {
-                toolTokens += t;
+                toolTokens += m.getTokensInMessage();
             }
         }
 
@@ -274,7 +271,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         String compactedTextMessage = summaryMessageText + "\n\n" + lastNMessagesText;
 
         InputMessage compactedMessage = InputMessage.builder(room)
-                .withText(compactedTextMessage)
+                .withText("Summarizing Conversation")
                 .withModelType(modelEngine.getModelType())
                 .build();
 
@@ -285,7 +282,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage compactedResponse = ResponseMessage.builder()
-                .withText("Conversation has been summarized")
+                .withText(compactedTextMessage)
                 .build();
         compactedResponse.setParentMessageId(compactedMessage.getMessageId());
         compactedResponse.setVisibile(false);
