@@ -223,7 +223,7 @@ public class AdminProjectInfoReactorUnitTests {
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
 
 			NounMetadata result = reactor.execute();
 			assertNotNull(result.getValue());
