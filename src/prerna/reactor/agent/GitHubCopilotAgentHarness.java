@@ -107,6 +107,15 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 
         logger.debug("GitHubCopilotAgentHarness: engineId={} tools={}", engineId, tools.size());
 
+        // GenericAgent resolves filePath from paramValues.project via
+        // AssetUtility.getProjectAssetsFolder(projectId). Pass it as workingDirectory
+        // so the Copilot SDK knows where to read/write files for the target project.
+        String workingDirectory = ctx.getFilePath();
+
+        String roomId = room.getId();
+        String insightId = ctx.getInsight().getInsightId();
+        String roomFolderPath = room.getRoomFolderPath();
+
         GitHubCopilotManager manager = new GitHubCopilotManager();
         String output = manager.query(
                 ctx.getInsight(),
@@ -115,7 +124,11 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
                 systemPrompt,
                 input,
                 tools,
-                toolCallRecords
+                toolCallRecords,
+                workingDirectory,
+                roomId,
+                insightId,
+                roomFolderPath
         );
 
         // SDK manages internal loop; iterations=0 like ClaudeCodeAgentHarness
