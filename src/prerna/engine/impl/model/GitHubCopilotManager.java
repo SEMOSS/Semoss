@@ -124,8 +124,10 @@ public class GitHubCopilotManager {
             client.start().get();
             CopilotSession session = client.createSession(config).get();
 
+            // Pass timeoutMs=0 to disable the SDK's default 60-second hard timeout.
+            // SEMOSS's own reactor/request timeout governs the upper bound instead.
             AssistantMessageEvent event = session.sendAndWait(
-                    new MessageOptions().setPrompt(input)
+                    new MessageOptions().setPrompt(input), 0
             ).get();
 
             session.close();
