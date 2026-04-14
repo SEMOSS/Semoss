@@ -130,7 +130,8 @@ public class ModelInferenceLogsOwlCreator {
 			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
 			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
 			    Pair.with("SHARE_ID", "VARCHAR(255)"),               // NEW
-			    Pair.with("WORKSPACE_ID", "VARCHAR(255)")               // NEW
+			    Pair.with("WORKSPACE_ID", "VARCHAR(255)"),               // NEW
+			    Pair.with("PARENT_ROOM_ID", "VARCHAR(50)")              // NEW
 			);
 		
 		this.messageColumns = Arrays.asList(
