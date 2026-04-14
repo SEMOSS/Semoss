@@ -806,7 +806,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId,
 				isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
@@ -1122,7 +1123,7 @@ public class ModelInferenceLogsUtils {
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, null,
-				reponseTime, dateCreated,
+				null, null, reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 		// TODO: for tests, change method signature to pass in necessary counts
@@ -1131,30 +1132,33 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Records a message row with full metadata, including optional transaction id.
 	 *
-	 * @param messageId       message id
-	 * @param transactionId   transaction id (nullable)
-	 * @param messageType     message type
-	 * @param messageData     serialized message payload
-	 * @param messageMethod   message method
-	 * @param tokenSize       token count
-	 * @param inputTokenSize  input token count (nullable)
-	 * @param outputTokenSize output token count (nullable)
-	 * @param thinkingTokens  thinking token count (nullable)
-	 * @param cachedTokens    cached token count (nullable)
-	 * @param reponseTime     model response time
-	 * @param dateCreated     created time
-	 * @param agentId         agent/model id
-	 * @param insightId       insight id
-	 * @param sessionId       session id
-	 * @param roomId          room id
-	 * @param userId          user id
-	 * @param userName        user display name
-	 * @param userEmail       user email
+	 * @param messageId           message id
+	 * @param transactionId       transaction id (nullable)
+	 * @param messageType         message type
+	 * @param messageData         serialized message payload
+	 * @param messageMethod       message method
+	 * @param tokenSize           token count
+	 * @param inputTokenSize      input token count (nullable)
+	 * @param outputTokenSize     output token count (nullable)
+	 * @param thinkingTokens      thinking token count (nullable)
+	 * @param cachedTokens        cached token count (nullable)
+	 * @param cacheReadTokens     cache read token count (nullable)
+	 * @param cacheCreationTokens cache creation token count (nullable)
+	 * @param reponseTime         model response time
+	 * @param dateCreated         created time
+	 * @param agentId             agent/model id
+	 * @param insightId           insight id
+	 * @param sessionId           session id
+	 * @param roomId              room id
+	 * @param userId              user id
+	 * @param userName            user display name
+	 * @param userEmail           user email
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize, Integer inputTokenSize, Integer outputTokenSize,
 			Integer thinkingTokens,
-			Integer cachedTokens, Double reponseTime, ZonedDateTime dateCreated, String agentId,
+			Integer cachedTokens, Integer cacheReadTokens, Integer cacheCreationTokens,
+			Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
@@ -1163,9 +1167,10 @@ public class ModelInferenceLogsUtils {
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
-				+ " MESSAGE_TOKENS, INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS, RESPONSE_TIME,"
+				+ " MESSAGE_TOKENS, INPUT_MESSAGE_TOKENS, OUTPUT_MESSAGE_TOKENS, THINKING_TOKENS, CACHED_TOKENS,"
+				+ " CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1205,6 +1210,16 @@ public class ModelInferenceLogsUtils {
 			}
 			if (cachedTokens != null) {
 				ps.setInt(index++, cachedTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheReadTokens != null) {
+				ps.setInt(index++, cacheReadTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheCreationTokens != null) {
+				ps.setInt(index++, cacheCreationTokens);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}

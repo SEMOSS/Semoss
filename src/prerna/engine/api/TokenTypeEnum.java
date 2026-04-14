@@ -34,11 +34,13 @@ public enum TokenTypeEnum {
     // Base token types
     INPUT(Category.BASE, "INPUT_MESSAGE_TOKENS", "numberOfTokensInPrompt"),
     OUTPUT(Category.BASE, "OUTPUT_MESSAGE_TOKENS", "numberOfTokensInResponse"),
-    
+
     // Additional/extended token types
     THINKING(Category.ADDITIONAL, "THINKING_TOKENS", "numberOfThinkingTokens"),
-    CACHED(Category.ADDITIONAL, "CACHED_TOKENS", "numberOfCachedTokens");
-    
+    CACHED(Category.ADDITIONAL, "CACHED_TOKENS", "numberOfCachedTokens"),
+    CACHE_READ(Category.ADDITIONAL, "CACHE_READ_TOKENS", "numberOfCacheReadTokens"),
+    CACHE_CREATION(Category.ADDITIONAL, "CACHE_CREATION_TOKENS", "numberOfCacheCreationTokens");
+
     private final Category category;
     private final String dbColumnName;
     private final String responseMapKey;
@@ -48,19 +50,19 @@ public enum TokenTypeEnum {
         this.dbColumnName = dbName;
         this.responseMapKey = responseMapKey;
     }
-    
+
     public String getDbColumnName() {
         return dbColumnName;
     }
-    
+
     public String getResponseMapKey() {
         return responseMapKey;
     }
-    
+
     public boolean isAdditional() {
         return category == Category.ADDITIONAL;
     }
-    
+
     public boolean isBase() {
         return category == Category.BASE;
     }

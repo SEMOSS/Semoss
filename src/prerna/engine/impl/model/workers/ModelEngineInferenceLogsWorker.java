@@ -132,7 +132,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		String projectName = null;
 		if (projectId != null) {
 			IProject project = Utility.getProject(projectId);
-			if(project != null) {
+			if (project != null) {
 				projectName = project.getProjectName();
 			}
 		}
@@ -223,7 +223,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				this.promptTokens,
 				null,
 				null,
-				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHED),				
+				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHED),
+				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHE_READ),
+				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHE_CREATION),
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -244,6 +246,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null,
 				this.responseTokens,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.THINKING),
+				null,
+				null,
 				null,
 				millisecondsDouble,
 				this.responseTime,
@@ -267,6 +271,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null,
 				null,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHED),
+				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHE_READ),
+				this.additionalTokenTypeCounts.get(TokenTypeEnum.CACHE_CREATION),
 				millisecondsDouble,
 				this.inputTime,
 				this.engine.getEngineId(),
@@ -287,6 +293,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 				null,
 				this.responseTokens,
 				this.additionalTokenTypeCounts.get(TokenTypeEnum.THINKING),
+				null,
+				null,
 				null,
 				millisecondsDouble,
 				this.responseTime,
