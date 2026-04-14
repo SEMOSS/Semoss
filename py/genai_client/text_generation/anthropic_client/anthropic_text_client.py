@@ -171,14 +171,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         last_msg = messages[-1]
         content = last_msg.get("content")
         if isinstance(content, str):
-            # Plain-string content — convert to block form so we can attach
-            # cache_control without mutating shared state.
             last_msg["content"] = [
-                {"type": "text", "text": content, "cache_control": {"type": "ephemeral"}}
+                {
+                    "type": "text",
+                    "text": content,
+                    "cache_control": {"type": "ephemeral"},
+                }
             ]
         elif isinstance(content, list):
             for block in reversed(content):
-                if isinstance(block, dict) and block.get("type") in AnthropicTextClient._CACHEABLE_BLOCK_TYPES:
+                if (
+                    isinstance(block, dict)
+                    and block.get("type") in AnthropicTextClient._CACHEABLE_BLOCK_TYPES
+                ):
                     block["cache_control"] = {"type": "ephemeral"}
                     break
 
@@ -235,15 +240,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if self.prompt_caching:
                 if self.provider in ("anthropic", "azure"):
-                    # Automatic prompt caching: single top-level field; the API
-                    # moves the cache breakpoint to the last cacheable block
-                    # automatically on every turn.
                     request_config.cache_control = {"type": "ephemeral"}
                 elif self.provider in ("bedrock", "google"):
-                    # Bedrock and Vertex don't support the top-level automatic
-                    # field, but do support block-level cache_control.
-                    # Apply breakpoints in Anthropic's evaluation order:
-                    # tools → system → messages (up to 4 total allowed).
                     self._apply_cache_to_tools(request_config)
                     self._apply_cache_to_system(request_config)
                     self._apply_cache_to_last_block(request_config.messages)
@@ -292,8 +290,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 input_tokens=response.usage.input_tokens,
                 output_tokens=response.usage.output_tokens,
             )
-            cache_read_tokens = getattr(response.usage, "cache_read_input_tokens", None) or None
-            cache_creation_tokens = getattr(response.usage, "cache_creation_input_tokens", None) or None
+            cache_read_tokens = (
+                getattr(response.usage, "cache_read_input_tokens", None) or None
+            )
+            cache_creation_tokens = (
+                getattr(response.usage, "cache_creation_input_tokens", None) or None
+            )
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
@@ -404,8 +406,16 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             for event in stream:
                 if event.type == "message_start":
                     input_tokens = event.message.usage.input_tokens
-                    cache_read_tokens = getattr(event.message.usage, "cache_read_input_tokens", None) or None
-                    cache_creation_tokens = getattr(event.message.usage, "cache_creation_input_tokens", None) or None
+                    cache_read_tokens = (
+                        getattr(event.message.usage, "cache_read_input_tokens", None)
+                        or None
+                    )
+                    cache_creation_tokens = (
+                        getattr(
+                            event.message.usage, "cache_creation_input_tokens", None
+                        )
+                        or None
+                    )
 
                 elif event.type == "content_block_start":
                     this_content_block_type = event.content_block.type
