@@ -79,6 +79,8 @@ public class ClaudeCodeManager {
 		String localProtocol = ThreadStore.getLocalProtocol();
 		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		boolean agentHistoryExists = agentHistoryExists(roomFolderPath, roomId);
 		List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
 		if (mcps != null) {
 			for (Map<String, String> mcp : mcps) {
@@ -95,8 +97,15 @@ public class ClaudeCodeManager {
 				.collect(Collectors.joining(",", "[", "]"));
 
 		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s')",
-				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId);
+				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s', room_folder_path='%s', agent_history_exists='%s')",
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId, roomFolderPath, agentHistoryExists);
+	}
+
+	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
+		Path projectsDir = Paths.get(roomFolderPath, "projects");
+		boolean exists = Files.exists(projectsDir) && Files.isDirectory(projectsDir);
+		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId, exists ? "found" : "not found", projectsDir);
+		return exists;
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
