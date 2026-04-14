@@ -30,11 +30,16 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 		try {
 			this.organizeKeys();
 			String projectKey = this.keyValue.get(PROJECT);
+			if (projectKey != null && !projectKey.trim().isEmpty()) {
+				projectKey = JiraUtils.validateProjectKey(projectKey);
+			} else {
+				projectKey = null;
+			}
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, JiraUtils.nullSafe(projectKey));
+			List<Map<String, Object>> result = JiraHelper.getIssueTypes(accessToken, baseUrl, projectKey);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while retrieving Jira issue types", e);
@@ -48,13 +53,13 @@ public class JiraIssueTypeReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists Jira issue types, optionally scoped to one project. Use before JiraCreateTicketReactor to get an exact valid type name. Returns id, name, and subtask. Requires Jira auth.";
+		return "Lists Jira issue types, optionally scoped to a specific project. Returns issuetypeid, name, and subtask flag for each type.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Optional. Jira project key in uppercase, for example RTJ. Get it from JiraGetProjectsReactor. Supply it to limit results to types allowed in that project. Omit for the instance-wide list.";
+			return "Optional Jira project key in uppercase (for example, RTJ). Omit to list all instance-wide issue types.";
 		}
 		return super.getDescriptionForKey(key);
 	}

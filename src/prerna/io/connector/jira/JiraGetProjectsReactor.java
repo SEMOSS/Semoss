@@ -19,14 +19,12 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraGetProjectsReactor.class);
 
 	public JiraGetProjectsReactor() {
-		this.keysToGet = new String[] {};
-		this.keyRequired = new int[] {};
+
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
-			this.organizeKeys();
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
@@ -45,6 +43,6 @@ public class JiraGetProjectsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists Jira projects visible to the current user. Use when the project key is unknown before project-scoped Jira calls. Returns id, key, name, projectTypeKey, and lead. Requires Jira auth.";
+		return "Lists all Jira projects visible to the current user. Returns id, project key, name, projectTypeKey, and lead for each project.";
 	}
 }

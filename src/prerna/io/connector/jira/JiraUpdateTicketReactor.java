@@ -1,5 +1,7 @@
 package prerna.io.connector.jira;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.javatuples.Pair;
@@ -8,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -18,36 +21,56 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraUpdateTicketReactor.class);
 
 	private static final String JIRAID = "jiraid";
-	private static final String SUMMARY = "summary";
-	private static final String DESCRIPTION = "description";
-	private static final String ASSIGNEE = "assignee";
-	private static final String PRIORITY = "priority";
-	private static final String DUEDATE = "duedate";
-	private static final String STATUS = "status";
+	private static final String PARAM_MAP = "paramMap";
 
 	public JiraUpdateTicketReactor() {
-		this.keysToGet = new String[] { JIRAID, SUMMARY, DESCRIPTION, ASSIGNEE, PRIORITY, DUEDATE, STATUS };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { JIRAID, PARAM_MAP };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String jiraId = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
-			String summary = JiraUtils.nullSafe(this.keyValue.get(SUMMARY));
-			String description = JiraUtils.nullSafe(this.keyValue.get(DESCRIPTION));
-			String assignee = JiraUtils.nullSafe(this.keyValue.get(ASSIGNEE));
-			String priority = JiraUtils.nullSafe(this.keyValue.get(PRIORITY));
-			String dueDate = JiraUtils.nullSafe(this.keyValue.get(DUEDATE));
-			String status = JiraUtils.nullSafe(this.keyValue.get(STATUS));
+			String jiraId = JiraUtils.validateIssueKey(this.keyValue.get(JIRAID));
+
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			JiraUtils.validateDateFormat(dueDate, "duedate");
-			Map<String, Object> result = JiraHelper.updateIssue(accessToken, baseUrl, jiraId, summary,
-					description, assignee, priority, dueDate, status);
+
+			Map<String, Object> inputMap = getInputFieldMap();
+			if (inputMap == null || inputMap.isEmpty()) {
+				throw new SemossPixelException("Provide a map of fields to update.");
+			}
+
+			Map<String, Object> fieldMap = new HashMap<>(inputMap);
+
+			String statusValue = extractStringValue(fieldMap.remove("status"));
+			String transitionValue = extractStringValue(fieldMap.remove("transition"));
+
+			boolean hasFields = !fieldMap.isEmpty();
+			boolean hasTransition = transitionValue != null || statusValue != null;
+
+			if (!hasFields && !hasTransition) {
+				throw new SemossPixelException("No editable fields or status/transition provided.");
+			}
+			if (hasFields) {
+				JiraHelper.updateIssueFromMap(accessToken, baseUrl, jiraId, fieldMap);
+			}
+			if (transitionValue != null) {
+				if (transitionValue.chars().allMatch(Character::isDigit)) {
+					JiraHelper.transitionIssueById(accessToken, baseUrl, jiraId, transitionValue);
+				} else {
+					JiraHelper.transitionIssue(accessToken, baseUrl, jiraId, transitionValue);
+				}
+			} else if (statusValue != null) {
+				JiraHelper.transitionIssue(accessToken, baseUrl, jiraId, statusValue);
+			}
+
+			Map<String, Object> result = new HashMap<>();
+			result.put("jiraid", jiraId);
+			result.put("success", true);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while updating a Jira ticket", e);
@@ -59,27 +82,51 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
+	private String extractStringValue(Object value) {
+		if (value instanceof String && !((String) value).trim().isEmpty()) {
+			return ((String) value).trim();
+		}
+		if (value instanceof Map) {
+			Object nameVal = ((Map<?, ?>) value).get("name");
+			if (nameVal instanceof String && !((String) nameVal).trim().isEmpty()) {
+				return ((String) nameVal).trim();
+			}
+			Object idVal = ((Map<?, ?>) value).get("id");
+			if (idVal != null && !idVal.toString().trim().isEmpty()) {
+				return idVal.toString().trim();
+			}
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getInputFieldMap() {
+		GenRowStruct grs = this.store.getNoun(PARAM_MAP);
+		if (grs != null && !grs.isEmpty()) {
+			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
+			if (mapNouns != null && !mapNouns.isEmpty()) {
+				return (Map<String, Object>) mapNouns.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapNouns != null && !mapNouns.isEmpty()) {
+			return (Map<String, Object>) mapNouns.get(0).getValue();
+		}
+		return null;
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Updates fields on an existing Jira issue. Use for summary, description, assignee, priority, due date, or status changes; use JiraAddCommentReactor for comments. Only supplied fields are changed. Returns key, success, and status if a transition was applied. Requires Jira auth and a valid issue key.";
+		return "Updates an existing Jira issue. Only accepts editable issue fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Not a project key or numeric id. Fails if missing or invalid.";
-		} else if (key.equals(SUMMARY)) {
-			return "Optional. New Jira issue summary as plain text. Omit, blank, or 'null' to leave it unchanged. Fails if Jira rejects the value.";
-		} else if (key.equals(DESCRIPTION)) {
-			return "Optional. New Jira issue description as plain text. Omit, blank, or 'null' to leave it unchanged. Fails if Jira rejects the value.";
-		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Jira assignee accountId, not display name or email. Get it from JiraGetAssignableUsersReactor or JiraReadTicketReactor. Omit, blank, or 'null' to leave it unchanged. Fails if invalid.";
-		} else if (key.equals(PRIORITY)) {
-			return "Optional. Exact Jira priority name, for example Highest, High, Medium, or Low. Get it from JiraGetPriorityReactor. Omit, blank, or 'null' to leave it unchanged. Fails if invalid.";
-		} else if (key.equals(DUEDATE)) {
-			return "Optional. New due date in YYYY-MM-DD format, for example 2026-04-30. Omit, blank, or 'null' to leave it unchanged. Fails if the format is invalid.";
-		} else if (key.equals(STATUS)) {
-			return "Optional. Jira transition or target status name for this specific issue. Get a valid value from JiraGetStatusReactor for the same jiraid. Omit, blank, or 'null' to leave status unchanged. Fails if the transition is invalid.";
+			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
+		} else if (key.equals(PARAM_MAP)) {
+			return "Required map of editable field key-value pairs as returned by JiraGetUpdateFields. Also accepts status (target status name) or transition (transition id or name) for workflow changes.";
 		}
 		return super.getDescriptionForKey(key);
 	}

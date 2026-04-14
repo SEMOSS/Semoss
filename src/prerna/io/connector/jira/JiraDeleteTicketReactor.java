@@ -30,15 +30,15 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String projectName = this.keyValue.get(PROJECT);
-			String jiraId = this.keyValue.get(JIRAID);
-			String deleteSubtasksRaw = JiraUtils.nullSafe(this.keyValue.get(DELETE_SUBTASKS));
+			String projectName = JiraUtils.validateProjectKey(this.keyValue.get(PROJECT));
+			String jiraId = JiraUtils.validateIssueKey(this.keyValue.get(JIRAID));
+			String deleteSubtasksRaw = this.keyValue.get(DELETE_SUBTASKS);
 			boolean deleteSubtasks = "true".equalsIgnoreCase(deleteSubtasksRaw);
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, JiraUtils.nullSafe(projectName), JiraUtils.nullSafe(jiraId), deleteSubtasks);
+			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, projectName, jiraId, deleteSubtasks);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while deleting a Jira ticket", e);
@@ -52,17 +52,17 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Permanently deletes a Jira issue. Use only for removal, not for closing or transitioning a ticket. Returns success. Requires Jira auth, a valid issue key, and the owning project key.";
+		return "Permanently deletes a Jira issue by project key and issue key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Required. Jira project key in uppercase, for example RTJ. Get it from JiraGetProjectsReactor. It must own the issue being deleted. Fails if missing or mismatched.";
+			return "Required Jira project key in uppercase (for example, RTJ).";
 		} else if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Not a numeric id. Fails if missing, invalid, or not in the given project.";
+			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
 		} else if (key.equals(DELETE_SUBTASKS)) {
-			return "Optional. 'true' or 'false' string for deleting subtasks with the parent issue. Defaults to false. If false and subtasks exist, Jira may reject the delete.";
+			return "Optional boolean string ('true' or 'false') to delete subtasks with the parent issue. Defaults to false.";
 		}
 		return super.getDescriptionForKey(key);
 	}

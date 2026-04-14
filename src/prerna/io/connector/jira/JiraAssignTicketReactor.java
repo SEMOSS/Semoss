@@ -29,8 +29,8 @@ public class JiraAssignTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String issueKey = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
-			String assignee = JiraUtils.nullSafe(this.keyValue.get(ASSIGNEE));
+			String issueKey = JiraUtils.validateIssueKey(this.keyValue.get(JIRAID));
+			String assignee = this.keyValue.get(ASSIGNEE);
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
@@ -49,15 +49,15 @@ public class JiraAssignTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Assigns or unassigns a Jira issue. Use for quick reassignment without touching other fields; use JiraUpdateTicketReactor when changing multiple fields at once. Returns key, assignee, and success. Requires Jira auth.";
+		return "Assigns a Jira issue to a user by accountId, or unassigns it by omitting the assignee.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor, JiraSearchReactor, or JiraReadTicketReactor. Fails if missing or invalid.";
+			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
 		} else if (key.equals(ASSIGNEE)) {
-			return "Optional. Jira assignee accountId, not display name or email. Get it from JiraGetAssignableUsersReactor. Omit or pass blank to unassign the issue.";
+			return "Optional Jira assignee accountId. Omit or pass blank to unassign.";
 		}
 		return super.getDescriptionForKey(key);
 	}

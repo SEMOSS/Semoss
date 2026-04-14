@@ -19,14 +19,12 @@ public class JiraGetIssueLinkTypesReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraGetIssueLinkTypesReactor.class);
 
 	public JiraGetIssueLinkTypesReactor() {
-		this.keysToGet = new String[] {};
-		this.keyRequired = new int[] {};
+		
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
-			this.organizeKeys();
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
@@ -45,6 +43,6 @@ public class JiraGetIssueLinkTypesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists all issue link types available in the Jira instance (for example, Blocks, Relates, Duplicate). Use before JiraLinkIssuesReactor to get a valid link type name. Returns id, name, inward, and outward descriptions. Requires Jira auth.";
+		return "Lists all issue link types available in the Jira instance (for example, Blocks, Relates, Duplicate).";
 	}
 }

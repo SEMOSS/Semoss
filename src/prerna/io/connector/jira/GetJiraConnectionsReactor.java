@@ -18,7 +18,7 @@ public class GetJiraConnectionsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists Jira connections already configured in SEMOSS. Use to discover available connection ids and aliases. Does not authenticate with Jira or return secrets. Returns a list of id and alias values.";
+		return "Returns all configured Jira connections with their ids and aliases.";
 	}
 
 }

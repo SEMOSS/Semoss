@@ -28,7 +28,7 @@ public class JiraReadTicketReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String issueKey = JiraUtils.nullSafe(this.keyValue.get(JIRAID));
+			String issueKey = JiraUtils.validateIssueKey(this.keyValue.get(JIRAID));
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
@@ -47,13 +47,13 @@ public class JiraReadTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Reads one Jira issue in detail. Use when you already know the issue key and need current fields; use JiraGetTicketsReactor or JiraSearchReactor to find issues first. Returns id, key, self, summary, status, priority, issuetype, assignee, assigneeAccountId, reporter, duedate, created, updated, resolution, labels, parentKey, issuelinks (each with id, type, direction, linkedIssueKey, linkedIssueSummary, linkedIssueStatus), and description. Requires Jira auth.";
+		return "Reads a single Jira issue by key, returning its id, key, and all system and custom fields.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required. Jira issue key in KEY-NUMBER format, for example RTJ-123. Get it from JiraGetTicketsReactor or JiraSearchReactor. Not a project key or numeric id. Fails if missing or invalid.";
+			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
 		}
 		return super.getDescriptionForKey(key);
 	}

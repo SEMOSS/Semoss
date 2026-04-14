@@ -59,21 +59,21 @@ public class AdminJiraInsertConnectionsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Admin-only. Stores a Jira OAuth connection configuration in SEMOSS. Use for Jira connector setup, not for user login or Jira issue access. Returns id and success.";
+		return "Creates and stores a Jira OAuth connection configuration (client id, client secret, scope, and alias).";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ALIAS.equals(key)) {
-			return "Required. Unique SEMOSS alias for this Jira connection, for example 'Corporate Jira'. Returned later by GetJiraConnectionsReactor. Insert fails if missing or already used.";
+			return "Required unique alias used to identify this saved Jira connection.";
 		} else if (CLIENT_ID.equals(key)) {
-			return "Required. Atlassian OAuth client ID from the Jira app configuration. Not a project key or access token. Login flows fail if wrong or missing.";
+			return "Required Atlassian OAuth client id from the Jira app configuration.";
 		} else if (CLIENT_SECRET.equals(key)) {
-			return "Required. Atlassian OAuth client secret from the Jira app configuration. Token exchange fails if wrong or missing.";
+			return "Required Atlassian OAuth client secret from the Jira app configuration.";
 		} else if (SCOPE.equals(key)) {
-			return "Required. Space-separated Atlassian OAuth scopes, for example 'read:jira-user read:jira-work write:jira-work'. Missing or wrong scopes cause later Jira permission failures.";
+			return "Required space-separated Atlassian OAuth scopes (for example, read:jira-user read:jira-work write:jira-work).";
 		} else if (USER_PROFILE_URL.equals(key)) {
-			return "Required. Full HTTPS user profile endpoint for this Jira connector. Copy it from the connector setup. Profile lookup fails if wrong or missing.";
+			return "Required full HTTPS user profile endpoint URL for this Jira connector.";
 		}
 		return super.getDescriptionForKey(key);
 	}

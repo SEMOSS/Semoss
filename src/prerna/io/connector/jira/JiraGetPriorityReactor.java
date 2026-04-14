@@ -19,14 +19,12 @@ public class JiraGetPriorityReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(JiraGetPriorityReactor.class);
 
 	public JiraGetPriorityReactor() {
-		this.keysToGet = new String[] {};
-		this.keyRequired = new int[] {};
+
 	}
 
 	@Override
 	public NounMetadata execute() {
 		try {
-			this.organizeKeys();
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
@@ -45,6 +43,6 @@ public class JiraGetPriorityReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists Jira priorities available in the connected instance. Use before JiraCreateTicketReactor or JiraUpdateTicketReactor when you need a valid priority name. Returns id and name. Requires Jira auth.";
+		return "Lists available Jira priority levels with their ids and names.";
 	}
 }

@@ -30,13 +30,13 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		try {
 			this.organizeKeys();
-			String projectKey = JiraUtils.nullSafe(this.keyValue.get(PROJECT));
+			String projectKey = JiraUtils.validateProjectKey(this.keyValue.get(PROJECT));
 			String query = this.keyValue.get(QUERY);
 			User user = this.insight.getUser();
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			List<Map<String, Object>> result = JiraHelper.getAssignableUsers(accessToken, baseUrl, projectKey, JiraUtils.nullSafe(query));
+			List<Map<String, Object>> result = JiraHelper.getAssignableUsers(accessToken, baseUrl, projectKey, query);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while retrieving Jira assignable users", e);
@@ -50,15 +50,15 @@ public class JiraGetAssignableUsersReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists users assignable in one Jira project. Use before JiraCreateTicketReactor or JiraUpdateTicketReactor when you need a valid assignee accountId. Returns accountId, displayName, and emailAddress. Requires Jira auth.";
+		return "Lists users assignable to issues in a Jira project. Returns accountId, displayName, and emailAddress for each user.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PROJECT)) {
-			return "Required. Jira project key in uppercase, for example RTJ. Get it from JiraGetProjectsReactor. Results are scoped to this project. Fails if missing or invalid.";
+			return "Required Jira project key in uppercase (for example, RTJ).";
 		} else if (key.equals(QUERY)) {
-			return "Optional. Free-text filter for name or email, for example 'jane' or 'jane@company.com'. Omit for the full project list. Returns an empty list if nothing matches.";
+			return "Optional free-text filter for name or email (for example, jane).";
 		}
 		return super.getDescriptionForKey(key);
 	}
