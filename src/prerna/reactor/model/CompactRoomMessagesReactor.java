@@ -70,7 +70,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     private static final double TOOL_TOKEN_RATIO_THRESHOLD = 0.25;
 
     private static final Set<String> VALID_COMPACTION_TYPES = new HashSet<>(
-            Arrays.asList("TOOLS", "MEDIA", "THINKING", "SUMMARY"));
+            Arrays.asList("TOOLS", "SUMMARY"));
 
     public CompactRoomMessagesReactor() {
         this.keysToGet = new String[] {
@@ -124,7 +124,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         List<AbstractMessage> messages = room.getMessages();
         if (messages == null || messages.isEmpty()) {
-            return new NounMetadata(false, PixelDataType.BOOLEAN);
+            Map<String, Object> emptyResult = new HashMap<>();
+            emptyResult.put("success", false);
+            emptyResult.put("types", new ArrayList<>());
+            return new NounMetadata(emptyResult, PixelDataType.MAP);
         }
 
         String modelId = null;
@@ -141,20 +144,37 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             modelEngine = Utility.getModel(modelId);
         }
 
+        List<Map<String, Object>> typeResults = new ArrayList<>();
+
         if (autoDetect) {
-            if (roomHasViewableModel) {
+            if (!roomHasViewableModel) {
                 classLogger.warn("No model id attached to room - attempting to clear out tool calls and responses");
-                addToolPruneKeyToMessage(messages, parentMessageId);
+                Map<String, Object> typeResult = addToolPruneKeyToMessage(messages, parentMessageId);
+                if (typeResult != null)
+                    typeResults.add(typeResult);
             } else {
-                detectAndCompact(room, parentMessageId, modelEngine);
+                Map<String, Object> typeResult = detectAndCompact(room, parentMessageId, modelEngine);
+                if (typeResult != null)
+                    typeResults.add(typeResult);
             }
-        } else if (requestedTypes.contains("TOOLS")) {
-            addToolPruneKeyToMessage(messages, parentMessageId);
-        } else if (requestedTypes.contains("SUMMARY")) {
-            summarizeMessages(room, parentMessageId, KEEP_N_TRANSACTIONS * 2, modelEngine);
+        } else {
+            if (requestedTypes.contains("TOOLS")) {
+                Map<String, Object> typeResult = addToolPruneKeyToMessage(messages, parentMessageId);
+                if (typeResult != null)
+                    typeResults.add(typeResult);
+            }
+            if (requestedTypes.contains("SUMMARY")) {
+                Map<String, Object> typeResult = summarizeMessages(room, parentMessageId, KEEP_N_TRANSACTIONS * 2,
+                        modelEngine);
+                if (typeResult != null)
+                    typeResults.add(typeResult);
+            }
         }
 
-        return new NounMetadata(true, PixelDataType.BOOLEAN);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", (typeResults != null && !typeResults.isEmpty()));
+        result.put("types", typeResults);
+        return new NounMetadata(result, PixelDataType.MAP);
     }
 
     /**
@@ -168,7 +188,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
      * size via LLM summarization.</li>
      * </ul>
      */
-    private void detectAndCompact(Room room, String messageId, IModelEngine modelEngine) {
+    private Map<String, Object> detectAndCompact(Room room, String messageId, IModelEngine modelEngine) {
         List<AbstractMessage> messages = room.getMessages();
         List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
 
@@ -187,22 +207,25 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 && (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
 
         if (useToolPruning) {
-            addToolPruneKeyToMessage(messages, messageId);
+            return addToolPruneKeyToMessage(messages, messageId);
         } else {
-            summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS * 2, modelEngine);
+            return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS * 2, modelEngine);
         }
     }
 
-    private void addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId) {
+    private Map<String, Object> addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId) {
         for (AbstractMessage message : messages) {
             if (parentMessageId.equals(message.getMessageId())) {
                 message.setPruneToolsAbove(true);
-                break;
+                Map<String, Object> result = new HashMap<>();
+                result.put("type", "tool_pruning");
+                return result;
             }
         }
+        return null;
     }
 
-    private void summarizeMessages(Room room, String messageId, int keepN, IModelEngine modelEngine) {
+    private Map<String, Object> summarizeMessages(Room room, String messageId, int keepN, IModelEngine modelEngine) {
         if (modelEngine == null) {
             throw new IllegalArgumentException("No model engine found for room");
         }
@@ -212,7 +235,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // Walk the parent chain from messageId to root, producing an ordered branch
         List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
         if (branch.size() <= keepN) {
-            return; // not enough messages to warrant summarization
+            return null; // not enough messages to warrant summarization
         }
 
         int splitPoint = branch.size() - keepN;
@@ -231,7 +254,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         }
 
         if (summaryTranscript.isEmpty()) {
-            return;
+            return null;
         }
 
         // Ask the LLM to summarize using a throw-away room (no history pollution)
@@ -248,7 +271,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         ResponseMessage summaryResponse = throwawayRoom.ask(summarizationMsg, modelEngine);
         String summaryText = summaryResponse != null ? summaryResponse.getContent() : null;
         if (summaryText == null || summaryText.isBlank()) {
-            return; // model couldn't summarize; leave messages untouched
+            return null; // model couldn't summarize; leave messages untouched
         }
 
         // Build the summary placeholder as a new user message at the root of the kept
@@ -295,6 +318,12 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 room.getId(),
                 this.insight.getUser().getPrimaryLoginToken().getId(),
                 room.getMessagesAsString());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("type", "summarization");
+        result.put("inputMessage", compactedMessage);
+        result.put("responseMessage", compactedResponse);
+        return result;
     }
 
     private static String getMessageText(AbstractMessage m) {
@@ -342,7 +371,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
-                + "Supported compaction types: TOOLS. Planned: MEDIA, THINKING.";
+                + "Supported compaction types: TOOLS, SUMMARY. ";
     }
 
 }
