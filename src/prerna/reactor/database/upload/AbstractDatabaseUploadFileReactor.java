@@ -49,6 +49,7 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -85,7 +86,8 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String databaseIdOrName = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseIdOrName = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
