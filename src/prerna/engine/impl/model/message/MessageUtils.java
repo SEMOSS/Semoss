@@ -620,7 +620,18 @@ public class MessageUtils {
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
 								Object argsRaw = funcMap.get("arguments");
 								if (argsRaw instanceof String) {
-									flatTool.put("arguments", argsRaw);
+									// Parse the JSON-string arguments to a Map so that downstream
+									// Python serialization receives a dict, not a re-encoded string.
+									// Storing the raw String causes double-escaping through the
+									// Gson -> PyUtils -> Python eval chain, which makes json.loads
+									// fail on bash-escaped quotes (e.g. echo \"text\").
+									try {
+										Type mapType = new TypeToken<Map<String, Object>>() {}.getType();
+										Map<String, Object> argsMap = GSON_FOR_PY.fromJson((String) argsRaw, mapType);
+										flatTool.put("arguments", argsMap != null ? argsMap : new HashMap<>());
+									} catch (Exception e) {
+										flatTool.put("arguments", argsRaw);
+									}
 								} else if (argsRaw != null) {
 									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
 								} else {

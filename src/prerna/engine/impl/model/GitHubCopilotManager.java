@@ -48,13 +48,11 @@ import com.github.copilot.sdk.json.ProviderConfig;
 import com.github.copilot.sdk.json.ResumeSessionConfig;
 import com.github.copilot.sdk.json.SessionConfig;
 import com.github.copilot.sdk.json.SystemMessageConfig;
-import com.github.copilot.sdk.json.ToolDefinition;
 
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.reactor.agent.AgentHarnessResult;
 import prerna.sablecc2.comm.PixelJobManager;
 
 /**
@@ -66,7 +64,9 @@ import prerna.sablecc2.comm.PixelJobManager;
  * {@code OpenAIFilter} in Monolith reads the {@code Authorization: Bearer
  * accessKey:secretKey} header and maps it to the requesting user.
  *
- * Modeled after {@link ClaudeCodeManager} but pure Java - no Python process.
+ * MCP tools registered in the room are connected as native HTTP MCP servers
+ * via the SEMOSS {@code /api/ext/mcp/{engineId}/comms} endpoint, following
+ * the same pattern as {@link ClaudeCodeManager}.
  */
 public class GitHubCopilotManager {
 
@@ -76,18 +76,16 @@ public class GitHubCopilotManager {
      * Runs one agentic turn using the GitHub Copilot SDK pointed at SEMOSS's
      * OpenAI-compatible endpoint (BYOK).
      *
-     * @param insight         user insight (for security context)
-     * @param user            authenticated SEMOSS user
-     * @param engineId        SEMOSS model engine ID sent as the "model" field
-     * @param systemPrompt    effective system prompt from room (may be empty)
-     * @param input           user prompt text
-     * @param tools            ToolDefinitions built from room MCP tools
-     * @param toolCallRecords  mutable list populated with per-tool trace records
+     * @param insight          user insight (for security context)
+     * @param user             authenticated SEMOSS user
+     * @param engineId         SEMOSS model engine ID sent as the "model" field
+     * @param systemPrompt     effective system prompt from room (may be empty)
+     * @param input            user prompt text
+     * @param mcps             MCP engine configs from room options (id + name)
      * @param workingDirectory optional filesystem path Copilot SDK uses as cwd;
      *                         pass null/blank to let the SDK use its default
-     * @param roomId           SEMOSS room ID to reuse; encoded in the bearer token so
-     *                         OpenAIEndpoints creates at most one Room row per agentic turn
-     * @param insightId        SEMOSS insight ID to reuse; same rationale as roomId
+     * @param roomId           SEMOSS room ID; encoded in the bearer token so
+     *                         OpenAIEndpoints reuses the same Room across SDK turns
      * @param roomFolderPath   path to the Room's folder on disk; passed as
      *                         --config-dir to the Copilot CLI so session state
      *                         (events.jsonl) is stored per-room, not in ~/.copilot/
@@ -99,11 +97,9 @@ public class GitHubCopilotManager {
             String engineId,
             String systemPrompt,
             String input,
-            List<ToolDefinition> tools,
-            List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
+            List<Map<String, String>> mcps,
             String workingDirectory,
             String roomId,
-            String insightId,
             String roomFolderPath
     ) throws Exception {
 
@@ -113,7 +109,7 @@ public class GitHubCopilotManager {
         String baseUrl = localProtocol + "://localhost:" + localPort + "/Monolith/api/model/openai/v1/";
 
         // Temporal credentials - OpenAIFilter expects "Bearer accessKey:secretKey"
-        // Optional 3rd segment "room-{parentRoomId}" links Copilot SDK turns to the parent room
+        // Optional 3rd segment "room-{roomId}" so OpenAIEndpoints reuses the same Room
         String[] keyPair = user.createCachedTemporalAccessSecretKey();
         String bearerToken = keyPair[0] + ":" + keyPair[1];
         if (roomId != null && !roomId.isBlank()) {
@@ -126,24 +122,17 @@ public class GitHubCopilotManager {
                 .setBearerToken(bearerToken)
                 .setWireApi("completions");
 
-        // Embed SEMOSS context tag so OpenAIEndpoints can extract insight/room IDs
-        // from the system message and reuse them across all internal LLM turns,
-        // preventing a new Room row being created on each turn. Same pattern used
-        // by AnthropicEndpoints / SemossContextExtractor.
-        String contextTag = (insightId != null && !insightId.isBlank()
-                            && roomId != null && !roomId.isBlank())
-                ? "[[SEMOSS_CONTEXT:insightId=" + insightId + ",roomId=" + roomId + "]]"
-                : null;
-        String effectiveSystem = systemPrompt != null && !systemPrompt.isBlank() ? systemPrompt : "";
-        if (contextTag != null) {
-            effectiveSystem = contextTag + (effectiveSystem.isBlank() ? "" : "\n" + effectiveSystem);
-        }
+        // Build native MCP server configs from room's MCP engines.
+        // Same pattern as ClaudeCodeManager / claude_code_client._resolve_mcps():
+        // each MCP engine connects via HTTP to SEMOSS's /api/ext/mcp/{id}/comms endpoint.
+        String mcpBaseUrl = localProtocol + "://localhost:" + localPort + "/Monolith/api/ext/mcp/";
+        Map<String, Object> mcpServers = buildMcpServers(mcps, mcpBaseUrl, keyPair[0], keyPair[1]);
 
         SystemMessageConfig systemMessageConfig = null;
-        if (!effectiveSystem.isBlank()) {
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
             systemMessageConfig = new SystemMessageConfig()
                     .setMode(SystemMessageMode.APPEND)
-                    .setContent(effectiveSystem);
+                    .setContent(systemPrompt);
         }
 
         // Determine if a prior Copilot session exists for this room.
@@ -158,8 +147,8 @@ public class GitHubCopilotManager {
             hasPriorSession = sessionEventsFile.exists();
         }
 
-        logger.debug("GitHubCopilotManager: engineId={} baseUrl={} tools={} hasPriorSession={}",
-                engineId, baseUrl, tools != null ? tools.size() : 0, hasPriorSession);
+        logger.debug("GitHubCopilotManager: engineId={} baseUrl={} mcps={} hasPriorSession={}",
+                engineId, baseUrl, mcpServers.size(), hasPriorSession);
 
         // Capture jobId on the calling thread - it is set in ThreadStore by the
         // async pixel job framework and is used to route partial output back to
@@ -191,8 +180,8 @@ public class GitHubCopilotManager {
                 if (systemMessageConfig != null) {
                     resumeConfig.setSystemMessage(systemMessageConfig);
                 }
-                if (tools != null && !tools.isEmpty()) {
-                    resumeConfig.setTools(tools);
+                if (!mcpServers.isEmpty()) {
+                    resumeConfig.setMcpServers(mcpServers);
                 }
                 session = client.resumeSession(copilotSessionId, resumeConfig).get();
                 logger.info("GitHubCopilotManager: resumed session {} for room {}", copilotSessionId, roomId);
@@ -209,11 +198,10 @@ public class GitHubCopilotManager {
                 if (systemMessageConfig != null) {
                     config.setSystemMessage(systemMessageConfig);
                 }
-                if (tools != null && !tools.isEmpty()) {
-                    config.setTools(tools);
+                if (!mcpServers.isEmpty()) {
+                    config.setMcpServers(mcpServers);
                 }
-                // Use roomId as sessionId for stable 1:1 mapping; point configDir
-                // at the room folder so events.jsonl persists across runs.
+                // Use roomId as sessionId for stable 1:1 mapping
                 if (copilotSessionId != null) {
                     config.setSessionId(copilotSessionId);
                 }
@@ -285,5 +273,48 @@ public class GitHubCopilotManager {
 
             return result;
         }
+    }
+
+    /**
+     * Builds native HTTP MCP server configs from the room's MCP engine list.
+     * Same pattern as {@code ClaudeCodeClient._resolve_mcps()} in Python:
+     * each engine is connected via HTTP to {@code /api/ext/mcp/{id}/comms}
+     * with bearer token auth.
+     *
+     * @param mcps       MCP engine configs (id + name) from room options
+     * @param mcpBaseUrl base URL for MCP comms endpoints
+     * @param accessKey  temporal access key for auth
+     * @param secretKey  temporal secret key for auth
+     * @return map of MCP server name -> config, ready for setMcpServers()
+     */
+    private Map<String, Object> buildMcpServers(
+            List<Map<String, String>> mcps,
+            String mcpBaseUrl,
+            String accessKey,
+            String secretKey) {
+        Map<String, Object> mcpServers = new HashMap<>();
+        if (mcps == null || mcps.isEmpty()) {
+            return mcpServers;
+        }
+        for (Map<String, String> mcp : mcps) {
+            String id = mcp.get("id");
+            String name = mcp.get("name");
+            if (name == null) {
+                name = id;
+            }
+            String safeName = name.replace(" ", "_").toLowerCase();
+            String commsUrl = mcpBaseUrl + id + "/comms";
+
+            Map<String, Object> headers = new HashMap<>();
+            headers.put("Authorization", "Bearer " + accessKey + ":" + secretKey);
+
+            Map<String, Object> serverConfig = new HashMap<>();
+            serverConfig.put("type", "http");
+            serverConfig.put("url", commsUrl);
+            serverConfig.put("headers", headers);
+
+            mcpServers.put(safeName, serverConfig);
+        }
+        return mcpServers;
     }
 }

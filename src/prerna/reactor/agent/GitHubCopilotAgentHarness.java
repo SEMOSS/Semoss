@@ -28,26 +28,16 @@
 package prerna.reactor.agent;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.github.copilot.sdk.json.ToolDefinition;
-
 import prerna.auth.User;
 import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.reactor.agent.mcp.RunMCPToolReactor;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * {@link IAgentHarness} implementation that delegates to the GitHub Copilot SDK.
@@ -57,13 +47,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * access/secret key pair. The SEMOSS model engine ID is passed as the
  * {@code model} field so the endpoint routes to the correct engine.
  *
- * <p>SEMOSS MCP tools registered in the room are bridged into the Copilot session
- * as {@link ToolDefinition} handlers. Each handler calls {@link RunMCPToolReactor}
- * (same execution path as {@link RoomAgentHarness}).
+ * <p>SEMOSS MCP tools registered in the room are connected as native HTTP MCP
+ * servers via the {@code /api/ext/mcp/{id}/comms} endpoint, following the same
+ * pattern as {@link ClaudeCodeAgentHarness}.
  *
  * <p>The Copilot SDK manages its own internal agentic loop, so this harness returns
- * {@code iterations = 0}. Tool call records are collected inside each ToolDefinition
- * handler where the tool name and timing are available.
+ * {@code iterations = 0}.
  */
 public class GitHubCopilotAgentHarness implements IAgentHarness {
 
@@ -78,7 +67,6 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
         Room room = ctx.getRoom();
         String input = ctx.getInput();
@@ -100,21 +88,17 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
         String systemPrompt = room.getEffectiveSystemPrompt();
         if (systemPrompt == null) systemPrompt = "";
 
-        // Bridge SEMOSS MCP tools to Copilot ToolDefinitions.
-        // Records are populated inside each handler where we have full context.
-        List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
-        List<ToolDefinition> tools = buildToolDefinitions(room, toolCallRecords, ctx);
-
-        logger.debug("GitHubCopilotAgentHarness: engineId={} tools={}", engineId, tools.size());
+        // Build MCP list from room options -- same pattern as ClaudeCodeAgentHarness
+        List<Map<String, String>> mcps = buildMcpList(room);
 
         // GenericAgent resolves filePath from paramValues.project via
         // AssetUtility.getProjectAssetsFolder(projectId). Pass it as workingDirectory
         // so the Copilot SDK knows where to read/write files for the target project.
         String workingDirectory = ctx.getFilePath();
-
         String roomId = room.getId();
-        String insightId = ctx.getInsight().getInsightId();
         String roomFolderPath = room.getRoomFolderPath();
+
+        logger.debug("GitHubCopilotAgentHarness: engineId={} mcps={}", engineId, mcps.size());
 
         GitHubCopilotManager manager = new GitHubCopilotManager();
         String output = manager.query(
@@ -123,89 +107,40 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
                 engineId,
                 systemPrompt,
                 input,
-                tools,
-                toolCallRecords,
+                mcps,
                 workingDirectory,
                 roomId,
-                insightId,
                 roomFolderPath
         );
 
         // SDK manages internal loop; iterations=0 like ClaudeCodeAgentHarness
-        return new AgentHarnessResult(output, 0, toolCallRecords);
+        return new AgentHarnessResult(output, 0, new ArrayList<>());
     }
 
+    /**
+     * Builds MCP engine list from room options.
+     * Same pattern as {@link ClaudeCodeAgentHarness#buildMcpList(Room)}.
+     */
     @SuppressWarnings("unchecked")
-    private List<ToolDefinition> buildToolDefinitions(
-            Room room,
-            List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
-            GenericAgentContext ctx) {
-
-        List<Map<String, Object>> semossTools = room.getAllToolsJsonForRoom(Integer.MAX_VALUE);
-        if (semossTools == null || semossTools.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        List<ToolDefinition> result = new ArrayList<>();
-        for (Map<String, Object> toolJson : semossTools) {
-            String name = String.valueOf(toolJson.get("name"));
-            String description = toolJson.containsKey("description")
-                    ? String.valueOf(toolJson.get("description")) : "";
-            Map<String, Object> schema = toolJson.containsKey("parameters")
-                    ? (Map<String, Object>) toolJson.get("parameters") : new HashMap<>();
-
-            final String rawToolName = name;
-            result.add(ToolDefinition.create(name, description, schema, invocation -> {
-                Map<String, Object> args = invocation.getArguments();
-                long startMs = System.currentTimeMillis();
-                String toolResult = callMcpToolViaReactor(rawToolName, args, ctx);
-                long durationMs = System.currentTimeMillis() - startMs;
-                boolean success = toolResult == null || !toolResult.startsWith("Tool execution error:");
-                toolCallRecords.add(new AgentHarnessResult.ToolCallRecord(
-                        rawToolName, invocation.getToolCallId(), toolResult, durationMs, success));
-                return CompletableFuture.completedFuture(toolResult);
-            }));
+    private List<Map<String, String>> buildMcpList(Room room) {
+        List<Map<String, String>> result = new ArrayList<>();
+        Map<String, Object> opts = room.getOptionsMap();
+        if (opts == null || !opts.containsKey("mcp")) return result;
+        Object mcpObj = opts.get("mcp");
+        if (!(mcpObj instanceof List)) return result;
+        List<?> mcpList = (List<?>) mcpObj;
+        for (Object item : mcpList) {
+            if (!(item instanceof Map)) continue;
+            Map<String, Object> mcpEntry = (Map<String, Object>) item;
+            String id   = mcpEntry.containsKey("id")   ? String.valueOf(mcpEntry.get("id"))   : null;
+            String name = mcpEntry.containsKey("name") ? String.valueOf(mcpEntry.get("name")) : id;
+            if (id != null) {
+                Map<String, String> entry = new HashMap<>();
+                entry.put("id",   id);
+                entry.put("name", name != null ? name : id);
+                result.add(entry);
+            }
         }
         return result;
-    }
-
-    /** Same Reactor execution path as {@link RoomAgentHarness}. */
-    private String callMcpToolViaReactor(String rawToolName, Map<String, Object> params,
-                                          GenericAgentContext ctx) {
-        try {
-            String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
-            if (parsed == null) {
-                String msg = "Tool execution error: cannot parse engine id from '" + rawToolName + "'";
-                logger.warn("GitHubCopilotAgentHarness: {}", msg);
-                return msg;
-            }
-            String engineId = parsed[0];
-
-            RunMCPToolReactor reactor = new RunMCPToolReactor();
-            reactor.In();
-            reactor.setInsight(ctx.getInsight());
-
-            GenRowStruct engineGrs = new GenRowStruct();
-            engineGrs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
-            reactor.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), engineGrs);
-
-            GenRowStruct functionGrs = new GenRowStruct();
-            functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
-            reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
-
-            if (params != null && !params.isEmpty()) {
-                GenRowStruct paramGrs = new GenRowStruct();
-                paramGrs.add(new NounMetadata(params, PixelDataType.MAP));
-                reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
-            }
-
-            NounMetadata res = reactor.execute();
-            return res != null && res.getValue() != null ? res.getValue().toString() : "";
-        } catch (Exception e) {
-            String msg = "Tool execution error: " + e.getMessage();
-            logger.warn("GitHubCopilotAgentHarness: uncaught exception from tool '{}': {}",
-                    rawToolName, e.getMessage(), e);
-            return msg;
-        }
     }
 }
