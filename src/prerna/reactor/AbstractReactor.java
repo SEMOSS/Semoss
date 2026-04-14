@@ -34,11 +34,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
@@ -114,7 +114,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected List<String> outputTypes = null;
 
 	@Deprecated
-	protected Hashtable<String, Object> propStore = new Hashtable<String, Object>();
+	protected Map<String, Object> propStore = new ConcurrentHashMap<>();
 
 	protected Lambda runner = null;
 
@@ -131,7 +131,7 @@ public abstract class AbstractReactor implements IReactor {
 	// defaults if one exists
 	// this I am not so sure.. but let us try
 	protected Object[] keyDefaults = new Object[] {};
-	public Map<String, String> keyValue = new Hashtable<String, String>();
+	public Map<String, String> keyValue = new ConcurrentHashMap<>();
 
 	public AbstractReactor() {
 
