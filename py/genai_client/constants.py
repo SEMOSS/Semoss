@@ -76,6 +76,12 @@ class AskModelEngineResponse2(AbstractModelEngineResponse):
     
     thinking_tokens: Optional[int] = Field(default=None, serialization_alias="numberOfThinkingTokens")
     cached_tokens: Optional[int] = Field(default=None, serialization_alias="numberOfCachedTokens")
+    cache_read_tokens: Optional[int] = Field(
+        default=None, serialization_alias="numberOfCacheReadTokens"
+    )
+    cache_creation_tokens: Optional[int] = Field(
+        default=None, serialization_alias="numberOfCacheCreationTokens"
+    )
     schemaVersion: Optional[int] = None
     io: Optional[str] = None
     parts: Optional[List[Dict[str, Any]]] = None

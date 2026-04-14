@@ -333,7 +333,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					new HashMap<>());
 			ModelInferenceLogsUtils.doCreateNewConversation(FIXED_UUID.toString(), "roomId", "roomName", "roomContext",
 					"userId", "userName", "userEmail", "agentType", "agentId", true, "projectId", "projectName",
-					"workspaceId", new HashMap<>());
+					"workspaceId", new HashMap<>(), "parentRoomId");
 
 			verify(engine, times(3)).getPreparedStatement(
 					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -750,7 +750,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void getRoomById() throws Exception {
-		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "");
+		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "", "");
 
 		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
 				.thenThrow(SQLException.class).thenReturn(ps);
