@@ -75,6 +75,8 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(META)) {
 			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the engine. The list of values will determine the order that is defined for field";
+		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
+			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}
 		return super.getDescriptionForKey(key);
 	}
