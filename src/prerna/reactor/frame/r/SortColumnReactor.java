@@ -34,21 +34,17 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SortColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor sorts a column based on a given sort direction The inputs to
-	 * the reactor are:
-	 * 1) the column to sort 
-	 * 2) the sort direction
+	 * This reactor sorts a column based on a given sort direction The inputs to the
+	 * reactor are: 1) the column to sort 2) the sort direction
 	 */
-	
+
 	public SortColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.SORT.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(),
+				ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
@@ -81,8 +77,9 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 
 		// if not column throw warning
 		String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-		if(dataType == null)
+		if (dataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
 		// define the scripts based on the sort direction
 		String script = null;
@@ -91,29 +88,21 @@ public class SortColumnReactor extends AbstractRFrameReactor {
 		} else if (sortDir.equalsIgnoreCase("desc")) {
 			script = table + " <- " + table + "[order(-rank(" + column + "))]";
 		}
-		
+
 		// execute the r script
 		// script will be of the form: FRAME <- FRAME[order(rank(Director))]
 		frame.executeRScript(script);
 		this.addExecutedCode(script);
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"SortColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String getSortColumn() {
 		GenRowStruct inputsGRS = this.getCurRow();
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {

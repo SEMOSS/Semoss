@@ -60,10 +60,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RatioReactor extends AbstractFrameReactor {
 
@@ -73,13 +70,13 @@ public class RatioReactor extends AbstractFrameReactor {
 	private static final String STACKTRACE = "StackTrace: ";
 	private static final String WEIGHTS_KEY = "weight";
 
-	//keys for resulting frame
+	// keys for resulting frame
 	private static final String SCORE_LABEL = "Score_";
 
 	private String[] ratioFrameHeaders;
 
 	public RatioReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey() };
 	}
 
 	@Override
@@ -98,7 +95,8 @@ public class RatioReactor extends AbstractFrameReactor {
 		newFrame.setLogger(logger);
 
 		// set ratio frame headers
-		// instanceCol_1, instanceCol_2, ratio, score_attributeCol1, score_attributeCol2....
+		// instanceCol_1, instanceCol_2, ratio, score_attributeCol1,
+		// score_attributeCol2....
 		this.ratioFrameHeaders = new String[3 + attributeColumns.size()];
 		String[] dataTypes = new String[3 + attributeColumns.size()];
 		String instanceColumnHeader = "";
@@ -121,7 +119,7 @@ public class RatioReactor extends AbstractFrameReactor {
 			String attribute = attributeColumns.get(i).toString();
 			if (attribute.contains("__")) {
 				String[] split = attribute.split("__");
-				this.ratioFrameHeaders[headersIndex] = SCORE_LABEL+ split[1];
+				this.ratioFrameHeaders[headersIndex] = SCORE_LABEL + split[1];
 			} else {
 				this.ratioFrameHeaders[headersIndex] = SCORE_LABEL + attribute;
 			}
@@ -134,10 +132,11 @@ public class RatioReactor extends AbstractFrameReactor {
 		FileWriter writer = null;
 		BufferedWriter bufferedWriter = null;
 
-		String insightCacheDir = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR);
+		String insightCacheDir = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 		final String LINE_SEPARATOR = "\n";
-		String csvCache = DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
-		String path = Utility.normalizePath(insightCacheDir) + DIR_SEPARATOR + Utility.normalizePath(csvCache) + DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
+		String csvCache = Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		String path = Utility.normalizePath(insightCacheDir) + DIR_SEPARATOR + Utility.normalizePath(csvCache)
+				+ DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 		StringBuilder sb = new StringBuilder();
 		boolean fileError = false;
 		// write headers to csv file
@@ -155,16 +154,16 @@ public class RatioReactor extends AbstractFrameReactor {
 			fileError = true;
 			throw new IllegalArgumentException("Unable to write to file");
 		} finally {
-			if(fileError) {
+			if (fileError) {
 				try {
-					if(bufferedWriter != null) {
+					if (bufferedWriter != null) {
 						bufferedWriter.close();
 					}
 				} catch (IOException e) {
 					logger.error(STACKTRACE, e);
 				}
 				try {
-					if(writer != null) {
+					if (writer != null) {
 						writer.close();
 					}
 				} catch (IOException e) {
@@ -178,7 +177,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		// grab all unique instance values for instance column
 		List<Object> instanceValuesList = getInstanceValues(frame, instanceColumn);
 
-		//iterate through combinations
+		// iterate through combinations
 		Configurator.setLevel(logger.getName(), Level.OFF);
 		try {
 			for (int sourceIndex = 0; sourceIndex < instanceValuesList.size(); sourceIndex++) {
@@ -190,7 +189,8 @@ public class RatioReactor extends AbstractFrameReactor {
 				List<List<String>> sourceAttributesStore = new Vector<List<String>>();
 				for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
 					String attribute = attributeColumns.get(attributeIndex);
-					List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance, attribute);
+					List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance,
+							attribute);
 					sourceAttributesStore.add(sourceAttributes);
 				}
 
@@ -208,7 +208,8 @@ public class RatioReactor extends AbstractFrameReactor {
 						String attribute = attributeColumns.get(attributeIndex);
 						// we have the source and target ... lets calculate the similarity
 						List<String> sourceAttributes = sourceAttributesStore.get(attributeIndex);
-						List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn, targetInstance, attribute);
+						List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn,
+								targetInstance, attribute);
 
 						// get the union size
 						Set<String> union = new HashSet<>(sourceAttributes);
@@ -217,7 +218,7 @@ public class RatioReactor extends AbstractFrameReactor {
 						double score = 0.0;
 						// if the union size is 0
 						// then there is no similarity
-						if(unionSize != 0) {
+						if (unionSize != 0) {
 							// now determine the intersect
 							union.retainAll(sourceAttributes);
 							union.retainAll(targetAttributes);
@@ -225,13 +226,13 @@ public class RatioReactor extends AbstractFrameReactor {
 
 							score = (double) intersectSize / (double) unionSize;
 						}
-						//clean Attribute
+						// clean Attribute
 						String cleanAttribute = attribute;
-						if(attribute.contains("__")){
+						if (attribute.contains("__")) {
 							String[] split = attribute.split("__");
 							cleanAttribute = split[1];
 						}
-						//multiply by weight
+						// multiply by weight
 						cells[cellsIndex] = score;
 						ratio += score * weights.get(cleanAttribute);
 						cellsIndex++;
@@ -268,13 +269,13 @@ public class RatioReactor extends AbstractFrameReactor {
 					bufferedWriter.write(sb.toString());
 
 					counter++;
-					if(counter % 5000 == 0) {
+					if (counter % 5000 == 0) {
 						Configurator.setLevel(logger.getName(), Level.INFO);
 						logger.info("Added row #" + counter);
 						Configurator.setLevel(logger.getName(), Level.OFF);
 					}
 				}
-				//write ratio match to itself A-A 
+				// write ratio match to itself A-A
 				Object targetInstance = sourceInstance;
 				Object[] cells = new Object[this.ratioFrameHeaders.length];
 				cells[0] = sourceInstance;
@@ -287,14 +288,14 @@ public class RatioReactor extends AbstractFrameReactor {
 					int unionSize = 1;
 					int intersectSize = 1;
 					double score = (double) intersectSize / (double) unionSize;
-					//clean Attribute
+					// clean Attribute
 					String cleanAttribute = attribute;
-					if(attribute.contains("__")){
+					if (attribute.contains("__")) {
 						String[] split = attribute.split("__");
 						cleanAttribute = split[1];
 					}
 					cells[cellsIndex] = score;
-					//multiply by weight
+					// multiply by weight
 					ratio += score * weights.get(cleanAttribute);
 					cellsIndex++;
 				}
@@ -318,17 +319,16 @@ public class RatioReactor extends AbstractFrameReactor {
 			bufferedWriter.close();
 		} catch (IOException e) {
 			logger.error(STACKTRACE, e);
-		}
-		finally {
+		} finally {
 			try {
-				if(bufferedWriter != null) {
+				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException e) {
 				logger.error(STACKTRACE, e);
 			}
 			try {
-				if(writer != null) {
+				if (writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
@@ -356,33 +356,24 @@ public class RatioReactor extends AbstractFrameReactor {
 		RImporter importer = new RImporter(newFrame, csvQS);
 		importer.insertData();
 
-		//		//testing
-		//		it = newFrame.iterator();
-		//		counter = 0;
-		//		while(it.hasNext()) {
-		//			it.next();
-		//			counter++;
-		//		}
-		//		System.out.println(counter);
-		//		System.out.println(counter);
-		//		System.out.println(counter);
-		//		System.out.println(counter);
-		//		return null;
+		// //testing
+		// it = newFrame.iterator();
+		// counter = 0;
+		// while(it.hasNext()) {
+		// it.next();
+		// counter++;
+		// }
+		// System.out.println(counter);
+		// System.out.println(counter);
+		// System.out.println(counter);
+		// System.out.println(counter);
+		// return null;
 
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Ratio");
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Ratio", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		this.insight.setDataMaker(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	private List<Object> getInstanceValues( ITableDataFrame frame, String instanceColumn) {
+	private List<Object> getInstanceValues(ITableDataFrame frame, String instanceColumn) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector colSelector = new QueryColumnSelector();
 		if (instanceColumn.contains("__")) {
@@ -394,7 +385,7 @@ public class RatioReactor extends AbstractFrameReactor {
 			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
-		
+
 		Set<Object> instancValues = new HashSet<>();
 		// execute query to get all the unique values
 		IRawSelectWrapper it = null;
@@ -407,7 +398,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
@@ -415,14 +406,15 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 		}
-		
+
 		List<Object> instanceValuesList = new Vector<>();
-		instanceValuesList.addAll(instancValues);		
+		instanceValuesList.addAll(instancValues);
 
 		return instanceValuesList;
 	}
 
-	private List<String> getAttributeValuesForInstance(ITableDataFrame frame, String instanceColumn, Object sourceInstance, String attributeCol) {
+	private List<String> getAttributeValuesForInstance(ITableDataFrame frame, String instanceColumn,
+			Object sourceInstance, String attributeCol) {
 		List<String> uniqueAttributes = new ArrayList<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryColumnSelector colSelector = new QueryColumnSelector();
@@ -435,21 +427,23 @@ public class RatioReactor extends AbstractFrameReactor {
 			colSelector.setColumn(null);
 		}
 		qs.addSelector(colSelector);
-		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(new NounMetadata(new QueryColumnSelector(instanceColumn), PixelDataType.COLUMN), "==", new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
+		SimpleQueryFilter instanceFilter = new SimpleQueryFilter(
+				new NounMetadata(new QueryColumnSelector(instanceColumn), PixelDataType.COLUMN), "==",
+				new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(instanceFilter);
 		IRawSelectWrapper it = null;
 		try {
 			it = frame.query(qs);
 			while (it.hasNext()) {
 				Object val = it.next().getValues()[0];
-				if(val != null) {
+				if (val != null) {
 					uniqueAttributes.add(val.toString());
 				}
 			}
 		} catch (Exception e) {
 			logger.error(STACKTRACE, e);
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
@@ -457,13 +451,13 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 		}
-		
+
 		return uniqueAttributes;
 	}
 
 	/**
-	 * Optimize the frame for querying
-	 * If H2 -> create an index
+	 * Optimize the frame for querying If H2 -> create an index
+	 * 
 	 * @param dataframe
 	 * @param instanceColumn
 	 */
@@ -471,7 +465,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		if (dataframe instanceof H2Frame) {
 			H2Frame hFrame = (H2Frame) dataframe;
 			String uniqueName = hFrame.getMetaData().getUniqueNameFromAlias(instanceColumn);
-			if(uniqueName == null) {
+			if (uniqueName == null) {
 				uniqueName = instanceColumn;
 			}
 			String[] uSplit = uniqueName.split("__");
@@ -491,9 +485,9 @@ public class RatioReactor extends AbstractFrameReactor {
 	 */
 
 	private String getInstanceColumn() {
-		//check if instance column was input with the key
+		// check if instance column was input with the key
 		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[0]);
-		if(instanceGrs != null && !instanceGrs.isEmpty()) {
+		if (instanceGrs != null && !instanceGrs.isEmpty()) {
 			return (String) instanceGrs.get(0);
 		}
 
@@ -505,11 +499,11 @@ public class RatioReactor extends AbstractFrameReactor {
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			List<String> attributes = new Vector<>();
-			for(int i = 0; i < columnGrs.size(); i++) {
+			for (int i = 0; i < columnGrs.size(); i++) {
 				String attribute = columnGrs.get(i).toString();
-				//                      if(!attribute.equals(instanceColumn)) {
+				// if(!attribute.equals(instanceColumn)) {
 				attributes.add(attribute);
-				//                      }
+				// }
 			}
 			return attributes;
 		}
@@ -518,11 +512,10 @@ public class RatioReactor extends AbstractFrameReactor {
 	}
 
 	/**
-	 * @return weights Map 
-	 * 		   {"attributeCol" : weight value, ...}
+	 * @return weights Map {"attributeCol" : weight value, ...}
 	 */
 	private Map<String, Double> getWeights() {
-		//TODO get weights from user
+		// TODO get weights from user
 		GenRowStruct columnGrs = this.store.getGenRowStruct(WEIGHTS_KEY);
 		HashMap<String, Double> weightMap = null;
 		if (columnGrs != null && !columnGrs.isEmpty()) {
@@ -530,13 +523,13 @@ public class RatioReactor extends AbstractFrameReactor {
 				logger.info(columnGrs.get(i));
 			}
 		}
-		//calculate weights
-		if(weightMap == null) {
+		// calculate weights
+		if (weightMap == null) {
 			weightMap = new HashMap<>();
 			double attributeCount = (double) this.ratioFrameHeaders.length - 3;
 			double weight = 1 / attributeCount;
-			for(int weightMapIndex = 3; weightMapIndex < this.ratioFrameHeaders.length; weightMapIndex++) {
-				//attribute column in ratioFrameHeaders has Score_ need to clean this up
+			for (int weightMapIndex = 3; weightMapIndex < this.ratioFrameHeaders.length; weightMapIndex++) {
+				// attribute column in ratioFrameHeaders has Score_ need to clean this up
 				String attributeCol = this.ratioFrameHeaders[weightMapIndex];
 				attributeCol = attributeCol.substring(SCORE_LABEL.length());
 				weightMap.put(attributeCol, weight);

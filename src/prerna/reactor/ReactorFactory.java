@@ -256,8 +256,8 @@ import prerna.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
-import prerna.reactor.masterdatabase.GetPhysicalToLogicalMapping;
-import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
+import prerna.reactor.masterdatabase.GetPhysicalToLogicalMappingReactor;
+import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMappingReactor;
 import prerna.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.reactor.masterdatabase.QueryTranslatorReactor;
@@ -432,11 +432,7 @@ import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesO;
 import prerna.util.git.reactors.SyncAppOReactor;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
-import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
-import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
-import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
-import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
 public class ReactorFactory {
@@ -668,7 +664,6 @@ public class ReactorFactory {
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
-		reactorHash.put("WidgetT", WidgetTReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
 
 		// Database uploading utils
@@ -1024,8 +1019,8 @@ public class ReactorFactory {
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", SemanticDescription.class);
 		// similar reactors to x-ray
-		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
-		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMapping.class);
+		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMappingReactor.class);
+		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMappingReactor.class);
 
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", RunNumericalCorrelationReactor.class);
@@ -1097,14 +1092,10 @@ public class ReactorFactory {
 		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
-		// User Tracking
-		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
-		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
 		// Recommendations
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
 		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
 		reactorHash.put("PredictViz", CreateNLPVizReactor.class);
-		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
 

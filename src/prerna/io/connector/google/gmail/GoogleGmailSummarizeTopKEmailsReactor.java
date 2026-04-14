@@ -41,12 +41,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailSummarizeTopKEmailsReactor.class);
-	
+
 	public GoogleGmailSummarizeTopKEmailsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -60,27 +59,35 @@ public class GoogleGmailSummarizeTopKEmailsReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
+			if (limit <= 0) {
+				throw new SemossPixelException("The limit must be a positive integer.");
+			}
 			List<Map<String, Object>> result = GoogleGmailHelper.summarizeTopKEmails(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (NumberFormatException e) {
+			classLogger.error("Invalid Gmail summarize limit '{}'", limitStr, e);
+			throw new SemossPixelException("The limit must be a positive integer.");
+		} catch (SemossPixelException e) {
+			classLogger.error("Error while summarizing Gmail emails", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred summarizing the emails. Error message: " + e.getMessage());
+			classLogger.error("Failed to summarize Gmail emails", e);
+			throw new SemossPixelException(
+					"An error occurred summarizing the emails. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Summarize the top k emails";
+		return "Summarize the top K emails.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit for the number of emails to summarize";
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Maximum number of emails to summarize.";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
 }

@@ -135,6 +135,7 @@ public class Project implements IProject {
 
 	private String projectId;
 	private String projectName;
+	private String displayName = null;
 	private String projectGitProvider;
 	private String projectGitRepo;
 	private AuthProvider gitProvider;
@@ -200,6 +201,9 @@ public class Project implements IProject {
 		setSmssProp(smssProp);
 		this.projectId = this.smssProp.getProperty(Constants.PROJECT);
 		this.projectName = this.smssProp.getProperty(Constants.PROJECT_ALIAS);
+		String smssDisplayName = this.smssProp.getProperty(Constants.PROJECT_DISPLAY_NAME);
+		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+				: this.projectName;
 
 		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if (this.isAsset) {
@@ -1689,6 +1693,16 @@ public class Project implements IProject {
 	@Override
 	public Object callTool(String toolName, Map<String, Object> params, Insight insight) {
 		return getProjectMCP().callTool(toolName, params, insight);
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	@Override
+	public String getDisplayName() {
+		return (this.displayName != null && !this.displayName.trim().isEmpty()) ? this.displayName : this.projectName;
 	}
 
 }

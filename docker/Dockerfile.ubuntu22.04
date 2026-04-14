@@ -7,9 +7,9 @@ ARG BASE_TAG=22.04
 ARG CODEX_VERSION=0.80.0
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=9.0.112
+ARG TOMCAT_VERSION=9.0.117
 ARG JAVA_HOME=/usr/lib/jvm/zulu21
-ARG MAVEN_HOME=/opt/apache-maven-3.8.5
+ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
@@ -48,6 +48,7 @@ RUN apt-get update -y \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh \
 	&& /opt/semoss-artifacts/artifacts/scripts/update_latest_dev.sh \
+	&& rm -rf /root/.m2 \
 	&& chmod 777 /opt/semosshome/config/Chromedriver/* \
     && sed -i "s/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=/tomcat.util.scan.StandardJarScanFilter.jarsToSkip=*.jar,/g" $TOMCAT_HOME/conf/catalina.properties;
 
@@ -111,7 +112,8 @@ RUN	cd /opt/semoss-artifacts \
 
 # Install playwright dependencies
 RUN	cd /tmp \
-	&& ./install_Playwright_linux_dependencies.sh
+	&& ./install_Playwright_linux_dependencies.sh \
+	&& rm -rf /root/.m2
 
 RUN apt install -y debootstrap fakechroot fakeroot
 

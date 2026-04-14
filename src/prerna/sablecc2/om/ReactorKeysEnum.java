@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.sablecc2.om;
 
+import prerna.reactor.agent.mcp.MCPUtility;
+
 public enum ReactorKeysEnum {
 
 	// @formatter:off
@@ -133,7 +135,8 @@ public enum ReactorKeysEnum {
 	HEIGHT("height", 											"The height to use for screenshot capture."),
 	HF_MODEL_ID("hfModelId", 									"The model id for the HF model"),
 	HOST("host",                    	                        "The host URL"),
-	HTML("html",                        	                    "The html"),
+	HTML("html",                        	                    "HTML text"),
+	MARKDOWN("markdown",                	                    "Markdown text"),
 	ID("id", 													"This key can represent the unique id of the insight instance or the unique id of the saved insight relative to the app"),
 	ID_TYPE("id_type", 											"Type of the id for setting param. colum / column_table / column_table_operator"),
 	IMAGE("image",		 										"The location of the image file or the encoding of the image as a png"),
@@ -162,11 +165,20 @@ public enum ReactorKeysEnum {
 	MAP("map", 													"Map that is the equivalent of a JSON for key-value properties"),
 	MASK_ENTITIES("maskEntities",                               "The entities to mask when returning results from an NER model"),
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
-	MCP_EXECUTION("mcpExecution", 								"Parameter determining how the mcp is executed: either Auto, Ask or Default"),
-	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"),
+	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
+	MCP_METADATA("mcpMetadata", 								"""
+			Additional metadata to be included within the MCP execution. Keys can be :
+			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool will never be selected)
+			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), and <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden")
+			""".replace("<SMSS_MCP_EXECUTION>", MCPUtility.SMSS_MCP_EXECUTION)
+			.replace("<SMSS_MCP_UI>", MCPUtility.SMSS_MCP_UI)
+			.replace("<UI_RESOURCE_URI>", MCPUtility.UI_RESOURCE_URI)
+			.replace("<UI_LOADING_MESSAGE>", MCPUtility.UI_LOADING_MESSAGE)
+			.replace("<UI_DISPLAY_LOCATION>", MCPUtility.UI_DISPLAY_LOCATION)
+			),
+	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
-	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MESSAGE("message", 											"Message to display for logging"),	
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
@@ -187,6 +199,7 @@ public enum ReactorKeysEnum {
 	NEW_HEADER_NAMES("newHeaders", 								"New header names for a file"),
 	NEW_VALUE("newValue", 										"New value used to replace an existing value"),
 	NO_META("noMeta", 											"Don't return any additional metadata around the data source / project / insight"),
+	NOTIFICATION_ID("notificationId", 							"Id of the notification"),
 	NUM_DISPLAY("display",										"The number of results to display"),
 	NUMERIC_VALUE("numValue", 									"Numeric value to be used in the operation"),
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
@@ -275,7 +288,12 @@ public enum ReactorKeysEnum {
 	SHEET_NAME("sheetName",										"The name of the excel sheet"),
 	SLIDE_LAYOUT("slideLayout",									"Name of the slide layout name to use for the capture"),
 	SORT("sort", 												"Sort direction: ascending (\"asc\") or decending (\"desc\")"),
-	SPACE("space", 												"The space to work with assets (user project space, current insight space, project id space)."),
+	SPACE("space", 												"""
+			This is an optional field to determine the space in which the relative file path exists. \
+			When this parameter is not provided, the space is assumed to be the current insight (when the insight is attached to a room it will be the room space). \
+			If an UUID is provided, it will be treated as a project id and use the project's directory structure. \
+			If the key "user" is provided it will be the logged in user's space.\
+			"""),
 	SQL("sql", 													"The SQL query"),
 	START("start",												"Start value for a between reactor"),
 	START_DATE("startDate",										"Start Date passed in for filter"),		

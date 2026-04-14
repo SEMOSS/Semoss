@@ -43,9 +43,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class ExtractNumbersReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ExtractNumbersReactor.class);
-	
+
 	public static final String COLUMNS = "columns";
 	public static final String OVERRIDE = "override";
 	public static final String NUMERIC_COLUMN_NAME = "_NUMERIC";
@@ -93,6 +93,7 @@ public class ExtractNumbersReactor extends AbstractFrameReactor {
 				metaData.setDataTypeToProperty(table + "__" + newColumn, "String");
 			}
 		}
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

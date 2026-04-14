@@ -68,7 +68,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
@@ -205,7 +204,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
 				this.tempSmss.delete();
 				this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
-				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
+				UploadUtilities.addEngineToDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
 				UploadUtilities.updateMetadata(this.databaseId, user);
@@ -238,11 +237,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 							this.databaseFolder);
 				}
 			}
-		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			}
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);
@@ -318,8 +317,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

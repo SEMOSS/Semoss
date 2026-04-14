@@ -130,7 +130,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			fileList = filesAdded.get("FILE");
 			logger.info(step + ") Searching for smss");
 			for (String filePath : fileList) {
-				if (filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
+				if (!filePath.startsWith("__MACOSX/") && filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
 					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
 					smssFile = new File(Utility.normalizePath(smssFileLoc));
 					// check if the file exists
@@ -153,7 +153,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred while unzipping the files", e);
 			throw new SemossPixelException("Error occurred while unzipping the files", false);
 		} finally {
 			if (error) {
@@ -258,7 +258,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			step++;
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error copying the files over from the temp zip location to the final engine folder", e);
 			throw new SemossPixelException(e.getMessage(), false);
 		} finally {
 			if (error) {
@@ -287,6 +287,18 @@ public class UploadEngineReactor extends AbstractReactor {
 			logger.info(step + ") Done");
 			step++;
 
+			// ensure ENGINE_DISPLAY_NAME is present in the smss file
+			// if not present, seed it from ENGINE_ALIAS so the file stays consistent
+			String displayName = prop.getProperty(Constants.ENGINE_DISPLAY_NAME);
+			if (displayName == null || displayName.trim().isEmpty()) {
+				try {
+					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
+							engineName);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
 			// see if we have any dependencies or metadata to load
 			{
 				File metadataFile = new File(Utility.normalizePath(
@@ -303,7 +315,7 @@ public class UploadEngineReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			error = true;
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred trying to synchronize the metadata for the zip file", e);
 			throw new SemossPixelException("Error occurred trying to synchronize the metadata for the zip file", false);
 		} finally {
 			if (error) {
@@ -345,8 +357,7 @@ public class UploadEngineReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(f);
 				} catch (IOException e) {
-					classLogger.warn("Error on clean up attempting to delete " + f.getAbsolutePath());
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error on clean up attempting to delete " + f.getAbsolutePath(), e);
 				}
 			}
 		}

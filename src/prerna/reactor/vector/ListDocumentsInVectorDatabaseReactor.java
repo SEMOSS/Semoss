@@ -42,57 +42,67 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor{
+public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor {
 
 	public ListDocumentsInVectorDatabaseReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
-		};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector database " + engineId + " does not exist or user does not have access to this vector database");
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Vector database " + engineId
+					+ " does not exist or user does not have access to this vector database");
 		}
-		
+
 		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
+
 		IVectorDatabaseEngine engine = Utility.getVectorDatabase(engineId);
 		if (engine == null) {
 			throw new SemossPixelException("Unable to find engine");
 		}
-				
-		return new NounMetadata(engine.listDocuments(paramMap), PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+
+		return new NounMetadata(engine.listDocuments(paramMap), PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
 	}
-	
+
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[1]);
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
-	
+		GenRowStruct mapGrs = this.store.getGenRowStruct(keysToGet[1]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Get the unique list of 'Source' values that have been uploaded into this vector database. "
-				+ "Typically the 'Souce' represents the files that have been uploaded, but in the case of custom chunking "
-				+ "the value will be returned even if the file itself was never uploaded"
-				;
+		return """
+				Get the unique list of `Source` values that have been uploaded into this vector database. \
+				Typically `Source` represents uploaded files, but with custom chunking it may represent \
+				values that were never uploaded as standalone files.\
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to list document sources from.";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return "Optional engine-specific parameters (for example index/collection selectors when supported).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

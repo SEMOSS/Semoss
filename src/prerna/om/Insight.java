@@ -90,8 +90,6 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class Insight implements Serializable {
 
@@ -181,7 +179,6 @@ public class Insight implements Serializable {
 	private transient boolean deleteREnvOnDropInsight = true;
 	private transient boolean deletePythonGlobalsOnDropInsight = true;
 
-	private transient boolean isTemporaryInsight = false;
 	private transient boolean isSchedulerMode = false;
 	private transient boolean isSavedInsightMode = false;
 
@@ -360,13 +357,6 @@ public class Insight implements Serializable {
 
 	private void trackPixel(PixelRunner runner) {
 		try {
-			IUserTracker tracker = UserTrackerFactory.getInstance();
-			if (tracker.isActive()) {
-				List<Pixel> returnedPixelList = runner.getReturnPixelList();
-				for (Pixel p : returnedPixelList) {
-					tracker.trackPixelExecution(this, p.getPixelString(), p.isMeta());
-				}
-			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
@@ -880,14 +870,6 @@ public class Insight implements Serializable {
 
 	public void setSchedulerMode(boolean isSchedulerMode) {
 		this.isSchedulerMode = isSchedulerMode;
-	}
-
-	public boolean isTemporaryInsight() {
-		return isTemporaryInsight;
-	}
-
-	public void setTemporaryInsight(boolean isTemporaryInsight) {
-		this.isTemporaryInsight = isTemporaryInsight;
 	}
 
 	/**
@@ -1487,9 +1469,6 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
 	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
@@ -1497,6 +1476,9 @@ public class Insight implements Serializable {
 			return true;
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			// clear out the current context even if this failed
+			this.contextProjectId = null;
+			this.contextProjectName = null;
 			return false;
 		}
 		this.contextProjectId = projectId;

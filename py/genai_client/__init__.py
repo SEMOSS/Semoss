@@ -20,6 +20,12 @@ def __getattr__(name: str) -> Any:
         from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient
+    
+    elif name == "BedrockImageClient":
+        from .text_generation.bedrock_clients.bedrock_image_client import BedrockImageClient
+
+        return BedrockImageClient
+    
     elif name == "VertexClient":
         from .text_generation.google_clients.vertex_controller import (
             VertexAiClientController as VertexClient,
@@ -84,6 +90,11 @@ def __getattr__(name: str) -> Any:
         from .embedders.bedrock_embedder import BedrockEmbedder
 
         return BedrockEmbedder
+
+    elif name == "ClaudeCodeClient":
+        from .agents.claude_code.claude_code_client import ClaudeCodeClient
+
+        return ClaudeCodeClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -195,4 +206,5 @@ __all__ = [
     "get_embedder",
     "get_tokenizer",
     "BedrockEmbedder",
+    "ClaudeCodeClient",
 ]

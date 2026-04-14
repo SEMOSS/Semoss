@@ -27,16 +27,24 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
+
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class GetMCPToolsReactor extends AbstractBaseMCPReactor {
+public class GetMCPToolsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetMCPToolsReactor.class);
 
 	public GetMCPToolsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey() };
@@ -57,10 +65,15 @@ public class GetMCPToolsReactor extends AbstractBaseMCPReactor {
 			engine = Utility.getProject(engineId);
 		}
 		User user = this.insight.getUser();
-		checkSecurity(engine, engineId, user);
+		checkEngineEditSecurity(engine, user);
 
-		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.getMCPTools(), PixelDataType.JSON_OBJECT);
+		try {
+			IMCP mcp = MCPFactory.build(engine);
+			return new NounMetadata(mcp.getMCPTools(), PixelDataType.JSON_OBJECT);
+		} catch (SemossMCPException e) {
+			classLogger.error(e.getMessage(), e);
+			return new NounMetadata(new JSONObject(), PixelDataType.JSON_OBJECT);
+		}
 	}
 
 }

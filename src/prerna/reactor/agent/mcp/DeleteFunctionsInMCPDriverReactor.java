@@ -33,13 +33,14 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class DeleteFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
+public class DeleteFunctionsInMCPDriverReactor extends AbstractReactor {
 
 	public DeleteFunctionsInMCPDriverReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
@@ -61,7 +62,7 @@ public class DeleteFunctionsInMCPDriverReactor extends AbstractBaseMCPReactor {
 			engine = Utility.getProject(engineId);
 		}
 		User user = this.insight.getUser();
-		checkSecurity(engine, engineId, user);
+		checkEngineEditSecurity(engine, user);
 
 		Map<String, Boolean> success = new HashMap<>();
 

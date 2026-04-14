@@ -33,14 +33,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -68,7 +66,6 @@ public class LLMReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
-		AccessToken userToken = user.getPrimaryLoginToken();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
@@ -92,14 +89,13 @@ public class LLMReactor extends AbstractReactor {
 
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
+		
+		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, parentRoomId);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
-		///// MESSAGE CREATION //////////
-
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-		InputMessage msg;
-		msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedImages, room)
 				.withMediaUrls(inputImageURLs).build();
 
@@ -162,6 +158,19 @@ public class LLMReactor extends AbstractReactor {
 		}
 		return null;
 	}
+	
+
+	private String resolveParentRoomId(Map<String, Object> paramMap, String roomId) {
+	    Object raw = paramMap.remove("PARENT_ROOM_ID");
+	    if (raw == null) {
+	        return null;
+	    }
+	    String parentRoomId = raw.toString().trim();
+	    if (parentRoomId.isEmpty() || parentRoomId.equals(roomId)) {
+	        return null;
+	    }
+	    return parentRoomId;
+	}
 
 	@Override
 	public String getReactorDescription() {
@@ -177,7 +186,7 @@ public class LLMReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 image data URIs (e.g. data:image/jpeg;base64,....).";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
 			return "This is an array of image file urls whose contents will be fetched when building the message content.";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {

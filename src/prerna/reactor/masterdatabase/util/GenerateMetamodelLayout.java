@@ -52,53 +52,46 @@ import com.google.gson.GsonBuilder;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.impl.AbstractDatabaseEngine;
-import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class GenerateMetamodelLayout {
-	
-	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
-	
-	public static void generateLayout(String engineId) {
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
-		Properties prop = Utility.loadProperties(smssFile);
-		String owlFileLocation = SmssUtilities.getOwlFile(smssFile, prop).getAbsolutePath();
-		File owlF = new File(owlFileLocation);
 
+	private static final Logger classLogger = LogManager.getLogger(GenerateMetamodelLayout.class);
+
+	public static void generateLayout(String engineId, String engineName, File owlF) {
 		// owl is stored as RDF/XML file
 		RDFFileSesameEngine rfse = null;
 		try {
 			rfse = new RDFFileSesameEngine();
-    		rfse.setBasic(true);
-    		Properties owlSmss = new Properties();
-    		owlSmss.put(Constants.RDF_FILE_PATH, owlFileLocation);
-    		owlSmss.put(Constants.ENGINE, engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
-            rfse.open(owlSmss);
+			rfse.setBasic(true);
+			Properties owlSmss = new Properties();
+			owlSmss.put(Constants.RDF_FILE_PATH, owlF.getAbsolutePath());
+			owlSmss.put(Constants.ENGINE, engineId + "_" + Constants.OWL_ENGINE_SUFFIX);
+			rfse.open(owlSmss);
 			// we create the meta helper to facilitate querying the engine OWL
-			ReadOnlyOWLEngine owlReader = new OWLEngineFactory(rfse, null, engineId, prop.getProperty(Constants.ENGINE_ALIAS)).getReadOWL();
-	
+			ReadOnlyOWLEngine owlReader = new OWLEngineFactory(rfse, null, engineId, engineName).getReadOWL();
+
 			long startTimer = System.currentTimeMillis();
-	
+
 			Graph graph = new MultiGraph(Utility.getRandomString(6));
 			Layout layout = new SpringBox(false);
 			graph.addSink(layout);
 			layout.addAttributeSink(graph);
-	
+
 			List<String> nodes = owlReader.getPhysicalConcepts();
 			Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
-	
+
 			for (String node : nodes) {
 				String nodeName = Utility.getInstanceName(node);
 				List<String> properties = owlReader.getPropertyUris4PhysicalUri(node);
 				nodeSizes.put(nodeName, properties.size());
 				graph.addNode(Utility.getInstanceName(node));
 			}
-	
+
 			List<String[]> relationships = owlReader.getPhysicalRelationships();
 			for (String[] relation : relationships) {
 				String start = Utility.getInstanceName(relation[0]);
@@ -106,20 +99,21 @@ public class GenerateMetamodelLayout {
 				String edge = Utility.getInstanceName(relation[2]) + "-" + start + "-" + end;
 				graph.addEdge(edge, start, end);
 			}
-	
+
 			while (layout.getStabilization() < 0.9) {
 				layout.compute();
 			}
-	
+
 			Map<String, Rectangle2D> rectangles = GenerateMetamodelLayout.getRectangles(graph, nodeSizes);
 			Rectangles fixRectangles = new Rectangles();
 			// get map of correctly spaced nodes/rectangles for metamodel
 			Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
-			Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph, fixedRectangles);
-	
+			Map<String, Map<String, Double>> positionMap = GenerateMetamodelLayout.generatePositionMap(graph,
+					fixedRectangles);
+
 			long endTimer = System.currentTimeMillis();
 			classLogger.info("Compute time = " + (endTimer - startTimer) + " ms");
-	
+
 			// now write the file
 			String baseFolder = owlF.getParent();
 			String positionJson = baseFolder + "/" + AbstractDatabaseEngine.OWL_POSITION_FILENAME;
@@ -130,7 +124,7 @@ public class GenerateMetamodelLayout {
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(writer != null) {
+				if (writer != null) {
 					try {
 						writer.close();
 					} catch (IOException e) {
@@ -141,7 +135,7 @@ public class GenerateMetamodelLayout {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(rfse != null) {
+			if (rfse != null) {
 				try {
 					rfse.close();
 				} catch (IOException e) {
@@ -151,9 +145,11 @@ public class GenerateMetamodelLayout {
 		}
 	}
 
-	/////////////////////////////////////////// for owl metamodel reactor ///////////////////////////////////////////
+	/////////////////////////////////////////// for owl metamodel reactor
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
-	public static Map<String, Map<String, Double>> generateOWLMetamodelLayout(Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
+	public static Map<String, Map<String, Double>> generateOWLMetamodelLayout(
+			Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
 		Rectangles fixRectangles = new Rectangles();
 		Graph graph = addNodesToGraphOwl(databaseTables, databaseJoins);
 		Map<String, Integer> nodeSizes = getNodeSizesOwl(databaseTables);
@@ -163,10 +159,13 @@ public class GenerateMetamodelLayout {
 
 		return nodePositionMap;
 	}
-	
-	/////////////////////////////////////////// owl metamodel reactor helper functions ///////////////////////////////////////////
 
-	private static Graph addNodesToGraphOwl(Map<String, Collection<String>> databaseTables, List<Map<String, String>> databaseJoins) {
+	/////////////////////////////////////////// owl metamodel reactor helper
+	/////////////////////////////////////////// functions
+	/////////////////////////////////////////// ///////////////////////////////////////////
+
+	private static Graph addNodesToGraphOwl(Map<String, Collection<String>> databaseTables,
+			List<Map<String, String>> databaseJoins) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
@@ -192,7 +191,7 @@ public class GenerateMetamodelLayout {
 
 	private static Map<String, Integer> getNodeSizesOwl(Map<String, Collection<String>> databaseTables) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
-		
+
 		databaseTables.forEach((conceptName, properties) -> {
 			nodeSizes.put(conceptName, properties.size());
 		});
@@ -200,24 +199,29 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
-	/////////////////////////////////////////// for graph metamodel reactors ///////////////////////////////////////////
+	/////////////////////////////////////////// for graph metamodel reactors
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
 	public static Map<String, Map<String, Double>> generateMetamodelLayoutForGraphDBs(Map<String, Object> graphMap) {
 		Rectangles fixRectangles = new Rectangles();
-		Map<String, Map<String, SemossDataType>> nodeMap = (Map<String, Map<String, SemossDataType>>) graphMap.get("nodes");
+		Map<String, Map<String, SemossDataType>> nodeMap = (Map<String, Map<String, SemossDataType>>) graphMap
+				.get("nodes");
 		Map<String, List<String>> relationshipMap = (Map<String, List<String>>) graphMap.get("edges");
 		Graph graph = addNodesToGraph(nodeMap, relationshipMap);
 		Map<String, Integer> nodeSizes = getNodeSizes(nodeMap);
 		Map<String, Rectangle2D> rectangles = getRectangles(graph, nodeSizes);
 		Map<String, Rectangle2D> fixedRectangles = fixRectangles.fix(rectangles);
 		Map<String, Map<String, Double>> nodePositionMap = generatePositionMap(graph, fixedRectangles);
-		
+
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// graph metamodel reactors helper functions ///////////////////////////////////////////
+	/////////////////////////////////////////// graph metamodel reactors helper
+	/////////////////////////////////////////// functions
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
-	private static Graph addNodesToGraph(Map<String, Map<String, SemossDataType>> nodeMap, Map<String, List<String>> relationshipMap) {
+	private static Graph addNodesToGraph(Map<String, Map<String, SemossDataType>> nodeMap,
+			Map<String, List<String>> relationshipMap) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
@@ -251,9 +255,11 @@ public class GenerateMetamodelLayout {
 		return nodeSizes;
 	}
 
-	/////////////////////////////////////////// for external jdbc schema reactor ///////////////////////////////////////////
+	/////////////////////////////////////////// for external jdbc schema reactor
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
-	public static Map<String, Map<String, Double>> generateMetamodelLayoutForExternal(List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
+	public static Map<String, Map<String, Double>> generateMetamodelLayoutForExternal(
+			List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
 		Rectangles fixRectangles = new Rectangles();
 		Graph graph = addNodesToGraph(databaseTables, databaseJoins);
 		Map<String, Integer> nodeSizes = getNodeSizes(databaseTables);
@@ -264,9 +270,12 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// external jdbc schema reactor helper functions ///////////////////////////////////////////
+	/////////////////////////////////////////// external jdbc schema reactor helper
+	/////////////////////////////////////////// functions
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
-	private static Graph addNodesToGraph(List<Map<String, Object>> databaseTables, List<Map<String, String>> databaseJoins) {
+	private static Graph addNodesToGraph(List<Map<String, Object>> databaseTables,
+			List<Map<String, String>> databaseJoins) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
@@ -276,7 +285,7 @@ public class GenerateMetamodelLayout {
 			String tableName = (String) nodes.get("table");
 			try {
 				graph.addNode(tableName);
-			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
+			} catch (org.graphstream.graph.IdAlreadyInUseException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -287,7 +296,7 @@ public class GenerateMetamodelLayout {
 			String edge = relations.get("fromCol") + "_" + relations.get("toCol") + "-" + start + "-" + end;
 			try {
 				graph.addEdge(edge, start, end);
-			} catch(org.graphstream.graph.IdAlreadyInUseException e) {
+			} catch (org.graphstream.graph.IdAlreadyInUseException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
@@ -298,25 +307,27 @@ public class GenerateMetamodelLayout {
 
 		return graph;
 	}
-	
+
 	private static Map<String, Integer> getNodeSizes(List<Map<String, Object>> databaseTables) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 
-		for (Map<String, Object> nodes: databaseTables) {
+		for (Map<String, Object> nodes : databaseTables) {
 			List<String> columns = (List) nodes.get("columns");
 			String tableName = (String) nodes.get("table");
 			// if no columns, just why....
-			if(columns != null) {
+			if (columns != null) {
 				nodeSizes.put(tableName, columns.size());
 			}
 		}
 
 		return nodeSizes;
 	}
-	
-	/////////////////////////////////////////// for predict metamodel reactor ///////////////////////////////////////////
 
-	public static Map<String, Map<String, Double>> generateMetamodelPredictionLayout(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+	/////////////////////////////////////////// for predict metamodel reactor
+	/////////////////////////////////////////// ///////////////////////////////////////////
+
+	public static Map<String, Map<String, Double>> generateMetamodelPredictionLayout(
+			Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
 		Rectangles fixRectangles = new Rectangles();
 		Graph graph = addNodesToGraph(nodePropMap, relationMapList);
 		Map<String, Integer> nodeSizes = getNodeSizes(nodePropMap, relationMapList);
@@ -327,9 +338,12 @@ public class GenerateMetamodelLayout {
 		return nodePositionMap;
 	}
 
-	/////////////////////////////////////////// predict metamodel reactor helper functions ///////////////////////////////////////////
+	/////////////////////////////////////////// predict metamodel reactor helper
+	/////////////////////////////////////////// functions
+	/////////////////////////////////////////// ///////////////////////////////////////////
 
-	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+	private static Graph addNodesToGraph(Map<String, List<String>> nodePropMap,
+			List<Map<String, Object>> relationMapList) {
 		Graph graph = new MultiGraph(Utility.getRandomString(6));
 		Layout layout = new SpringBox(false);
 		graph.addSink(layout);
@@ -349,10 +363,10 @@ public class GenerateMetamodelLayout {
 		}
 
 		for (Map<String, Object> relations : relationMapList) {
-				String start = relations.get("fromTable").toString();
-				String end = relations.get("toTable").toString();
-				String edge = relations.get("relName").toString() + "-" + start + "-" + end;
-				graph.addEdge(edge, start, end);
+			String start = relations.get("fromTable").toString();
+			String end = relations.get("toTable").toString();
+			String edge = relations.get("relName").toString() + "-" + start + "-" + end;
+			graph.addEdge(edge, start, end);
 		}
 
 		while (layout.getStabilization() < 0.9) {
@@ -362,13 +376,14 @@ public class GenerateMetamodelLayout {
 		return graph;
 	}
 
-	private static Map<String, Integer> getNodeSizes(Map<String, List<String>> nodePropMap, List<Map<String, Object>> relationMapList) {
+	private static Map<String, Integer> getNodeSizes(Map<String, List<String>> nodePropMap,
+			List<Map<String, Object>> relationMapList) {
 		Map<String, Integer> nodeSizes = new HashMap<String, Integer>();
 
 		nodePropMap.forEach((nodeName, properties) -> {
 			nodeSizes.put(nodeName, properties.size());
 		});
-		
+
 		// go through relations map and any node without properties add to nodeSizes map
 		for (Map<String, Object> relations : relationMapList) {
 			String start = relations.get("fromTable").toString();
@@ -380,7 +395,7 @@ public class GenerateMetamodelLayout {
 				nodeSizes.put(end, 0);
 			}
 		}
-		
+
 		return nodeSizes;
 	}
 
@@ -400,23 +415,24 @@ public class GenerateMetamodelLayout {
 
 			float heightMultiplier = 10;
 			if (nodeSize > 1) {
-				heightMultiplier = 5*nodeSize;
+				heightMultiplier = 5 * nodeSize;
 			}
 
 			// Float(x, y, w, h)
-			rectangles.put(nodeName, new Rectangle2D.Float((float) pos[0], (float) pos[1], 160, 2*heightMultiplier));
+			rectangles.put(nodeName, new Rectangle2D.Float((float) pos[0], (float) pos[1], 160, 2 * heightMultiplier));
 		}
-		
+
 		return rectangles;
 	}
-	
-	private static Map<String, Map<String, Double>> generatePositionMap(Graph graph, Map<String, Rectangle2D> fixedRectangles) {
+
+	private static Map<String, Map<String, Double>> generatePositionMap(Graph graph,
+			Map<String, Rectangle2D> fixedRectangles) {
 		Map<String, Map<String, Double>> positionMap = new HashMap<>();
-		
+
 		double minx = 0;
 		double miny = 0;
 
-		for (Entry<String, Rectangle2D> fixedRectEntrySet: fixedRectangles.entrySet()) {
+		for (Entry<String, Rectangle2D> fixedRectEntrySet : fixedRectangles.entrySet()) {
 			Rectangle2D rectangle = fixedRectEntrySet.getValue();
 			double x = rectangle.getX();
 			double y = rectangle.getY();
@@ -467,14 +483,14 @@ public class GenerateMetamodelLayout {
 
 			positionMap.put(nodeName, posMap);
 		}
-		
+
 		// clean up the graph
 		graph.clearSinks();
 		graph.clear();
-		
+
 		return positionMap;
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////////////////////////////////

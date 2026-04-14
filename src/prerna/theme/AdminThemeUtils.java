@@ -51,6 +51,8 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
 
@@ -78,6 +80,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public static Object getActiveAdminTheme() {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		if (themeDb == null) {
 			return new HashMap<>();
 		}
@@ -118,6 +121,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public List<Map<String, Object>> getAdminThemes(int limit, int offset) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		final String ADMIN_THEME_PREFIX = "ADMIN_THEME__";
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(ADMIN_THEME_PREFIX + "ID"));
@@ -150,6 +154,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean setActiveTheme(String themeId) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String query = "UPDATE ADMIN_THEME SET IS_ACTIVE=FALSE WHERE IS_ACTIVE=TRUE; UPDATE ADMIN_THEME SET IS_ACTIVE=TRUE WHERE ID='"
 				+ themeId + "'";
 		try {
@@ -159,6 +164,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
 		}
+		PlaygroundThemeUtils.refreshCacheFromActiveTheme();
 		return true;
 	}
 
@@ -168,6 +174,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean setAllThemesInactive() {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		PreparedStatement ps = null;
 		try {
 			ps = themeDb.getPreparedStatement("UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?");
@@ -198,6 +205,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public String createAdminTheme(String themeName, String themeMap, boolean isActive) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String themeId = UUID.randomUUID().toString();
 
 		PreparedStatement ps = null;
@@ -237,6 +245,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean editAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		PreparedStatement ps = null;
 		try {
 			ps = themeDb
@@ -260,7 +269,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 
 		if (isActive) {
 			setActiveTheme(themeId);
-		}
+			PlaygroundThemeUtils.refreshCacheFromActiveTheme();
+		} 
 		return true;
 	}
 
@@ -271,6 +281,7 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 * @return
 	 */
 	public boolean deleteAdminTheme(String themeId) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 
 		PreparedStatement ps = null;
 		try {

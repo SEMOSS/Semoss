@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 import json
 from openai import OpenAI, AzureOpenAI
 from ..abstract_text_generation_client import AbstractTextGenerationClient
-from ...constants import AskModelEngineResponse
+from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...message_builders.openai.openai_message_builder import OpenAIMessageBuilder
 from smss_thread_local import get_smss_stream
@@ -21,6 +21,7 @@ from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from ...utils import string_to_bool
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -41,6 +42,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         "thinking",
         "thinking_budget",
         "global_param_override",
+        "simplify_messages",
     }
 
     def __init__(
@@ -64,8 +66,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         self.chat_type = self.model_settings.chat_type
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
+        self.simplify_messages = string_to_bool(
+            parent_kwargs.get("simplify_messages", False)
+        )
 
-        self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
+        self.message_builder = OpenAIMessageBuilder(
+            self.model_settings, self.chat_type, self.simplify_messages
+        )
         self.image_client = OpenAiImageClient(client=self)
         self.audio_client = OpenAiAudioClient(client=self)
 
@@ -114,7 +121,7 @@ class OpenAiClient(AbstractTextGenerationClient):
 
     def ask_call(
         self, prefix: str = "", **kwargs
-    ) -> AskModelEngineResponse | ErrorDetails:
+    ) -> AskModelEngineResponse2 | ErrorDetails:
         try:
             semoss_messages = self.build_semoss_messages(
                 model_settings=self.model_settings, **kwargs
@@ -129,15 +136,6 @@ class OpenAiClient(AbstractTextGenerationClient):
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
-
-            # moving streaming param into openai_messages rather than kwargs
-            streaming = kwargs.pop("stream", True)
-            if self.chat_type == "chat-completion" and streaming:
-                openai_messages.update(
-                    {"stream": True, "stream_options": {"include_usage": True}}
-                )
-            elif self.chat_type == "responses" and streaming:
-                openai_messages.update({"stream": True})
 
             if (
                 hasattr(self.model_settings, "global_param_override")
@@ -166,7 +164,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         self,
         request: Dict[str, Any],
         prefix: str = "",
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         response = self.client.completions.create(
             model=self.model_settings.model_name, **request
         )
@@ -185,10 +183,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = response.usage.completion_tokens
             input_tokens = response.usage.prompt_tokens
 
-        model_engine_response = AskModelEngineResponse(
+        model_engine_response = AskModelEngineResponse2(
             response=final_query,
             response_tokens=response_tokens,
             prompt_tokens=input_tokens,
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TEXT", "text": final_query}] if final_query else [],
         )
 
         return model_engine_response
@@ -197,7 +198,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         self,
         request: Dict[str, Any],
         prefix: str = "",
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
 
         response = self.client.responses.create(
@@ -285,9 +286,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 # we flatten out the tool calls
                 tool_result = []
                 for tool_call in final_tool_calls:
-                    # tool_call is a normal dict, need to use [] to pull keys
                     try:
-                        arguments = json.loads(tool_call["arguments"])
+                        arguments = tool_call["arguments"]
+                        # Return empty dict if arguments is empty string
+                        if arguments == "":
+                            arguments = {}
+                        else:
+                            arguments = json.loads(arguments)
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call["arguments"]
 
@@ -300,27 +305,48 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
-                return AskModelEngineResponse(
+                return AskModelEngineResponse2(
                     response=tool_result,
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
-                    thinking=aggregated_thinking,
                     messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        (
+                            [{"type": "THINKING", "thinking": aggregated_thinking}]
+                            if aggregated_thinking
+                            else []
+                        )
+                        + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
+                    ),
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
-                return AskModelEngineResponse(
+                return AskModelEngineResponse2(
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
-                    thinking=aggregated_thinking,
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        (
+                            [{"type": "THINKING", "thinking": aggregated_thinking}]
+                            if aggregated_thinking
+                            else []
+                        )
+                        + (
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
+                            else []
+                        )
+                    ),
                 )
         else:
             response_tokens = response.usage.output_tokens
             input_tokens = response.usage.input_tokens
-
             final_content = response.output_text
 
             # non-stream tool calls
@@ -332,18 +358,32 @@ class OpenAiClient(AbstractTextGenerationClient):
                         prompt_tokens=input_tokens,
                     )
             else:
-                return AskModelEngineResponse(
+                reasoning = self._extract_reasoning_summary(response)
+                return AskModelEngineResponse2(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
-                    thinking=self._extract_reasoning_summary(response),
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        (
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
+                            else []
+                        )
+                        + (
+                            [{"type": "TEXT", "text": final_content}]
+                            if final_content
+                            else []
+                        )
+                    ),
                 )
 
     def handle_chat_completion_response(
         self,
         request: Dict[str, Any],
         prefix: str = "",
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
 
         response = self.client.chat.completions.create(
@@ -447,9 +487,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 # we flatten out the tool calls
                 tool_result = []
                 for tool_call in final_tool_calls:
-                    # tool_call is a normal dict, need to use [] to pull keys
                     try:
-                        arguments = json.loads(tool_call["function"]["arguments"])
+                        arguments = tool_call["function"]["arguments"]
+                        # Return empty dict if arguments is empty string
+                        if arguments == "":
+                            arguments = {}
+                        else:
+                            arguments = json.loads(arguments)
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call["function"]["arguments"]
 
@@ -462,25 +506,46 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
-                return AskModelEngineResponse(
+                return AskModelEngineResponse2(
                     response=tool_result,
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
                     messageType="TOOL",
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tool_result],
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
 
-                return AskModelEngineResponse(
+                reasoning = self._extract_reasoning_summary_chat(response)
+                return AskModelEngineResponse2(
                     response=aggregated_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    thinking=self._extract_reasoning_summary_chat(response),
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        (
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
+                            else []
+                        )
+                        + (
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
+                            else []
+                        )
+                    ),
                 )
         else:
-            response_tokens = response.usage.completion_tokens
-            prompt_tokens = response.usage.prompt_tokens
+            if response.usage:
+                response_tokens = response.usage.completion_tokens
+                prompt_tokens = response.usage.prompt_tokens
+            else:
+                response_tokens = 0
+                prompt_tokens = 0
 
             final_content = response.choices[0].message.content
             tool_calls = response.choices[0].message.tool_calls
@@ -491,11 +556,25 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                 )
             else:
-                return AskModelEngineResponse(
+                reasoning = self._extract_reasoning_summary_chat(response)
+                return AskModelEngineResponse2(
                     response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
-                    thinking=self._extract_reasoning_summary_chat(response),
+                    schemaVersion=2,
+                    io="OUTPUT",
+                    parts=(
+                        (
+                            [{"type": "THINKING", "thinking": reasoning}]
+                            if reasoning
+                            else []
+                        )
+                        + (
+                            [{"type": "TEXT", "text": final_content}]
+                            if final_content
+                            else []
+                        )
+                    ),
                 )
 
     def _parse_tools_call_response(
@@ -503,7 +582,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         response,
         response_tokens: int,
         prompt_tokens: int,
-    ) -> AskModelEngineResponse:
+    ) -> AskModelEngineResponse2:
         tools_result = []
 
         if self.chat_type == "chat-completion":
@@ -546,11 +625,14 @@ class OpenAiClient(AbstractTextGenerationClient):
                     }
                 )
 
-        return AskModelEngineResponse(
+        return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             messageType="TOOL",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _extract_reasoning_summary(self, response) -> str:

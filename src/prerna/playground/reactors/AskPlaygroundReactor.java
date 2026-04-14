@@ -48,7 +48,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -100,12 +99,12 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt).withInputUIPrompt(question)
-				.withInputPrompt(question).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
-				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedImages, room).withMediaUrls(inputImageURLs).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap)
 				// .withTools(tools)
 				.build();
 
@@ -114,20 +113,34 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MCPUtility.updateToolResponseWithProjectMeta(response);
+			room.updateToolResponseMeta(response);
 		}
 
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
 
-		pixelReturn.put("inputMessage", jsonToMap(MessageUtils.toJsonWithImage(msg)));
-		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(response)));
+		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
+//		MessageUtils.applyLegacyInputFields(msg, inputMap);
+		pixelReturn.put("inputMessage", inputMap);
+
+		Map<String, Object> responseMap = jsonToMap(MessageUtils.toJsonWithImage(response));
+//		MessageUtils.applyLegacyResponseFields(response, responseMap);
+		pixelReturn.put("responseMessage", responseMap);
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.IMAGE.getKey()) || key.equals(ReactorKeysEnum.URL.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return MCP_KEY_TYPE.OBJECT;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
@@ -144,7 +157,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "This is the room ID that will be used for storing messages. If no room id is passed in, then insight id will be used for the room";
 		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 image data URIs (e.g. data:image/jpeg;base64,....).";
+			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return """
 					Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc.

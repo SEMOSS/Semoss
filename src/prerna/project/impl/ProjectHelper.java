@@ -29,6 +29,7 @@ package prerna.project.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -83,7 +84,6 @@ import prerna.util.sql.RdbmsTypeEnum;
 public final class ProjectHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
-	private static final String DIR_SEPARATOR = "/";
 
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
@@ -493,7 +493,7 @@ public final class ProjectHelper {
 			}).forEach(path -> {
 				// get the file name
 				String fileName = path.getFileName().toString();
-				try (Stream<String> lines = Files.lines(path)) {
+				try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
 
 					// to keep the count of no of occurrence of a particular uuid in a particular
 					// file
