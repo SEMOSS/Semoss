@@ -90,7 +90,7 @@ public class CreateRoomReactor extends AbstractReactor {
 		}
 
 		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId,
-				options, context, projectId);
+				options, context, projectId, null);
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			Path folderPath = Paths.get(room.getRoomFolderPath());
