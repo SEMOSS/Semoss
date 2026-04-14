@@ -18,7 +18,7 @@ public class GetJiraConnectionsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns all configured Jira connections with their ids and aliases.";
+		return "Returns all configured Jira connections stored in the security database for UI display.";
 	}
 
 }
