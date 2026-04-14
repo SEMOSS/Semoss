@@ -70,7 +70,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     private static final double TOOL_TOKEN_RATIO_THRESHOLD = 0.25;
 
     private static final Set<String> VALID_COMPACTION_TYPES = new HashSet<>(
-            Arrays.asList("TOOLS", "SUMMARY"));
+            Arrays.asList("TOOL_PRUNE", "SUMMARY"));
 
     public CompactRoomMessagesReactor() {
         this.keysToGet = new String[] {
@@ -158,14 +158,14 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                     typeResults.add(typeResult);
             }
         } else {
-            if (requestedTypes.contains("TOOLS")) {
+            if (requestedTypes.contains("TOOL_PRUNE")) {
                 Map<String, Object> typeResult = addToolPruneKeyToMessage(messages, parentMessageId);
                 if (typeResult != null)
                     typeResults.add(typeResult);
             }
             if (requestedTypes.contains("SUMMARY")) {
-                Map<String, Object> typeResult = summarizeMessages(room, parentMessageId, KEEP_N_TRANSACTIONS * 2,
-                        modelEngine);
+                Map<String, Object> typeResult = summarizeMessages(room, parentMessageId,
+                        KEEP_N_TRANSACTIONS * 2, modelEngine);
                 if (typeResult != null)
                     typeResults.add(typeResult);
             }
@@ -218,7 +218,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             if (parentMessageId.equals(message.getMessageId())) {
                 message.setPruneToolsAbove(true);
                 Map<String, Object> result = new HashMap<>();
-                result.put("type", "tool_pruning");
+                result.put("type", "TOOL_PRUNE");
                 return result;
             }
         }
@@ -320,7 +320,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 room.getMessagesAsString());
 
         Map<String, Object> result = new HashMap<>();
-        result.put("type", "summarization");
+        result.put("type", "SUMMARY");
         result.put("inputMessage", compactedMessage);
         result.put("responseMessage", compactedResponse);
         return result;
@@ -371,7 +371,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
-                + "Supported compaction types: TOOLS, SUMMARY. ";
+                + "Supported compaction types: TOOL_PRUNE, SUMMARY. ";
     }
 
 }
