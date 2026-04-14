@@ -39,7 +39,6 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 
 public class PasswordRequirements {
@@ -58,7 +57,7 @@ public class PasswordRequirements {
 
 	private static final Logger classLogger = LogManager.getLogger(PasswordRequirements.class);
 
-	private static PasswordRequirements instance = null;
+	private static volatile PasswordRequirements instance = null;
 
 	private int minPassLength = 0;
 	private boolean requireUpperCase = false;
@@ -128,14 +127,14 @@ public class PasswordRequirements {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load password requirement rules from the security database.", e);
 			throw e;
 		} finally {
 			if (iterator != null) {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close password requirements query wrapper after loading rules.", e);
 				}
 			}
 		}
