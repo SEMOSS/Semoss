@@ -2329,14 +2329,6 @@ public final class Utility {
 		 * started running)
 		 */
 
-		// grab the local master engine
-		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance()
-				.getEngineProperty(Constants.LOCAL_MASTER_DB);
-		if (localMaster == null) {
-			classLogger.info(">>>>>>>> Unable to find local master database in DIHelper.");
-			return;
-		}
-
 		// generate the appropriate query to execute on the local master engine to get
 		// the time stamp
 		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
@@ -2362,9 +2354,6 @@ public final class Utility {
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
 		if (owlFile == null) {
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			return;
 		}

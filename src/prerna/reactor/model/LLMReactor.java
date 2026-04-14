@@ -89,8 +89,10 @@ public class LLMReactor extends AbstractReactor {
 
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
+		
+		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, parentRoomId);
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
@@ -155,6 +157,19 @@ public class LLMReactor extends AbstractReactor {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
+	}
+	
+
+	private String resolveParentRoomId(Map<String, Object> paramMap, String roomId) {
+	    Object raw = paramMap.remove("PARENT_ROOM_ID");
+	    if (raw == null) {
+	        return null;
+	    }
+	    String parentRoomId = raw.toString().trim();
+	    if (parentRoomId.isEmpty() || parentRoomId.equals(roomId)) {
+	        return null;
+	    }
+	    return parentRoomId;
 	}
 
 	@Override

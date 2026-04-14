@@ -533,8 +533,6 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
 				FEEDBACK_TABLE_NAME + "MESSAGE_ID", "Counts"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_ID", "==", messageId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "MESSAGE_TYPE", "==",
-				MessageType.RESPONSE_TEXT.getValue()));
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
@@ -560,14 +558,13 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void insertFeedback(MessageFeedback feedback) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
-				+ "VALUES (?, ?, ?, ?, ?)";
+		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
+				+ "VALUES (?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
 			ps.setString(index++, feedback.getMessageId());
-			ps.setString(index++, MessageType.RESPONSE_TEXT.getValue());
 			ps.setString(index++, feedback.getFeedbackText());
 			ps.setTimestamp(index++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
 			ps.setBoolean(index++, feedback.getRating());
@@ -592,7 +589,7 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
 			PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(
-					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?");
+					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=?");
 			if (ps == null) {
 				throw new IllegalArgumentException("Error generating prepared statement to update feedback");
 			}
@@ -603,7 +600,6 @@ public class ModelInferenceLogsUtils {
 				ps.setTimestamp(parameterIndex++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
 				ps.setBoolean(parameterIndex++, feedback.getRating());
 				ps.setString(parameterIndex++, feedback.getMessageId());
-				ps.setString(parameterIndex++, MessageType.RESPONSE_TEXT.getValue());
 				ps.executeUpdate();
 				if (!ps.getConnection().getAutoCommit()) {
 					ps.getConnection().commit();
@@ -810,8 +806,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
+				isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -836,7 +832,7 @@ public class ModelInferenceLogsUtils {
 			String projectName) {
 
 		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+				agentId, isActive, projectId, projectName, null, null, null);
 	}
 
 	/**
@@ -861,7 +857,7 @@ public class ModelInferenceLogsUtils {
 			String projectId, String projectName, Map<String, Object> options) {
 
 		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null);
+				agentId, isActive, projectId, projectName, null, null, null);
 	}
 
 	/**
@@ -884,12 +880,13 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doCreateNewConversation(String insightId, String roomId, String roomName, String roomContext,
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
-			String projectId, String projectName, String workspaceId, Map<String, Object> options) {
+			String projectId, String projectName, String workspaceId, Map<String, Object> options,
+			String parentRoomId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, "
 				+ "ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, " + "AGENT_TYPE, AGENT_ID, IS_ACTIVE, "
-				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		PreparedStatement ps = null;
@@ -942,6 +939,11 @@ public class ModelInferenceLogsUtils {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
 			} else {
 				ps.setNull(index++, java.sql.Types.NULL);
+			}
+			if (parentRoomId != null) {
+				ps.setString(index++, parentRoomId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
 			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -2030,7 +2032,9 @@ public class ModelInferenceLogsUtils {
 			mType = "RESPONSE";
 		}
 		if (mType == null) {
-			throw new IllegalArgumentException("Incorrect message type");
+			// Non-persisted message types (e.g. RESPONSE_TOOL, INPUT_TOOL_EXEC) have no
+			// corresponding MESSAGE table row -- silently skip rather than error.
+			return;
 		}
 
 		PreparedStatement updateStmt = null;
@@ -2119,7 +2123,7 @@ public class ModelInferenceLogsUtils {
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
 						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"));
+						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
@@ -3066,6 +3070,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "USER_NAME"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
 
 		// Room columns for project context
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
@@ -3160,21 +3165,37 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Adds a date range filter on FEEDBACK__FEEDBACK_DATE.
+	 * Adds a date range filter on FEEDBACK__FEEDBACK_DATE, comparing only the date
+	 * portion (time is stripped via CAST). Both bounds are inclusive.
 	 *
 	 * @param qs        the query struct to modify
 	 * @param startDate inclusive lower bound (nullable)
 	 * @param endDate   inclusive upper bound (nullable)
 	 */
 	private static void addFeedbackDateFilter(SelectQueryStruct qs, String startDate, String endDate) {
-		if ((startDate != null && !startDate.trim().isEmpty()) && (endDate != null && !endDate.trim().isEmpty())) {
-			AndQueryFilter andFilters = new AndQueryFilter();
-			andFilters.addFilter(
-					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", ">=", startDate));
-			andFilters.addFilter(
-					SimpleQueryFilter.makeColToValFilter(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "<=", endDate));
-			qs.addExplicitFilter(andFilters);
+		boolean hasStart = startDate != null && !startDate.trim().isEmpty();
+		boolean hasEnd = endDate != null && !endDate.trim().isEmpty();
+		if (!hasStart && !hasEnd) {
+			return;
 		}
+		if (hasStart ^ hasEnd) {
+			throw new IllegalArgumentException(
+					"Both startDate and endDate must be provided for the feedback date filter");
+		}
+
+		// Build a CAST(FEEDBACK.FEEDBACK_DATE AS DATE) selector so we compare
+		// only the date portion, making both start and end fully inclusive.
+		QueryFunctionSelector castSelector = new QueryFunctionSelector();
+		castSelector.setFunction(QueryFunctionHelper.CAST);
+		castSelector.addInnerSelector(new QueryColumnSelector(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE"));
+		castSelector.setDataType("DATE");
+
+		AndQueryFilter andFilters = new AndQueryFilter();
+		andFilters.addFilter(
+				SimpleQueryFilter.makeColToValFilter(castSelector, ">=", startDate, PixelDataType.CONST_STRING));
+		andFilters.addFilter(
+				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(andFilters);
 	}
 
 }

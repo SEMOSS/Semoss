@@ -88,7 +88,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -221,13 +220,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			doThrow(IOException.class).doNothing().when(rawWrapper).close();
 
 			when(engine.getPreparedStatement(
-					"INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)"))
+					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)"))
 					.thenReturn(ps);
 			when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
-			MessageFeedback testFeedback = new MessageFeedback("messageId", MessageType.RESPONSE_TEXT, "feedback",
+			MessageFeedback testFeedback = new MessageFeedback("messageId", "feedback",
 					true);
 			SemossPixelException spe = assertThrows(SemossPixelException.class,
 					() -> ModelInferenceLogsUtils.recordFeedback(testFeedback));
@@ -239,7 +238,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			// Goes into insertFeedback
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
 			verify(engine, times(1)).getPreparedStatement(
-					"INSERT INTO FEEDBACK (MESSAGE_ID, MESSAGE_TYPE, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?, ?)");
+					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)");
 			verify(ps, times(1)).execute();
 			verify(ps, times(2)).getConnection();
 			verify(conn).getAutoCommit();
@@ -334,7 +333,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					new HashMap<>());
 			ModelInferenceLogsUtils.doCreateNewConversation(FIXED_UUID.toString(), "roomId", "roomName", "roomContext",
 					"userId", "userName", "userEmail", "agentType", "agentId", true, "projectId", "projectName",
-					"workspaceId", new HashMap<>());
+					"workspaceId", new HashMap<>(), "parentRoomId");
 
 			verify(engine, times(3)).getPreparedStatement(
 					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -751,7 +750,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void getRoomById() throws Exception {
-		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "");
+		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "", "");
 
 		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
 				.thenThrow(SQLException.class).thenReturn(ps);
