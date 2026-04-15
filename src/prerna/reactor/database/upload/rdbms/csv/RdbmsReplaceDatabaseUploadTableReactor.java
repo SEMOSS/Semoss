@@ -40,44 +40,39 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.Constants;
 
 public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableDataReactor {
 
 	public RdbmsReplaceDatabaseUploadTableReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH,
-				UploadInputUtility.SPACE,
-				UploadInputUtility.ADD_TO_EXISTING,
-				UploadInputUtility.DELIMITER, 
-				UploadInputUtility.DATA_TYPE_MAP, 
-				UploadInputUtility.NEW_HEADERS, 
-				UploadInputUtility.ADDITIONAL_DATA_TYPES,
-				UploadInputUtility.CLEAN_STRING_VALUES, 
-				UploadInputUtility.REMOVE_DUPLICATE_ROWS
-		};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE, UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER,
+				UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
+				UploadInputUtility.ADDITIONAL_DATA_TYPES, UploadInputUtility.CLEAN_STRING_VALUES,
+				UploadInputUtility.REMOVE_DUPLICATE_ROWS };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/*
-		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor
-		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE
-		 * THE LOGIC IS THE SAME EXCEPT THERE IS AN ADDITIONAL METHOD
-		 * TO REMOVE THE DATABASE BEFORE RUNNING THE UPDATE
+		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor EXCEPT
+		 * IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE THE LOGIC IS THE SAME
+		 * EXCEPT THERE IS AN ADDITIONAL METHOD TO REMOVE THE DATABASE BEFORE RUNNING
+		 * THE UPDATE
 		 * 
 		 */
-		
+
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
@@ -85,23 +80,27 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableData
 		// check security
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or update a database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
 
 		// throw error if user is anonymous
-		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
 		// check if input is alias since we are adding ot existing
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
-		
+
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
-			NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be the owner in order to replace all the data in the database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -122,7 +121,8 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableData
 			this.logger.info("Done");
 			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.database);
 			addToExistingDatabase(filePath);
-			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
+			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE
+			// REPLACE!
 //			this.logger.info("Process database metadata to allow for traversing across databases");
 //			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
