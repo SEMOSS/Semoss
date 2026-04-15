@@ -75,7 +75,7 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 
 		// Normalize relative path
 		if (relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim().replace('\\', '/');
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if (!relativeFilePath.isEmpty() && !relativeFilePath.startsWith("/")) {
 				relativeFilePath = "/" + relativeFilePath;
 			}

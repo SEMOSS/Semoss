@@ -87,10 +87,11 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 				filePaths.add(f.getName());
 			}
 		}
+		filePaths = Utility.normalizeFilePaths(filePaths);
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "remove: DeleteAppAssets executed";
+			comment = "remove: delete app assets executed";
 		}
 
 		// Prepare to collect Git relative paths and actual File objects
