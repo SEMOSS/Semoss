@@ -300,7 +300,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         // Inherit the parent of the oldest pruned message so other branches stay intact
         compactedMessage.setParentMessageId(null);
-        compactedMessage.setSiblingMessageId(messageId);
+        compactedMessage.setSummaryLeafMessageId(messageId);
         compactedMessage.setVisibile(false);
 
         // Pair the compacted input with a response message so the branch is complete
