@@ -137,8 +137,6 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	private static final Logger classLogger = LogManager.getLogger(LazyTranslation.class);
 
-//	protected ReactorNode reactorRoot;
-
 	protected PixelPlanner planner;
 	protected Insight insight;
 	protected IReactor curReactor = null;
@@ -649,17 +647,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAWordWordOrId(AWordWordOrId node) {
 		defaultIn(node);
-		String trimmedWord = node.getWord().toString().trim();
-		boolean doubleQuotes = trimmedWord.startsWith("\"");
-		boolean singleQuotes = trimmedWord.startsWith("'");
-		String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
-		// also replace any escaped quotes
-		if (doubleQuotes) {
-			word = word.replace("\\\"", "\"");
-		}
-		if (singleQuotes) {
-			word = word.replace("\\'", "'");
-		}
+		String word = PixelUtility.decodePixelStringLiteral(node.getWord().getText());
 		// if its an assignment
 		// just put in results in case we are doing a |
 		if (curReactor != null && !(curReactor instanceof AssignmentReactor)) {
@@ -1380,7 +1368,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	@Override
 	public void inAWordMapKey(AWordMapKey node) {
-		String mapKey = PixelUtility.removeSurroundingQuotes(node.getWord().getText());
+		String mapKey = PixelUtility.decodePixelStringLiteral(node.getWord().getText());
 		this.curReactor.getCurRow().addLiteral(mapKey);
 	}
 
