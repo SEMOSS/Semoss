@@ -2328,14 +2328,6 @@ public final class Utility {
 		 * started running)
 		 */
 
-		// grab the local master engine
-		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance()
-				.getEngineProperty(Constants.LOCAL_MASTER_DB);
-		if (localMaster == null) {
-			classLogger.info(">>>>>>>> Unable to find local master database in DIHelper.");
-			return;
-		}
-
 		// generate the appropriate query to execute on the local master engine to get
 		// the time stamp
 		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
@@ -2361,9 +2353,6 @@ public final class Utility {
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
 		if (owlFile == null) {
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			return;
 		}
@@ -3722,6 +3711,31 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	/**
+	 *
+	 * @param filePaths
+	 * @return
+	 */
+	public static List<String> normalizeFilePaths(List<String> filePaths) {
+		if (filePaths == null) {
+			throw new NullPointerException("File paths cannot be null");
+		}
+
+		List<String> normalizedPaths = new ArrayList<>(filePaths.size());
+		for (String rawFilePath : filePaths) {
+			if (rawFilePath == null) {
+				throw new NullPointerException("File path cannot be null");
+			}
+
+			String normalizedPath = normalizePath(rawFilePath.trim());
+			if (normalizedPath == null || normalizedPath.isEmpty()) {
+				throw new IllegalArgumentException("Must provide a valid filePath");
+			}
+			normalizedPaths.add(normalizedPath);
+		}
+		return normalizedPaths;
 	}
 
 	/**

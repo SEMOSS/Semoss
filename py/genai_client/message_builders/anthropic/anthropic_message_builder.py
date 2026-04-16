@@ -152,10 +152,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
@@ -325,10 +328,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
@@ -759,7 +765,7 @@ class AnthropicMessageBuilder:
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
-            messages=[message.model_dump(mode="json") for message in history],
+            messages=[message.model_dump(mode="json", exclude_none=True) for message in history],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
