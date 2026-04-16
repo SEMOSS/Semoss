@@ -566,60 +566,48 @@ public class H2Frame extends AbstractRdbmsFrame {
 	////		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
 	//		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
 	//
-	// // rdbms connection logic
-	// reactorNames.put(PKQLEnum.DASHBOARD_JOIN,
-	// "prerna.sablecc.DashboardJoinReactor");
-	// reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
-	// reactorNames.put(PKQLEnum.NETWORK_DISCONNECT,
-	// "prerna.sablecc.DisConnectReactor");
-	// reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES,
-	// "prerna.sablecc.H2DuplicatesReactor");
-	// reactorNames.put(PKQLEnum.COL_FILTER_MODEL,
-	// "prerna.sablecc.H2ColFilterModelReactor");
+	//		// rdbms connection logic
+	//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
+	//		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
+	//		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
+	//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+	//		reactorNames.put(PKQLEnum.COL_FILTER_MODEL, "prerna.sablecc.H2ColFilterModelReactor");
+	//		
+	//		// h2 specific expression handlers		
+	//		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.sql.SqlSumReactor");
+	//		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.sql.SqlMaxReactor");
+	//		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.sql.SqlMinReactor");
+	//		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.sql.SqlAverageReactor");
+	//		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.sql.SqlCountReactor");
+	//		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
+	//		reactorNames.put(PKQLEnum.CONCAT, "prerna.sablecc.expressions.sql.SqlConcatReactor");
+	//		reactorNames.put(PKQLEnum.GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
+	//		reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT, "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
+	//		reactorNames.put(PKQLEnum.ABSOLUTE, "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
+	//		reactorNames.put(PKQLEnum.ROUND, "prerna.sablecc.expressions.sql.SqlRoundReactor");
+	//		reactorNames.put(PKQLEnum.COS, "prerna.sablecc.expressions.sql.SqlCosReactor");
+	//		reactorNames.put(PKQLEnum.SIN, "prerna.sablecc.expressions.sql.SqlSinReactor");
+	//		reactorNames.put(PKQLEnum.TAN, "prerna.sablecc.expressions.sql.SqlTanReactor");
+	//		reactorNames.put(PKQLEnum.CEILING, "prerna.sablecc.expressions.sql.SqlCeilingReactor");
+	//		reactorNames.put(PKQLEnum.FLOOR, "prerna.sablecc.expressions.sql.SqlFloorReactor");
+	//		reactorNames.put(PKQLEnum.LOG, "prerna.sablecc.expressions.sql.SqlLogReactor");
+	//		reactorNames.put(PKQLEnum.LOG10, "prerna.sablecc.expressions.sql.SqlLog10Reactor");
+	//		reactorNames.put(PKQLEnum.SQRT, "prerna.sablecc.expressions.sql.SqlSqrtReactor");
+	//		reactorNames.put(PKQLEnum.POWER, "prerna.sablecc.expressions.sql.SqlPowerReactor");
+	//		reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM, "prerna.ds.h2.H2CorrelationReactor");
 	//
-	// // h2 specific expression handlers
-	// reactorNames.put(PKQLEnum.SUM,
-	// "prerna.sablecc.expressions.sql.SqlSumReactor");
-	// reactorNames.put(PKQLEnum.MAX,
-	// "prerna.sablecc.expressions.sql.SqlMaxReactor");
-	// reactorNames.put(PKQLEnum.MIN,
-	// "prerna.sablecc.expressions.sql.SqlMinReactor");
-	// reactorNames.put(PKQLEnum.AVERAGE,
-	// "prerna.sablecc.expressions.sql.SqlAverageReactor");
-	// reactorNames.put(PKQLEnum.COUNT,
-	// "prerna.sablecc.expressions.sql.SqlCountReactor");
-	// reactorNames.put(PKQLEnum.COUNT_DISTINCT,
-	// "prerna.sablecc.expressions.sql.SqlUniqueCountReactor");
-	// reactorNames.put(PKQLEnum.CONCAT,
-	// "prerna.sablecc.expressions.sql.SqlConcatReactor");
-	// reactorNames.put(PKQLEnum.GROUP_CONCAT,
-	// "prerna.sablecc.expressions.sql.SqlGroupConcatReactor");
-	// reactorNames.put(PKQLEnum.UNIQUE_GROUP_CONCAT,
-	// "prerna.sablecc.expressions.sql.SqlDistinctGroupConcatReactor");
-	// reactorNames.put(PKQLEnum.ABSOLUTE,
-	// "prerna.sablecc.expressions.sql.SqlAbsoluteReactor");
-	// reactorNames.put(PKQLEnum.ROUND,
-	// "prerna.sablecc.expressions.sql.SqlRoundReactor");
-	// reactorNames.put(PKQLEnum.COS,
-	// "prerna.sablecc.expressions.sql.SqlCosReactor");
-	// reactorNames.put(PKQLEnum.SIN,
-	// "prerna.sablecc.expressions.sql.SqlSinReactor");
-	// reactorNames.put(PKQLEnum.TAN,
-	// "prerna.sablecc.expressions.sql.SqlTanReactor");
-	// reactorNames.put(PKQLEnum.CEILING,
-	// "prerna.sablecc.expressions.sql.SqlCeilingReactor");
-	// reactorNames.put(PKQLEnum.FLOOR,
-	// "prerna.sablecc.expressions.sql.SqlFloorReactor");
-	// reactorNames.put(PKQLEnum.LOG,
-	// "prerna.sablecc.expressions.sql.SqlLogReactor");
-	// reactorNames.put(PKQLEnum.LOG10,
-	// "prerna.sablecc.expressions.sql.SqlLog10Reactor");
-	// reactorNames.put(PKQLEnum.SQRT,
-	// "prerna.sablecc.expressions.sql.SqlSqrtReactor");
-	// reactorNames.put(PKQLEnum.POWER,
-	// "prerna.sablecc.expressions.sql.SqlPowerReactor");
-	// reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM,
-	// "prerna.ds.h2.H2CorrelationReactor");
+	//		// default to sample stdev
+	//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+	//		reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
+	//		reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION, "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
+	////		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.sql.SqlMedianReactor");
+	//		
+	//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
+	//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
+	//		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
+	//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
+	//		reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
+	//		reactorNames.put(PKQLEnum.FRAME_RAW_API, "prerna.sablecc.H2RawQueryApiReactor");
 	//
 	//		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
 	//		
