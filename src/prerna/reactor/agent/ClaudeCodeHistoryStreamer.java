@@ -83,7 +83,7 @@ public class ClaudeCodeHistoryStreamer implements FileStreamer {
 		// Phase 1: Wait for the file to appear
 		Path resolvedPath = findJsonlFile();
 		if (resolvedPath == null) {
-			logger.info("JSONL file for room {} does not exist yet — waiting for it to appear", roomId);
+			logger.info("JSONL file for room {} does not exist yet, waiting for it to appear", roomId);
 			resolvedPath = waitForFile();
 		}
 

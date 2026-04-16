@@ -37,12 +37,12 @@ class CCInitArgs(BaseModel):
     access_key: str
     secret_key: str
     permission_mode: PermissionMode | None = "acceptEdits"
+    agent_history_exists: bool = False
     base_url: Optional[str] = ""
     allowed_tools: Optional[list[str]] = None
     mcps: Optional[list[MCP]] = None
     insight_id: Optional[str] = None
     room_folder_path: Optional[str] = None
-    agent_history_exists: bool = False
 
     @field_validator("agent_history_exists", mode="before")
     @classmethod
@@ -65,6 +65,7 @@ class ClaudeCodeClient:
 
         self.agent_options = ClaudeAgentOptions(
             # stderr=_stderr_handler,
+            thinking={"type": "enabled", "budget_tokens": 100000},
             permission_mode="bypassPermissions",
             max_turns=20,
             setting_sources=["project"],
