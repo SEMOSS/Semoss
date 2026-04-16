@@ -94,7 +94,7 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, null);
 	}
 
 	/**
@@ -107,12 +107,13 @@ public final class RoomUtils {
 	 * @param question    initial user question used for default room naming
 	 * @param workspaceId optional workspace id to associate with the room
 	 * @param options     optional room options payload
-	 * @param context     optional room context/system prompt
-	 * @param projectId   optional project id override
+	 * @param context       optional room context/system prompt
+	 * @param projectId     optional project id override
+	 * @param parentRoomId  optional parent room id for sub-conversations
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context, String projectId) {
+			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
@@ -145,9 +146,9 @@ public final class RoomUtils {
 			String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
 			// @formatter:off
             ModelInferenceLogsUtils.doCreateNewConversation(
-            		insight.getInsightId(), 
+            		insight.getInsightId(),
                     roomId,
-                    roomName, 
+                    roomName,
                     context,
                     userToken.getId(),
                     userName,
@@ -158,7 +159,8 @@ public final class RoomUtils {
                     projectId,
                     projectName,
                     workspaceId,
-                    options
+                    options,
+                    parentRoomId
             );
     		// @formatter:on
 

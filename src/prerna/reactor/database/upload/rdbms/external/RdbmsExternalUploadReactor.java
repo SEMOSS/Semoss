@@ -131,15 +131,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[1]);
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String userPassedExisting = this.keyValue.get(this.keysToGet[3]);
-		boolean existingDatabase = false;
+		boolean existingDatabase = Boolean.parseBoolean(userPassedExisting);
 		IRDBMSEngine nativeDatabase = null;
 
 		// make sure both fields exist
-		if (databaseId != null && userPassedExisting != null) {
-			existingDatabase = Boolean.parseBoolean(userPassedExisting);
-
+		if (existingDatabase && databaseId != null && !(databaseId = databaseId.trim()).isEmpty()) {
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			if (database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
@@ -147,12 +146,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database must be a valid JDBC database");
 			}
 		}
-
 		// if user enters existing=true and the database doesn't exist
-		if (existingDatabase && (databaseId == null || nativeDatabase == null)) {
+		if (existingDatabase && nativeDatabase == null) {
 			throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 		}
-		this.databaseName = UploadInputUtility.getDatabaseNameOrId(this.store);
 
 		if (existingDatabase) {
 			// check if input is alias since we are adding to existing
@@ -168,6 +165,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 			this.databaseId = databaseId;
 			this.database = Utility.getDatabase(databaseId);
+			this.databaseName = this.database.getEngineName();
 			try {
 				this.logger.info("Updating existing database");
 				updateExistingDatabase();
@@ -187,6 +185,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			}
 		} else { // if database doesn't exist create new
 			try {
+				// what user passed in is the database name
+				this.databaseName = databaseId;
 				// make a new id
 				this.databaseId = UUID.randomUUID().toString();
 				// validate database
