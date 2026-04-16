@@ -512,4 +512,24 @@ public class AuditLogsDbUtils {
 		return QueryExecutionUtility.flushToLong(auditLogsDb, qs);
 	}
 
+	/**
+	 * Retrieve the list of users for a given database
+	 * 
+	 * @param engineId
+	 * @param engineType
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAuditLogsReportUsers(String projectId, String engineId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID", "id"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_TYPE", "type"));
+
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+
+		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
+		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__USER_TYPE"));
+		return QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+	}
+
 }

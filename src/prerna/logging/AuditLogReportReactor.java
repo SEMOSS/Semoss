@@ -158,15 +158,15 @@ public class AuditLogReportReactor extends AbstractReactor {
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
 		Map<String, Object> searchMap = null;
 
-	    if (map.containsKey("search") && map.get("search") instanceof Map) {
-	         searchMap = (Map<String, Object>) map.get("search");
-	    }
+		if (map.containsKey("search") && map.get("search") instanceof Map) {
+			searchMap = (Map<String, Object>) map.get("search");
+		}
 
-	     List<String> methodNames = getListFromSearch(searchMap, "methodName");
-	     List<String> args = getListFromSearch(searchMap, "args");
-	     List<String> engineTypes = getListFromSearch(searchMap, "engineType");
-	     
-	     String others = getString(map, "others");
+		List<String> methodNames = getListFromSearch(searchMap, "methodName");
+		List<String> args = getListFromSearch(searchMap, "requestMessage");
+		List<String> engineTypes = getListFromSearch(searchMap, "engineType");
+
+		String others = getString(map, "others");
 
 		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
@@ -292,27 +292,23 @@ public class AuditLogReportReactor extends AbstractReactor {
 			return defaultValue;
 		}
 	}
-	
+
 	private boolean isBlank(String val) {
-        return val == null || val.trim().isEmpty();
-    }
+		return val == null || val.trim().isEmpty();
+	}
 
-    private List<String> getListFromSearch(Map<String, Object> searchMap, String key) {
-        if (searchMap == null || !searchMap.containsKey(key)) {
-            return Collections.emptyList();
-        }
+	private List<String> getListFromSearch(Map<String, Object> searchMap, String key) {
+		if (searchMap == null || !searchMap.containsKey(key)) {
+			return Collections.emptyList();
+		}
 
-        Object val = searchMap.get(key);
+		Object val = searchMap.get(key);
 
-        if (val instanceof List<?>) {
-            return ((List<?>) val).stream()
-                    .filter(Objects::nonNull)
-                    .map(Object::toString)
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .collect(Collectors.toList());
-        }
+		if (val instanceof List<?>) {
+			return ((List<?>) val).stream().filter(Objects::nonNull).map(Object::toString).map(String::trim)
+					.filter(s -> !s.isEmpty()).collect(Collectors.toList());
+		}
 
-        return Collections.emptyList();
-    }
+		return Collections.emptyList();
+	}
 }
