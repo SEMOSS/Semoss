@@ -218,23 +218,25 @@ public class H2Frame extends AbstractRdbmsFrame {
 		// load the frame
 		String filePath = Utility.normalizePath(cf.getFrameCacheLocation());
 
+		// @formatter:off
 		// drop the aggregate if it exists since the opening of the script will
 		// fail otherwise
-		// Statement stmt = null;
-		// try {
-		// stmt = this.conn.createStatement();
-		// stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
-		// } catch (SQLException e1) {
-		// classLogger.error(Constants.STACKTRACE, e1);
-		// } finally {
-		// if(stmt != null) {
-		// try {
-		// stmt.close();
-		// } catch (SQLException e) {
-		// logger.error(Constants.STACKTRACE, e);
-		// }
-		// }
-		// }
+		//		Statement stmt = null;
+		//		try {
+		//			stmt = this.conn.createStatement();
+		//			stmt.executeUpdate("DROP AGGREGATE IF EXISTS MEDIAN");
+		//		} catch (SQLException e1) {
+		//			classLogger.error(Constants.STACKTRACE, e1);
+		//		} finally {
+		//			if(stmt != null) {
+		//				try {
+		//					stmt.close();
+		//				} catch (SQLException e) {
+		//					logger.error(Constants.STACKTRACE, e);
+		//				}
+		//			}
+		//		}
+		// @formatter:on
 
 		Reader r = null;
 		GZIPInputStream gis = null;
@@ -533,41 +535,36 @@ public class H2Frame extends AbstractRdbmsFrame {
 		logger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
 	}
 
-	// @Override
-	// @Deprecated
-	// public Map<String, String> getScriptReactors() {
-	// Map<String, String> reactorNames = super.getScriptReactors();
-	// reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-	// reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-	// reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-	// reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it
-	// almost feels like I need a way to tell when to do this and when not but let
-	// me see
-	// reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-	// reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-	// reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-	// reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-	// reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-	// reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-	// reactorNames.put(PKQLEnum.UNFILTER_DATA,
-	// "prerna.sablecc.ColUnfilterReactor");
-	// reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-	// reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-	// reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-	// reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-	//
-	// // h2 specific reactors
-	// reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
-	// reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
-	// reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
-	// reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES,
-	// "prerna.sablecc.H2DuplicatesReactor");
-	// reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE,
-	// "prerna.sablecc.H2ChangeTypeReactor");
-	// reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
-	//// reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-	// reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH,
-	// "prerna.sablecc.FlatTableSetEdgeHash");
+	// @formatter:off
+	//	@Override
+	//	@Deprecated
+	//	public Map<String, String> getScriptReactors() {
+	//		Map<String, String> reactorNames = super.getScriptReactors();
+	//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
+	//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
+	//		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
+	//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
+	//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
+	//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
+	//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
+	//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
+	//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
+	//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
+	//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
+	//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
+	//		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
+	//		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
+	//		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
+	//		
+	//		// h2 specific reactors
+	//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.H2ColAddReactor");
+	//		reactorNames.put(PKQLEnum.COL_SPLIT, "prerna.sablecc.H2ColSplitReactor");
+	//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.H2ImportDataReactor");
+	//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.H2DuplicatesReactor");
+	//		reactorNames.put(PKQLEnum.DATA_FRAME_CHANGE_TYPE, "prerna.sablecc.H2ChangeTypeReactor");
+	//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.H2VizReactor");
+	////		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
+	//		reactorNames.put(PKQLEnum.DATA_FRAME_SET_EDGE_HASH, "prerna.sablecc.FlatTableSetEdgeHash");
 	//
 	// // rdbms connection logic
 	// reactorNames.put(PKQLEnum.DASHBOARD_JOIN,
@@ -624,26 +621,9 @@ public class H2Frame extends AbstractRdbmsFrame {
 	// reactorNames.put(PKQLEnum.CORRELATION_ALGORITHM,
 	// "prerna.ds.h2.H2CorrelationReactor");
 	//
-	// // default to sample stdev
-	// reactorNames.put(PKQLEnum.STANDARD_DEVIATION,
-	// "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-	// reactorNames.put(PKQLEnum.SAMPLE_STANDARD_DEVIATION,
-	// "prerna.sablecc.expressions.sql.H2SqlSampleStandardDeviationReactor");
-	// reactorNames.put(PKQLEnum.POPULATION_STANDARD_DEVIATION,
-	// "prerna.sablecc.expressions.sql.H2SqlPopulationStandardDeviationReactor");
-	//// reactorNames.put(PKQLEnum.MEDIAN,
-	// "prerna.sablecc.expressions.sql.SqlMedianReactor");
-	//
-	// reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-	// reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.CsvApiReactor");
-	// reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.ExcelApiReactor");
-	// reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-	// reactorNames.put(PKQLEnum.FRAME_API, "prerna.sablecc.H2ApiReactor");
-	// reactorNames.put(PKQLEnum.FRAME_RAW_API,
-	// "prerna.sablecc.H2RawQueryApiReactor");
-	//
-	// reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
-	//
-	// return reactorNames;
-	// }
+	//		reactorNames.put(PKQLEnum.CLEAR_DATA, "prerna.sablecc.H2ClearDataReactor");
+	//		
+	//		return reactorNames;
+	//	}
+	// @formatter:on
 }
