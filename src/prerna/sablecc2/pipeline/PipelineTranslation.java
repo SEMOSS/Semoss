@@ -214,7 +214,7 @@ public class PipelineTranslation extends LazyTranslation {
 		if (this.curReactor == null) {
 			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "STRING");
-			obj.put("value", PixelUtility.removeSurroundingQuotes(node.getWord().getText().toString()));
+			obj.put("value", PixelUtility.decodePixelStringLiteral(node.getWord().getText()));
 
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
 			op.setScalarMap(obj);
