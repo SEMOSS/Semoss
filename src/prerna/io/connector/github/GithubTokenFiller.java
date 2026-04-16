@@ -44,7 +44,8 @@ public class GithubTokenFiller implements IAccessTokenFiller {
 	private static final Logger classLogger = LogManager.getLogger(GithubTokenFiller.class);
 
 	@Override
-	public void fillAccessToken(AccessToken gitAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
+	public void fillAccessToken(AccessToken gitAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params) {
 		// add specific Git values
 		GHMyself myGit = null;
 		try {
@@ -58,11 +59,12 @@ public class GithubTokenFiller implements IAccessTokenFiller {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
-	
+
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params, boolean sanitizeResponse) {
+	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params, boolean sanitizeResponse) {
 		// dont need to sanitize
 		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
 	}
-	
+
 }
