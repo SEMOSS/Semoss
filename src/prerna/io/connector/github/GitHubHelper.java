@@ -45,6 +45,8 @@ public final class GitHubHelper {
 	private static final String PATH_SEARCH_ISSUES = "/search/issues";
 	private static final String PATH_LABELS = "/labels";
 	private static final String PATH_COLLABORATORS = "/collaborators";
+	private static final String PATH_USER_ORGS = "/user/orgs";
+	private static final String PATH_ORGS = "/orgs/";
 
 	private static final String ACCEPT_GITHUB_JSON = "application/vnd.github+json";
 	private static final String API_VERSION_VALUE = "2022-11-28";
@@ -190,6 +192,76 @@ public final class GitHubHelper {
 		} catch (Exception e) {
 			classLogger.error("Failed to search GitHub repositories", e);
 			throw new SemossPixelException("Failed to search GitHub repositories: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Lists organizations the authenticated user belongs to.
+	 *
+	 * @param accessToken GitHub OAuth token
+	 * @param page        page number
+	 * @param perPage     page size
+	 * @return organization summaries
+	 */
+	public static List<Map<String, Object>> listUserOrganizations(String accessToken, int page, int perPage) {
+		try {
+			validateToken(accessToken);
+			Map<String, String> headers = buildHeaders(accessToken);
+			StringBuilder url = new StringBuilder(API_BASE + PATH_USER_ORGS);
+			appendPagination(url, page, perPage);
+
+			JsonNode root = readJson(HttpHelperUtility.getRequest(url.toString(), headers, null, null, null));
+			List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+			for (JsonNode item : root) {
+				results.add(toOrganizationMap(item));
+			}
+			return results;
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to list GitHub organizations", e);
+			throw new SemossPixelException("Failed to list GitHub organizations: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Lists repositories for an organization. Returns all repos (including
+	 * private) that the authenticated user can access.
+	 *
+	 * @param accessToken GitHub OAuth token
+	 * @param org         organization login name
+	 * @param page        page number
+	 * @param perPage     page size
+	 * @return repository summaries
+	 */
+	public static List<Map<String, Object>> listOrgRepositories(String accessToken, String org, int page,
+			int perPage) {
+		try {
+			validateToken(accessToken);
+			String safeOrg = org == null ? null : org.trim();
+			if (safeOrg == null || safeOrg.isEmpty()) {
+				throw new SemossPixelException("owner (organization) is required.");
+			}
+			if (!OWNER_PATTERN.matcher(safeOrg).matches()) {
+				throw new SemossPixelException("owner '" + safeOrg
+						+ "' contains invalid characters. Only alphanumeric characters and hyphens are allowed.");
+			}
+			Map<String, String> headers = buildHeaders(accessToken);
+			StringBuilder url = new StringBuilder(API_BASE + PATH_ORGS + encode(safeOrg) + "/repos");
+			appendPagination(url, page, perPage);
+
+			JsonNode root = readJson(HttpHelperUtility.getRequest(url.toString(), headers, null, null, null));
+			List<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
+			for (JsonNode item : root) {
+				results.add(toRepositoryMap(item));
+			}
+			return results;
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to list GitHub organization repositories for {}", org, e);
+			throw new SemossPixelException(
+					"Failed to list GitHub organization repositories: " + e.getMessage(), e);
 		}
 	}
 
@@ -1317,6 +1389,14 @@ public final class GitHubHelper {
 		repoMap.put("stargazers_count", repoNode.path("stargazers_count").asInt());
 		repoMap.put("owner", nullableText(repoNode.path("owner").path("login")));
 		return repoMap;
+	}
+
+	private static Map<String, Object> toOrganizationMap(JsonNode orgNode) {
+		Map<String, Object> orgMap = new HashMap<String, Object>();
+		orgMap.put("login", nullableText(orgNode.path("login")));
+		orgMap.put("description", nullableText(orgNode.path("description")));
+		orgMap.put("avatar_url", nullableText(orgNode.path("avatar_url")));
+		return orgMap;
 	}
 
 	private static Map<String, Object> toBranchMap(JsonNode branchNode) {

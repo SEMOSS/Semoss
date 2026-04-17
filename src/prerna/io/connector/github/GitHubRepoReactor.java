@@ -76,9 +76,21 @@ public class GitHubRepoReactor extends AbstractReactor {
 				result = GitHubHelper.searchRepositories(accessToken, query.trim(), page, perPage);
 				break;
 			}
+			case "list_orgs": {
+				result = GitHubHelper.listUserOrganizations(accessToken, page, perPage);
+				break;
+			}
+			case "list_org_repos": {
+				String owner = this.keyValue.get(OWNER);
+				if (owner == null || owner.trim().isEmpty()) {
+					throw new SemossPixelException(OWNER + " (organization name) is required.");
+				}
+				result = GitHubHelper.listOrgRepositories(accessToken, owner.trim(), page, perPage);
+				break;
+			}
 			default:
 				throw new SemossPixelException(
-						"Invalid action '" + action + "'. Valid values are: list_repos, search_repos.");
+						"Invalid action '" + action + "'. Valid values are: list_repos, search_repos, list_orgs, list_org_repos.");
 			}
 
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -94,15 +106,15 @@ public class GitHubRepoReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists or searches GitHub repositories.";
+		return "Lists or searches GitHub repositories, and lists organizations and their repositories.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ACTION.equals(key)) {
-			return "Required action: list_repos or search_repos.";
+			return "Required action: list_repos, search_repos, list_orgs, or list_org_repos.";
 		} else if (OWNER.equals(key)) {
-			return "GitHub username or organization. Optional for list_repos.";
+			return "GitHub username or organization. Optional for list_repos. Required for list_org_repos.";
 		} else if (QUERY.equals(key)) {
 			return "Search query string. Required for search_repos.";
 		} else if (PAGE.equals(key)) {
