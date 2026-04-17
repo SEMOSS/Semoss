@@ -151,7 +151,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 classLogger.warn("No model id attached to room - attempting to clear out tool calls and responses");
                 typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId));
             } else {
-                typeResults.add(detectAndCompact(room, parentMessageId, modelEngine));
+                List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
+                Map<String, Object> detectResult = detectAndCompact(room, parentMessageId, modelEngine, branch);
+                if (detectResult != null) {
+                    typeResults.add(detectResult);
+                }
             }
         } else {
             if (requestedTypes.contains("TOOL_PRUNE")) {
@@ -177,9 +181,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
      * size via LLM summarization.</li>
      * </ul>
      */
-    private Map<String, Object> detectAndCompact(Room room, String messageId, IModelEngine modelEngine) {
+    private Map<String, Object> detectAndCompact(Room room, String messageId, IModelEngine modelEngine,
+            List<AbstractMessage> branch) {
         List<AbstractMessage> messages = room.getMessages();
-        List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
 
         int toolTokens = 0;
         for (AbstractMessage m : branch) {
@@ -197,8 +201,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         if (useToolPruning) {
             return addToolPruneKeyToMessage(messages, messageId);
-        } else {
+        } else if (branch.size() > KEEP_N_TRANSACTIONS * 2) {
             return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS * 2, modelEngine);
+        } else {
+            return null;
         }
     }
 
