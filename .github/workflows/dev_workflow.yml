@@ -93,7 +93,7 @@ jobs:
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -191,7 +191,7 @@ jobs:
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
