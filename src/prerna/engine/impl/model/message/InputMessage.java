@@ -126,10 +126,13 @@ public class InputMessage extends AbstractMessage {
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
 
-		if (hasMediaInputs() && room != null) {
-			for (MessageInputMedia mediaInput : getMediaInfos()) {
-				mediaInput.setRoomFolder(room.getRoomFolderPath());
-				mediaInput.getBase64Data();
+		for (MessagePart part : getParts()) {
+			if (MessagePartType.MEDIA == part.type) {
+				MediaMessagePart mediaMessagePart = (MediaMessagePart) part;
+				if (room != null) {
+					mediaMessagePart.getMediaInfo().setRoomFolder(room.getRoomFolderPath());
+				}
+				mediaMessagePart.getMediaInfo().getBase64Data();
 			}
 		}
 	}
