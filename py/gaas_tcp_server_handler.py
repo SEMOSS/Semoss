@@ -822,32 +822,42 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
         cancel_trace = self._build_cancel_trace(cancel_events)
 
-        # If asset paths are provided, prepend the logic to set the sys.path
+        # Normalize asset_paths once so both the store and the per-exec
+        # path_script see the same list.
         if asset_paths:
-            # Ensure asset_paths is a list for consistent processing
             if isinstance(asset_paths, str):
                 asset_paths = [asset_paths]
+            if not isinstance(asset_paths, list):
+                asset_paths = None
 
-            if isinstance(asset_paths, list) and asset_paths:
-                path_script = ""
-                # Add each path to sys.path
-                # Reverse to maintain order after inserting at 0
-                for asset_path in reversed(asset_paths):
-                    if not asset_path:
-                        continue
-                    path_script += textwrap.dedent(
-                        f"""
-                        import sys
-                        asset_path = r'{asset_path}'
-                        sys.path = [asset_path] + [p for p in sys.path if p != asset_path]
-                        del asset_path
-
-                        """
-                    )
-                command = path_script + command
-
+        # Seed sys.path at the store level FIRST (synchronously, under the
+        # store's lock). This closes the window where the mcp_driver safety
+        # check below - or another concurrent handler thread - could trigger
+        # an import before the per-exec path_script runs.
         store = InsightGlobalStore()
-        insight_globals = store.get_insight_globals(insight_id)
+        insight_globals = store.get_insight_globals(
+            insight_id, asset_paths=asset_paths
+        )
+
+        # If asset paths are provided, prepend the per-exec path script as
+        # defense-in-depth (idempotent with the store-level seeding above).
+        if asset_paths:
+            path_script = ""
+            # Add each path to sys.path
+            # Reverse to maintain order after inserting at 0
+            for asset_path in reversed(asset_paths):
+                if not asset_path:
+                    continue
+                path_script += textwrap.dedent(
+                    f"""
+                    import sys
+                    asset_path = r'{asset_path}'
+                    sys.path = [asset_path] + [p for p in sys.path if p != asset_path]
+                    del asset_path
+
+                    """
+                )
+            command = path_script + command
 
         # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
         if "mcp_driver" in sys.modules and asset_paths:
@@ -1357,13 +1367,57 @@ class InsightGlobalStore:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.insight_globals = {}
+            # Re-entrant so reload_mcp_function -> get_insight_globals
+            # (or any other re-entry on the same thread) does not deadlock.
+            cls._instance._init_lock = threading.RLock()
         return cls._instance
 
-    def get_insight_globals(self, insight_id: str) -> dict:
+    def _seed_sys_path(self, asset_paths):
+        """Atomically prepend asset_paths to sys.path under the store's init
+        lock, deduping. Single STORE_ATTR so other threads only ever observe
+        the old list or a fully-formed new list - never an intermediate state.
+        Caller MUST hold self._init_lock.
+        """
+        if not asset_paths:
+            return
+        if isinstance(asset_paths, str):
+            paths = [asset_paths]
+        else:
+            paths = [p for p in asset_paths if p]
+        if not paths:
+            return
+        sys.path = paths + [p for p in sys.path if p not in paths]
+
+    def get_insight_globals(
+        self, insight_id: str, asset_paths=None
+    ) -> dict:
         if not insight_id:
             return {}
 
-        if insight_id not in self.insight_globals:
+        # Fast path: already initialized AND no new asset_paths to reconcile.
+        if insight_id in self.insight_globals and not asset_paths:
+            return self.insight_globals[insight_id]
+
+        with self._init_lock:
+            # Re-check under the lock (double-checked locking).
+            if insight_id in self.insight_globals:
+                # Insight exists; re-seed sys.path if asset_paths drifted.
+                if asset_paths:
+                    stored = self.insight_globals[insight_id].get(
+                        "__smss_asset_paths__"
+                    )
+                    if isinstance(asset_paths, str):
+                        normalized = [asset_paths]
+                    else:
+                        normalized = list(asset_paths)
+                    if stored != normalized:
+                        self._seed_sys_path(normalized)
+                        self.insight_globals[insight_id][
+                            "__smss_asset_paths__"
+                        ] = normalized
+                return self.insight_globals[insight_id]
+
+            # First-time initialization for this insight.
             original_import = __import__
             forbidden_imports = {"socket", "subprocess"}
             forbidden_attributes = {
@@ -1418,16 +1472,21 @@ class InsightGlobalStore:
                 """
                 import importlib
 
-                if "mcp_driver" in sys.modules:
-                    # Use importlib.reload for a proper reload
-                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
-                else:
-                    # First-time import
-                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
+                # Serialize against insight initialization / re-seeding so
+                # mcp_driver resolution cannot interleave with another
+                # insight's first-time sys.path seeding. RLock allows the
+                # current thread to re-enter the store if needed.
+                with InsightGlobalStore()._init_lock:
+                    if "mcp_driver" in sys.modules:
+                        # Use importlib.reload for a proper reload
+                        mcp_module = importlib.reload(sys.modules["mcp_driver"])
+                    else:
+                        # First-time import
+                        mcp_module = secure_import("mcp_driver", globals=globals_dict)
 
-                # Inject the newly loaded module into the current insight's globals
-                globals_dict["mcp_driver"] = mcp_module
-                return mcp_module
+                    # Inject the newly loaded module into the current insight's globals
+                    globals_dict["mcp_driver"] = mcp_module
+                    return mcp_module
 
             # First-time initialization: build the globals dict
             globals_dict = {
@@ -1451,6 +1510,19 @@ class InsightGlobalStore:
             globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
                 globals_dict
             )
+
+            # Seed sys.path BEFORE publishing the globals dict so any thread
+            # that observes the new entry also observes the new sys.path.
+            if asset_paths:
+                if isinstance(asset_paths, str):
+                    normalized = [asset_paths]
+                else:
+                    normalized = list(asset_paths)
+                self._seed_sys_path(normalized)
+                globals_dict["__smss_asset_paths__"] = normalized
+            else:
+                globals_dict["__smss_asset_paths__"] = []
+
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
