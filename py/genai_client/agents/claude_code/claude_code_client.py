@@ -67,7 +67,7 @@ class ClaudeCodeClient:
             # stderr=_stderr_handler,
             thinking={"type": "enabled", "budget_tokens": 100000},
             permission_mode="bypassPermissions",
-            max_turns=20,
+            max_turns=50,
             setting_sources=["project"],
             model=self.configuration.model,
             cwd=self.configuration.cwd_path,
