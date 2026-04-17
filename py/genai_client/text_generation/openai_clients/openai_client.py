@@ -137,12 +137,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
 
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
-                openai_messages.update(self.model_settings.global_param_override)
-
             if self.model_settings.model_type == "image":
                 return self.image_client.ask(openai_messages, **kwargs)
             if self.chat_type == "chat-completion":
