@@ -839,9 +839,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         f"""
                         import sys
                         asset_path = r'{asset_path}'
-                        if asset_path in sys.path:
-                            sys.path.remove(asset_path)
-                        sys.path.insert(0, asset_path)
+                        sys.path = [asset_path] + [p for p in sys.path if p != asset_path]
                         del asset_path
 
                         """
