@@ -41,7 +41,8 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 			Map<String, Object> inputMap = getInputFieldMap();
 			if (inputMap == null || inputMap.isEmpty()) {
-				throw new SemossPixelException("Provide a map of fields to update.");
+				throw new SemossPixelException(
+						"paramMap is required and must be passed as a JSON object / MAP");
 			}
 
 			Map<String, Object> fieldMap = new HashMap<>(inputMap);
@@ -118,7 +119,7 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates an existing Jira issue. Only accepts editable issue fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
+		return "Updates an existing Jira ticket. Only accepts editable ticket fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
 	}
 
 	@Override
@@ -126,7 +127,7 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 		if (key.equals(JIRAID)) {
 			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
 		} else if (key.equals(PARAM_MAP)) {
-			return "Required map of editable field key-value pairs as returned by JiraGetUpdateFields. Also accepts status (target status name) or transition (transition id or name) for workflow changes.";
+			return "Required object / MAP of editable field key-value pairs as returned by JiraGetUpdateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string. Also accepts status (target status name) or transition (transition id or name) for workflow changes.";
 		}
 		return super.getDescriptionForKey(key);
 	}

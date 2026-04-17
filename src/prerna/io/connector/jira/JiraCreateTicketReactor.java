@@ -37,7 +37,8 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 			Map<String, Object> fieldMap = getInputFieldMap();
 			if (fieldMap == null || fieldMap.isEmpty()) {
-				throw new SemossPixelException("Input map of field key-value pairs is required.");
+				throw new SemossPixelException(
+						"paramMap is required and must be passed as a JSON object / MAP");
 			}
 
 			Map<String, Object> result = JiraHelper.createIssueFromMap(accessToken, baseUrl, fieldMap);
@@ -70,13 +71,13 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates a new Jira issue. Only accepts issue creation fields as returned by JiraGetCreateFields. Returns the created issue id and key.";
+		return "Creates a new Jira ticket. Only accepts ticket creation fields as returned by JiraGetCreateFields. Returns the created ticket id and key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PARAM_MAP)) {
-			return "Required map of issue creation field key-value pairs as returned by JiraGetCreateFields.";
+			return "Required object / MAP of ticket creation field key-value pairs as returned by JiraGetCreateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string.";
 		}
 		return super.getDescriptionForKey(key);
 	}
