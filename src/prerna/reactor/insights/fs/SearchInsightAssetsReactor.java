@@ -41,6 +41,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
+import prerna.util.Utility;
 
 public class SearchInsightAssetsReactor extends AbstractReactor {
 
@@ -64,7 +65,7 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 
 		// Normalize relative path
 		if (relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim().replace('\\', '/');
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if (!relativeFilePath.isEmpty() && !relativeFilePath.startsWith("/")) {
 				relativeFilePath = "/" + relativeFilePath;
 			}

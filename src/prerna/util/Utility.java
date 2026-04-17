@@ -3719,6 +3719,31 @@ public final class Utility {
 	}
 
 	/**
+	 *
+	 * @param filePaths
+	 * @return
+	 */
+	public static List<String> normalizeFilePaths(List<String> filePaths) {
+		if (filePaths == null) {
+			throw new NullPointerException("File paths cannot be null");
+		}
+
+		List<String> normalizedPaths = new ArrayList<>(filePaths.size());
+		for (String rawFilePath : filePaths) {
+			if (rawFilePath == null) {
+				throw new NullPointerException("File path cannot be null");
+			}
+
+			String normalizedPath = normalizePath(rawFilePath.trim());
+			if (normalizedPath == null || normalizedPath.isEmpty()) {
+				throw new IllegalArgumentException("Must provide a valid filePath");
+			}
+			normalizedPaths.add(normalizedPath);
+		}
+		return normalizedPaths;
+	}
+
+	/**
 	 * Loads the properties from a specified properties file.
 	 * 
 	 * @param filePath String of the name of the properties file to be loaded.
