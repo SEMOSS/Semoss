@@ -104,6 +104,12 @@ class SEMOSSMessageBuilder:
                         )
                         process_parts.append(tool_result_part)
 
+                    elif p.get("type") == "THINKING":
+                        thinking_part = SEMOSSThinkingMessagePart(
+                            thinking=p.get("thinking")
+                        )
+                        process_parts.append(thinking_part)
+
                     else:
                         # For unknown part types, we can either skip or include as unknown
                         process_parts.append(SEMOSSUnknownMessagePart(data=p))

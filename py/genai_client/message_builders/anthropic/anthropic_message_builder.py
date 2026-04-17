@@ -765,7 +765,10 @@ class AnthropicMessageBuilder:
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
-            messages=[message.model_dump(mode="json", exclude_none=True) for message in history],
+            messages=[
+                message.model_dump(mode="json", exclude_none=True)
+                for message in history
+            ],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),

@@ -642,7 +642,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
             if content_type == "thinking":
                 parts.append(
-                    {"type": "THINKING", "thinking": content.get("final_response", "")}
+                    {
+                        "type": "THINKING",
+                        "thinking": content.get("final_response", ""),
+                        "signature": content.get("signature", None),
+                    }
                 )
 
             elif content_type == "text":

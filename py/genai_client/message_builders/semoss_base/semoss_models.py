@@ -142,6 +142,7 @@ class SEMOSSThinkingMessagePart(BaseModel):
 
     thinking: str
     type: Literal[SEMOSSMessagePartType.THINKING] = SEMOSSMessagePartType.THINKING
+    signature: Optional[str] = None
 
 
 class SEMOSSToolCallMessagePart(BaseModel):
