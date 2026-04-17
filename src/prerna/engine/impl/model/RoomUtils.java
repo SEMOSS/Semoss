@@ -101,15 +101,15 @@ public final class RoomUtils {
 	 * Ensures a Room exists: creates it if necessary, then loads it for the given
 	 * user/insight.
 	 *
-	 * @param roomId      requested room id; when null/blank the insight id is used
-	 * @param insight     active insight context
-	 * @param modelEngine model engine associated with the room (optional)
-	 * @param question    initial user question used for default room naming
-	 * @param workspaceId optional workspace id to associate with the room
-	 * @param options     optional room options payload
-	 * @param context       optional room context/system prompt
-	 * @param projectId     optional project id override
-	 * @param parentRoomId  optional parent room id for sub-conversations
+	 * @param roomId       requested room id; when null/blank the insight id is used
+	 * @param insight      active insight context
+	 * @param modelEngine  model engine associated with the room (optional)
+	 * @param question     initial user question used for default room naming
+	 * @param workspaceId  optional workspace id to associate with the room
+	 * @param options      optional room options payload
+	 * @param context      optional room context/system prompt
+	 * @param projectId    optional project id override
+	 * @param parentRoomId optional parent room id for sub-conversations
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
@@ -553,6 +553,8 @@ public final class RoomUtils {
 				try {
 					byte[] bytes = Base64.getDecoder().decode(base64Data);
 					Files.write(target, bytes);
+					// this is meant to be relative to the room
+					media.setFileLocation(fileName);
 					pushToCloud = true;
 				} catch (Exception e) {
 					classLogger.warn("Unable to persist media part to " + target, e);
