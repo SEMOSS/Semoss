@@ -22,7 +22,7 @@ on:
 jobs:
   build:
 
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container:
       image: quay.io/semoss/test-quay:ubuntu-dind # Keeping the same dind image for now
     #runs-on: ubuntu-latest
