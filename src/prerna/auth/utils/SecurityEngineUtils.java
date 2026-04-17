@@ -3239,19 +3239,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
-				"low_database_name"));
+				"low_engine_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -3318,7 +3318,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		qs1.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
