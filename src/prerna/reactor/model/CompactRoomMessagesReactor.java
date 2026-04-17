@@ -60,7 +60,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     private static Logger classLogger = LogManager.getLogger(CompactRoomMessagesReactor.class);
     private static final String COMPACTION_TYPES_KEY = "compactionTypes";
     private static final String AUTO_DETECT_KEY = "autoDetect";
-    private static final Integer KEEP_N_TRANSACTIONS = 3;
+    private static final Integer KEEP_N_TRANSACTIONS = 2;
 
     /**
      * Fraction of the context window consumed by tool-result tokens that triggers
@@ -235,7 +235,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // Walk the parent chain from messageId to root, producing an ordered branch
         List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
         if (branch.size() <= keepN) {
-            return null; // not enough messages to warrant summarization
+            throw new IllegalArgumentException(
+                    "Not enough messages in chat to summarize - need at least " + (keepN + 1));
         }
 
         int splitPoint = branch.size() - keepN;
