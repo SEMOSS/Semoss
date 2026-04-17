@@ -292,7 +292,7 @@ public final class JiraHelper {
 	 * @return map containing {@code id}, {@code jiraid}, and {@code fields}
 	 */
 	@SuppressWarnings("unchecked")
-	public static Map<String, Object> readTicket(String accessToken, String baseUrl, String issueKey) {
+	public static Map<String, Object> readIssue(String accessToken, String baseUrl, String issueKey) {
 		try {
 			validateJiraContext(accessToken, baseUrl);
 			Map<String, String> headers = buildHeaders(accessToken);
@@ -301,18 +301,18 @@ public final class JiraHelper {
 					headers, null, null, null);
 
 			JsonNode root = OBJECT_MAPPER.readTree(response);
-			Map<String, Object> ticket = new HashMap<>();
-			ticket.put(FIELD_ID, root.path(FIELD_ID).asText());
-			ticket.put(FIELD_JIRA_ID, root.path(FIELD_KEY).asText());
+			Map<String, Object> issue = new HashMap<>();
+			issue.put(FIELD_ID, root.path(FIELD_ID).asText());
+			issue.put(FIELD_JIRA_ID, root.path(FIELD_KEY).asText());
 			JsonNode fieldsNode = root.path(FIELD_FIELDS);
 			if (fieldsNode.isObject()) {
-				ticket.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
+				issue.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
 			}
-			return ticket;
+			return issue;
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Error in readTicket '{}': {}", issueKey, e.getMessage(), e);
+			classLogger.error("Error in readIssue '{}': {}", issueKey, e.getMessage(), e);
 			throw new SemossPixelException("Failed to retrieve issue '" + issueKey + "'. Error: " + e.getMessage());
 		}
 	}
@@ -1505,14 +1505,14 @@ public final class JiraHelper {
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> parseIssueSummary(JsonNode issue) {
-		Map<String, Object> ticket = new HashMap<>();
-		ticket.put(FIELD_ID, issue.path(FIELD_ID).asText());
-		ticket.put(FIELD_JIRA_ID, issue.path(FIELD_KEY).asText());
+		Map<String, Object> result = new HashMap<>();
+		result.put(FIELD_ID, issue.path(FIELD_ID).asText());
+		result.put(FIELD_JIRA_ID, issue.path(FIELD_KEY).asText());
 		JsonNode fieldsNode = issue.path(FIELD_FIELDS);
 		if (fieldsNode.isObject()) {
-			ticket.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
+			result.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
 		}
-		return ticket;
+		return result;
 	}
 
 	/**

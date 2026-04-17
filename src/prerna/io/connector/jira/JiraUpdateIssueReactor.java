@@ -16,14 +16,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraUpdateTicketReactor extends AbstractReactor {
+public class JiraUpdateIssueReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraUpdateTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraUpdateIssueReactor.class);
 
 	private static final String JIRAID = "jiraid";
 	private static final String PARAM_MAP = "paramMap";
 
-	public JiraUpdateTicketReactor() {
+	public JiraUpdateIssueReactor() {
 		this.keysToGet = new String[] { JIRAID, PARAM_MAP };
 		this.keyRequired = new int[] { 1, 1 };
 	}
@@ -74,12 +74,12 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 			result.put("success", true);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while updating a Jira ticket", e);
+			classLogger.error("Error while updating a Jira issue", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to update a Jira ticket", e);
+			classLogger.error("Failed to update a Jira issue", e);
 			throw new SemossPixelException(
-					"An error occurred while updating the Jira ticket. Error message: " + e.getMessage());
+					"An error occurred while updating the Jira issue. Error message: " + e.getMessage());
 		}
 	}
 
@@ -119,7 +119,7 @@ public class JiraUpdateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates an existing Jira ticket. Only accepts editable ticket fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
+		return "Updates an existing Jira issue. Only accepts editable issue fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
 	}
 
 	@Override

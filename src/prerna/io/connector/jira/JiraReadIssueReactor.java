@@ -13,13 +13,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraReadTicketReactor extends AbstractReactor {
+public class JiraReadIssueReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraReadTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraReadIssueReactor.class);
 
 	private static final String JIRAID = "jiraid";
 
-	public JiraReadTicketReactor() {
+	public JiraReadIssueReactor() {
 		this.keysToGet = new String[] { JIRAID };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -33,15 +33,15 @@ public class JiraReadTicketReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.readTicket(accessToken, baseUrl, issueKey);
+			Map<String, Object> result = JiraHelper.readIssue(accessToken, baseUrl, issueKey);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while reading a Jira ticket", e);
+			classLogger.error("Error while reading a Jira issue", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to read a Jira ticket", e);
+			classLogger.error("Failed to read a Jira issue", e);
 			throw new SemossPixelException(
-					"An error occurred while reading the Jira ticket. Error message: " + e.getMessage());
+					"An error occurred while reading the Jira issue. Error message: " + e.getMessage());
 		}
 	}
 

@@ -42,7 +42,7 @@ public class JiraGetTransitionsReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve Jira transitions", e);
 			throw new SemossPixelException(
-					"An error occurred while retrieving Jira transitions for the ticket. Error message: " + e.getMessage());
+					"An error occurred while retrieving Jira transitions for the issue. Error message: " + e.getMessage());
 		}
 	}
 

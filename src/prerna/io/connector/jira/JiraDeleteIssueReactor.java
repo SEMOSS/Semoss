@@ -13,15 +13,15 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraDeleteTicketReactor extends AbstractReactor {
+public class JiraDeleteIssueReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraDeleteTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraDeleteIssueReactor.class);
 
 	private static final String PROJECT = "project";
 	private static final String JIRAID = "jiraid";
 	private static final String DELETE_SUBTASKS   = "deleteSubtasks";
 
-	public JiraDeleteTicketReactor() {
+	public JiraDeleteIssueReactor() {
 		this.keysToGet = new String[] { PROJECT, JIRAID, DELETE_SUBTASKS };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -41,12 +41,12 @@ public class JiraDeleteTicketReactor extends AbstractReactor {
 			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, projectName, jiraId, deleteSubtasks);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while deleting a Jira ticket", e);
+			classLogger.error("Error while deleting a Jira issue", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete a Jira ticket", e);
+			classLogger.error("Failed to delete a Jira issue", e);
 			throw new SemossPixelException(
-					"An error occurred while deleting the Jira ticket. Error message: " + e.getMessage());
+					"An error occurred while deleting the Jira issue. Error message: " + e.getMessage());
 		}
 	}
 

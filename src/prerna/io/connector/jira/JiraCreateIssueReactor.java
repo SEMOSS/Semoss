@@ -15,13 +15,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class JiraCreateTicketReactor extends AbstractReactor {
+public class JiraCreateIssueReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(JiraCreateTicketReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(JiraCreateIssueReactor.class);
 
 	private static final String PARAM_MAP = "paramMap";
 
-	public JiraCreateTicketReactor() {
+	public JiraCreateIssueReactor() {
 		this.keysToGet = new String[] { PARAM_MAP };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -44,12 +44,12 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 			Map<String, Object> result = JiraHelper.createIssueFromMap(accessToken, baseUrl, fieldMap);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error while creating a Jira ticket", e);
+			classLogger.error("Error while creating a Jira issue", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to create a Jira ticket", e);
+			classLogger.error("Failed to create a Jira issue", e);
 			throw new SemossPixelException(
-					"An error occurred while creating the Jira ticket. Error message: " + e.getMessage());
+					"An error occurred while creating the Jira issue. Error message: " + e.getMessage());
 		}
 	}
 
@@ -71,13 +71,13 @@ public class JiraCreateTicketReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Creates a new Jira ticket. Only accepts ticket creation fields as returned by JiraGetCreateFields. Returns the created ticket id and key.";
+		return "Creates a new Jira issue. Only accepts issue creation fields as returned by JiraGetCreateFields. Returns the created issue id and key.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(PARAM_MAP)) {
-			return "Required object / MAP of ticket creation field key-value pairs as returned by JiraGetCreateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string.";
+			return "Required object / MAP of issue creation field key-value pairs as returned by JiraGetCreateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string.";
 		}
 		return super.getDescriptionForKey(key);
 	}
