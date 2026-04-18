@@ -481,6 +481,89 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	}
 
 	@Override
+	public boolean supportsHybridSearch() {
+		return true;
+	}
+
+	@Override
+	public List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+		if (!this.modelPropsLoaded) {
+			verifyModelProps();
+		}
+
+		IModelEngine engine = Utility.getModel(this.embedderEngineId);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine
+				.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
+
+		// build hybrid query combining knn (dense) + match (sparse keyword)
+		JsonObject search = new JsonObject();
+		search.addProperty("size", limit);
+		{
+			JsonObject query = new JsonObject();
+			JsonObject bool = new JsonObject();
+			JsonArray must = new JsonArray();
+			JsonArray should = new JsonArray();
+
+			// dense vector search via knn
+			JsonObject knnWrapper = new JsonObject();
+			JsonObject knn = new JsonObject();
+			knn.add("query_vector", convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+			knn.addProperty("k", limit);
+			knn.addProperty("field", this.embeddings);
+			knnWrapper.add("knn", knn);
+			must.add(knnWrapper);
+
+			// sparse keyword search via match on Content field
+			JsonObject matchWrapper = new JsonObject();
+			JsonObject match = new JsonObject();
+			match.addProperty(VectorDatabaseCSVTable.CONTENT, searchStatement);
+			matchWrapper.add("match", match);
+			should.add(matchWrapper);
+
+			bool.add("must", must);
+			bool.add("should", should);
+			query.add("bool", bool);
+			search.add("query", query);
+		}
+
+		classLogger.debug("ELASTIC HYBRID SEARCH QUERY : " + search.toString());
+
+		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");
+
+		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
+		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
+		JsonArray hits = getHitsFromSearch(responseJson);
+
+		List<Map<String, Object>> results = new ArrayList<>();
+		for (JsonElement e : hits) {
+			Map<String, Object> thisMatch = new HashMap<>();
+			results.add(thisMatch);
+
+			JsonObject hitJson = e.getAsJsonObject();
+			Double score = hitJson.get("_score").getAsDouble();
+			thisMatch.put("Score", score);
+			thisMatch.put("ScoreType", "hybrid");
+
+			JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+			thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+			thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+		}
+		return results;
+	}
+
+	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
 		final String UNIQUE_SOURCES = "unique_sources";
 		// construct search query

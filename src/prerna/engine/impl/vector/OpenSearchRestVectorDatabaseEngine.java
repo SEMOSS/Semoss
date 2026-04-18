@@ -182,6 +182,35 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			""";
 	private static final String DEFAULT_NEAREST_NEIGHBOR_RESULTS_PATH = "$.hits.hits[*]";
 
+	private static final String HYBRID_SEARCH_QUERY = "HYBRID_SEARCH_QUERY";
+	private static final String DEFAULT_HYBRID_SEARCH_QUERY = """
+				{
+				  "from": ${FROM},
+				  "size": ${SIZE},
+				  "query": {
+				    "hybrid": {
+				      "queries": [
+				        {
+				          "knn": {
+				            "${EMBEDDINGS}": {
+				              "vector": ${VECTOR},
+				              "k": ${K}
+				            }
+				          }
+				        },
+				        {
+				          "match": {
+				            "Content": {
+				              "query": ${QUERY}
+				            }
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+			""";
+
 	private String clusterUrl = null;
 	private String username = null;
 	private String password = null;
@@ -205,6 +234,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private String listAllRecordsResultsPath = null;
 	private String nearestNeighborQuery = null;
 	private String nearestNeighborResultsPath = null;
+	private String hybridSearchQuery = null;
 
 	private Map<String, String> otherPropsToType = new HashMap<>();
 
@@ -322,6 +352,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		nearestNeighborResultsPath = (String) ObjectUtils.firstNonNull(
 				StringUtils.trimToNull(this.smssProp.getProperty(NEAREST_NEIGHBOR_RESULTS_PATH)),
 				DEFAULT_NEAREST_NEIGHBOR_RESULTS_PATH);
+		hybridSearchQuery = (String) ObjectUtils.firstNonNull(
+				StringUtils.trimToNull(this.smssProp.getProperty(HYBRID_SEARCH_QUERY)),
+				DEFAULT_HYBRID_SEARCH_QUERY);
 	}
 
 	@Override
@@ -698,6 +731,77 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 
 		return vectorSearchResults;
+	}
+
+	@Override
+	public boolean supportsHybridSearch() {
+		return true;
+	}
+
+	@Override
+	public List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		Gson gson = new Gson();
+
+		String vectorString = "";
+		if (hybridSearchQuery.contains("${VECTOR}")) {
+			if (!this.modelPropsLoaded) {
+				verifyModelProps();
+			}
+			if (insight == null) {
+				throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+			}
+			IModelEngine engine = Utility.getModel(this.embedderEngineId);
+			EmbeddingsModelEngineResponse embeddingsResponse = engine
+					.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
+			vectorString = gson.toJson(convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+		}
+
+		int size = (limit == null) ? queryLimit : limit.intValue();
+		int k = Math.min(size, 9999);
+
+		Map<String, String> replacements = new HashMap<>();
+		replacements.put("FROM", "0");
+		replacements.put("SIZE", Integer.toString(size));
+		replacements.put("QUERY", gson.toJson(searchStatement));
+		replacements.put("EMBEDDINGS", this.embeddings);
+		replacements.put("VECTOR", vectorString);
+		replacements.put("K", Integer.toString(k));
+
+		StringSubstitutor substitutor = new StringSubstitutor(replacements);
+		substitutor.setEnableSubstitutionInVariables(true);
+		String searchString = substitutor.replace(hybridSearchQuery);
+
+		Configuration configuration = Configuration.builder().jsonProvider(new GsonJsonProvider()).build();
+
+		try {
+			String searchResponse = getSearchResponse(searchString);
+			DocumentContext jsonContext = JsonPath.using(configuration).parse(searchResponse);
+			JsonArray hits = jsonContext.read(nearestNeighborResultsPath);
+
+			List<Map<String, Object>> results = new ArrayList<>();
+			for (JsonElement e : hits) {
+				JsonObject hitJson = e.getAsJsonObject();
+				Map<String, Object> thisMatch = new HashMap<>();
+				results.add(thisMatch);
+
+				Double score = hitJson.get("_score").getAsDouble();
+				thisMatch.put("Score", score);
+				thisMatch.put("ScoreType", "hybrid");
+
+				JsonObject sourceDetails = hitJson.get("_source").getAsJsonObject();
+				thisMatch.put(VectorDatabaseCSVTable.CONTENT, sourceDetails.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.SOURCE, sourceDetails.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.MODALITY, sourceDetails.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.DIVIDER, sourceDetails.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.PART, sourceDetails.get(VectorDatabaseCSVTable.PART).getAsString());
+				thisMatch.put(VectorDatabaseCSVTable.TOKENS, sourceDetails.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+			}
+			return results;
+		} catch (Exception e) {
+			classLogger.warn("Hybrid search failed (Neural Search plugin may not be installed), falling back to vector-only", e);
+			return nearestNeighborCall(insight, searchStatement, limit, parameters);
+		}
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })

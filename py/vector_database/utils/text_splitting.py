@@ -190,6 +190,14 @@ def split_text(
             document_name=document_name,
             cfg_tokenizer=cfg_tokenizer,
         )
+    elif chunking_method.lower() == "markdown":
+        text_results_df = split_text_by_markdown(
+            text_results_df=text_results_df,
+            document_name=document_name,
+            cfg_tokenizer=cfg_tokenizer,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+        )
     elif chunking_method.lower() == "recursive":
         text_results_df = split_text_recursively(
             text_results_df=text_results_df,
@@ -569,6 +577,55 @@ def split_text_semantically(
                 chunk,
             ]
             for part, chunk in enumerate(chunks)
+        ],
+        columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
+    )
+
+    return text_results_df
+
+
+def split_text_by_markdown(
+    text_results_df: pd.DataFrame,
+    document_name: str,
+    cfg_tokenizer,
+    chunk_size: int = 512,
+    chunk_overlap: int = 0,
+) -> pd.DataFrame:
+    """
+    Splits text at markdown header boundaries for structure-aware chunking.
+
+    Args:
+        text_results_df (`pd.DataFrame`): DataFrame containing text data with 'Content' column.
+        document_name (`str`): Name of the document being processed.
+        cfg_tokenizer: Tokenizer object used to count tokens.
+        chunk_size (`int`): Maximum characters per chunk.
+        chunk_overlap (`int`): Characters to overlap between chunks.
+
+    Returns:
+        A new DataFrame with columns 'Source', 'Modality', 'Divider', 'Part', 'Tokens', 'Content'.
+    """
+    from .markdown_splitter import MarkdownSplitter
+
+    full_text = " ".join(text_results_df["Content"].apply(clean_up_string))
+
+    splitter = MarkdownSplitter(
+        max_chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+    )
+
+    sections = splitter.split(full_text)
+
+    text_results_df = pd.DataFrame(
+        [
+            [
+                document_name,
+                "text",
+                section.get("header_path", "0"),
+                part,
+                cfg_tokenizer.count_tokens(section["content"]),
+                section["content"],
+            ]
+            for part, section in enumerate(sections)
         ],
         columns=["Source", "Modality", "Divider", "Part", "Tokens", "Content"],
     )

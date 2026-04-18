@@ -54,11 +54,14 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(VectorDatabaseQueryReactor.class);
 
+	private static final String HYBRID_SEARCH_KEY = "hybridSearch";
+
 	public VectorDatabaseQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_FILTERS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
+				HYBRID_SEARCH_KEY };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -99,7 +102,21 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			paramMap.put(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY, filters);
 		}
 
-		Object output = eng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
+		Object output;
+		// Hybrid search: default from engine SMSS config, optional Pixel override
+		String hybridOverride = getString(HYBRID_SEARCH_KEY);
+		boolean hybridSearch;
+		if (hybridOverride != null && !hybridOverride.isEmpty()) {
+			hybridSearch = Boolean.parseBoolean(hybridOverride);
+		} else {
+			hybridSearch = Boolean.parseBoolean(
+					eng.getSmssProp().getProperty("HYBRID_SEARCH_ENABLED", "false"));
+		}
+		if (hybridSearch && eng.supportsHybridSearch()) {
+			output = eng.hybridSearch(this.insight, searchStatement, limit, paramMap);
+		} else {
+			output = eng.nearestNeighbor(this.insight, searchStatement, limit, paramMap);
+		}
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
@@ -136,7 +153,8 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 				Performs a nearest neighbor search in a vector database. \
 				Takes a search query, converts it to an embedding, and returns the most similar documents \
 				from the vector database based on vector similarity. \
-				Supports optional filtering on document content and metadata.\
+				Supports optional filtering on document content and metadata. \
+				When hybridSearch is true, combines vector similarity with keyword search for improved retrieval.\
 				""";
 	}
 
@@ -152,6 +170,8 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			return "Optional filters to apply on the document content before returning results";
 		} else if (key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
 			return "Optional filters to apply on the document metadata before returning results";
+		} else if (key.equals(HYBRID_SEARCH_KEY)) {
+			return "Optional override for hybrid search. If not provided, reads HYBRID_SEARCH_ENABLED from the engine's SMSS configuration. When true, combines vector similarity with keyword search";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 

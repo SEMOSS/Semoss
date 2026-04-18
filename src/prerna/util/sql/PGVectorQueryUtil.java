@@ -79,6 +79,86 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 				+ "CONTENT TEXT "
 				+ ");";
 	}
+
+	/**
+	 * Add tsvector column and GIN index for full-text search hybrid queries.
+	 * Safe to call on existing tables — uses IF NOT EXISTS / checks column existence.
+	 */
+	public String addFullTextSearchColumn(String table) {
+		return "DO $$ BEGIN "
+				+ "IF NOT EXISTS ("
+				+ "  SELECT 1 FROM information_schema.columns "
+				+ "  WHERE table_name = lower('" + table + "') AND column_name = 'content_tsv'"
+				+ ") THEN "
+				+ "  ALTER TABLE " + table + " ADD COLUMN content_tsv TSVECTOR "
+				+ "  GENERATED ALWAYS AS (to_tsvector('english', COALESCE(CONTENT, ''))) STORED; "
+				+ "END IF; "
+				+ "END $$;";
+	}
+
+	/**
+	 * Create a GIN index on the tsvector column for efficient full-text search.
+	 */
+	public String createFullTextSearchIndex(String table) {
+		return "CREATE INDEX IF NOT EXISTS idx_" + table.toLowerCase() + "_content_tsv "
+				+ "ON " + table + " USING GIN (content_tsv);";
+	}
+
+	/**
+	 * Build a hybrid search query that combines dense vector similarity with
+	 * sparse keyword (full-text) search using Reciprocal Rank Fusion (RRF).
+	 * 
+	 * @param table         the embeddings table name
+	 * @param queryVector   the query embedding vector as a string (e.g., "[0.1, 0.2, ...]")
+	 * @param queryText     the original search query text
+	 * @param distanceMethod "Cosine Similarity" or "Euclidean"
+	 * @param limit         max results
+	 * @return hybrid SQL query string
+	 */
+	public String buildHybridSearchQuery(String table, String queryVector, String queryText,
+			String distanceMethod, int limit) {
+		String sanitizedQuery = queryText.replace("'", "''");
+		int rrfK = 60;
+		int retrievalWindow = Math.max(limit * 3, 20);
+
+		String vectorScoreExpr;
+		String vectorOrderDir;
+		if ("Cosine Similarity".equalsIgnoreCase(distanceMethod)) {
+			vectorScoreExpr = "1 - (EMBEDDING <=> '" + queryVector + "')";
+			vectorOrderDir = "EMBEDDING <=> '" + queryVector + "'";
+		} else {
+			vectorScoreExpr = "POWER((EMBEDDING <-> '" + queryVector + "'), 2)";
+			vectorOrderDir = "EMBEDDING <-> '" + queryVector + "'";
+		}
+
+		return "WITH semantic AS ("
+				+ "  SELECT ID, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT, "
+				+ vectorScoreExpr + " AS vector_score, "
+				+ "  ROW_NUMBER() OVER (ORDER BY " + vectorOrderDir + ") AS rank "
+				+ "  FROM " + table
+				+ "  ORDER BY " + vectorOrderDir
+				+ "  LIMIT " + retrievalWindow
+				+ "), "
+				+ "keyword AS ("
+				+ "  SELECT ID, SOURCE, MODALITY, DIVIDER, PART, TOKENS, CONTENT, "
+				+ "  ts_rank(content_tsv, plainto_tsquery('english', '" + sanitizedQuery + "')) AS keyword_score, "
+				+ "  ROW_NUMBER() OVER (ORDER BY ts_rank(content_tsv, plainto_tsquery('english', '" + sanitizedQuery + "')) DESC) AS rank "
+				+ "  FROM " + table
+				+ "  WHERE content_tsv @@ plainto_tsquery('english', '" + sanitizedQuery + "')"
+				+ "  LIMIT " + retrievalWindow
+				+ ") "
+				+ "SELECT COALESCE(s.ID, k.ID) AS ID, "
+				+ "  COALESCE(s.SOURCE, k.SOURCE) AS Source, "
+				+ "  COALESCE(s.MODALITY, k.MODALITY) AS Modality, "
+				+ "  COALESCE(s.DIVIDER, k.DIVIDER) AS Divider, "
+				+ "  COALESCE(s.PART, k.PART) AS Part, "
+				+ "  COALESCE(s.TOKENS, k.TOKENS) AS Tokens, "
+				+ "  COALESCE(s.CONTENT, k.CONTENT) AS Content, "
+				+ "  COALESCE(1.0/(" + rrfK + " + s.rank), 0) + COALESCE(1.0/(" + rrfK + " + k.rank), 0) AS Score "
+				+ "FROM semantic s FULL OUTER JOIN keyword k ON s.ID = k.ID "
+				+ "ORDER BY Score DESC "
+				+ "LIMIT " + limit;
+	}
 	
 	public String createEmbeddingsMetadataTable(String table) {
 		return "CREATE TABLE IF NOT EXISTS "+table+"("

@@ -199,6 +199,37 @@ public interface IVectorDatabaseEngine extends IEngine {
 	String getDocumentsFilesPath(String indexClass);
 
 	/**
+	 * Perform a hybrid search combining dense vector similarity (semantic) with
+	 * sparse keyword matching (BM25/full-text). Results are fused using Reciprocal
+	 * Rank Fusion (RRF) to produce a unified ranking.
+	 * 
+	 * The default implementation delegates to {@link #nearestNeighbor} (vector-only).
+	 * Engine implementations should override this to provide native hybrid search
+	 * (e.g., PGVector with tsvector, ElasticSearch with knn+match).
+	 * 
+	 * @param insight
+	 * @param searchStatement
+	 * @param limit
+	 * @param parameters
+	 * @return
+	 */
+	default List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		return nearestNeighbor(insight, searchStatement, limit, parameters);
+	}
+
+	/**
+	 * Check if this engine supports native hybrid search (dense + sparse).
+	 * Engines that override {@link #hybridSearch} should return true.
+	 * 
+	 * @return true if native hybrid search is supported
+	 */
+	@IgnoreEngineLogging
+	default boolean supportsHybridSearch() {
+		return false;
+	}
+
+	/**
 	 * 
 	 * @return
 	 */

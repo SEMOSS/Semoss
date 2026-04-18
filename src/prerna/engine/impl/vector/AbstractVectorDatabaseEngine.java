@@ -654,6 +654,52 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	}
 
 	/**
+	 * Default hybrid search implementation for engines without native hybrid support.
+	 * Performs vector search via {@link #nearestNeighborCall}, then runs Python BM25
+	 * keyword search, and fuses results using Reciprocal Rank Fusion (RRF).
+	 * 
+	 * Engine subclasses with native hybrid capabilities (PGVector, ElasticSearch, OpenSearch)
+	 * should override this method for better performance.
+	 */
+	@Override
+	public List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		if (parameters == null) {
+			parameters = new HashMap<String, Object>();
+		}
+
+		// 1. Dense vector search
+		List<Map<String, Object>> vectorResults = nearestNeighborCall(insight, searchStatement, limit, parameters);
+
+		// 2. Sparse keyword search via Python BM25
+		List<Map<String, Object>> keywordResults = bm25KeywordSearch(insight, searchStatement, limit, parameters);
+
+		// 3. If BM25 returned nothing, fall back to vector-only
+		if (keywordResults == null || keywordResults.isEmpty()) {
+			return vectorResults;
+		}
+
+		// 4. Fuse with RRF
+		prerna.rag.retrieval.ReciprocalRankFusion rrf = new prerna.rag.retrieval.ReciprocalRankFusion();
+		int fusedLimit = limit != null ? limit.intValue() : 5;
+		return rrf.fuseByContent(vectorResults, keywordResults, fusedLimit);
+	}
+
+	/**
+	 * Execute BM25 keyword search via the Python layer's BM25Searcher.
+	 * Returns empty list if Python BM25 is not available for this engine.
+	 * 
+	 * Subclasses can override this to provide native keyword search
+	 * (e.g., PGVector's tsvector, ElasticSearch's match query).
+	 */
+	protected List<Map<String, Object>> bm25KeywordSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		// default: no BM25 available for generic engines
+		// FAISS overrides this with its Python-based BM25Searcher
+		return new ArrayList<>();
+	}
+
+	/**
 	 * 
 	 */
 	protected void verifyModelProps() {

@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.text.SimpleDateFormat;
@@ -242,6 +244,10 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		String createMetaTable = pgVectorQueryUtil.createEmbeddingsMetadataTable(metadataTable);
 		execCreateStatement(createMainTable);
 		execCreateStatement(createMetaTable);
+
+		// add full-text search column + GIN index for hybrid search
+		execCreateStatement(pgVectorQueryUtil.addFullTextSearchColumn(table));
+		execCreateStatement(pgVectorQueryUtil.createFullTextSearchIndex(table));
 
 		pgVectorQueryUtil.createOWL(this, table, metadataTable);
 	}
@@ -819,6 +825,59 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 		List<Map<String, Object>> vectorSearchResults = QueryExecutionUtility.flushRsToMap(this, qs);
 		return vectorSearchResults;
+	}
+
+	@Override
+	public boolean supportsHybridSearch() {
+		return true;
+	}
+
+	@Override
+	public List<Map<String, Object>> hybridSearch(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
+		if (insight == null) {
+			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
+		}
+
+		if (!this.modelPropsLoaded) {
+			verifyModelProps();
+		}
+
+		IModelEngine engine = Utility.getModel(this.embedderEngineId);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine
+				.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
+
+		int queryLimit = limit != null ? limit.intValue() : 5;
+		String queryVector = embeddingsResponse.getResponse().get(0).toString();
+
+		String hybridSql = pgVectorQueryUtil.buildHybridSearchQuery(
+				this.vectorTableName, queryVector, searchStatement, this.distanceMethod, queryLimit);
+
+		List<Map<String, Object>> results = new ArrayList<>();
+		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
+		try {
+			conn = getConnection();
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(hybridSql);
+			ResultSetMetaData rsmd = rs.getMetaData();
+			int columnCount = rsmd.getColumnCount();
+			while (rs.next()) {
+				Map<String, Object> row = new HashMap<>();
+				for (int i = 1; i <= columnCount; i++) {
+					row.put(rsmd.getColumnLabel(i), rs.getObject(i));
+				}
+				results.add(row);
+			}
+		} catch (SQLException e) {
+			classLogger.error("Hybrid search failed, falling back to vector-only", e);
+			return nearestNeighborCall(insight, searchStatement, limit, parameters);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(this, conn, stmt, rs);
+		}
+
+		return results;
 	}
 
 	@Override
