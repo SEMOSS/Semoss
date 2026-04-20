@@ -14,7 +14,7 @@ on:
       base_registry:
         description: 'Base registry'
         required: true
-        default: 'docker.io'
+        default: 'public.ecr.aws/docker/library'
       base_image:
         description: 'Base Image'
         required: true
@@ -32,11 +32,11 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     env:
       PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
       COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
-      BASE_REGISTRY: ${{ github.event.inputs.base_registry || 'docker.io' }}
+      BASE_REGISTRY: ${{ github.event.inputs.base_registry || 'public.ecr.aws/docker/library' }}
       BASE_IMAGE: ${{ github.event.inputs.base_image || 'ubuntu' }}
       BASE_TAG: ${{ github.event.inputs.base_tag || '22.04' }}
       RELEASE: ${{ vars.RELEASE }}
