@@ -61,9 +61,10 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
                 ReactorKeysEnum.LIMIT.getKey(),   
                 ReactorKeysEnum.OFFSET.getKey(),  
                 ReactorKeysEnum.SEARCH.getKey(), 
-                ReactorKeysEnum.SORT.getKey() 
+                ReactorKeysEnum.SORT.getKey(),
+                ReactorKeysEnum.PINNED.getKey()
             };
-        this.keyRequired = new int[] {0,0,0,0,0};
+        this.keyRequired = new int[] {0,0,0,0,0,0};
     }
     
 	@Override
@@ -90,6 +91,13 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		if (search != null) {
 			search = Utility.decodeURIComponent(search);
 		}
+
+		// Optional pinned filter: true/false to filter, null/absent to ignore
+		Boolean pinned = null;
+		String pinnedStr = this.keyValue.get(ReactorKeysEnum.PINNED.getKey());
+		if (pinnedStr != null && !pinnedStr.trim().isEmpty()) {
+			pinned = Boolean.parseBoolean(pinnedStr.trim());
+		}
 		     
         // Call new overload of getUserConversations
         List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
@@ -98,7 +106,8 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
             limit,
             offset,
             sortDir,
-            search
+            search,
+            pinned
         );
         
         // Register insights for each room_id returned

@@ -67,6 +67,7 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -1539,10 +1540,16 @@ public class ModelInferenceLogsUtils {
 	 * @param offset    Records to skip for pagination (nullable/0 = none)
 	 * @param sortDir   ASC or DESC - default DESC
 	 * @param search    Optional keyword to search for in room name or context
+	 * @param pinned    Optional pinned filter; true = only pinned, false = only unpinned, null = no filter
 	 * @return List of conversations (maps)
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, null);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1572,6 +1579,21 @@ public class ModelInferenceLogsUtils {
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
+		}
+
+		// PINNED filter
+		// when pinned == true  -> only rooms with PINNED == true
+		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat unset as not pinned)
+		if (pinned != null) {
+			if (pinned.booleanValue()) {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true,
+						PixelDataType.BOOLEAN));
+			} else {
+				SimpleQueryFilter falseFilter = SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", false,
+						PixelDataType.BOOLEAN);
+				SimpleQueryFilter nullFilter = SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", null);
+				qs.addExplicitFilter(new OrQueryFilter(falseFilter, nullFilter));
+			}
 		}
 
 		// LIMIT/OFFSET
