@@ -861,9 +861,7 @@ public class Room {
 
 	/**
 	 * Checks whether the specified message id belongs to an assistant-authored
-	 * output message in this room. This only validates authorship - it does not
-	 * inspect the message contents. Use {@link #hasRatableContent(String)} when
-	 * you also need to confirm the message has user-visible parts.
+	 * output message in this room.
 	 *
 	 * @param messageId message id to validate
 	 * @return {@code true} when a matching assistant output message exists
