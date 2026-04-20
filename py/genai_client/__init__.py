@@ -95,6 +95,11 @@ def __getattr__(name: str) -> Any:
         from .agents.claude_code.claude_code_client import ClaudeCodeClient
 
         return ClaudeCodeClient
+
+    elif name == "LocalWordCountTokenizer":
+        from .tokenizers.local_word_count_tokenizer import LocalWordCountTokenizer
+
+        return LocalWordCountTokenizer
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -179,9 +184,9 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
     # putting this for now, need to implement vertex tokenizer. this will fall back to WordCountTokenizer
     elif (tokenizer_type == "VERTEX") or (tokenizer_type == "BEDROCK"):
-        from .tokenizers.openai_tokenizer import OpenAiTokenizer
+        from .tokenizers.local_word_count_tokenizer import LocalWordCountTokenizer
 
-        return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
+        return LocalWordCountTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
     else:
         raise ValueError("Tokenizer type has not been defined.")
 

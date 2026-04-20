@@ -11,11 +11,9 @@ import glob
 import re
 
 # CFG/SEMOSS packages
-from genai_client import HuggingfaceTokenizer
 from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
 from ..utils.bm25_client import BM25Searcher
-
 
 class FAISSSearcher:
     """
@@ -279,7 +277,7 @@ class FAISSSearcher:
             query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
-        if isinstance(self.tokenizer, HuggingfaceTokenizer):
+        if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
             faiss.normalize_L2(query_vector)
 
         if not isinstance(limit, int):
@@ -912,7 +910,7 @@ class FAISSSearcher:
                     createDocumentsResponse["createdDocuments"].append(new_file_path)
 
                     # normalize the vectors if using huggingface
-                    if isinstance(self.tokenizer, HuggingfaceTokenizer):
+                    if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
                         faiss.normalize_L2(vectors)
 
                     # write out the vectors with the same file name
