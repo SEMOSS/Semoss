@@ -199,7 +199,7 @@ public class GitHubCopilotManager {
 	}
 
 	private ProviderConfig buildProviderConfig(String baseUrl, String bearerToken) {
-		return new ProviderConfig().setType("openai").setWireApi("responses").setBaseUrl(baseUrl)
+		return new ProviderConfig().setType("openai").setWireApi("completions").setBaseUrl(baseUrl)
 				.setBearerToken(bearerToken);
 	}
 
