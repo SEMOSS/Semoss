@@ -28,6 +28,7 @@
 package prerna.reactor.agent;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,107 +41,90 @@ import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
 
 /**
- * {@link IAgentHarness} implementation that delegates to the GitHub Copilot SDK.
- *
- * <p>Uses BYOK to route model calls through SEMOSS's OpenAI-compatible endpoint
- * ({@code OpenAIEndpoints.java} in Monolith), authenticating with a temporal
- * access/secret key pair. The SEMOSS model engine ID is passed as the
- * {@code model} field so the endpoint routes to the correct engine.
- *
- * <p>SEMOSS MCP tools registered in the room are connected as native HTTP MCP
- * servers via the {@code /api/ext/mcp/{id}/comms} endpoint, following the same
- * pattern as {@link ClaudeCodeAgentHarness}.
- *
- * <p>The Copilot SDK manages its own internal agentic loop, so this harness returns
- * {@code iterations = 0}.
+ * GitHub Copilot SDK-backed agent harness.
  */
 public class GitHubCopilotAgentHarness implements IAgentHarness {
 
-    private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
+	private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
 
-    /** Registry name used by {@link AgentHarnessRegistry}. */
-    public static final String NAME = "github_copilot";
+	public static final String NAME = "github_copilot";
 
-    @Override
-    public String getName() {
-        return NAME;
-    }
+	private static final String PARAM_ALLOWED_TOOLS = "allowed_tools";
+	private static final String PARAM_PERMISSION_MODE = "permission_mode";
 
-    @Override
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
-        Room room = ctx.getRoom();
-        String input = ctx.getInput();
+	@Override
+	public String getName() {
+		return NAME;
+	}
 
-        // Require model engine ID
-        String engineId = room.getModelId();
-        if (engineId == null || engineId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "GitHubCopilotAgentHarness: room does not have a modelId set");
-        }
+	@Override
+	@SuppressWarnings("unchecked")
+	public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+		Room room = ctx.getRoom();
+		Map<String, Object> params = ctx.getParamMap();
+		String input = ctx.getInput();
 
-        // Require user
-        User user = ctx.getInsight().getUser();
-        if (user == null) {
-            throw new IllegalArgumentException(
-                    "GitHubCopilotAgentHarness: insight has no user");
-        }
+		String engineId = room.getModelId();
+		if (engineId == null || engineId.trim().isEmpty()) {
+			throw new IllegalArgumentException("GitHubCopilotAgentHarness: room does not have a modelId set");
+		}
 
-        String systemPrompt = room.getEffectiveSystemPrompt();
-        if (systemPrompt == null) systemPrompt = "";
+		String systemPrompt = room.getEffectiveSystemPrompt();
+		if (systemPrompt == null) {
+			systemPrompt = "";
+		}
 
-        // Build MCP list from room options -- same pattern as ClaudeCodeAgentHarness
-        List<Map<String, String>> mcps = buildMcpList(room);
+		List<String> allowedTools;
+		Object allowedToolsObj = params.get(PARAM_ALLOWED_TOOLS);
+		if (allowedToolsObj instanceof List) {
+			allowedTools = (List<String>) allowedToolsObj;
+		} else {
+			allowedTools = Collections.emptyList();
+		}
 
-        // GenericAgent resolves filePath from paramValues.project via
-        // AssetUtility.getProjectAssetsFolder(projectId). Pass it as workingDirectory
-        // so the Copilot SDK knows where to read/write files for the target project.
-        String workingDirectory = ctx.getFilePath();
-        String roomId = room.getId();
-        String roomFolderPath = room.getRoomFolderPath();
+		String permissionMode = params.containsKey(PARAM_PERMISSION_MODE)
+				? String.valueOf(params.get(PARAM_PERMISSION_MODE))
+				: "default";
 
-        logger.debug("GitHubCopilotAgentHarness: engineId={} mcps={}", engineId, mcps.size());
+		User user = ctx.getInsight().getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("GitHubCopilotAgentHarness: insight has no user");
+		}
 
-        GitHubCopilotManager manager = new GitHubCopilotManager();
-        String output = manager.query(
-                ctx.getInsight(),
-                user,
-                engineId,
-                systemPrompt,
-                input,
-                mcps,
-                workingDirectory,
-                roomId,
-                roomFolderPath
-        );
+		logger.debug("GitHubCopilotAgentHarness: engine={} filePath={}", engineId, ctx.getFilePath());
+		GitHubCopilotManager manager = new GitHubCopilotManager();
+		String output = manager.query(ctx.getInsight(), user, engineId, ctx.getFilePath(), input, systemPrompt,
+				room.getId(), allowedTools, permissionMode, buildMcpList(room));
 
-        // SDK manages internal loop; iterations=0 like ClaudeCodeAgentHarness
-        return new AgentHarnessResult(output, 0, new ArrayList<>());
-    }
+		return new AgentHarnessResult(output, 0, new ArrayList<>());
+	}
 
-    /**
-     * Builds MCP engine list from room options.
-     * Same pattern as {@link ClaudeCodeAgentHarness#buildMcpList(Room)}.
-     */
-    @SuppressWarnings("unchecked")
-    private List<Map<String, String>> buildMcpList(Room room) {
-        List<Map<String, String>> result = new ArrayList<>();
-        Map<String, Object> opts = room.getOptionsMap();
-        if (opts == null || !opts.containsKey("mcp")) return result;
-        Object mcpObj = opts.get("mcp");
-        if (!(mcpObj instanceof List)) return result;
-        List<?> mcpList = (List<?>) mcpObj;
-        for (Object item : mcpList) {
-            if (!(item instanceof Map)) continue;
-            Map<String, Object> mcpEntry = (Map<String, Object>) item;
-            String id   = mcpEntry.containsKey("id")   ? String.valueOf(mcpEntry.get("id"))   : null;
-            String name = mcpEntry.containsKey("name") ? String.valueOf(mcpEntry.get("name")) : id;
-            if (id != null) {
-                Map<String, String> entry = new HashMap<>();
-                entry.put("id",   id);
-                entry.put("name", name != null ? name : id);
-                result.add(entry);
-            }
-        }
-        return result;
-    }
+	@SuppressWarnings("unchecked")
+	private List<Map<String, String>> buildMcpList(Room room) {
+		List<Map<String, String>> result = new ArrayList<>();
+		Map<String, Object> opts = room.getOptionsMap();
+		if (opts == null || !opts.containsKey("mcp")) {
+			return result;
+		}
+		Object mcpObj = opts.get("mcp");
+		if (!(mcpObj instanceof List)) {
+			return result;
+		}
+		List<?> mcpList = (List<?>) mcpObj;
+		for (Object item : mcpList) {
+			if (!(item instanceof Map)) {
+				continue;
+			}
+			Map<String, Object> mcpEntry = (Map<String, Object>) item;
+			String id = mcpEntry.containsKey("id") ? String.valueOf(mcpEntry.get("id")) : null;
+			String name = mcpEntry.containsKey("name") ? String.valueOf(mcpEntry.get("name")) : id;
+			if (id != null) {
+				Map<String, String> entry = new HashMap<>();
+				entry.put("id", id);
+				entry.put("name", name != null ? name : id);
+				result.add(entry);
+			}
+		}
+		return result;
+	}
 }

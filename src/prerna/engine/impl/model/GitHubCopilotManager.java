@@ -28,9 +28,18 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
-import java.util.HashMap;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,9 +47,21 @@ import org.apache.logging.log4j.Logger;
 import com.github.copilot.sdk.CopilotClient;
 import com.github.copilot.sdk.CopilotSession;
 import com.github.copilot.sdk.SystemMessageMode;
+import com.github.copilot.sdk.events.AbstractSessionEvent;
+import com.github.copilot.sdk.events.AssistantIntentEvent;
 import com.github.copilot.sdk.events.AssistantMessageDeltaEvent;
 import com.github.copilot.sdk.events.AssistantMessageEvent;
-import com.github.copilot.sdk.events.SystemNotificationEvent;
+import com.github.copilot.sdk.events.AssistantReasoningDeltaEvent;
+import com.github.copilot.sdk.events.AssistantReasoningEvent;
+import com.github.copilot.sdk.events.AssistantTurnEndEvent;
+import com.github.copilot.sdk.events.AssistantTurnStartEvent;
+import com.github.copilot.sdk.events.AssistantUsageEvent;
+import com.github.copilot.sdk.events.SessionErrorEvent;
+import com.github.copilot.sdk.events.SessionIdleEvent;
+import com.github.copilot.sdk.events.ToolExecutionCompleteEvent;
+import com.github.copilot.sdk.events.ToolExecutionPartialResultEvent;
+import com.github.copilot.sdk.events.ToolExecutionProgressEvent;
+import com.github.copilot.sdk.events.ToolExecutionStartEvent;
 import com.github.copilot.sdk.json.CopilotClientOptions;
 import com.github.copilot.sdk.json.MessageOptions;
 import com.github.copilot.sdk.json.PermissionHandler;
@@ -50,271 +71,346 @@ import com.github.copilot.sdk.json.SessionConfig;
 import com.github.copilot.sdk.json.SystemMessageConfig;
 
 import prerna.auth.User;
-import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.sablecc2.comm.PixelJobManager;
+import prerna.reactor.agent.GitHubCopilotLiveEventBus;
+import prerna.util.Utility;
 
 /**
- * Manages a single GitHub Copilot SDK session pointed at SEMOSS's
- * OpenAI-compatible endpoint via BYOK.
- *
- * The model engine is selected by setting the {@code model} field in
- * {@link SessionConfig} to the SEMOSS engine ID. The
- * {@code OpenAIFilter} in Monolith reads the {@code Authorization: Bearer
- * accessKey:secretKey} header and maps it to the requesting user.
- *
- * MCP tools registered in the room are connected as native HTTP MCP servers
- * via the SEMOSS {@code /api/ext/mcp/{engineId}/comms} endpoint, following
- * the same pattern as {@link ClaudeCodeManager}.
+ * GitHub Copilot SDK manager that keeps disk-backed session state in the room
+ * folder while publishing live SDK events into the websocket event bus.
  */
 public class GitHubCopilotManager {
 
-    private static final Logger logger = LogManager.getLogger(GitHubCopilotManager.class);
+	private static final Logger classLogger = LogManager.getLogger(GitHubCopilotManager.class);
+	private static final String CLIENT_NAME = "SEMOSS Agent47";
 
-    /**
-     * Runs one agentic turn using the GitHub Copilot SDK pointed at SEMOSS's
-     * OpenAI-compatible endpoint (BYOK).
-     *
-     * @param insight          user insight (for security context)
-     * @param user             authenticated SEMOSS user
-     * @param engineId         SEMOSS model engine ID sent as the "model" field
-     * @param systemPrompt     effective system prompt from room (may be empty)
-     * @param input            user prompt text
-     * @param mcps             MCP engine configs from room options (id + name)
-     * @param workingDirectory optional filesystem path Copilot SDK uses as cwd;
-     *                         pass null/blank to let the SDK use its default
-     * @param roomId           SEMOSS room ID; encoded in the bearer token so
-     *                         OpenAIEndpoints reuses the same Room across SDK turns
-     * @param roomFolderPath   path to the Room's folder on disk; passed as
-     *                         --config-dir to the Copilot CLI so session state
-     *                         (events.jsonl) is stored per-room, not in ~/.copilot/
-     * @return final assistant text response, or null if no response received
-     */
-    public String query(
-            Insight insight,
-            User user,
-            String engineId,
-            String systemPrompt,
-            String input,
-            List<Map<String, String>> mcps,
-            String workingDirectory,
-            String roomId,
-            String roomFolderPath
-    ) throws Exception {
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String systemPrompt,
+			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps)
+			throws Exception {
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		Files.createDirectories(Paths.get(roomFolderPath));
 
-        // Build base URL pointing at SEMOSS OpenAI-compatible endpoint.
-        Integer localPort = ThreadStore.getLocalPort();
-        String localProtocol = ThreadStore.getLocalProtocol();
-        String baseUrl = localProtocol + "://localhost:" + localPort + "/Monolith/api/model/openai/v1/";
+		String workingDirectory = (filePath != null && !filePath.trim().isEmpty()) ? filePath : roomFolderPath;
+		Files.createDirectories(Paths.get(workingDirectory));
 
-        // Temporal credentials - OpenAIFilter expects "Bearer accessKey:secretKey"
-        // Optional 3rd segment "room-{roomId}" so OpenAIEndpoints reuses the same Room
-        String[] keyPair = user.createCachedTemporalAccessSecretKey();
-        String bearerToken = keyPair[0] + ":" + keyPair[1];
-        if (roomId != null && !roomId.isBlank()) {
-            bearerToken += ":room-" + roomId;
-        }
+		String[] keyPair = user.createCachedTemporalAccessSecretKey();
+		String bearerToken = buildBearerToken(keyPair[0], keyPair[1], roomId);
+		String baseUrl = buildOpenAIBaseUrl();
+		String runId = UUID.randomUUID().toString();
+		GitHubCopilotLiveEventBus eventBus = GitHubCopilotLiveEventBus.getInstance();
+		eventBus.startRun(roomId, runId);
 
-        ProviderConfig provider = new ProviderConfig()
-                .setType("openai")
-                .setBaseUrl(baseUrl)
-                .setBearerToken(bearerToken)
-                .setWireApi("completions");
+		AtomicBoolean terminalErrorSeen = new AtomicBoolean(false);
+		AtomicBoolean idlePublished = new AtomicBoolean(false);
 
-        // Build native MCP server configs from room's MCP engines.
-        // Same pattern as ClaudeCodeManager / claude_code_client._resolve_mcps():
-        // each MCP engine connects via HTTP to SEMOSS's /api/ext/mcp/{id}/comms endpoint.
-        String mcpBaseUrl = localProtocol + "://localhost:" + localPort + "/Monolith/api/ext/mcp/";
-        Map<String, Object> mcpServers = buildMcpServers(mcps, mcpBaseUrl, keyPair[0], keyPair[1]);
+		CopilotClientOptions clientOptions = new CopilotClientOptions();
+		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
 
-        SystemMessageConfig systemMessageConfig = null;
-        if (systemPrompt != null && !systemPrompt.isBlank()) {
-            systemMessageConfig = new SystemMessageConfig()
-                    .setMode(SystemMessageMode.APPEND)
-                    .setContent(systemPrompt);
-        }
+		try (CopilotClient client = new CopilotClient(clientOptions)) {
+			client.start().get();
 
-        // Determine if a prior Copilot session exists for this room.
-        // --config-dir points the CLI at the room folder, so session state lives
-        // at {roomFolderPath}/session-state/{sessionId}/events.jsonl.
-        // Using roomId as the sessionId gives a stable 1:1 mapping.
-        String copilotSessionId = roomId;
-        boolean hasPriorSession = false;
-        if (roomFolderPath != null && !roomFolderPath.isBlank() && copilotSessionId != null) {
-            File sessionEventsFile = new File(roomFolderPath,
-                    "session-state" + File.separator + copilotSessionId + File.separator + "events.jsonl");
-            hasPriorSession = sessionEventsFile.exists();
-        }
+			String lastSessionId = null;
+			try {
+				lastSessionId = client.getLastSessionId().get();
+			} catch (Exception e) {
+				classLogger.debug("Unable to get last Copilot session id for room {}", roomId, e);
+			}
 
-        logger.debug("GitHubCopilotManager: engineId={} baseUrl={} mcps={} hasPriorSession={}",
-                engineId, baseUrl, mcpServers.size(), hasPriorSession);
+			SessionConfig sessionConfig = buildSessionConfig(engineId, workingDirectory, roomFolderPath, systemPrompt,
+					bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus, terminalErrorSeen,
+					idlePublished);
+			ResumeSessionConfig resumeConfig = buildResumeSessionConfig(engineId, workingDirectory, roomFolderPath,
+					systemPrompt, bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus,
+					terminalErrorSeen, idlePublished);
 
-        // Capture jobId on the calling thread - it is set in ThreadStore by the
-        // async pixel job framework and is used to route partial output back to
-        // the polling client via /engine/pixelJobStreaming.
-        String jobId = ThreadStore.getJobId();
+			try (CopilotSession session = openSession(client, lastSessionId, roomFolderPath, sessionConfig, resumeConfig)) {
+				AssistantMessageEvent finalMessage = session
+						.sendAndWait(new MessageOptions().setPrompt(prompt), 0)
+						.get();
+				return finalMessage != null && finalMessage.getData() != null ? finalMessage.getData().content() : "";
+			}
+		}
+	}
 
-        // Pass --config-dir to the Copilot CLI so session state is stored
-        // in the room folder rather than the shared ~/.copilot/ directory.
-        CopilotClientOptions clientOptions = new CopilotClientOptions();
-        if (roomFolderPath != null && !roomFolderPath.isBlank()) {
-            clientOptions.setCliArgs(new String[]{"--config-dir", roomFolderPath});
-        }
+	private CopilotSession openSession(CopilotClient client, String lastSessionId, String roomFolderPath,
+			SessionConfig sessionConfig, ResumeSessionConfig resumeConfig) throws Exception {
+		if (lastSessionId != null && !lastSessionId.trim().isEmpty() && hasPersistedSessionState(roomFolderPath)) {
+			try {
+				return client.resumeSession(lastSessionId, resumeConfig).get();
+			} catch (Exception e) {
+				classLogger.warn("Falling back to new Copilot session after resume failed for {}", lastSessionId, e);
+			}
+		}
+		return client.createSession(sessionConfig).get();
+	}
 
-        try (CopilotClient client = new CopilotClient(clientOptions)) {
-            client.start().get();
+	private boolean hasPersistedSessionState(String roomFolderPath) {
+		Path sessionState = Paths.get(roomFolderPath, "session-state");
+		return Files.exists(sessionState) && Files.isDirectory(sessionState);
+	}
 
-            CopilotSession session;
-            if (hasPriorSession) {
-                // Resume from prior session state persisted in the room folder.
-                // The SDK reads events.jsonl and reconstructs full conversation context.
-                ResumeSessionConfig resumeConfig = new ResumeSessionConfig()
-                        .setModel(engineId)
-                        .setProvider(provider)
-                        .setStreaming(true)
-                        .setOnPermissionRequest(PermissionHandler.APPROVE_ALL);
-                if (workingDirectory != null && !workingDirectory.isBlank()) {
-                    resumeConfig.setWorkingDirectory(workingDirectory);
-                }
-                if (systemMessageConfig != null) {
-                    resumeConfig.setSystemMessage(systemMessageConfig);
-                }
-                if (!mcpServers.isEmpty()) {
-                    resumeConfig.setMcpServers(mcpServers);
-                }
-                session = client.resumeSession(copilotSessionId, resumeConfig).get();
-                logger.info("GitHubCopilotManager: resumed session {} for room {}", copilotSessionId, roomId);
-            } else {
-                // First run for this room -- create a fresh session.
-                SessionConfig config = new SessionConfig()
-                        .setModel(engineId)
-                        .setProvider(provider)
-                        .setStreaming(true)
-                        .setOnPermissionRequest(PermissionHandler.APPROVE_ALL);
-                if (workingDirectory != null && !workingDirectory.isBlank()) {
-                    config.setWorkingDirectory(workingDirectory);
-                }
-                if (systemMessageConfig != null) {
-                    config.setSystemMessage(systemMessageConfig);
-                }
-                if (!mcpServers.isEmpty()) {
-                    config.setMcpServers(mcpServers);
-                }
-                // Use roomId as sessionId for stable 1:1 mapping
-                if (copilotSessionId != null) {
-                    config.setSessionId(copilotSessionId);
-                }
-                session = client.createSession(config).get();
-                logger.info("GitHubCopilotManager: created session {} for room {}", copilotSessionId, roomId);
-            }
+	private SessionConfig buildSessionConfig(String engineId, String workingDirectory, String roomFolderPath,
+			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
+			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
+			AtomicBoolean terminalErrorSeen,
+			AtomicBoolean idlePublished) {
+		SessionConfig config = new SessionConfig();
+		config.setClientName(CLIENT_NAME);
+		config.setModel(engineId);
+		config.setWorkingDirectory(workingDirectory);
+		config.setConfigDir(roomFolderPath);
+		config.setStreaming(true);
+		config.setProvider(buildProviderConfig(baseUrl, bearerToken));
+		config.setOnPermissionRequest(resolvePermissionHandler(permissionMode));
+		config.setMcpServers(buildMcpServers(mcps, bearerToken));
+		if (allowedTools != null && !allowedTools.isEmpty()) {
+			config.setAvailableTools(allowedTools);
+		}
+		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
+		}
+		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		return config;
+	}
 
-            if (jobId != null) {
-                // Token-level text streaming: emit each chunk as a "content" stream message.
-                session.on(AssistantMessageDeltaEvent.class, evt -> {
-                    String delta = evt.getData() != null ? evt.getData().deltaContent() : null;
-                    if (delta != null && !delta.isEmpty()) {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("content", delta);
-                        Map<String, Object> msg = new HashMap<>();
-                        msg.put("stream_type", "content");
-                        msg.put("data", data);
-                        PixelJobManager.getManager().addStreamOut(jobId, msg);
-                    }
-                });
+	private ResumeSessionConfig buildResumeSessionConfig(String engineId, String workingDirectory, String roomFolderPath,
+			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
+			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
+			AtomicBoolean terminalErrorSeen,
+			AtomicBoolean idlePublished) {
+		ResumeSessionConfig config = new ResumeSessionConfig();
+		config.setClientName(CLIENT_NAME);
+		config.setModel(engineId);
+		config.setWorkingDirectory(workingDirectory);
+		config.setConfigDir(roomFolderPath);
+		config.setStreaming(true);
+		config.setProvider(buildProviderConfig(baseUrl, bearerToken));
+		config.setOnPermissionRequest(resolvePermissionHandler(permissionMode));
+		config.setMcpServers(buildMcpServers(mcps, bearerToken));
+		if (allowedTools != null && !allowedTools.isEmpty()) {
+			config.setAvailableTools(allowedTools);
+		}
+		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
+			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
+		}
+		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		return config;
+	}
 
-                // Tool invocation signal: lets the UI show a "calling tool..." indicator.
-                session.on(AssistantMessageEvent.class, evt -> {
-                    var msgData = evt.getData();
-                    if (msgData != null && msgData.toolRequests() != null && !msgData.toolRequests().isEmpty()) {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("finish_reason", "tool_use");
-                        Map<String, Object> msg = new HashMap<>();
-                        msg.put("stream_type", "tool");
-                        msg.put("data", data);
-                        PixelJobManager.getManager().addStreamOut(jobId, msg);
-                    }
-                });
+	private ProviderConfig buildProviderConfig(String baseUrl, String bearerToken) {
+		return new ProviderConfig().setType("openai").setWireApi("responses").setBaseUrl(baseUrl)
+				.setBearerToken(bearerToken);
+	}
 
-                // System notifications (e.g. "Running: npm install", "Created file x.ts").
-                session.on(SystemNotificationEvent.class, evt -> {
-                    String content = evt.getData() != null ? evt.getData().content() : null;
-                    if (content != null && !content.isEmpty()) {
-                        Map<String, Object> data = new HashMap<>();
-                        data.put("content", content);
-                        Map<String, Object> msg = new HashMap<>();
-                        msg.put("stream_type", "content");
-                        msg.put("data", data);
-                        PixelJobManager.getManager().addStreamOut(jobId, msg);
-                    }
-                });
-            }
+	private PermissionHandler resolvePermissionHandler(String permissionMode) {
+		return PermissionHandler.APPROVE_ALL;
+	}
 
-            // Pass timeoutMs=0 to disable the SDK's default 60-second hard timeout.
-            // SEMOSS's own reactor/request timeout governs the upper bound instead.
-            AssistantMessageEvent event = session.sendAndWait(
-                    new MessageOptions().setPrompt(input), 0
-            ).get();
+	private Map<String, Object> buildMcpServers(List<Map<String, String>> mcps, String bearerToken) {
+		if (mcps == null || mcps.isEmpty()) {
+			return Collections.emptyMap();
+		}
 
-            session.close();
+		Integer localPort = ThreadStore.getLocalPort();
+		String localProtocol = ThreadStore.getLocalProtocol();
+		if (localPort == null || localProtocol == null || localProtocol.trim().isEmpty()) {
+			return Collections.emptyMap();
+		}
 
-            if (event == null || event.getData() == null) {
-                logger.warn("GitHubCopilotManager: sendAndWait returned null event for engineId={}", engineId);
-                return null;
-            }
+		String mcpBaseUrl = localProtocol + "://localhost:" + localPort + "/Monolith/api/ext/mcp/";
+		Map<String, Object> servers = new LinkedHashMap<>();
+		for (Map<String, String> mcp : mcps) {
+			String id = mcp.get("id");
+			if (id == null || id.trim().isEmpty()) {
+				continue;
+			}
+			String name = mcp.get("name") != null && !mcp.get("name").trim().isEmpty() ? mcp.get("name") : id;
+			Map<String, Object> serverConfig = new LinkedHashMap<>();
+			serverConfig.put("type", "http");
+			serverConfig.put("url", mcpBaseUrl + id + "/comms");
+			serverConfig.put("headers", Map.of("Authorization", "Bearer " + bearerToken));
+			serverConfig.put("tools", List.of("*"));
+			servers.put(name, serverConfig);
+		}
+		return servers;
+	}
 
-            String result = event.getData().content();
+	private void publishEvent(AbstractSessionEvent event, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
+			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished) {
+		if (event == null) {
+			return;
+		}
 
-            // Push room folder (including session-state/) to cloud storage
-            // so other nodes in the cluster can resume this session.
-            if (roomId != null) {
-                ClusterUtil.pushRoomAsync(roomId);
-            }
+		String timestamp = normalizeTimestamp(event.getTimestamp());
+		boolean ephemeral = Boolean.TRUE.equals(event.getEphemeral());
 
-            return result;
-        }
-    }
+		if (event instanceof AssistantTurnStartEvent startEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("turnId", startEvent.getData().turnId());
+			data.put("interactionId", startEvent.getData().interactionId());
+			eventBus.publish(roomId, runId, "assistant.turn_start", timestamp, ephemeral, data, false);
+			return;
+		}
 
-    /**
-     * Builds native HTTP MCP server configs from the room's MCP engine list.
-     * Same pattern as {@code ClaudeCodeClient._resolve_mcps()} in Python:
-     * each engine is connected via HTTP to {@code /api/ext/mcp/{id}/comms}
-     * with bearer token auth.
-     *
-     * @param mcps       MCP engine configs (id + name) from room options
-     * @param mcpBaseUrl base URL for MCP comms endpoints
-     * @param accessKey  temporal access key for auth
-     * @param secretKey  temporal secret key for auth
-     * @return map of MCP server name -> config, ready for setMcpServers()
-     */
-    private Map<String, Object> buildMcpServers(
-            List<Map<String, String>> mcps,
-            String mcpBaseUrl,
-            String accessKey,
-            String secretKey) {
-        Map<String, Object> mcpServers = new HashMap<>();
-        if (mcps == null || mcps.isEmpty()) {
-            return mcpServers;
-        }
-        for (Map<String, String> mcp : mcps) {
-            String id = mcp.get("id");
-            String name = mcp.get("name");
-            if (name == null) {
-                name = id;
-            }
-            String safeName = name.replace(" ", "_").toLowerCase();
-            String commsUrl = mcpBaseUrl + id + "/comms";
+		if (event instanceof AssistantIntentEvent intentEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("intent", intentEvent.getData().intent());
+			eventBus.publish(roomId, runId, "assistant.intent", timestamp, ephemeral, data, false);
+			return;
+		}
 
-            Map<String, Object> headers = new HashMap<>();
-            headers.put("Authorization", "Bearer " + accessKey + ":" + secretKey);
+		if (event instanceof AssistantReasoningDeltaEvent reasoningDeltaEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("reasoningId", reasoningDeltaEvent.getData().reasoningId());
+			data.put("deltaContent", reasoningDeltaEvent.getData().deltaContent());
+			eventBus.publish(roomId, runId, "assistant.reasoning_delta", timestamp, ephemeral, data, false);
+			return;
+		}
 
-            Map<String, Object> serverConfig = new HashMap<>();
-            serverConfig.put("type", "http");
-            serverConfig.put("url", commsUrl);
-            serverConfig.put("headers", headers);
+		if (event instanceof AssistantReasoningEvent reasoningEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("reasoningId", reasoningEvent.getData().reasoningId());
+			data.put("content", reasoningEvent.getData().content());
+			eventBus.publish(roomId, runId, "assistant.reasoning", timestamp, ephemeral, data, false);
+			return;
+		}
 
-            mcpServers.put(safeName, serverConfig);
-        }
-        return mcpServers;
-    }
+		if (event instanceof AssistantMessageDeltaEvent messageDeltaEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("messageId", messageDeltaEvent.getData().messageId());
+			data.put("deltaContent", messageDeltaEvent.getData().deltaContent());
+			data.put("parentToolCallId", messageDeltaEvent.getData().parentToolCallId());
+			eventBus.publish(roomId, runId, "assistant.message_delta", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof AssistantMessageEvent messageEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("messageId", messageEvent.getData().messageId());
+			data.put("content", messageEvent.getData().content());
+			data.put("parentToolCallId", messageEvent.getData().parentToolCallId());
+			data.put("toolRequests", toToolRequestMaps(messageEvent.getData().toolRequests()));
+			eventBus.publish(roomId, runId, "assistant.message", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof AssistantTurnEndEvent turnEndEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("turnId", turnEndEvent.getData().turnId());
+			eventBus.publish(roomId, runId, "assistant.turn_end", timestamp, ephemeral, data, true);
+			return;
+		}
+
+		if (event instanceof AssistantUsageEvent usageEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("model", usageEvent.getData().model());
+			data.put("inputTokens", usageEvent.getData().inputTokens());
+			data.put("outputTokens", usageEvent.getData().outputTokens());
+			data.put("cost", usageEvent.getData().cost());
+			data.put("duration", usageEvent.getData().duration());
+			eventBus.publish(roomId, runId, "assistant.usage", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof ToolExecutionStartEvent toolStartEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("toolCallId", toolStartEvent.getData().toolCallId());
+			data.put("toolName", toolStartEvent.getData().toolName());
+			data.put("arguments", toolStartEvent.getData().arguments());
+			data.put("mcpServerName", toolStartEvent.getData().mcpServerName());
+			data.put("mcpToolName", toolStartEvent.getData().mcpToolName());
+			data.put("parentToolCallId", toolStartEvent.getData().parentToolCallId());
+			eventBus.publish(roomId, runId, "tool.execution_start", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof ToolExecutionPartialResultEvent partialResultEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("toolCallId", partialResultEvent.getData().toolCallId());
+			data.put("partialOutput", partialResultEvent.getData().partialOutput());
+			eventBus.publish(roomId, runId, "tool.execution_partial_result", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof ToolExecutionProgressEvent progressEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("toolCallId", progressEvent.getData().toolCallId());
+			data.put("progressMessage", progressEvent.getData().progressMessage());
+			eventBus.publish(roomId, runId, "tool.execution_progress", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof ToolExecutionCompleteEvent completeEvent) {
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("toolCallId", completeEvent.getData().toolCallId());
+			data.put("success", completeEvent.getData().success());
+			data.put("parentToolCallId", completeEvent.getData().parentToolCallId());
+			if (completeEvent.getData().result() != null) {
+				Map<String, Object> result = new LinkedHashMap<>();
+				result.put("content", completeEvent.getData().result().content());
+				result.put("detailedContent", completeEvent.getData().result().detailedContent());
+				data.put("result", result);
+			}
+			if (completeEvent.getData().error() != null) {
+				Map<String, Object> error = new LinkedHashMap<>();
+				error.put("message", completeEvent.getData().error().message());
+				error.put("code", completeEvent.getData().error().code());
+				data.put("error", error);
+			}
+			eventBus.publish(roomId, runId, "tool.execution_complete", timestamp, ephemeral, data, false);
+			return;
+		}
+
+		if (event instanceof SessionIdleEvent) {
+			if (terminalErrorSeen.get()) {
+				return;
+			}
+			if (idlePublished.compareAndSet(false, true)) {
+				eventBus.publish(roomId, runId, "session.idle", timestamp, ephemeral, new LinkedHashMap<>(), true);
+			}
+			return;
+		}
+
+		if (event instanceof SessionErrorEvent sessionErrorEvent) {
+			terminalErrorSeen.set(true);
+			Map<String, Object> data = new LinkedHashMap<>();
+			data.put("errorType", sessionErrorEvent.getData().errorType());
+			data.put("message", sessionErrorEvent.getData().message());
+			data.put("statusCode", sessionErrorEvent.getData().statusCode());
+			eventBus.publish(roomId, runId, "session.error", timestamp, ephemeral, data, true);
+		}
+	}
+
+	private List<Map<String, Object>> toToolRequestMaps(List<AssistantMessageEvent.AssistantMessageData.ToolRequest> requests) {
+		List<Map<String, Object>> items = new ArrayList<>();
+		if (requests == null) {
+			return items;
+		}
+		for (AssistantMessageEvent.AssistantMessageData.ToolRequest request : requests) {
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("toolCallId", request.toolCallId());
+			item.put("name", request.name());
+			item.put("arguments", request.arguments());
+			items.add(item);
+		}
+		return items;
+	}
+
+	private String normalizeTimestamp(OffsetDateTime timestamp) {
+		return timestamp != null ? timestamp.toString() : GitHubCopilotLiveEventBus.nowTimestamp();
+	}
+
+	private String buildBearerToken(String accessKey, String secretKey, String roomId) {
+		return accessKey + ":" + secretKey + ":room-" + roomId;
+	}
+
+	private String buildOpenAIBaseUrl() {
+		Integer localPort = ThreadStore.getLocalPort();
+		String localProtocol = ThreadStore.getLocalProtocol();
+		if (localPort == null || localProtocol == null || localProtocol.trim().isEmpty()) {
+			throw new IllegalStateException("Unable to resolve local SEMOSS protocol/port for Copilot provider");
+		}
+		return localProtocol + "://localhost:" + localPort + "/Monolith/api/model/openai/v1";
+	}
 }

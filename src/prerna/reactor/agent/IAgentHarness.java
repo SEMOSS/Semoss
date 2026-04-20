@@ -35,8 +35,9 @@ package prerna.reactor.agent;
  *
  * <p>Built-in implementations:
  * <ul>
- *   <li>{@code "room_loop"} -&gt; {@link RoomAgentHarness} - SEMOSS Room tool-calling loop
- *   <li>{@code "claude_code"} -&gt; {@link ClaudeCodeAgentHarness} - ClaudeCode SDK
+ *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — SEMOSS Room tool-calling loop
+ *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness} — ClaudeCode SDK
+ *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness} — GitHub Copilot SDK
  * </ul>
  *
  * <p>Custom harnesses can be registered at startup via {@link AgentHarnessRegistry#register}.
