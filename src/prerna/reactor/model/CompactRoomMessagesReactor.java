@@ -163,7 +163,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
             if (requestedTypes.contains("SUMMARY")) {
                 typeResults.add(summarizeMessages(room, parentMessageId,
-                        KEEP_N_TRANSACTIONS * 2, modelEngine));
+                        KEEP_N_TRANSACTIONS, modelEngine));
             }
         }
 
@@ -201,8 +201,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         if (useToolPruning) {
             return addToolPruneKeyToMessage(messages, messageId);
-        } else if (branch.size() > KEEP_N_TRANSACTIONS * 2) {
-            return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS * 2, modelEngine);
+        } else if (countTransactions(branch) > KEEP_N_TRANSACTIONS) {
+            return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS, modelEngine);
         } else {
             return null;
         }
@@ -225,7 +225,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         return result;
     }
 
-    private Map<String, Object> summarizeMessages(Room room, String messageId, int keepN, IModelEngine modelEngine) {
+    private Map<String, Object> summarizeMessages(Room room, String messageId, int keepNTransactions,
+            IModelEngine modelEngine) {
         Map<String, Object> result = new HashMap<>();
         result.put("type", "SUMMARY");
 
@@ -239,13 +240,19 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         // Walk the parent chain from messageId to root, producing an ordered branch
         List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
-        if (branch.size() <= keepN) {
+        if (countTransactions(branch) <= keepNTransactions) {
             result.put("success", false);
-            result.put("error", "Not enough messages in chat to summarize - need at least " + (keepN + 1));
+            result.put("error",
+                    "Not enough transactions in chat to summarize - need at least " + (keepNTransactions + 1));
             return result;
         }
 
-        int splitPoint = branch.size() - keepN;
+        int splitPoint = findTransactionSplitPoint(branch, keepNTransactions);
+        if (splitPoint < 0) {
+            result.put("success", false);
+            result.put("error", "Could not determine transaction split point");
+            return result;
+        }
         List<AbstractMessage> toSummarize = new ArrayList<>(branch.subList(0, splitPoint));
         List<AbstractMessage> toKeep = new ArrayList<>(branch.subList(splitPoint, branch.size()));
 
@@ -259,6 +266,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             String role = (m instanceof InputMessage) ? "User" : "Assistant";
             summaryTranscript.append(role).append(": ").append(text).append("\n\n");
         }
+
+        int beforeSummaryTokenCount = getLastMessageTokens(toSummarize);
 
         if (summaryTranscript.isEmpty()) {
             result.put("success", false);
@@ -300,6 +309,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             keepTranscript.append(role).append(": ").append(text).append("\n\n");
         }
 
+        int lastMessagesTokenCount = getLastMessageTokens(toKeep);
+
         String lastNMessagesText = "The following is the last n messages verbatim:\n\n" + keepTranscript;
 
         String compactedTextMessage = summaryMessageText + "\n\n" + lastNMessagesText;
@@ -326,7 +337,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 .build();
         compactedResponse.setParentMessageId(compactedMessage.getMessageId());
         compactedResponse.setVisibile(false);
-        compactedResponse.setTokensInMessage(summaryResponse.getTokensInMessage());
+        compactedResponse.setTokensInMessage(
+                summaryResponse.getTokensInMessage() + lastMessagesTokenCount - beforeSummaryTokenCount);
 
         messages.add(compactedMessage);
         messages.add(compactedResponse);
@@ -385,10 +397,64 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         return types;
     }
 
+    /**
+     * A transaction ends at a ResponseMessage that is not a tool-call response
+     * (i.e., the final assistant reply, not an intermediate RESPONSE_TOOL).
+     */
+    private static boolean isTransactionEnd(AbstractMessage m) {
+        return m instanceof ResponseMessage && !m.hasToolCallPart();
+    }
+
+    private static int countTransactions(List<AbstractMessage> branch) {
+        int count = 0;
+        for (AbstractMessage m : branch) {
+            if (isTransactionEnd(m)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Returns the index of the first message that belongs to the last
+     * {@code keepNTransactions} transactions. Messages before this index are
+     * summarized; messages from this index onward are kept verbatim.
+     */
+    private static int findTransactionSplitPoint(List<AbstractMessage> branch, int keepNTransactions) {
+        int total = countTransactions(branch);
+        int transactionsToSummarize = total - keepNTransactions;
+        int endsSeen = 0;
+        for (int i = 0; i < branch.size(); i++) {
+            if (isTransactionEnd(branch.get(i))) {
+                endsSeen++;
+                if (endsSeen == transactionsToSummarize) {
+                    return i + 1;
+                }
+            }
+        }
+        return -1;
+    }
+
     @Override
     public String getReactorDescription() {
         return "Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
                 + "Supported compaction types: TOOL_PRUNE, SUMMARY. ";
+    }
+
+    private int getLastMessageTokens(List<AbstractMessage> messages) {
+        int count = 0;
+        int tokenCount = 0;
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            AbstractMessage m = messages.get(i);
+            if (m.getTokensInMessage() > 0) {
+                count++;
+                tokenCount += m.getTokensInMessage();
+                if (count == 2) {
+                    return tokenCount;
+                }
+            }
+        }
+        return tokenCount;
     }
 
 }
