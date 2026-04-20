@@ -313,6 +313,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         compactedMessage.setParentMessageId(null);
         compactedMessage.setSummaryLeafMessageId(messageId);
         compactedMessage.setVisibile(false);
+        compactedMessage.setTokensInMessage(compactedMessage.getTokensInMessage());
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage compactedResponse = ResponseMessage.builder()
@@ -320,6 +321,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 .build();
         compactedResponse.setParentMessageId(compactedMessage.getMessageId());
         compactedResponse.setVisibile(false);
+        compactedResponse.setTokensInMessage(summaryResponse.getTokensInMessage());
 
         messages.add(compactedMessage);
         messages.add(compactedResponse);
