@@ -395,17 +395,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         }
 
-        // fall back to curRow if named key not found
-        if (types.isEmpty() && this.curRow != null && this.curRow.size() > 1) {
-            // index 0 is roomId, rest are compaction types
-            for (int i = 1; i < this.curRow.size(); i++) {
-                String val = this.curRow.get(i).toString();
-                if (val != null && !val.trim().isEmpty()) {
-                    types.add(val.trim().toUpperCase());
-                }
-            }
-        }
-
         return types;
     }
 
