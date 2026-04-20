@@ -203,12 +203,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         }
 
-        // The last InputMessage's cumulative count is the best proxy for total
-        // context window usage.
-
-        AbstractMessage lastMessageResponse = branch.getLast();
-        AbstractMessage lastMessageInput = branch.get(branch.size() - 2);
-        int currTokenCount = lastMessageResponse.getTokensInMessage() + lastMessageInput.getTokensInMessage();
+        // The total token count can be found from summing the last two messages
+        int currTokenCount = getLastMessageTokens(branch);
 
         boolean useToolPruning = currTokenCount > 0
                 && (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
@@ -351,6 +347,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 .build();
         compactedResponse.setParentMessageId(compactedMessage.getMessageId());
         compactedResponse.setVisibile(false);
+        // summary response tokens + last n messages tokens - original tokens in that
+        // span (to avoid double counting)
         compactedResponse.setTokensInMessage(
                 summaryResponse.getTokensInMessage() + lastMessagesTokenCount - beforeSummaryTokenCount);
 
@@ -455,20 +453,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 + "Supported compaction types: TOOL_PRUNE, SUMMARY. ";
     }
 
-    private int getLastMessageTokens(List<AbstractMessage> messages) {
-        int count = 0;
-        int tokenCount = 0;
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            AbstractMessage m = messages.get(i);
-            if (m.getTokensInMessage() > 0) {
-                count++;
-                tokenCount += m.getTokensInMessage();
-                if (count == 2) {
-                    return tokenCount;
-                }
-            }
-        }
-        return tokenCount;
+    private int getLastMessageTokens(List<AbstractMessage> branch) {
+        AbstractMessage lastMessageResponse = branch.getLast();
+        AbstractMessage lastMessageInput = branch.get(branch.size() - 2);
+        return lastMessageResponse.getTokensInMessage() + lastMessageInput.getTokensInMessage();
     }
 
 }
