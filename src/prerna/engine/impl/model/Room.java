@@ -93,6 +93,13 @@ public class Room {
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
 			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
 
+	/**
+	 * Room option keys forwarded as-is into the model invocation kwarg map when
+	 * not already supplied by the per-message param map.
+	 */
+	private static final List<String> ROOM_MODEL_PARAM_KEYS = List.of("numOfImages",
+			"imageHeight", "imageWidth", "cfgScale", "seed");
+
 	private String room_id;
 	private String userId;
 	private String roomName;
@@ -234,6 +241,10 @@ public class Room {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
+		// merge in known model/image-generation defaults from room options
+		// (per-message values in kwArgMap always win)
+		applyRoomModelParams(kwArgMap);
+
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -249,6 +260,8 @@ public class Room {
 
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
+
+		appendImageGenerationOptions(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -347,6 +360,19 @@ public class Room {
 			}
 		}
 		return response;
+	}
+
+	/**
+	 * 
+	 * Note: in the future, may also want to take the model engine as a parameter in
+	 * order to decide whether to
+	 * append the props or not.
+	 * 
+	 * @param kwArgMap
+	 */
+	private void appendImageGenerationOptions(Map<String, Object> kwArgMap) {
+		// TODO Auto-generated method stub
+
 	}
 
 	/**
@@ -646,6 +672,27 @@ public class Room {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Pulls the known model and image-generation parameters out of the room's
+	 * options and writes them into the supplied kwarg map. Existing entries in
+	 * {@code kwArgMap} are preserved so per-message overrides always win over
+	 * room-level defaults.
+	 *
+	 * @param kwArgMap mutable model parameter map
+	 */
+	private void applyRoomModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		if (options == null || options.isEmpty()) {
+			return;
+		}
+
+		for (String key : ROOM_MODEL_PARAM_KEYS) {
+			if (!kwArgMap.containsKey(key) && options.get(key) != null) {
+				kwArgMap.putIfAbsent(key, options.get(key));
+			}
+		}
 	}
 
 	/**
