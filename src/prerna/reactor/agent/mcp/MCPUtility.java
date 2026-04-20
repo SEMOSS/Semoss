@@ -191,21 +191,17 @@ public final class MCPUtility {
 
 		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
 
-		// clear the cached modules and reimport to get latest file changes
+		// Reload module, inject default path vars, and execute tool in a single script
+		// to prevent concurrent threads from swapping sys.modules["mcp_driver"] between steps
 		// @formatter:off
-		String loadFreshSmssModule = 
+		String loadAndInject =
 			    "if 'reload_mcp_function' in globals():\n" +
 			    "    mcp_driver = reload_mcp_function()\n" +
 			    "else:\n" +
-			    "    import " + moduleName + " as mcp_driver";
-		
-		// @formatter:on
-		// Copy default path vars from translator globals into the loaded MCP module.
-		// These vars are injected into the translator scope, not the module scope.
-		// @formatter:off
-		String injectDefaultVars = "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
-		                          "    if _k in globals():\n" +
-		                          "        setattr(mcp_driver, _k, globals()[_k])";
+			    "    import " + moduleName + " as mcp_driver\n" +
+			    "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
+			    "    if _k in globals():\n" +
+			    "        setattr(mcp_driver, _k, globals()[_k])";
 		// @formatter:on
 
 		if (!namedMCP) {
@@ -263,12 +259,9 @@ public final class MCPUtility {
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
 
-		// reload the module
-		pyt.runScript(insight, loadFreshSmssModule);
-		// inject default vars into module scope
-		pyt.runScript(insight, injectDefaultVars);
-		// run method
-		return stringifyMcpResult(pyt.runScript(insight, runMethod));
+		// reload, inject vars, and execute in a single script to avoid
+		// concurrent threads swapping mcp_driver between steps
+		return stringifyMcpResult(pyt.runScript(insight, loadAndInject + "\n" + runMethod));
 	}
 
 	/**
