@@ -56,9 +56,9 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	    organizeKeys();
 	    //Parse input params
 	    String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
-	    String limitStr = this.keyValue.getOrDefault(ReactorKeysEnum.LIMIT.getKey(), "20");
+	    String limitStr = this.keyValue.getOrDefault(ReactorKeysEnum.LIMIT.getKey(), "50");
 	    String offset = this.keyValue.getOrDefault(ReactorKeysEnum.OFFSET.getKey(), "0");
-	    int totalLimit = Math.min(Integer.parseInt(limitStr), 20); // Cap at 20
+	    int totalLimit = Integer.parseInt(limitStr);
 	    //Determine types to process
 	    List<String> type = this.getEngineTypes();
 	    List<String> typesToGet = (type == null || type.isEmpty())
@@ -73,16 +73,13 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	    List<Integer> permissionFilters = getPermissionFilters();
 	    Map<String, Object> engineProjectMetadataFilter = getMetaMap();
 	    
-	    //Distribute limit per type
-	    int typeCount = typesToGet.size();
-	    int baseLimit = totalLimit / typeCount;
-	    int remainder = totalLimit % typeCount;
 	    //Fetch data for each type
 	    List<Map<String, Object>> combinedInfo = new ArrayList<>();
 	    
 	    for (int i = 0; i < typesToGet.size(); i++) {
 	        String currentType = typesToGet.get(i);
-	        int limitForType = baseLimit + (i < remainder ? 1 : 0); // even distribution
+	        int limitForType = totalLimit - combinedInfo.size();
+	        if (limitForType <= 0) break;
 
 	        List<Map<String, Object>> result;
 	        if ("PROJECT".equalsIgnoreCase(currentType)) {
