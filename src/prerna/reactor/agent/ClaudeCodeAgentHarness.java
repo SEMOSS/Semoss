@@ -39,6 +39,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.util.Utility;
 
 /**
  * {@link IAgentHarness} implementation that delegates to {@link ClaudeCodeManager}.
@@ -118,6 +121,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         // Delegate to ClaudeCodeManager
         logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
+        SandboxPolicy policy = resolveSandboxPolicy(ctx, room.getId(), filePath);
         String output = manager.query(
                 ctx.getInsight(),
                 user,
@@ -128,9 +132,20 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
                 room.getId(),
                 allowedTools,
                 permissionMode,
-                mcps);
+                mcps,
+                policy);
 
         return new AgentHarnessResult(output, 0, new ArrayList<>());
+    }
+
+    private SandboxPolicy resolveSandboxPolicy(GenericAgentContext ctx, String roomId, String workingDirectory) {
+        SandboxPolicy p = ctx.getSandboxPolicy();
+        if (p != null) {
+            return p;
+        }
+        String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator + roomId;
+        String targetBinary = Utility.getDIHelperProperty(ClaudeCodeManager.CFG_CLAUDE_CLI_PATH);
+        return AgentSandboxConfig.defaultPolicy(roomFolderPath, workingDirectory, targetBinary);
     }
 
     // Helpers

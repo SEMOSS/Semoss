@@ -74,6 +74,13 @@ import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.GitHubCopilotLiveEventBus;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
+import prerna.reactor.agent.sandbox.SandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.reactor.agent.sandbox.SandboxUnavailableException;
 import prerna.util.Utility;
 
 /**
@@ -85,8 +92,19 @@ public class GitHubCopilotManager {
 	private static final Logger classLogger = LogManager.getLogger(GitHubCopilotManager.class);
 	private static final String CLIENT_NAME = "SEMOSS Agent47";
 
+	/** DIHelper key for the absolute path of the copilot CLI binary. */
+	public static final String CFG_COPILOT_CLI_PATH = "GITHUB_COPILOT_CLI_PATH";
+
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String systemPrompt,
 			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps)
+			throws Exception {
+		return query(insight, user, engineId, filePath, prompt, systemPrompt, roomId, allowedTools, permissionMode, mcps,
+				null);
+	}
+
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String systemPrompt,
+			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps,
+			SandboxPolicy sandboxPolicy)
 			throws Exception {
 		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		Files.createDirectories(Paths.get(roomFolderPath));
@@ -106,6 +124,7 @@ public class GitHubCopilotManager {
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
+		applySandbox(clientOptions, sandboxPolicy, roomFolderPath, workingDirectory);
 
 		try (CopilotClient client = new CopilotClient(clientOptions)) {
 			client.start().get();
@@ -131,6 +150,68 @@ public class GitHubCopilotManager {
 				return finalMessage != null && finalMessage.getData() != null ? finalMessage.getData().content() : "";
 			}
 		}
+	}
+
+	/**
+	 * If a policy is provided, point the Copilot SDK at our sandbox launcher so
+	 * landlock (Linux) or Seatbelt (macOS) applies before the copilot CLI's
+	 * {@code exec}. No-op when {@code policy == null}.
+	 */
+	private void applySandbox(CopilotClientOptions opts, SandboxPolicy policy,
+			String roomFolderPath, String workingDirectory) {
+		if (policy == null) {
+			return;
+		}
+		SandboxLauncher launcher = SandboxLauncherRegistry.get();
+		if (!launcher.isAvailable()) {
+			if (policy.getEnforcement() == EnforcementMode.ENFORCE) {
+				throw new SandboxUnavailableException(
+						"AGENT_SANDBOX_ENFORCE=true but no sandbox backend is available for platform "
+								+ launcher.getPlatform());
+			}
+			classLogger.warn("Copilot sandbox requested but backend unavailable; spawning unconstrained (enforcement={})",
+					policy.getEnforcement());
+			return;
+		}
+
+		String targetBinary = resolveCopilotBinary();
+		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
+		opts.setCliPath(plan.getCliPath());
+		// Merge inherited env with plan additions; drop plan removals.
+		Map<String, String> env = new java.util.LinkedHashMap<>(System.getenv());
+		for (String key : plan.getEnvironmentRemovals()) {
+			env.remove(key);
+		}
+		env.putAll(plan.getEnvironmentAdditions());
+		opts.setEnvironment(env);
+		opts.setCwd(workingDirectory);
+
+		classLogger.info("Copilot sandbox applied: backend={} target={} policy-paths={}",
+				plan.getBackend(), targetBinary, policy.getAllowedPaths().size());
+	}
+
+	/**
+	 * Resolve the absolute path to the copilot CLI, preferring the DIHelper
+	 * config entry {@link #CFG_COPILOT_CLI_PATH} and falling back to common
+	 * install locations. Returns {@code "copilot"} if nothing matches — the
+	 * sandbox launcher will surface a clear {@code execvp} error.
+	 */
+	private String resolveCopilotBinary() {
+		String configured = Utility.getDIHelperProperty(CFG_COPILOT_CLI_PATH);
+		if (configured != null && !configured.trim().isEmpty()) {
+			return configured.trim();
+		}
+		String[] candidates = new String[] {
+				"/usr/local/bin/copilot",
+				"/usr/bin/copilot",
+				System.getProperty("user.home") + "/.local/bin/copilot"
+		};
+		for (String c : candidates) {
+			if (Files.isExecutable(Paths.get(c))) {
+				return c;
+			}
+		}
+		return "copilot";
 	}
 
 	private CopilotSession openSession(CopilotClient client, String lastSessionId, String roomFolderPath,

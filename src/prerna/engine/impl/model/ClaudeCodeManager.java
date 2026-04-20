@@ -50,6 +50,12 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
+import prerna.reactor.agent.sandbox.SandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.reactor.agent.sandbox.SandboxUnavailableException;
 import prerna.tcp.PayloadStruct;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -57,6 +63,9 @@ import prerna.util.Utility;
 public class ClaudeCodeManager {
 
 	private static final Logger classLogger = LogManager.getLogger(ClaudeCodeManager.class);
+
+	/** DIHelper key for the absolute path of the claude-code CLI binary. */
+	public static final String CFG_CLAUDE_CLI_PATH = "CLAUDE_CODE_CLI_PATH";
 
 	protected String prefix = null;
 	protected String workingDirectory;
@@ -71,6 +80,14 @@ public class ClaudeCodeManager {
 
 	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
 			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
+			throws Exception {
+		return createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode, model, mcps,
+				insightId, null);
+	}
+
+	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
+			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps,
+			String insightId, SandboxPolicy sandboxPolicy)
 			throws Exception {
 
 		String allowedToolsString = "allowed_tools=["
@@ -96,9 +113,82 @@ public class ClaudeCodeManager {
 				.map(mcp -> "{'name':'" + mcp.get("name") + "', 'url': '" + mcp.get("url") + "'}")
 				.collect(Collectors.joining(",", "[", "]"));
 
+		String sandboxKwargs = buildSandboxKwargs(sandboxPolicy, filePath, roomFolderPath);
+
 		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s', room_folder_path='%s', agent_history_exists='%s')",
-				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId, roomFolderPath, agentHistoryExists);
+				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s', room_folder_path='%s', agent_history_exists='%s'%s)",
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId, roomFolderPath, agentHistoryExists, sandboxKwargs);
+	}
+
+	/**
+	 * Apply the sandbox on the Java side (writes policy + profile files, picks a
+	 * shell wrapper) and return the {@code , sandbox_cli_path='...', sandbox_env={...}}
+	 * kwargs fragment to append to the Python {@code ClaudeCodeClient(...)} call.
+	 * Returns an empty string when no policy is attached.
+	 */
+	private String buildSandboxKwargs(SandboxPolicy policy, String filePath, String roomFolderPath) {
+		if (policy == null) {
+			return "";
+		}
+		SandboxLauncher launcher = SandboxLauncherRegistry.get();
+		if (!launcher.isAvailable()) {
+			if (policy.getEnforcement() == EnforcementMode.ENFORCE) {
+				throw new SandboxUnavailableException(
+						"AGENT_SANDBOX_ENFORCE=true but no sandbox backend is available for platform "
+								+ launcher.getPlatform());
+			}
+			classLogger.warn("Claude sandbox requested but backend unavailable; spawning unconstrained (enforcement={})",
+					policy.getEnforcement());
+			return "";
+		}
+		String targetBinary = resolveClaudeBinary();
+		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
+		StringBuilder envLiteral = new StringBuilder("{");
+		boolean first = true;
+		for (Map.Entry<String, String> e : plan.getEnvironmentAdditions().entrySet()) {
+			if (!first) envLiteral.append(", ");
+			first = false;
+			envLiteral.append("'").append(escapePy(e.getKey())).append("': '")
+					.append(escapePy(e.getValue())).append("'");
+		}
+		envLiteral.append("}");
+		classLogger.info("Claude sandbox applied: backend={} target={} policy-paths={}",
+				plan.getBackend(), targetBinary, policy.getAllowedPaths().size());
+		return ", sandbox_cli_path='" + escapePy(plan.getCliPath()) + "', sandbox_env=" + envLiteral;
+	}
+
+	/**
+	 * Resolve the absolute path to the claude-code CLI, preferring {@link
+	 * #CFG_CLAUDE_CLI_PATH} then common npm global install paths. Returns
+	 * {@code "claude"} if nothing is found — the launcher will surface a
+	 * clear {@code execvp} error.
+	 */
+	private String resolveClaudeBinary() {
+		String configured = Utility.getDIHelperProperty(CFG_CLAUDE_CLI_PATH);
+		if (configured != null && !configured.trim().isEmpty()) {
+			return configured.trim();
+		}
+		String[] candidates = new String[] {
+				"/usr/local/bin/claude",
+				"/usr/bin/claude",
+				System.getProperty("user.home") + "/.npm-global/bin/claude",
+				System.getProperty("user.home") + "/.local/bin/claude",
+				System.getProperty("user.home") + "/node_modules/.bin/claude",
+				System.getProperty("user.home") + "/.yarn/bin/claude",
+				System.getProperty("user.home") + "/.claude/local/claude"
+		};
+		for (String c : candidates) {
+			if (Files.isExecutable(Paths.get(c))) {
+				return c;
+			}
+		}
+		return "claude";
+	}
+
+	private static String escapePy(String s) {
+		// We emit single-quoted Python string literals — escape backslashes and
+		// single quotes; no other character is syntactically significant here.
+		return s.replace("\\", "\\\\").replace("'", "\\'");
 	}
 
 	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
@@ -144,17 +234,24 @@ public class ClaudeCodeManager {
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
 			List<Map<String, String>> mcps) throws Exception {
-		
+		return query(insight, user, engineId, filePath, prompt, systemPrompt, roomId, allowedTools, permissionMode,
+				mcps, null);
+	}
+
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
+			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
+			List<Map<String, String>> mcps, SandboxPolicy sandboxPolicy) throws Exception {
+
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
-		
+
 		createClaudeDir(filePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
 		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
-				engineId, mcps, insightId);
+				engineId, mcps, insightId, sandboxPolicy);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);

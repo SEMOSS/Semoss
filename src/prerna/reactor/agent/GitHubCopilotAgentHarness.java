@@ -39,6 +39,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.util.Utility;
 
 /**
  * GitHub Copilot SDK-backed agent harness.
@@ -93,10 +96,25 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 
 		logger.debug("GitHubCopilotAgentHarness: engine={} filePath={}", engineId, ctx.getFilePath());
 		GitHubCopilotManager manager = new GitHubCopilotManager();
+		SandboxPolicy policy = resolveSandboxPolicy(ctx, room.getId(), ctx.getFilePath());
 		String output = manager.query(ctx.getInsight(), user, engineId, ctx.getFilePath(), input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room));
+				room.getId(), allowedTools, permissionMode, buildMcpList(room), policy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
+	}
+
+	/**
+	 * Prefer the policy built by the caller (reactor inputs or explicit API); fall
+	 * back to the DIHelper-driven baseline for the given room + working directory.
+	 */
+	private SandboxPolicy resolveSandboxPolicy(GenericAgentContext ctx, String roomId, String workingDirectory) {
+		SandboxPolicy p = ctx.getSandboxPolicy();
+		if (p != null) {
+			return p;
+		}
+		String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator + roomId;
+		String targetBinary = Utility.getDIHelperProperty(GitHubCopilotManager.CFG_COPILOT_CLI_PATH);
+		return AgentSandboxConfig.defaultPolicy(roomFolderPath, workingDirectory, targetBinary);
 	}
 
 	@SuppressWarnings("unchecked")
