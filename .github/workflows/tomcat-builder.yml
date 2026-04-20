@@ -38,3 +38,4 @@ jobs:
             ${{ vars.RELEASE == 'true' && format('quay.io/semoss/tomcat-builder:{0}-{1}', env.TOMCAT_VERSION, vars.VERSION) || '' }}
           build-args: |
             TOMCAT_VERSION=${{ env.TOMCAT_VERSION }}
+            BASE_REGISTRY=public.ecr.aws/docker/library
