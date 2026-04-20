@@ -85,11 +85,6 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 						"User is not the author of this message and cannot provide feedback");
 			}
 
-			if (!room.hasRatableContent(messageId)) {
-				throw new SemossPixelException(
-						"Feedback can only be submitted on messages with user-visible content");
-			}
-
 			// Get messages
 			List<AbstractMessage> messagesList = room.getMessages();
 
