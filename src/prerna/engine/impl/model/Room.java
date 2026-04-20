@@ -241,10 +241,6 @@ public class Room {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
 
-		// merge in known model/image-generation defaults from room options
-		// (per-message values in kwArgMap always win)
-		applyRoomModelParams(kwArgMap);
-
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
@@ -261,7 +257,9 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		appendImageGenerationOptions(kwArgMap);
+		// merge in known model/image-generation defaults from room options
+		// (per-message values in kwArgMap always win)
+		applyRoomModelParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -360,19 +358,6 @@ public class Room {
 			}
 		}
 		return response;
-	}
-
-	/**
-	 * 
-	 * Note: in the future, may also want to take the model engine as a parameter in
-	 * order to decide whether to
-	 * append the props or not.
-	 * 
-	 * @param kwArgMap
-	 */
-	private void appendImageGenerationOptions(Map<String, Object> kwArgMap) {
-		// TODO Auto-generated method stub
-
 	}
 
 	/**
@@ -679,6 +664,8 @@ public class Room {
 	 * options and writes them into the supplied kwarg map. Existing entries in
 	 * {@code kwArgMap} are preserved so per-message overrides always win over
 	 * room-level defaults.
+	 * 
+	 * Note: may want to pass IModelEngine to conditionally apply relevant params
 	 *
 	 * @param kwArgMap mutable model parameter map
 	 */
@@ -689,8 +676,9 @@ public class Room {
 		}
 
 		for (String key : ROOM_MODEL_PARAM_KEYS) {
-			if (!kwArgMap.containsKey(key) && options.get(key) != null) {
-				kwArgMap.putIfAbsent(key, options.get(key));
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
 			}
 		}
 	}
