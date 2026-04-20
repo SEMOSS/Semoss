@@ -152,10 +152,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
@@ -325,10 +328,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
