@@ -313,7 +313,12 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         compactedMessage.setParentMessageId(null);
         compactedMessage.setSummaryLeafMessageId(messageId);
         compactedMessage.setVisibile(false);
-        compactedMessage.setTokensInMessage(compactedMessage.getTokensInMessage());
+
+        // Disclaimer:
+        // UI needs a non-zero token count
+        // Can't pull token count for this message without sending to llm
+        // Token count will get updated regardless in the next ask call
+        compactedMessage.setTokensInMessage(2);
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage compactedResponse = ResponseMessage.builder()
