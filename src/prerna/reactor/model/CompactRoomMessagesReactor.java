@@ -185,16 +185,30 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             List<AbstractMessage> branch) {
         List<AbstractMessage> messages = room.getMessages();
 
+        // InputMessages carry a cumulative token count (full history up to and
+        // including themselves). The tokens added by each tool-call/result cycle
+        // equal the delta between an INPUT_TOOL_EXEC's cumulative count and the
+        // preceding InputMessage's cumulative count.
         int toolTokens = 0;
+        int prevInputCumulative = 0;
         for (AbstractMessage m : branch) {
-            if (m.hasToolResultPart() || m.hasToolCallPart()) {
-                toolTokens += m.getTokensInMessage();
+            if (m instanceof InputMessage) {
+                if (m.hasToolResultPart()) {
+                    int delta = m.getTokensInMessage() - prevInputCumulative;
+                    if (delta > 0) {
+                        toolTokens += delta;
+                    }
+                }
+                prevInputCumulative = m.getTokensInMessage();
             }
         }
 
-        AbstractMessage lastMessage = branch.getLast();
-        AbstractMessage lastMessageParent = branch.get(branch.size() - 2);
-        int currTokenCount = lastMessage.getTokensInMessage() + lastMessageParent.getTokensInMessage();
+        // The last InputMessage's cumulative count is the best proxy for total
+        // context window usage.
+
+        AbstractMessage lastMessageResponse = branch.getLast();
+        AbstractMessage lastMessageInput = branch.get(branch.size() - 2);
+        int currTokenCount = lastMessageResponse.getTokensInMessage() + lastMessageInput.getTokensInMessage();
 
         boolean useToolPruning = currTokenCount > 0
                 && (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
