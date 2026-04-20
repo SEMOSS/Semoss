@@ -861,7 +861,9 @@ public class Room {
 
 	/**
 	 * Checks whether the specified message id belongs to an assistant-authored
-	 * visible output message in this room.
+	 * output message in this room. This only validates authorship - it does not
+	 * inspect the message contents. Use {@link #hasRatableContent(String)} when
+	 * you also need to confirm the message has user-visible parts.
 	 *
 	 * @param messageId message id to validate
 	 * @return {@code true} when a matching assistant output message exists
@@ -869,8 +871,24 @@ public class Room {
 	public boolean isMessageAuthor(String messageId) {
 		return getMessages().parallelStream()
 				.anyMatch(m -> m.getMessageId().equals(messageId)
+						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
+	}
+
+	/**
+	 * Checks whether the specified message id belongs to an assistant-authored
+	 * output message in this room that contains user-visible content (text,
+	 * tool call, media, or thinking parts). Tool-result-only and empty messages
+	 * are excluded because they are not directly ratable.
+	 *
+	 * @param messageId message id to validate
+	 * @return {@code true} when a matching assistant message has ratable content
+	 */
+	public boolean hasRatableContent(String messageId) {
+		return getMessages().parallelStream()
+				.anyMatch(m -> m.getMessageId().equals(messageId)
 						&& m instanceof prerna.engine.impl.model.message.ResponseMessage
-						&& (m.hasTextPart() || m.hasToolCallPart()));
+						&& (m.hasTextPart() || m.hasToolCallPart() || m.hasMediaPart()
+								|| m.hasThinkingPart()));
 	}
 
 	// --- System Prompt Handling ----
