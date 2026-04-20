@@ -174,7 +174,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
      * Examines the branch ending at {@code messageId} and chooses a compaction
      * strategy automatically:
      * <ul>
-     * <li>If tool-result tokens account for more than
+     * <li>If tool tokens account for more than
      * {@value #TOOL_TOKEN_RATIO_THRESHOLD} of the current context window,
      * apply {@code TOOLS} pruning (cheap, lossless).</li>
      * <li>Otherwise apply {@code SUMMARY} compaction to reduce overall history
@@ -319,10 +319,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             keepTranscript.append(role).append(": ").append(text).append("\n\n");
         }
 
-        int lastMessagesTokenCount = getLastMessageTokens(toKeep);
-
+        int lastMessagesTokenCount = getLastMessageTokens(toKeep); // need this to determine tokens used by verbatim
+                                                                   // messages
         String lastNMessagesText = "The following is the last n messages verbatim:\n\n" + keepTranscript;
-
         String compactedTextMessage = summaryMessageText + "\n\n" + lastNMessagesText;
 
         InputMessage compactedMessage = InputMessage.builder(room)
@@ -347,6 +346,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 .build();
         compactedResponse.setParentMessageId(compactedMessage.getMessageId());
         compactedResponse.setVisibile(false);
+
         // summary response tokens + last n messages tokens - original tokens in that
         // span (to avoid double counting)
         compactedResponse.setTokensInMessage(
