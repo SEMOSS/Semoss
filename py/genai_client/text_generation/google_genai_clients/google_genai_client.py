@@ -142,12 +142,16 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
+            cache_read_tokens = getattr(
+                model_response.usage_metadata, "cached_content_token_count", None
+            )
 
             if len(getattr(model_response, "function_calls", None) or []) > 0:
                 return self._parse_tools_call_response(
                     response=model_response,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    cache_read_tokens=cache_read_tokens,
                 )
 
             thinking_text = ""
@@ -189,6 +193,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response=text_response,
                 prompt_tokens=prompt_tokens,
                 response_tokens=response_tokens,
+                cache_read_tokens=cache_read_tokens,
                 messageType="CHAT",
                 schemaVersion=2,
                 io="OUTPUT",
@@ -211,6 +216,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response: types.GenerateContentResponse,
         response_tokens: int,
         prompt_tokens: int,
+        cache_read_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
 
@@ -247,6 +253,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
+            cache_read_tokens=cache_read_tokens,
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
@@ -271,6 +278,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         content_array = []
         this_content_block: Dict[str, Any] = {}
         latest_grounding_metadata = None
+        latest_usage_metadata = None
         tool_result = []
 
         stream = self.client.models.generate_content_stream(
@@ -279,6 +287,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         for event in stream:
             parts_with_fc = []
+            if getattr(event, "usage_metadata", None):
+                latest_usage_metadata = event.usage_metadata
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
@@ -397,7 +407,17 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     content_array.append(this_content_block)
                     this_content_block = {}
 
-        input_tokens = self._count_tokens(contents)
+        cache_read_tokens = None
+        if latest_usage_metadata is not None:
+            if getattr(latest_usage_metadata, "prompt_token_count", None) is not None:
+                input_tokens = latest_usage_metadata.prompt_token_count
+            if getattr(latest_usage_metadata, "candidates_token_count", None) is not None:
+                output_tokens = latest_usage_metadata.candidates_token_count
+            cache_read_tokens = getattr(
+                latest_usage_metadata, "cached_content_token_count", None
+            )
+        else:
+            input_tokens = self._count_tokens(contents)
 
         if tool_result:
             data = StreamUtil.create_finish_reason_chunk("tool_calls")
@@ -427,6 +447,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
+                        cache_read_tokens=cache_read_tokens,
                         messageType="CHAT",
                         schemaVersion=2,
                         io="OUTPUT",
@@ -444,6 +465,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
+                cache_read_tokens=cache_read_tokens,
                 messageType="TOOL",
                 schemaVersion=2,
                 io="OUTPUT",
@@ -477,6 +499,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response=final_text,
             response_tokens=output_tokens,
             prompt_tokens=input_tokens,
+            cache_read_tokens=cache_read_tokens,
             messageType="CHAT",
             schemaVersion=2,
             io="OUTPUT",
