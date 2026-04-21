@@ -47,11 +47,16 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
+/**
+ * This reactor returns paginated commit details from a project's git repository.
+ * Each commit includes the commit SHA, author information, date, commit message,
+ * and any tags pointing to that commit.
+ */
 public class ProjectCommitDetailsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectCommitDetailsReactor.class);
@@ -66,42 +71,43 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String limitStr = this.keyValue.get(this.keysToGet[1]);
-		String offsetStr = this.keyValue.get(this.keysToGet[2]);
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
+		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 
-		int limit = -1;
-		int offset = -1;
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the project id");
+			throw new SemossPixelException("Must pass in the project id");
 		}
 		if (limitStr == null || (limitStr = limitStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the limit");
+			throw new SemossPixelException("Must pass in the limit");
 		}
 		if (offsetStr == null || (offsetStr = offsetStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the offset");
+			throw new SemossPixelException("Must pass in the offset");
 		}
+
+		int limit;
+		int offset;
 
 		try {
 			limit = Integer.parseInt(limitStr);
 			if (limit < 1) {
-				throw new IllegalArgumentException("Limit is a valid integer but must be >= 1");
+				throw new SemossPixelException("Limit is a valid integer but must be >= 1");
 			}
-		} catch (java.lang.NumberFormatException nfe) {
-			throw new IllegalArgumentException("Limit must be a valid integer");
+		} catch (NumberFormatException nfe) {
+			throw new SemossPixelException("Limit must be a valid integer");
 		}
 
 		try {
 			offset = Integer.parseInt(offsetStr);
 			if (offset < 0) {
-				throw new IllegalArgumentException("Offset is a valid integer but must be >= 0");
+				throw new SemossPixelException("Offset is a valid integer but must be >= 0");
 			}
-		} catch (java.lang.NumberFormatException nfe) {
-			throw new IllegalArgumentException("Offset must be a valid integer");
+		} catch (NumberFormatException nfe) {
+			throw new SemossPixelException("Offset must be a valid integer");
 		}
 
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+			throw new SemossPixelException("Project does not exist or user does not have access to the project");
 		}
 
 		List<Map<String, Object>> commits = new ArrayList<>();
@@ -110,15 +116,14 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 		String projectVersionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
 				projectId, project.getEngineName());
 
-		try (Git thisGit = Git.open(new File(projectVersionFolder));) {
-			// Get all tags once
+		try (Git thisGit = Git.open(new File(projectVersionFolder))) {
 			List<Ref> tagList = thisGit.tagList().call();
 			Iterable<RevCommit> gitCommits = thisGit.log().call();
 
 			for (RevCommit commit : gitCommits) {
-				// Get all commit details
 				Map<String, Object> details = new LinkedHashMap<>();
 				details.put("commitId", commit.getName());
+
 				Map<String, String> authorDetails = new LinkedHashMap<>();
 				authorDetails.put("userId", commit.getAuthorIdent().getName());
 				authorDetails.put("userEmail", commit.getAuthorIdent().getEmailAddress());
@@ -126,7 +131,6 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 				details.put("date", commit.getAuthorIdent().getWhen().toString());
 				details.put("commitMessage", commit.getFullMessage());
 
-				// Collect tags pointing to this commit
 				List<String> tagsForCommit = new ArrayList<>();
 				try (RevWalk walk = new RevWalk(thisGit.getRepository())) {
 					for (Ref tag : tagList) {
@@ -142,8 +146,8 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(
+			classLogger.error("Error occurred getting commit details for project {}", projectId, e);
+			throw new SemossPixelException(
 					"Error occurred getting the commit details. Detailed error = " + e.getMessage(), e);
 		}
 
@@ -161,11 +165,11 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required value containing the project id of a project";
+			return "The project id";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "This is a required field containing the limit of a project";
+			return "Maximum number of commits to return";
 		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "This is a required field containing the offset a project";
+			return "Number of commits to skip for pagination";
 		}
 		return super.getDescriptionForKey(key);
 	}

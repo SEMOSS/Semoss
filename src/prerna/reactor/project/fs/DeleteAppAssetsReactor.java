@@ -91,7 +91,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "remove: delete app assets executed";
+			comment = "remove: deleted " + String.join(", ", filePaths);
 		}
 
 		// Prepare to collect Git relative paths and actual File objects
