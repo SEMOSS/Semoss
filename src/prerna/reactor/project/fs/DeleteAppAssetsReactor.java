@@ -110,7 +110,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
 
-		GitDestroyer.removeSpecificFiles(versionGitFolder, true, gitRelativeFilePaths);
+		GitDestroyer.removeSpecificFiles(versionGitFolder, false, gitRelativeFilePaths);
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
