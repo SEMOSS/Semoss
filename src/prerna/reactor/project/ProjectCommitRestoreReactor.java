@@ -32,8 +32,10 @@ import java.io.File;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.lib.ObjectId;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -44,10 +46,8 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
 
 public class ProjectCommitRestoreReactor extends AbstractReactor {
 
@@ -88,24 +88,48 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		String projectVersionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
 				projectId, project.getEngineName());
 
-		try (Git thisGit = Git.open(new File(projectVersionFolder));) {
+		try (Git thisGit = Git.open(new File(projectVersionFolder))) {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
+			if (commitObjectId == null) {
+				throw new IllegalArgumentException("Commit id " + commitId + " not found");
+			}
 
-			thisGit.checkout().setStartPoint(commitObjectId.name()).addPath(".").call();
-			// Stage all changes: new/modified files AND deletions
-			// addFilepattern(".") can silently fail in JGit, so we use two passes:
-			// 1) add new + modified files
-			// 2) setUpdate(true) to stage deletions (files removed by the checkout)
-			thisGit.add().addFilepattern(".").call();
-			thisGit.add().addFilepattern(".").setUpdate(true).call();
+			// Save the current HEAD so we can soft-reset back to it
+			ObjectId originalHead = thisGit.getRepository().resolve("HEAD");
+
+			// Step 1: Hard reset to the target commit
+			// This sets HEAD, index, AND working tree to the target commit's state
+			thisGit.reset().setMode(ResetType.HARD).setRef(commitObjectId.name()).call();
+
+			// Step 2: Soft reset back to the original HEAD
+			// This moves HEAD back but keeps index and working tree at the target state
+			// Now the index differs from HEAD = ready to commit
+			thisGit.reset().setMode(ResetType.SOFT).setRef(originalHead.name()).call();
+
+			// Step 3: Commit the staged changes (index has target state, HEAD has original)
+			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+			String author = accessToken.getUsername();
+			String email = accessToken.getEmail();
+			if (author == null || author.isEmpty()) {
+				author = "SEMOSS";
+			}
+			if (email == null || email.isEmpty()) {
+				email = "semoss@semoss.org";
+			}
+
+			thisGit.commit()
+					.setMessage("Reverted to commit: " + commitId)
+					.setAuthor(author, email)
+					.call();
+
+			classLogger.info("Reverted project {} to commit {}", projectId, commitId);
+		} catch (IllegalArgumentException e) {
+			throw e;
 		} catch (Exception e) {
 			classLogger.error("Error reverting project {} to commit {}", projectId, commitId, e);
 			throw new IllegalArgumentException("Unable to revert to commit id " + commitId, e);
 		}
 
-		// Use addAllFiles as a reliable fallback to ensure everything is staged
-		GitRepoUtils.addAllFiles(projectVersionFolder, false);
-		GitRepoUtils.commitAddedFiles(projectVersionFolder, "Reverted to commit: " + commitId, user);
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
 		}
