@@ -92,12 +92,19 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
 
 			thisGit.checkout().setStartPoint(commitObjectId.name()).addPath(".").call();
+			// Stage all changes: new/modified files AND deletions
+			// addFilepattern(".") can silently fail in JGit, so we use two passes:
+			// 1) add new + modified files
+			// 2) setUpdate(true) to stage deletions (files removed by the checkout)
 			thisGit.add().addFilepattern(".").call();
+			thisGit.add().addFilepattern(".").setUpdate(true).call();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error reverting project {} to commit {}", projectId, commitId, e);
 			throw new IllegalArgumentException("Unable to revert to commit id " + commitId, e);
 		}
 
+		// Use addAllFiles as a reliable fallback to ensure everything is staged
+		GitRepoUtils.addAllFiles(projectVersionFolder, false);
 		GitRepoUtils.commitAddedFiles(projectVersionFolder, "Reverted to commit: " + commitId, user);
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
