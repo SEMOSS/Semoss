@@ -114,12 +114,12 @@ public class ProjectCommitDiffReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		String projectVersionFolder = EngineUtility.getSpecificEngineVersionFolder(
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
 				IEngine.CATALOG_TYPE.PROJECT, projectId, project.getEngineName());
 
 		List<Map<String, Object>> changedFiles = new ArrayList<>();
 
-		try (Git thisGit = Git.open(new File(projectVersionFolder))) {
+		try (Git thisGit = Git.open(new File(versionFolder))) {
 			Repository repo = thisGit.getRepository();
 
 			ObjectId commitObjectId = repo.resolve(commitId);
