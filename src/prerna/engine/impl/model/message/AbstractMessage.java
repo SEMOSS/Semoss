@@ -77,14 +77,7 @@ public abstract class AbstractMessage {
 	protected MessageFeedback feedback;
 	protected int tokens;
 
-	// Granular per-transaction token counts. Nullable when provider/cache absent.
-	// inputTokens is normalized to total input billed (incl. cached) across providers.
-	@SerializedName("inputTokens")
-	protected Integer inputTokens;
-
-	@SerializedName("outputTokens")
-	protected Integer outputTokens;
-
+	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on response messages.
 	@SerializedName("cacheReadTokens")
 	protected Integer cacheReadTokens;
 
@@ -296,22 +289,6 @@ public abstract class AbstractMessage {
 
 	public void setTokensInMessage(int tokens) {
 		this.tokens = tokens;
-	}
-
-	public Integer getInputTokens() {
-		return inputTokens;
-	}
-
-	public void setInputTokens(Integer inputTokens) {
-		this.inputTokens = inputTokens;
-	}
-
-	public Integer getOutputTokens() {
-		return outputTokens;
-	}
-
-	public void setOutputTokens(Integer outputTokens) {
-		this.outputTokens = outputTokens;
 	}
 
 	public Integer getCacheReadTokens() {

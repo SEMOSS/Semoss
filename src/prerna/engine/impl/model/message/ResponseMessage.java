@@ -329,10 +329,6 @@ public class ResponseMessage extends AbstractMessage {
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
 
-			// Copy granular token counts onto the message for MESSAGE_DATA JSON
-			builder.message.setInputTokens(llmResponse.getNumberOfTokensInPrompt());
-			builder.message.setOutputTokens(llmResponse.getNumberOfTokensInResponse());
-			builder.message.setCacheReadTokens(llmResponse.getNumberOfCacheReadTokens());
 			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
 
 			// Prefer parts-based responses, fall back to legacy messageType.

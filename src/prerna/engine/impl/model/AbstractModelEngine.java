@@ -269,11 +269,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			// set transaction id for both pieces
 			inputMessage.setTransactionId(response.getMessageId());
 			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
-			// granular tokens mirror the transaction on both rows for easy analytics
-			inputMessage.setInputTokens(askModelResponse.getNumberOfTokensInPrompt());
-			inputMessage.setOutputTokens(askModelResponse.getNumberOfTokensInResponse());
 			inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
-			inputMessage.setCacheCreationTokens(askModelResponse.getNumberOfCacheCreationTokens());
 			response.setTransactionId(response.getMessageId());
 
 			// Create the assistant's response message and add to history
