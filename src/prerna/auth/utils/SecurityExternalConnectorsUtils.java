@@ -95,7 +95,8 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Retrieves the ID, alias, instance url and user profile url for each configured ServiceNow connection.
+	 * Retrieves the ID, alias, instance url and user profile url for each
+	 * configured ServiceNow connection.
 	 *
 	 * <p>
 	 * Queries the {@code SERVICENOW_CONNECTIONS} table in the security database,
@@ -107,7 +108,8 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	 *         <li>{@code id} - the unique identifier of the connection</li>
 	 *         <li>{@code alias} - the human-readable name of the connection</li>
 	 *         <li>{@code instanceUrl} - the instance url of the connection</li>
-	 *         <li>{@code userProfileUrl} - the user profile url of the connection</li>
+	 *         <li>{@code userProfileUrl} - the user profile url of the
+	 *         connection</li>
 	 *         </ul>
 	 *         Returns an empty list if no connections are configured.
 	 */
@@ -120,14 +122,14 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__USERPROFILEURL", "userProfileUrl"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
-	
+
 	/**
-	 * Retrieves the instance url, client id, client secret and user profile url for a specific configured
-	 * ServiceNow connection
+	 * Retrieves the instance url, client id, client secret and user profile url for
+	 * a specific configured ServiceNow connection
 	 * <p>
 	 * Queries the {@code SERVICENOW_CONNECTIONS} table in the security database,
-	 * returning the instance url, client id, client secret and user profile url for a specific 
-	 * connection id that is generated upon insertion into the system.
+	 * returning the instance url, client id, client secret and user profile url for
+	 * a specific connection id that is generated upon insertion into the system.
 	 * 
 	 * @param connectionId the unique connection id that was added
 	 * @return a map of instance url, client id, client secret and user profile url
@@ -145,13 +147,13 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
 		}
 		Map<String, Object> result = resultList.get(0);
-		 
-	    Map<String, String> response = new HashMap<>();
-	    response.put("instanceUrl", (String) result.get("instanceUrl"));
-	    response.put("clientId", (String) result.get("clientid"));
-	    response.put("clientSecret", (String) result.get("clientsecret"));
-	    response.put("userProfileUrl", (String) result.get("userProfileUrl"));
-	    return response;
+
+		Map<String, String> response = new HashMap<>();
+		response.put("instanceUrl", (String) result.get("instanceUrl"));
+		response.put("clientId", (String) result.get("clientid"));
+		response.put("clientSecret", (String) result.get("clientsecret"));
+		response.put("userProfileUrl", (String) result.get("userProfileUrl"));
+		return response;
 	}
 
 }

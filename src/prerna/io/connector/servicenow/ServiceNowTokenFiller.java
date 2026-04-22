@@ -38,7 +38,7 @@ public class ServiceNowTokenFiller implements IAccessTokenFiller {
 
 		String accessToken = snAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, null, true);
-		
+
 		// Fill the bean with the returned JSON
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, snAccessToken);
 	}

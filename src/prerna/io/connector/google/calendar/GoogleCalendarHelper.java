@@ -60,7 +60,7 @@ public class GoogleCalendarHelper {
 	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarHelper.class);
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).setPrettyPrinting().create();
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	// Calendar event time fields
 	private static final String START = "start";

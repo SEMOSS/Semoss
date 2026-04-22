@@ -27,58 +27,54 @@
  *******************************************************************************/
 package prerna.io.connector.servicenow;
 
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ServiceNowListTablesReactor extends AbstractReactor {
+/**
+ * User-context utility methods for ServiceNow connector operations.
+ */
+public class ServiceNowUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(ServiceNowListTablesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ServiceNowUtils.class);
 
-	private static final String INSTANCE_URL = "instanceURL";
-
-	public ServiceNowListTablesReactor() {
-		this.keysToGet = new String[] { INSTANCE_URL };
-		this.keyRequired = new int[] { 1 };
+	/**
+	 * Retrieves the active ServiceNow OAuth access token for the current user.
+	 *
+	 * @param user current session user
+	 * @return ServiceNow access token value
+	 */
+	public static String getServiceNowAccessToken(User user) {
+		AccessToken servicenowToken = getServiceNowToken(user);
+		return servicenowToken.getAccess_token();
 	}
 
-	@Override
-	public NounMetadata execute() {
-		this.organizeKeys();
-
-		try {
-			String instanceURL = this.keyValue.get(this.keysToGet[0]);
-
-			User user = this.insight.getUser();
-			String accessToken = ServiceNowUtils.getServiceNowAccessToken(user);
-
-			Map<String, Object> allTables = ServiceNowHelper.getAllTables(instanceURL, accessToken);
-			return new NounMetadata(allTables, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch (Exception e) {
-			classLogger.error("Error retrieving ServiceNow table list.", e);
-			throw new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+	/**
+	 * Retrieves the ServiceNow token object for a user with consistent validation.
+	 *
+	 * @param user current session user
+	 * @return ServiceNow {@link AccessToken}
+	 */
+	private static AccessToken getServiceNowToken(User user) {
+		if (user == null) {
+			classLogger.error("User not found in session. Please login to ServiceNow.");
+			throw new SemossPixelException("User not found in session. Please login to ServiceNow.");
 		}
-	}
 
-	@Override
-	public String getReactorDescription() {
-		return "Fetches all the tables present in a ServiceNow instance via OAuth authentication.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(INSTANCE_URL)) {
-			return "Required URL of the ServiceNow user's instance.";
+		AccessToken servicenowToken = user.getAccessToken(AuthProvider.SERVICENOW);
+		if (servicenowToken == null) {
+			classLogger.error("No ServiceNow access token found for user.");
+			throw new SemossPixelException("No ServiceNow access token fetched.");
 		}
-		return super.getDescriptionForKey(key);
+
+		return servicenowToken;
 	}
 
+	private ServiceNowUtils() {
+		// utility class
+	}
 }

@@ -41,22 +41,22 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminServiceNowInsertConnectionsReactor  extends AbstractReactor {
-	
-    private static final Logger classLogger = LogManager.getLogger(AdminServiceNowInsertConnectionsReactor.class);
+public class AdminServiceNowInsertConnectionsReactor extends AbstractReactor {
 
-    private static final String INSTANCE_URL = "instanceUrl";
+	private static final Logger classLogger = LogManager.getLogger(AdminServiceNowInsertConnectionsReactor.class);
+
+	private static final String INSTANCE_URL = "instanceUrl";
 	private static final String CLIENT_ID = "clientId";
 	private static final String CLIENT_SECRET = "clientSecret";
 	private static final String USER_PROFILE_URL = "userProfileUrl";
 	private static final String ALIAS = "alias";
-    
-    public AdminServiceNowInsertConnectionsReactor() {
-    	this.keysToGet = new String[] { INSTANCE_URL, CLIENT_ID, CLIENT_SECRET, USER_PROFILE_URL, ALIAS };
+
+	public AdminServiceNowInsertConnectionsReactor() {
+		this.keysToGet = new String[] { INSTANCE_URL, CLIENT_ID, CLIENT_SECRET, USER_PROFILE_URL, ALIAS };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 1 };
-    }
-    
-    @Override
+	}
+
+	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		SecurityAdminExternalConnectorsUtils adminUtils = SecurityAdminExternalConnectorsUtils.getInstance(user);
@@ -73,7 +73,8 @@ public class AdminServiceNowInsertConnectionsReactor  extends AbstractReactor {
 
 		Map<Object, Object> responseMap = new HashMap<>();
 		try {
-			String profileId = adminUtils.insertServiceNowConnection(instanceUrl, clientId, clientSecret, userProfileUrl, alias);
+			String profileId = adminUtils.insertServiceNowConnection(instanceUrl, clientId, clientSecret,
+					userProfileUrl, alias);
 			responseMap.put("id", profileId);
 			responseMap.put("success", profileId != null && !profileId.isEmpty());
 			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -83,25 +84,25 @@ public class AdminServiceNowInsertConnectionsReactor  extends AbstractReactor {
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(error));
 		}
 	}
-    
-    @Override
-    public String getReactorDescription() {
-        return "Creates and stores a ServiceNow connection entry (instance url, client id, client secret, user profile url and alias).";
-    }
 
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals(INSTANCE_URL)) {
-            return "Required ServiceNow connected-app instance url.";
-        } else if (key.equals(CLIENT_ID)) {
-            return "Required ServiceNow connected-app client id.";
-        } else if (key.equals(CLIENT_SECRET)) {
-            return "Required ServiceNow connected-app client secret.";
-        } else if (key.equals(USER_PROFILE_URL)) {
-            return "Required ServiceNow connected-app user profile url.";
-        } else if (key.equals(ALIAS)) {
-            return "Required unique alias used to identify this saved ServiceNow connection.";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	public String getReactorDescription() {
+		return "Creates and stores a ServiceNow connection entry (instance url, client id, client secret, user profile url and alias).";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(INSTANCE_URL)) {
+			return "Required ServiceNow connected-app instance url.";
+		} else if (key.equals(CLIENT_ID)) {
+			return "Required ServiceNow connected-app client id.";
+		} else if (key.equals(CLIENT_SECRET)) {
+			return "Required ServiceNow connected-app client secret.";
+		} else if (key.equals(USER_PROFILE_URL)) {
+			return "Required ServiceNow connected-app user profile url.";
+		} else if (key.equals(ALIAS)) {
+			return "Required unique alias used to identify this saved ServiceNow connection.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
