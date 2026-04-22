@@ -60,8 +60,8 @@ public class LocalFileSystemStorageEngine extends AbstractRCloneStorageEngine {
 			if (this.BUCKET == null) {
 				throw new IllegalArgumentException("Must provide the " + PATH_PREFIX + " for the local file system");
 			} else {
-				classLogger.warn("Update SMSS key for " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " from " + LOCAL_PATH_PREFIX + " to new key " + PATH_PREFIX);
+				classLogger.warn("Update SMSS key for {} from {} to new key {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), LOCAL_PATH_PREFIX, PATH_PREFIX);
 			}
 		}
 

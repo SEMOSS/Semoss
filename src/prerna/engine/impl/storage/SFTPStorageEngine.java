@@ -130,10 +130,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (!this.newConnection) {
-			classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+			classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 			this.sshClient = getSSHClient();
 			this.sftpClient = this.sshClient.newSFTPClient();
-			classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+			classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 		}
 	}
 
@@ -223,10 +223,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		}
 		try {
 			if (this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -278,10 +278,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if (this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -314,10 +314,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if (this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -355,10 +355,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if (this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}
@@ -398,10 +398,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		SFTPClient sftpClient = null;
 		try {
 			if (this.newConnection) {
-				classLogger.info("Attempting to establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
 				sshClient = getSSHClient();
 				sftpClient = sshClient.newSFTPClient();
-				classLogger.info("Successfully establishing connection to " + this.host + " on port " + this.port);
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
 			} else {
 				sftpClient = this.sftpClient;
 			}

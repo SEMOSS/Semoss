@@ -75,7 +75,7 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 
 		// Normalize relative path
 		if (relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim().replace('\\', '/');
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if (!relativeFilePath.isEmpty() && !relativeFilePath.startsWith("/")) {
 				relativeFilePath = "/" + relativeFilePath;
 			}
@@ -132,9 +132,9 @@ public class SearchEngineAssetsReactor extends AbstractReactor {
 			return """
 						A list of zero or more search flags to modify matching behavior.
 					       Valid values are:
-					          "case"  � perform a case-sensitive match
-					          "word"  � match only whole words
-					          "regex" � treat the search term as a full Java regular expression
+					          "case"  - perform a case-sensitive match
+					          "word"  - match only whole words
+					          "regex" - treat the search term as a full Java regular expression
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}

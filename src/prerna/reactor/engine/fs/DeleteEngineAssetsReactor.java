@@ -88,10 +88,11 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 				filePaths.add(f.getName());
 			}
 		}
+		filePaths = Utility.normalizeFilePaths(filePaths);
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "remove: DeleteEngineAssets executed";
+			comment = "remove: delete engine assets executed";
 		}
 
 		// Prepare to collect Git relative paths and actual File objects
