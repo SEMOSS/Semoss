@@ -83,6 +83,7 @@ public class SecurityOwlCreator {
 		// connectors
 		conceptsRequired.add("JIRA_CONNECTIONS");
 		conceptsRequired.add("SALESFORCE_CONNECTIONS");
+		conceptsRequired.add("SERVICENOW_CONNECTIONS");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -577,6 +578,15 @@ public class SecurityOwlCreator {
 		owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
 		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
 		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+
+		// SERVICENOW_CONNECTIONS
+		owler.addConcept("SERVICENOW_CONNECTIONS", null, null);
+		owler.addProp("SERVICENOW_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,

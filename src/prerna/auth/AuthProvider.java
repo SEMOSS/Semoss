@@ -54,7 +54,7 @@ public enum AuthProvider implements Serializable {
 	JIRA("JIRA", "Jira", true, JiraTokenFiller.class.getName()),
 	KEYCLOAK("KEYCLOAK", "Keycloak", true, GenericTokenFiller.class.getName()),
 	MICROSOFT("MICROSOFT", "Microsoft", true, MicrosoftTokenFiller.class.getName()),
-	SALESFORCE("SALESFORCE", "Salesforce", true, SalesforceTokenFiller.class.getName()), 
+	SALESFORCE("SALESFORCE", "Salesforce", true, SalesforceTokenFiller.class.getName()),
 	SERVICENOW("SERVICENOW", "ServiceNow", true, ServiceNowTokenFiller.class.getName()),
 	SITEMINDER("SITEMINDER", "SiteMinder", true, null),
 	SURVEYMONKEY("SURVEYMONKEY", "SurveyMonkey", true, null),
