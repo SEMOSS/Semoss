@@ -29,7 +29,9 @@ package prerna.graph;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -157,24 +159,27 @@ public class MSGraphAPICall {
 	private String buildUri(String groupId, String searchTerm, String nextLink) throws IOException {
 		String uri = "";
 		if (nextLink == null) {
-			String searchParam = "";
+			List<String> queryParams = new ArrayList<>();
+			queryParams.add("$orderby=displayName");
+			queryParams.add("$top=999");
+			queryParams.add("$count=true");
+
 			if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-				searchParam = "$search="
-						+ URLEncoder.encode(
+				queryParams
+						.add("$search=" + URLEncoder.encode(
 								"\"displayName:" + searchTerm + "\" OR \"mail:" + searchTerm
 										+ "\" OR \"userPrincipalName:" + searchTerm + "\"",
-								java.nio.charset.StandardCharsets.UTF_8.toString())
-						+ "&";
+								java.nio.charset.StandardCharsets.UTF_8.toString()));
 			}
+
 			if (groupId == null || groupId.isEmpty()) {
-				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + searchParam + "$orderby=displayName&"
-						+ "$top=999&" + "$count=true&" + "$select=displayName,id,mail,userType,givenName,surname&"
-						+ "$filter=" + URLEncoder.encode("(userType eq 'Member')",
-								java.nio.charset.StandardCharsets.UTF_8.toString());
+				queryParams.add("$select=displayName,id,mail,userType,givenName,surname");
+				queryParams.add("$filter=" + URLEncoder.encode("(userType eq 'Member')",
+						java.nio.charset.StandardCharsets.UTF_8.toString()));
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + String.join("&", queryParams);
 			} else {
 				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/" + groupId
-						+ "/members/microsoft.graph.user?" + searchParam + "$orderby=displayName&" + "$top=999&"
-						+ "$count=true";
+						+ "/members/microsoft.graph.user?" + String.join("&", queryParams);
 			}
 		} else {
 			uri = nextLink;
