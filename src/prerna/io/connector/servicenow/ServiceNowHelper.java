@@ -53,7 +53,7 @@ public final class ServiceNowHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ServiceNowHelper.class);
 
-	private static final Gson GSON = new GsonBuilder().create();
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	private static final String ACCEPT = "Accept";
 	private static final String BEARER = "Bearer ";

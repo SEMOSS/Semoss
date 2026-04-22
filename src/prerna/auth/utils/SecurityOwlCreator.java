@@ -81,6 +81,7 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("TOKEN");
 
 		// connectors
+		conceptsRequired.add("JIRA_CONNECTIONS");
 		conceptsRequired.add("SALESFORCE_CONNECTIONS");
 		conceptsRequired.add("SERVICENOW_CONNECTIONS");
 	}
@@ -561,6 +562,15 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+
+		// JIRA_CONNECTIONS
+        owler.addConcept("JIRA_CONNECTIONS", null, null);
+        owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
+        owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// SALESFORCE_CONNECTIONS
 		owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
