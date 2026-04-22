@@ -361,7 +361,7 @@ public class AssetUtility {
 		// if this folder does not exist create it
 		File file = new File(Utility.normalizePath(projectFolder));
 		if (!file.exists()) {
-			file.mkdir();
+			file.mkdirs();
 		}
 		return projectFolder.replace("\\", "/");
 	}
@@ -383,7 +383,7 @@ public class AssetUtility {
 
 		File baseAppFolderFile = new File(baseProjectFolder);
 		if (!baseAppFolderFile.exists()) {
-			baseAppFolderFile.mkdir();
+			baseAppFolderFile.mkdirs();
 			// if you are creating this.. there is a possibility we need to fix this engine
 			rehomeUserForAppRoot(projectName, projectId, baseProjectFolder);
 		}
