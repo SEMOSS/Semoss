@@ -30,9 +30,12 @@ package prerna.om;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import prerna.auth.User;
+
 public class LocalUserStore {
 
 	private volatile Map<String, Object[]> localStore = new ConcurrentHashMap<String, Object[]>();
+	private final Map<String, User> userCache = new ConcurrentHashMap<String, User>();
 
 	private static LocalUserStore userStore;
 
@@ -65,9 +68,20 @@ public class LocalUserStore {
 		return new Object[] { userStore[1], userStore[2] };
 	}
 
+	public User getCachedUser(String key) {
+		return userCache.get(key);
+	}
+
+	public void cacheUser(String key, User user) {
+		if (key != null && user != null) {
+			userCache.put(key, user);
+		}
+	}
+
 	public void remove(String key) {
 		if (key != null) {
 			localStore.remove(key);
+			userCache.remove(key);
 		}
 	}
 
