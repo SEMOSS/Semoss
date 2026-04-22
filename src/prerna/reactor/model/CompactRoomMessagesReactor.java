@@ -143,7 +143,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         if (autoDetect) {
             if (!roomHasViewableModel) {
                 classLogger.warn("No model id attached to room - attempting to clear out tool calls and responses");
-                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId));
+                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId, room, 0));
             } else {
                 List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
                 Map<String, Object> detectResult = detectAndCompact(room, parentMessageId, modelEngine, branch);
@@ -153,7 +153,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         } else {
             if (requestedTypes.contains("TOOL_PRUNE")) {
-                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId));
+                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId, room, 0));
             }
             if (requestedTypes.contains("SUMMARY")) {
                 typeResults.add(summarizeMessages(room, parentMessageId,
@@ -225,6 +225,27 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             result.put("success", false);
             result.put("error", "Not enough messages in room to apply tool pruning");
             return result;
+        }
+
+        // If toolTokens is 0 and tool pruning is selected it likely did not go through
+        // autodetection
+        // Check how many tokens we are saving by pruning tools
+        if (toolTokens == 0) {
+            int prevInputCumulative = 0;
+            for (AbstractMessage m : messages) {
+                if (m instanceof InputMessage) {
+                    if (m.getPruneToolsAbove()) {
+                        break;
+                    }
+                    if (m.hasToolResultPart()) {
+                        int delta = m.getTokensInMessage() - prevInputCumulative;
+                        if (delta > 0) {
+                            toolTokens += delta;
+                        }
+                    }
+                    prevInputCumulative = m.getTokensInMessage();
+                }
+            }
         }
 
         AbstractMessage lastResponseMessage = messages.getLast();
