@@ -242,10 +242,18 @@ public final class MCPUtility {
 		}
 
 		PyTranslator pyt = null;
+		// DIAGNOSTIC: capture insight identity + context state around setContext
+		classLogger.info("[MCP-CTX-PRE] insightHash={} insightId={} ctxPid={} ctxName={} engineId={} engineName={} isProj={} engineClass={}",
+				System.identityHashCode(insight), insight.getInsightId(),
+				insight.getContextProjectId(), insight.getContextProjectName(),
+				engine.getEngineId(), engine.getEngineName(),
+				engine instanceof IProject, engine.getClass().getName());
 		if (engine instanceof IProject) {
 			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
+			boolean setCtxResult = insight.setContext(engine.getEngineId());
+			classLogger.info("[MCP-CTX-POST] insightHash={} setContextResult={} ctxPid={} ctxName={}",
+					System.identityHashCode(insight), setCtxResult,
+					insight.getContextProjectId(), insight.getContextProjectName());
 
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
@@ -258,6 +266,11 @@ public final class MCPUtility {
 		if (pyt == null) {
 			pyt = insight.getPyTranslator();
 		}
+		// DIAGNOSTIC: capture what transportScript will actually read
+		classLogger.info("[MCP-CTX-PYT] pytHash={} pytGlobalStoreInsightHash={} pytGlobalCtxPid={} pytGlobalCtxName={}",
+				System.identityHashCode(pyt),
+				System.identityHashCode(insight),
+				insight.getContextProjectId(), insight.getContextProjectName());
 
 		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),

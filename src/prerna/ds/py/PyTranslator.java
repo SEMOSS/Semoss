@@ -398,10 +398,15 @@ public class PyTranslator {
 		ps.longRunning = true;
 		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
-		// so we have a context project id that we need to set?
-		if (this.globalStoreInsight.getContextProjectId() != null) {
+		// Resolve asset_paths from the caller's insight when provided — callers like
+		// MCPUtility.runPythonTool mutate executionInsight.setContext(...) per tool call
+		// to swap between engines, and this.globalStoreInsight is a separate reference
+		// pinned at translator construction time, so reading context off it would hand
+		// back the wrong engine's folder on every call after the first.
+		Insight contextInsight = executionInsight != null ? executionInsight : this.globalStoreInsight;
+		if (contextInsight.getContextProjectId() != null) {
 			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
-					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
+					contextInsight.getContextProjectId(), contextInsight.getContextProjectName());
 			String assetsPyDir = assetsDir + "/py";
 			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
 		}

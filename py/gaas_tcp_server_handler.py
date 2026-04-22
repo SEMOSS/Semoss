@@ -819,6 +819,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+
+        import time as _time
+        _diag_logger = logging.getLogger("SocketServer")
+        _hp_tid = threading.get_ident()
+        _hp_t0 = _time.time()
+        _hp_epoc = payload.get("epoc") if isinstance(payload, dict) else None
+        _cmd_preview = command[:120].replace("\n", " \\n ") if isinstance(command, str) else ""
+        _diag_logger.info(
+            "[MCP-HP-ENTER] tid=%s t=%.6f insight=%s epoc=%s asset_paths=%r cmd_preview=%r",
+            _hp_tid, _hp_t0, insight_id, _hp_epoc, asset_paths, _cmd_preview,
+        )
+
         cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
         cancel_trace = self._build_cancel_trace(cancel_events)
 
@@ -846,6 +858,22 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
                         """
                     )
+                # DIAGNOSTIC: after sys.path mutation, dump sys.path and probe for mcp_driver.py on disk
+                path_script += textwrap.dedent(
+                    f"""
+                    import logging as _diag_logging, os as _diag_os, sys as _diag_sys
+                    _diag_log = _diag_logging.getLogger("SocketServer")
+                    _diag_log.info("[MCP-HP-SYSPATH] tid={_hp_tid} insight={insight_id} sys_path=%r", _diag_sys.path[:10])
+                    for _p in _diag_sys.path[:10]:
+                        try:
+                            _probe = _diag_os.path.join(_p, "mcp_driver.py")
+                            _diag_log.info("[MCP-HP-PROBE]   tid={_hp_tid} insight={insight_id} path=%r exists=%s", _p, _diag_os.path.exists(_probe))
+                        except Exception as _e:
+                            _diag_log.info("[MCP-HP-PROBE]   tid={_hp_tid} insight={insight_id} path=%r probe_err=%s", _p, _e)
+                    del _diag_logging, _diag_os, _diag_sys, _diag_log
+
+                    """
+                )
                 command = path_script + command
 
         store = InsightGlobalStore()
@@ -864,9 +892,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             is_correct_path = True
                             break
 
+                    _diag_logger.info(
+                        "[MCP-HP-PATHCHECK] tid=%s t=%.6f insight=%s is_correct_path=%s module_path=%s asset_paths=%s",
+                        _hp_tid, _time.time(), insight_id, is_correct_path, module_path, asset_paths,
+                    )
                     if not is_correct_path:
                         reload_mcp_function = insight_globals.get("reload_mcp_function")
                         if reload_mcp_function:
+                            _diag_logger.info(
+                                "[MCP-HP-PATHRELOAD] tid=%s t=%.6f insight=%s - triggering pre-script reload",
+                                _hp_tid, _time.time(), insight_id,
+                            )
                             reload_mcp_function()
             except Exception:
                 # If anything goes wrong during the check, do nothing and proceed
@@ -1419,6 +1455,17 @@ class InsightGlobalStore:
                 Reloads the mcp_driver module
                 """
                 import importlib
+                import time as _time
+
+                _diag_logger = logging.getLogger("SocketServer")
+                _tid = threading.get_ident()
+                _t0 = _time.time()
+                _existing = sys.modules.get("mcp_driver")
+                _pre_keys = len(_existing.__dict__) if _existing is not None else -1
+                _diag_logger.info(
+                    "[MCP-RELOAD-START] tid=%s t=%.6f had_module=%s pre_keys=%s",
+                    _tid, _t0, _existing is not None, _pre_keys,
+                )
 
                 if "mcp_driver" in sys.modules:
                     # Use importlib.reload for a proper reload
@@ -1426,6 +1473,12 @@ class InsightGlobalStore:
                 else:
                     # First-time import
                     mcp_module = secure_import("mcp_driver", globals=globals_dict)
+
+                _t1 = _time.time()
+                _diag_logger.info(
+                    "[MCP-RELOAD-END]   tid=%s t=%.6f dur_ms=%.2f post_keys=%s",
+                    _tid, _t1, (_t1 - _t0) * 1000, len(mcp_module.__dict__),
+                )
 
                 # Inject the newly loaded module into the current insight's globals
                 globals_dict["mcp_driver"] = mcp_module
