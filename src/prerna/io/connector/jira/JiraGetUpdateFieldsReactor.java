@@ -83,7 +83,7 @@ public class JiraGetUpdateFieldsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(JIRAID)) {
-			return "Required Jira issue key (for example, RTJ-42) from a previous get response.";
+			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
 		}
 		return super.getDescriptionForKey(key);
 	}

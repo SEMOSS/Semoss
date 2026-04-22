@@ -120,7 +120,7 @@ public class JiraWorklogReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Manages time-tracking worklog entries on a Jira issue. Use this to get, add, update, or delete work logs that record time spent.";
+		return "Manages worklog entries on a Jira issue. Supports get, add, update, and delete operations.";
 	}
 
 	@Override

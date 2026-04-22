@@ -105,7 +105,7 @@ public class JiraIssueLinkReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Manages relationship links between Jira issues. Supports creating and removing issue links.";
+		return "Manages links between Jira issues. Supports link and unlink operations.";
 	}
 
 	@Override

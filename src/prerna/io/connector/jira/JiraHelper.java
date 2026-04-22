@@ -49,24 +49,23 @@ import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.ToNumberPolicy;
 
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 
 public final class JiraHelper {
-	// Logger
+
 	private static final Logger classLogger = LogManager.getLogger(JiraHelper.class);
-	// Gson instance for JSON serialization/deserialization with specific
-	// configurations
+
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
-	// ObjectMapper instance for JSON parsing
-	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	// Jira REST paths
 	private static final String API_PATH_ISSUE = "/rest/api/3/issue";
@@ -148,15 +147,19 @@ public final class JiraHelper {
 			Map<String, String> headers = buildHeaders(accessToken);
 			String response = HttpHelperUtility.getRequest(baseUrl + API_PATH_PROJECT, headers, null, null, null);
 
-			JsonNode projectArray = OBJECT_MAPPER.readTree(response);
+			JsonArray projectArray = JsonParser.parseString(response).getAsJsonArray();
 			List<Map<String, Object>> projects = new ArrayList<>();
-			for (JsonNode p : projectArray) {
+			for (JsonElement el : projectArray) {
+				JsonObject p = el.getAsJsonObject();
 				Map<String, Object> proj = new HashMap<>();
-				proj.put(FIELD_ID, p.path(FIELD_ID).asText());
-				proj.put(FIELD_PROJECT, p.path(FIELD_KEY).asText());
-				proj.put(FIELD_NAME, p.path(FIELD_NAME).asText());
-				proj.put(projectTypeKey, p.path(projectTypeKey).asText());
-				proj.put("lead", p.path("lead").path(FIELD_DISPLAY_NAME).asText(""));
+				proj.put(FIELD_ID, getText(p, FIELD_ID));
+				proj.put(FIELD_PROJECT, getText(p, FIELD_KEY));
+				proj.put(FIELD_NAME, getText(p, FIELD_NAME));
+				proj.put(projectTypeKey, getText(p, projectTypeKey));
+				JsonElement leadEl = p.get("lead");
+				proj.put("lead",
+						leadEl != null && leadEl.isJsonObject() ? getText(leadEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+								: "");
 				projects.add(proj);
 			}
 			return projects;
@@ -187,20 +190,22 @@ public final class JiraHelper {
 
 			if (projectKey != null && !projectKey.trim().isEmpty()) {
 				String projectId = resolveProjectId(baseUrl, accessToken, projectKey);
-				url = baseUrl + API_PATH_ISSUETYPE_PROJECT + "?projectId=" + URLEncoder.encode(projectId, StandardCharsets.UTF_8);
+				url = baseUrl + API_PATH_ISSUETYPE_PROJECT + "?projectId="
+						+ URLEncoder.encode(projectId, StandardCharsets.UTF_8);
 			} else {
 				url = baseUrl + API_PATH_ISSUETYPE;
 			}
 
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			JsonNode typeArray = OBJECT_MAPPER.readTree(response);
+			JsonArray typeArray = JsonParser.parseString(response).getAsJsonArray();
 
 			List<Map<String, Object>> types = new ArrayList<>();
-			for (JsonNode t : typeArray) {
+			for (JsonElement el : typeArray) {
+				JsonObject t = el.getAsJsonObject();
 				Map<String, Object> type = new HashMap<>();
-				type.put(FIELD_ISSUE_TYPE_ID, t.path(FIELD_ID).asText());
-				type.put(FIELD_NAME, t.path(FIELD_NAME).asText());
-				type.put(subtask, t.path(subtask).asBoolean(false));
+				type.put(FIELD_ISSUE_TYPE_ID, getText(t, FIELD_ID));
+				type.put(FIELD_NAME, getText(t, FIELD_NAME));
+				type.put(subtask, getBoolean(t, subtask));
 				types.add(type);
 			}
 			return types;
@@ -236,13 +241,14 @@ public final class JiraHelper {
 			}
 			String response = HttpHelperUtility.getRequest(url.toString(), headers, null, null, null);
 
-			JsonNode userArray = OBJECT_MAPPER.readTree(response);
+			JsonArray userArray = JsonParser.parseString(response).getAsJsonArray();
 			List<Map<String, Object>> users = new ArrayList<>();
-			for (JsonNode u : userArray) {
+			for (JsonElement el : userArray) {
+				JsonObject u = el.getAsJsonObject();
 				Map<String, Object> userMap = new HashMap<>();
-				userMap.put(FIELD_ASSIGNEE, u.path(FIELD_ACCOUNT_ID).asText());
-				userMap.put(FIELD_DISPLAY_NAME, u.path(FIELD_DISPLAY_NAME).asText());
-				userMap.put(emailAddress, u.path(emailAddress).asText(""));
+				userMap.put(FIELD_ASSIGNEE, getText(u, FIELD_ACCOUNT_ID));
+				userMap.put(FIELD_DISPLAY_NAME, getText(u, FIELD_DISPLAY_NAME));
+				userMap.put(emailAddress, getText(u, emailAddress));
 				users.add(userMap);
 			}
 			return users;
@@ -269,14 +275,23 @@ public final class JiraHelper {
 			Map<String, String> headers = buildHeaders(accessToken);
 			String response = HttpHelperUtility.getRequest(baseUrl + API_PATH_PRIORITY, headers, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode priorityArray = root.isArray() ? root : root.path(values);
+			JsonElement rootEl = JsonParser.parseString(response);
+			JsonArray priorityArray;
+			if (rootEl.isJsonArray()) {
+				priorityArray = rootEl.getAsJsonArray();
+			} else if (rootEl.isJsonObject() && rootEl.getAsJsonObject().has(values)) {
+				JsonElement valEl = rootEl.getAsJsonObject().get(values);
+				priorityArray = valEl.isJsonArray() ? valEl.getAsJsonArray() : new JsonArray();
+			} else {
+				priorityArray = new JsonArray();
+			}
 
 			List<Map<String, Object>> priorities = new ArrayList<>();
-			for (JsonNode p : priorityArray) {
+			for (JsonElement el : priorityArray) {
+				JsonObject p = el.getAsJsonObject();
 				Map<String, Object> priority = new HashMap<>();
-				priority.put(FIELD_ID, p.path(FIELD_ID).asText());
-				priority.put(FIELD_NAME, p.path(FIELD_NAME).asText());
+				priority.put(FIELD_ID, getText(p, FIELD_ID));
+				priority.put(FIELD_NAME, getText(p, FIELD_NAME));
 				priorities.add(priority);
 			}
 			return priorities;
@@ -298,8 +313,8 @@ public final class JiraHelper {
 	 * @param maxResults    maximum number of results per page
 	 * @return map containing paginated issue list
 	 */
-	public static Map<String, Object> searchIssues(String accessToken, String baseUrl,
-			String jql, String nextPageToken, int maxResults) {
+	public static Map<String, Object> searchIssues(String accessToken, String baseUrl, String jql, String nextPageToken,
+			int maxResults) {
 		try {
 			return executeJqlSearch(accessToken, baseUrl, jql, nextPageToken, maxResults);
 		} catch (SemossPixelException e) {
@@ -318,22 +333,21 @@ public final class JiraHelper {
 	 * @param issueKey    issue key (for example, {@code PROJECT-123})
 	 * @return map containing {@code id}, {@code jiraid}, and {@code fields}
 	 */
-	@SuppressWarnings("unchecked")
 	public static Map<String, Object> readIssue(String accessToken, String baseUrl, String issueKey) {
 		try {
 			validateJiraContext(accessToken, baseUrl);
 			Map<String, String> headers = buildHeaders(accessToken);
 			String response = HttpHelperUtility.getRequest(
-					baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8),
-					headers, null, null, null);
+					baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8), headers, null,
+					null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			Map<String, Object> issue = new HashMap<>();
-			issue.put(FIELD_ID, root.path(FIELD_ID).asText());
-			issue.put(FIELD_JIRA_ID, root.path(FIELD_KEY).asText());
-			JsonNode fieldsNode = root.path(FIELD_FIELDS);
-			if (fieldsNode.isObject()) {
-				issue.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
+			issue.put(FIELD_ID, getText(root, FIELD_ID));
+			issue.put(FIELD_JIRA_ID, getText(root, FIELD_KEY));
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
+			if (fieldsEl != null && fieldsEl.isJsonObject()) {
+				issue.put(FIELD_FIELDS, GSON.fromJson(fieldsEl, Map.class));
 			}
 			return issue;
 		} catch (SemossPixelException e) {
@@ -362,8 +376,15 @@ public final class JiraHelper {
 			String issueUrl = baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(jiraId, StandardCharsets.UTF_8);
 
 			String issueResponse = HttpHelperUtility.getRequest(issueUrl, headers, null, null, null);
-			JsonNode root = OBJECT_MAPPER.readTree(issueResponse);
-			String actualProjectKey = root.path(FIELD_FIELDS).path(FIELD_PROJECT).path(FIELD_KEY).asText();
+			JsonObject root = JsonParser.parseString(issueResponse).getAsJsonObject();
+			String actualProjectKey = "";
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
+			if (fieldsEl != null && fieldsEl.isJsonObject()) {
+				JsonElement projectEl = fieldsEl.getAsJsonObject().get(FIELD_PROJECT);
+				if (projectEl != null && projectEl.isJsonObject()) {
+					actualProjectKey = getText(projectEl.getAsJsonObject(), FIELD_KEY);
+				}
+			}
 
 			if (!projectKey.equalsIgnoreCase(actualProjectKey)) {
 				throw new SemossPixelException("Issue " + jiraId + " does not belong to project " + projectKey);
@@ -401,15 +422,20 @@ public final class JiraHelper {
 					+ API_SUFFIX_TRANSITIONS;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			List<Map<String, Object>> transitionList = new ArrayList<>();
-			for (JsonNode t : root.path(FIELD_TRANSITIONS)) {
-				Map<String, Object> transition = new HashMap<>();
-				transition.put(FIELD_ID, t.path(FIELD_ID).asText());
-				transition.put(FIELD_NAME, t.path(FIELD_NAME).asText());
-				transition.put(toStatus, t.path(FIELD_TO).path(FIELD_NAME).asText());
-				transitionList.add(transition);
+			JsonElement transEl = root.get(FIELD_TRANSITIONS);
+			if (transEl != null && transEl.isJsonArray()) {
+				for (JsonElement el : transEl.getAsJsonArray()) {
+					JsonObject t = el.getAsJsonObject();
+					Map<String, Object> transition = new HashMap<>();
+					transition.put(FIELD_ID, getText(t, FIELD_ID));
+					transition.put(FIELD_NAME, getText(t, FIELD_NAME));
+					JsonElement toEl = t.get(FIELD_TO);
+					transition.put(toStatus,
+							toEl != null && toEl.isJsonObject() ? getText(toEl.getAsJsonObject(), FIELD_NAME) : "");
+					transitionList.add(transition);
+				}
 			}
 			return transitionList;
 		} catch (SemossPixelException e) {
@@ -439,17 +465,24 @@ public final class JiraHelper {
 					+ API_SUFFIX_COMMENT;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			List<Map<String, Object>> commentList = new ArrayList<>();
-			for (JsonNode c : root.path(FIELD_COMMENTS)) {
-				Map<String, Object> comment = new HashMap<>();
-				comment.put(FIELD_COMMENT_ID, c.path(FIELD_ID).asText());
-				comment.put(FIELD_AUTHOR, c.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-				comment.put(FIELD_CREATED, c.path(FIELD_CREATED).asText());
-				comment.put(updated, c.path(updated).asText());
-				comment.put(FIELD_BODY, parseAdfToPlainText(c.path(FIELD_BODY)));
-				commentList.add(comment);
+			JsonElement commentsEl = root.get(FIELD_COMMENTS);
+			if (commentsEl != null && commentsEl.isJsonArray()) {
+				for (JsonElement el : commentsEl.getAsJsonArray()) {
+					JsonObject c = el.getAsJsonObject();
+					Map<String, Object> comment = new HashMap<>();
+					comment.put(FIELD_COMMENT_ID, getText(c, FIELD_ID));
+					JsonElement authorEl = c.get(FIELD_AUTHOR);
+					comment.put(FIELD_AUTHOR,
+							authorEl != null && authorEl.isJsonObject()
+									? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+									: "");
+					comment.put(FIELD_CREATED, getText(c, FIELD_CREATED));
+					comment.put(updated, getText(c, updated));
+					comment.put(FIELD_BODY, parseAdfToPlainText(c.get(FIELD_BODY)));
+					commentList.add(comment);
+				}
 			}
 			return commentList;
 		} catch (SemossPixelException e) {
@@ -483,12 +516,15 @@ public final class JiraHelper {
 					GSON.toJson(Map.of(FIELD_BODY, buildAdfDocument(commentText))), ContentType.APPLICATION_JSON, null,
 					null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			Map<String, Object> result = new HashMap<>();
-			result.put(FIELD_COMMENT_ID, root.path(FIELD_ID).asText());
-			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-			result.put(FIELD_CREATED, root.path(FIELD_CREATED).asText());
+			result.put(FIELD_COMMENT_ID, getText(root, FIELD_ID));
+			JsonElement authorEl = root.get(FIELD_AUTHOR);
+			result.put(FIELD_AUTHOR,
+					authorEl != null && authorEl.isJsonObject()
+							? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+							: "");
+			result.put(FIELD_CREATED, getText(root, FIELD_CREATED));
 			result.put(FIELD_SUCCESS, true);
 			return result;
 		} catch (SemossPixelException e) {
@@ -523,13 +559,16 @@ public final class JiraHelper {
 					GSON.toJson(Map.of(FIELD_BODY, buildAdfDocument(commentText))), ContentType.APPLICATION_JSON, null,
 					null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			Map<String, Object> result = new HashMap<>();
-			result.put(FIELD_COMMENT_ID, root.path(FIELD_ID).asText());
-			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-			result.put(FIELD_CREATED, root.path(FIELD_CREATED).asText());
-			result.put("updated", root.path("updated").asText());
+			result.put(FIELD_COMMENT_ID, getText(root, FIELD_ID));
+			JsonElement authorEl = root.get(FIELD_AUTHOR);
+			result.put(FIELD_AUTHOR,
+					authorEl != null && authorEl.isJsonObject()
+							? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+							: "");
+			result.put(FIELD_CREATED, getText(root, FIELD_CREATED));
+			result.put("updated", getText(root, "updated"));
 			result.put(FIELD_SUCCESS, true);
 			return result;
 		} catch (SemossPixelException e) {
@@ -629,24 +668,35 @@ public final class JiraHelper {
 		try {
 			validateJiraContext(accessToken, baseUrl);
 			Map<String, String> headers = buildHeaders(accessToken);
-			String response = HttpHelperUtility.getRequest(
-					baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8)
-							+ "?fields=attachment",
-					headers, null, null, null);
+			String response = HttpHelperUtility.getRequest(baseUrl + API_PATH_ISSUE + "/"
+					+ URLEncoder.encode(issueKey, StandardCharsets.UTF_8) + "?fields=attachment", headers, null, null,
+					null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode attachments = root.path(FIELD_FIELDS).path(attachment);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
+			JsonArray attachments = new JsonArray();
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
+			if (fieldsEl != null && fieldsEl.isJsonObject()) {
+				JsonElement attEl = fieldsEl.getAsJsonObject().get(attachment);
+				if (attEl != null && attEl.isJsonArray()) {
+					attachments = attEl.getAsJsonArray();
+				}
+			}
 
 			List<Map<String, Object>> attachmentList = new ArrayList<>();
-			for (JsonNode a : attachments) {
+			for (JsonElement el : attachments) {
+				JsonObject a = el.getAsJsonObject();
 				Map<String, Object> att = new HashMap<>();
-				att.put(FIELD_ATTACHMENT_ID, a.path(FIELD_ID).asText());
-				att.put(filename, a.path(filename).asText());
-				att.put(mimeType, a.path(mimeType).asText());
-				att.put(size, a.path(size).asLong());
-				att.put(FIELD_CREATED, a.path(FIELD_CREATED).asText());
-				att.put(FIELD_CONTENT_URL, a.path(contentApiField).asText());
-				att.put(FIELD_AUTHOR, a.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
+				att.put(FIELD_ATTACHMENT_ID, getText(a, FIELD_ID));
+				att.put(filename, getText(a, filename));
+				att.put(mimeType, getText(a, mimeType));
+				att.put(size, getLong(a, size));
+				att.put(FIELD_CREATED, getText(a, FIELD_CREATED));
+				att.put(FIELD_CONTENT_URL, getText(a, contentApiField));
+				JsonElement authorEl = a.get(FIELD_AUTHOR);
+				att.put(FIELD_AUTHOR,
+						authorEl != null && authorEl.isJsonObject()
+								? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+								: "");
 				attachmentList.add(att);
 			}
 			return attachmentList;
@@ -703,13 +753,15 @@ public final class JiraHelper {
 				});
 			}
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode firstAttachment = root.isArray() && root.size() > 0 ? root.get(0) : root;
+			JsonElement rootEl = JsonParser.parseString(response);
+			JsonObject firstAttachment = rootEl.isJsonArray() && rootEl.getAsJsonArray().size() > 0
+					? rootEl.getAsJsonArray().get(0).getAsJsonObject()
+					: rootEl.getAsJsonObject();
 
 			Map<String, Object> result = new HashMap<>();
-			result.put(FIELD_ATTACHMENT_ID, firstAttachment.path(FIELD_ID).asText());
-			result.put("filename", firstAttachment.path("filename").asText());
-			result.put("size", firstAttachment.path("size").asLong());
+			result.put(FIELD_ATTACHMENT_ID, getText(firstAttachment, FIELD_ID));
+			result.put("filename", getText(firstAttachment, "filename"));
+			result.put("size", getLong(firstAttachment, "size"));
 			result.put(FIELD_SUCCESS, true);
 			return result;
 		} catch (SemossPixelException e) {
@@ -778,17 +830,19 @@ public final class JiraHelper {
 			Map<String, String> headers = buildHeaders(accessToken);
 			String response = HttpHelperUtility.getRequest(baseUrl + API_PATH_ISSUELINKTYPE, headers, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode linkTypes = root.path(issueLinkTypes);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			List<Map<String, Object>> linkTypeList = new ArrayList<>();
-			for (JsonNode lt : linkTypes) {
-				Map<String, Object> linkType = new HashMap<>();
-				linkType.put(FIELD_ID, lt.path(FIELD_ID).asText());
-				linkType.put(FIELD_LINK_TYPE, lt.path(FIELD_NAME).asText());
-				linkType.put(inward, lt.path(inward).asText());
-				linkType.put(outward, lt.path(outward).asText());
-				linkTypeList.add(linkType);
+			JsonElement linkTypesEl = root.get(issueLinkTypes);
+			if (linkTypesEl != null && linkTypesEl.isJsonArray()) {
+				for (JsonElement el : linkTypesEl.getAsJsonArray()) {
+					JsonObject lt = el.getAsJsonObject();
+					Map<String, Object> linkType = new HashMap<>();
+					linkType.put(FIELD_ID, getText(lt, FIELD_ID));
+					linkType.put(FIELD_LINK_TYPE, getText(lt, FIELD_NAME));
+					linkType.put(inward, getText(lt, inward));
+					linkType.put(outward, getText(lt, outward));
+					linkTypeList.add(linkType);
+				}
 			}
 			return linkTypeList;
 		} catch (SemossPixelException e) {
@@ -836,14 +890,17 @@ public final class JiraHelper {
 			String response = HttpHelperUtility.postRequestStringBody(url, headers, GSON.toJson(body),
 					ContentType.APPLICATION_JSON, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			Map<String, Object> result = new HashMap<>();
-			result.put(FIELD_WORKLOG_ID, root.path(FIELD_ID).asText());
-			result.put(timeSpentField, root.path(timeSpentField).asText());
-			result.put(timeSpentSecondsField, root.path(timeSpentSecondsField).asLong());
-			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-			result.put(FIELD_CREATED, root.path(FIELD_CREATED).asText());
+			result.put(FIELD_WORKLOG_ID, getText(root, FIELD_ID));
+			result.put(timeSpentField, getText(root, timeSpentField));
+			result.put(timeSpentSecondsField, getLong(root, timeSpentSecondsField));
+			JsonElement authorEl = root.get(FIELD_AUTHOR);
+			result.put(FIELD_AUTHOR,
+					authorEl != null && authorEl.isJsonObject()
+							? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+							: "");
+			result.put(FIELD_CREATED, getText(root, FIELD_CREATED));
 			result.put(FIELD_SUCCESS, true);
 			return result;
 		} catch (SemossPixelException e) {
@@ -877,20 +934,27 @@ public final class JiraHelper {
 					+ API_SUFFIX_WORKLOG;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			List<Map<String, Object>> worklogList = new ArrayList<>();
-			for (JsonNode w : root.path(worklogs)) {
-				Map<String, Object> entry = new HashMap<>();
-				entry.put(FIELD_WORKLOG_ID, w.path(FIELD_ID).asText());
-				entry.put(FIELD_AUTHOR, w.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-				entry.put(timeSpentField, w.path(timeSpentField).asText());
-				entry.put(timeSpentSecondsField, w.path(timeSpentSecondsField).asLong());
-				entry.put(startedField, w.path(startedField).asText());
-				entry.put(FIELD_CREATED, w.path(FIELD_CREATED).asText());
-				entry.put(updatedField, w.path(updatedField).asText());
-				entry.put(FIELD_COMMENT, parseAdfToPlainText(w.path(FIELD_COMMENT)));
-				worklogList.add(entry);
+			JsonElement worklogsEl = root.get(worklogs);
+			if (worklogsEl != null && worklogsEl.isJsonArray()) {
+				for (JsonElement el : worklogsEl.getAsJsonArray()) {
+					JsonObject w = el.getAsJsonObject();
+					Map<String, Object> entry = new HashMap<>();
+					entry.put(FIELD_WORKLOG_ID, getText(w, FIELD_ID));
+					JsonElement authorEl = w.get(FIELD_AUTHOR);
+					entry.put(FIELD_AUTHOR,
+							authorEl != null && authorEl.isJsonObject()
+									? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+									: "");
+					entry.put(timeSpentField, getText(w, timeSpentField));
+					entry.put(timeSpentSecondsField, getLong(w, timeSpentSecondsField));
+					entry.put(startedField, getText(w, startedField));
+					entry.put(FIELD_CREATED, getText(w, FIELD_CREATED));
+					entry.put(updatedField, getText(w, updatedField));
+					entry.put(FIELD_COMMENT, parseAdfToPlainText(w.get(FIELD_COMMENT)));
+					worklogList.add(entry);
+				}
 			}
 			return worklogList;
 		} catch (SemossPixelException e) {
@@ -916,8 +980,8 @@ public final class JiraHelper {
 			Map<String, String> headers = buildHeaders(accessToken);
 
 			HttpHelperUtility.deleteRequestStringBody(
-					baseUrl + API_PATH_ISSUELINK + "/" + URLEncoder.encode(linkId, StandardCharsets.UTF_8),
-					headers, null, null, null);
+					baseUrl + API_PATH_ISSUELINK + "/" + URLEncoder.encode(linkId, StandardCharsets.UTF_8), headers,
+					null, null, null);
 
 			Map<String, Object> result = new HashMap<>();
 			result.put(FIELD_SUCCESS, true);
@@ -998,14 +1062,17 @@ public final class JiraHelper {
 			String response = HttpHelperUtility.putRequestStringBody(url, headers, GSON.toJson(body),
 					ContentType.APPLICATION_JSON, null, null, null);
 
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 			Map<String, Object> result = new HashMap<>();
-			result.put(FIELD_WORKLOG_ID, root.path(FIELD_ID).asText());
-			result.put(timeSpentField, root.path(timeSpentField).asText());
-			result.put(timeSpentSecondsField, root.path(timeSpentSecondsField).asLong());
-			result.put(FIELD_AUTHOR, root.path(FIELD_AUTHOR).path(FIELD_DISPLAY_NAME).asText());
-			result.put(updatedField, root.path(updatedField).asText());
+			result.put(FIELD_WORKLOG_ID, getText(root, FIELD_ID));
+			result.put(timeSpentField, getText(root, timeSpentField));
+			result.put(timeSpentSecondsField, getLong(root, timeSpentSecondsField));
+			JsonElement authorEl = root.get(FIELD_AUTHOR);
+			result.put(FIELD_AUTHOR,
+					authorEl != null && authorEl.isJsonObject()
+							? getText(authorEl.getAsJsonObject(), FIELD_DISPLAY_NAME)
+							: "");
+			result.put(updatedField, getText(root, updatedField));
 			result.put(FIELD_SUCCESS, true);
 			return result;
 		} catch (SemossPixelException e) {
@@ -1050,17 +1117,25 @@ public final class JiraHelper {
 		}
 	}
 
+	/**
+	 * Executes a JQL search against the Jira search API and returns a paginated
+	 * result map. Clamps {@code maxResults} to the range [1, 100], defaulting to 50
+	 * when the provided value is less than 1.
+	 *
+	 * @param accessToken   Jira OAuth access token
+	 * @param baseUrl       Jira API base URL including cloud ID
+	 * @param jql           raw JQL query string
+	 * @param nextPageToken optional pagination token from a previous response
+	 * @param maxResults    requested page size (clamped to 1–100, default 50)
+	 * @return map containing {@code issues}, {@code isLast}, {@code maxResults},
+	 *         and optionally {@code nextPageToken}
+	 */
 	private static Map<String, Object> executeJqlSearch(String accessToken, String baseUrl, String jql,
 			String nextPageToken, int maxResults) throws Exception {
 		final String isLast = "isLast";
 
 		Map<String, String> headers = buildHeaders(accessToken);
-		int safeMax = 0;
-		if (maxResults < 1) {
-			safeMax = 50;
-		} else {
-			safeMax = Math.min(maxResults, 100);
-		}
+		int safeMax = (maxResults < 1) ? 50 : Math.min(maxResults, 100);
 
 		Map<String, Object> body = new HashMap<>();
 		body.put(FIELD_JQL, jql);
@@ -1072,19 +1147,22 @@ public final class JiraHelper {
 
 		String response = HttpHelperUtility.postRequestStringBody(baseUrl + API_PATH_SEARCH, headers, GSON.toJson(body),
 				ContentType.APPLICATION_JSON, null, null, null);
-		JsonNode root = OBJECT_MAPPER.readTree(response);
+		JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 
 		List<Map<String, Object>> issueList = new ArrayList<>();
-		for (JsonNode issue : root.path(FIELD_ISSUES)) {
-			issueList.add(parseIssueSummary(issue));
+		JsonElement issuesEl = root.get(FIELD_ISSUES);
+		if (issuesEl != null && issuesEl.isJsonArray()) {
+			for (JsonElement issue : issuesEl.getAsJsonArray()) {
+				issueList.add(parseIssueSummary(issue.getAsJsonObject()));
+			}
 		}
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(FIELD_ISSUES, issueList);
-		result.put(isLast, root.path(isLast).asBoolean(true));
+		result.put(isLast, root.has(isLast) && !root.get(isLast).isJsonNull() ? root.get(isLast).getAsBoolean() : true);
 		result.put(FIELD_MAX_RESULTS, safeMax);
 		if (root.has(FIELD_NEXT_PAGE_TOKEN)) {
-			result.put(FIELD_NEXT_PAGE_TOKEN, root.path(FIELD_NEXT_PAGE_TOKEN).asText());
+			result.put(FIELD_NEXT_PAGE_TOKEN, getText(root, FIELD_NEXT_PAGE_TOKEN));
 		}
 		return result;
 	}
@@ -1103,10 +1181,9 @@ public final class JiraHelper {
 	 * @param projectKey  Jira project key (e.g. "PROJ")
 	 * @param issueTypeId Jira issue type ID (numeric string)
 	 * @return list of maps with {@code fieldId}, {@code name}, {@code required},
-	 *         {@code hasDefaultValue}, {@code key}, {@code schema}, and
-	 *         optionally {@code allowedValues}
+	 *         {@code hasDefaultValue}, {@code key}, {@code schema}, and optionally
+	 *         {@code allowedValues}
 	 */
-	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getCreateMetaFields(String accessToken, String baseUrl, String projectKey,
 			String issueTypeId) {
 		final String FIELD_FIELDID = "fieldId";
@@ -1122,41 +1199,47 @@ public final class JiraHelper {
 			String url = baseUrl + API_PATH_CREATEMETA + "/" + URLEncoder.encode(projectKey, StandardCharsets.UTF_8)
 					+ "/issuetypes/" + URLEncoder.encode(issueTypeId, StandardCharsets.UTF_8);
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode fieldsArr = root.path(FIELD_FIELDS);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
 			List<Map<String, Object>> results = new ArrayList<>();
-			if (fieldsArr.isArray()) {
-				for (JsonNode f : fieldsArr) {
+			if (fieldsEl != null && fieldsEl.isJsonArray()) {
+				for (JsonElement el : fieldsEl.getAsJsonArray()) {
+					JsonObject f = el.getAsJsonObject();
 					Map<String, Object> entry = new HashMap<>();
-					String fieldId = f.path(FIELD_FIELDID).asText(null);
+					String fieldId = f.has(FIELD_FIELDID) && !f.get(FIELD_FIELDID).isJsonNull()
+							? f.get(FIELD_FIELDID).getAsString()
+							: null;
 					entry.put(FIELD_FIELDID, fieldId);
-					entry.put(FIELD_NAME, f.path(FIELD_NAME).asText(null));
-					boolean required = FIELD_REPORTER.equals(fieldId) ? false : f.path(FIELD_REQUIRED).asBoolean(false);
-					entry.put(FIELD_REQUIRED, required);
-					entry.put(FIELD_HAS_DEFAULT, f.path(FIELD_HAS_DEFAULT).asBoolean(false));
-					entry.put(FIELD_KEY, f.path(FIELD_KEY).asText(null));
+					entry.put(FIELD_NAME,
+							f.has(FIELD_NAME) && !f.get(FIELD_NAME).isJsonNull() ? f.get(FIELD_NAME).getAsString()
+									: null);
+					entry.put(FIELD_REQUIRED, FIELD_REPORTER.equals(fieldId) ? false : getBoolean(f, FIELD_REQUIRED));
+					entry.put(FIELD_HAS_DEFAULT, getBoolean(f, FIELD_HAS_DEFAULT));
+					entry.put(FIELD_KEY,
+							f.has(FIELD_KEY) && !f.get(FIELD_KEY).isJsonNull() ? f.get(FIELD_KEY).getAsString() : null);
 
-					JsonNode schemaNode = f.path(FIELD_SCHEMA);
-					if (schemaNode.isObject()) {
-						entry.put(FIELD_SCHEMA, OBJECT_MAPPER.convertValue(schemaNode, Map.class));
+					JsonElement schemaEl = f.get(FIELD_SCHEMA);
+					if (schemaEl != null && schemaEl.isJsonObject()) {
+						entry.put(FIELD_SCHEMA, GSON.fromJson(schemaEl, Map.class));
 					}
 
-					JsonNode allowedNode = f.path(FIELD_ALLOWED_VALUES);
-					if (allowedNode.isArray() && allowedNode.size() > 0) {
+					JsonElement allowedEl = f.get(FIELD_ALLOWED_VALUES);
+					if (allowedEl != null && allowedEl.isJsonArray() && allowedEl.getAsJsonArray().size() > 0) {
 						List<Map<String, Object>> allowedValues = new ArrayList<>();
-						for (JsonNode av : allowedNode) {
+						for (JsonElement avEl : allowedEl.getAsJsonArray()) {
+							JsonObject av = avEl.getAsJsonObject();
 							Map<String, Object> valEntry = new HashMap<>();
 							if (av.has(FIELD_ID)) {
-								valEntry.put(FIELD_ID, av.path(FIELD_ID).asText());
+								valEntry.put(FIELD_ID, av.get(FIELD_ID).getAsString());
 							}
 							if (av.has(FIELD_NAME)) {
-								valEntry.put(FIELD_NAME, av.path(FIELD_NAME).asText());
+								valEntry.put(FIELD_NAME, av.get(FIELD_NAME).getAsString());
 							}
 							if (av.has(FIELD_KEY)) {
-								valEntry.put(FIELD_KEY, av.path(FIELD_KEY).asText());
+								valEntry.put(FIELD_KEY, av.get(FIELD_KEY).getAsString());
 							}
 							if (av.has(FIELD_VALUE)) {
-								valEntry.put(FIELD_VALUE, av.path(FIELD_VALUE).asText());
+								valEntry.put(FIELD_VALUE, av.get(FIELD_VALUE).getAsString());
 							}
 							allowedValues.add(valEntry);
 						}
@@ -1213,8 +1296,7 @@ public final class JiraHelper {
 					}
 				}
 				throw new SemossPixelException(
-						"Jira did not return an issue id or key. The issue was not created."
-								+ errorDetail.toString());
+						"Jira did not return an issue id or key. The issue was not created." + errorDetail.toString());
 			}
 
 			Map<String, Object> result = new HashMap<>();
@@ -1239,7 +1321,8 @@ public final class JiraHelper {
 	 * @param accessToken Jira OAuth access token
 	 * @param baseUrl     Jira API base URL including cloud ID
 	 * @param issueKey    Jira issue key (e.g. "PROJ-123")
-	 * @param fieldValues map of field names to values (must only contain editable fields)
+	 * @param fieldValues map of field names to values (must only contain editable
+	 *                    fields)
 	 * @return result map with {@code jiraid} and {@code success}
 	 */
 	public static Map<String, Object> updateIssueFromMap(String accessToken, String baseUrl, String issueKey,
@@ -1263,17 +1346,16 @@ public final class JiraHelper {
 				}
 			}
 			if (!invalidKeys.isEmpty()) {
-				throw new SemossPixelException(
-						"The following keys are not editable fields for issue '" + issueKey
-								+ "': " + invalidKeys + ". Editable fields are: " + editableFieldKeys);
+				throw new SemossPixelException("The following keys are not editable fields for issue '" + issueKey
+						+ "': " + invalidKeys + ". Editable fields are: " + editableFieldKeys);
 			}
 
 			Map<String, Object> requestBody = new HashMap<>();
 			requestBody.put(FIELD_FIELDS, convertAdfFields(fieldValues));
 			String jsonBody = GSON.toJson(requestBody);
 			HttpHelperUtility.putRequestStringBody(
-					baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8),
-					headers, jsonBody, ContentType.APPLICATION_JSON, null, null, null);
+					baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8), headers,
+					jsonBody, ContentType.APPLICATION_JSON, null, null, null);
 
 			Map<String, Object> result = new HashMap<>();
 			result.put(FIELD_JIRA_ID, issueKey);
@@ -1303,11 +1385,11 @@ public final class JiraHelper {
 			String url = baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8)
 					+ API_SUFFIX_EDITMETA;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode fieldsNode = root.path(FIELD_FIELDS);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
 			Set<String> fieldKeys = new HashSet<>();
-			if (fieldsNode.isObject()) {
-				fieldsNode.fieldNames().forEachRemaining(fieldKeys::add);
+			if (fieldsEl != null && fieldsEl.isJsonObject()) {
+				fieldKeys.addAll(fieldsEl.getAsJsonObject().keySet());
 			}
 			return fieldKeys;
 		} catch (Exception e) {
@@ -1318,8 +1400,8 @@ public final class JiraHelper {
 	}
 
 	/**
-	 * Returns the fields editable on an existing Jira issue. Calls
-	 * {@code GET /rest/api/3/issue/{key}/editmeta}.
+	 * Returns the fields editable on an existing Jira issue. Calls {@code GET
+	 * /rest/api/3/issue/{key}/editmeta}.
 	 * <p>
 	 * The editmeta response uses an object keyed by field ID (unlike createmeta
 	 * which returns an array). This method normalises the response into the same
@@ -1332,7 +1414,6 @@ public final class JiraHelper {
 	 * @return list of maps with {@code fieldId}, {@code name}, {@code required},
 	 *         {@code schema}, and optionally {@code allowedValues}
 	 */
-	@SuppressWarnings("unchecked")
 	public static List<Map<String, Object>> getEditMetaFields(String accessToken, String baseUrl, String issueKey) {
 		final String FIELD_REQUIRED = "required";
 		final String FIELD_SCHEMA = "schema";
@@ -1344,41 +1425,42 @@ public final class JiraHelper {
 			String url = baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8)
 					+ API_SUFFIX_EDITMETA;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			JsonNode root = OBJECT_MAPPER.readTree(response);
-			JsonNode fieldsNode = root.path(FIELD_FIELDS);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
+			JsonElement fieldsEl = root.get(FIELD_FIELDS);
 			List<Map<String, Object>> results = new ArrayList<>();
-			if (fieldsNode.isObject()) {
-				var it = fieldsNode.fields();
-				while (it.hasNext()) {
-					var entry = it.next();
+			if (fieldsEl != null && fieldsEl.isJsonObject()) {
+				for (Map.Entry<String, JsonElement> entry : fieldsEl.getAsJsonObject().entrySet()) {
 					String fieldId = entry.getKey();
-					JsonNode f = entry.getValue();
+					JsonObject f = entry.getValue().getAsJsonObject();
 					Map<String, Object> fieldEntry = new HashMap<>();
 					fieldEntry.put("fieldId", fieldId);
-					fieldEntry.put(FIELD_NAME, f.path(FIELD_NAME).asText(null));
-					fieldEntry.put(FIELD_REQUIRED, f.path(FIELD_REQUIRED).asBoolean(false));
+					fieldEntry.put(FIELD_NAME,
+							f.has(FIELD_NAME) && !f.get(FIELD_NAME).isJsonNull() ? f.get(FIELD_NAME).getAsString()
+									: null);
+					fieldEntry.put(FIELD_REQUIRED, getBoolean(f, FIELD_REQUIRED));
 
-					JsonNode schemaNode = f.path(FIELD_SCHEMA);
-					if (schemaNode.isObject()) {
-						fieldEntry.put(FIELD_SCHEMA, OBJECT_MAPPER.convertValue(schemaNode, Map.class));
+					JsonElement schemaEl = f.get(FIELD_SCHEMA);
+					if (schemaEl != null && schemaEl.isJsonObject()) {
+						fieldEntry.put(FIELD_SCHEMA, GSON.fromJson(schemaEl, Map.class));
 					}
 
-					JsonNode allowedNode = f.path(FIELD_ALLOWED_VALUES);
-					if (allowedNode.isArray() && allowedNode.size() > 0) {
+					JsonElement allowedEl = f.get(FIELD_ALLOWED_VALUES);
+					if (allowedEl != null && allowedEl.isJsonArray() && allowedEl.getAsJsonArray().size() > 0) {
 						List<Map<String, Object>> allowedValues = new ArrayList<>();
-						for (JsonNode av : allowedNode) {
+						for (JsonElement avEl : allowedEl.getAsJsonArray()) {
+							JsonObject av = avEl.getAsJsonObject();
 							Map<String, Object> valEntry = new HashMap<>();
 							if (av.has(FIELD_ID)) {
-								valEntry.put(FIELD_ID, av.path(FIELD_ID).asText());
+								valEntry.put(FIELD_ID, av.get(FIELD_ID).getAsString());
 							}
 							if (av.has(FIELD_NAME)) {
-								valEntry.put(FIELD_NAME, av.path(FIELD_NAME).asText());
+								valEntry.put(FIELD_NAME, av.get(FIELD_NAME).getAsString());
 							}
 							if (av.has(FIELD_KEY)) {
-								valEntry.put(FIELD_KEY, av.path(FIELD_KEY).asText());
+								valEntry.put(FIELD_KEY, av.get(FIELD_KEY).getAsString());
 							}
 							if (av.has(FIELD_VALUE)) {
-								valEntry.put(FIELD_VALUE, av.path(FIELD_VALUE).asText());
+								valEntry.put(FIELD_VALUE, av.get(FIELD_VALUE).getAsString());
 							}
 							allowedValues.add(valEntry);
 						}
@@ -1397,6 +1479,17 @@ public final class JiraHelper {
 		}
 	}
 
+	/**
+	 * Resolves a project key or numeric ID to a Jira project ID string. If
+	 * {@code projectIdOrKey} is already all digits it is returned as-is; otherwise
+	 * a GET to {@code /rest/api/3/project/{key}} is made to fetch the numeric ID.
+	 *
+	 * @param urlBase        Jira API base URL including cloud ID
+	 * @param accessToken    Jira OAuth access token
+	 * @param projectIdOrKey project key (e.g. {@code "PROJ"}) or numeric ID
+	 * @return numeric project ID string
+	 * @throws Exception if the HTTP call fails or the project cannot be found
+	 */
 	private static String resolveProjectId(String urlBase, String accessToken, String projectIdOrKey) throws Exception {
 		if (projectIdOrKey == null || projectIdOrKey.trim().isEmpty()) {
 			throw new SemossPixelException("Project key is required.");
@@ -1408,15 +1501,21 @@ public final class JiraHelper {
 		String projectUrl = urlBase + API_PATH_PROJECT + "/"
 				+ URLEncoder.encode(projectIdOrKey, StandardCharsets.UTF_8);
 		String response = HttpHelperUtility.getRequest(projectUrl, headers, null, null, null);
-		JsonNode projectNode = OBJECT_MAPPER.readTree(response);
-		String resolvedId = projectNode.path(FIELD_ID).asText();
-		if (resolvedId == null || resolvedId.trim().isEmpty()) {
+		JsonObject projectNode = JsonParser.parseString(response).getAsJsonObject();
+		String resolvedId = getText(projectNode, FIELD_ID);
+		if (resolvedId.isEmpty()) {
 			throw new SemossPixelException("Unable to resolve project ID for project '" + projectIdOrKey
 					+ "'. Check the project key is correct.");
 		}
 		return resolvedId;
 	}
 
+	/**
+	 * Builds the standard HTTP headers required for all Jira REST API calls.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @return map of header name to value
+	 */
 	private static Map<String, String> buildHeaders(String accessToken) {
 		Map<String, String> headers = new HashMap<>();
 		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
@@ -1428,13 +1527,14 @@ public final class JiraHelper {
 
 	/**
 	 * Transitions a Jira issue to the target status by finding the matching
-	 * workflow transition and executing it. Matches against the transition's
-	 * target status name (case-insensitive).
+	 * workflow transition and executing it. Matches against the transition's target
+	 * status name (case-insensitive).
 	 *
 	 * @param accessToken  Jira OAuth access token
 	 * @param baseUrl      Jira API base URL including cloud ID
 	 * @param issueKey     issue key (for example, {@code PROJECT-123})
-	 * @param targetStatus desired status name (for example, {@code "Done"}, {@code "In Progress"})
+	 * @param targetStatus desired status name (for example, {@code "Done"},
+	 *                     {@code "In Progress"})
 	 */
 	public static void transitionIssue(String accessToken, String baseUrl, String issueKey, String targetStatus) {
 		Map<String, String> headers = buildHeaders(accessToken);
@@ -1442,32 +1542,39 @@ public final class JiraHelper {
 			String url = baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8)
 					+ API_SUFFIX_TRANSITIONS;
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			JsonNode root = OBJECT_MAPPER.readTree(response);
+			JsonObject root = JsonParser.parseString(response).getAsJsonObject();
 
 			String transitionId = null;
-			for (JsonNode t : root.path(FIELD_TRANSITIONS)) {
-				String toStatusName = t.path(FIELD_TO).path(FIELD_NAME).asText();
-				if (targetStatus.equalsIgnoreCase(toStatusName)) {
-					transitionId = t.path(FIELD_ID).asText();
-					break;
+			JsonElement transEl = root.get(FIELD_TRANSITIONS);
+			if (transEl != null && transEl.isJsonArray()) {
+				for (JsonElement el : transEl.getAsJsonArray()) {
+					JsonObject t = el.getAsJsonObject();
+					JsonElement toEl = t.get(FIELD_TO);
+					String toStatusName = toEl != null && toEl.isJsonObject()
+							? getText(toEl.getAsJsonObject(), FIELD_NAME)
+							: "";
+					if (targetStatus.equalsIgnoreCase(toStatusName)) {
+						transitionId = getText(t, FIELD_ID);
+						break;
+					}
 				}
 			}
 
 			if (transitionId == null) {
-				throw new SemossPixelException("No available transition to status '" + targetStatus
-						+ "' for issue '" + issueKey + "'. Use JiraGetTransitions to see valid target statuses.");
+				throw new SemossPixelException("No available transition to status '" + targetStatus + "' for issue '"
+						+ issueKey + "'. Use JiraGetTransitions to see valid target statuses.");
 			}
 
 			Map<String, Object> body = Map.of("transition", Map.of(FIELD_ID, transitionId));
-			HttpHelperUtility.postRequestStringBody(url, headers, GSON.toJson(body),
-					ContentType.APPLICATION_JSON, null, null, null);
+			HttpHelperUtility.postRequestStringBody(url, headers, GSON.toJson(body), ContentType.APPLICATION_JSON, null,
+					null, null);
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Error transitioning issue '{}' to status '{}': {}", issueKey, targetStatus,
 					e.getMessage(), e);
-			throw new SemossPixelException("Failed to transition issue '" + issueKey + "' to status '"
-					+ targetStatus + "'. Error: " + e.getMessage());
+			throw new SemossPixelException("Failed to transition issue '" + issueKey + "' to status '" + targetStatus
+					+ "'. Error: " + e.getMessage());
 		}
 	}
 
@@ -1486,18 +1593,25 @@ public final class JiraHelper {
 			String url = baseUrl + API_PATH_ISSUE + "/" + URLEncoder.encode(issueKey, StandardCharsets.UTF_8)
 					+ API_SUFFIX_TRANSITIONS;
 			Map<String, Object> body = Map.of("transition", Map.of(FIELD_ID, transitionId));
-			HttpHelperUtility.postRequestStringBody(url, headers, GSON.toJson(body),
-					ContentType.APPLICATION_JSON, null, null, null);
+			HttpHelperUtility.postRequestStringBody(url, headers, GSON.toJson(body), ContentType.APPLICATION_JSON, null,
+					null, null);
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Error transitioning issue '{}' with transition id '{}': {}", issueKey, transitionId,
 					e.getMessage(), e);
-			throw new SemossPixelException("Transition with id '" + transitionId
-					+ "' failed for issue '" + issueKey + "'. Error: " + e.getMessage());
+			throw new SemossPixelException("Transition with id '" + transitionId + "' failed for issue '" + issueKey
+					+ "'. Error: " + e.getMessage());
 		}
 	}
 
+	/**
+	 * Validates that both the access token and base URL are non-null and non-blank.
+	 *
+	 * @param accessToken Jira OAuth access token
+	 * @param baseUrl     Jira API base URL including cloud ID
+	 * @throws SemossPixelException if either value is null or blank
+	 */
 	private static void validateJiraContext(String accessToken, String baseUrl) {
 		if (accessToken == null || accessToken.trim().isEmpty()) {
 			throw new SemossPixelException("Jira access token must not be empty.");
@@ -1508,9 +1622,12 @@ public final class JiraHelper {
 	}
 
 	/**
-	 * Converts plain-text string values for fields that Jira requires in
-	 * Atlassian Document Format (ADF) into proper ADF structures.
-	 * Non-string values and fields not requiring ADF are passed through unchanged.
+	 * Converts plain-text string values for fields that Jira requires in Atlassian
+	 * Document Format (ADF) into proper ADF structures. Non-string values and
+	 * fields not requiring ADF are passed through unchanged.
+	 *
+	 * @param fieldValues map of Jira field keys to their values
+	 * @return new map with ADF-required fields converted to ADF document structures
 	 */
 	private static Map<String, Object> convertAdfFields(Map<String, Object> fieldValues) {
 		Map<String, Object> converted = new HashMap<>(fieldValues);
@@ -1523,48 +1640,65 @@ public final class JiraHelper {
 	}
 
 	/**
-	 * Returns {@code true} if the given Jira field key requires Atlassian
-	 * Document Format (ADF) instead of plain text in the v3 REST API.
+	 * Returns {@code true} if the given Jira field key requires Atlassian Document
+	 * Format (ADF) instead of plain text in the v3 REST API.
+	 *
+	 * @param fieldKey Jira field key to check
+	 * @return {@code true} if the field must be sent as an ADF document
 	 */
 	private static boolean isAdfField(String fieldKey) {
 		return FIELD_DESCRIPTION.equals(fieldKey) || FIELD_ENVIRONMENT.equals(fieldKey);
 	}
 
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> parseIssueSummary(JsonNode issue) {
+	/**
+	 * Extracts a minimal issue summary map from a raw Jira issue JSON object,
+	 * containing {@code id}, {@code jiraid}, and a fully-deserialized
+	 * {@code fields} map.
+	 *
+	 * @param issue Jira issue JSON object from a search or read response
+	 * @return map with {@code id}, {@code jiraid}, and {@code fields}
+	 */
+	private static Map<String, Object> parseIssueSummary(JsonObject issue) {
 		Map<String, Object> result = new HashMap<>();
-		result.put(FIELD_ID, issue.path(FIELD_ID).asText());
-		result.put(FIELD_JIRA_ID, issue.path(FIELD_KEY).asText());
-		JsonNode fieldsNode = issue.path(FIELD_FIELDS);
-		if (fieldsNode.isObject()) {
-			result.put(FIELD_FIELDS, OBJECT_MAPPER.convertValue(fieldsNode, Map.class));
+		result.put(FIELD_ID, getText(issue, FIELD_ID));
+		result.put(FIELD_JIRA_ID, getText(issue, FIELD_KEY));
+		JsonElement fieldsEl = issue.get(FIELD_FIELDS);
+		if (fieldsEl != null && fieldsEl.isJsonObject()) {
+			result.put(FIELD_FIELDS, GSON.fromJson(fieldsEl, Map.class));
 		}
 		return result;
 	}
 
 	/**
-	 * Extracts plain text from an Atlassian Document Format (ADF) JSON node. Uses
-	 * an iterative depth-first traversal to concatenate all text nodes.
+	 * Extracts plain text from an Atlassian Document Format (ADF) JSON element.
+	 * Uses an iterative depth-first traversal to concatenate all text nodes.
 	 *
-	 * @param adfNode the ADF root node (may be null, missing, or empty)
+	 * @param adfEl the ADF root element (may be null, missing, or non-object)
 	 * @return extracted plain text, or empty string if no text found
 	 */
-	private static String parseAdfToPlainText(JsonNode adfNode) {
-		if (adfNode == null || adfNode.isNull() || adfNode.isMissingNode()) {
+	private static String parseAdfToPlainText(JsonElement adfEl) {
+		if (adfEl == null || adfEl.isJsonNull() || !adfEl.isJsonObject()) {
 			return "";
 		}
 		StringBuilder sb = new StringBuilder();
-		List<JsonNode> stack = new ArrayList<>();
-		stack.add(adfNode);
+		List<JsonElement> stack = new ArrayList<>();
+		stack.add(adfEl);
 		while (!stack.isEmpty()) {
-			JsonNode current = stack.remove(stack.size() - 1);
-			if (current.has(ADF_TEXT)) {
-				sb.append(current.get(ADF_TEXT).asText()).append(" ");
+			JsonElement current = stack.remove(stack.size() - 1);
+			if (!current.isJsonObject()) {
+				continue;
 			}
-			if (current.has(ADF_CONTENT)) {
-				JsonNode children = current.get(ADF_CONTENT);
-				for (int i = children.size() - 1; i >= 0; i--) {
-					stack.add(children.get(i));
+			JsonObject obj = current.getAsJsonObject();
+			if (obj.has(ADF_TEXT)) {
+				sb.append(obj.get(ADF_TEXT).getAsString()).append(" ");
+			}
+			if (obj.has(ADF_CONTENT)) {
+				JsonElement children = obj.get(ADF_CONTENT);
+				if (children.isJsonArray()) {
+					JsonArray arr = children.getAsJsonArray();
+					for (int i = arr.size() - 1; i >= 0; i--) {
+						stack.add(arr.get(i));
+					}
 				}
 			}
 		}
@@ -1609,5 +1743,44 @@ public final class JiraHelper {
 					.add(Map.of(ADF_TYPE, paragraph, ADF_CONTENT, List.of(Map.of(ADF_TYPE, ADF_TEXT, ADF_TEXT, text))));
 		}
 		return Map.of(ADF_TYPE, doc, version, 1, ADF_CONTENT, paragraphs);
+	}
+
+	/**
+	 * Returns the string value of {@code key} in {@code obj}, or {@code ""} if the
+	 * key is absent or JSON null.
+	 *
+	 * @param obj JSON object to read from
+	 * @param key field name to look up
+	 * @return string value, or {@code ""} if absent or null
+	 */
+	private static String getText(JsonObject obj, String key) {
+		JsonElement el = obj.has(key) ? obj.get(key) : null;
+		return (el != null && !el.isJsonNull()) ? el.getAsString() : "";
+	}
+
+	/**
+	 * Returns the boolean value of {@code key} in {@code obj}, or {@code false} if
+	 * the key is absent or JSON null.
+	 *
+	 * @param obj JSON object to read from
+	 * @param key field name to look up
+	 * @return boolean value, or {@code false} if absent or null
+	 */
+	private static boolean getBoolean(JsonObject obj, String key) {
+		JsonElement el = obj.has(key) ? obj.get(key) : null;
+		return (el != null && !el.isJsonNull()) ? el.getAsBoolean() : false;
+	}
+
+	/**
+	 * Returns the long value of {@code key} in {@code obj}, or {@code 0} if the key
+	 * is absent or JSON null.
+	 *
+	 * @param obj JSON object to read from
+	 * @param key field name to look up
+	 * @return long value, or {@code 0} if absent or null
+	 */
+	private static long getLong(JsonObject obj, String key) {
+		JsonElement el = obj.has(key) ? obj.get(key) : null;
+		return (el != null && !el.isJsonNull()) ? el.getAsLong() : 0L;
 	}
 }

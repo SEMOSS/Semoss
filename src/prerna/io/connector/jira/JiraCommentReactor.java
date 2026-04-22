@@ -113,7 +113,7 @@ public class JiraCommentReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Manages issue-level comments on a Jira issue. Use this to get, add, edit, or delete comments on an issue.";
+		return "Manages comments on a Jira issue. Supports get, add, edit, and delete operations.";
 	}
 
 	@Override
