@@ -49,6 +49,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.date.SemossDate;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -103,6 +104,12 @@ public class AuditLogReportReactor extends AbstractReactor {
 				&& (roomId != null && !roomId.isBlank())) {
 			// this will throw an error if the room does not exist for this user
 			RoomUtils.getOrLoadRoom(roomId, this.insight);
+		}
+
+		if (roomId != null && !roomId.isBlank()) {
+			if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
+				throw new IllegalArgumentException("Room ID is not valid");
+			}
 		}
 
 		// if you are using a project or an engine

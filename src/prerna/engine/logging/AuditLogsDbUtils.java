@@ -244,7 +244,8 @@ public class AuditLogsDbUtils {
 	 */
 	public static List<LogActivityRecord> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
 			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset,
-			List<String> methodNames, List<String> args, List<String> engineTypes, String others) throws SQLException {
+			List<String> methodNames, List<String> requestMessage, List<String> engineTypes, String others)
+			throws SQLException {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -273,11 +274,10 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
-		addLikeFilter(qs, "AUDIT_LOGS__REQUEST", args);
+		addLikeFilter(qs, "AUDIT_LOGS__REQUEST", requestMessage);
 		addGlobalSearchFilter(qs, others);
 
 		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
-
 		// pagination
 		if (limit > 0) {
 			qs.setLimit(limit);
@@ -307,7 +307,7 @@ public class AuditLogsDbUtils {
 		addFilter(minMaxDuration, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(minMaxDuration, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(minMaxDuration, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
-		addLikeFilter(minMaxDuration, "AUDIT_LOGS__REQUEST", args);
+		addLikeFilter(minMaxDuration, "AUDIT_LOGS__REQUEST", requestMessage);
 		addGlobalSearchFilter(minMaxDuration, others);
 
 		minMaxDuration.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST_ID"));
@@ -377,23 +377,20 @@ public class AuditLogsDbUtils {
 	 * 
 	 * @param qs
 	 * @param column
-	 * @param operator
-	 * @param value
+	 * @param values
 	 */
 	private static void addMultiValueFilter(SelectQueryStruct qs, String column, List<String> values) {
 		if (values == null || values.isEmpty()) {
 			return;
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column, "==", values));
-
 	}
 
 	/**
 	 * 
 	 * @param qs
 	 * @param column
-	 * @param operator
-	 * @param value
+	 * @param values
 	 */
 	private static void addLikeFilter(SelectQueryStruct qs, String column, List<String> values) {
 		if (values == null || values.isEmpty()) {
@@ -426,7 +423,6 @@ public class AuditLogsDbUtils {
 		orFilter.addFilter(auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__RESPONSE", value));
 
 		qs.addExplicitFilter(orFilter);
-
 	}
 
 	/**
@@ -473,7 +469,7 @@ public class AuditLogsDbUtils {
 	 * @return
 	 */
 	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
-			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> args,
+			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> requestMessage,
 			List<String> engineTypes, String others) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
@@ -483,7 +479,6 @@ public class AuditLogsDbUtils {
 		fSelector.setFunction(QueryFunctionHelper.COUNT);
 		fSelector.addInnerSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_ID"));
 		qs.addSelector(fSelector);
-
 		// Apply filters dynamically
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -491,20 +486,17 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ROOM_ID", "==", roomId);
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
-
 		// methodName - IN clause
 		if (methodNames != null && !methodNames.isEmpty()) {
 			addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", engineTypes);
 		}
-
 		// engineType - IN clause
 		if (engineTypes != null && !engineTypes.isEmpty()) {
 			addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
 		}
-
-//	     args - LIKE (partial match)
-		if (args != null && !args.isEmpty()) {
-			addLikeFilter(qs, "AUDIT_LOGS__REQUEST", args);
+		// args - LIKE (partial match)
+		if (requestMessage != null && !requestMessage.isEmpty()) {
+			addLikeFilter(qs, "AUDIT_LOGS__REQUEST", requestMessage);
 		}
 
 		addGlobalSearchFilter(qs, others);
@@ -513,7 +505,7 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
-	 * Retrieve the list of users for a given database
+	 * Retrieve the list of users for a given audit log report
 	 * 
 	 * @param engineId
 	 * @param engineType
@@ -531,5 +523,4 @@ public class AuditLogsDbUtils {
 		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__USER_TYPE"));
 		return QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
 	}
-
 }
