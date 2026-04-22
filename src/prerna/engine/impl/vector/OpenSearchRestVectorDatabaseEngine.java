@@ -58,7 +58,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.common.collect.Lists;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -226,9 +225,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			try {
 				this.dimension = ((Number) Double.parseDouble(dimensionInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger
-						.warn("Invalid string value for dimension '" + dimensionInput + "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for dimension '{}'. Must be an integer value", dimensionInput,
+						e);
 			}
 		}
 		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
@@ -244,9 +242,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			try {
 				this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for ef construction '" + efConstructionInput
-						+ "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for ef construction '{}'. Must be an integer value",
+						efConstructionInput, e);
 			}
 		}
 		String mValueInput = this.smssProp.getProperty(M_VALUE);
@@ -254,8 +251,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			try {
 				this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for m value '" + mValueInput + "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for m value '{}'. Must be an integer value", mValueInput, e);
 			}
 		}
 
@@ -267,9 +263,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			try {
 				this.queryLimit = ((Number) Double.parseDouble(queryLimitInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for query_limit value '" + queryLimitInput
-						+ "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for query_limit value '{}'. Must be an integer value",
+						queryLimitInput, e);
 			}
 		}
 		String batchLimitInput = this.smssProp.getProperty(BATCH_LIMIT);
@@ -277,18 +272,16 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			try {
 				this.batchLimit = ((Number) Double.parseDouble(batchLimitInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for batch_limit value '" + queryLimitInput
-						+ "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for batch_limit value '{}'. Must be an integer value",
+						batchLimitInput, e);
 			}
 		}
 
 		if (!externallyManagedIndex) {
 			String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
 			if (additionalMappingsStr != null && !(additionalMappingsStr = additionalMappingsStr.trim()).isEmpty()) {
-				this.otherPropsToType = new Gson().fromJson(additionalMappingsStr,
-						new TypeToken<Map<String, String>>() {
-						}.getType());
+				this.otherPropsToType = GSON.fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {
+				}.getType());
 			}
 			// we need to store our stuff
 			this.otherPropsToType.put(VectorDatabaseCSVTable.SOURCE, KEYWORD_DATATYPE);
@@ -351,10 +344,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		try {
 			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
-							+ e.getMessage());
+							+ e.getMessage(),
+					e);
 		}
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
@@ -409,11 +402,11 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			throw new IllegalArgumentException("Received no response from open search endpoint");
 		}
 
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		Number insertions = (Number) responseMap.get("took");
-		classLogger.info("Inserted " + insertions.intValue()
-				+ " bulk inserts (create index + record value) into open search index " + this.indexName);
+		classLogger.info("Inserted {} bulk inserts (create index + record value) into open search index '{}'",
+				insertions.intValue(), this.indexName);
 		List<Map<String, Object>> items = (List<Map<String, Object>>) responseMap.get("items");
 		Map<String, Integer> failedCountPerFile = new HashMap<>();
 		for (Map<String, Object> item : items) {
@@ -445,8 +438,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		Boolean errors = (Boolean) responseMap.get("errors");
 		if (errors) {
-			classLogger.warn(
-					"There were errors with some of the bulk insertions in the open search index " + this.indexName);
+			classLogger.warn("There were errors with some of the bulk insertions in the open search index '{}'",
+					this.indexName);
 		} else {
 			classLogger.info("All records inserted successfully into OpenSearchRest index '{}'", this.indexName);
 		}
@@ -505,12 +498,12 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-		classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed "
-				+ responseJson.get("deleted") + " docs for files = " + fileNames);
+		classLogger.info("For '{}' removed {} docs for files = {}",
+				SmssUtilities.getUniqueName(this.engineName, this.engineId), responseJson.get("deleted"), fileNames);
 		JsonArray errors = responseJson.get("failures").getAsJsonArray();
 		if (errors != null && !errors.isEmpty()) {
-			classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '"
-					+ errors + "' when attempting to delete files = " + fileNames);
+			classLogger.warn("For '{}' errors = '{}' when attempting to delete files = {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), errors, fileNames);
 		}
 
 		// using the search result for the source, we need to delete all the ids we
@@ -524,7 +517,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				try {
 					FileUtils.forceDelete(documentFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete document file '{}'", documentFile.getAbsolutePath(), e);
 				}
 				filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 			}
@@ -541,8 +534,6 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
-		Gson gson = new Gson();
-
 		String vectorString = "";
 		if (nearestNeighborQuery.contains("${VECTOR}")) {
 			if (!this.modelPropsLoaded) {
@@ -554,7 +545,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			IModelEngine engine = Utility.getModel(this.embedderEngineId);
 			EmbeddingsModelEngineResponse embeddingsResponse = engine
 					.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
-			vectorString = gson.toJson(convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
+			vectorString = GSON.toJson(convertListNumToJsonArray(embeddingsResponse.getResponse().get(0)));
 		}
 
 		int size;
@@ -600,7 +591,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		}
 		List<IQueryFilter> pageFilters = new ArrayList<>(filters);
 		JsonObject filterObject = getFilterObject(pageFilters);
-		String filter = new Gson().toJson(filterObject);
+		String filter = GSON.toJson(filterObject);
 
 		Configuration configuration = Configuration.builder().jsonProvider(new GsonJsonProvider()).build();
 
@@ -621,7 +612,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			replacements.put("FROM", Integer.toString(size - remainingToFetch + baseFrom));
 			replacements.put("SIZE", Integer.toString(batchSize));
 			replacements.put("FILTER", filter);
-			replacements.put("QUERY", gson.toJson(searchStatement));
+			replacements.put("QUERY", GSON.toJson(searchStatement));
 			replacements.put("EMBEDDINGS", this.embeddings);
 			replacements.put("VECTOR", vectorString);
 			replacements.put("K", Integer.toString(k));
@@ -758,7 +749,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				}
 			}
 			JsonObject filterObject = getFilterObject(pageFilters);
-			String filter = new Gson().toJson(filterObject);
+			String filter = GSON.toJson(filterObject);
 
 			replacements.clear();
 			replacements.put("SOURCE_OFFSET", StringEscapeUtils.escapeJava(searchAfter));
@@ -918,7 +909,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 					searchAfterClause = ", \"search_after\": [\"${SOURCE_OFFSET}\", ${CHUNK_OFFSET}]";
 				}
 				JsonObject filterObject = getFilterObject(pageFilters);
-				String filter = new Gson().toJson(filterObject);
+				String filter = GSON.toJson(filterObject);
 
 				replacements.clear();
 				replacements.put("SOURCE_OFFSET", StringEscapeUtils.escapeJava(sourceAfter));
@@ -1248,7 +1239,7 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			return false;
 		}
 
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		Boolean valid = (Boolean) responseMap.get("acknowledged");
 		if (valid != null && valid) {
