@@ -148,12 +148,14 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 		
-		createClaudeDir(filePath);
+		String finalFilePath = filePath + "/client";
+		
+		createClaudeDir(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
+		String initScript = createInitScript(roomId, finalFilePath, accessKey, secretKey, allowedTools, permissionMode,
 				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
@@ -170,7 +172,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName);
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName);
 
 		if (!Files.exists(skillPath)) {
 			return true;
@@ -201,7 +203,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 		String slugifiedName = skillName.toLowerCase().replace(" ", "-");
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", slugifiedName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", slugifiedName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -223,7 +225,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -246,7 +248,7 @@ public class ClaudeCodeManager {
 				projectName);
 		Map<String, String> skillsMap = new HashMap<>();
 
-		Path claudeMd = Paths.get(projectPath, "CLAUDE.md");
+		Path claudeMd = Paths.get(projectPath, "client", "CLAUDE.md");
 		if (Files.exists(claudeMd)) {
 			try {
 				String content = new String(Files.readAllBytes(claudeMd));
@@ -256,7 +258,7 @@ public class ClaudeCodeManager {
 			}
 		}
 
-		Path skillsDir = Paths.get(projectPath, ".claude", "skills");
+		Path skillsDir = Paths.get(projectPath, "client", ".claude", "skills");
 		if (!Files.exists(skillsDir)) {
 			return skillsMap;
 		}
