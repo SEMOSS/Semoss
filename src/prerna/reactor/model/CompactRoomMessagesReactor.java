@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.math3.analysis.function.Abs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -59,7 +60,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
     private static Logger classLogger = LogManager.getLogger(CompactRoomMessagesReactor.class);
     private static final String COMPACTION_TYPES_KEY = "compactionTypes";
-    private static final String AUTO_DETECT_KEY = "autoDetect";
     private static final Integer KEEP_N_TRANSACTIONS = 2;
 
     /**
@@ -77,9 +77,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 ReactorKeysEnum.ROOM_ID.getKey(),
                 ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(),
                 COMPACTION_TYPES_KEY,
-                AUTO_DETECT_KEY
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0 };
     }
 
     @Override
@@ -87,8 +86,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         organizeKeys();
         User user = this.insight.getUser();
         String userId = user.getPrimaryLoginToken().getId();
-        String autoDetectVal = this.keyValue.get(AUTO_DETECT_KEY);
-        boolean autoDetect = "true".equalsIgnoreCase(autoDetectVal);
 
         String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
         if (roomId == null || roomId.isEmpty()) {
@@ -111,10 +108,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         }
 
-        if (requestedTypes.isEmpty() && !autoDetect) {
-            throw new IllegalArgumentException(
-                    "At least one compaction type is required. Valid types: " + VALID_COMPACTION_TYPES);
-        }
+        boolean autoDetect = requestedTypes.isEmpty();
 
         // load room
         Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
@@ -191,9 +185,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // preceding InputMessage's cumulative count.
         int toolTokens = 0;
         int prevInputCumulative = 0;
+        boolean pruneToolsAbove = false;
         for (AbstractMessage m : branch) {
             if (m instanceof InputMessage) {
-                if (m.hasToolResultPart()) {
+                if (m.getPruneToolsAbove()) {
+                    pruneToolsAbove = true;
+                }
+                if (!pruneToolsAbove && m.hasToolResultPart()) {
                     int delta = m.getTokensInMessage() - prevInputCumulative;
                     if (delta > 0) {
                         toolTokens += delta;
@@ -210,7 +208,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 && (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
 
         if (useToolPruning) {
-            return addToolPruneKeyToMessage(messages, messageId);
+            return addToolPruneKeyToMessage(messages, messageId, room, toolTokens);
         } else if (countTransactions(branch) > KEEP_N_TRANSACTIONS) {
             return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS, modelEngine);
         } else {
@@ -218,20 +216,56 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         }
     }
 
-    private Map<String, Object> addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId) {
+    private Map<String, Object> addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId,
+            Room room, int toolTokens) {
         Map<String, Object> result = new HashMap<>();
         result.put("type", "TOOL_PRUNE");
 
-        for (AbstractMessage message : messages) {
-            if (parentMessageId.equals(message.getMessageId())) {
-                message.setPruneToolsAbove(true);
-                result.put("success", true);
-                return result;
-            }
+        if (messages.size() < 2) {
+            result.put("success", false);
+            result.put("error", "Not enough messages in room to apply tool pruning");
+            return result;
         }
 
-        result.put("success", false);
-        result.put("error", "No message found with id: " + parentMessageId);
+        AbstractMessage lastResponseMessage = messages.getLast();
+        AbstractMessage lastInputMessage = messages.get(messages.size() - 2);
+
+        InputMessage toolPruneMessage = InputMessage.builder(room)
+                .withText("Pruning Tools For Future Messages")
+                .build();
+
+        // Inherit the parent of the oldest pruned message so other branches stay intact
+        toolPruneMessage.setParentMessageId(lastResponseMessage.getMessageId());
+        toolPruneMessage.setVisibile(false);
+
+        // Set token count to last input + response - expected tokens pruned
+        // Will be off by a few tokens but it will get fixed anyway on the next message
+        toolPruneMessage.setTokensInMessage(
+                lastInputMessage.getTokensInMessage() + lastResponseMessage.getTokensInMessage() - toolTokens);
+        toolPruneMessage.setPruneToolsAbove(true);
+
+        // Pair the compacted input with a response message so the branch is complete
+        ResponseMessage toolPruneResponse = ResponseMessage.builder()
+                .withText("Successfully set prune flag on message")
+                .build();
+        toolPruneResponse.setParentMessageId(toolPruneMessage.getMessageId());
+        toolPruneResponse.setVisibile(false);
+
+        // summary response tokens + last n messages tokens - original tokens in that
+        // span (to avoid double counting)
+        toolPruneResponse.setTokensInMessage(10);
+
+        messages.add(toolPruneMessage);
+        messages.add(toolPruneResponse);
+
+        ModelInferenceLogsUtils.llm2_updateRoomMessages(
+                room.getId(),
+                this.insight.getUser().getPrimaryLoginToken().getId(),
+                room.getMessagesAsString());
+
+        result.put("success", true);
+        result.put("inputMessage", toolPruneMessage);
+        result.put("responseMessage", toolPruneResponse);
         return result;
     }
 
@@ -439,7 +473,21 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     @Override
     public String getReactorDescription() {
         return "Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
-                + "Supported compaction types: TOOL_PRUNE, SUMMARY. ";
+                + "Supported compaction types: TOOL_PRUNE, SUMMARY. "
+                + "This tool can be called at the LLMs discretion when the context window is at risk of being exceeded, or manually by the user. "
+                + "If no compaction type is specified, the reactor will attempt to auto-detect the best strategy based on the content of the messages. "
+                + "Note that compaction by summarization is a lossy operation and should be used with care.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+            return "The room id for which to compact messages";
+        } else if (key.equals(COMPACTION_TYPES_KEY)) {
+            return "Method(s) to apply for compacting messages. Valid values: " + VALID_COMPACTION_TYPES
+                    + ". If not provided, compaction type will be auto-detected based on message content.";
+        }
+        return super.getDescriptionForKey(key);
     }
 
     private int getLastMessageTokens(List<AbstractMessage> branch) {
