@@ -40,6 +40,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Loads all Playwright steps from a saved recording file without requiring an
+ * active browser session.
+ */
 public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetAllStepsWithoutSessionReactor.class);
@@ -86,6 +90,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return new NounMetadata(response, PixelDataType.MAP);
 	}
 
+	/**
+	 * Converts a {@link PlaywrightStep} into a serializable map.
+	 *
+	 * @param step step to convert
+	 * @return converted step map
+	 */
 	private Map<String, Object> convertStepToMap(PlaywrightStep step) {
 		Map<String, Object> stepMap = new HashMap<>();
 		stepMap.put("id", step.id());
@@ -114,6 +124,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return stepMap;
 	}
 
+	/**
+	 * Converts coordinates into a serializable map.
+	 *
+	 * @param coords coordinate object
+	 * @return coordinate map or {@code null} when coords are not present
+	 */
 	private Map<String, Object> convertCoords(Coords coords) {
 		if (coords == null) {
 			return null;
@@ -124,6 +140,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return coordsMap;
 	}
 
+	/**
+	 * Converts a list of coordinates into a serializable list.
+	 *
+	 * @param coordsList list of coordinates
+	 * @return converted coordinate list or {@code null} when not present
+	 */
 	private List<Map<String, Object>> convertMultiCoords(List<Coords> coordsList) {
 		if (coordsList == null) {
 			return null;
@@ -135,6 +157,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return converted;
 	}
 
+	/**
+	 * Converts viewport information into a serializable map.
+	 *
+	 * @param viewport viewport configuration
+	 * @return viewport map or {@code null} when viewport is not present
+	 */
 	private Map<String, Object> convertViewport(Viewport viewport) {
 		if (viewport == null) {
 			return null;
@@ -146,6 +174,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return viewportMap;
 	}
 
+	/**
+	 * Converts selector information into a serializable map.
+	 *
+	 * @param selector selector details
+	 * @return selector map or {@code null} when selector is not present
+	 */
 	private Map<String, Object> convertSelector(Selector selector) {
 		if (selector == null) {
 			return null;
@@ -157,6 +191,12 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return selectorMap;
 	}
 
+	/**
+	 * Converts trigger-new-tab metadata into a serializable map.
+	 *
+	 * @param triggerNewTab trigger metadata
+	 * @return trigger map or {@code null} when metadata is not present
+	 */
 	private Map<String, Object> convertTriggerNewTab(TriggerNewTab triggerNewTab) {
 		if (triggerNewTab == null) {
 			return null;
@@ -167,15 +207,23 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return triggerMap;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String getReactorDescription() {
-		return "Retrieves all recorded Playwright steps from a specified file without requiring an active session. ";
+		return "Loads all recorded Playwright steps from a saved file without requiring an active Playwright session.";
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("fileName")) {
-			return "The name of the recording file to load steps from";
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "Project where the recording file exists.";
+		} else if ("fileName".equals(key)) {
+			return "Recording file name to load, relative to the project's app asset folder.";
 		}
 		return super.getDescriptionForKey(key);
 	}
