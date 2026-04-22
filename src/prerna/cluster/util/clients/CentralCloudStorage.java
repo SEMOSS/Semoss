@@ -1990,6 +1990,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 
+// @formatter:off
 //	public static void main(String[] args) throws Exception {
 //		TestUtilityMethods.loadAll("C:/workspace/Semoss_Dev/RDF_Map.prop");
 //		Properties coreProp = DIHelper.getInstance().getCoreProp();
@@ -2013,5 +2014,6 @@ public final class CentralCloudStorage implements ICloudClient {
 //		centralStorage.pullEngine("56af9395-64fd-40a2-b68c-bbd6961336a5", null, true);
 //		centralStorage.pullLocalDatabaseFile("56af9395-64fd-40a2-b68c-bbd6961336a5", RdbmsTypeEnum.H2_DB);
 //	}
+// @formatter:on
 
 }
