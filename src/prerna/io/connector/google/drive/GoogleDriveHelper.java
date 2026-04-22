@@ -57,7 +57,7 @@ public class GoogleDriveHelper {
 	private static final Logger classLogger = LogManager.getLogger(GoogleDriveHelper.class);
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).setPrettyPrinting().create();
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final String ID = "id";
 	private static final String SUCCESS = "success";
@@ -145,8 +145,7 @@ public class GoogleDriveHelper {
 				return result;
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"GoogleDriveHelper.uploadFile: failed to upload file '" + fileName + "' from path: " + filePath, e);
+			classLogger.error("Failed to upload Google Drive file '{}' from path '{}'.", fileName, filePath, e);
 			throw e;
 		}
 	}
@@ -181,7 +180,7 @@ public class GoogleDriveHelper {
 			map.put(VIEW_LINK, viewLink);
 			return map;
 		} catch (Exception e) {
-			classLogger.error("GoogleDriveHelper.readFile: failed to read metadata for file id: " + fileId, e);
+			classLogger.error("Failed to read Google Drive file metadata for file id '{}'.", fileId, e);
 			throw e;
 		}
 	}
@@ -236,8 +235,7 @@ public class GoogleDriveHelper {
 				fos.flush();
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"GoogleDriveHelper.downloadFile: failed to download file id: " + fileId + " to path: " + path, e);
+			classLogger.error("Failed to download Google Drive file '{}' to path '{}'.", fileId, path, e);
 			throw e;
 		}
 	}
@@ -265,7 +263,7 @@ public class GoogleDriveHelper {
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {
-			classLogger.error("GoogleDriveHelper.deleteFile: failed to delete file id: " + fileId, e);
+			classLogger.error("Failed to delete Google Drive file '{}'.", fileId, e);
 			throw e;
 		}
 	}
@@ -295,7 +293,7 @@ public class GoogleDriveHelper {
 			}.getType());
 			return (List<Map<String, Object>>) json.get(FILES);
 		} catch (Exception e) {
-			classLogger.error("GoogleDriveHelper.fileIdList: failed to list files with limit: " + limit, e);
+			classLogger.error("Failed to list Google Drive files with limit {}.", limit, e);
 			throw e;
 		}
 	}

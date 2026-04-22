@@ -574,7 +574,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	// For updating Last Edited Date for Block Apps
+	/**
+	 * For updating Last Edited Date for Apps
+	 * 
+	 * @param projectID
+	 */
 	public static void updateProjectLastEditedDate(String projectID) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";

@@ -52,7 +52,7 @@ public class GoogleDocsHelper {
 	private static final Logger classLogger = LogManager.getLogger(GoogleDocsHelper.class);
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).setPrettyPrinting().create();
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final String BODY = "body";
 	private static final String CONTENT_KEY = "content";
