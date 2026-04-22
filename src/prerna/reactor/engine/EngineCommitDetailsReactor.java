@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.engine;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -40,9 +40,8 @@ import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevWalk;
 
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -53,16 +52,16 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * This reactor returns paginated commit details from a project's git repository.
+ * This reactor returns paginated commit details from an engine's git repository.
  * Each commit includes the commit SHA, author information, date, commit message,
  * and any tags pointing to that commit.
  */
-public class ProjectCommitDetailsReactor extends AbstractReactor {
+public class EngineCommitDetailsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ProjectCommitDetailsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EngineCommitDetailsReactor.class);
 
-	public ProjectCommitDetailsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+	public EngineCommitDetailsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
@@ -71,12 +70,12 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String limitStr = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offsetStr = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new SemossPixelException("Must pass in the project id");
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new SemossPixelException("Must pass in the engine id");
 		}
 		if (limitStr == null || (limitStr = limitStr.trim()).isEmpty()) {
 			throw new SemossPixelException("Must pass in the limit");
@@ -106,26 +105,26 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 			throw new SemossPixelException("Offset must be a valid integer");
 		}
 
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new SemossPixelException("Project does not exist or user does not have access to the project");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new SemossPixelException("Engine does not exist or user does not have access to the engine");
 		}
+
+		IEngine engine = Utility.getEngine(engineId);
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
+				engine.getCatalogType(), engineId, engine.getEngineName());
 
 		List<Map<String, Object>> commits = new ArrayList<>();
 
-		IProject project = Utility.getProject(projectId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
-				projectId, project.getEngineName());
-
 		File gitDir = new File(versionFolder, ".git");
 		if (!gitDir.exists()) {
-			classLogger.info("No git repository found for project {}", projectId);
-			return new NounMetadata(commits, PixelDataType.MAP, PixelOperationType.PROJECT_INFO);
+			classLogger.info("No git repository found for engine {}", engineId);
+			return new NounMetadata(commits, PixelDataType.MAP, PixelOperationType.ENGINE_INFO);
 		}
 
 		try (Git thisGit = Git.open(new File(versionFolder))) {
 			if (thisGit.getRepository().resolve("HEAD") == null) {
-				classLogger.info("Git repository has no commits for project {}", projectId);
-				return new NounMetadata(commits, PixelDataType.MAP, PixelOperationType.PROJECT_INFO);
+				classLogger.info("Git repository has no commits for engine {}", engineId);
+				return new NounMetadata(commits, PixelDataType.MAP, PixelOperationType.ENGINE_INFO);
 			}
 
 			List<Ref> tagList = thisGit.tagList().call();
@@ -157,7 +156,7 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 			}
 
 		} catch (Exception e) {
-			classLogger.error("Error occurred getting commit details for project {}", projectId, e);
+			classLogger.error("Error occurred getting commit details for engine {}", engineId, e);
 			throw new SemossPixelException(
 					"Error occurred getting the commit details. Detailed error = " + e.getMessage(), e);
 		}
@@ -165,18 +164,18 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 		int totalCommits = commits.size();
 		int toIndex = Math.min(offset + limit, totalCommits);
 
-		return new NounMetadata(commits.subList(offset, toIndex), PixelDataType.MAP, PixelOperationType.PROJECT_INFO);
+		return new NounMetadata(commits.subList(offset, toIndex), PixelDataType.MAP, PixelOperationType.ENGINE_INFO);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor returns the details of all the commits in a project";
+		return "This reactor returns the details of all the commits in an engine";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The project id";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine id";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "Maximum number of commits to return";
 		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
