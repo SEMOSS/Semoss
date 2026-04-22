@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.io.connector.github;
 
 import java.net.URLEncoder;
@@ -27,6 +54,7 @@ import prerna.security.HttpHelperUtility;
 public final class GitHubHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(GitHubHelper.class);
+
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private static final String API_BASE = "https://api.github.com";
@@ -60,6 +88,9 @@ public final class GitHubHelper {
 	private static final int MAX_BODY_LENGTH = 65536;
 	private static final int DEFAULT_PER_PAGE = 100;
 
+	/**
+	 * Utility class; not instantiable.
+	 */
 	private GitHubHelper() {
 	}
 
@@ -78,7 +109,7 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to get authenticated GitHub user", e);
+			classLogger.error("Failed to get authenticated GitHub user from endpoint '{}'.", PATH_USER, e);
 			throw new SemossPixelException("Failed to get authenticated GitHub user: " + e.getMessage(), e);
 		}
 	}
@@ -148,7 +179,8 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to list GitHub repositories", e);
+			classLogger.error("Failed to list GitHub repositories for owner '{}' (page={}, perPage={}).", owner, page,
+					perPage, e);
 			throw new SemossPixelException("Failed to list GitHub repositories: " + e.getMessage(), e);
 		}
 	}
@@ -158,8 +190,6 @@ public final class GitHubHelper {
 	 *
 	 * @param accessToken GitHub OAuth token
 	 * @param query       GitHub search query
-	 * @param sort        optional sort
-	 * @param order       optional order
 	 * @param page        page number
 	 * @param perPage     page size
 	 * @return search result map with total_count and items
@@ -190,7 +220,8 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to search GitHub repositories", e);
+			classLogger.error("Failed to search GitHub repositories for query '{}' (page={}, perPage={}).", query, page,
+					perPage, e);
 			throw new SemossPixelException("Failed to search GitHub repositories: " + e.getMessage(), e);
 		}
 	}
@@ -219,14 +250,14 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to list GitHub organizations", e);
+			classLogger.error("Failed to list GitHub organizations (page={}, perPage={}).", page, perPage, e);
 			throw new SemossPixelException("Failed to list GitHub organizations: " + e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Lists repositories for an organization. Returns all repos (including
-	 * private) that the authenticated user can access.
+	 * Lists repositories for an organization. Returns all repos (including private)
+	 * that the authenticated user can access.
 	 *
 	 * @param accessToken GitHub OAuth token
 	 * @param org         organization login name
@@ -234,8 +265,7 @@ public final class GitHubHelper {
 	 * @param perPage     page size
 	 * @return repository summaries
 	 */
-	public static List<Map<String, Object>> listOrgRepositories(String accessToken, String org, int page,
-			int perPage) {
+	public static List<Map<String, Object>> listOrgRepositories(String accessToken, String org, int page, int perPage) {
 		try {
 			validateToken(accessToken);
 			String safeOrg = org == null ? null : org.trim();
@@ -260,8 +290,7 @@ public final class GitHubHelper {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to list GitHub organization repositories for {}", org, e);
-			throw new SemossPixelException(
-					"Failed to list GitHub organization repositories: " + e.getMessage(), e);
+			throw new SemossPixelException("Failed to list GitHub organization repositories: " + e.getMessage(), e);
 		}
 	}
 
@@ -527,7 +556,6 @@ public final class GitHubHelper {
 	 * @param body        issue body
 	 * @param assignees   assignee usernames
 	 * @param labels      labels
-	 * @param milestone   milestone number or null
 	 * @return creation result
 	 */
 	public static Map<String, Object> createIssue(String accessToken, String owner, String repo, String title,
@@ -576,10 +604,8 @@ public final class GitHubHelper {
 	 * @param title       updated title
 	 * @param body        updated body
 	 * @param state       updated state
-	 * @param stateReason updated state reason
 	 * @param assignees   updated assignees
 	 * @param labels      updated labels
-	 * @param milestone   milestone number or null
 	 * @return update result
 	 */
 	public static Map<String, Object> updateIssue(String accessToken, String owner, String repo, int issueNumber,
@@ -735,8 +761,6 @@ public final class GitHubHelper {
 	 *
 	 * @param accessToken GitHub OAuth token
 	 * @param query       GitHub search query
-	 * @param sort        optional sort
-	 * @param order       optional order
 	 * @param page        page number
 	 * @param perPage     page size
 	 * @return search result map with total_count and items
@@ -768,7 +792,8 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to search GitHub issues", e);
+			classLogger.error("Failed to search GitHub issues for query '{}' (page={}, perPage={}).", query, page,
+					perPage, e);
 			throw new SemossPixelException("Failed to search GitHub issues: " + e.getMessage(), e);
 		}
 	}
@@ -780,10 +805,6 @@ public final class GitHubHelper {
 	 * @param owner       repository owner
 	 * @param repo        repository name
 	 * @param state       state filter
-	 * @param head        optional head filter
-	 * @param base        optional base filter
-	 * @param sort        optional sort
-	 * @param direction   optional direction
 	 * @param page        page number
 	 * @param perPage     page size
 	 * @return pull request summaries
@@ -1159,8 +1180,6 @@ public final class GitHubHelper {
 	 *
 	 * @param accessToken GitHub OAuth token
 	 * @param query       GitHub search query
-	 * @param sort        optional sort
-	 * @param order       optional order
 	 * @param page        page number
 	 * @param perPage     page size
 	 * @return search result map with total_count and items
@@ -1192,7 +1211,8 @@ public final class GitHubHelper {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to search GitHub pull requests", e);
+			classLogger.error("Failed to search GitHub pull requests for query '{}' (page={}, perPage={}).", query,
+					page, perPage, e);
 			throw new SemossPixelException("Failed to search GitHub pull requests: " + e.getMessage(), e);
 		}
 	}
@@ -1256,6 +1276,12 @@ public final class GitHubHelper {
 		}
 	}
 
+	/**
+	 * Builds standard GitHub API request headers.
+	 *
+	 * @param accessToken GitHub OAuth token
+	 * @return request headers map
+	 */
 	private static Map<String, String> buildHeaders(String accessToken) {
 		Map<String, String> headers = new HashMap<String, String>();
 		headers.put(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
@@ -1266,6 +1292,13 @@ public final class GitHubHelper {
 		return headers;
 	}
 
+	/**
+	 * Validates and builds the repository API URL for an owner/repository pair.
+	 *
+	 * @param owner repository owner
+	 * @param repo  repository name
+	 * @return API URL for the repository
+	 */
 	private static String buildRepoUrl(String owner, String repo) {
 		String safeOwner = owner == null ? null : owner.trim();
 		if (safeOwner == null || safeOwner.isEmpty()) {
@@ -1288,18 +1321,37 @@ public final class GitHubHelper {
 		return API_BASE + PATH_REPOS + encode(safeOwner) + "/" + encode(safeRepo);
 	}
 
+	/**
+	 * Validates that an access token is present.
+	 *
+	 * @param accessToken GitHub OAuth token
+	 */
 	private static void validateToken(String accessToken) {
 		if (accessToken == null || accessToken.trim().isEmpty()) {
 			throw new SemossPixelException("GitHub access token must not be empty.");
 		}
 	}
 
+	/**
+	 * Appends normalized page and per-page values to a URL.
+	 *
+	 * @param url     URL builder to update
+	 * @param page    requested page number
+	 * @param perPage requested page size
+	 */
 	private static void appendPagination(StringBuilder url, int page, int perPage) {
 		url.append(url.indexOf("?") >= 0 ? "&" : "?");
 		url.append("page=").append(normalizePage(page));
 		url.append("&per_page=").append(normalizePerPage(perPage));
 	}
 
+	/**
+	 * Appends a query parameter when the value is non-empty.
+	 *
+	 * @param url   URL builder to update
+	 * @param key   query parameter key
+	 * @param value query parameter value
+	 */
 	private static void appendQueryParam(StringBuilder url, String key, String value) {
 		if (value == null || value.trim().isEmpty()) {
 			return;
@@ -1308,6 +1360,12 @@ public final class GitHubHelper {
 		url.append(key).append("=").append(encode(value.trim()));
 	}
 
+	/**
+	 * Serializes a JSON object node into a request body string.
+	 *
+	 * @param node JSON request body
+	 * @return serialized JSON string
+	 */
 	private static String toJsonBody(ObjectNode node) {
 		try {
 			return OBJECT_MAPPER.writeValueAsString(node);
@@ -1316,6 +1374,12 @@ public final class GitHubHelper {
 		}
 	}
 
+	/**
+	 * Parses a JSON response string. Empty responses return an empty object node.
+	 *
+	 * @param response raw response body
+	 * @return parsed JSON node
+	 */
 	private static JsonNode readJson(String response) {
 		try {
 			if (response == null || response.trim().isEmpty()) {
@@ -1327,14 +1391,32 @@ public final class GitHubHelper {
 		}
 	}
 
+	/**
+	 * URL-encodes a value for safe use in path and query segments.
+	 *
+	 * @param value raw value
+	 * @return encoded value
+	 */
 	private static String encode(String value) {
 		return URLEncoder.encode(value, StandardCharsets.UTF_8);
 	}
 
+	/**
+	 * Normalizes page values so they are always at least 1.
+	 *
+	 * @param page requested page number
+	 * @return normalized page number
+	 */
 	private static int normalizePage(int page) {
 		return page <= 0 ? 1 : page;
 	}
 
+	/**
+	 * Normalizes per-page values to the supported GitHub range.
+	 *
+	 * @param perPage requested page size
+	 * @return normalized page size
+	 */
 	private static int normalizePerPage(int perPage) {
 		if (perPage <= 0) {
 			return DEFAULT_PER_PAGE;
@@ -1342,12 +1424,26 @@ public final class GitHubHelper {
 		return Math.min(perPage, 100);
 	}
 
+	/**
+	 * Adds a string field to a JSON body only when the value is non-null.
+	 *
+	 * @param requestBody body being built
+	 * @param key         JSON field name
+	 * @param value       field value
+	 */
 	private static void putIfNotNull(ObjectNode requestBody, String key, String value) {
 		if (value != null) {
 			requestBody.put(key, value);
 		}
 	}
 
+	/**
+	 * Adds a string array field to a JSON body when values are provided.
+	 *
+	 * @param requestBody body being built
+	 * @param key         JSON field name
+	 * @param values      values to add
+	 */
 	private static void addStringArrayIfPresent(ObjectNode requestBody, String key, List<String> values) {
 		if (values == null) {
 			return;
@@ -1358,6 +1454,12 @@ public final class GitHubHelper {
 		}
 	}
 
+	/**
+	 * Maps a GitHub user response node into connector output fields.
+	 *
+	 * @param userNode GitHub user JSON node
+	 * @return mapped user details
+	 */
 	private static Map<String, Object> toUserMap(JsonNode userNode) {
 		Map<String, Object> userMap = new HashMap<String, Object>();
 		userMap.put("login", nullableText(userNode.path("login")));
@@ -1375,6 +1477,12 @@ public final class GitHubHelper {
 		return userMap;
 	}
 
+	/**
+	 * Maps a GitHub repository node into connector output fields.
+	 *
+	 * @param repoNode repository JSON node
+	 * @return mapped repository summary
+	 */
 	private static Map<String, Object> toRepositoryMap(JsonNode repoNode) {
 		Map<String, Object> repoMap = new HashMap<String, Object>();
 		repoMap.put("id", repoNode.path("id").asLong());
@@ -1391,6 +1499,12 @@ public final class GitHubHelper {
 		return repoMap;
 	}
 
+	/**
+	 * Maps a GitHub organization node into connector output fields.
+	 *
+	 * @param orgNode organization JSON node
+	 * @return mapped organization summary
+	 */
 	private static Map<String, Object> toOrganizationMap(JsonNode orgNode) {
 		Map<String, Object> orgMap = new HashMap<String, Object>();
 		orgMap.put("login", nullableText(orgNode.path("login")));
@@ -1399,6 +1513,12 @@ public final class GitHubHelper {
 		return orgMap;
 	}
 
+	/**
+	 * Maps a GitHub branch node into connector output fields.
+	 *
+	 * @param branchNode branch JSON node
+	 * @return mapped branch summary
+	 */
 	private static Map<String, Object> toBranchMap(JsonNode branchNode) {
 		Map<String, Object> branchMap = new HashMap<String, Object>();
 		branchMap.put("name", nullableText(branchNode.path("name")));
@@ -1407,6 +1527,12 @@ public final class GitHubHelper {
 		return branchMap;
 	}
 
+	/**
+	 * Maps a pull request node into summary fields.
+	 *
+	 * @param pullRequestNode pull request JSON node
+	 * @return mapped pull request summary
+	 */
 	private static Map<String, Object> toPullRequestSummaryMap(JsonNode pullRequestNode) {
 		Map<String, Object> pullRequestMap = new HashMap<String, Object>();
 		pullRequestMap.put("number", pullRequestNode.path("number").asInt());
@@ -1423,6 +1549,12 @@ public final class GitHubHelper {
 		return pullRequestMap;
 	}
 
+	/**
+	 * Maps a pull request node into detailed fields.
+	 *
+	 * @param pullRequestNode pull request JSON node
+	 * @return mapped pull request detail
+	 */
 	private static Map<String, Object> toPullRequestDetailMap(JsonNode pullRequestNode) {
 		Map<String, Object> pullRequestMap = toPullRequestSummaryMap(pullRequestNode);
 		pullRequestMap.put("body", nullableText(pullRequestNode.path("body")));
@@ -1435,6 +1567,12 @@ public final class GitHubHelper {
 		return pullRequestMap;
 	}
 
+	/**
+	 * Maps a pull request node into fields returned after create/update actions.
+	 *
+	 * @param pullRequestNode pull request JSON node
+	 * @return mapped mutation result
+	 */
 	private static Map<String, Object> toPullRequestMutationMap(JsonNode pullRequestNode) {
 		Map<String, Object> pullRequestMap = new HashMap<String, Object>();
 		pullRequestMap.put("number", pullRequestNode.path("number").asInt());
@@ -1445,6 +1583,12 @@ public final class GitHubHelper {
 		return pullRequestMap;
 	}
 
+	/**
+	 * Maps a pull request file node into connector output fields.
+	 *
+	 * @param fileNode pull request file JSON node
+	 * @return mapped changed-file summary
+	 */
 	private static Map<String, Object> toPullRequestFileMap(JsonNode fileNode) {
 		Map<String, Object> fileMap = new HashMap<String, Object>();
 		fileMap.put("filename", nullableText(fileNode.path("filename")));
@@ -1456,6 +1600,12 @@ public final class GitHubHelper {
 		return fileMap;
 	}
 
+	/**
+	 * Maps an issue node into summary fields.
+	 *
+	 * @param issueNode issue JSON node
+	 * @return mapped issue summary
+	 */
 	private static Map<String, Object> toIssueSummaryMap(JsonNode issueNode) {
 		Map<String, Object> issueMap = new HashMap<String, Object>();
 		issueMap.put("number", issueNode.path("number").asInt());
@@ -1471,6 +1621,12 @@ public final class GitHubHelper {
 		return issueMap;
 	}
 
+	/**
+	 * Maps an issue node into detailed fields.
+	 *
+	 * @param issueNode issue JSON node
+	 * @return mapped issue detail
+	 */
 	private static Map<String, Object> toIssueDetailMap(JsonNode issueNode) {
 		Map<String, Object> issueMap = toIssueSummaryMap(issueNode);
 		issueMap.put("body", nullableText(issueNode.path("body")));
@@ -1490,6 +1646,12 @@ public final class GitHubHelper {
 		return issueMap;
 	}
 
+	/**
+	 * Maps an issue node into fields returned after create/update actions.
+	 *
+	 * @param issueNode issue JSON node
+	 * @return mapped mutation result
+	 */
 	private static Map<String, Object> toIssueMutationMap(JsonNode issueNode) {
 		Map<String, Object> issueMap = new HashMap<String, Object>();
 		issueMap.put("number", issueNode.path("number").asInt());
@@ -1499,6 +1661,12 @@ public final class GitHubHelper {
 		return issueMap;
 	}
 
+	/**
+	 * Maps an issue or pull request comment node into connector output fields.
+	 *
+	 * @param commentNode comment JSON node
+	 * @return mapped comment
+	 */
 	private static Map<String, Object> toCommentMap(JsonNode commentNode) {
 		Map<String, Object> commentMap = new HashMap<String, Object>();
 		commentMap.put("id", commentNode.path("id").asLong());
@@ -1510,6 +1678,12 @@ public final class GitHubHelper {
 		return commentMap;
 	}
 
+	/**
+	 * Maps a label node into connector output fields.
+	 *
+	 * @param labelNode label JSON node
+	 * @return mapped label
+	 */
 	private static Map<String, Object> toLabelMap(JsonNode labelNode) {
 		Map<String, Object> labelMap = new HashMap<String, Object>();
 		labelMap.put("name", nullableText(labelNode.path("name")));
@@ -1518,6 +1692,12 @@ public final class GitHubHelper {
 		return labelMap;
 	}
 
+	/**
+	 * Maps a collaborator node into connector output fields.
+	 *
+	 * @param collaboratorNode collaborator JSON node
+	 * @return mapped collaborator
+	 */
 	private static Map<String, Object> toCollaboratorMap(JsonNode collaboratorNode) {
 		Map<String, Object> collaboratorMap = new HashMap<String, Object>();
 		collaboratorMap.put("login", nullableText(collaboratorNode.path("login")));
@@ -1526,6 +1706,12 @@ public final class GitHubHelper {
 		return collaboratorMap;
 	}
 
+	/**
+	 * Maps a search issue result node into connector output fields.
+	 *
+	 * @param issueNode search result issue node
+	 * @return mapped issue search result
+	 */
 	private static Map<String, Object> toSearchIssueMap(JsonNode issueNode) {
 		Map<String, Object> issueMap = new HashMap<String, Object>();
 		issueMap.put("number", issueNode.path("number").asInt());
@@ -1538,6 +1724,12 @@ public final class GitHubHelper {
 		return issueMap;
 	}
 
+	/**
+	 * Maps a search pull request result node into connector output fields.
+	 *
+	 * @param pullRequestNode search result pull request node
+	 * @return mapped pull request search result
+	 */
 	private static Map<String, Object> toSearchPullRequestMap(JsonNode pullRequestNode) {
 		Map<String, Object> pullRequestMap = new HashMap<String, Object>();
 		pullRequestMap.put("number", pullRequestNode.path("number").asInt());
@@ -1552,15 +1744,36 @@ public final class GitHubHelper {
 		return pullRequestMap;
 	}
 
+	/**
+	 * Extracts login values from a JSON user array node.
+	 *
+	 * @param usersNode users JSON array
+	 * @return list of login values
+	 */
 	private static List<String> toLoginList(JsonNode usersNode) {
 		return toNamedList(usersNode, "login");
 	}
 
+	/**
+	 * Reads an issue node for a repository and issue number.
+	 *
+	 * @param headers     request headers
+	 * @param owner       repository owner
+	 * @param repo        repository name
+	 * @param issueNumber issue number
+	 * @return issue JSON node
+	 */
 	private static JsonNode readIssueNode(Map<String, String> headers, String owner, String repo, int issueNumber) {
 		String issueUrl = buildRepoUrl(owner, repo) + PATH_ISSUES + "/" + issueNumber;
 		return readJson(HttpHelperUtility.getRequest(issueUrl, headers, null, null, null));
 	}
 
+	/**
+	 * Validates that an issue node is not a pull request node.
+	 *
+	 * @param issueNode   issue JSON node
+	 * @param issueNumber issue number used for errors
+	 */
 	private static void assertIssueNode(JsonNode issueNode, int issueNumber) {
 		if (!issueNode.path("pull_request").isMissingNode()) {
 			throw new SemossPixelException("issueNumber '" + issueNumber
@@ -1568,12 +1781,27 @@ public final class GitHubHelper {
 		}
 	}
 
+	/**
+	 * Validates that a pull request exists by issuing a read request.
+	 *
+	 * @param headers    request headers
+	 * @param owner      repository owner
+	 * @param repo       repository name
+	 * @param pullNumber pull request number
+	 */
 	private static void assertPullRequestExists(Map<String, String> headers, String owner, String repo,
 			int pullNumber) {
 		String pullRequestUrl = buildRepoUrl(owner, repo) + PATH_PULLS + "/" + pullNumber;
 		HttpHelperUtility.getRequest(pullRequestUrl, headers, null, null, null);
 	}
 
+	/**
+	 * Extracts values for a field from each element in an array node.
+	 *
+	 * @param itemsNode JSON array node
+	 * @param fieldName field name to extract from each item
+	 * @return list of extracted values
+	 */
 	private static List<String> toNamedList(JsonNode itemsNode, String fieldName) {
 		List<String> values = new ArrayList<String>();
 		if (itemsNode != null && itemsNode.isArray()) {
@@ -1587,6 +1815,12 @@ public final class GitHubHelper {
 		return values;
 	}
 
+	/**
+	 * Returns the node text or {@code null} when node is missing/null/empty.
+	 *
+	 * @param node JSON node
+	 * @return text value or {@code null}
+	 */
 	private static String nullableText(JsonNode node) {
 		if (node == null || node.isMissingNode() || node.isNull()) {
 			return null;
@@ -1595,6 +1829,12 @@ public final class GitHubHelper {
 		return value == null || value.isEmpty() ? null : value;
 	}
 
+	/**
+	 * Returns the node boolean or {@code null} when node is missing or null.
+	 *
+	 * @param node JSON node
+	 * @return boolean value or {@code null}
+	 */
 	private static Boolean nullableBoolean(JsonNode node) {
 		if (node == null || node.isMissingNode() || node.isNull()) {
 			return null;

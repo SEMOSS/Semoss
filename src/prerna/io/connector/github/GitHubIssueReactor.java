@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.io.connector.github;
 
 import java.util.ArrayList;
@@ -12,6 +39,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Manages GitHub issue listing, retrieval, mutation, comments, and search.
+ */
 public class GitHubIssueReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GitHubIssueReactor.class);
@@ -30,18 +60,28 @@ public class GitHubIssueReactor extends AbstractReactor {
 	private static final String PAGE = "page";
 	private static final String PER_PAGE = "perPage";
 
+	/**
+	 * Configures supported keys for issue actions.
+	 */
 	public GitHubIssueReactor() {
 		this.keysToGet = new String[] { ACTION, OWNER, REPO, ISSUE_NUMBER, TITLE, BODY, STATE, ASSIGNEES, LABELS,
 				COMMENT_ID, QUERY, PAGE, PER_PAGE };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
+	/**
+	 * Executes the issue action specified by {@code action}.
+	 *
+	 * @return issue operation result metadata
+	 */
 	@Override
 	public NounMetadata execute() {
+		this.organizeKeys();
+
+		String action = null;
 		try {
-			this.organizeKeys();
 			String accessToken = GitHubUtils.getGitHubToken(this.insight.getUser());
-			String action = this.keyValue.get(ACTION);
+			action = this.keyValue.get(ACTION);
 			if (action == null || action.trim().isEmpty()) {
 				throw new SemossPixelException(ACTION + " is required.");
 			}
@@ -360,20 +400,26 @@ public class GitHubIssueReactor extends AbstractReactor {
 
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error in GitHubIssueReactor", e);
+			classLogger.error("Failed to execute GitHubIssueReactor for action '{}'.", action, e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to execute GitHubIssueReactor", e);
+			classLogger.error("Unexpected error in GitHubIssueReactor for action '{}'.", action, e);
 			throw new SemossPixelException("An error occurred in GitHubIssueReactor. Error message: " + e.getMessage(),
 					e);
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public String getReactorDescription() {
-		return "Manages GitHub issues including listing, reading, creating, updating, commenting, editing and deleting comments, searching, and listing labels and collaborators.";
+		return "Lists, retrieves, creates, updates, comments on, and searches GitHub issues, and can list labels and collaborators.";
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ACTION.equals(key)) {
@@ -387,7 +433,7 @@ public class GitHubIssueReactor extends AbstractReactor {
 		} else if (TITLE.equals(key)) {
 			return "Issue title. Required for create. Optional for update.";
 		} else if (BODY.equals(key)) {
-			return "Issue body or comment text. Required for add_comment. Optional for create and update.";
+			return "Issue body or comment text. Required for add_comment and edit_comment. Optional for create and update.";
 		} else if (STATE.equals(key)) {
 			return "Issue state filter (list) or update value (update). Valid values: open, closed.";
 		} else if (ASSIGNEES.equals(key)) {
@@ -399,9 +445,9 @@ public class GitHubIssueReactor extends AbstractReactor {
 		} else if (QUERY.equals(key)) {
 			return "GitHub issue search query. Required for search.";
 		} else if (PAGE.equals(key)) {
-			return "Page number for pagination. Defaults to 1.";
+			return "Pagination page number. Defaults to 1.";
 		} else if (PER_PAGE.equals(key)) {
-			return "Results per page. Defaults to 30 and is capped at 100.";
+			return "Pagination size per page. Defaults to 30 and is capped at 100.";
 		}
 		return super.getDescriptionForKey(key);
 	}
