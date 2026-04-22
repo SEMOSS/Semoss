@@ -138,11 +138,12 @@ public class LocalUserStore {
 	 *
 	 * @param key identifier to remove from both maps
 	 */
-	public void remove(String key) {
+	public User remove(String key) {
 		if (key != null) {
 			localStore.remove(key);
-			userCache.remove(key);
+			return userCache.remove(key);
 		}
+		return null;
 	}
 
 }
