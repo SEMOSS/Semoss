@@ -80,7 +80,7 @@ public class NewAppAssetsFileReactor extends AbstractReactor {
 		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "add: creating new file";
+			comment = "add: created file " + filePath;
 		}
 
 		FileSystemUtil.createNewAssetFile(assetFolder, filePath);
