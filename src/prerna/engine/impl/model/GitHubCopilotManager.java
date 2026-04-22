@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,12 +74,11 @@ import com.github.copilot.sdk.json.SystemMessageConfig;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
-import prerna.reactor.agent.GitHubCopilotLiveEventBus;
 import prerna.util.Utility;
 
 /**
  * GitHub Copilot SDK manager that keeps disk-backed session state in the room
- * folder while publishing live SDK events into the websocket event bus.
+ * folder while publishing normalized transcript events into pixelJobStreaming.
  */
 public class GitHubCopilotManager {
 
@@ -98,11 +98,12 @@ public class GitHubCopilotManager {
 		String bearerToken = buildBearerToken(keyPair[0], keyPair[1], roomId);
 		String baseUrl = buildOpenAIBaseUrl();
 		String runId = UUID.randomUUID().toString();
-		GitHubCopilotLiveEventBus eventBus = GitHubCopilotLiveEventBus.getInstance();
-		eventBus.startRun(roomId, runId);
+		GitHubCopilotPixelJobStreamer streamer = new GitHubCopilotPixelJobStreamer(ThreadStore.getJobId(), engineId,
+				runId);
 
 		AtomicBoolean terminalErrorSeen = new AtomicBoolean(false);
 		AtomicBoolean idlePublished = new AtomicBoolean(false);
+		AtomicReference<String> sessionErrorMessage = new AtomicReference<>(null);
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
@@ -118,16 +119,19 @@ public class GitHubCopilotManager {
 			}
 
 			SessionConfig sessionConfig = buildSessionConfig(engineId, workingDirectory, roomFolderPath, systemPrompt,
-					bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus, terminalErrorSeen,
-					idlePublished);
+					bearerToken, baseUrl, allowedTools, permissionMode, mcps, streamer, terminalErrorSeen,
+					idlePublished, sessionErrorMessage);
 			ResumeSessionConfig resumeConfig = buildResumeSessionConfig(engineId, workingDirectory, roomFolderPath,
-					systemPrompt, bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus,
-					terminalErrorSeen, idlePublished);
+					systemPrompt, bearerToken, baseUrl, allowedTools, permissionMode, mcps, streamer,
+					terminalErrorSeen, idlePublished, sessionErrorMessage);
 
 			try (CopilotSession session = openSession(client, lastSessionId, roomFolderPath, sessionConfig, resumeConfig)) {
 				AssistantMessageEvent finalMessage = session
 						.sendAndWait(new MessageOptions().setPrompt(prompt), 0)
 						.get();
+				if (sessionErrorMessage.get() != null) {
+					throw new IllegalStateException(sessionErrorMessage.get());
+				}
 				return finalMessage != null && finalMessage.getData() != null ? finalMessage.getData().content() : "";
 			}
 		}
@@ -152,9 +156,9 @@ public class GitHubCopilotManager {
 
 	private SessionConfig buildSessionConfig(String engineId, String workingDirectory, String roomFolderPath,
 			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
-			AtomicBoolean terminalErrorSeen,
-			AtomicBoolean idlePublished) {
+			List<Map<String, String>> mcps, GitHubCopilotPixelJobStreamer streamer,
+			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		SessionConfig config = new SessionConfig();
 		config.setClientName(CLIENT_NAME);
 		config.setModel(engineId);
@@ -170,15 +174,16 @@ public class GitHubCopilotManager {
 		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
 			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
 		}
-		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		config.setOnEvent(
+			event -> publishEvent(event, streamer, terminalErrorSeen, idlePublished, sessionErrorMessage));
 		return config;
 	}
 
 	private ResumeSessionConfig buildResumeSessionConfig(String engineId, String workingDirectory, String roomFolderPath,
 			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
-			AtomicBoolean terminalErrorSeen,
-			AtomicBoolean idlePublished) {
+			List<Map<String, String>> mcps, GitHubCopilotPixelJobStreamer streamer,
+			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		ResumeSessionConfig config = new ResumeSessionConfig();
 		config.setClientName(CLIENT_NAME);
 		config.setModel(engineId);
@@ -194,7 +199,8 @@ public class GitHubCopilotManager {
 		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
 			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
 		}
-		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		config.setOnEvent(
+			event -> publishEvent(event, streamer, terminalErrorSeen, idlePublished, sessionErrorMessage));
 		return config;
 	}
 
@@ -236,149 +242,81 @@ public class GitHubCopilotManager {
 		return servers;
 	}
 
-	private void publishEvent(AbstractSessionEvent event, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
-			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished) {
+	private void publishEvent(AbstractSessionEvent event, GitHubCopilotPixelJobStreamer streamer,
+			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		if (event == null) {
 			return;
 		}
 
 		String timestamp = normalizeTimestamp(event.getTimestamp());
-		boolean ephemeral = Boolean.TRUE.equals(event.getEphemeral());
-
-		if (event instanceof AssistantTurnStartEvent startEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("turnId", startEvent.getData().turnId());
-			data.put("interactionId", startEvent.getData().interactionId());
-			eventBus.publish(roomId, runId, "assistant.turn_start", timestamp, ephemeral, data, false);
-			return;
-		}
-
-		if (event instanceof AssistantIntentEvent intentEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("intent", intentEvent.getData().intent());
-			eventBus.publish(roomId, runId, "assistant.intent", timestamp, ephemeral, data, false);
-			return;
-		}
-
-		if (event instanceof AssistantReasoningDeltaEvent reasoningDeltaEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("reasoningId", reasoningDeltaEvent.getData().reasoningId());
-			data.put("deltaContent", reasoningDeltaEvent.getData().deltaContent());
-			eventBus.publish(roomId, runId, "assistant.reasoning_delta", timestamp, ephemeral, data, false);
-			return;
-		}
-
-		if (event instanceof AssistantReasoningEvent reasoningEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("reasoningId", reasoningEvent.getData().reasoningId());
-			data.put("content", reasoningEvent.getData().content());
-			eventBus.publish(roomId, runId, "assistant.reasoning", timestamp, ephemeral, data, false);
-			return;
-		}
 
 		if (event instanceof AssistantMessageDeltaEvent messageDeltaEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("messageId", messageDeltaEvent.getData().messageId());
-			data.put("deltaContent", messageDeltaEvent.getData().deltaContent());
-			data.put("parentToolCallId", messageDeltaEvent.getData().parentToolCallId());
-			eventBus.publish(roomId, runId, "assistant.message_delta", timestamp, ephemeral, data, false);
+			streamer.publishAssistantMessageDelta(messageDeltaEvent.getData().messageId(),
+					messageDeltaEvent.getData().deltaContent(), messageDeltaEvent.getData().parentToolCallId(),
+					timestamp);
 			return;
 		}
 
 		if (event instanceof AssistantMessageEvent messageEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("messageId", messageEvent.getData().messageId());
-			data.put("content", messageEvent.getData().content());
-			data.put("parentToolCallId", messageEvent.getData().parentToolCallId());
-			data.put("toolRequests", toToolRequestMaps(messageEvent.getData().toolRequests()));
-			eventBus.publish(roomId, runId, "assistant.message", timestamp, ephemeral, data, false);
-			return;
-		}
-
-		if (event instanceof AssistantTurnEndEvent turnEndEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("turnId", turnEndEvent.getData().turnId());
-			eventBus.publish(roomId, runId, "assistant.turn_end", timestamp, ephemeral, data, true);
-			return;
-		}
-
-		if (event instanceof AssistantUsageEvent usageEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("model", usageEvent.getData().model());
-			data.put("inputTokens", usageEvent.getData().inputTokens());
-			data.put("outputTokens", usageEvent.getData().outputTokens());
-			data.put("cost", usageEvent.getData().cost());
-			data.put("duration", usageEvent.getData().duration());
-			eventBus.publish(roomId, runId, "assistant.usage", timestamp, ephemeral, data, false);
+			streamer.publishAssistantMessage(messageEvent.getData().messageId(), messageEvent.getData().content(),
+					messageEvent.getData().parentToolCallId(), toToolRequestMaps(messageEvent.getData().toolRequests()),
+					timestamp);
 			return;
 		}
 
 		if (event instanceof ToolExecutionStartEvent toolStartEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("toolCallId", toolStartEvent.getData().toolCallId());
-			data.put("toolName", toolStartEvent.getData().toolName());
-			data.put("arguments", toolStartEvent.getData().arguments());
-			data.put("mcpServerName", toolStartEvent.getData().mcpServerName());
-			data.put("mcpToolName", toolStartEvent.getData().mcpToolName());
-			data.put("parentToolCallId", toolStartEvent.getData().parentToolCallId());
-			eventBus.publish(roomId, runId, "tool.execution_start", timestamp, ephemeral, data, false);
+			streamer.publishToolExecutionStart(toolStartEvent.getData().toolCallId(),
+					toolStartEvent.getData().toolName(), toolStartEvent.getData().arguments(),
+					toolStartEvent.getData().parentToolCallId(), timestamp);
 			return;
 		}
 
 		if (event instanceof ToolExecutionPartialResultEvent partialResultEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("toolCallId", partialResultEvent.getData().toolCallId());
-			data.put("partialOutput", partialResultEvent.getData().partialOutput());
-			eventBus.publish(roomId, runId, "tool.execution_partial_result", timestamp, ephemeral, data, false);
+			streamer.publishToolExecutionPartialResult(partialResultEvent.getData().toolCallId(),
+					partialResultEvent.getData().partialOutput(), timestamp);
 			return;
 		}
 
 		if (event instanceof ToolExecutionProgressEvent progressEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("toolCallId", progressEvent.getData().toolCallId());
-			data.put("progressMessage", progressEvent.getData().progressMessage());
-			eventBus.publish(roomId, runId, "tool.execution_progress", timestamp, ephemeral, data, false);
+			streamer.publishToolExecutionProgress(progressEvent.getData().toolCallId(),
+					progressEvent.getData().progressMessage(), timestamp);
 			return;
 		}
 
 		if (event instanceof ToolExecutionCompleteEvent completeEvent) {
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("toolCallId", completeEvent.getData().toolCallId());
-			data.put("success", completeEvent.getData().success());
-			data.put("parentToolCallId", completeEvent.getData().parentToolCallId());
+			Map<String, Object> result = null;
 			if (completeEvent.getData().result() != null) {
-				Map<String, Object> result = new LinkedHashMap<>();
+				result = new LinkedHashMap<>();
 				result.put("content", completeEvent.getData().result().content());
 				result.put("detailedContent", completeEvent.getData().result().detailedContent());
-				data.put("result", result);
 			}
+			Map<String, Object> error = null;
 			if (completeEvent.getData().error() != null) {
-				Map<String, Object> error = new LinkedHashMap<>();
+				error = new LinkedHashMap<>();
 				error.put("message", completeEvent.getData().error().message());
 				error.put("code", completeEvent.getData().error().code());
-				data.put("error", error);
 			}
-			eventBus.publish(roomId, runId, "tool.execution_complete", timestamp, ephemeral, data, false);
+			streamer.publishToolExecutionComplete(completeEvent.getData().toolCallId(),
+					completeEvent.getData().success(), result, error, timestamp);
 			return;
 		}
 
 		if (event instanceof SessionIdleEvent) {
-			if (terminalErrorSeen.get()) {
-				return;
-			}
-			if (idlePublished.compareAndSet(false, true)) {
-				eventBus.publish(roomId, runId, "session.idle", timestamp, ephemeral, new LinkedHashMap<>(), true);
+			if (!terminalErrorSeen.get()) {
+				idlePublished.compareAndSet(false, true);
 			}
 			return;
 		}
 
 		if (event instanceof SessionErrorEvent sessionErrorEvent) {
 			terminalErrorSeen.set(true);
-			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("errorType", sessionErrorEvent.getData().errorType());
-			data.put("message", sessionErrorEvent.getData().message());
-			data.put("statusCode", sessionErrorEvent.getData().statusCode());
-			eventBus.publish(roomId, runId, "session.error", timestamp, ephemeral, data, true);
+			idlePublished.set(true);
+			String errorMessage = sessionErrorEvent.getData().message();
+			sessionErrorMessage.compareAndSet(null,
+					errorMessage != null && !errorMessage.isBlank() ? errorMessage : "GitHub Copilot session error");
+			streamer.publishSessionError(sessionErrorEvent.getData().errorType(), errorMessage,
+					sessionErrorEvent.getData().statusCode(), timestamp);
 		}
 	}
 
@@ -398,7 +336,7 @@ public class GitHubCopilotManager {
 	}
 
 	private String normalizeTimestamp(OffsetDateTime timestamp) {
-		return timestamp != null ? timestamp.toString() : GitHubCopilotLiveEventBus.nowTimestamp();
+		return timestamp != null ? timestamp.toString() : OffsetDateTime.now().toString();
 	}
 
 	private String buildBearerToken(String accessKey, String secretKey, String roomId) {
