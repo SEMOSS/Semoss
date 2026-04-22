@@ -147,8 +147,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Generation with Image
 
 						```
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", image = "myImage.png");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
 						```
 
 						Generation with ChatML
@@ -575,6 +575,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
 						```
 
+						Get Database Structure (logical + physical metadata)<br/>
+						Each result row contains:<br/>
+						1\\. Logical table name (RDBMS) or vertex name (Graph)<br/>
+						2\\. Logical column name (RDBMS) or property name (Graph)<br/>
+						3\\. Data type of the column or property<br/>
+						4\\. Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)<br/>
+						5\\. Physical column/property name as stored in the database<br/>
+						6\\. Physical table/vertex name as stored in the database<br/>
+						```
+						GetDatabaseTableStructure(database = "<engineid>");
+						```
+
+
 						Direct Base64 SQL Query<br/>
 						`SqlQueryBase64` uses the same wrapper behavior as `SqlQuery`; only the query input format changes (base64-encoded UTF-8 SQL string).<br/>
 						`U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==` decodes to `SELECT * FROM table_name;`
@@ -592,6 +605,18 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						# Use it for read/write SQL operations against the selected engine.
 						from ai_server import DatabaseEngine
 						databaseEngine = DatabaseEngine(engine_id = "<engineid>")
+						```
+
+						Get Database Structure
+						Each result row contains:<br/>
+						1\\. Logical table name (RDBMS) or vertex name (Graph)<br/>
+						2\\. Logical column name (RDBMS) or property name (Graph)<br/>
+						3\\. Data type of the column or property<br/>
+						4\\. Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)<br/>
+						5\\. Physical column/property name as stored in the database<br/>
+						6\\. Physical table/vertex name as stored in the database<br/>
+						```python
+						database_structure = databaseEngine.get_database_structure()
 						```
 
 						Run Select Query

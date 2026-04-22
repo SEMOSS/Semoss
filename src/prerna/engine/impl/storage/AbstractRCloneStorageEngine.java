@@ -90,8 +90,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		if (smssProp.containsKey(RCLONE_KEY)) {
 			String rcloneValue = smssProp.getProperty(RCLONE_KEY);
 			if (rcloneValue != null && !(rcloneValue = rcloneValue.trim()).isEmpty()) {
-				classLogger.info("Using custom rclone install for "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Using custom rclone install for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.RCLONE = smssProp.getProperty(RCLONE_KEY);
 			}
 		}
