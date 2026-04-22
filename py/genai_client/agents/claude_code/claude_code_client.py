@@ -149,6 +149,12 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
+        if system_prompt:
+            self.agent_options.system_prompt = {
+                "type": "preset",
+                "preset": "claude_code",
+                "append": system_prompt,
+            }
         smss_stream = get_smss_stream()
         final_message = ""
 

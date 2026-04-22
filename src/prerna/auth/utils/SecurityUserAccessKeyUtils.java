@@ -191,6 +191,15 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static User validateLocalUserStore(String accessKey, String secretKey) throws IllegalAccessException {
+		if (!LocalUserStore.getInstance().validate(accessKey, secretKey)) {
+			throw new IllegalAccessException("Invalid credentials");
+		}
+
+		User cachedUser = LocalUserStore.getInstance().getCachedUser(accessKey);
+		if (cachedUser != null) {
+			return cachedUser;
+		}
+
 		Object[] userStoreDetails = LocalUserStore.getInstance().getUserStoreDetails(accessKey);
 		String userId = (String) userStoreDetails[0];
 		AuthProvider provider = (AuthProvider) userStoreDetails[1];
@@ -200,6 +209,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setProvider(provider);
 		token.setId(userId);
 		user.setAccessToken(token);
+		LocalUserStore.getInstance().cacheUser(accessKey, user);
 		return user;
 	}
 
