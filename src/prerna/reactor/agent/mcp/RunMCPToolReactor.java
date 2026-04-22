@@ -98,8 +98,24 @@ public class RunMCPToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getMap();
 
 		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
-				PixelOperationType.MCP_TOOL_EXECUTION);
+
+		// MCPUtility.runPythonTool calls insight.setContext(toolEngineId) so python tools
+		// resolve asset paths against the tool's project. Snapshot and restore so the
+		// caller's context project id/name survive the tool invocation.
+		String priorContextProjectId = this.insight.getContextProjectId();
+		String priorContextProjectName = this.insight.getContextProjectName();
+		try {
+			return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
+					PixelOperationType.MCP_TOOL_EXECUTION);
+		} finally {
+			if (priorContextProjectId == null) {
+				this.insight.setContextProjectId(null);
+				this.insight.setContextProjectName(null);
+			} else {
+				this.insight.setContext(priorContextProjectId);
+				this.insight.setContextProjectName(priorContextProjectName);
+			}
+		}
 	}
 
 	/**
