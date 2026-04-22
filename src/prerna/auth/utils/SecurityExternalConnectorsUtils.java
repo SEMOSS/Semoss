@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -91,6 +92,68 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 		Map<String, Object> result = resultList.get(0);
 		return new Pair<String, String>((String) result.get("clientid"), (String) result.get("clientsecret"));
+	}
+
+	/**
+	 * Retrieves the ID, alias, instance url and user profile url for each
+	 * configured ServiceNow connection.
+	 *
+	 * <p>
+	 * Queries the {@code SERVICENOW_CONNECTIONS} table in the security database,
+	 * returning all available connections with their identifiers, human-readable
+	 * aliases, instance url and user profile url
+	 *
+	 * @return a list of maps, each containing:
+	 *         <ul>
+	 *         <li>{@code id} - the unique identifier of the connection</li>
+	 *         <li>{@code alias} - the human-readable name of the connection</li>
+	 *         <li>{@code instanceUrl} - the instance url of the connection</li>
+	 *         <li>{@code userProfileUrl} - the user profile url of the
+	 *         connection</li>
+	 *         </ul>
+	 *         Returns an empty list if no connections are configured.
+	 */
+	public static List<Map<String, Object>> getServiceNowConnections() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__ALIAS", "alias"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__INSTANCEURL", "instanceUrl"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__USERPROFILEURL", "userProfileUrl"));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Retrieves the instance url, client id, client secret and user profile url for
+	 * a specific configured ServiceNow connection
+	 * <p>
+	 * Queries the {@code SERVICENOW_CONNECTIONS} table in the security database,
+	 * returning the instance url, client id, client secret and user profile url for
+	 * a specific connection id that is generated upon insertion into the system.
+	 * 
+	 * @param connectionId the unique connection id that was added
+	 * @return a map of instance url, client id, client secret and user profile url
+	 */
+	public static Map<String, String> getServiceNowConnectionDetails(String connectionId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__INSTANCEURL", "instanceUrl"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__CLIENTID", "clientid"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__CLIENTSECRET", "clientsecret"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__USERPROFILEURL", "userProfileUrl"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SERVICENOW_CONNECTIONS__ID", "==", connectionId));
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList.isEmpty()) {
+			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
+		}
+		Map<String, Object> result = resultList.get(0);
+
+		Map<String, String> response = new HashMap<>();
+		response.put("instanceUrl", (String) result.get("instanceUrl"));
+		response.put("clientId", (String) result.get("clientid"));
+		response.put("clientSecret", (String) result.get("clientsecret"));
+		response.put("userProfileUrl", (String) result.get("userProfileUrl"));
+		return response;
 	}
 
 }
