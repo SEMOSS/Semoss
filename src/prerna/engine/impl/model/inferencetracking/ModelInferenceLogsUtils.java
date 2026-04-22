@@ -36,6 +36,7 @@ import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +68,6 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -807,8 +807,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -1532,37 +1532,51 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Get user conversations with flexible ordering/paging.
+	 * Retrieves conversation rooms for a user with optional filtering, sorting, and
+	 * paging.
+	 * <p>
+	 * Only active rooms are returned, and each room must have at least one stored
+	 * message row with non-null message content.
+	 * </p>
 	 *
-	 * @param userId    User's ID
-	 * @param projectId Project ID for filter (nullable)
-	 * @param limit     Max results to return; if <=0 or null, returns all
-	 * @param offset    Records to skip for pagination (nullable/0 = none)
-	 * @param sortDir   ASC or DESC - default DESC
-	 * @param search    Optional keyword to search for in room name or context
-	 * @param pinned    Optional pinned filter; true = only pinned, false = only unpinned, null = no filter
-	 * @return List of conversations (maps)
+	 * @param userId    user identifier used to scope rooms
+	 * @param projectId optional project identifier to further scope rooms; when
+	 *                  {@code null}, rooms across all projects are eligible
+	 * @param limit     maximum number of rooms to return; values {@code <= 0}
+	 *                  disable limiting
+	 * @param offset    number of rows to skip before collecting results; values
+	 *                  {@code <= 0} disable offset paging
+	 * @param sortDir   sort direction for {@code DATE_CREATED}; accepted values are
+	 *                  {@code ASC} and {@code DESC} (any other value is treated as
+	 *                  {@code DESC})
+	 * @param search    optional room-name contains filter (case-insensitive
+	 *                  {@code LIKE}); {@code null}/blank disables search filtering
+	 * @param pinned    optional pinned-state filter; {@code true} returns only
+	 *                  pinned rooms, {@code false} returns unpinned rooms
+	 *                  (including {@code null} pinned values), and {@code null}
+	 *                  disables pinned filtering
+	 * @return a list of room records, where each map contains the selected room
+	 *         fields for that row:
+	 *         <ul>
+	 *         <li>{@code ROOM_ID} (or aliased header for room id)</li>
+	 *         <li>{@code ROOM_NAME} (or aliased header for room name)</li>
+	 *         <li>{@code DATE_CREATED} (or aliased header for room create
+	 *         timestamp)</li>
+	 *         <li>{@code PINNED} (or aliased header for pinned state)</li>
+	 *         <li>{@code WORKSPACE_ID} (or aliased header for workspace link)</li>
+	 *         </ul>
 	 */
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
-			long offset, String sortDir, String search) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, null);
-	}
-
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		// Subquery to filter only rooms with at least 1 message and correct
-		// user/project/active
+		// Subquery to filter only rooms that are active and fit query restraints
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
@@ -1573,7 +1587,7 @@ public class ModelInferenceLogsUtils {
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		// SEARCH
 		if (search != null && !search.trim().isEmpty()) {
@@ -1582,17 +1596,16 @@ public class ModelInferenceLogsUtils {
 		}
 
 		// PINNED filter
-		// when pinned == true  -> only rooms with PINNED == true
-		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat unset as not pinned)
+		// when pinned == true -> only rooms with PINNED == true
+		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat
+		// unset as not pinned)
 		if (pinned != null) {
 			if (pinned.booleanValue()) {
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true,
-						PixelDataType.BOOLEAN));
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true, PixelDataType.BOOLEAN));
 			} else {
-				SimpleQueryFilter falseFilter = SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", false,
-						PixelDataType.BOOLEAN);
-				SimpleQueryFilter nullFilter = SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", null);
-				qs.addExplicitFilter(new OrQueryFilter(falseFilter, nullFilter));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==",
+						Arrays.asList(false, null), PixelDataType.BOOLEAN));
 			}
 		}
 
@@ -1606,21 +1619,7 @@ public class ModelInferenceLogsUtils {
 		// SORTING
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
-
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
-	}
-
-	/**
-	 * Convenience overload for fetching all conversations for a user/project.
-	 *
-	 * @param userId    user identifier
-	 * @param projectId project identifier (nullable)
-	 * @return conversation rows
-	 */
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		return getUserConversations(userId, projectId, -1, 0, null, null);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -2144,8 +2143,8 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
+						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
@@ -2448,7 +2447,7 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		SelectQueryStruct outerQs = new SelectQueryStruct();
 		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_id", "room_id", SemossDataType.STRING));
