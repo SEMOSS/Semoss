@@ -189,16 +189,26 @@ public final class MCPUtility {
 			}
 		}
 
-		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
+		// CPython has one process-wide sys.modules; loading every engine's
+		// driver under the name "mcp_driver" collides across threads. Load
+		// from the absolute file path into an engine-unique sys.modules slot
+		// so concurrent MCP calls can't hand each other's module back from
+		// the cache.
+		// Interpolating pyFilePath/uniqueMcpModule into a single-quoted python
+		// literal is safe here because pyFolderLoc is already normalized to
+		// forward slashes, file names are constants, and engineIds are UUIDs
+		// (no quotes or backslashes possible).
+		String pyFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
+		String uniqueMcpModule = "mcp_driver_" + engine.getEngineId().replace("-", "_");
 
-		// clear the cached modules and reimport to get latest file changes
 		// @formatter:off
-		String loadFreshSmssModule = 
-			    "if 'reload_mcp_function' in globals():\n" +
-			    "    mcp_driver = reload_mcp_function()\n" +
-			    "else:\n" +
-			    "    import " + moduleName + " as mcp_driver";
-		
+		String loadFreshSmssModule =
+			    "import importlib.util as _ilu\n" +
+			    "import sys as _sys\n" +
+			    "_mcp_spec = _ilu.spec_from_file_location('" + uniqueMcpModule + "', '" + pyFilePath + "')\n" +
+			    "mcp_driver = _ilu.module_from_spec(_mcp_spec)\n" +
+			    "_sys.modules['" + uniqueMcpModule + "'] = mcp_driver\n" +
+			    "_mcp_spec.loader.exec_module(mcp_driver)";
 		// @formatter:on
 		// Copy default path vars from translator globals into the loaded MCP module.
 		// These vars are injected into the translator scope, not the module scope.
@@ -242,10 +252,19 @@ public final class MCPUtility {
 		}
 
 		PyTranslator pyt = null;
+		String engineAssetsForTranslator = null;
 		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
+			// preserved for chroot symlink + cmdUtil side effects; the python
+			// race is fixed by passing engineAssetsForTranslator below, not by
+			// relying on contextProjectId
 			insight.setContext(engine.getEngineId());
 			insight.setContextProjectName(engine.getEngineName());
+
+			// only route asset_paths explicitly for IProject so non-project
+			// engines keep their prior null-asset_paths behavior (asset_paths
+			// for non-IProject still derives from globalStoreInsight.contextProjectId
+			// inside transportScript and may be null)
+			engineAssetsForTranslator = assetsFolder;
 
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
@@ -263,12 +282,10 @@ public final class MCPUtility {
 		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
 				engine.getEngineId());
 
-		// reload the module
-		pyt.runScript(insight, loadFreshSmssModule);
-		// inject default vars into module scope
-		pyt.runScript(insight, injectDefaultVars);
-		// run method
-		return stringifyMcpResult(pyt.runScript(insight, runMethod));
+		// bind APP_ROOT/sys.path to this engine's folder directly so parallel
+		// RunMCPTool calls don't race on insight.contextProjectId
+		return stringifyMcpResult(pyt.runScriptForEngine(insight, engineAssetsForTranslator, loadFreshSmssModule,
+				injectDefaultVars, runMethod));
 	}
 
 	/**

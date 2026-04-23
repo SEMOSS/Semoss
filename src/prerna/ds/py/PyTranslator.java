@@ -249,7 +249,7 @@ public class PyTranslator {
 
 	/**
 	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * 
+	 *
 	 * @param executionInsight If we have a User invoking an engine python process
 	 *                         The engine python process has its own unique insight
 	 *                         for variable encapsulation However, we need to know
@@ -262,6 +262,32 @@ public class PyTranslator {
 	 */
 	public Object runScript(Insight executionInsight, String... script) {
 		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
+	}
+
+	/**
+	 * Like {@link #runScript(Insight, String...)} but binds APP_ROOT and
+	 * asset_paths to {@code engineAssetsFolder} directly, bypassing
+	 * {@link Insight#getContextProjectId()}. Sends path vars + script as one
+	 * evaluation so the fragments run atomically on the python server.
+	 *
+	 * @param executionInsight   invoking insight (may be null); only used to
+	 *                           stamp {@code executionInsightId} on the payload
+	 *                           for callback/security routing
+	 * @param engineAssetsFolder absolute path to the engine's assets folder;
+	 *                           used as APP_ROOT and for asset_paths
+	 * @param script             script fragments joined by newlines
+	 * @return raw python result, with known path prefixes replaced by
+	 *         {@code $IF}/{@code $APP_IF}/{@code $USER_IF} for string outputs
+	 */
+	public Object runScriptForEngine(Insight executionInsight, String engineAssetsFolder, String... script) {
+		// ROOT/USER_ROOT still resolve off globalStoreInsight to match
+		// executePyWithDefualtVars; only APP_ROOT is overridden here
+		String[] paths = getDefaultPaths(this.globalStoreInsight, engineAssetsFolder);
+		StringBuilder combined = generateDefaultVars(paths);
+		combined.append(convertArrayToString(script));
+
+		Object output = transportScript(executionInsight, combined.toString(), engineAssetsFolder);
+		return maskPathPlaceholders(output, paths);
 	}
 
 	/**
@@ -317,21 +343,27 @@ public class PyTranslator {
 		transportScript(executionInsight, pathVars.toString());
 
 		Object output = transportScript(executionInsight, script);
-		if (output instanceof String) {
-			String strOutput = (String) output;
-			// clean up the output
-			if (paths[0] != null && strOutput.contains(paths[0])) {
-				strOutput = strOutput.replace(paths[0], "$IF");
-			}
-			if (paths[1] != null && strOutput.contains(paths[1])) {
-				strOutput = strOutput.replace(paths[1], "$APP_IF");
-			}
-			if (paths[2] != null && strOutput.contains(paths[2])) {
-				strOutput = strOutput.replace(paths[2], "$USER_IF");
-			}
-			return strOutput;
+		return maskPathPlaceholders(output, paths);
+	}
+
+	/**
+	 * Replace ROOT/APP_ROOT/USER_ROOT paths in string output with $IF/$APP_IF/$USER_IF placeholders.
+	 */
+	private Object maskPathPlaceholders(Object output, String[] paths) {
+		if (!(output instanceof String)) {
+			return output;
 		}
-		return output;
+		String strOutput = (String) output;
+		if (paths[0] != null && strOutput.contains(paths[0])) {
+			strOutput = strOutput.replace(paths[0], "$IF");
+		}
+		if (paths[1] != null && strOutput.contains(paths[1])) {
+			strOutput = strOutput.replace(paths[1], "$APP_IF");
+		}
+		if (paths[2] != null && strOutput.contains(paths[2])) {
+			strOutput = strOutput.replace(paths[2], "$USER_IF");
+		}
+		return strOutput;
 	}
 
 	/**
@@ -357,12 +389,18 @@ public class PyTranslator {
 	 * @return
 	 */
 	private String[] getDefaultPaths(Insight insight) {
+		return getDefaultPaths(insight, null);
+	}
+
+	private String[] getDefaultPaths(Insight insight, String engineAssetsFolder) {
 		String insightPath = insight.getInsightFolder().replace('\\', '/');
 		String appPath = null;
 		String userPath = null;
 
-		// context project takes precedence
-		if (insight.getContextProjectId() != null) {
+		if (engineAssetsFolder != null && !engineAssetsFolder.isEmpty()) {
+			appPath = engineAssetsFolder.replace('\\', '/');
+		} else if (insight.getContextProjectId() != null) {
+			// context project takes precedence
 			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(),
 					insight.getContextProjectId());
 			appPath = appPath.replace('\\', '/');
@@ -387,6 +425,16 @@ public class PyTranslator {
 	 * @return
 	 */
 	private Object transportScript(Insight executionInsight, String script) {
+		return transportScript(executionInsight, script, null);
+	}
+
+	/**
+	 * @param engineAssetsFolder if non-null/non-empty, pins {@code ps.asset_paths}
+	 *                           to this folder and its {@code /py} subdir;
+	 *                           otherwise falls back to resolving from
+	 *                           {@code globalStoreInsight.getContextProjectId()}.
+	 */
+	private Object transportScript(Insight executionInsight, String script, String engineAssetsFolder) {
 		String methodName = new Object() {
 		}.getClass().getEnclosingMethod().getName();
 
@@ -396,17 +444,14 @@ public class PyTranslator {
 		ps.payload = new Object[] { script };
 		ps.payloadClasses = new Class[] { String.class };
 		ps.longRunning = true;
-		// we always need an insight
 		ps.insightId = this.globalStoreInsight.getInsightId();
-		// Resolve asset_paths from the caller's insight when provided — callers like
-		// MCPUtility.runPythonTool mutate executionInsight.setContext(...) per tool call
-		// to swap between engines, and this.globalStoreInsight is a separate reference
-		// pinned at translator construction time, so reading context off it would hand
-		// back the wrong engine's folder on every call after the first.
-		Insight contextInsight = executionInsight != null ? executionInsight : this.globalStoreInsight;
-		if (contextInsight.getContextProjectId() != null) {
+		// explicit engine path wins over contextProjectId lookup
+		if (engineAssetsFolder != null && !engineAssetsFolder.isEmpty()) {
+			String assetsPyDir = engineAssetsFolder + "/py";
+			ps.asset_paths = new String[] { engineAssetsFolder, assetsPyDir };
+		} else if (this.globalStoreInsight.getContextProjectId() != null) {
 			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
-					contextInsight.getContextProjectId(), contextInsight.getContextProjectName());
+					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
 			String assetsPyDir = assetsDir + "/py";
 			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
 		}
