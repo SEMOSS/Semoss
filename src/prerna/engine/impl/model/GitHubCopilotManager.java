@@ -77,6 +77,8 @@ import com.github.copilot.sdk.json.SystemMessageConfig;
 import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
@@ -117,6 +119,13 @@ public class GitHubCopilotManager {
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
+		String cliPath = DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH);
+		if (cliPath != null) {
+			String trimmedCliPath = cliPath.trim();
+			if (!trimmedCliPath.isEmpty()) {
+				clientOptions.setCliPath(trimmedCliPath);
+			}
+		}
 		if (contextWindow > 0) {
 			clientOptions.setOnListModels(() -> CompletableFuture.completedFuture(List.of(
 					buildModelInfo(engineId, contextWindow))));
