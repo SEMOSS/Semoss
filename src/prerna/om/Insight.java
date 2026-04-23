@@ -218,12 +218,18 @@ public class Insight implements Serializable {
 	//
 	// Ref-counting: multiple leases that want the SAME project coexist; a lease
 	// that wants a different project waits until activeContextLeases drops to 0.
-	// Not transient: ReentrantLock and AbstractQueuedSynchronizer.ConditionObject
-	// are Serializable and deserialize to the unlocked state.
+	// The actual setContext() call (which hits the security DB) happens OUTSIDE
+	// this lock, gated by the contextTransitioning flag so waiters do not see an
+	// intermediate count==0 state during a project switch.
 	private final ReentrantLock contextLock = new ReentrantLock();
 	private final Condition contextIdle = contextLock.newCondition();
 	private int activeContextLeases = 0;
 	private String priorContextProjectId = null;
+	private String priorContextProjectName = null;
+	private boolean contextTransitioning = false;
+	// Per-thread lease depth so same-thread nested acquires short-circuit rather
+	// than self-deadlocking. Guarded by contextLock.
+	private final Map<Long, Integer> threadLeaseDepth = new HashMap<>();
 
 	// Serializes the multi-step python tool execution (load module + inject vars
 	// + run method) so interleaved runs don't stomp on python globals such as
@@ -678,11 +684,17 @@ public class Insight implements Serializable {
 	 * immediately and both callers share the context. If the held context is a
 	 * different project, this call blocks until all existing leases release.
 	 * <p>
+	 * Same-thread nested acquires are permitted as long as the nested request
+	 * is compatible with the outer context (same project id, or null). A nested
+	 * acquire for a DIFFERENT project throws {@link SemossPixelException}
+	 * rather than deadlocking on itself.
+	 * <p>
 	 * {@code requestedProjectId == null} means "don't change the current
 	 * context"; the lease simply blocks context mutation while held and never
 	 * calls setContext.
 	 * <p>
-	 * Callers MUST release the lease, preferably with try-with-resources:
+	 * Callers MUST release the lease on the same thread that acquired it,
+	 * preferably with try-with-resources:
 	 * <pre>
 	 * try (InsightExecutionLease lease = insight.acquireExecutionContext(pid)) {
 	 *     ... // use insight
@@ -694,37 +706,130 @@ public class Insight implements Serializable {
 	 * @return the lease to close when done
 	 */
 	public InsightExecutionLease acquireExecutionContext(String requestedProjectId) {
+		final long tid = Thread.currentThread().threadId();
+		boolean performSetContext = false;
+		String projectToSet = null;
+		String priorIdSnapshot = null;
+		String priorNameSnapshot = null;
+
 		contextLock.lock();
 		try {
-			// Wait while a different project is pinned by another lease.
-			while (activeContextLeases > 0
-					&& requestedProjectId != null
-					&& !requestedProjectId.equals(this.contextProjectId)) {
+			// Same-thread reentrancy fast path. If this thread already holds a
+			// lease, it is the ONLY thread that can release it -- waiting on
+			// contextIdle here would block forever. Require compatibility with
+			// the pinned project and short-circuit.
+			Integer existingDepth = threadLeaseDepth.get(tid);
+			if (existingDepth != null && existingDepth > 0) {
+				if (requestedProjectId != null
+						&& !requestedProjectId.equals(this.contextProjectId)) {
+					throw new SemossPixelException(
+							"Nested MCP execution on insightId=" + insightId
+									+ " requested project '" + requestedProjectId
+									+ "' while the outer context is pinned to '"
+									+ this.contextProjectId
+									+ "'. Cross-project re-entry is not supported.");
+				}
+				threadLeaseDepth.put(tid, existingDepth + 1);
+				activeContextLeases++;
+				return new InsightExecutionLease(this, tid);
+			}
+
+			// Wait while a switch is mid-flight OR a different project is pinned
+			// by another thread's lease. We check contextTransitioning so that
+			// waiters don't see the transient count==0 state during a project
+			// switch that is happening outside this lock.
+			while (contextTransitioning
+					|| (activeContextLeases > 0
+							&& requestedProjectId != null
+							&& !requestedProjectId.equals(this.contextProjectId))) {
 				try {
 					contextIdle.await();
 				} catch (InterruptedException ie) {
 					Thread.currentThread().interrupt();
 					classLogger.error("Interrupted while waiting for insight execution context on insightId={}.",
 							insightId, ie);
-					throw new RuntimeException(
+					throw new SemossPixelException(
 							"Interrupted while waiting for insight execution context", ie);
 				}
 			}
+
 			if (activeContextLeases == 0) {
-				// First lease wins -- snapshot the prior context so we can
-				// restore it when the last lease releases. setContext will
-				// rebuild contextProjectName from the security alias on restore.
-				this.priorContextProjectId = this.contextProjectId;
+				// First lease wins -- snapshot the prior context (both id and
+				// resolved name) so we can restore them even if the eventual
+				// setContext call fails mid-way.
+				priorIdSnapshot = this.contextProjectId;
+				priorNameSnapshot = this.contextProjectName;
+				this.priorContextProjectId = priorIdSnapshot;
+				this.priorContextProjectName = priorNameSnapshot;
 				if (requestedProjectId != null
 						&& !requestedProjectId.equals(this.contextProjectId)) {
-					setContext(requestedProjectId);
+					// Reserve the slot and release the lock for the DB-touching
+					// setContext call. contextTransitioning keeps waiters parked
+					// until the switch completes.
+					performSetContext = true;
+					projectToSet = requestedProjectId;
+					contextTransitioning = true;
 				}
 			}
 			activeContextLeases++;
-			return new InsightExecutionLease(this);
+			threadLeaseDepth.put(tid, 1);
 		} finally {
 			contextLock.unlock();
 		}
+
+		if (!performSetContext) {
+			return new InsightExecutionLease(this, tid);
+		}
+
+		// Outside the lock: hit the security DB to resolve and mount the
+		// project. Preserve original semantics -- setContext may return false
+		// (user cannot view project) and we propagate that by continuing with
+		// whatever state setContext left behind, exactly like the pre-lease
+		// code path did.
+		Throwable failure = null;
+		try {
+			setContext(projectToSet);
+		} catch (Throwable t) {
+			failure = t;
+		}
+
+		contextLock.lock();
+		try {
+			contextTransitioning = false;
+			if (failure != null) {
+				// Roll back the reservation. setContext may have left the
+				// fields in a half-modified state; restore them directly from
+				// the snapshot rather than issuing another DB-touching
+				// setContext while holding the lock.
+				activeContextLeases--;
+				Integer d = threadLeaseDepth.get(tid);
+				if (d != null && d > 1) {
+					threadLeaseDepth.put(tid, d - 1);
+				} else {
+					threadLeaseDepth.remove(tid);
+				}
+				this.contextProjectId = priorIdSnapshot;
+				this.contextProjectName = priorNameSnapshot;
+				this.priorContextProjectId = null;
+				this.priorContextProjectName = null;
+			}
+			contextIdle.signalAll();
+		} finally {
+			contextLock.unlock();
+		}
+
+		if (failure != null) {
+			if (failure instanceof RuntimeException) {
+				throw (RuntimeException) failure;
+			}
+			if (failure instanceof Error) {
+				throw (Error) failure;
+			}
+			throw new SemossPixelException(
+					"Failed to set insight execution context to projectId=" + projectToSet, failure);
+		}
+
+		return new InsightExecutionLease(this, tid);
 	}
 
 	/**
@@ -733,29 +838,80 @@ public class Insight implements Serializable {
 	 * directly. When the final lease releases, the prior context captured by
 	 * the first acquisition is restored.
 	 */
-	void releaseExecutionContext() {
+	void releaseExecutionContext(long owningTid) {
+		String projectToRestore = null;
+		String nameOnRestoreFailure = null;
+		boolean doRestore = false;
+		boolean countHitZero = false;
+
 		contextLock.lock();
 		try {
-			if (activeContextLeases <= 0) {
-				// Defensive -- should never happen if leases are balanced.
+			Integer depth = threadLeaseDepth.get(owningTid);
+			if (depth == null || depth <= 0 || activeContextLeases <= 0) {
+				// Defensive -- should never happen if leases are balanced and
+				// released on their acquiring thread.
+				classLogger.warn(
+						"releaseExecutionContext on insightId={} called with unbalanced state (tid={}, depth={}, activeLeases={}).",
+						insightId, owningTid, depth, activeContextLeases);
 				return;
 			}
+			if (depth > 1) {
+				threadLeaseDepth.put(owningTid, depth - 1);
+			} else {
+				threadLeaseDepth.remove(owningTid);
+			}
 			if (--activeContextLeases == 0) {
-				// Last holder out -- restore the context that was in place
-				// before the first lease in this chain was acquired.
-				if (priorContextProjectId != null) {
-					if (!priorContextProjectId.equals(this.contextProjectId)) {
-						setContext(priorContextProjectId);
-					}
-				} else {
+				countHitZero = true;
+				if (priorContextProjectId != null
+						&& !priorContextProjectId.equals(this.contextProjectId)) {
+					projectToRestore = priorContextProjectId;
+					nameOnRestoreFailure = priorContextProjectName;
+					doRestore = true;
+					contextTransitioning = true;
+				} else if (priorContextProjectId == null) {
 					this.contextProjectId = null;
 					this.contextProjectName = null;
 				}
+				// Clear snapshot either way -- it's no longer relevant once the
+				// chain ends (or will be re-set under contextTransitioning below).
 				priorContextProjectId = null;
-				contextIdle.signalAll();
+				priorContextProjectName = null;
 			}
 		} finally {
 			contextLock.unlock();
+		}
+
+		if (doRestore) {
+			// Restore the prior context outside the lock; always clear the
+			// transitioning flag and signal, even if setContext throws, so that
+			// waiters don't hang forever.
+			try {
+				setContext(projectToRestore);
+			} catch (Throwable t) {
+				classLogger.error(
+						"Failed to restore prior context projectId={} on insightId={}; clearing context.",
+						projectToRestore, insightId, t);
+				// Direct-write fallback so we don't leave a half-restored
+				// context that looks like `projectToRestore` but lacks the
+				// resolved alias / cmdUtil working dir.
+				this.contextProjectId = projectToRestore;
+				this.contextProjectName = nameOnRestoreFailure;
+			} finally {
+				contextLock.lock();
+				try {
+					contextTransitioning = false;
+					contextIdle.signalAll();
+				} finally {
+					contextLock.unlock();
+				}
+			}
+		} else if (countHitZero) {
+			contextLock.lock();
+			try {
+				contextIdle.signalAll();
+			} finally {
+				contextLock.unlock();
+			}
 		}
 	}
 
@@ -777,14 +933,16 @@ public class Insight implements Serializable {
 	/**
 	 * Scoped lease on an insight's execution context. Returned from
 	 * {@link Insight#acquireExecutionContext(String)}; close with
-	 * try-with-resources.
+	 * try-with-resources on the same thread that acquired it.
 	 */
 	public static final class InsightExecutionLease implements AutoCloseable {
 		private final Insight insight;
+		private final long owningTid;
 		private boolean released = false;
 
-		InsightExecutionLease(Insight insight) {
+		InsightExecutionLease(Insight insight, long owningTid) {
 			this.insight = insight;
+			this.owningTid = owningTid;
 		}
 
 		public Insight getInsight() {
@@ -797,7 +955,13 @@ public class Insight implements Serializable {
 				return;
 			}
 			released = true;
-			insight.releaseExecutionContext();
+			long currentTid = Thread.currentThread().threadId();
+			if (currentTid != owningTid) {
+				classLogger.warn(
+						"InsightExecutionLease on insightId={} acquired on tid={} but closed on tid={}; releasing against the owner's depth anyway.",
+						insight.insightId, owningTid, currentTid);
+			}
+			insight.releaseExecutionContext(owningTid);
 		}
 	}
 
