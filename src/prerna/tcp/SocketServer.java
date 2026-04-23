@@ -215,20 +215,26 @@ public class SocketServer implements Runnable {
 						}
 					}
 					continue;
-				} catch (IOException e) {
-					classLogger.error("Failed to accept socket connection", e);
-					System.exit(1);
-				}
-				try {
+					} catch (IOException e) {
+						classLogger.error("Socket accept failed on listening port {}; shutting down server loop",
+								serverSocket != null ? serverSocket.getLocalPort() : "unknown", e);
+						System.exit(1);
+					}
+					try {
 					// One handler instance is bound to one accepted client connection.
 					ssh = new SocketServerHandler();
 					DIHelper.getInstance().setLocalProperty("SSH", ssh);
-					ssh.setLogger(classLogger);
-					ssh.setOutputStream(clientSocket.getOutputStream());
-					is = clientSocket.getInputStream();
-				} catch (IOException e) {
-					classLogger.error("Failed to initialize socket input/output streams", e);
-				}
+						ssh.setLogger(classLogger);
+						ssh.setOutputStream(clientSocket.getOutputStream());
+						is = clientSocket.getInputStream();
+					} catch (IOException e) {
+						classLogger.error(
+								"Unable to initialize socket streams for client {}. Closing current client connection.",
+								clientSocket != null ? clientSocket.getRemoteSocketAddress() : "unknown", e);
+						closeStream(clientSocket);
+						clientSocket = null;
+						continue;
+					}
 
 				// Wire server->handler context so the handler can callback into
 				// signalCrash() when its socket loop fails.
@@ -257,13 +263,15 @@ public class SocketServer implements Runnable {
 						if (!testMode) {
 							ssh.cleanUp();
 						}
-					} catch (InterruptedException e) {
-						Thread.currentThread().interrupt();
-						done = true;
-						classLogger.error("Interrupted while waiting for socket crash signal", e);
+						} catch (InterruptedException e) {
+							Thread.currentThread().interrupt();
+							done = true;
+							classLogger.error(
+									"Server listener thread interrupted while waiting up to {} ms for crash signal",
+									CRASH_WAIT_TIMEOUT_MS, e);
+						}
 					}
 				}
-			}
 		}
 	}
 
@@ -290,7 +298,7 @@ public class SocketServer implements Runnable {
 		try {
 			closeThis.close();
 		} catch (IOException e) {
-			classLogger.error("Failed to close socket resource", e);
+			classLogger.error("Failed to close resource of type {}", closeThis.getClass().getName(), e);
 		}
 	}
 
