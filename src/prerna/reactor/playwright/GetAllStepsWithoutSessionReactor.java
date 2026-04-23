@@ -64,7 +64,7 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		}
 
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
 		if (fileName == null || fileName.isEmpty()) {
