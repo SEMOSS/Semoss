@@ -31,7 +31,6 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -56,17 +55,16 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
+import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
+public class AdminUploadEnginePermissionsReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AdminUploadDatabasePermissionsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminUploadEnginePermissionsReactor.class);
 
-	private static final String CLASS_NAME = AdminUploadDatabasePermissionsReactor.class.getName();
+	private static final String CLASS_NAME = AdminUploadEnginePermissionsReactor.class.getName();
 
 	static final String ENGINE_ID_KEY = "ENGINEID";
 	static final String USER_ID_KEY = "USERID";
@@ -98,7 +96,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 
 	private Logger logger = null;
 
-	public AdminUploadDatabasePermissionsReactor() {
+	public AdminUploadEnginePermissionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
 
@@ -119,39 +117,24 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 		this.logger = getLogger(CLASS_NAME);
 
 		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
-		try {
-			conn = database.getConnection();
-			conn.setAutoCommit(false);
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to database.");
-		}
-
 		long start = System.currentTimeMillis();
 		{
 			ExcelSheetFileIterator it = null;
 			try {
 				it = getExcelIterator(filePath);
-				loadExcelFile(conn, database.getQueryUtil(), it);
+				loadExcelFile(database, it);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to upload database permissions from the provided file.", e);
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
 				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to upload database permissions from the provided file.", e);
 					}
 				}
 			}
-		}
-
-		try {
-			conn.commit();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		}
 		long end = System.currentTimeMillis();
 		return new NounMetadata("Time to finish = " + (end - start) + "ms", PixelDataType.CONST_STRING);
@@ -174,7 +157,7 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 			List<ExcelRange> blockRanges = block.getRanges();
 			for (int j = 0; j < 1; j++) {
 				ExcelRange r = blockRanges.get(j);
-				logger.info("Found range = " + r.getRangeSyntax());
+				logger.info("Found range = {}", r.getRangeSyntax());
 				range = r.getRangeSyntax();
 			}
 		}
@@ -190,13 +173,14 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 		return it;
 	}
 
-	private void loadExcelFile(Connection conn, AbstractSqlQueryUtil queryUtil, ExcelSheetFileIterator helper)
-			throws Exception {
-
+	private void loadExcelFile(IRDBMSEngine database, ExcelSheetFileIterator helper) throws Exception {
+		Connection conn = null;
 		boolean hasInsert = false;
-		boolean hasUpdate = false;
-		PreparedStatement insertPs = conn.prepareStatement(insertQuery);
+		PreparedStatement insertPs = null;
 		try {
+			conn = database.getConnection();
+			insertPs = conn.prepareStatement(insertQuery);
+
 			String[] excelHeaders = helper.getHeaders();
 			List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
@@ -238,8 +222,8 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 				// check if the ID already exists
 				if (SecurityEngineUtils.checkUserHasAccessToDatabase(engineId, userId)) {
 					// TODO: update based on user id instead of continue?
-					logger.info("User id = " + userId + " alraedy exists for app = " + engineId
-							+ " - skipping record for upload");
+					logger.info("User id = {} alraedy exists for app = {} - skipping record for upload", userId,
+							engineId);
 					continue;
 				} else {
 					hasInsert = true;
@@ -257,13 +241,15 @@ public class AdminUploadDatabasePermissionsReactor extends AbstractReactor {
 			if (hasInsert) {
 				insertPs.executeBatch();
 			}
-			logger.info("Done with item type updates , total rows = " + counter);
-		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (insertPs != null) {
-				insertPs.close();
+			if (conn != null && !conn.getAutoCommit()) {
+				conn.commit();
 			}
+			logger.info("Done with updates, total rows = {}", counter);
+		} catch (Exception e) {
+			logger.error("Unable to read database-permission records from the uploaded Excel file.", e);
+			throw e;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, insertPs);
 		}
 	}
 }

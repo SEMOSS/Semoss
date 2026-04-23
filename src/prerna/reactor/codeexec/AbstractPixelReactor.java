@@ -25,38 +25,55 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils.reactors.admin;
+package prerna.reactor.codeexec;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.HashMap;
+import java.util.Map;
 
-import prerna.auth.PasswordRequirements;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class AdminResetPasswordRulesReactor extends AbstractReactor {
+public abstract class AbstractPixelReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(AdminResetPasswordRulesReactor.class);
+	// the code that was executed
+	protected String code = null;
+
+	public AbstractPixelReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.CODE.getKey() };
+	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if (adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
+		organizeKeys();
+		String decodedCode = getDecodedCode();
+		if (decodedCode == null || decodedCode.trim().isEmpty()) {
+			throw new IllegalArgumentException("Must provide pixel code to execute.");
 		}
 
-		try {
-			PasswordRequirements.getInstance().loadRequirements();
-		} catch (Exception e) {
-			classLogger.error("Unable to reset password rule settings.", e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		this.code = fillVars(decodedCode);
+		PixelRunner pixelReturn = this.insight.runPixel(this.code);
+		Map<String, Object> runnerWrapper = new HashMap<String, Object>();
+		runnerWrapper.put("runner", pixelReturn);
+		return new NounMetadata(runnerWrapper, PixelDataType.PIXEL_RUNNER, PixelOperationType.SUB_SCRIPT);
 	}
 
+	public String getExecutedCode() {
+		return this.code;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Run Pixel code in the current insight";
+	}
+
+	/**
+	 * Decode the code string from the pixel
+	 *
+	 * @return The decoded code string
+	 */
+	protected abstract String getDecodedCode();
 }

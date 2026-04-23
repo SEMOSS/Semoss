@@ -25,38 +25,64 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils.reactors.admin;
+package prerna.io.connector.github;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.PasswordRequirements;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
-public class AdminResetPasswordRulesReactor extends AbstractReactor {
+/**
+ * Shared utilities for GitHub connector reactors.
+ */
+public final class GitHubUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(AdminResetPasswordRulesReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GitHubUtils.class);
 
-	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if (adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-
-		try {
-			PasswordRequirements.getInstance().loadRequirements();
-		} catch (Exception e) {
-			classLogger.error("Unable to reset password rule settings.", e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	private GitHubUtils() {
 	}
 
+	/**
+	 * Gets the GitHub access token for the authenticated user.
+	 *
+	 * @param user current user session
+	 * @return GitHub OAuth access token
+	 */
+	public static String getGitHubToken(User user) {
+		try {
+			if (user == null) {
+				throwLoginRequiredError();
+			}
+
+			AccessToken gitHubToken = user.getAccessToken(AuthProvider.GITHUB);
+			if (gitHubToken == null) {
+				throwLoginRequiredError();
+			}
+
+			return gitHubToken.getAccess_token();
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to resolve access token for auth provider '{}'.", AuthProvider.GITHUB, e);
+			throwLoginRequiredError();
+			return null;
+		}
+	}
+
+	/**
+	 * Throws a standardized login error payload for GitHub.
+	 */
+	private static void throwLoginRequiredError() {
+		Map<String, Object> details = new HashMap<String, Object>();
+		details.put("type", "git");
+		details.put("message", "Please login to your GitHub account");
+		AbstractReactor.throwLoginError(details);
+	}
 }

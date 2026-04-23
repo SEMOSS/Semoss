@@ -64,7 +64,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	public static final String VIRUSTOTAL_API_KEY = "VIRUSTOTAL_API_KEY";
 	public static final String VIRUSTOTAL_USE_CERT = "VIRUSTOTAL_USE_CERT";
 
-	private static VirusTotalScannerUtils instance;
+	private static volatile VirusTotalScannerUtils instance;
 	private String apiKey = null;
 	private boolean useServerCert = false;
 
@@ -230,7 +230,8 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 					}
 					String errorResponseData;
 					try {
-						errorResponseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+						errorResponseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8)
+								: null;
 					} catch (ParseException | IOException e) {
 						throw new IOException("Failed to parse HTTP error response", e);
 					}
