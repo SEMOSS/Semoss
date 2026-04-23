@@ -25,38 +25,23 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils.reactors.admin;
+package prerna.reactor.codeexec;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.Utility;
 
-import prerna.auth.PasswordRequirements;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-
-public class AdminResetPasswordRulesReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(AdminResetPasswordRulesReactor.class);
+public class PixelReactor extends AbstractPixelReactor {
 
 	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if (adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-
-		try {
-			PasswordRequirements.getInstance().loadRequirements();
-		} catch (Exception e) {
-			classLogger.error("Unable to reset password rule settings.", e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	protected String getDecodedCode() {
+		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The pixel code to execute. The pixel code should be passed within <encode> </encode> blocks for proper encoding";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

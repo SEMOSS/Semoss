@@ -47,7 +47,6 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -123,7 +122,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				salt = (String) values[1];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate API user credentials.", e);
 		}
 
 		if (saltedPassword == null || salt == null) {
@@ -178,7 +177,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create API user.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
