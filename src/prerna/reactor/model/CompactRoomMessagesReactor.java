@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.math3.analysis.function.Abs;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -85,7 +84,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     public NounMetadata execute() {
         organizeKeys();
         User user = this.insight.getUser();
-        String userId = user.getPrimaryLoginToken().getId();
 
         String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
         if (roomId == null || roomId.isEmpty()) {
@@ -97,10 +95,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             throw new IllegalArgumentException("Parent Message ID is required");
         }
 
-        // parse compaction types
         Set<String> requestedTypes = getCompactionTypes();
-
-        // validate all requested types
         for (String type : requestedTypes) {
             if (!VALID_COMPACTION_TYPES.contains(type)) {
                 throw new IllegalArgumentException(
@@ -110,7 +105,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         boolean autoDetect = requestedTypes.isEmpty();
 
-        // load room
         Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
         if (room == null) {
             throw new IllegalArgumentException("Room not found for id: " + roomId);
@@ -156,8 +150,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId, room, 0));
             }
             if (requestedTypes.contains("SUMMARY")) {
-                typeResults.add(summarizeMessages(room, parentMessageId,
-                        KEEP_N_TRANSACTIONS, modelEngine));
+                List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
+                int txCount = countTransactions(branch);
+                typeResults.add(
+                        summarizeMessages(room, parentMessageId, branch, txCount, KEEP_N_TRANSACTIONS, modelEngine));
             }
         }
 
@@ -179,29 +175,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             List<AbstractMessage> branch) {
         List<AbstractMessage> messages = room.getMessages();
 
-        // InputMessages carry a cumulative token count (full history up to and
-        // including themselves). The tokens added by each tool-call/result cycle
-        // equal the delta between an INPUT_TOOL_EXEC's cumulative count and the
-        // preceding InputMessage's cumulative count.
-        int toolTokens = 0;
-        int prevInputCumulative = 0;
-        boolean pruneToolsAbove = false;
-        for (AbstractMessage m : branch) {
-            if (m instanceof InputMessage) {
-                if (m.getPruneToolsAbove()) {
-                    pruneToolsAbove = true;
-                }
-                if (!pruneToolsAbove && m.hasToolResultPart()) {
-                    int delta = m.getTokensInMessage() - prevInputCumulative;
-                    if (delta > 0) {
-                        toolTokens += delta;
-                    }
-                }
-                prevInputCumulative = m.getTokensInMessage();
-            }
-        }
-
-        // The total token count can be found from summing the last two messages
+        int toolTokens = computeToolTokens(branch);
         int currTokenCount = getLastMessageTokens(branch);
 
         boolean useToolPruning = currTokenCount > 0
@@ -209,10 +183,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         if (useToolPruning) {
             return addToolPruneKeyToMessage(messages, messageId, room, toolTokens);
-        } else if (countTransactions(branch) > KEEP_N_TRANSACTIONS) {
-            return summarizeMessages(room, messageId, KEEP_N_TRANSACTIONS, modelEngine);
         } else {
-            return null;
+            int txCount = countTransactions(branch);
+            if (txCount > KEEP_N_TRANSACTIONS) {
+                return summarizeMessages(room, messageId, branch, txCount, KEEP_N_TRANSACTIONS, modelEngine);
+            } else {
+                return null;
+            }
         }
     }
 
@@ -227,42 +204,23 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             return result;
         }
 
-        // If toolTokens is 0 and tool pruning is selected it likely did not go through
-        // autodetection
-        // Check how many tokens we are saving by pruning tools
         if (toolTokens == 0) {
-            int prevInputCumulative = 0;
-            for (AbstractMessage m : messages) {
-                if (m instanceof InputMessage) {
-                    if (m.getPruneToolsAbove()) {
-                        break;
-                    }
-                    if (m.hasToolResultPart()) {
-                        int delta = m.getTokensInMessage() - prevInputCumulative;
-                        if (delta > 0) {
-                            toolTokens += delta;
-                        }
-                    }
-                    prevInputCumulative = m.getTokensInMessage();
-                }
-            }
+            toolTokens = computeToolTokens(messages);
         }
 
-        AbstractMessage lastResponseMessage = messages.getLast();
-        AbstractMessage lastInputMessage = messages.get(messages.size() - 2);
+        int branchTokens = getLastMessageTokens(messages);
 
         InputMessage toolPruneMessage = InputMessage.builder(room)
                 .withText("Pruning Tools For Future Messages")
                 .build();
 
         // Inherit the parent of the oldest pruned message so other branches stay intact
-        toolPruneMessage.setParentMessageId(lastResponseMessage.getMessageId());
+        toolPruneMessage.setParentMessageId(messages.getLast().getMessageId());
         toolPruneMessage.setVisibile(false);
 
         // Set token count to last input + response - expected tokens pruned
         // Will be off by a few tokens but it will get fixed anyway on the next message
-        toolPruneMessage.setTokensInMessage(
-                lastInputMessage.getTokensInMessage() + lastResponseMessage.getTokensInMessage() - toolTokens);
+        toolPruneMessage.setTokensInMessage(branchTokens - toolTokens);
         toolPruneMessage.setPruneToolsAbove(true);
 
         // Pair the compacted input with a response message so the branch is complete
@@ -290,8 +248,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         return result;
     }
 
-    private Map<String, Object> summarizeMessages(Room room, String messageId, int keepNTransactions,
-            IModelEngine modelEngine) {
+    private Map<String, Object> summarizeMessages(Room room, String messageId, List<AbstractMessage> branch,
+            int transactionCount, int keepNTransactions, IModelEngine modelEngine) {
         Map<String, Object> result = new HashMap<>();
         result.put("type", "SUMMARY");
 
@@ -303,16 +261,14 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         List<AbstractMessage> messages = room.getMessages();
 
-        // Walk the parent chain from messageId to root, producing an ordered branch
-        List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, messageId);
-        if (countTransactions(branch) <= keepNTransactions) {
+        if (transactionCount <= keepNTransactions) {
             result.put("success", false);
             result.put("error",
                     "Not enough transactions in chat to summarize - need at least " + (keepNTransactions + 1));
             return result;
         }
 
-        int splitPoint = findTransactionSplitPoint(branch, keepNTransactions);
+        int splitPoint = findTransactionSplitPoint(branch, keepNTransactions, transactionCount);
         if (splitPoint < 0) {
             result.put("success", false);
             result.put("error", "Could not determine transaction split point");
@@ -325,11 +281,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         StringBuilder summaryTranscript = new StringBuilder();
         for (AbstractMessage m : toSummarize) {
             String text = getMessageText(m);
-            if (text == null || text.isBlank()) {
+            if (text == null || text.isBlank())
                 continue;
-            }
-            String role = (m instanceof InputMessage) ? "User" : "Assistant";
-            summaryTranscript.append(role).append(": ").append(text).append("\n\n");
+            summaryTranscript.append((m instanceof InputMessage) ? "User" : "Assistant")
+                    .append(": ").append(text).append("\n\n");
         }
 
         int beforeSummaryTokenCount = getLastMessageTokens(toSummarize);
@@ -359,26 +314,23 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             return result;
         }
 
-        // Build the summary placeholder as a new user message at the root of the kept
-        // chain
-        String summaryMessageText = "The following is a summary of the earlier conversation:\n\n" + summaryText;
-
         // Build a human-readable transcript of only the text-bearing messages
         StringBuilder keepTranscript = new StringBuilder();
         for (AbstractMessage m : toKeep) {
             String text = getMessageText(m);
-            if (text == null || text.isBlank()) {
+            if (text == null || text.isBlank())
                 continue;
-            }
-            String role = (m instanceof InputMessage) ? "User" : "Assistant";
-            keepTranscript.append(role).append(": ").append(text).append("\n\n");
+            keepTranscript.append((m instanceof InputMessage) ? "User" : "Assistant")
+                    .append(": ").append(text).append("\n\n");
         }
 
         int lastMessagesTokenCount = getLastMessageTokens(toKeep); // need this to determine tokens used by verbatim
                                                                    // messages
-        String lastNMessagesText = "The following is the last n messages verbatim:\n\n" + keepTranscript;
-        String compactedTextMessage = summaryMessageText + "\n\n" + lastNMessagesText;
+        String compactedTextMessage = "The following is a summary of the earlier conversation:\n\n" + summaryText
+                + "\n\nThe following is the last n messages verbatim:\n\n" + keepTranscript;
 
+        // Build the summary placeholder as a new user message at the root of the kept
+        // chain
         InputMessage compactedMessage = InputMessage.builder(room)
                 .withText("Summarizing Conversation")
                 .withModelType(modelEngine.getModelType())
@@ -410,7 +362,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         messages.add(compactedMessage);
         messages.add(compactedResponse);
 
-        // room.setMessages(messages);
         ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room.getId(),
                 this.insight.getUser().getPrimaryLoginToken().getId(),
@@ -438,9 +389,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
     private Set<String> getCompactionTypes() {
         Set<String> types = new HashSet<>();
-
-        // try named key first
-        GenRowStruct grs = this.store.getNoun(COMPACTION_TYPES_KEY);
+        GenRowStruct grs = this.store.getGenRowStruct(COMPACTION_TYPES_KEY);
         if (grs != null && grs.size() > 0) {
             List<String> values = grs.getAllStrValues();
             for (String val : values) {
@@ -449,7 +398,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 }
             }
         }
-
         return types;
     }
 
@@ -464,9 +412,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     private static int countTransactions(List<AbstractMessage> branch) {
         int count = 0;
         for (AbstractMessage m : branch) {
-            if (isTransactionEnd(m)) {
+            if (isTransactionEnd(m))
                 count++;
-            }
         }
         return count;
     }
@@ -476,8 +423,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
      * {@code keepNTransactions} transactions. Messages before this index are
      * summarized; messages from this index onward are kept verbatim.
      */
-    private static int findTransactionSplitPoint(List<AbstractMessage> branch, int keepNTransactions) {
-        int total = countTransactions(branch);
+    private static int findTransactionSplitPoint(List<AbstractMessage> branch, int keepNTransactions, int total) {
         int transactionsToSummarize = total - keepNTransactions;
         int endsSeen = 0;
         for (int i = 0; i < branch.size(); i++) {
@@ -489,6 +435,37 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         }
         return -1;
+    }
+
+    /**
+     * Counts tokens contributed by tool-call/result cycles in the branch.
+     * Stops at the first pruneToolsAbove marker since earlier tool tokens are
+     * already excluded from the live context.
+     */
+    private static int computeToolTokens(List<AbstractMessage> branch) {
+        int toolTokens = 0;
+        int prevInputCumulative = 0;
+        for (AbstractMessage m : branch) {
+            if (m instanceof InputMessage) {
+                if (m.getPruneToolsAbove())
+                    break;
+                if (m.hasToolResultPart()) {
+                    int delta = m.getTokensInMessage() - prevInputCumulative;
+                    if (delta > 0)
+                        toolTokens += delta;
+                }
+                prevInputCumulative = m.getTokensInMessage();
+            }
+        }
+        return toolTokens;
+    }
+
+    private int getLastMessageTokens(List<AbstractMessage> branch) {
+        if (branch == null || branch.size() < 2)
+            return 0;
+        AbstractMessage lastMessageResponse = branch.getLast();
+        AbstractMessage lastMessageInput = branch.get(branch.size() - 2);
+        return lastMessageResponse.getTokensInMessage() + lastMessageInput.getTokensInMessage();
     }
 
     @Override
@@ -510,11 +487,4 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         }
         return super.getDescriptionForKey(key);
     }
-
-    private int getLastMessageTokens(List<AbstractMessage> branch) {
-        AbstractMessage lastMessageResponse = branch.getLast();
-        AbstractMessage lastMessageInput = branch.get(branch.size() - 2);
-        return lastMessageResponse.getTokensInMessage() + lastMessageInput.getTokensInMessage();
-    }
-
 }
