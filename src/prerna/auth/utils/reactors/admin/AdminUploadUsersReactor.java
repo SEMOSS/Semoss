@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -59,11 +58,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminUploadUsersReactor extends AbstractReactor {
 
@@ -128,42 +127,24 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		this.logger = getLogger(CLASS_NAME);
 
 		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
-		try {
-			conn = database.getConnection();
-			conn.setAutoCommit(false);
-		} catch (SQLException e) {
-			if (e.getMessage() != null) {
-				classLogger.error(e.getMessage());
-			}
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to database.");
-		}
-
 		long start = System.currentTimeMillis();
 		{
 			ExcelSheetFileIterator it = null;
 			try {
 				it = getExcelIterator(filePath);
-				loadExcelFile(conn, database.getQueryUtil(), it);
+				loadExcelFile(database, it);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to upload users from the provided file.", e);
 				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
 			} finally {
 				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to upload users from the provided file.", e);
 					}
 				}
 			}
-		}
-
-		try {
-			conn.commit();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
 		}
 		long end = System.currentTimeMillis();
 		return new NounMetadata("Time to finish = " + (end - start) + "ms", PixelDataType.CONST_STRING);
@@ -186,7 +167,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			List<ExcelRange> blockRanges = block.getRanges();
 			for (int j = 0; j < 1; j++) {
 				ExcelRange r = blockRanges.get(j);
-				logger.info("Found range = " + r.getRangeSyntax());
+				logger.info("Found range = {}", r.getRangeSyntax());
 				range = r.getRangeSyntax();
 			}
 		}
@@ -202,8 +183,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		return it;
 	}
 
-	private void loadExcelFile(Connection conn, AbstractSqlQueryUtil queryUtil, ExcelSheetFileIterator helper)
-			throws Exception {
+	private void loadExcelFile(IRDBMSEngine database, ExcelSheetFileIterator helper) throws Exception {
 		// see if there is a user limit applied
 		int currentUserCount = -1;
 
@@ -214,31 +194,35 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				userLimit = Integer.parseInt(userLimitStr);
 				currentUserCount = SecurityQueryUtils.getApplicationUserCount();
 			} catch (NumberFormatException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to read user records from the uploaded Excel file.", e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
 
-		PreparedStatement ps = conn.prepareStatement(insertQuery);
-		String[] excelHeaders = helper.getHeaders();
-		List<String> excelHeadersList = Arrays.asList(excelHeaders);
-
-		int idxName = excelHeadersList.indexOf(NAME_KEY);
-		int idxEmail = excelHeadersList.indexOf(EMAIL_KEY);
-		int idxType = excelHeadersList.indexOf(TYPE_KEY);
-		int idxId = excelHeadersList.indexOf(ID_KEY);
-		int idxPassword = excelHeadersList.indexOf(PASSWORD_KEY);
-		int idxSalt = excelHeadersList.indexOf(SALT_KEY);
-		int idxUsername = excelHeadersList.indexOf(USERNAME_KEY);
-		int idxAdmin = excelHeadersList.indexOf(ADMIN_KEY);
-		int idxPublisher = excelHeadersList.indexOf(PUBLISHER_KEY);
-
-		if (idxName < 0 || idxEmail < 0 || idxType < 0 || idxId < 0 || idxPassword < 0 || idxSalt < 0 || idxUsername < 0
-				|| idxAdmin < 0 || idxPublisher < 0) {
-			throw new IllegalArgumentException("One or more headers are missing from the excel");
-		}
-
+		Connection conn = null;
+		PreparedStatement ps = null;
 		try {
+			conn = database.getConnection();
+			ps = conn.prepareStatement(insertQuery);
+
+			String[] excelHeaders = helper.getHeaders();
+			List<String> excelHeadersList = Arrays.asList(excelHeaders);
+
+			int idxName = excelHeadersList.indexOf(NAME_KEY);
+			int idxEmail = excelHeadersList.indexOf(EMAIL_KEY);
+			int idxType = excelHeadersList.indexOf(TYPE_KEY);
+			int idxId = excelHeadersList.indexOf(ID_KEY);
+			int idxPassword = excelHeadersList.indexOf(PASSWORD_KEY);
+			int idxSalt = excelHeadersList.indexOf(SALT_KEY);
+			int idxUsername = excelHeadersList.indexOf(USERNAME_KEY);
+			int idxAdmin = excelHeadersList.indexOf(ADMIN_KEY);
+			int idxPublisher = excelHeadersList.indexOf(PUBLISHER_KEY);
+
+			if (idxName < 0 || idxEmail < 0 || idxType < 0 || idxId < 0 || idxPassword < 0 || idxSalt < 0
+					|| idxUsername < 0 || idxAdmin < 0 || idxPublisher < 0) {
+				throw new IllegalArgumentException("One or more headers are missing from the excel");
+			}
+
 			int counter = 0;
 			Object[] row = null;
 			while ((helper.hasNext())) {
@@ -273,7 +257,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				}
 				// check if the ID already exists
 				if (SecurityQueryUtils.checkUserExist(id)) {
-					logger.info("User id = " + id + " alraedy exists - skipping record for upload");
+					logger.info("User id = {} alraedy exists - skipping record for upload", id);
 					continue;
 				}
 
@@ -332,11 +316,12 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				counter++;
 			}
 			ps.executeBatch();
-			logger.info("Done with item type updates , total rows = " + counter);
-		} finally {
-			if (ps != null) {
-				ps.close();
+			if (conn != null && !conn.getAutoCommit()) {
+				conn.commit();
 			}
+			logger.info("Done with updates, total rows = {}", counter);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, ps);
 		}
 	}
 

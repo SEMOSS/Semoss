@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.engine;
 
 import java.io.File;
 
@@ -38,10 +38,9 @@ import org.eclipse.jgit.lib.ObjectId;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -49,13 +48,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
-public class ProjectCommitRestoreReactor extends AbstractReactor {
+/**
+ * This reactor reverts an engine's git repository to a previous commit by
+ * creating a new commit that restores the file state of the target commit.
+ * Uses the reset --hard / reset --soft pattern to avoid JGit path matching
+ * issues with checkout.
+ */
+public class EngineCommitRestoreReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ProjectCommitRestoreReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EngineCommitRestoreReactor.class);
 	private static final String COMMIT_ID_KEY = "commitId";
 
-	public ProjectCommitRestoreReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), COMMIT_ID_KEY };
+	public EngineCommitRestoreReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), COMMIT_ID_KEY };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -70,23 +75,23 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String commitId = this.keyValue.get(COMMIT_ID_KEY);
 
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the project id");
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must pass in the engine id");
 		}
 		if (commitId == null || (commitId = commitId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the commit id");
 		}
 
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException("Engine does not exist or user does not have access to the engine");
 		}
 
-		IProject project = Utility.getProject(projectId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
-				projectId, project.getEngineName());
+		IEngine engine = Utility.getEngine(engineId);
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
+				engine.getCatalogType(), engineId, engine.getEngineName());
 
 		try (Git thisGit = Git.open(new File(versionFolder))) {
 			ObjectId commitObjectId = thisGit.getRepository().resolve(commitId);
@@ -122,16 +127,16 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 					.setAuthor(author, email)
 					.call();
 
-			classLogger.info("Reverted project {} to commit {}", projectId, commitId);
+			classLogger.info("Reverted engine {} to commit {}", engineId, commitId);
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Error reverting project {} to commit {}", projectId, commitId, e);
+			classLogger.error("Error reverting engine {} to commit {}", engineId, commitId, e);
 			throw new IllegalArgumentException("Unable to revert to commit id " + commitId, e);
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pushProjectFolder(project, versionFolder);
+			ClusterUtil.pushEngineFolder(engine, versionFolder);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -139,15 +144,15 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "This reactor reverts to the requested commit id";
+		return "This reactor reverts an engine to the requested commit id";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required field containing the project id of a project";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine id to revert";
 		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "This is a required field containing the commit id of a project";
+			return "The commit id to revert to";
 		}
 		return super.getDescriptionForKey(key);
 	}

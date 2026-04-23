@@ -1083,21 +1083,24 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(Utility.normalizePath(localRepository)));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", localRepository, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 		AddCommand ac = thisGit.add();
+		List<String> normalizedPatterns = new ArrayList<>();
 		for (String daFile : files) {
 			if (daFile.contains("version")) {
 				daFile = daFile.substring(daFile.indexOf("version") + 8);
 			}
-			daFile = daFile.replace("\\", "/");
+			daFile = normalizeGitFilePattern(daFile);
 			ac.addFilepattern(daFile);
+			normalizedPatterns.add(daFile);
 		}
+		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
 		try {
 			ac.call();
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
 		}
 		thisGit.close();
 	}
@@ -1116,25 +1119,27 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", localRepository, e);
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
-		if (thisGit != null) {
-			AddCommand ac = thisGit.add();
-			for (File f : files) {
-				String daFile = f.getAbsolutePath();
-				if (daFile.contains("version")) {
-					daFile = daFile.substring(daFile.indexOf("version") + 8);
-				}
-				daFile = daFile.replace("\\", "/");
-				ac.addFilepattern(daFile);
+		AddCommand ac = thisGit.add();
+		List<String> normalizedPatterns = new ArrayList<>();
+		for (File f : files) {
+			String daFile = f.getAbsolutePath();
+			if (daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
 			}
-			try {
-				ac.call();
-			} catch (GitAPIException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			thisGit.close();
+			daFile = normalizeGitFilePattern(daFile);
+			ac.addFilepattern(daFile);
+			normalizedPatterns.add(daFile);
 		}
+		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
+		}
+		thisGit.close();
 	}
 
 	/**
@@ -1179,12 +1184,22 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
-		CommitCommand cc = thisGit.commit();
 		try {
+			// Check if there are actually staged changes before committing
+			Status status = thisGit.status().call();
+			boolean hasStagedChanges = !status.getAdded().isEmpty()
+					|| !status.getChanged().isEmpty()
+					|| !status.getRemoved().isEmpty();
+
+			if (!hasStagedChanges) {
+				classLogger.warn("Skipping commit in {} — no staged changes to commit", gitFolder);
+				return;
+			}
+
 			if (message == null || message.isEmpty()) {
 				message = GitUtils.getDateMessage("Commited on.. ");
 			}
@@ -1194,11 +1209,15 @@ public class GitRepoUtils {
 			if (email == null || email.isEmpty()) {
 				email = "semoss@semoss.org";
 			}
+
+			CommitCommand cc = thisGit.commit();
 			cc.setMessage(message).setAuthor(author, email).call();
+			classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to commit in {}", gitFolder, e);
+		} finally {
+			thisGit.close();
 		}
-		thisGit.close();
 	}
 
 	public static void revertCommit(String gitFolder, String comm1) {
@@ -1434,6 +1453,24 @@ public class GitRepoUtils {
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
+	}
+
+	/**
+	 * Normalizes a git file pattern to be repo-relative with forward slashes,
+	 * no leading slash, and no repeated slashes.
+	 * 
+	 * @param pattern the raw file pattern
+	 * @return the normalized pattern suitable for JGit AddCommand/RmCommand
+	 */
+	private static String normalizeGitFilePattern(String pattern) {
+		pattern = pattern.replace("\\", "/");
+		while (pattern.contains("//")) {
+			pattern = pattern.replace("//", "/");
+		}
+		if (pattern.startsWith("/")) {
+			pattern = pattern.substring(1);
+		}
+		return pattern;
 	}
 
 }
