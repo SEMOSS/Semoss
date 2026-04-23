@@ -27,12 +27,26 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import java.util.List;
+import java.util.Map;
+
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.om.Insight;
 
 public class AnthropicEngine extends AbstractPythonModelEngine {
 
 	@Override
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.ANTHROPIC;
+	}
+
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
 	}
 }

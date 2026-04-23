@@ -27,12 +27,24 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import java.util.List;
+import java.util.Map;
+
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
+import prerna.om.Insight;
 
 public class OpenAiEngine extends AbstractPythonModelEngine {
 
 	@Override
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.OPEN_AI;
+	}
+
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(List<Map<String, Object>> inputsToEmbed,
+			Insight insight, Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

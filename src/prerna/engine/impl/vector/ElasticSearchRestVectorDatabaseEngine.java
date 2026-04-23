@@ -57,6 +57,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -205,8 +206,15 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		// if we were able to extract files, begin embeddings process
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 
-		// send all the strings to embed in one shot
-		vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		if (embeddingsEngine.getModelType() == ModelTypeEnum.MULTIMODAL_EMBEDDINGS) {
+		    // Build multimodal input list from documents (text + images if present)
+		    List<Map<String, Object>> multimodalInputs = buildMultimodalInputs(vectorCsvTable);
+		    embeddingsEngine.multimodalEmbeddings(multimodalInputs, insight, parameters);
+		} else {
+		    // Existing text-only path
+			// send all the strings to embed in one shot
+		    vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+		}
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
@@ -300,6 +308,35 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 		
 		return fileStatusMap;
+	}
+
+	private List<Map<String, Object>> buildMultimodalInputs(VectorDatabaseCSVTable vectorCsvTable) {
+		List<Map<String, Object>> inputs = new ArrayList<>();
+		
+	    // Iterate through all rows in the CSV table
+	    for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
+	        Map<String, Object> input = new HashMap<>();
+	 
+	        // Get modality (text, image, audio, video)
+	        String modality = row.getModality();
+	        if (modality == null || modality.trim().isEmpty()) {
+	            modality = "text";
+	        }
+	        modality = modality.toLowerCase();
+	 
+	        // Get content
+	        String content = row.getContent();
+	        if (content == null || content.trim().isEmpty()) {
+	            continue;
+	        }
+	        // Build input map
+	        input.put("type", modality);
+	        input.put("content", content);
+	 
+	        inputs.add(input);
+	    }
+	 
+	    return inputs;
 	}
 
 	@Override

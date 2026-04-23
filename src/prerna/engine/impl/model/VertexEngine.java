@@ -27,8 +27,13 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import java.util.List;
+import java.util.Map;
+
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.om.Insight;
 
 public class VertexEngine extends AbstractPythonModelEngine {
 
@@ -36,5 +41,14 @@ public class VertexEngine extends AbstractPythonModelEngine {
 	@IgnoreEngineLogging
 	public ModelTypeEnum getModelType() {
 		return ModelTypeEnum.VERTEX;
+	}
+
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
 	}
 }

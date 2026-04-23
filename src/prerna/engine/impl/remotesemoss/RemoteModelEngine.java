@@ -190,6 +190,13 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
+	public EmbeddingsModelEngineResponse multimodalEmbeddings(List<Map<String, Object>> inputsToEmbed, Insight insight,
+			Map<String, Object> parameters) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	
+	@Override
 	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
 			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub

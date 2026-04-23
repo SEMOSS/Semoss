@@ -559,4 +559,13 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		}
 	}
 
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
+	}
+
 }

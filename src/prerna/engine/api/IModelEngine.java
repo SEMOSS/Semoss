@@ -133,6 +133,21 @@ public interface IModelEngine extends IEngine {
 			Map<String, Object> parameters);
 
 	/**
+	 * Passes a list of multimodal inputs to the model client to be embedded.
+	 * Each input map should contain:
+	 *   - "type": the modality type (e.g., "text", "image", "video", "audio")
+	 *   - "content": the actual content (string text, file path, URL, or base64 data)
+	 *
+	 * @param inputsToEmbed  List of maps, each describing a single input with its modality type and content
+	 * @param insight        The insight from where the call is being made
+	 * @param parameters     Additional parameters such as output dimensionality, task type, etc.
+	 * @return An EmbeddingsModelEngineResponse containing the embedding vectors
+	 */
+	EmbeddingsModelEngineResponse multimodalEmbeddings(List<Map<String, Object>> inputsToEmbed, Insight insight,
+	    Map<String, Object> parameters
+	);
+	
+	/**
 	 * 
 	 * @return
 	 */

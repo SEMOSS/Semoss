@@ -402,6 +402,68 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		return embeddingsResponse;
 	}
+	
+	@Override
+	public EmbeddingsModelEngineResponse multimodalEmbeddings(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    // Check usage restrictions
+	    Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
+	            .getModelUsageRestriction(insight.getUser(), this.engineId);
+
+	    ZonedDateTime inputTime = ZonedDateTime.now();
+	    EmbeddingsModelEngineResponse embeddingsResponse = multimodalEmbeddingsCall(inputsToEmbed, insight, parameters);
+	    ZonedDateTime outputTime = ZonedDateTime.now();
+
+	    // Inference logging
+	    if (inferenceLogsEnbaled) {
+	        String messageId = GUID.v7().toUUID().toString();
+	        Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker(
+	                /*messageId*/messageId,
+	                /*transactionId*/messageId,
+	                /*messageMethod*/"multimodalEmbeddings",
+	                /*engine*/this,
+	                /*insightId*/insight.getInsightId(),
+	                /*projectContextId*/insight.getContextProjectId(),
+	                /*projectId*/insight.getProjectId(),
+	                /*user*/insight.getUser(),
+	                /*sessionId*/ThreadStore.getSessionId(),
+	                /*roomId*/ThreadStore.getInsightId(),
+	                /*context*/null,
+	                /*prompt*/null,
+	                /*fullPrompt*/inputsToEmbed,
+	                /*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
+	                /*inputTime*/inputTime,
+	                /*response*/"",
+	                /*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
+	                /*outputTime*/outputTime
+	        ));
+	        inferenceRecorder.start();
+	    }
+
+	    // Update usage tracking
+	    ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(
+	        userRestrictionMap, embeddingsResponse, inputTime, outputTime
+	    );
+
+	    return embeddingsResponse;
+	}
+	
+	/**
+	 * Abstract method for the implementation class to handle multimodal embeddings.
+	 *
+	 * @param inputsToEmbed  List of maps with "type" and "content" keys
+	 * @param insight        The insight context
+	 * @param parameters     Additional parameters
+	 * @return EmbeddingsModelEngineResponse
+	 */
+	protected abstract EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	);
 
 	/**
 	 * 

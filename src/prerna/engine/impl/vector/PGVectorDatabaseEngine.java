@@ -68,6 +68,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -415,7 +416,14 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
 		// send all the strings to embed in one shot
 		try {
-			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			if (embeddingsEngine.getModelType() == ModelTypeEnum.MULTIMODAL_EMBEDDINGS) {
+			    // Build multimodal input list from documents (text + images if present)
+			    List<Map<String, Object>> multimodalInputs = buildMultimodalInputs(vectorCsvTable);
+			    embeddingsEngine.multimodalEmbeddings(multimodalInputs, insight, parameters);
+			} else {
+			    // Existing text-only path
+			    vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to generate embeddings for CSV data using model engine: " + this.embedderEngineId,
 					e);
@@ -508,6 +516,35 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		return fileStatusList;
+	}
+
+	private List<Map<String, Object>> buildMultimodalInputs(VectorDatabaseCSVTable vectorCsvTable) {
+		List<Map<String, Object>> inputs = new ArrayList<>();
+		
+	    // Iterate through all rows in the CSV table
+	    for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
+	        Map<String, Object> input = new HashMap<>();
+	 
+	        // Get modality (text, image, audio, video)
+	        String modality = row.getModality();
+	        if (modality == null || modality.trim().isEmpty()) {
+	            modality = "text";
+	        }
+	        modality = modality.toLowerCase();
+	 
+	        // Get content
+	        String content = row.getContent();
+	        if (content == null || content.trim().isEmpty()) {
+	            continue;
+	        }
+	        // Build input map
+	        input.put("type", modality);
+	        input.put("content", content);
+	 
+	        inputs.add(input);
+	    }
+	 
+	    return inputs;
 	}
 
 	/**

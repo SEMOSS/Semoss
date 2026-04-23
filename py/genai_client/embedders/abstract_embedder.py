@@ -83,3 +83,20 @@ class AbstractEmbedder(ABC):
                 return np.array(embeddings.response, dtype="float32")
 
         return CfgEmbedderBackend(embedding_model=self)
+
+    def multimodal_embeddings(
+        self, inputs_to_embed: List[Dict[str, Any]], **kwargs: Any
+    ) -> Dict:
+        """
+        Embed a list of multimodal inputs.
+        Each input dict should have:
+        - "type": one of "text", "image", "video", "audio"
+        - "content": the data to embed (string, file path, URL, or base64)
+        """
+        return self.multimodal_embeddings_call(inputs_to_embed, **kwargs).to_dict()
+
+    @abstractmethod
+    def multimodal_embeddings_call(
+        self, inputs_to_embed: List[Dict[str, Any]], **kwargs: Any
+    ) -> EmbeddingsModelEngineResponse:
+        pass

@@ -134,4 +134,13 @@ public class TextEmbeddingsEngine extends AbstractRESTModelEngine {
 	protected void resetAfterTimeout() {
 		// nothing to reset currently
 	}
+
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
+	}
 }

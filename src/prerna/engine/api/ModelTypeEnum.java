@@ -41,6 +41,7 @@ import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
 import prerna.engine.impl.model.VertexEngine;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
+import prerna.engine.impl.model.MultimodalEmbeddingsEngine;
 
 public enum ModelTypeEnum {
 
@@ -63,6 +64,7 @@ public enum ModelTypeEnum {
 	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
+	MULTIMODAL_EMBEDDINGS("MULTIMODAL_EMBEDDINGS", MultimodalEmbeddingsEngine.class.getName()),
 	;
 	// @formatter:on
 

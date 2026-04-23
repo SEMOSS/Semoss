@@ -58,6 +58,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
@@ -116,9 +117,16 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		IModelEngine embeddingsEngine = Utility.getModel(this.embedderEngineId);
-		// send all the strings to embed in one shot
 		try {
-			vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			if (embeddingsEngine.getModelType() == ModelTypeEnum.MULTIMODAL_EMBEDDINGS) {
+			    // Build multimodal input list from documents (text + images if present)
+			    List<Map<String, Object>> multimodalInputs = buildMultimodalInputs(vectorCsvTable);
+			    embeddingsEngine.multimodalEmbeddings(multimodalInputs, insight, parameters);
+			} else {
+			    // Existing text-only path
+				// send all the strings to embed in one shot
+			    vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
+			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
@@ -214,6 +222,11 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 			return fileStatusList;
 		}
+	}
+
+	private List<Map<String, Object>> buildMultimodalInputs(VectorDatabaseCSVTable vectorCsvTable) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override

@@ -35,6 +35,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -93,6 +94,15 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 		}
 		// @formatter:on	
 		return keywordExtractionResponse;
+	}
+
+	@Override
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight,
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
 	}
 
 }
