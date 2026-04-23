@@ -90,9 +90,10 @@ public class SocketServerHandler implements Runnable {
 	InputStream is = null;
 	String mainFolder = null;
 
-	private RConnection retCon = null;
+	private volatile RConnection retCon = null;
+	private final Object translatorInitLock = new Object();
 
-	private Map<String, AbstractRJavaTranslator> rtMap = new ConcurrentHashMap<String, AbstractRJavaTranslator>();
+	private final Map<String, AbstractRJavaTranslator> rtMap = new ConcurrentHashMap<String, AbstractRJavaTranslator>();
 	private Map<String, Insight> insightMap = new ConcurrentHashMap<String, Insight>();
 	private Map<String, Project> projectMap = new ConcurrentHashMap<String, Project>();
 	private Map<String, CmdExecUtil> cmdMap = new ConcurrentHashMap<String, CmdExecUtil>();
@@ -148,8 +149,9 @@ public class SocketServerHandler implements Runnable {
 
 			if (ps.operation == PayloadStruct.OPERATION.R) {
 				try {
-					Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
-					Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
+					AbstractRJavaTranslator translator = getTranslator(ps.env);
+					Method method = findRMethod(translator, ps.methodName, ps.payloadClasses);
+					Object output = runMethodR(translator, method, ps.payload);
 					if (output != null) {
 						// System.out.println("Output is not null - R");
 						classLogger.info("Output is not null - R");
@@ -722,31 +724,40 @@ public class SocketServerHandler implements Runnable {
 	 * @return translator bound to the provided environment
 	 */
 	private AbstractRJavaTranslator getTranslator(String env) {
-		if (!rtMap.containsKey(env)) {
-			boolean JRI = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null
-					|| DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
-			AbstractRJavaTranslator arjt = null;
-			if (JRI) {
-				arjt = new RJavaJriTranslator();
-				arjt.setLogger(classLogger);
-				arjt.startR();
-				arjt.initREnv(env);
-			} else // try doing rserve
-			{
-				arjt = new RJavaRserveTranslator();
-				if (retCon == null) {
-					arjt.setLogger(classLogger);
-					arjt.startR();
-					this.retCon = ((RJavaRserveTranslator) arjt).getConnection();
-				} else {
-					arjt.setLogger(classLogger);
-					arjt.setConnection(retCon);
-					arjt.initREnv(env);
-				}
-			}
-			rtMap.put(env, arjt);
+		AbstractRJavaTranslator translator = rtMap.get(env);
+		if (translator != null) {
+			return translator;
 		}
-		return rtMap.get(env);
+
+		synchronized (translatorInitLock) {
+			translator = rtMap.get(env);
+			if (translator != null) {
+				return translator;
+			}
+
+			boolean useJri = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null
+					|| DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
+			if (useJri) {
+				translator = new RJavaJriTranslator();
+				translator.setLogger(classLogger);
+				translator.startR();
+				translator.initREnv(env);
+			} else {
+				RJavaRserveTranslator rserveTranslator = new RJavaRserveTranslator();
+				rserveTranslator.setLogger(classLogger);
+				RConnection existingConnection = this.retCon;
+				if (existingConnection == null) {
+					rserveTranslator.startR();
+					this.retCon = rserveTranslator.getConnection();
+				} else {
+					rserveTranslator.setConnection(existingConnection);
+					rserveTranslator.initREnv(env);
+				}
+				translator = rserveTranslator;
+			}
+			rtMap.put(env, translator);
+			return translator;
+		}
 	}
 
 	/**
