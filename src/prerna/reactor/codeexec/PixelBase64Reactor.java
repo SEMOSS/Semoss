@@ -25,38 +25,31 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.auth.utils.reactors.admin;
+package prerna.reactor.codeexec;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
-import prerna.auth.PasswordRequirements;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.ReactorKeysEnum;
 
-public class AdminResetPasswordRulesReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(AdminResetPasswordRulesReactor.class);
+public class PixelBase64Reactor extends AbstractPixelReactor {
 
 	@Override
-	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if (adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-
+	protected String getDecodedCode() {
 		try {
-			PasswordRequirements.getInstance().loadRequirements();
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.CODE.getKey())),
+					StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			classLogger.error("Unable to reset password rule settings.", e);
-			throw new IllegalArgumentException(e.getMessage());
+			throw new IllegalArgumentException("Failed to decode pixel code: input is not base64-encoded utf-8 string",
+					e);
 		}
-
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The pixel code to execute. The pixel code should be passed in as a base64-encoded utf-8 string";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

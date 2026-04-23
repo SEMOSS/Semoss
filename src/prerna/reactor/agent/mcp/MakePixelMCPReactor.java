@@ -212,12 +212,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				if (execModeEnum != null) {
 					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
 				} else {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'auto'.",
 							execModeInput, reactorNames.get(i));
 				}
 			} else if (!hasMethodMeta) {
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 			}
 
 			// UI: mcpMetadata overrides getMcpToolMetadata() values

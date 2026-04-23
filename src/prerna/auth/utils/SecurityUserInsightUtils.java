@@ -52,7 +52,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -96,7 +95,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's effective insight permission.", e);
 		}
 
 		if (SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
@@ -125,7 +124,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view insight.", e);
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -146,7 +145,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view insight.", e);
 		}
 
 		return false;
@@ -173,7 +172,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
@@ -198,7 +197,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
 		return false;
 	}
@@ -222,7 +221,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user owns the insight.", e);
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -249,7 +248,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user owns the insight.", e);
 		}
 		return false;
 	}
@@ -296,7 +295,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -352,7 +351,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -381,14 +380,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					// commit the insertion
 					ps.getConnection().commit();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		}
 	}
 
@@ -512,13 +511,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to delete insight.", e);
 			} finally {
 				if (ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to delete insight.", e);
 					}
 				}
 				if (securityDb.isConnectionPooling()) {
@@ -527,7 +526,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 							ps.getConnection().close();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to delete insight.", e);
 					}
 				}
 			}
@@ -548,7 +547,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
 				+ "'";
@@ -556,7 +555,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 		}
 	}
 
@@ -588,7 +587,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return false;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 			throw e;
 		}
 	}

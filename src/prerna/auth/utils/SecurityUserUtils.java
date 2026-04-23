@@ -86,7 +86,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve aggregate user metadata.", e);
 		}
 
 		return retMap;
@@ -175,7 +175,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			try {
 				validEmail(email, false);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update user.", e);
 				throw new IllegalArgumentException("Email " + email + " is not valid");
 			}
 		}
@@ -199,7 +199,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				editUserPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user.", e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
@@ -259,7 +259,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update metakey options.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -300,7 +300,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		}
 
 		// now we do the new insert with the order of the tags
@@ -332,7 +332,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -375,7 +375,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to load user metadata.", e);
 		}
 
 		token.setMeta(metadata);
@@ -417,7 +417,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		}
 
 		// now we do the new insert with the order of the tags
@@ -447,7 +447,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
