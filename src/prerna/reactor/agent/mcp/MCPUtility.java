@@ -241,34 +241,48 @@ public final class MCPUtility {
 			paramString.append(propName).append("=").append(PyUtils.determineStringType(propValue));
 		}
 
-		PyTranslator pyt = null;
-		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
+		// Pin the insight's execution context to this engine's project (if any)
+		// for the duration of the load+inject+run sequence. Parallel RunMCPTool
+		// calls to DIFFERENT projects queue here; same-project callers piggyback
+		// on the existing context without re-running setContext.
+		String requestedProjectId = (engine instanceof IProject) ? engine.getEngineId() : null;
+		try (Insight.InsightExecutionLease lease = insight.acquireExecutionContext(requestedProjectId)) {
+			PyTranslator pyt = null;
+			if (engine instanceof IProject) {
+				// Preserve prior behavior: project name may differ from the
+				// security alias that setContext picked up.
+				insight.setContextProjectName(engine.getEngineName());
 
-			String pyEngine = "user";
-			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
-				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
+				String pyEngine = "user";
+				if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
+					pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
+				}
+				if (pyEngine.equalsIgnoreCase("project")) {
+					pyt = ((IProject) engine).getProjectPyTranslator();
+				}
 			}
-			if (pyEngine.equalsIgnoreCase("project")) {
-				pyt = ((IProject) engine).getProjectPyTranslator();
+			if (pyt == null) {
+				pyt = insight.getPyTranslator();
 			}
-		}
-		if (pyt == null) {
-			pyt = insight.getPyTranslator();
-		}
 
-		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
-		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
-				engine.getEngineId());
+			final PyTranslator finalPyt = pyt;
+			final String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
+			classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
+					engine.getEngineId());
 
-		// reload the module
-		pyt.runScript(insight, loadFreshSmssModule);
-		// inject default vars into module scope
-		pyt.runScript(insight, injectDefaultVars);
-		// run method
-		return stringifyMcpResult(pyt.runScript(insight, runMethod));
+			// Serialize the 3-call sequence so python globals `mcp_driver` and
+			// `APP_ROOT` cannot be rebound by a concurrent tool mid-sequence.
+			// SocketClient multiplexes individual calls by epoc already; this
+			// lock is about interpreter-global state across calls.
+			return insight.withPythonExecution(() -> {
+				// reload the module
+				finalPyt.runScript(insight, loadFreshSmssModule);
+				// inject default vars into module scope
+				finalPyt.runScript(insight, injectDefaultVars);
+				// run method
+				return stringifyMcpResult(finalPyt.runScript(insight, runMethod));
+			});
+		}
 	}
 
 	/**
@@ -319,26 +333,29 @@ public final class MCPUtility {
 			}
 		}
 
-		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
-		}
+		// Pin the insight's execution context so a concurrent tool can't swap
+		// contextProjectId/Name between setContext and runPixel.
+		String requestedProjectId = (engine instanceof IProject) ? engine.getEngineId() : null;
+		try (Insight.InsightExecutionLease lease = insight.acquireExecutionContext(requestedProjectId)) {
+			if (engine instanceof IProject) {
+				insight.setContextProjectName(engine.getEngineName());
+			}
 
-		String runMethod = functionName + "(" + paramString + ");";
-		if (engine != null) {
-			classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
-					engine.getEngineId());
-		} else {
-			classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
+			String runMethod = functionName + "(" + paramString + ");";
+			if (engine != null) {
+				classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
+						engine.getEngineId());
+			} else {
+				classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
+			}
+			// run pixel
+			PixelRunner pixelReturn = insight.runPixel(runMethod);
+			NounMetadata result = pixelReturn.getResults().get(0);
+			if (result.getOpType().contains(PixelOperationType.ERROR)) {
+				throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
+			}
+			return stringifyMcpResult(result.getValue());
 		}
-		// run pixel
-		PixelRunner pixelReturn = insight.runPixel(runMethod);
-		NounMetadata result = pixelReturn.getResults().get(0);
-		if (result.getOpType().contains(PixelOperationType.ERROR)) {
-			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
-		}
-		return stringifyMcpResult(result.getValue());
 	}
 
 	/**

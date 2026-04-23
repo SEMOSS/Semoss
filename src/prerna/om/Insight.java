@@ -45,6 +45,8 @@ import java.util.Vector;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -208,6 +210,26 @@ public class Insight implements Serializable {
 	private CmdExecUtil cmdUtil = null;
 	private String contextProjectId = null;
 	private String contextProjectName = null;
+
+	// Guards mutations to contextProjectId / contextProjectName while MCP tools
+	// (or any other reactor) use the insight-scoped execution context. Reactors
+	// that need the insight set to a specific project should acquire a lease via
+	// acquireExecutionContext(...) and release it (try-with-resources).
+	//
+	// Ref-counting: multiple leases that want the SAME project coexist; a lease
+	// that wants a different project waits until activeContextLeases drops to 0.
+	// Not transient: ReentrantLock and AbstractQueuedSynchronizer.ConditionObject
+	// are Serializable and deserialize to the unlocked state.
+	private final ReentrantLock contextLock = new ReentrantLock();
+	private final Condition contextIdle = contextLock.newCondition();
+	private int activeContextLeases = 0;
+	private String priorContextProjectId = null;
+
+	// Serializes the multi-step python tool execution (load module + inject vars
+	// + run method) so interleaved runs don't stomp on python globals such as
+	// `mcp_driver` or `APP_ROOT`. SocketClient already multiplexes individual
+	// calls by epoc; this lock is about interpreter-global state across calls.
+	private final ReentrantLock pythonExecutionLock = new ReentrantLock();
 
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
@@ -644,6 +666,139 @@ public class Insight implements Serializable {
 
 	public void setContextProjectName(String contextProjectName) {
 		this.contextProjectName = contextProjectName;
+	}
+
+	/**
+	 * Acquire an execution context lease on this insight. While the lease is
+	 * held, {@link #getContextProjectId()} is pinned to {@code requestedProjectId}
+	 * and cannot be swapped out from under the caller by another thread.
+	 * <p>
+	 * Leases are reference-counted and project-aware: if another thread is
+	 * already holding a lease for the same project, this call returns
+	 * immediately and both callers share the context. If the held context is a
+	 * different project, this call blocks until all existing leases release.
+	 * <p>
+	 * {@code requestedProjectId == null} means "don't change the current
+	 * context"; the lease simply blocks context mutation while held and never
+	 * calls setContext.
+	 * <p>
+	 * Callers MUST release the lease, preferably with try-with-resources:
+	 * <pre>
+	 * try (InsightExecutionLease lease = insight.acquireExecutionContext(pid)) {
+	 *     ... // use insight
+	 * }
+	 * </pre>
+	 *
+	 * @param requestedProjectId the project id the caller needs set as context,
+	 *                           or null to hold the current context in place
+	 * @return the lease to close when done
+	 */
+	public InsightExecutionLease acquireExecutionContext(String requestedProjectId) {
+		contextLock.lock();
+		try {
+			// Wait while a different project is pinned by another lease.
+			while (activeContextLeases > 0
+					&& requestedProjectId != null
+					&& !requestedProjectId.equals(this.contextProjectId)) {
+				try {
+					contextIdle.await();
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting for insight execution context on insightId={}.",
+							insightId, ie);
+					throw new RuntimeException(
+							"Interrupted while waiting for insight execution context", ie);
+				}
+			}
+			if (activeContextLeases == 0) {
+				// First lease wins -- snapshot the prior context so we can
+				// restore it when the last lease releases. setContext will
+				// rebuild contextProjectName from the security alias on restore.
+				this.priorContextProjectId = this.contextProjectId;
+				if (requestedProjectId != null
+						&& !requestedProjectId.equals(this.contextProjectId)) {
+					setContext(requestedProjectId);
+				}
+			}
+			activeContextLeases++;
+			return new InsightExecutionLease(this);
+		} finally {
+			contextLock.unlock();
+		}
+	}
+
+	/**
+	 * Release an execution context lease. Called by
+	 * {@link InsightExecutionLease#close()} -- callers should not invoke this
+	 * directly. When the final lease releases, the prior context captured by
+	 * the first acquisition is restored.
+	 */
+	void releaseExecutionContext() {
+		contextLock.lock();
+		try {
+			if (activeContextLeases <= 0) {
+				// Defensive -- should never happen if leases are balanced.
+				return;
+			}
+			if (--activeContextLeases == 0) {
+				// Last holder out -- restore the context that was in place
+				// before the first lease in this chain was acquired.
+				if (priorContextProjectId != null) {
+					if (!priorContextProjectId.equals(this.contextProjectId)) {
+						setContext(priorContextProjectId);
+					}
+				} else {
+					this.contextProjectId = null;
+					this.contextProjectName = null;
+				}
+				priorContextProjectId = null;
+				contextIdle.signalAll();
+			}
+		} finally {
+			contextLock.unlock();
+		}
+	}
+
+	/**
+	 * Run {@code action} while holding the python-execution lock. Use this to
+	 * make a multi-call python sequence (e.g. load module + inject vars + run
+	 * method) atomic against other same-insight callers, so python globals such
+	 * as {@code mcp_driver} or {@code APP_ROOT} cannot be rebound mid-sequence.
+	 */
+	public <T> T withPythonExecution(java.util.function.Supplier<T> action) {
+		pythonExecutionLock.lock();
+		try {
+			return action.get();
+		} finally {
+			pythonExecutionLock.unlock();
+		}
+	}
+
+	/**
+	 * Scoped lease on an insight's execution context. Returned from
+	 * {@link Insight#acquireExecutionContext(String)}; close with
+	 * try-with-resources.
+	 */
+	public static final class InsightExecutionLease implements AutoCloseable {
+		private final Insight insight;
+		private boolean released = false;
+
+		InsightExecutionLease(Insight insight) {
+			this.insight = insight;
+		}
+
+		public Insight getInsight() {
+			return insight;
+		}
+
+		@Override
+		public void close() {
+			if (released) {
+				return;
+			}
+			released = true;
+			insight.releaseExecutionContext();
+		}
 	}
 
 	public String getInsightName() {
@@ -1590,7 +1745,7 @@ public class Insight implements Serializable {
 	 * 
 	 * @return
 	 */
-	public PyTranslator getPyTranslator() {
+	public synchronized PyTranslator getPyTranslator() {
 		if (this.pyTranslator == null || this.pyTranslator.getSocketClient() == null
 				|| !this.pyTranslator.getSocketClient().isConnected()) {
 			SocketClient sc = user.getPythonSocketClient(true);
