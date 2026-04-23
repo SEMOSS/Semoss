@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import uuid4
 import asyncio
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
@@ -8,8 +9,16 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
     PermissionMode,
     HookMatcher,
+    UserMessage,
 )
-from .claude_code_utils import _build_change_logger
+from smss_thread_local import get_smss_stream
+from .claude_code_utils import (
+    _build_change_logger,
+    make_assistant_event,
+    make_tool_result_event,
+    make_user_prompt_event,
+)
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ...utils import string_to_bool
 
 # from ...debug_logger.debug_logger import DebugLogger
@@ -140,7 +149,25 @@ class ClaudeCodeClient:
     async def _query_cc_async(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> str:
+        if system_prompt:
+            self.agent_options.system_prompt = {
+                "type": "preset",
+                "preset": "claude_code",
+                "append": system_prompt,
+            }
+        smss_stream = get_smss_stream()
         final_message = ""
+
+        if smss_stream:
+            smss_stream(
+                make_user_prompt_event(
+                    prompt=prompt,
+                    prompt_id=str(uuid4()),
+                    session_id=self.configuration.room_id,
+                ),
+                stream_type="content",
+            )
+
         async with self.sdk_client as client:
             await client.query(prompt)
             async for message in client.receive_response():
@@ -150,6 +177,22 @@ class ClaudeCodeClient:
                         if isinstance(block, TextBlock):
                             print(f"Claude: {block.text}")
                             final_message += block.text
+                    if smss_stream:
+                        event = make_assistant_event(message)
+                        if event is not None:
+                            smss_stream(event, stream_type="content")
+                elif isinstance(message, UserMessage):
+                    if smss_stream:
+                        event = make_tool_result_event(message)
+                        if event is not None:
+                            smss_stream(event, stream_type="content")
+
+        if smss_stream:
+            smss_stream(
+                StreamUtil.create_finish_reason_chunk("stop"),
+                stream_type="content",
+                interim=False,
+            )
         self.agent_options.resume = self.configuration.room_id
         self.agent_options.session_id = None
         return final_message

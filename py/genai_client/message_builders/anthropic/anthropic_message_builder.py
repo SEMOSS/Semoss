@@ -767,12 +767,14 @@ class AnthropicMessageBuilder:
             or self.model_limits.max_completion_tokens
         )
 
-        # MAX TOKENS MUST BE LARGER THAN THINKING BUDGET
-        if thinking_map and (
-            thinking_map.get("type") == "enabled"
-            and thinking_map.get("budget_tokens", 0) <= max_tokens
-        ):
-            max_tokens = self._get_model_max_output_tokens(self.model_name)
+        # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET
+        if thinking_map and thinking_map.get("type") == "enabled":
+            budget_tokens = thinking_map.get("budget_tokens", 0)
+            if max_tokens is None or max_tokens <= budget_tokens:
+                model_cap = self._get_model_max_output_tokens(self.model_name)
+                max_tokens = min(budget_tokens * 2, model_cap)
+                if max_tokens <= budget_tokens:
+                    max_tokens = min(budget_tokens + 1024, model_cap)
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
