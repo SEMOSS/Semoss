@@ -65,6 +65,9 @@ import com.github.copilot.sdk.events.ToolExecutionProgressEvent;
 import com.github.copilot.sdk.events.ToolExecutionStartEvent;
 import com.github.copilot.sdk.json.CopilotClientOptions;
 import com.github.copilot.sdk.json.MessageOptions;
+import com.github.copilot.sdk.json.ModelCapabilities;
+import com.github.copilot.sdk.json.ModelInfo;
+import com.github.copilot.sdk.json.ModelLimits;
 import com.github.copilot.sdk.json.PermissionHandler;
 import com.github.copilot.sdk.json.ProviderConfig;
 import com.github.copilot.sdk.json.ResumeSessionConfig;
@@ -86,13 +89,20 @@ public class GitHubCopilotManager {
 	private static final String CLIENT_NAME = "SEMOSS Agent47";
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String systemPrompt,
-			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps)
+			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps,
+			int contextWindow)
 			throws Exception {
 		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		Files.createDirectories(Paths.get(roomFolderPath));
 
 		String workingDirectory = (filePath != null && !filePath.trim().isEmpty()) ? filePath : roomFolderPath;
 		Files.createDirectories(Paths.get(workingDirectory));
+
+		classLogger.info(
+				"GitHubCopilotManager: preparing session roomId={} engineId={} workingDirectory={}",
+				roomId,
+				engineId,
+				workingDirectory);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String bearerToken = buildBearerToken(keyPair[0], keyPair[1], roomId);
@@ -107,6 +117,10 @@ public class GitHubCopilotManager {
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
+		if (contextWindow > 0) {
+			clientOptions.setOnListModels(() -> CompletableFuture.completedFuture(List.of(
+					buildModelInfo(engineId, contextWindow))));
+		}
 
 		try (CopilotClient client = new CopilotClient(clientOptions)) {
 			client.start().get();
@@ -141,17 +155,30 @@ public class GitHubCopilotManager {
 			SessionConfig sessionConfig, ResumeSessionConfig resumeConfig) throws Exception {
 		if (lastSessionId != null && !lastSessionId.trim().isEmpty() && hasPersistedSessionState(roomFolderPath)) {
 			try {
+				classLogger.info("GitHubCopilotManager: resuming sessionId={}", lastSessionId);
 				return client.resumeSession(lastSessionId, resumeConfig).get();
 			} catch (Exception e) {
-				classLogger.warn("Falling back to new Copilot session after resume failed for {}", lastSessionId, e);
+				classLogger.warn(
+						"Falling back to new Copilot session after resume failed for {}",
+						lastSessionId,
+						e);
 			}
 		}
+		classLogger.info("GitHubCopilotManager: creating new session");
 		return client.createSession(sessionConfig).get();
 	}
 
 	private boolean hasPersistedSessionState(String roomFolderPath) {
 		Path sessionState = Paths.get(roomFolderPath, "session-state");
 		return Files.exists(sessionState) && Files.isDirectory(sessionState);
+	}
+
+	private ModelInfo buildModelInfo(String engineId, int contextWindow) {
+		return new ModelInfo()
+				.setId(engineId)
+				.setName(engineId)
+				.setCapabilities(new ModelCapabilities()
+						.setLimits(new ModelLimits().setMaxContextWindowTokens(contextWindow)));
 	}
 
 	private SessionConfig buildSessionConfig(String engineId, String workingDirectory, String roomFolderPath,

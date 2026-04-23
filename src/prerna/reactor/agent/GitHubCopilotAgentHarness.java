@@ -33,10 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
 
@@ -44,8 +42,6 @@ import prerna.engine.impl.model.Room;
  * GitHub Copilot SDK-backed agent harness.
  */
 public class GitHubCopilotAgentHarness implements IAgentHarness {
-
-	private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
 
 	public static final String NAME = "github_copilot";
 
@@ -59,7 +55,7 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String input = ctx.getInput();
@@ -91,10 +87,15 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 			throw new IllegalArgumentException("GitHubCopilotAgentHarness: insight has no user");
 		}
 
-		logger.debug("GitHubCopilotAgentHarness: engine={} filePath={}", engineId, ctx.getFilePath());
+		IModelEngine modelEngine = ctx.getModelEngine();
+		if (modelEngine == null) {
+			throw new IllegalArgumentException("GitHubCopilotAgentHarness: model engine is required");
+		}
+		int contextWindow = modelEngine.getContextWindow();
+
 		GitHubCopilotManager manager = new GitHubCopilotManager();
 		String output = manager.query(ctx.getInsight(), user, engineId, ctx.getFilePath(), input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room));
+				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
 	}

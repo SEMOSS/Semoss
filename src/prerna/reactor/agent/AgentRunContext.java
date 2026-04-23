@@ -40,7 +40,7 @@ import prerna.om.Insight;
  *
  * <p>Built via {@link #builder()}.
  */
-public final class GenericAgentContext {
+public final class AgentRunContext {
 
     /** Default safety cap for tool-call rounds. */
     public static final int DEFAULT_MAX_ITERATIONS  = 30;
@@ -57,7 +57,7 @@ public final class GenericAgentContext {
     private final int                    maxIterations;
     private final int                    maxReflections;
 
-    private GenericAgentContext(Builder b) {
+    private AgentRunContext(Builder b) {
         this.room           = b.room;
         this.modelEngine    = b.modelEngine;
         this.insight        = b.insight;
@@ -148,7 +148,7 @@ public final class GenericAgentContext {
         public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations;   return this; }
         public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
 
-        public GenericAgentContext build() {
+        public AgentRunContext build() {
             if (room == null)        throw new IllegalStateException("room is required");
             if (modelEngine == null) throw new IllegalStateException("modelEngine is required");
             if (insight == null)     throw new IllegalStateException("insight is required");
@@ -158,7 +158,7 @@ public final class GenericAgentContext {
                 throw new IllegalArgumentException("maxIterations must be > 0");
             if (maxReflections < 0)
                 throw new IllegalArgumentException("maxReflections must be >= 0");
-            return new GenericAgentContext(this);
+            return new AgentRunContext(this);
         }
     }
 }
