@@ -1588,7 +1588,8 @@ public abstract class AbstractSecurityUtils {
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
 					if (!smssUserCols.contains(col) && !smssUserCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, smssUserCols);
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col,
+								smssUserCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
@@ -2330,29 +2331,30 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			// JIRA_CONNECTIONS
-            colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
-            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(1000)", "VARCHAR(255)", "VARCHAR(255)" };
+			colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(1000)", "VARCHAR(255)",
+					"VARCHAR(255)" };
 
-            if (allowIfExistsTable) {
-                securityDb.insertData(queryUtil.createTableIfNotExists("JIRA_CONNECTIONS", colNames, types));
-            } else {
-                // see if table exists
-                if (!queryUtil.tableExists(conn, "JIRA_CONNECTIONS", database, schema)) {
-                    // make the table
-                    securityDb.insertData(queryUtil.createTable("JIRA_CONNECTIONS", colNames, types));
-                }
-            }
-            {
-                List<String> allCols = queryUtil.getTableColumns(conn, "JIRA_CONNECTIONS", database, schema);
-                for (int i = 0; i < colNames.length; i++) {
-                    String col = colNames[i];
-                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-                        classLogger.info("Column '" + col + "' is not present in current list of columns: " + allCols.toString());
-                        String addColumnSql = queryUtil.alterTableAddColumn("JIRA_CONNECTIONS", col, types[i]);
-                        securityDb.insertData(addColumnSql);
-                    }
-                }
-            }
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("JIRA_CONNECTIONS", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "JIRA_CONNECTIONS", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("JIRA_CONNECTIONS", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "JIRA_CONNECTIONS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("JIRA_CONNECTIONS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
 
 			// SALESFORCE_CONNECTIONS
 			colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET" };
@@ -2378,32 +2380,32 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			
-			// SERVICENOW_CONNECTIONS
-            colNames = new String[] { "ID", "INSTANCEURL", "ALIAS", "CLIENTID", "CLIENTSECRET", "USERPROFILEURL" };
-            types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", 
-                    "VARCHAR(255)" };
 
-            if (allowIfExistsTable) {
-                securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW_CONNECTIONS", colNames, types));
-            } else {
-                // see if table exists
-                if (!queryUtil.tableExists(conn, "SERVICENOW_CONNECTIONS", database, schema)) {
-                    // make the table
-                    securityDb.insertData(queryUtil.createTable("SERVICENOW_CONNECTIONS", colNames, types));
-                }
-            }
-            {
-                List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW_CONNECTIONS", database, schema);
-                for (int i = 0; i < colNames.length; i++) {
-                    String col = colNames[i];
-                    if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-                        classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
-                        String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
-                        securityDb.insertData(addColumnSql);
-                    }
-                }
-            }
+			// SERVICENOW_CONNECTIONS
+			colNames = new String[] { "ID", "INSTANCEURL", "ALIAS", "CLIENTID", "CLIENTSECRET", "USERPROFILEURL" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("SERVICENOW_CONNECTIONS", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "SERVICENOW_CONNECTIONS", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("SERVICENOW_CONNECTIONS", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "SERVICENOW_CONNECTIONS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -2617,7 +2619,8 @@ public abstract class AbstractSecurityUtils {
 						newPs.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error("Error updating PROJECTDEPENDENCIES engine types using query: {}", updateQuery, e);
+					classLogger.error("Error updating PROJECTDEPENDENCIES engine types using query: {}", updateQuery,
+							e);
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, newConn, newPs, null);
 				}
@@ -2766,8 +2769,8 @@ public abstract class AbstractSecurityUtils {
 				layout = wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error("Error retrieving stock image layout for project {} and insight {}.", databaseId, insightId,
-					e);
+			classLogger.error("Error retrieving stock image layout for project {} and insight {}.", databaseId,
+					insightId, e);
 		}
 
 		// if no layout defined, also return the default

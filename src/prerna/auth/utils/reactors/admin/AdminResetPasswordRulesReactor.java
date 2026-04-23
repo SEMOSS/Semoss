@@ -36,7 +36,6 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class AdminResetPasswordRulesReactor extends AbstractReactor {
 
@@ -46,18 +45,18 @@ public class AdminResetPasswordRulesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
+		if (adminUtils == null) {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
-		
+
 		try {
 			PasswordRequirements.getInstance().loadRequirements();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to reset password rule settings.", e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
-	
+
 }
