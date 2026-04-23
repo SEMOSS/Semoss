@@ -222,6 +222,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // Will be off by a few tokens but it will get fixed anyway on the next message
         toolPruneMessage.setTokensInMessage(branchTokens - toolTokens);
         toolPruneMessage.setPruneToolsAbove(true);
+        // Set the prune flag on the message itself for the FE to render the UI
+        messages.getLast().setPruneToolsAbove(true);
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage toolPruneResponse = ResponseMessage.builder()
