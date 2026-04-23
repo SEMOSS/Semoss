@@ -184,7 +184,7 @@ public final class HashiCorpVaultUtil extends AbstractSecrets {
 			classLogger.error(
 					"Failed to read insight encryption secrets from Vault for projectId={}, projectName={}, insightId={}, path={}.",
 					projectId, projectName, insightId,
-					getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME), e);
+					getInsightPath(secretPath, String.format("%s/%s", insightId, ISecrets.INSIGHT_ENCRYPTION_NAME)), e);
 		}
 
 		return null;
@@ -280,7 +280,7 @@ public final class HashiCorpVaultUtil extends AbstractSecrets {
 			classLogger.error(
 					"Failed to write insight encryption secrets to Vault for projectId={}, projectName={}, insightId={}, path={}, keys={}.",
 					projectId, projectName, insightId,
-					getInsightPath(secretPath, insightId + "/" + ISecrets.INSIGHT_ENCRYPTION_NAME),
+					getInsightPath(secretPath, String.format("%s/%s", insightId, ISecrets.INSIGHT_ENCRYPTION_NAME)),
 					nameValuePairs.keySet(), e);
 			return false;
 		}
