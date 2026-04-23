@@ -94,7 +94,13 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 		int contextWindow = modelEngine.getContextWindow();
 
 		GitHubCopilotManager manager = new GitHubCopilotManager();
-		String output = manager.query(ctx.getInsight(), user, engineId, ctx.getFilePath(), input, systemPrompt,
+		
+		String cwd = null;
+		if(ctx.getFilePath() != null && !ctx.getFilePath().trim().isEmpty()) {
+			cwd=ctx.getFilePath()+"/client";
+		}
+		
+		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
 				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
