@@ -77,9 +77,9 @@ import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class AdminUploadDatabasePermissionsReactorUnitTests {
+public class AdminUploadEnginePermissionsReactorUnitTests {
 
-	private AdminUploadDatabasePermissionsReactor reactor;
+	private AdminUploadEnginePermissionsReactor reactor;
 	private Insight insight;
 	private User user;
 	private NounStore ns;
@@ -89,7 +89,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 	@BeforeEach
 	void setup() throws Exception {
-		reactor = new AdminUploadDatabasePermissionsReactor();
+		reactor = new AdminUploadEnginePermissionsReactor();
 		insight = mock(Insight.class);
 		user = mock(User.class);
 		ns = mock(NounStore.class);
@@ -100,9 +100,9 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 		// loadExcelFile and getExcelIterator use an instance logger that is
 		// normally set inside execute(). Set it via reflection so direct calls work.
-		Field loggerField = AdminUploadDatabasePermissionsReactor.class.getDeclaredField("logger");
+		Field loggerField = AdminUploadEnginePermissionsReactor.class.getDeclaredField("logger");
 		loggerField.setAccessible(true);
-		loggerField.set(reactor, LogManager.getLogger(AdminUploadDatabasePermissionsReactor.class));
+		loggerField.set(reactor, LogManager.getLogger(AdminUploadEnginePermissionsReactor.class));
 	}
 
 	// ===================================================================
@@ -110,7 +110,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 	// ===================================================================
 
 	private void invokeLoadExcelFile(Connection conn, ExcelSheetFileIterator it) throws Exception {
-		Method m = AdminUploadDatabasePermissionsReactor.class.getDeclaredMethod(
+		Method m = AdminUploadEnginePermissionsReactor.class.getDeclaredMethod(
 				"loadExcelFile", Connection.class, AbstractSqlQueryUtil.class, ExcelSheetFileIterator.class);
 		m.setAccessible(true);
 		try {
@@ -124,7 +124,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 	}
 
 	private ExcelSheetFileIterator invokeGetExcelIterator(String fileLocation) throws Exception {
-		Method m = AdminUploadDatabasePermissionsReactor.class.getDeclaredMethod(
+		Method m = AdminUploadEnginePermissionsReactor.class.getDeclaredMethod(
 				"getExcelIterator", String.class);
 		m.setAccessible(true);
 		try {
@@ -561,7 +561,7 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 	@Test
 	void testStaticInsertQuery() throws Exception {
-		Field f = AdminUploadDatabasePermissionsReactor.class.getDeclaredField("insertQuery");
+		Field f = AdminUploadEnginePermissionsReactor.class.getDeclaredField("insertQuery");
 		f.setAccessible(true);
 		String query = (String) f.get(null);
 		assertEquals("INSERT INTO ENGINEPERMISSION (ENGINEID, USERID, PERMISSION) VALUES (?, ?, ?)", query);
@@ -569,9 +569,9 @@ public class AdminUploadDatabasePermissionsReactorUnitTests {
 
 	@Test
 	void testStaticKeyConstants() {
-		assertEquals("ENGINEID", AdminUploadDatabasePermissionsReactor.ENGINE_ID_KEY);
-		assertEquals("USERID", AdminUploadDatabasePermissionsReactor.USER_ID_KEY);
-		assertEquals("PERMISSION", AdminUploadDatabasePermissionsReactor.PERMISSION_KEY);
+		assertEquals("ENGINEID", AdminUploadEnginePermissionsReactor.ENGINE_ID_KEY);
+		assertEquals("USERID", AdminUploadEnginePermissionsReactor.USER_ID_KEY);
+		assertEquals("PERMISSION", AdminUploadEnginePermissionsReactor.PERMISSION_KEY);
 	}
 
 	// ===================================================================
