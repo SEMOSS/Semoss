@@ -1469,9 +1469,6 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
 	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
@@ -1479,6 +1476,9 @@ public class Insight implements Serializable {
 			return true;
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			// clear out the current context even if this failed
+			this.contextProjectId = null;
+			this.contextProjectName = null;
 			return false;
 		}
 		this.contextProjectId = projectId;

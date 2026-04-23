@@ -68,6 +68,16 @@ public class ResponseMessage extends AbstractMessage {
 		super.normalizeAfterLoad(room);
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
+
+		for (MessagePart part : getParts()) {
+			if (MessagePartType.MEDIA == part.type) {
+				MediaMessagePart mediaMessagePart = (MediaMessagePart) part;
+				if (room != null) {
+					mediaMessagePart.getMediaInfo().setRoomFolder(room.getRoomFolderPath());
+				}
+				mediaMessagePart.getMediaInfo().getBase64Data();
+			}
+		}
 	}
 
 	@Override

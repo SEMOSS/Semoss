@@ -73,7 +73,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	private static final String PROJECT_ID = ReactorKeysEnum.PROJECT.getKey();
 	private static final String CLIENT_DIR = "client";
 	private static final String NODE_SERVER_ENDPOINT = "NODE_SERVER_ENDPOINT";
-	private static final String BUILD_CMD = "pnpm install && pnpm run build";
+	private static final String BUILD_CMD = "pnpm install --no-frozen-lockfile && pnpm run build";
 
 	public BuildAndPublishAppReactor() {
 		this.keysToGet = new String[] { PROJECT_ID };
@@ -154,9 +154,6 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		}
 	}
 
-	// ── HTTP
-	// ─────────────────────────────────────────────────────────────────
-
 	private void postMultipart(String url, Path zipFile, Path destFile) throws IOException {
 		String boundary = "----SemossBuild" + Long.toHexString(System.currentTimeMillis());
 		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
@@ -188,9 +185,6 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			Files.copy(in, destFile, StandardCopyOption.REPLACE_EXISTING);
 		}
 	}
-
-	// ── ZIP helpers
-	// ───────────────────────────────────────────────────────────
 
 	private void zipDirectory(Path dir, Path destZip) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(destZip)))) {
@@ -251,9 +245,6 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			}
 		}
 	}
-
-	// ── Pixel input helpers
-	// ───────────────────────────────────────────────────
 
 	private String normalizeProjectId(User user, String rawProjectId) {
 		if (rawProjectId == null) {

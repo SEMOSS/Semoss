@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -100,7 +99,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
@@ -131,7 +130,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 //		MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
-		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 
