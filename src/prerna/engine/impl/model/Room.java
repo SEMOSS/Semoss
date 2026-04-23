@@ -79,6 +79,7 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Room {
@@ -92,13 +93,6 @@ public class Room {
 			.compile("\\{\\{\\s*([A-Z][A-Z0-9_]*)\\s*((?:\\.|\\[)[^}]*)?\\s*\\}\\}");
 	private static final Pattern SAFE_SINGLE_STATEMENT_PIXEL = Pattern
 			.compile("^\\s*[A-Za-z_][A-Za-z0-9_]*\\s*\\(.*\\)\\s*;?\\s*$", Pattern.DOTALL);
-
-	/**
-	 * Room option keys forwarded as-is into the model invocation kwarg map when
-	 * not already supplied by the per-message param map.
-	 */
-	private static final List<String> ROOM_MODEL_PARAM_KEYS = List.of("numOfImages",
-			"imageHeight", "imageWidth", "cfgScale", "seed");
 
 	private String room_id;
 	private String userId;
@@ -257,9 +251,9 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// merge in known model/image-generation defaults from room options
+		// merge in room-option defaults the model declares via ROOM_OPTION_PARAM_KEYS
 		// (per-message values in kwArgMap always win)
-		applyRoomModelParams(kwArgMap);
+		applyRoomModelParams(kwArgMap, modelEngine);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -660,22 +654,34 @@ public class Room {
 	}
 
 	/**
-	 * Pulls the known model and image-generation parameters out of the room's
-	 * options and writes them into the supplied kwarg map. Existing entries in
-	 * {@code kwArgMap} are preserved so per-message overrides always win over
-	 * room-level defaults.
-	 * 
-	 * Note: may want to pass IModelEngine to conditionally apply relevant params
+	 * Pulls room-option values into the model invocation kwarg map for the keys
+	 * the model engine declares via the {@code ROOM_OPTION_PARAM_KEYS} SMSS
+	 * property (comma-separated). Existing entries in {@code kwArgMap} are
+	 * preserved so per-message overrides always win over room-level defaults.
 	 *
-	 * @param kwArgMap mutable model parameter map
+	 * @param kwArgMap    mutable model parameter map
+	 * @param modelEngine model engine whose SMSS declares which room-option keys
+	 *                    to forward
 	 */
-	private void applyRoomModelParams(Map<String, Object> kwArgMap) {
+	private void applyRoomModelParams(Map<String, Object> kwArgMap, IModelEngine modelEngine) {
 		Map<String, Object> options = getOptionsMap();
 		if (options == null || options.isEmpty()) {
 			return;
 		}
+		if (modelEngine == null || modelEngine.getSmssProp() == null) {
+			return;
+		}
 
-		for (String key : ROOM_MODEL_PARAM_KEYS) {
+		String declared = modelEngine.getSmssProp().getProperty(Constants.ROOM_OPTION_PARAM_KEYS);
+		if (declared == null || declared.trim().isEmpty()) {
+			return;
+		}
+
+		for (String rawKey : declared.split(",")) {
+			String key = rawKey.trim();
+			if (key.isEmpty()) {
+				continue;
+			}
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);

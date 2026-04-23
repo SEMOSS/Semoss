@@ -479,6 +479,10 @@ public class Constants {
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
+	// Comma-separated list of room option keys that should be forwarded into the
+	// model invocation kwarg map (per-message values still win). Lets each model
+	// self-declare which room-level options it accepts instead of a hardcoded list.
+	public static final String ROOM_OPTION_PARAM_KEYS = "ROOM_OPTION_PARAM_KEYS";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
