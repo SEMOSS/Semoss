@@ -136,7 +136,6 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
 				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-					lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
 					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
@@ -150,8 +149,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 		} finally {
-			classLogger.info("AddPlaygroundToolExecution - pushing room '{}' to cloud storage", roomId);
-			ClusterUtil.pushRoom(roomId);
+			// there might be times when this is unnecessary
+			// but we dont know if a tool output generated a file in the room
+			ClusterUtil.pushRoomAsync(room.getId());
 		}
 	}
 

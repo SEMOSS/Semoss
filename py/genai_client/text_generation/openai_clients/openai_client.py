@@ -137,21 +137,6 @@ class OpenAiClient(AbstractTextGenerationClient):
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
 
-            # moving streaming param into openai_messages rather than kwargs
-            streaming = kwargs.pop("stream", True)
-            if self.chat_type == "chat-completion" and streaming:
-                openai_messages.update(
-                    {"stream": True, "stream_options": {"include_usage": True}}
-                )
-            elif self.chat_type == "responses" and streaming:
-                openai_messages.update({"stream": True})
-
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
-                openai_messages.update(self.model_settings.global_param_override)
-
             if self.model_settings.model_type == "image":
                 return self.image_client.ask(openai_messages, **kwargs)
             if self.chat_type == "chat-completion":

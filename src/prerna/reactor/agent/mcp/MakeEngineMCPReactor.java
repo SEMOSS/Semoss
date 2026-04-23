@@ -185,6 +185,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				JSONObject engineObj = properties.getJSONObject(paramName);
 				if (engineObj != null) {
 					engineObj.put("enum", new JSONArray().put(engineId));
+					engineObj.put("default", engineId);
 				}
 			} catch (Exception e) {
 				throw new IllegalArgumentException(
@@ -300,12 +301,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakeEngineMCP executed";
+			comment = "add: configured Engine MCP tool";
 		}
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

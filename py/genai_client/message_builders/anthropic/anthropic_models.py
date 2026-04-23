@@ -80,9 +80,14 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheControl(BaseModel):
+    type: str = "ephemeral"
+
+
 class AnthropicTextContentPart(BaseModel):
     type: str = "text"
     text: str
+    cache_control: Optional[AnthropicCacheControl] = None
 
 
 class AnthropicMessage(BaseModel):
@@ -106,7 +111,8 @@ class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     betas: Optional[List[str]] = None
-    system: Optional[str] = None
+    system: Optional[Union[str, List[Dict[str, Any]]]] = None
+    cache_control: Optional[Dict[str, Any]] = None
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None

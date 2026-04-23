@@ -109,8 +109,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 			deleteEngines(engine, engineId, engineName, engineType);
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteEngineRunner(engineId, engineType));
-				deleteAppThread.start();
+				Thread.ofVirtual().start(new DeleteEngineRunner(engineId, engineType));
 			}
 		}
 
