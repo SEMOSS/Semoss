@@ -32,7 +32,9 @@ class FAISSSearcher:
         enable_hybrid_search: bool = True,
     ):
         self.class_logger = logging.getLogger(__name__)
-        self.init_device()
+        
+        self._device_loaded = False
+        self._device = None
 
         self.ds = None
         self.encoded_vectors = None
@@ -111,6 +113,31 @@ class FAISSSearcher:
             raise TypeError("base_path must be a string")
         self._base_path = value
 
+	# ensure that device is lazy loaded to avoid heavy torch import as long as possible
+    def __getattr__(self, name):
+        """
+        Called only if 'name' is not found in the normal attribute dictionary.
+        We use it to lazy-load a specific attribute.
+        """
+        if name == "device":
+            if not self._device_loaded:
+                self._init_device()
+            return self._device
+        # If it's not the special attribute, raise AttributeError
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def _init_device(self):
+        """
+        Utility method to determine whether or not the devie running the interpreter has a gpu
+        """
+        self.class_logger.info(f"Loading torch in faiss client")
+        import torch
+        self._device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+        self._device_loaded = True
+        self.class_logger.warn(f"Done loading torch in faiss client")
+
     def _concatenate_columns(
         self,
         row: Dict[str, Any],
@@ -136,16 +163,6 @@ class FAISSSearcher:
             text += separator
 
         return {target_column: text}
-
-    def init_device(self):
-        """
-        Utility method to determine whether or not the devie running the interpreter has a gpu
-        """
-        import torch
-
-        self.device = (
-            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        )
 
     def nearestNeighbor(
         self,
