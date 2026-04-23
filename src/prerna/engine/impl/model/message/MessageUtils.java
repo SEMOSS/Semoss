@@ -124,7 +124,36 @@ public class MessageUtils {
 				}
 			}).create();
 
+	private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * Normalize a tool-call `arguments` value into something the Python side can
+	 * deserialize without double-escaping. The provider wire format delivers
+	 * arguments as a JSON-encoded string; if we leave that string in place, Gson
+	 * escapes the inner quotes a second time and json.loads on the Python side
+	 * chokes on payloads with shell escapes, code edits, newlines, etc.
+	 * Parsing to a Map here means args ride as a dict alongside every other
+	 * field. On parse failure we return the raw string so the downstream builder
+	 * can still forward it verbatim.
+	 */
+	private static Object toolArgumentsForPy(Object argsRaw) {
+		if (argsRaw == null) {
+			return new HashMap<>();
+		}
+		if (!(argsRaw instanceof String)) {
+			// some providers deliver a structured object already; re-serialize so
+			// the shape matches the string-input path
+			return GSON_FOR_PY.toJson(argsRaw);
+		}
+		try {
+			Map<String, Object> map = GSON_FOR_PY.fromJson((String) argsRaw, MAP_TYPE);
+			return map != null ? map : argsRaw;
+		} catch (Exception e) {
+			return argsRaw;
+		}
+	}
 
 	/**
 	 * API compatibility: add legacy flat fields into a map built from a message
@@ -618,14 +647,7 @@ public class MessageUtils {
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								Object argsRaw = funcMap.get("arguments");
-								if (argsRaw instanceof String) {
-									flatTool.put("arguments", argsRaw);
-								} else if (argsRaw != null) {
-									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
-								} else {
-									flatTool.put("arguments", "{}");
-								}
+								flatTool.put("arguments", toolArgumentsForPy(funcMap.get("arguments")));
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
