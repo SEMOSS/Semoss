@@ -223,11 +223,18 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
+        # Apply filter to dataset if provided
+        if filter is not None:
+            filter_ids = self._filter_dataset(filter)
+            filtered_ds = self.ds.select(filter_ids)
+        else:
+            filtered_ds = self.ds
+
         bm25_results = self.bm25_searcher.search_with_data(
             question,
             top_k=fusion_limit,
             columns_to_return=columns_to_return,
-            ds=self.ds,
+            ds=filtered_ds,
         )
 
         # 3. Combine using reciprocal rank fusion
