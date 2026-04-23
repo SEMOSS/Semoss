@@ -203,7 +203,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			// Parse for specific known keys
 
 			// execution mode
-			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto");
 			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
 			if (execModeEnum == null && !execModeInput.isBlank()) {
 				throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + "can only be a value of: "
@@ -212,10 +212,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (execModeEnum != null) {
 				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
 			} else {
-				// default to ASK
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				// default to AUTO
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 				if (execModeInput != null) {
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'auto'.",
 							execModeInput, reactorNames.get(i));
 				}
 			}
