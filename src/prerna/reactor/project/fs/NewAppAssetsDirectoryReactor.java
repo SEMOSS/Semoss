@@ -80,7 +80,7 @@ public class NewAppAssetsDirectoryReactor extends AbstractReactor {
 		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "add: creating new directory";
+			comment = "add: created directory " + filePath;
 		}
 
 		FileSystemUtil.createNewAssetDirectory(assetFolder, filePath);
