@@ -295,6 +295,7 @@ public class GitHubCopilotManager {
 		}
 
 		if (event instanceof AssistantMessageEvent messageEvent) {
+			publishIntentToolRequests(messageEvent.getData().toolRequests(), streamer, timestamp);
 			streamer.publishAssistantMessage(messageEvent.getData().messageId(), messageEvent.getData().content(),
 					messageEvent.getData().parentToolCallId(), toToolRequestMaps(messageEvent.getData().toolRequests()),
 					timestamp);
@@ -302,6 +303,10 @@ public class GitHubCopilotManager {
 		}
 
 		if (event instanceof ToolExecutionStartEvent toolStartEvent) {
+			if (isReportIntentTool(toolStartEvent.getData().toolName())) {
+				streamer.suppressToolCall(toolStartEvent.getData().toolCallId());
+				return;
+			}
 			streamer.publishToolExecutionStart(toolStartEvent.getData().toolCallId(),
 					toolStartEvent.getData().toolName(), toolStartEvent.getData().arguments(),
 					toolStartEvent.getData().parentToolCallId(), timestamp);
@@ -321,6 +326,10 @@ public class GitHubCopilotManager {
 		}
 
 		if (event instanceof ToolExecutionCompleteEvent completeEvent) {
+			if (streamer.isSuppressedToolCall(completeEvent.getData().toolCallId())) {
+				streamer.releaseSuppressedToolCall(completeEvent.getData().toolCallId());
+				return;
+			}
 			Map<String, Object> result = null;
 			if (completeEvent.getData().result() != null) {
 				result = new LinkedHashMap<>();
@@ -369,6 +378,50 @@ public class GitHubCopilotManager {
 			items.add(item);
 		}
 		return items;
+	}
+
+	private void publishIntentToolRequests(List<AssistantMessageEvent.AssistantMessageData.ToolRequest> requests,
+			GitHubCopilotPixelJobStreamer streamer, String timestamp) {
+		if (requests == null) {
+			return;
+		}
+
+		for (AssistantMessageEvent.AssistantMessageData.ToolRequest request : requests) {
+			if (request == null || !isReportIntentTool(request.name())) {
+				continue;
+			}
+
+			String intent = extractIntent(request.arguments());
+			if (intent == null || intent.isBlank()) {
+				continue;
+			}
+
+			String eventId = request.toolCallId() != null && !request.toolCallId().isBlank()
+					? request.toolCallId()
+					: "intent-" + UUID.randomUUID();
+			if (request.toolCallId() != null && !request.toolCallId().isBlank()) {
+				streamer.suppressToolCall(request.toolCallId());
+			}
+			streamer.publishAssistantIntent(eventId, intent, timestamp);
+		}
+	}
+
+	private String extractIntent(Object arguments) {
+		if (!(arguments instanceof Map)) {
+			return null;
+		}
+
+		Object intent = ((Map<?, ?>) arguments).get("intent");
+		if (intent == null) {
+			return null;
+		}
+
+		String text = String.valueOf(intent);
+		return !text.isBlank() ? text : null;
+	}
+
+	private boolean isReportIntentTool(String toolName) {
+		return toolName != null && "report_intent".equalsIgnoreCase(toolName.trim());
 	}
 
 	private String normalizeTimestamp(OffsetDateTime timestamp) {

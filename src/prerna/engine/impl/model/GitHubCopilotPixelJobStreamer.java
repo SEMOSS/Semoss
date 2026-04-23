@@ -29,8 +29,10 @@ package prerna.engine.impl.model;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobStatus;
@@ -44,6 +46,7 @@ final class GitHubCopilotPixelJobStreamer {
 	private final String sessionId;
 	private final Map<String, StringBuilder> assistantBuffers = new LinkedHashMap<>();
 	private final Map<String, ToolStreamState> toolStates = new LinkedHashMap<>();
+	private final Set<String> suppressedToolCallIds = new LinkedHashSet<>();
 
 	GitHubCopilotPixelJobStreamer(String jobId, String model, String sessionId) {
 		this.jobId = jobId;
@@ -59,7 +62,7 @@ final class GitHubCopilotPixelJobStreamer {
 
 		StringBuilder buffer = this.assistantBuffers.computeIfAbsent(messageId, ignored -> new StringBuilder());
 		buffer.append(deltaContent);
-		publishAssistantEnvelope(messageId, buffer.toString(), true, parentToolCallId, null, timestamp);
+		publishAssistantEnvelope(messageId, buffer.toString(), true, parentToolCallId, null, null, timestamp);
 	}
 
 	void publishAssistantMessage(String messageId, String content, String parentToolCallId,
@@ -74,7 +77,31 @@ final class GitHubCopilotPixelJobStreamer {
 		}
 
 		publishAssistantEnvelope(messageId, finalText, false, parentToolCallId,
-				normalizeToolRequests(toolRequests, timestamp), timestamp);
+				normalizeToolRequests(toolRequests, timestamp), null, timestamp);
+	}
+
+	void publishAssistantIntent(String eventId, String intent, String timestamp) {
+		if (isBlank(eventId) || isBlank(intent)) {
+			return;
+		}
+
+		publishAssistantEnvelope(eventId, intent, false, null, null, "intent", timestamp);
+	}
+
+	void suppressToolCall(String toolCallId) {
+		if (!isBlank(toolCallId)) {
+			this.suppressedToolCallIds.add(toolCallId);
+		}
+	}
+
+	boolean isSuppressedToolCall(String toolCallId) {
+		return !isBlank(toolCallId) && this.suppressedToolCallIds.contains(toolCallId);
+	}
+
+	void releaseSuppressedToolCall(String toolCallId) {
+		if (!isBlank(toolCallId)) {
+			this.suppressedToolCallIds.remove(toolCallId);
+		}
 	}
 
 	void publishToolExecutionStart(String toolCallId, String toolName, Object arguments, String parentToolCallId,
@@ -89,11 +116,11 @@ final class GitHubCopilotPixelJobStreamer {
 
 		List<Map<String, Object>> toolInvocations = new ArrayList<>();
 		toolInvocations.add(buildToolInvocation(toolCallId, toolName, state.description, parentToolCallId, timestamp));
-		publishAssistantEnvelope(toolCallId, null, false, null, toolInvocations, timestamp);
+		publishAssistantEnvelope(toolCallId, null, false, null, toolInvocations, null, timestamp);
 	}
 
 	void publishToolExecutionProgress(String toolCallId, String progressMessage, String timestamp) {
-		if (isBlank(toolCallId) || isBlank(progressMessage)) {
+		if (isBlank(toolCallId) || isBlank(progressMessage) || isSuppressedToolCall(toolCallId)) {
 			return;
 		}
 
@@ -103,7 +130,7 @@ final class GitHubCopilotPixelJobStreamer {
 	}
 
 	void publishToolExecutionPartialResult(String toolCallId, String partialOutput, String timestamp) {
-		if (isBlank(toolCallId) || isBlank(partialOutput)) {
+		if (isBlank(toolCallId) || isBlank(partialOutput) || isSuppressedToolCall(toolCallId)) {
 			return;
 		}
 
@@ -114,7 +141,7 @@ final class GitHubCopilotPixelJobStreamer {
 
 	void publishToolExecutionComplete(String toolCallId, boolean success, Map<String, Object> result,
 			Map<String, Object> error, String timestamp) {
-		if (isBlank(toolCallId)) {
+		if (isBlank(toolCallId) || isSuppressedToolCall(toolCallId)) {
 			return;
 		}
 
@@ -130,6 +157,7 @@ final class GitHubCopilotPixelJobStreamer {
 
 		publishToolResult(toolCallId, success ? "completed" : "error", content, false, timestamp);
 		this.toolStates.remove(toolCallId);
+		this.suppressedToolCallIds.remove(toolCallId);
 	}
 
 	void publishSessionError(String errorType, String message, Number statusCode, String timestamp) {
@@ -150,7 +178,7 @@ final class GitHubCopilotPixelJobStreamer {
 	}
 
 	private void publishAssistantEnvelope(String eventId, String text, boolean isPartial, String parentToolCallId,
-			List<Map<String, Object>> toolInvocations, String timestamp) {
+			List<Map<String, Object>> toolInvocations, String display, String timestamp) {
 		boolean hasText = !isBlank(text);
 		boolean hasToolInvocations = toolInvocations != null && !toolInvocations.isEmpty();
 		if (!hasText && !hasToolInvocations) {
@@ -172,6 +200,9 @@ final class GitHubCopilotPixelJobStreamer {
 			textPayload.put("text", text);
 			textPayload.put("timestamp", valueOrEmpty(timestamp));
 			textPayload.put("isPartial", isPartial);
+			if (!isBlank(display)) {
+				textPayload.put("display", display);
+			}
 			if (!isBlank(this.model)) {
 				textPayload.put("model", this.model);
 			}
@@ -219,13 +250,15 @@ final class GitHubCopilotPixelJobStreamer {
 
 			String toolCallId = stringValue(request.get("toolCallId"));
 			String toolName = stringValue(request.get("name"));
-			if (isBlank(toolCallId) || isBlank(toolName)) {
+			if (isBlank(toolCallId) || isBlank(toolName) || isReportIntentTool(toolName)) {
 				continue;
 			}
 
 			ToolStreamState state = getOrCreateToolState(toolCallId);
 			state.toolName = toolName;
-			state.description = extractDescription(request.get("arguments"));
+			state.description = firstNonBlank(
+					stringValue(request.get("intentionSummary")),
+					extractDescription(request.get("arguments")));
 			items.add(buildToolInvocation(toolCallId, toolName, state.description, null, timestamp));
 		}
 
@@ -251,11 +284,33 @@ final class GitHubCopilotPixelJobStreamer {
 	private String extractDescription(Object arguments) {
 		if (arguments instanceof Map) {
 			Map<?, ?> argMap = (Map<?, ?>) arguments;
-			Object description = firstNonNull(argMap.get("description"), argMap.get("prompt"), argMap.get("file_path"),
-				argMap.get("filePath"), argMap.get("command"));
+			Object description = firstNonNull(
+					argMap.get("description"),
+					argMap.get("prompt"),
+					argMap.get("file_path"),
+					argMap.get("filePath"),
+					argMap.get("path"),
+					argMap.get("command"),
+					argMap.get("pattern"),
+					argMap.get("glob"),
+					argMap.get("query"),
+					argMap.get("url"),
+					argMap.get("intent"));
 			return truncate(stringValue(description));
 		}
 		return truncate(stringValue(arguments));
+	}
+
+	private String firstNonBlank(String... values) {
+		if (values == null) {
+			return null;
+		}
+		for (String value : values) {
+			if (!isBlank(value)) {
+				return value;
+			}
+		}
+		return null;
 	}
 
 	private String extractToolResultContent(Map<String, Object> result, Map<String, Object> error) {
@@ -351,6 +406,10 @@ final class GitHubCopilotPixelJobStreamer {
 
 	private String valueOrEmpty(String value) {
 		return value != null ? value : "";
+	}
+
+	private boolean isReportIntentTool(String toolName) {
+		return toolName != null && "report_intent".equalsIgnoreCase(toolName.trim());
 	}
 
 	private boolean isBlank(String value) {
