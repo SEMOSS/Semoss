@@ -66,12 +66,20 @@ public final class DIHelper {
 			"PASSWORD", 
 			"SECRET", 
 			"TOKEN",
-			"CONN_STRING"
+			"CONN_STRING",
+			"AZURE_AUTHENTICATE_MODE",
+			"AZURE_KEYVAULT_NAME",
+			"AZURE_CLIENT_ID",
+			"AZURE_CLIENT_SECRET",
+			"AZURE_TENANT_ID",
+			"VAULT_ADDR",
+			"VAULT_TOKEN",
+			"PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD"
 		);
 	// @formatter:on
 
 	// the singleton
-	private static DIHelper helper = null;
+	private static volatile DIHelper helper = null;
 
 	private String rdfMapFileLocation = null;
 
@@ -505,16 +513,16 @@ public final class DIHelper {
 			coreProp.load(fileIn);
 			coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load DIHelper core properties file '{}'. File was not found.", fileName, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read DIHelper core properties file '{}'.", fileName, e);
 		} finally {
 			try {
 				if (fileIn != null) {
 					fileIn.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close input stream for DIHelper core properties file '{}'.", fileName, e);
 			}
 		}
 

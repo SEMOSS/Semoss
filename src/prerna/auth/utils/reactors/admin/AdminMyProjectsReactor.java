@@ -46,19 +46,17 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class AdminMyProjectsReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AdminMyProjectsReactor.class);
 
 	public AdminMyProjectsReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILTER_WORD.getKey(), 
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
-				ReactorKeysEnum.PROJECT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TYPE.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
-				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()
-			};
+				ReactorKeysEnum.NO_META.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
+				ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
@@ -67,53 +65,58 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 		// sort by name, date created, views, upvotes, trending
 		User user = this.insight.getUser();
 		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
+		if (adminUtils == null) {
 			throw new IllegalArgumentException("User must be an admin to perform this function");
 		}
-		
+
 		organizeKeys();
-		
+
 		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());
 		String offset = this.keyValue.get(ReactorKeysEnum.OFFSET.getKey());
 		List<String> projectIdFilters = getProjectIdFilters();
+		List<String> projectTypeFilters = getProjectTypeFilters();
+		Map<String, String> sortFields = getMap(ReactorKeysEnum.SORT.getKey());
 		Boolean noMeta = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.NO_META.getKey()));
-		Boolean includeUserT = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
+		Boolean includeUserT = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey()));
 		Map<String, Object> projectMetadataFilter = getMetaMap();
 
-		List<Map<String, Object>> projectInfo = adminUtils.getAllProjectSettings(projectIdFilters, projectMetadataFilter, searchTerm, limit, offset);
+		List<Map<String, Object>> projectInfo = adminUtils.getAllProjectSettings(projectIdFilters, projectTypeFilters,
+				projectMetadataFilter, searchTerm, limit, offset, sortFields);
 
-		if(!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
+		if (!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
 			int size = projectInfo.size();
 			// now we want to add most executed insights
-			for(int i = 0; i < size; i++) {
+			for (int i = 0; i < size; i++) {
 				Map<String, Object> project = projectInfo.get(i);
 				String projectId = project.get("project_id").toString();
 				// keep list of project ids to get the index
 				index.put(projectId, Integer.valueOf(i));
 			}
-	
-			if(!noMeta) {
+
+			if (!noMeta) {
 				IRawSelectWrapper wrapper = null;
 				try {
 					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(), getMetaKeys(), true);
-					while(wrapper.hasNext()) {
+					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String projectId = (String) data[0];
-		
+
 						String metaKey = (String) data[1];
 						String metaValue = (String) data[2];
-						if(metaValue == null) {
+						if (metaValue == null) {
 							continue;
 						}
-		
+
 						int indexToFind = index.get(projectId);
 						Map<String, Object> res = projectInfo.get(indexToFind);
-						// whatever it is, if it is single send a single value, if it is multi send as array
-						if(res.containsKey(metaKey)) {
+						// whatever it is, if it is single send a single value, if it is multi send as
+						// array
+						if (res.containsKey(metaKey)) {
 							Object obj = res.get(metaKey);
-							if(obj instanceof List) {
+							if (obj instanceof List) {
 								((List) obj).add(metaValue);
 							} else {
 								List<Object> newList = new ArrayList<>();
@@ -126,13 +129,14 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to attach project metadata values to the admin project list response", e);
 				} finally {
-					if(wrapper != null) {
+					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Failed to close metadata wrapper while building admin project list response", e);
 						}
 					}
 				}
@@ -151,13 +155,13 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 //						res.put("upvotes", upvotes);
 //					}
 //				} catch (Exception e) {
-//					classLogger.error(Constants.STACKTRACE, e);
+//					classLogger.error("Failed to attach vote totals to the admin project list response", e);
 //				} finally {
 //					if(wrapper!=null) {
 //						try {
 //							wrapper.close();
 //						} catch (IOException e) {
-//							classLogger.error(Constants.STACKTRACE, e);
+//							classLogger.error("Failed to close vote wrapper while building admin project list response", e);
 //						}
 //					}
 //				}
@@ -173,61 +177,73 @@ public class AdminMyProjectsReactor extends AbstractReactor {
 //				}
 //			}
 		}
-		
+
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getProjectIdFilters() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
+	/**
+	 * 
+	 * @return
+	 */
+	private List<String> getProjectTypeFilters() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.TYPE.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			return grs.getAllStrValues();
+		}
+
+		return null;
+	}
+
 	/**
 	 * 
 	 * @return
 	 */
 	private List<String> getMetaKeys() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, Object> getMetaMap() {
 		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.META_FILTERS.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
+		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
 	}
 
-	
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if(key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
+			return "The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "This is an optional project filter";
 		}
 		return super.getDescriptionForKey(key);

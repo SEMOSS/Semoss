@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.ds.py;
 
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -46,7 +46,7 @@ import prerna.util.EngineUtility;
 
 public class PyTranslator {
 
-	static Map<String, SemossDataType> pyS = new Hashtable<String, SemossDataType>();
+	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
@@ -62,9 +62,9 @@ public class PyTranslator {
 	private Insight globalStoreInsight = null;
 
 	/**
-	 * 
-	 * @param sc
-	 * @param this.globalStoreInsight
+	 * @param sc                 the socket client connected to the Python process
+	 * @param globalStoreInsight the insight whose globals dict is used as the
+	 *                           Python execution namespace
 	 */
 	public PyTranslator(SocketClient sc, Insight globalStoreInsight) {
 		this.sc = sc;
@@ -306,10 +306,13 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
-	 * @param executionInsight
-	 * @param script
-	 * @return
+	 * Prepends ROOT / APP_ROOT / USER_ROOT variable assignments derived from the
+	 * global-store insight, executes {@code script}, then replaces any raw
+	 * file-system paths in the returned string with safe placeholder tokens.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param script           the Python code to execute
+	 * @return the Python result with internal paths replaced by safe placeholders
 	 */
 	private Object executePyWithDefualtVars(Insight executionInsight, String script) {
 		String[] paths = getDefaultPaths(this.globalStoreInsight);
@@ -335,9 +338,12 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
-	 * @param defaultPaths
-	 * @return
+	 * Builds the Python preamble that assigns ROOT, APP_ROOT, and USER_ROOT.
+	 * Entries that are null or blank are omitted.
+	 *
+	 * @param defaultPaths [0] insight folder (ROOT), [1] app assets folder
+	 *                     (APP_ROOT), [2] user assets folder (USER_ROOT)
+	 * @return a {@code StringBuilder} containing the Python assignment statements
 	 */
 	private StringBuilder generateDefaultVars(String[] defaultPaths) {
 		StringBuilder script = new StringBuilder();
@@ -352,9 +358,13 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
-	 * @param insight
-	 * @return
+	 * Resolves the three standard Python path variables for the given insight.
+	 * Context project takes precedence over the saved-insight app folder for
+	 * APP_ROOT.
+	 *
+	 * @param insight the insight to resolve paths for
+	 * @return [0] insight folder (ROOT), [1] app/project assets folder (APP_ROOT,
+	 *         may be null), [2] user assets folder (USER_ROOT, may be null)
 	 */
 	private String[] getDefaultPaths(Insight insight) {
 		String insightPath = insight.getInsightFolder().replace('\\', '/');
@@ -381,10 +391,13 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
-	 * @param executionInsight
-	 * @param script
-	 * @return
+	 * Sends a Python script to the socket process and returns the result. Infers
+	 * {@code asset_paths} from the global-store insight's current context project
+	 * when one is set.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param script           the Python code to execute
+	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScript(Insight executionInsight, String script) {
 		String methodName = new Object() {
@@ -428,7 +441,115 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
+	 * Executes a Python script with explicitly supplied asset paths, bypassing the
+	 * shared Insight context fields ({@code contextProjectId} /
+	 * {@code contextProjectName}).
+	 * <p>
+	 * Use this instead of {@link #runScript} whenever the calling code already
+	 * knows the target engine's assets folder and must not race with other threads
+	 * that may concurrently call {@code insight.setContext()}. The supplied
+	 * {@code assetsDir} is used to set {@code APP_ROOT} for the execution; all
+	 * paths are forwarded to the Python process via
+	 * {@code PayloadStruct.asset_paths} so that the per-project module isolation in
+	 * {@code _asset_aware_import} picks them up correctly.
+	 *
+	 * @param executionInsight     the insight whose security context governs this
+	 *                             call; may differ from the translator's
+	 *                             {@code globalStoreInsight} when an engine invokes
+	 *                             Python on behalf of a user
+	 * @param script               the Python code to execute
+	 * @param assetsDir            the engine assets root folder (becomes
+	 *                             {@code APP_ROOT})
+	 * @param additionalAssetsDirs extra paths appended to {@code asset_paths} (e.g.
+	 *                             the {@code /py} sub-folder); may be null
+	 * @return the value of the last expression evaluated, or an empty string if the
+	 *         script produces no evaluable expression
+	 */
+	public Object runScriptWithExplicitAssetPaths(Insight executionInsight, String script, String assetsDir,
+			String[] additionalAssetsDirs) {
+		String[] paths = getDefaultPaths(this.globalStoreInsight);
+		assetsDir = assetsDir.replace('\\', '/');
+		paths[1] = assetsDir;
+		StringBuilder pathVars = generateDefaultVars(paths);
+		int numAssetsDir = 1 + (additionalAssetsDirs == null ? 0 : additionalAssetsDirs.length);
+		String[] finalAssetsDir = new String[numAssetsDir];
+		finalAssetsDir[0] = assetsDir;
+		if (additionalAssetsDirs != null) {
+			for (int i = 0; i < additionalAssetsDirs.length; i++) {
+				finalAssetsDir[i + 1] = finalAssetsDir[i].replace('\\', '/');
+			}
+		}
+
+		Object output = transportScriptWithExplicitPaths(executionInsight, pathVars.toString() + script,
+				finalAssetsDir);
+
+		if (output instanceof String) {
+			String strOutput = (String) output;
+			if (paths[0] != null && strOutput.contains(paths[0])) {
+				strOutput = strOutput.replace(paths[0], "$IF");
+			}
+			if (paths[1] != null && strOutput.contains(paths[1])) {
+				strOutput = strOutput.replace(paths[1], "$APP_IF");
+			}
+			if (paths[2] != null && strOutput.contains(paths[2])) {
+				strOutput = strOutput.replace(paths[2], "$USER_IF");
+			}
+			return strOutput;
+		}
+		return output;
+	}
+
+	/**
+	 * Low-level transport that accepts an explicit {@code asset_paths} array
+	 * instead of inferring it from the shared Insight context. Unlike
+	 * {@link #transportScript}, this method never reads {@code contextProjectId} or
+	 * {@code contextProjectName}, making it safe to call from concurrent threads
+	 * targeting different engines on the same Insight.
+	 *
+	 * @param executionInsight   the security-context insight; may be null
+	 * @param script             the Python code (already prefixed with path
+	 *                           variable assignments)
+	 * @param explicitAssetPaths paths forwarded to the Python process as
+	 *                           {@code asset_paths}
+	 * @return the deserialized result from the Python process
+	 */
+	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
+			String[] explicitAssetPaths) {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.methodName = "transportScript";
+		ps.payload = new Object[] { script };
+		ps.payloadClasses = new Class[] { String.class };
+		ps.longRunning = true;
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		if (explicitAssetPaths != null) {
+			ps.asset_paths = explicitAssetPaths;
+		}
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (executionInsight != null) {
+			ps.executionInsightId = executionInsight.getInsightId();
+		}
+		if (sc.isConnected()) {
+			ps = (PayloadStruct) sc.executeCommand(ps);
+			if (ps == null) {
+				throw new SemossPixelException("Received a null PayloadStruct response");
+			}
+			if (ps.ex != null) {
+				throw new SemossPixelException(ps.ex);
+			}
+			return ps.payload[0];
+		} else {
+			throw new SemossPixelException(
+					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+		}
+	}
+
+	/**
+	 * Sends a {@code CLEAR_NON_MODULE_GLOBALS} command to the Python process,
+	 * removing all user-defined variables from this insight's globals dict while
+	 * preserving imported modules and framework entries.
 	 */
 	public void clearInsightGlobals() {
 		PayloadStruct ps = new PayloadStruct();
@@ -453,7 +574,9 @@ public class PyTranslator {
 	}
 
 	/**
-	 * 
+	 * Sends a {@code REMOVE_INSIGHT_GLOBALS} command to the Python process,
+	 * completely dropping the globals dict for this insight and requesting garbage
+	 * collection to free all Python objects held by it.
 	 */
 	public void removeInsightGlobals() {
 		PayloadStruct ps = new PayloadStruct();

@@ -44,28 +44,30 @@ public class LocalFileSystemStorageEngine extends AbstractRCloneStorageEngine {
 	{
 		this.PROVIDER = "local";
 	}
-	
+
 	// this is not really needed
 	public static final String PATH_PREFIX = "PATH_PREFIX";
 
 	@Deprecated
 	public static final String LOCAL_PATH_PREFIX = "LOCAL_PATH_PREFIX";
 
+	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		this.BUCKET = smssProp.getProperty(PATH_PREFIX);
-		if(this.BUCKET == null) {
+		if (this.BUCKET == null) {
 			this.BUCKET = smssProp.getProperty(LOCAL_PATH_PREFIX);
-			if(this.BUCKET == null) {
+			if (this.BUCKET == null) {
 				throw new IllegalArgumentException("Must provide the " + PATH_PREFIX + " for the local file system");
 			} else {
-				classLogger.warn("Update SMSS key for " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " from " + LOCAL_PATH_PREFIX + " to new key " + PATH_PREFIX);
+				classLogger.warn("Update SMSS key for {} from {} to new key {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), LOCAL_PATH_PREFIX, PATH_PREFIX);
 			}
 		}
-		
+
 		this.BUCKET = this.BUCKET.replace("\\", "/");
 	}
-	
+
 	@Override
 	public String createRCloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);

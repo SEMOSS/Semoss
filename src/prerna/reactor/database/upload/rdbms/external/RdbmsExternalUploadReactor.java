@@ -68,7 +68,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
@@ -132,15 +131,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[1]);
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String userPassedExisting = this.keyValue.get(this.keysToGet[3]);
-		boolean existingDatabase = false;
+		boolean existingDatabase = Boolean.parseBoolean(userPassedExisting);
 		IRDBMSEngine nativeDatabase = null;
 
 		// make sure both fields exist
-		if (databaseId != null && userPassedExisting != null) {
-			existingDatabase = Boolean.parseBoolean(userPassedExisting);
-
+		if (existingDatabase && databaseId != null && !(databaseId = databaseId.trim()).isEmpty()) {
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			if (database instanceof IRDBMSEngine) {
 				nativeDatabase = (IRDBMSEngine) database;
@@ -148,12 +146,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Database must be a valid JDBC database");
 			}
 		}
-
 		// if user enters existing=true and the database doesn't exist
-		if (existingDatabase && (databaseId == null || nativeDatabase == null)) {
+		if (existingDatabase && nativeDatabase == null) {
 			throw new IllegalArgumentException("Database " + databaseId + " does not exist");
 		}
-		this.databaseName = UploadInputUtility.getDatabaseNameOrId(this.store);
 
 		if (existingDatabase) {
 			// check if input is alias since we are adding to existing
@@ -169,6 +165,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 			this.databaseId = databaseId;
 			this.database = Utility.getDatabase(databaseId);
+			this.databaseName = this.database.getEngineName();
 			try {
 				this.logger.info("Updating existing database");
 				updateExistingDatabase();
@@ -188,6 +185,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			}
 		} else { // if database doesn't exist create new
 			try {
+				// what user passed in is the database name
+				this.databaseName = databaseId;
 				// make a new id
 				this.databaseId = UUID.randomUUID().toString();
 				// validate database
@@ -205,7 +204,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
 				this.tempSmss.delete();
 				this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
-				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
+				UploadUtilities.addEngineToDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
 				UploadUtilities.updateMetadata(this.databaseId, user);
@@ -238,11 +237,11 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 							this.databaseFolder);
 				}
 			}
-		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
+			}
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);
@@ -318,8 +317,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

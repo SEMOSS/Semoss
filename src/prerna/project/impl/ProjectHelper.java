@@ -84,7 +84,6 @@ import prerna.util.sql.RdbmsTypeEnum;
 public final class ProjectHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
-	private static final String DIR_SEPARATOR = "/";
 
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";

@@ -65,7 +65,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -108,8 +107,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -794,7 +792,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 		ExcelRange r = new ExcelRange(startCol, numCells, startRow, numRows);
 		this.logger.info("Predicting datatypes for sheet = " + lSheet.getSheetName());
-		Object[][] prediction = ExcelParsing.predictTypes(lSheet.iterator(), r.getRangeSyntax());
+		Object[][] prediction = ExcelParsing.predictTypes(lSheet, r.getRangeSyntax());
 
 		// we will keep types[i] to be null
 		// TODO: in future should fix this but other places are using it this way

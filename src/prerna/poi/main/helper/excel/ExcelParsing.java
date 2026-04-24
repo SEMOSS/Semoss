@@ -37,11 +37,16 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.date.SemossDate;
 import prerna.poi.main.helper.FileHelperUtil;
 
+/**
+ * Parsing helpers for extracting typed values and inferring column data types
+ * from Excel sheets.
+ */
 public class ExcelParsing {
 
 	private static final int NUM_ROWS_TO_PREDICT_TYPES = 500;
@@ -50,9 +55,19 @@ public class ExcelParsing {
 
 	}
 
+	/**
+	 * Validates that the provided file path points to a supported Excel file type.
+	 *
+	 * @param filePath input file path
+	 * @return {@code true} when the file extension is one of {@code .xlsx},
+	 *         {@code .xlsm}, or {@code .xls}
+	 */
 	public static boolean isExcelFile(String filePath) {
+		if (filePath == null) {
+			return false;
+		}
 		String file = filePath.toLowerCase();
-		if (file.endsWith(".xlsx") || file.endsWith("xlsm") || file.endsWith("xls")) {
+		if (file.endsWith(".xlsx") || file.endsWith(".xlsm") || file.endsWith(".xls")) {
 			return true;
 		}
 
@@ -60,6 +75,12 @@ public class ExcelParsing {
 
 	}
 
+	/**
+	 * Determines whether a cell should be treated as empty.
+	 *
+	 * @param thisCell cell to evaluate
+	 * @return {@code true} when the cell is {@code null}, blank, or whitespace only
+	 */
 	public static boolean isEmptyCell(Cell thisCell) {
 		if (thisCell == null || thisCell.getCellType() == CellType.BLANK || thisCell.toString().trim().isEmpty()) {
 			return true;
@@ -69,9 +90,10 @@ public class ExcelParsing {
 
 	/**
 	 * Get the cell values
-	 * 
-	 * @param thisCell
-	 * @return
+	 *
+	 * @param thisCell cell to read
+	 * @return the typed Java value for the cell, or {@code null} when no value can
+	 *         be resolved
 	 */
 	public static Object getCell(Cell thisCell) {
 		if (thisCell == null) {
@@ -116,7 +138,15 @@ public class ExcelParsing {
 	 * Methods around predicting types
 	 */
 
-	public static Object[][] predictTypes(Iterator<Row> sheetIterator, String range) {
+	/**
+	 * Predicts the column types for a range in a sheet.
+	 *
+	 * @param sheet source sheet
+	 * @param range excel range in A1 notation
+	 * @return matrix of per-column type predictions and optional formatting
+	 *         metadata
+	 */
+	public static Object[][] predictTypes(Sheet sheet, String range) {
 		// for a given sheet
 		// loop through and determine the types
 		// based on a block in a given range
@@ -132,7 +162,7 @@ public class ExcelParsing {
 		// Loop through cols, and up to 1000 rows
 		int counter = 0;
 		for (int colIndex = rangeIndex[0]; colIndex <= rangeIndex[2]; colIndex++) {
-			predictTypesLoop(sheetIterator, rangeIndex, predictedTypes, additionalFormatTracker, colIndex, counter);
+			predictTypesLoop(sheet.iterator(), rangeIndex, predictedTypes, additionalFormatTracker, colIndex, counter);
 			counter++;
 		}
 
@@ -141,11 +171,11 @@ public class ExcelParsing {
 
 	private static void predictTypesLoop(Iterator<Row> sheetIterator, int[] rangeIndex, Object[][] predictedTypes,
 			List<Map<String, Integer>> additionalFormatTracker, int cellIndex, int colIndex) {
-		int startRow = rangeIndex[1];
-		int endRow = rangeIndex[3];
+		int startRow = rangeIndex[1] - 1;
+		int endRow = rangeIndex[3] - 1;
 		// only use up to 500 rows for determining the types
-		if (endRow - startRow > NUM_ROWS_TO_PREDICT_TYPES) {
-			endRow = startRow + NUM_ROWS_TO_PREDICT_TYPES;
+		if (endRow - startRow + 1 > NUM_ROWS_TO_PREDICT_TYPES) {
+			endRow = startRow + NUM_ROWS_TO_PREDICT_TYPES - 1;
 		}
 
 		boolean forceBreak = false;
@@ -153,125 +183,134 @@ public class ExcelParsing {
 		Map<String, Integer> formatTracker = new HashMap<String, Integer>();
 		additionalFormatTracker.add(formatTracker);
 
-		ROW_LOOP: for (int j = startRow; j < endRow; j++) {
+		ROW_LOOP: while (sheetIterator.hasNext()) {
 			Row row = sheetIterator.next();
-			if (row != null) {
-				// remember, excel is 1 based while java is 0 based
-				Object value = ExcelParsing.getCell(row.getCell(cellIndex - 1));
-				if (value == null || value instanceof String && value.toString().isEmpty()) {
-					continue ROW_LOOP;
-				}
+			if (row == null) {
+				continue ROW_LOOP;
+			}
+			int rowNum = row.getRowNum();
+			if (rowNum < startRow) {
+				continue ROW_LOOP;
+			}
+			if (rowNum > endRow) {
+				break ROW_LOOP;
+			}
 
-				SemossDataType newTypePrediction = getTypeByCast(value);
-				String additionalFormatting = null;
-				if (value instanceof SemossDate) {
-					additionalFormatting = ((SemossDate) value).getPattern();
-				}
+			// remember, excel is 1 based while java is 0 based
+			Object value = ExcelParsing.getCell(row.getCell(cellIndex - 1));
+			if (value == null || value instanceof String && value.toString().isEmpty()) {
+				continue ROW_LOOP;
+			}
 
-				// handle the additional formatting
-				if (additionalFormatting != null) {
-					if (formatTracker.containsKey(additionalFormatting)) {
-						// increase counter by 1
-						formatTracker.put(additionalFormatting,
-								new Integer(formatTracker.get(additionalFormatting) + 1));
-					} else {
-						formatTracker.put(additionalFormatting, new Integer(1));
-					}
-				}
+			SemossDataType newTypePrediction = getTypeByCast(value);
+			String additionalFormatting = null;
+			if (value instanceof SemossDate) {
+				additionalFormatting = ((SemossDate) value).getPattern();
+			}
 
-				// if we hit a string
-				// we are done
-				if (newTypePrediction == SemossDataType.STRING) {
-					forceBreak = true;
-					Object[] columnPrediction = new Object[2];
-					columnPrediction[0] = newTypePrediction;
-					predictedTypes[colIndex] = columnPrediction;
-					break ROW_LOOP;
+			// handle the additional formatting
+			if (additionalFormatting != null) {
+				if (formatTracker.containsKey(additionalFormatting)) {
+					// increase counter by 1
+					formatTracker.put(additionalFormatting,
+							Integer.valueOf(formatTracker.get(additionalFormatting) + 1));
+				} else {
+					formatTracker.put(additionalFormatting, Integer.valueOf(1));
 				}
+			}
 
-				if (type == null) {
-					// this is the first time we go through
-					// just set the type and we are done
-					// we only need to go through when we hit a difference
-					type = newTypePrediction;
-					continue;
-				}
+			// if we hit a string
+			// we are done
+			if (newTypePrediction == SemossDataType.STRING) {
+				forceBreak = true;
+				Object[] columnPrediction = new Object[2];
+				columnPrediction[0] = newTypePrediction;
+				predictedTypes[colIndex] = columnPrediction;
+				break ROW_LOOP;
+			}
 
-				if (type == newTypePrediction) {
-					// well, nothing for us to do if its the same
-					// again, we handle additional formatting
-					// at the top
-					continue;
-				}
+			if (type == null) {
+				// this is the first time we go through
+				// just set the type and we are done
+				// we only need to go through when we hit a difference
+				type = newTypePrediction;
+				continue;
+			}
 
-				// if we hit a boolean
-				else if (newTypePrediction == SemossDataType.BOOLEAN) {
-					// we have a boolean and something else we dont know
+			if (type == newTypePrediction) {
+				// well, nothing for us to do if its the same
+				// again, we handle additional formatting
+				// at the top
+				continue;
+			}
+
+			// if we hit a boolean
+			else if (newTypePrediction == SemossDataType.BOOLEAN) {
+				// we have a boolean and something else we dont know
+				// default to string
+				type = SemossDataType.STRING;
+				// clear the tracker so we dont send additional format logic
+				formatTracker.clear();
+				break ROW_LOOP;
+			}
+
+			// if we hit an integer
+			else if (newTypePrediction == SemossDataType.INT) {
+				if (type == SemossDataType.DOUBLE) {
+					// the type stays as double
+					type = SemossDataType.DOUBLE;
+				} else {
+					// we have a number and something else we dont know
 					// default to string
 					type = SemossDataType.STRING;
 					// clear the tracker so we dont send additional format logic
 					formatTracker.clear();
 					break ROW_LOOP;
 				}
+			}
 
-				// if we hit an integer
-				else if (newTypePrediction == SemossDataType.INT) {
-					if (type == SemossDataType.DOUBLE) {
-						// the type stays as double
-						type = SemossDataType.DOUBLE;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break ROW_LOOP;
-					}
+			// if we hit a double
+			else if (newTypePrediction == SemossDataType.DOUBLE) {
+				if (type == SemossDataType.INT) {
+					// the type stays as double
+					type = SemossDataType.DOUBLE;
+				} else {
+					// we have a number and something else we dont know
+					// default to string
+					type = SemossDataType.STRING;
+					// clear the tracker so we dont send additional format logic
+					formatTracker.clear();
+					break ROW_LOOP;
 				}
+			}
 
-				// if we hit a double
-				else if (newTypePrediction == SemossDataType.DOUBLE) {
-					if (type == SemossDataType.INT) {
-						// the type stays as double
-						type = SemossDataType.DOUBLE;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break ROW_LOOP;
-					}
+			// if we hit a date
+			else if (newTypePrediction == SemossDataType.DATE) {
+				if (type == SemossDataType.TIMESTAMP) {
+					// stick with timestamp
+					type = SemossDataType.TIMESTAMP;
+				} else {
+					// we have a number and something else we dont know
+					// default to string
+					type = SemossDataType.STRING;
+					// clear the tracker so we dont send additional format logic
+					formatTracker.clear();
+					break ROW_LOOP;
 				}
+			}
 
-				// if we hit a date
-				else if (newTypePrediction == SemossDataType.DATE) {
-					if (type == SemossDataType.TIMESTAMP) {
-						// stick with timestamp
-						type = SemossDataType.TIMESTAMP;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break ROW_LOOP;
-					}
-				}
-
-				// if we hit a timestamp
-				else if (newTypePrediction == SemossDataType.TIMESTAMP) {
-					if (type == SemossDataType.DATE) {
-						// stick with timestamp
-						type = SemossDataType.TIMESTAMP;
-					} else {
-						// we have a number and something else we dont know
-						// default to string
-						type = SemossDataType.STRING;
-						// clear the tracker so we dont send additional format logic
-						formatTracker.clear();
-						break ROW_LOOP;
-					}
+			// if we hit a timestamp
+			else if (newTypePrediction == SemossDataType.TIMESTAMP) {
+				if (type == SemossDataType.DATE) {
+					// stick with timestamp
+					type = SemossDataType.TIMESTAMP;
+				} else {
+					// we have a number and something else we dont know
+					// default to string
+					type = SemossDataType.STRING;
+					// clear the tracker so we dont send additional format logic
+					formatTracker.clear();
+					break ROW_LOOP;
 				}
 			}
 		}
@@ -308,15 +347,14 @@ public class ExcelParsing {
 
 	/**
 	 * Predict the type via casting
-	 * 
-	 * @param value
-	 * @return
+	 *
+	 * @param value value to inspect
+	 * @return inferred SEMOSS type
 	 */
 	public static SemossDataType getTypeByCast(Object value) {
 		if (value instanceof String) {
 			return SemossDataType.STRING;
 		} else if (value instanceof Number) {
-			// check if actually a number
 			if (((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue())) {
 				return SemossDataType.INT;
 			}

@@ -66,6 +66,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -81,7 +82,7 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	private int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
 	private final AtomicLong lastAppendTime = new AtomicLong(System.currentTimeMillis());
-	private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService SCHEDULER;
 
 	protected AuditLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions, String engineId, int batchSize) {
@@ -106,18 +107,21 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 				);
 				""";
 
-		this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+		this.SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread t = new Thread(r, "AuditLogsJDBCAppender-Scheduler");
 			t.setDaemon(true);
 			return t;
 		});
 
-		this.scheduler.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
+		this.SCHEDULER.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
 				TimeUnit.MILLISECONDS);
 	}
 
 	@Override
 	public void append(LogEvent event) {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		synchronized (events) {
 			events.add(event.toImmutable());
 			lastAppendTime.set(System.currentTimeMillis());
@@ -128,12 +132,18 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 	}
 
 	private void flushIfIdle() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		if (System.currentTimeMillis() - lastAppendTime.get() >= FLUSH_INTERVAL_MS) {
 			flush();
 		}
 	}
 
 	private void flush() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		List<LogEvent> processingEvents;
 		synchronized (events) {
 			if (events.isEmpty()) {
@@ -147,14 +157,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
+		IRDBMSEngine auditLogs = null;
 		if (!Constants.AUDIT_LOGS_DB.equals(this.ENGINE_ID)) {
+			auditLogs = (IRDBMSEngine) Utility.getDatabase(this.ENGINE_ID);
 			try {
 				AuditLogsDbUtils.initEngineAsAuditDatabase(auditLogs);
 			} catch (Exception e) {
 				LOGGER.error("Failed to initialize custom engine as audit logs database", e);
 				return;
 			}
+		} else {
+			auditLogs = SystemEngineRegistry.getAuditLogsDb();
 		}
 		if (auditLogs == null) {
 			LOGGER.warn("Audit logs database has not been initialized yet");
@@ -250,14 +263,17 @@ public class AuditLogsJDBCAppender extends AbstractAppender {
 
 	@Override
 	public void stop() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		flush();
-		scheduler.shutdown();
+		SCHEDULER.shutdown();
 		try {
-			if (!scheduler.awaitTermination(1, TimeUnit.MINUTES)) {
-				scheduler.shutdownNow();
+			if (!SCHEDULER.awaitTermination(1, TimeUnit.MINUTES)) {
+				SCHEDULER.shutdownNow();
 			}
 		} catch (InterruptedException e) {
-			scheduler.shutdownNow();
+			SCHEDULER.shutdownNow();
 			Thread.currentThread().interrupt();
 		}
 		super.stop();

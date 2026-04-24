@@ -9,15 +9,20 @@ class AnthropicRoles(StringEnum):
     ASSISTANT = "assistant"
 
 
-class AnthropicImageType(StringEnum):
+class AnthropicMediaType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
 
 class AnthropicMediaSourceBase64(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.BASE64
+    type: AnthropicMediaType = AnthropicMediaType.BASE64
     media_type: str
     data: str
+
+
+class AnthropicURLMediaSource(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.URL
+    url: str
 
 
 class AnthropicImageContentPart(BaseModel):
@@ -75,9 +80,14 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheControl(BaseModel):
+    type: str = "ephemeral"
+
+
 class AnthropicTextContentPart(BaseModel):
     type: str = "text"
     text: str
+    cache_control: Optional[AnthropicCacheControl] = None
 
 
 class AnthropicMessage(BaseModel):
@@ -101,7 +111,8 @@ class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     betas: Optional[List[str]] = None
-    system: Optional[str] = None
+    system: Optional[Union[str, List[Dict[str, Any]]]] = None
+    cache_control: Optional[Dict[str, Any]] = None
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None

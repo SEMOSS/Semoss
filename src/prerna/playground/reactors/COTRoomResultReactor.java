@@ -43,7 +43,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.MessageUtils.ToolChoiceType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -78,9 +77,8 @@ public class COTRoomResultReactor extends AbstractReactor {
 		Map<String, Object> paramMap = new HashMap<>();
 		paramMap.put("tool_choice", MessageUtils.makeToolChoice(ToolChoiceType.NONE, null));
 
-		InputMessage inputMsg = InputMessage.builder(room).withInputUIPrompt("Result of Plan Execution")
-				.withInputPrompt(
-						"Provide a summary of each step in the plan and then the final result that answers the user's question with an explanation")
+		String prompt = "Provide a summary of each step in the plan and then the final result that answers the user's question with an explanation";
+		InputMessage inputMsg = InputMessage.builder(room).withText(prompt, "Result of Plan Execution")
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		// Run LLM (not saving in history for now)
@@ -89,11 +87,10 @@ public class COTRoomResultReactor extends AbstractReactor {
 		// parse the response for code blocks
 		// this should only be response text
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
-			MCPUtility.updateToolResponseWithProjectMeta(response);
+			room.updateToolResponseMeta(response);
 		}
 
 		// ---- Return both messages as a Map

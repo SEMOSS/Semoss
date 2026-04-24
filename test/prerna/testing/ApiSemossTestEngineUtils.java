@@ -64,20 +64,24 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.AuthProvider;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.prompt.AbstractPromptUtils;
+import prerna.notifications.NotificationDbUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.testing.utility.TestExcelInputObject;
 import prerna.testing.utility.TestExcelType;
 import prerna.theme.AbstractThemeUtils;
-import prerna.theme.ThemeDbTable;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.SystemEngineRegistry;
+import prerna.util.SystemEngineRegistryTestExtension;
 import prerna.util.Utility;
 
 public class ApiSemossTestEngineUtils {
@@ -86,41 +90,34 @@ public class ApiSemossTestEngineUtils {
 			"engines.txt");
 	private static List<String> CORE_DBS = null;
 
-	
-	private static List<String> CURRENT_NAMES = new ArrayList<>();
-	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS, Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
+	private final static List<String> DO_NOT_CLEAR_LIST = Arrays.asList(Constants.INSIGHT_METAKEYS,
+			Constants.PROJECT_METAKEYS, Constants.ENGINE_METAKEYS, Constants.PROMPT_METAKEYS);
 	private static List<String> IDS_TO_AVOID = null;
-	
+
 	private static Logger logger = LogManager.getLogger(ApiSemossTestEngineUtils.class);
 
 	// DBs to clear, tables to avoid
-	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays.asList(
-			Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
+	private static final List<Pair<String, List<String>>> DB_TO_CLEAR = Arrays
+			.asList(Pair.of(Constants.SECURITY_DB, Arrays.asList("PERMISSION")),
 			// Pair.of(Constants.SCHEDULER_DB, new ArrayList<String>()), not initialized
 //			Pair.of(Constants.THEMING_DB, Arrays.asList(new String[] {"BLOCKS_TABLE"})),
-			Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})),
-			Pair.of(Constants.PROMPT_DB, Arrays.asList(new String[] {}))
-			);
+					Pair.of(Constants.USER_TRACKING_DB, Arrays.asList(new String[] {})),
+					Pair.of(Constants.PROMPT_DB, Arrays.asList(new String[] {})));
 
 	static void checkDatabasePropMapping() {
-		assertEquals(ApiTestsSemossConstants.LMD_SMSS,
-				((String) DIHelper.getInstance().getEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE)));
-		assertEquals(ApiTestsSemossConstants.SECURITY_SMSS,
-				((String) DIHelper.getInstance().getEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE)));
-		assertEquals(ApiTestsSemossConstants.SCHEDULER_SMSS,
-				((String) DIHelper.getInstance().getEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE)));
-		assertEquals(ApiTestsSemossConstants.THEMES_SMSS,
-				((String) DIHelper.getInstance().getEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE)));
-		assertEquals(ApiTestsSemossConstants.UTDB_SMSS, ((String) DIHelper.getInstance()
-				.getEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE)));
+		assertTrue(SystemEngineRegistry.isLocalMasterDbLoaded(), "LocalMasterDb should be loaded");
+		assertTrue(SystemEngineRegistry.isSecurityDbLoaded(), "SecurityDb should be loaded");
+		assertTrue(SystemEngineRegistry.isSchedulerDbLoaded(), "SchedulerDb should be loaded");
+		assertTrue(SystemEngineRegistry.isThemesDbLoaded(), "ThemesDb should be loaded");
+		assertTrue(SystemEngineRegistry.isUserTrackingDbLoaded(), "UserTrackingDb should be loaded");
+		assertTrue(SystemEngineRegistry.isPromptDbLoaded(), "PromptDB should be loaded");
+		assertTrue(SystemEngineRegistry.isNotificationDbLoaded(), "NotificationDB should be loaded");
+		assertTrue(SystemEngineRegistry.isAuditLogsDbLoaded(), "AuditLogDb should be loaded");
+		assertTrue(SystemEngineRegistry.isModelInferenceLogsDbLoaded(), "ModelInferenceLogsDb should be loaded");
 	}
 
 	static void unloadDatabases() {
-		DIHelper.getInstance().removeEngineProperty(Constants.LOCAL_MASTER_DB + "_" + Constants.STORE);
-		DIHelper.getInstance().removeEngineProperty(Constants.SECURITY_DB + "_" + Constants.STORE);
-		DIHelper.getInstance().removeEngineProperty(Constants.THEMING_DB + "_" + Constants.STORE);
-		DIHelper.getInstance().removeEngineProperty(Constants.SCHEDULER_DB + "_" + Constants.STORE);
-		DIHelper.getInstance().removeEngineProperty(Constants.USER_TRACKING_DB + "_" + Constants.STORE);
+		SystemEngineRegistryTestExtension.resetAll();
 	}
 
 	public static void addDBStartupTasks(List<Callable<Void>> tasks) {
@@ -130,6 +127,27 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
 		tasks.add(() -> initializePrompt());
+		tasks.add(() -> initializeNotification());
+		tasks.add(() -> initializeAuditLogs());
+		tasks.add(() -> initializeModelInferenceLogs());
+	}
+
+	private static Void initializeModelInferenceLogs() throws Exception {
+		doInitializeSemossDB(Constants.MODEL_INFERENCE_LOGS_DB, "database.mv.db");
+		ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeAuditLogs() throws Exception {
+		doInitializeSemossDB(Constants.AUDIT_LOGS_DB, "database.mv.db");
+		AuditLogsDbUtils.loadAuditLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeNotification() throws Exception {
+		doInitializeSemossDB(Constants.NOTIFICATION_DB, "database.mv.db");
+		NotificationDbUtils.loadNotificationDatabase();
+		return null;
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {
@@ -156,22 +174,23 @@ public class ApiSemossTestEngineUtils {
 		return null;
 	}
 
-	private static Void initializeScheduler() throws IOException {
+	private static Void initializeScheduler() throws Exception {
 		doInitializeSemossDB(Constants.SCHEDULER_DB, "database.mv.db");
-		// error when initializing
-		// TODO: fix this later
-		// SchedulerDatabaseUtility.startServer();
+		// Full SchedulerDatabaseUtility.startServer() skipped intentionally in tests
+		// (starts background scheduler threads); the engine is loaded and registered
+		// via doInitializeSemossDB so callers can use
+		// SystemEngineRegistry.getSchedulerDb().
 		return null;
 	}
-	
+
 	public static Void initializePrompt() throws Exception {
 		try {
 			doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
-			AbstractPromptUtils.loadPromptDatabase();
+			PromptUtils.loadPromptDatabase();
 		} catch (Exception e) {
 			// Weird behavior, but NPE on first try, successful load on second
-			// Can't debug because it works first try when debugging 
-			AbstractPromptUtils.loadPromptDatabase();
+			// Can't debug because it works first try when debugging
+			PromptUtils.loadPromptDatabase();
 		}
 		return null;
 	}
@@ -186,7 +205,7 @@ public class ApiSemossTestEngineUtils {
 
 			String name = userUserName.substring(0, 1);
 			PreparedStatement ps = conn.prepareStatement("INSERT INTO SMSS_USER "
-					+ "(NAME, EMAIL, \"TYPE\", ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
+					+ "(NAME, EMAIL, TYPE, ID, PASSWORD, SALT, USERNAME, ADMIN, PUBLISHER, EXPORTER, DATECREATED, LASTLOGIN, LASTPASSWORDRESET, LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE)\r\n"
 					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, true, true, null, null, null, false, '', '', '')");
 			int i = 1;
 			ps.setString(i++, name);
@@ -204,7 +223,7 @@ public class ApiSemossTestEngineUtils {
 		}
 	}
 
-	private static void doInitializeSemossDB(String name, String dbName) throws IOException {
+	private static void doInitializeSemossDB(String name, String dbName) throws Exception {
 		String smssPath = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + ".smss";
 		String db = ApiTestsSemossConstants.TEST_DB_DIRECTORY + File.separator + name + File.separator + dbName;
 
@@ -215,7 +234,7 @@ public class ApiSemossTestEngineUtils {
 			Files.delete(Paths.get(db));
 		}
 
-		DIHelper.getInstance().setEngineProperty(name + "_" + Constants.STORE, smssPath);
+		SystemEngineRegistryTestExtension.loadForTesting(smssPath);
 	}
 
 	public static void deleteAllDataAndAddUser() {
@@ -231,13 +250,14 @@ public class ApiSemossTestEngineUtils {
 		connectAndClearThemeDb(themeConnDetails);
 
 		try {
-			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, "Native", true);
+			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
+					AuthProvider.NATIVE.toString(), true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not add Default Native Admin user");
 		}
 	}
-	
+
 	private static void connectAndClearThemeDb(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;
 		Statement st = null;
@@ -262,7 +282,7 @@ public class ApiSemossTestEngineUtils {
 			for (String x : al) {
 				st.addBatch("delete from " + x);
 			}
-			
+
 //			manual delete statement
 //			st.addBatch("delete from " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName());
 
@@ -289,7 +309,6 @@ public class ApiSemossTestEngineUtils {
 			}
 		}
 	}
-
 
 	private static void connectAndClearLocalMaster(Triple<String, String, String> connectionDetails) {
 		PreparedStatement ps = null;
@@ -446,7 +465,7 @@ public class ApiSemossTestEngineUtils {
 				if (Files.exists(p)) {
 					try {
 						Files.delete(p);
-					} catch(IOException e) {
+					} catch (IOException e) {
 						// ignore
 					}
 				}
@@ -503,7 +522,7 @@ public class ApiSemossTestEngineUtils {
 		for (int i = 0; i < columns.size(); i++) {
 			dataType.put(columns.get(i), dataTypes.get(i));
 		}
-		
+
 		Map<String, String> newHeaders = new HashMap<>();
 
 		Map<String, String> descriptionMap = new HashMap<>();
@@ -575,8 +594,9 @@ public class ApiSemossTestEngineUtils {
 			return null;
 		}
 
-		// set this to empty because its super hard to figure out data structure expected for range map
-		// just let semoss calculate it 
+		// set this to empty because its super hard to figure out data structure
+		// expected for range map
+		// just let semoss calculate it
 		Map<String, Map<String, Map<String, String>>> dataType = new HashMap<>();
 
 		// Initialize other maps
@@ -597,8 +617,7 @@ public class ApiSemossTestEngineUtils {
 		String engineId = (String) ret.get("database_id");
 		return engineId;
 	}
-	
-	
+
 	public static String createBasicEngine() {
 		// Create Engine
 		List<String> columns = new ArrayList<>();

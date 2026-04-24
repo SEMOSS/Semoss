@@ -43,6 +43,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -50,11 +51,13 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.query.querystruct.selectors.QueryFunctionHelper;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
@@ -69,6 +72,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanViewProject(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENDDATE"));
@@ -135,7 +139,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can view project.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -150,6 +154,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanEditProject(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENDDATE"));
@@ -213,7 +218,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can edit project.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -232,6 +237,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupIsOwner(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(
@@ -283,7 +289,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -335,6 +341,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getBestProjectPermission(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// get best permission from user
 		Integer bestUserProjectPermission = null;
 
@@ -352,7 +359,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		}
 
@@ -388,7 +395,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		}
 
@@ -418,6 +425,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String permission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
 		}
@@ -453,7 +461,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -468,6 +476,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getGroupProjectPermission(String groupId, String groupType, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(
@@ -482,7 +491,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		}
 
 		return null;
@@ -501,6 +510,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void editProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String newPermission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the project
 		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -559,7 +569,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -577,6 +587,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeProjectGroupPermission(User user, String groupId, String groupType, String projectId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the project
 		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -614,7 +625,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -632,6 +643,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeExpiredProjectGroupPermission(String groupId, String groupType, String projectId)
 			throws IllegalAccessException {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
@@ -653,7 +666,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -666,6 +679,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllUserGroupProjects(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null,
@@ -692,6 +706,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getGroupsWithAccessToProject(User user, String projectId, long limit,
 			long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Input projectId must not be null or blank");
 		}
@@ -713,5 +728,27 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Get number of groups that have access to a project
+	 * 
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static Long getNumGroupsWithAccessToProject(User user, String projectId) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Input projectId must not be null or blank");
+		}
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalAccessException("The user does not have access to view this project");
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"GROUPPROJECTPERMISSION__ID", "numGroups"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 }

@@ -32,7 +32,6 @@ import java.util.Properties;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -43,29 +42,30 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
 public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 
 	public static final String CLASS_NAME = SyncDatabaseWithLocalMasterReactor.class.getName();
-	
+
 	public SyncDatabaseWithLocalMasterReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() + "," + ReactorKeysEnum.ENGINE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// we may have the alias
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to app");
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"Database " + databaseId + " does not exist or user does not have access to app");
 		}
-				
+
 		Logger logger = getLogger(CLASS_NAME);
 		logger.info("Starting to synchronize metadata");
-		
+
 		logger.info("Starting to remove existing metadata");
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(databaseId);
@@ -80,8 +80,23 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 
 		logger.info("Synchronization complete");
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(new NounMetadata("Successfully synchronized " + MasterDatabaseUtility.getDatabaseAliasForId(databaseId) + "'s metadata", 
+		noun.addAdditionalReturn(new NounMetadata(
+				"Successfully synchronized " + MasterDatabaseUtility.getDatabaseAliasForId(databaseId) + "'s metadata",
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Synchronizes a database's metadata with the local master database by removing existing metadata and re-registering from the database files";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id to synchronize metadata for";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

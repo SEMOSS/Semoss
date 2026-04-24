@@ -58,7 +58,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -113,27 +112,17 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 		try {
 			// this does the database specific load
 			generateNewDatabase(user);
-
-			// this handles the other metadata aspects
-			DIHelper.getInstance().setEngineProperty(this.newDatabaseId + "_" + Constants.STORE,
-					this.smssFile.getAbsolutePath());
-			Utility.synchronizeEngineMetadata(this.newDatabaseId);
-
 			// generate the actual engine
 			this.database = generateEngine();
 
-			// only at end do we add to DIHelper
-			DIHelper.getInstance().setLocalProperty(this.newDatabaseId, this.database);
-			String databaseNames = (String) DIHelper.getInstance().getLocalProp(Constants.ENGINES);
-			databaseNames = databaseNames + ";" + this.newDatabaseId;
-			DIHelper.getInstance().setLocalProperty(Constants.ENGINES, databaseNames);
+			// add to DIHelper
+			UploadUtilities.addEngineToDIHelper(this.newDatabaseId, this.newDatabaseName, this.database, this.smssFile);
+			// synchronize the engine metadata
+			Utility.synchronizeEngineMetadata(this.newDatabaseId);
 
-			// even if no security, just add user as engine owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(this.newDatabaseId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(this.newDatabaseId);
@@ -259,15 +248,14 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 
 		/*
 		 * End parsing metadata portion
-		 * 
 		 */
 
 		classLogger.info("3. Create properties file for database...");
 		this.tempSmss = null;
 		try {
 			this.tempSmss = generateTempSmss(owlFile);
-			DIHelper.getInstance().setEngineProperty(this.newDatabaseId + "_" + Constants.STORE,
-					tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.newDatabaseId,
+					this.tempSmss.getAbsolutePath());
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
@@ -322,15 +310,6 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			classLogger.error(Constants.STACKTRACE, e);
 		}
 		this.tempSmss.delete();
-
-		// adding all the git here
-		// make a version folder if one doesn't exist
-		/*
-		 * String versionFolder = AssetUtility.getAppAssetVersionFolder(newDatabaseName,
-		 * newDatabaseId); File file = new File(versionFolder); if(!file.exists())
-		 * file.mkdir(); // I will assume the directory is there now
-		 * GitRepoUtils.init(versionFolder);
-		 */
 	}
 
 	/**

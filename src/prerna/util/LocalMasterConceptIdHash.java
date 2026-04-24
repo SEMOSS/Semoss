@@ -49,7 +49,7 @@ public class LocalMasterConceptIdHash {
 	// simple hash table that saves and gets values from the database
 	private static final String TABLE_NAME = "KVSTORE";
 
-	private static LocalMasterConceptIdHash instance = null;
+	private static volatile LocalMasterConceptIdHash instance = null;
 
 	private Map<String, String> dataHash = Collections.synchronizedMap(new HashMap<String, String>());
 	private boolean dirty = false;
@@ -76,7 +76,7 @@ public class LocalMasterConceptIdHash {
 	}
 
 	private void load() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		// this is only for local master!!!
 		Connection conn = null;
@@ -89,14 +89,16 @@ public class LocalMasterConceptIdHash {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load local master concept id hash from table '{}' in local master database.",
+					TABLE_NAME, e);
 		} finally {
 			try {
 				if (engine.isConnectionPooling() && conn != null) {
 					conn.close();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close pooled local master database connection after loading table '{}'.",
+						TABLE_NAME, e);
 			}
 		}
 	}
@@ -119,7 +121,7 @@ public class LocalMasterConceptIdHash {
 	}
 
 	public void persistBack() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		if (this.dirty) {
 			Connection conn = null;
@@ -145,7 +147,9 @@ public class LocalMasterConceptIdHash {
 				}
 				this.dirty = false;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error(
+						"Failed to persist local master concept id hash back to table '{}'. attemptedEntries={}.",
+						TABLE_NAME, this.dataHash.size(), e);
 			} finally {
 				ConnectionUtils.closeStatement(stmt);
 				ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);

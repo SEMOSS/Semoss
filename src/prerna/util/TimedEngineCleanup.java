@@ -38,91 +38,93 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 
-public class TimedEngineCleanup {
+public final class TimedEngineCleanup {
 
 	private static final Logger classLogger = LogManager.getLogger(TimedEngineCleanup.class);
 
-    private static TimedEngineCleanup singleton = null;
+	private static volatile TimedEngineCleanup singleton = null;
 
 	private final Map<String, IEngine> internalMap = new HashMap<>();
-    private final Map<String, Timer> timers = new HashMap<>();
+	private final Map<String, Timer> timers = new HashMap<>();
 
-    private TimedEngineCleanup() {
-    
-    }
-    
-    public static TimedEngineCleanup getInstance() {
-    	if(singleton != null) {
-    		return singleton;
-    	}
-    	
-    	if(singleton == null) {
-    		synchronized (TimedEngineCleanup.class) {
-				if(singleton != null) {
+	private TimedEngineCleanup() {
+
+	}
+
+	public static TimedEngineCleanup getInstance() {
+		if (singleton != null) {
+			return singleton;
+		}
+
+		if (singleton == null) {
+			synchronized (TimedEngineCleanup.class) {
+				if (singleton != null) {
 					return singleton;
 				}
-				
+
 				singleton = new TimedEngineCleanup();
 			}
-    	}
-    	
-    	return singleton;
-    }
-    
-    /**
-     * 
-     * @param key
-     * @param engine
-     * @param timeoutMillis
-     */
-    public synchronized void put(IEngine engine, long timeoutMillis) {
-        String engineId = engine.getEngineId();
-    	internalMap.put(engineId, engine);
+		}
 
-        Timer timer = new Timer(true);
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                onRemove(engineId);
-                timer.cancel();
-            }
-        }, timeoutMillis);
-        
-        
-        if(this.timers.containsKey(engineId)) {
-        	this.timers.remove(engineId).cancel();
-        }
-        this.timers.put(engineId, timer);
-    }
+		return singleton;
+	}
 
-    /**
-     * Get the timer set for this engine
-     * @param engine
-     * @return
-     */
-    public Timer getEngineTimer(IEngine engine) {
-    	return this.timers.get(engine.getEngineId());
-    }
-    
-    /**
-     * 
-     * @param key
-     */
-    protected synchronized void onRemove(String engineId) {
-    	// check that the engine is still loaded
-    	IEngine engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
-    	if(engine == null) {
-    		classLogger.info("Engine " + engineId + " has already been removed");
-    		return;
-    	}
+	/**
+	 * 
+	 * @param key
+	 * @param engine
+	 * @param timeoutMillis
+	 */
+	public synchronized void put(IEngine engine, long timeoutMillis) {
+		String engineId = engine.getEngineId();
+		internalMap.put(engineId, engine);
 
-    	// now try to actually remove from disk
+		Timer timer = new Timer(true);
+		timer.schedule(new TimerTask() {
+			@Override
+			public void run() {
+				onRemove(engineId);
+				timer.cancel();
+			}
+		}, timeoutMillis);
+
+		if (this.timers.containsKey(engineId)) {
+			this.timers.remove(engineId).cancel();
+		}
+		this.timers.put(engineId, timer);
+	}
+
+	/**
+	 * Get the timer set for this engine
+	 * 
+	 * @param engine
+	 * @return
+	 */
+	public Timer getEngineTimer(IEngine engine) {
+		return this.timers.get(engine.getEngineId());
+	}
+
+	/**
+	 * 
+	 * @param key
+	 */
+	protected synchronized void onRemove(String engineId) {
+		// check that the engine is still loaded
+		IEngine engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+		if (engine == null) {
+			classLogger.info("Engine {} has already been removed", engineId);
+			return;
+		}
+
+		// now try to actually remove from disk
 		try {
-    		classLogger.info("Deleting Engine " + engineId + " from disk without removing any cloud backup or metadata");
+			classLogger.info("Deleting engine {} from disk without removing any cloud backup or metadata", engineId);
 			engine.delete();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to delete engine {} from disk during timed cleanup. Cloud backups and metadata were not modified.",
+					engineId, e);
 		}
-    }
+	}
 
 }

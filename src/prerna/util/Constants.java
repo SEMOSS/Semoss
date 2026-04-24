@@ -161,6 +161,7 @@ public class Constants {
 	public static final String SHOW_PLAYSHEETS_LIST = "btnShowPlaySheets";
 	public static final String ENGINE = "ENGINE";
 	public static final String ENGINE_ALIAS = "ENGINE_ALIAS";
+	public static final String ENGINE_DISPLAY_NAME = "ENGINE_DISPLAY_NAME";
 	@Deprecated
 	public static final String HIDDEN_DATABASE = "HIDDEN_DATABASE";
 	public static final String ENGINES = "ENGINES";
@@ -729,6 +730,7 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
+	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -756,14 +758,12 @@ public class Constants {
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";
 
-	// tracking
-	public static final String T_ON = "T_ON";
-
 	// post message specific keys
 	public static final String PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD = "PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD";
 
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
+	public static final String GITHUB_COPILOT_CLI_PATH = "GITHUB_COPILOT_CLI_PATH";
 	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
 
 	// cookie name of a load load balancing routing
@@ -922,6 +922,7 @@ public class Constants {
 	public static final String PROJECTS = "PROJECTS";
 	public static final String PROJECT = "PROJECT";
 	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
+	public static final String PROJECT_DISPLAY_NAME = "PROJECT_DISPLAY_NAME";
 	public static final String PROJECT_TYPE = "PROJECT_TYPE";
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
@@ -1040,6 +1041,10 @@ public class Constants {
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
+
+	// notification db
+	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
+	public static final String NOTIFICATION_DB = "Notification";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

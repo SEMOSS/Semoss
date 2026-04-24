@@ -37,6 +37,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -55,9 +56,10 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 public class CreateFunctionEngineReactor extends AbstractReactor {
 
@@ -141,19 +143,33 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(functionId, tempSmss.getAbsolutePath());
 			function.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			function.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
+			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
 				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
+			}
+
+			// Initialize git and commit initial engine files
+			try {
+				String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
+						IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+				GitRepoUtils.init(versionFolder);
+				GitRepoUtils.addAllFiles(versionFolder, false);
+				AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+				GitRepoUtils.commitAddedFiles(versionFolder,
+						"initial: created function engine " + functionName,
+						accessToken.getUsername(), accessToken.getEmail());
+			} catch (Exception e) {
+				classLogger.warn("Unable to initialize git for function engine {}", functionId, e);
 			}
 
 			ClusterUtil.pushEngine(functionId);

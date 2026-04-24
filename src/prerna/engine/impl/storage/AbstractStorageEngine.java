@@ -33,6 +33,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
+
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.AbstractEngine;
@@ -40,64 +44,147 @@ import prerna.util.Utility;
 
 public abstract class AbstractStorageEngine extends AbstractEngine implements IStorageEngine {
 
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+
 	/**
 	 * Init the general storage values
+	 * 
 	 * @param builder
-	 * @throws Exception 
+	 * @throws Exception
 	 */
+	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 	}
-	
-	// Converts comma-separated local file/folder paths to List<Path>
+
+	/**
+	 * Converts comma-separated local file/folder paths to List<Path>
+	 * 
+	 * @param commaSeparatedPaths
+	 * @return
+	 * @throws Exception
+	 */
 	protected List<Path> parseLocalPaths(String commaSeparatedPaths) throws Exception {
-	    List<Path> result = new ArrayList<>();
-	    String[] parts = commaSeparatedPaths.split(",");
+		List<Path> result = new ArrayList<>();
+		String[] parts = commaSeparatedPaths.split(",");
 
-	    for (String part : parts) {
-	        String trimmed = part.trim();
-	        if (!trimmed.isEmpty()) {
-	            result.add(Paths.get(trimmed));
-	        }
-	    }
+		for (String part : parts) {
+			String trimmed = part.trim();
+			if (!trimmed.isEmpty()) {
+				result.add(Paths.get(trimmed));
+			}
+		}
 
-	    return result;
+		return result;
 	}
 
-	// Converts comma-separated cloud storage object paths to normalized String list
+	/**
+	 * Converts comma-separated cloud storage object paths to normalized String list
+	 * 
+	 * @param commaSeparatedPaths
+	 * @return
+	 */
 	protected List<String> parseStorageObjectPaths(String commaSeparatedPaths) {
-	    List<String> result = new ArrayList<>();
-	    String[] parts = commaSeparatedPaths.split(",");
+		List<String> result = new ArrayList<>();
+		String[] parts = commaSeparatedPaths.split(",");
 
-	    for (String part : parts) {
-	        String trimmed = part.trim();
-	        if (!trimmed.isEmpty()) {
-	        	// Normalize the path using the utility method
-	            String normalized = Utility.normalizePath(trimmed);
-	         // Remove the leading slash if present
-	            if (normalized.startsWith("/")) {
-	                normalized = normalized.substring(1);
-	            }
-	            result.add(normalized);
-	        }
-	    }
+		for (String part : parts) {
+			String trimmed = part.trim();
+			if (!trimmed.isEmpty()) {
+				// Normalize the path using the utility method
+				String normalized = Utility.normalizePath(trimmed);
+				// Remove the leading slash if present
+				if (normalized.startsWith("/")) {
+					normalized = normalized.substring(1);
+				}
+				result.add(normalized);
+			}
+		}
 
-	    return result;
+		return result;
 	}
-	
+
+	/**
+	 * Normalizes a requested storage path for prefix matching.
+	 *
+	 * @param storagePath path provided by caller
+	 * @return normalized path with no leading/trailing slash
+	 */
+	protected String normalizeStoragePrefixPath(String storagePath) {
+		if (storagePath == null) {
+			return "";
+		}
+
+		String normalized = Utility.normalizePath(storagePath).trim().replace("\\", "/");
+		while (normalized.startsWith("/")) {
+			normalized = normalized.substring(1);
+		}
+		while (!normalized.isEmpty() && normalized.endsWith("/")) {
+			normalized = normalized.substring(0, normalized.length() - 1);
+		}
+		return normalized;
+	}
+
+	/**
+	 * Resolves a storage object key to a path relative to the requested storage
+	 * path.
+	 *
+	 * @param storageObjectKey full object key from cloud provider
+	 * @param requestedPath    user-requested path (file or folder)
+	 * @return relative path, or null when key does not belong to the requested
+	 *         scope
+	 */
+	protected String resolveRelativeStoragePath(String storageObjectKey, String requestedPath) {
+		if (storageObjectKey == null || storageObjectKey.trim().isEmpty()) {
+			return null;
+		}
+
+		String normalizedObjectKey = storageObjectKey.trim().replace("\\", "/");
+		while (normalizedObjectKey.startsWith("/")) {
+			normalizedObjectKey = normalizedObjectKey.substring(1);
+		}
+		if (normalizedObjectKey.isEmpty()) {
+			return null;
+		}
+
+		String normalizedRequestedPath = normalizeStoragePrefixPath(requestedPath);
+		String relativePath;
+		if (normalizedRequestedPath.isEmpty()) {
+			relativePath = normalizedObjectKey;
+		} else if (normalizedObjectKey.equals(normalizedRequestedPath)) {
+			int slashIdx = normalizedObjectKey.lastIndexOf('/');
+			relativePath = slashIdx >= 0 ? normalizedObjectKey.substring(slashIdx + 1) : normalizedObjectKey;
+		} else {
+			String folderPrefix = normalizedRequestedPath + "/";
+			if (!normalizedObjectKey.startsWith(folderPrefix)) {
+				return null;
+			}
+			relativePath = normalizedObjectKey.substring(folderPrefix.length());
+		}
+
+		while (relativePath.startsWith("/")) {
+			relativePath = relativePath.substring(1);
+		}
+		if (relativePath.isEmpty() || relativePath.endsWith("/")) {
+			return null;
+		}
+		return relativePath;
+	}
+
 	@Override
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.STORAGE;
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
 		return this.getStorageType().toString();
 	}
-	
+
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
 	}
-	
+
 }
