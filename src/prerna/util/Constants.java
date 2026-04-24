@@ -768,6 +768,7 @@ public class Constants {
 
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
+	public static final String GITHUB_COPILOT_CLI_PATH = "GITHUB_COPILOT_CLI_PATH";
 	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
 
 	// cookie name of a load load balancing routing
