@@ -83,7 +83,7 @@ public abstract class AbstractSaveAppAssetsReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
-			comment = "add: save app assets executed";
+			comment = "add: saved " + String.join(", ", filePaths);
 		}
 
 		// Check strict script source settings once

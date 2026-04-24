@@ -53,10 +53,20 @@ class SEMOSSToolFunction(BaseModel):
                 parsed = json.loads(v)
                 if isinstance(parsed, dict):
                     return parsed
-                else:
-                    raise ValueError("Parsed JSON is not a dictionary")
-            except json.JSONDecodeError as e:
-                raise ValueError(f"Invalid JSON string: {e}")
+                # If the first parse returns a string, the JSON was double-encoded
+                if isinstance(parsed, str):
+                    parsed2 = json.loads(parsed)
+                    if isinstance(parsed2, dict):
+                        return parsed2
+                raise ValueError("Parsed JSON is not a dictionary")
+            except (json.JSONDecodeError, ValueError):
+                # Tool call arguments from models can contain deeply-nested
+                # escape sequences (e.g. CSS/code edits with newlines and
+                # quotes) that become malformed JSON after SEMOSS message
+                # serialization round-trips. Return the raw string as-is
+                # so the downstream message builder (e.g. OpenAI) can
+                # forward it directly as the arguments string.
+                return v
 
         return v
 

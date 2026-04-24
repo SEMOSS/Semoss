@@ -30,6 +30,7 @@ package prerna.reactor.database.metaeditor;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -44,7 +45,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
@@ -67,12 +67,11 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		// run security tests + alias replacement
 		databaseId = testDatabaseId(databaseId, true);
 		Map<String, Object> positions = getPositionMap();
-		if (positions == null || positions.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in the valid position map");
+		if (positions == null) {
+			// since we allow connecting to an empty database, there might be no positions
+			// to save
+			positions = new HashMap<>();
 		}
-
-		// TODO: below does not even work/is wrong
-		// TODO: need to make a method to push/pull the positions file
 
 		// write the json file in the database folder
 		// just put it in the same location as the OWL
@@ -83,7 +82,7 @@ public class SaveOwlPositionsReactor extends AbstractReactor {
 		try (FileWriter writer = new FileWriter(positionFile)) {
 			GSON.toJson(positions, writer);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to write the positions map to location {}", positionFile.getAbsolutePath(), e);
 		}
 		ClusterUtil.pushOwl(databaseId);
 		// update the positions cache
