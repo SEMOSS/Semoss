@@ -335,10 +335,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// update the universal view count
 		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, rdbmsId);
-		// tracking execution
-
-		// add to user workspace
-		newInsight.setCacheInWorkspace(true);
 
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
