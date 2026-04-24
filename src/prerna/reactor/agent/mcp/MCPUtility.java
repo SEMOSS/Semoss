@@ -55,6 +55,7 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
@@ -245,6 +246,13 @@ public final class MCPUtility {
 			if (pyEngine.equalsIgnoreCase("project")) {
 				pyt = ((IProject) engine).getProjectPyTranslator();
 			}
+
+			// dont forget to mount the project into the symlink folder if chroot is enabled
+			// so that the python process can access the files
+			User user = insight.getUser();
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(user, engine.getEngineId());
+			}
 		}
 		if (pyt == null) {
 			pyt = insight.getPyTranslator();
@@ -260,12 +268,12 @@ public final class MCPUtility {
 		String mcpFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
 		// All temp vars (_f, _mt, _spec, _mod, _drv, …) live inside the function's
 		// local scope and never touch insight_globals. Only globals()[modAlias] and
-		// globals()[modMtimeKey] are written — both are per-engine keys — so
+		// globals()[modMtimeKey] are written - both are per-engine keys - so
 		// concurrent
 		// threads for different engines on the same insight cannot overwrite each
 		// other's
 		// state. funcDefName is also per-engine so the def itself doesn't collide.
-		// @formatter:off
+		// @formatter:off 
 		String runScript = """
 				def <funcDefName>():
 				    import importlib.util as _ilu, os as _os, hashlib as _hl, sys as _sys
@@ -426,7 +434,7 @@ public final class MCPUtility {
 				try {
 					return Integer.parseInt(smssValue.trim());
 				} catch (NumberFormatException e) {
-					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} — falling back to provider default",
+					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} - falling back to provider default",
 							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
 				}
 			}
