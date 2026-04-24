@@ -39,82 +39,65 @@ import org.apache.logging.log4j.Logger;
 import prerna.cluster.util.ClusterUtil;
 import prerna.util.Constants;
 
-public class SyncUserAppsThread implements Runnable {
-	protected static final Logger classLogger = LogManager.getLogger(SyncUserAppsThread.class);
+public class SyncUserAssetsThread implements Runnable {
+
+	private static final Logger classLogger = LogManager.getLogger(SyncUserAssetsThread.class);
 
 	Collection<String> workspaceIds = null;
 	Collection<String> assetIds = null;
-	
-	public SyncUserAppsThread(User user) {
-		this.workspaceIds = user.getWorkspaceEngineMap().values();
-		this.assetIds = user.getWorkspaceEngineMap().values();
+
+	public SyncUserAssetsThread(User user) {
+		this.assetIds = user.getAssetEngineMap().values();
 	}
-	
-	public SyncUserAppsThread(Collection<String> workspaceIds, Collection<String> assetIds) {
-		this.workspaceIds = workspaceIds;
+
+	public SyncUserAssetsThread(Collection<String> assetIds) {
 		this.assetIds = assetIds;
 	}
-	
-	public SyncUserAppsThread(String workspaceId, String assetId) {
-		if(workspaceId != null) {
-			this.workspaceIds = new ArrayList<String>();
-			this.workspaceIds.add(workspaceId);
-		}
-		if(assetId != null) {
+
+	public SyncUserAssetsThread(String assetId) {
+		if (assetId != null) {
 			this.assetIds = new ArrayList<String>();
 			this.assetIds.add(assetId);
 		}
 	}
-	
+
 	@Override
 	public void run() {
-		execute(this.workspaceIds, this.assetIds);
+		execute(this.assetIds);
 	}
-	
+
 	/**
-	 * TODO: should change this such that we dont require HttpSession jar from tomcat
+	 * TODO: should change this such that we dont require HttpSession jar from
+	 * tomcat
+	 * 
 	 * @param session
 	 */
 	public static void execute(HttpSession session) {
-		if(ClusterUtil.IS_CLUSTER) {
-			Collection<String> workspaceIds = null;
+		if (ClusterUtil.IS_CLUSTER) {
 			Collection<String> assetIds = null;
-			
+
 			// now push all the values to be stored
 			User user = (User) session.getAttribute(Constants.SESSION_USER);
-			if(user != null) {
-				workspaceIds = user.getWorkspaceEngineMap().values();
+			if (user != null) {
 				assetIds = user.getAssetEngineMap().values();
 			} else {
 				// grab the maps from the session
-				if(session.getAttribute(Constants.USER_WORKSPACE_IDS) != null) {
-					workspaceIds = ((Map<AuthProvider, String>) session.getAttribute(Constants.USER_WORKSPACE_IDS)).values();
-				}
-				if(session.getAttribute(Constants.USER_ASSET_IDS) != null) {
+				if (session.getAttribute(Constants.USER_ASSET_IDS) != null) {
 					assetIds = ((Map<AuthProvider, String>) session.getAttribute(Constants.USER_ASSET_IDS)).values();
 				}
 			}
-			
-			execute(workspaceIds, assetIds);
+
+			execute(assetIds);
 		}
 	}
-	
-	public static void execute(Collection<String> workspaceIds, Collection<String> assetIds) {
+
+	public static void execute(Collection<String> assetIds) {
 		// now push all the values to be stored
-		if(ClusterUtil.IS_CLUSTER) {
-			if(workspaceIds != null) {
-				for(String workspaceAppId : workspaceIds) {
+		if (ClusterUtil.IS_CLUSTER) {
+			if (assetIds != null) {
+				for (String assetAppId : assetIds) {
 					try {
-						ClusterUtil.pushUserWorkspace(workspaceAppId, false);
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
-			if(assetIds != null) {
-				for(String assetAppId : assetIds) {
-					try {
-						ClusterUtil.pushUserWorkspace(assetAppId, true);
+						ClusterUtil.pushUserAsset(assetAppId);
 					} catch (Exception e) {
 						classLogger.error(Constants.STACKTRACE, e);
 					}
