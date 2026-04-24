@@ -1,0 +1,32 @@
+import hashlib
+import sys
+import threading
+
+# Thread-local populated by handle_python before each exec() and cleared after.
+# active_paths  — list of asset path strings for per-project import isolation
+# insight_globals — reference to the current insight's globals dict
+_asset_thread_local = threading.local()
+
+
+def _asset_ns_key(path: str) -> str:
+    """Stable sys.modules namespace prefix for a given asset path."""
+    return "_smss_" + hashlib.md5(path.encode()).hexdigest()[:12]
+
+
+def smss_clear_app_imports():
+    """
+    Evicts all cached project-local module imports for the current app's asset paths
+    and clears any cached MCP driver aliases in the current insight's globals.
+
+    Call this at the top of your app entry script to force Python to pick up
+    any .py file changes without restarting the server.
+    """
+    active_paths = getattr(_asset_thread_local, "active_paths", None) or []
+    ig = getattr(_asset_thread_local, "insight_globals", None)
+    for path in active_paths:
+        pfx = _asset_ns_key(path) + "_"
+        for k in [k for k in list(sys.modules.keys()) if k.startswith(pfx)]:
+            del sys.modules[k]
+    if ig is not None:
+        for k in [k for k in list(ig.keys()) if k.startswith("__smss_mcp_")]:
+            del ig[k]
