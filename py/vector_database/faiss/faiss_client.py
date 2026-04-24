@@ -240,19 +240,22 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
-        # Apply filter to dataset if provided
-        if filter is not None:
-            filter_ids = self._filter_dataset(filter)
-            filtered_ds = self.ds.select(filter_ids)
-        else:
-            filtered_ds = self.ds
-
+        # BM25 index was built on full dataset, so we must use full dataset for lookup
         bm25_results = self.bm25_searcher.search_with_data(
             question,
             top_k=fusion_limit,
             columns_to_return=columns_to_return,
-            ds=filtered_ds,
+            ds=self.ds,
         )
+
+        # Filter BM25 results to only include documents that match the filter
+        if filter is not None:
+            filter_ids = self._filter_dataset(filter)
+            filter_ids_set = set(filter_ids)
+            bm25_results = [
+                result for result in bm25_results
+                if result["idx"] in filter_ids_set
+            ]
 
         # 3. Combine using reciprocal rank fusion
         if bm25_results:
