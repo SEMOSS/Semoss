@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -41,6 +42,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -62,6 +66,8 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -363,6 +369,10 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
+		if (result.getNounType() == PixelDataType.PIXEL_RUNNER) {
+			PixelRunner runner = (PixelRunner) ((Map<String, Object>) result.getValue()).get("runner");
+			return stringifyMcpResult(runner);
+		}
 		return stringifyMcpResult(result.getValue());
 	}
 
@@ -377,6 +387,17 @@ public final class MCPUtility {
 		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
 				|| value instanceof com.google.gson.JsonElement) {
 			return value.toString();
+		} else if (value instanceof PixelRunner) {
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+				// The StreamingOutput writes its data to the provided OutputStream
+				StreamingOutput streamingOutput = PixelStreamUtility.collectPixelData((PixelRunner) value, null);
+				streamingOutput.write(baos);
+				// Convert the captured bytes to a String using UTF-8 encoding
+				return baos.toString(StandardCharsets.UTF_8.name());
+			} catch (WebApplicationException | IOException e) {
+				classLogger.error("The pixel ran but an error occurred streaming the pixel results", e.getMessage());
+				return "An error occurred streaming the pixel execution output: " + e.getMessage();
+			}
 		}
 
 		return GSON.toJson(value);
