@@ -27,29 +27,18 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
@@ -60,7 +49,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
@@ -68,20 +56,13 @@ import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
 
+/**
+ * Helper methods for message serialization/deserialization, legacy
+ * compatibility shims, prompt conversion, and room-file media handling.
+ */
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
-
-	private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile("```" + // Opening backticks
-			"(?:([a-zA-Z0-9]+))?" + // Language (optional, group 1)
-			"(?:" + // Non-capturing group for title alternatives
-			"\\s+title=\"([^\"]+)\"" + // Either title="filename" (group 2)
-			"|\\s+([^\\s\\n]+)" + // Or direct filename (group 3)
-			")?" + // Title is optional
-			"\\s*\\n" + // Whitespace and mandatory newline
-			"(.*?)" + // Code content (group 4)
-			"```", // Closing backticks
-			Pattern.DOTALL);
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -143,12 +124,45 @@ public class MessageUtils {
 				}
 			}).create();
 
+	private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * Normalize a tool-call `arguments` value into something the Python side can
+	 * deserialize without double-escaping. The provider wire format delivers
+	 * arguments as a JSON-encoded string; if we leave that string in place, Gson
+	 * escapes the inner quotes a second time and json.loads on the Python side
+	 * chokes on payloads with shell escapes, code edits, newlines, etc.
+	 * Parsing to a Map here means args ride as a dict alongside every other
+	 * field. On parse failure we return the raw string so the downstream builder
+	 * can still forward it verbatim.
+	 */
+	private static Object toolArgumentsForPy(Object argsRaw) {
+		if (argsRaw == null) {
+			return new HashMap<>();
+		}
+		if (!(argsRaw instanceof String)) {
+			// some providers deliver a structured object already; re-serialize so
+			// the shape matches the string-input path
+			return GSON_FOR_PY.toJson(argsRaw);
+		}
+		try {
+			Map<String, Object> map = GSON_FOR_PY.fromJson((String) argsRaw, MAP_TYPE);
+			return map != null ? map : argsRaw;
+		} catch (Exception e) {
+			return argsRaw;
+		}
+	}
 
 	/**
 	 * API compatibility: add legacy flat fields into a map built from a message
 	 * JSON. This keeps FE consumers working while storage stays on parts-based
 	 * schema.
+	 *
+	 * @param msg    input message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy input fields
 	 */
 	@Deprecated
 	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
@@ -198,41 +212,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * API compatibility: add legacy flat fields into a map built from a response
-	 * JSON.
-	 */
-	@Deprecated
-	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
-		if (target == null) {
-			target = new LinkedHashMap<>();
-		}
-		if (msg == null) {
-			return target;
-		}
-		if (msg.getMessageType() != null) {
-			target.put("type", msg.getMessageType().name());
-		}
-		String content = msg.getContent();
-		if (content != null) {
-			target.put("content", content);
-		}
-		String thinking = msg.getThinking();
-		if (thinking != null) {
-			target.put("thinking", thinking);
-		}
-		List<Map<String, Object>> toolResponses = msg.getToolResponses();
-		if (toolResponses == null) {
-			toolResponses = new ArrayList<>();
-		}
-		target.put("tool_responses", toolResponses);
-		return target;
-	}
-
-	/**
 	 * Converts a JSON object string to a Map<String, Object>
-	 * 
+	 *
 	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
+	 * @return The parsed map representation
+	 * @throws IllegalArgumentException if the input is null/blank or not a JSON
+	 *                                  object
 	 */
 	public static Map<String, Object> jsonToMapForPixelReturn(String json) {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
@@ -242,7 +227,15 @@ public class MessageUtils {
 		}.getType());
 	}
 
-	// Deserialize a single message from JSON
+	/**
+	 * Deserializes a single message JSON payload into either {@link InputMessage}
+	 * or {@link ResponseMessage}, using schema discriminators and legacy fallbacks.
+	 *
+	 * @param json message JSON string
+	 * @param room room context used during post-load normalization
+	 * @return deserialized message, or {@code null} when deserialization yields no
+	 *         message
+	 */
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
 
@@ -305,7 +298,12 @@ public class MessageUtils {
 		return message;
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for DB persistence using the DB-safe Gson profile.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJson(AbstractMessage msg) {
 		if (msg != null) {
 			msg.normalizeForWrite();
@@ -313,7 +311,13 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msg);
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for Python/model execution payloads, including image
+	 * base64 when available.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJsonWithImage(AbstractMessage msg) {
 		if (msg != null) {
 			msg.normalizeForWrite();
@@ -321,7 +325,13 @@ public class MessageUtils {
 		return GSON_FOR_PY.toJson(msg);
 	}
 
-	// Deserialize from JSON array string to List<AbstractMessage>
+	/**
+	 * Deserializes a JSON array of messages.
+	 *
+	 * @param jsonArrayString message-array JSON
+	 * @param room            room context used during post-load normalization
+	 * @return ordered list of deserialized messages
+	 */
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
 		if (jsonArrayString == null || jsonArrayString.trim().isEmpty()) {
 			return new ArrayList<>();
@@ -337,80 +347,15 @@ public class MessageUtils {
 		return result;
 	}
 
-	/**
-	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room
-	 * folder.
-	 * <p>
-	 * This is used for model-generated media (e.g., Gemini inline images) that
-	 * arrive as base64.
-	 */
-	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
-		if (message == null || room == null || room.getRoomFolderPath() == null) {
-			return;
-		}
-		if (!message.hasMediaPart()) {
-			return;
-		}
-
-		String roomFolder = room.getRoomFolderPath();
-		try {
-			Files.createDirectories(Paths.get(roomFolder));
-		} catch (IOException e) {
-			classLogger.warn("Unable to create room folder: " + roomFolder, e);
-			return;
-		}
-
-		for (MessagePart part : message.getParts()) {
-			if (!(part instanceof MediaMessagePart)) {
-				continue;
-			}
-			MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
-			if (media == null || media.getMediaInputType() == null) {
-				continue;
-			}
-			if (media.getMediaInputType() != MessageInputMedia.MEDIA_INPUT_TYPE.FILE) {
-				continue;
-			}
-
-			String base64Data = media.getBase64Data();
-			if (base64Data == null || base64Data.isEmpty()) {
-				continue;
-			}
-
-			String fileName = media.getFileName();
-			fileName = MessageInputMedia.extractFileName(fileName);
-			if (fileName == null || fileName.trim().isEmpty()) {
-				String ext = media.getFileFormat();
-				if (ext == null || ext.trim().isEmpty()) {
-					ext = "bin";
-				}
-				fileName = GUID.v7().toUUID().toString() + "." + ext;
-			}
-
-			Path target = Paths.get(roomFolder).resolve(fileName).normalize();
-			if (!target.startsWith(Paths.get(roomFolder))) {
-				classLogger.warn("Skipping unsafe media filename: " + fileName);
-				continue;
-			}
-
-			if (!Files.exists(target)) {
-				try {
-					byte[] bytes = Base64.getDecoder().decode(base64Data);
-					Files.write(target, bytes);
-				} catch (Exception e) {
-					classLogger.warn("Unable to persist media part to " + target, e);
-					continue;
-				}
-			}
-
-			media.setRoomFolder(roomFolder);
-			ClusterUtil.pushRoom(room.getId());
-		}
-	}
-
 	// --- Core two serialization methods ---
 
-	// For DB: JSON array string of messages, with NO base64
+	/**
+	 * Serializes a list of messages for DB persistence (without inline base64 media
+	 * payloads).
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArray(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
@@ -423,15 +368,36 @@ public class MessageUtils {
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
+	/**
+	 * Builds the current branch history (root to latest message) and serializes it
+	 * for model execution payloads.
+	 *
+	 * @param messages full room message list
+	 * @return branch JSON including image data
+	 */
 	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
 	}
 
+	/**
+	 * Builds the branch history ending in {@code newMessage} and serializes it for
+	 * model execution payloads.
+	 *
+	 * @param messages   full room message list
+	 * @param newMessage new leaf message to append as branch tail
+	 * @return branch JSON including image data
+	 */
 	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
 		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
 	}
 
-	// For Python: JSON array string WITH base64 image data in ImageInfo
+	/**
+	 * Serializes messages for Python/model execution and ensures image parts
+	 * contain base64 payloads.
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
@@ -457,10 +423,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * 
-	 * @param messages
-	 * @param newMessage
-	 * @return
+	 * Returns a root-to-leaf message branch ending at {@code newMessage} (or the
+	 * current tail message when {@code newMessage} is null).
+	 *
+	 * @param messages   complete message list
+	 * @param newMessage optional branch leaf override
+	 * @return ordered branch messages from root to leaf
 	 */
 	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
 			AbstractMessage newMessage) {
@@ -497,10 +465,12 @@ public class MessageUtils {
 	}
 
 	/**
-	 * 
-	 * @param messages
-	 * @param parentMessageId
-	 * @return
+	 * Returns a root-to-node branch by walking parent links from
+	 * {@code parentMessageId}.
+	 *
+	 * @param messages        complete message list
+	 * @param parentMessageId leaf message id from which to walk parent links
+	 * @return ordered branch messages from root to requested parent
 	 */
 	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
 			String parentMessageId) {
@@ -531,6 +501,17 @@ public class MessageUtils {
 		return history;
 	}
 
+	/**
+	 * Converts a mixed-format full prompt payload (Chat Completions/Responses API
+	 * style) into normalized room messages.
+	 *
+	 * @param fullPrompt  full prompt payload as JSON string or list
+	 * @param room        room context used for message construction
+	 * @param modelEngine model engine used for message model typing
+	 * @return normalized message list
+	 * @throws IllegalArgumentException when {@code fullPrompt} is neither a JSON
+	 *                                  string nor a list payload
+	 */
 	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt, Room room, IModelEngine modelEngine) {
 		List<AbstractMessage> result = new ArrayList<>();
 		List<?> promptList;
@@ -666,7 +647,7 @@ public class MessageUtils {
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+								flatTool.put("arguments", toolArgumentsForPy(funcMap.get("arguments")));
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
@@ -730,6 +711,13 @@ public class MessageUtils {
 		return result;
 	}
 
+	/**
+	 * Converts OpenAI-style tool definitions to MCP-compatible tool definitions.
+	 * Built-in non-function tools are passed through unchanged.
+	 *
+	 * @param inputTools tool definitions from incoming API payload
+	 * @return MCP-compatible tool definitions
+	 */
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
 		List<Map<String, Object>> newTools = new ArrayList<>();
 		for (Map<String, Object> tool : inputTools) {
@@ -790,6 +778,12 @@ public class MessageUtils {
 		return newTools;
 	}
 
+	/**
+	 * Normalizes tool-choice input (string/object) into MCP tool-choice shape.
+	 *
+	 * @param toolChoiceInput tool-choice value from caller payload
+	 * @return normalized MCP tool-choice map
+	 */
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
 		// Handle String
 		if (toolChoiceInput instanceof String) {
@@ -846,11 +840,24 @@ public class MessageUtils {
 		return makeToolChoice(ToolChoiceType.AUTO, null);
 	}
 
-	// Utility: to get string or return null if not a string
+	/**
+	 * Returns the object as a string when the value is a {@link String}; otherwise
+	 * returns {@code null}.
+	 *
+	 * @param o value to inspect
+	 * @return string value or {@code null}
+	 */
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
 	}
 
+	/**
+	 * Extracts text content from mixed content payloads (plain string or list of
+	 * typed content maps).
+	 *
+	 * @param o content payload
+	 * @return concatenated text content or {@code null}
+	 */
 	private static String parseContentMap(Object o) {
 		if (o instanceof List<?>) {
 			// OpenAI-style: content is a list of dicts with type text, ignore images
@@ -874,233 +881,40 @@ public class MessageUtils {
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
-	// These can alias to above or be retained for backwards compatibility
+	/**
+	 * Backward-compatible alias for {@link #toJsonArray(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return DB-safe message JSON
+	 */
 	public static String getMessagesForDatabase(List<AbstractMessage> msgs) {
 		return toJsonArray(msgs);
 	}
 
+	/**
+	 * Backward-compatible alias for {@link #toJsonArrayWithImageData(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return execution payload message JSON
+	 */
 	public static String getMessagesForPy(List<AbstractMessage> msgs) {
 		return toJsonArrayWithImageData(msgs);
 	}
 
-	// ---- Image move utilities ---- This should be used over copy
-
-	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> roomFilePaths = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to move.");
-			return roomFilePaths;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return roomFilePaths;
-		}
-		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.move(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				classLogger.warn("Failed to move file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-				continue;
-			}
-			roomFilePaths.add(destination.toString());
-		}
-		return roomFilePaths;
-	}
-
-	// ---- Image copy utilities ----
-	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> copiedFileNames = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to copy.");
-			return copiedFileNames;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return copiedFileNames;
-		}
-		for (String relPath : relativePathToFiles) {
-			if (isBase64MediaDataUri(relPath)) {
-				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
-				if (fileName != null) {
-					copiedFileNames.add(fileName);
-				}
-				continue;
-			}
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-				copiedFileNames.add(fileName); // only add if copy succeeded
-			} catch (IOException e) {
-				classLogger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-			}
-		}
-		return copiedFileNames;
-	}
-
-	private static boolean isBase64MediaDataUri(String value) {
-		if (value == null) {
-			return false;
-		}
-		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
-		String trimmed = value.trim();
-		if (!trimmed.contains(";base64,")) {
-			return false;
-		}
-		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
-	}
-
-	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
-		try {
-			Files.createDirectories(targetDir);
-
-			String trimmed = dataUri.trim();
-			int commaIdx = trimmed.indexOf(',');
-			if (commaIdx < 0) {
-				classLogger.info("Invalid data URI (no comma separator)");
-				return null;
-			}
-
-			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
-			String base64 = trimmed.substring(commaIdx + 1);
-			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			int colonIdx = meta.indexOf(':');
-			int semiIdx = meta.indexOf(';');
-			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
-			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
-				classLogger.info("Unsupported data URI mime type: " + mimeType);
-				return null;
-			}
-
-			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
-			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
-			return fileName;
-		} catch (IllegalArgumentException e) {
-			// base64 decoder throws IllegalArgumentException on bad input
-			classLogger.warn("Failed to decode base64 data URI image", e);
-			return null;
-		} catch (IOException e) {
-			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
-			return null;
-		}
-	}
-
-	private static String extensionFromMimeType(String mimeType) {
-		if ("application/pdf".equals(mimeType)) {
-			return "pdf";
-		}
-		if (mimeType == null || !mimeType.startsWith("image/")) {
-			return "png";
-		}
-		switch (mimeType) {
-		case "image/jpg":
-		case "image/jpeg":
-			return "jpeg";
-		case "image/png":
-			return "png";
-		case "image/gif":
-			return "gif";
-		case "image/webp":
-			return "webp";
-		case "image/bmp":
-			return "bmp";
-		case "image/svg+xml":
-			return "svg";
-		case "image/x-icon":
-		case "image/vnd.microsoft.icon":
-			return "ico";
-		default:
-			String subtype = mimeType.substring("image/".length());
-			int plusIdx = subtype.indexOf('+');
-			if (plusIdx > 0) {
-				subtype = subtype.substring(0, plusIdx);
-			}
-			subtype = subtype.replaceAll("[^a-z0-9]", "");
-			return subtype.isEmpty() ? "png" : subtype;
-		}
-	}
-
-	// Method to parse markdown code blocks
-	public static ResponseMessage processMarkdownCodeBlocks(ResponseMessage responseMessage, IModelEngine modelEngine,
-			Room room) {
-		String rawResponse = responseMessage.getContent();
-
-		Map<String, CodeBlock> codeBlocks = new HashMap<>();
-		Matcher matcher = MARKDOWN_CODE_PATTERN.matcher(rawResponse);
-		StringBuffer modifiedResponse = new StringBuffer();
-
-		while (matcher.find()) {
-			String language = matcher.group(1) != null ? matcher.group(1).trim() : "";
-			// Check both title formats and use the first non-null one
-			String title = matcher.group(2) != null ? matcher.group(2).trim()
-					: matcher.group(3) != null ? matcher.group(3).trim() : "";
-			String code = matcher.group(4).trim();
-
-			String uuid = UUID.randomUUID().toString();
-
-			if (title == "") {
-				HashMap<String, Object> paramMap = new HashMap<String, Object>();
-				paramMap.put("use_history", "false");
-				String prompt = "Given the following code block, give it a title: " + code + " Just give me the title";
-				InputMessage msg = InputMessage.builder(room).withText(prompt).withModelType(modelEngine.getModelType())
-						.withParamMap(paramMap).build();
-
-				ResponseMessage response = room.ask(msg, modelEngine);
-				title = response.getContent();
-			}
-
-			codeBlocks.put(uuid, new CodeBlock(language, code, title));
-
-			matcher.appendReplacement(modifiedResponse,
-					Matcher.quoteReplacement("<CODEBLOCK>" + uuid + "</CODEBLOCK>"));
-		}
-		matcher.appendTail(modifiedResponse);
-
-		responseMessage.setOrnament("processedResponsed", modifiedResponse.toString());
-		responseMessage.setOrnament("codeBlocks", codeBlocks);
-
-		return responseMessage;
-	}
-
+	/**
+	 * Supported tool-choice strategy values.
+	 */
 	public enum ToolChoiceType {
 		FORCED, AUTO, REQUIRED, NONE
 	}
 
+	/**
+	 * Creates an MCP tool-choice payload.
+	 *
+	 * @param type tool-choice strategy
+	 * @param name forced tool name (used only when {@code type == FORCED})
+	 * @return tool-choice map
+	 */
 	public static Map<String, Object> makeToolChoice(ToolChoiceType type, String name) {
 		Map<String, Object> toolChoice = new HashMap<>();
 		toolChoice.put("type", type.name().toLowerCase());
@@ -1110,29 +924,39 @@ public class MessageUtils {
 		return toolChoice;
 	}
 
-	// Class to represent a code block
-	private static class CodeBlock {
-		private final String language;
-		private final String code;
-		private final String title;
-
-		public CodeBlock(String language, String code, String title) {
-			this.language = language;
-			this.code = code;
-			this.title = title;
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a response
+	 * JSON.
+	 *
+	 * @param msg    response message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy response fields
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
 		}
-
-		public String getLanguage() {
-			return language;
+		if (msg == null) {
+			return target;
 		}
-
-		public String getCode() {
-			return code;
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
 		}
-
-		public String getTitle() {
-			return title;
+		String content = msg.getContent();
+		if (content != null) {
+			target.put("content", content);
 		}
+		String thinking = msg.getThinking();
+		if (thinking != null) {
+			target.put("thinking", thinking);
+		}
+		List<Map<String, Object>> toolResponses = msg.getToolResponses();
+		if (toolResponses == null) {
+			toolResponses = new ArrayList<>();
+		}
+		target.put("tool_responses", toolResponses);
+		return target;
 	}
 
 }

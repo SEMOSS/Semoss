@@ -66,7 +66,6 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("USERMETA");
 		conceptsRequired.add("USERMETAKEYS");
 
-		// conceptsRequired.add("DATABASEACCESSREQUEST");
 		conceptsRequired.add("ENGINEACCESSREQUEST");
 		conceptsRequired.add("PROJECTACCESSREQUEST");
 		conceptsRequired.add("INSIGHTACCESSREQUEST");
@@ -80,6 +79,11 @@ public class SecurityOwlCreator {
 
 		// trusted token security
 		conceptsRequired.add("TOKEN");
+
+		// connectors
+		conceptsRequired.add("JIRA_CONNECTIONS");
+		conceptsRequired.add("SALESFORCE_CONNECTIONS");
+		conceptsRequired.add("SERVICENOW_CONNECTIONS");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -511,7 +515,6 @@ public class SecurityOwlCreator {
 		owler.addProp("SMSS_GROUP", "ID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "TYPE", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "DESCRIPTION", "CLOB");
-//		owler.addProp("SMSS_GROUP", "IS_CUSTOM_GROUP", "BOOLEAN
 		owler.addProp("SMSS_GROUP", "DATEADDED", "TIMESTAMP");
 		owler.addProp("SMSS_GROUP", "USERID", "VARCHAR(255)");
 		owler.addProp("SMSS_GROUP", "USERIDTYPE", "VARCHAR(255)");
@@ -559,6 +562,31 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "ENDDATE", "TIMESTAMP");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+
+		// JIRA_CONNECTIONS
+        owler.addConcept("JIRA_CONNECTIONS", null, null);
+        owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+        owler.addProp("JIRA_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("JIRA_CONNECTIONS", "SCOPE", "VARCHAR(1000)");
+        owler.addProp("JIRA_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
+
+		// SALESFORCE_CONNECTIONS
+		owler.addConcept("SALESFORCE_CONNECTIONS", null, null);
+		owler.addProp("SALESFORCE_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+		owler.addProp("SALESFORCE_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+
+		// SERVICENOW_CONNECTIONS
+		owler.addConcept("SERVICENOW_CONNECTIONS", null, null);
+		owler.addProp("SERVICENOW_CONNECTIONS", "ID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "INSTANCEURL", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "ALIAS", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTID", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "CLIENTSECRET", "VARCHAR(255)");
+		owler.addProp("SERVICENOW_CONNECTIONS", "USERPROFILEURL", "VARCHAR(255)");
 
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,

@@ -36,15 +36,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -72,18 +68,20 @@ import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.cookie.CookieStore;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
+import org.apache.hc.core5.http.io.entity.ByteArrayEntity;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.FileEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
@@ -93,37 +91,38 @@ import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
 import org.apache.hc.core5.util.Timeout;
-import org.apache.http.client.ResponseHandler;
-import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-import io.burt.jmespath.Expression;
-import io.burt.jmespath.JmesPath;
-import io.burt.jmespath.jackson.JacksonRuntime;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class HttpHelperUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(HttpHelperUtility.class.getName());
+
 	private static ObjectMapper mapper = new ObjectMapper();
+	private static final int MAX_ERROR_RESPONSE_CHARS = 500;
 
 	/**
-	 * Get a custom client using the info passed in
-	 * 
-	 * @param cookieStore
-	 * @param keyStore     the keystore location
-	 * @param keyStorePass the password for the keystore
-	 * @param keyPass      the password for the certificate if different from the
-	 *                     keystore password
-	 * @return
+	 * Builds a custom Apache HttpClient instance for connector requests.
+	 * <p>
+	 * The client is configured to trust all certificates and can optionally load
+	 * client key material from a keystore for mutual TLS scenarios.
+	 * </p>
+	 *
+	 * @param cookieStore  optional cookie store to attach to the client
+	 * @param keyStore     optional path to a keystore file that contains client
+	 *                     certificates
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password; when omitted, {@code keyStorePass}
+	 *                     is used
+	 * @return configured {@link CloseableHttpClient}
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass) {
@@ -161,18 +160,8 @@ public final class HttpHelperUtility {
 					null, // Use default cipher suites
 					SSLBufferMode.DYNAMIC, verifier);
 
-		} catch (KeyManagementException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (NoSuchAlgorithmException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (KeyStoreException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnrecoverableKeyException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (CertificateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to configure TLS strategy or keystore while creating a custom HTTP client", e);
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
@@ -192,19 +181,20 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headerMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP GET request and returns the response body as UTF-8 text.
+	 *
+	 * @param url          target URL
+	 * @param headerMap    optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
 			String keyPass) {
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
-		String responseData = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
@@ -214,48 +204,88 @@ public final class HttpHelperUtility {
 				}
 			}
 
-			response = httpClient.execute(httpGet);
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+			return httpClient.execute(httpGet, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("GET", url, statusCode, responseData);
 				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			throw buildConnectionException("GET", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headerMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @param saveFilePath
-	 * @param saveFileName
-	 * @return
+	 * Executes an HTTP GET request and returns the raw response bytes.
+	 *
+	 * @param url          target URL
+	 * @param headerMap    optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as bytes, or {@code null} when the response has no
+	 *         entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static byte[] getRequestBytes(String url, Map<String, String> headerMap, String keyStore,
+			String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+			HttpGet httpGet = new HttpGet(url);
+
+			if (headerMap != null && !headerMap.isEmpty()) {
+				for (String key : headerMap.keySet()) {
+					httpGet.addHeader(key, headerMap.get(key));
+				}
+			}
+
+			return httpClient.execute(httpGet, new HttpClientResponseHandler<byte[]>() {
+				@Override
+				public byte[] handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return entity != null ? EntityUtils.toByteArray(entity) : null;
+					}
+					String errorMsg = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("GET", url, statusCode, errorMsg);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			throw buildConnectionException("GET", url, e);
+		}
+	}
+
+	/**
+	 * Downloads content from a URL and saves it to disk.
+	 * <p>
+	 * If {@code saveFileName} is {@code null}, the file name is inferred from the
+	 * URL path. The final output path is made unique to avoid overwriting an
+	 * existing file. When virus scanning is enabled, the downloaded bytes are
+	 * scanned before writing to disk.
+	 * </p>
+	 *
+	 * @param url          source URL
+	 * @param headerMap    optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @param saveFilePath destination directory path
+	 * @param saveFileName optional destination file name
+	 * @return saved file reference
+	 * @throws IllegalArgumentException if the destination directory cannot be
+	 *                                  created, the URL cannot be reached, the URL
+	 *                                  does not include a file name when none is
+	 *                                  provided, or malware is detected
 	 */
 	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore,
 			String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
@@ -264,17 +294,12 @@ public final class HttpHelperUtility {
 			// if not passed in, see if we can grab it from the URL
 			String[] pathSeparated = url.split("/");
 			fileName = pathSeparated[pathSeparated.length - 1];
-			if (fileName == null) {
-				throw new IllegalArgumentException("Url path does not end in a file name");
+			if (fileName == null || fileName.trim().isEmpty()) {
+				throw new IllegalArgumentException(
+						"Cannot infer a file name from URL '" + url + "'. Provide saveFileName explicitly.");
 			}
 		}
-
-		CloseableHttpResponse response = null;
-		InputStream is = null;
-		// used if virus scanning
-		ByteArrayOutputStream baos = null;
-		ByteArrayInputStream bais = null;
-		HttpEntity entity = null;
+		final String resolvedFileName = fileName;
 
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
@@ -284,97 +309,91 @@ public final class HttpHelperUtility {
 					httpGet.addHeader(key, headerMap.get(key));
 				}
 			}
-			response = httpClient.execute(httpGet);
-
-			File fileDir = new File(saveFilePath);
-			if (!fileDir.exists()) {
-				Boolean success = fileDir.mkdirs();
-				if (!success) {
-					classLogger.warn("Unable to make the directory to save the file at location: "
-							+ Utility.cleanLogString(saveFilePath));
-					throw new IllegalArgumentException(
-							"Directory to save the file download does not exist and could not be created");
-				}
-			}
-
-			String fileLocation = Utility.getUniqueFilePath(saveFilePath, fileName);
-			File savedFile = new File(fileLocation);
-
-			entity = response.getEntity();
-			is = entity.getContent();
-
-			if (Utility.isVirusScanningEnabled()) {
-				try {
-					baos = new ByteArrayOutputStream();
-					IOUtils.copy(is, baos);
-					bais = new ByteArrayInputStream(baos.toByteArray());
-
-					Map<String, Collection<String>> viruses = VirusScannerUtils.getViruses(fileName, bais);
-					if (!viruses.isEmpty()) {
-						String error = "File contained " + viruses.size() + " virus";
-						if (viruses.size() > 1) {
-							error = error + "es";
-						}
-
-						throw new IllegalArgumentException(error);
+			return httpClient.execute(httpGet, new HttpClientResponseHandler<File>() {
+				@Override
+				public File handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode < 200 || statusCode >= 300) {
+						String responseData = readEntityAsStringOrEmpty(entity);
+						throw buildHttpStatusException("GET", url, statusCode, responseData);
 					}
 
-					bais.reset();
-					FileUtils.copyInputStreamToFile(bais, savedFile);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new IllegalArgumentException("Could not read file item.");
-				}
-			} else {
-				FileUtils.copyInputStreamToFile(is, savedFile);
-			}
+					File fileDir = new File(saveFilePath);
+					if (!fileDir.exists()) {
+						Boolean success = fileDir.mkdirs();
+						if (!success) {
+							classLogger.warn("Unable to make the directory to save the file at location: "
+									+ Utility.cleanLogString(saveFilePath));
+							throw new IllegalArgumentException("Unable to create download directory '" + saveFilePath
+									+ "' for URL '" + url + "'.");
+						}
+					}
 
-			return savedFile;
+					String fileLocation = Utility.getUniqueFilePath(saveFilePath, resolvedFileName);
+					File savedFile = new File(fileLocation);
+					if (entity == null) {
+						throw new IllegalArgumentException(
+								"GET request to '" + url + "' succeeded but returned no file content to save.");
+					}
+
+					try (InputStream is = entity.getContent()) {
+						if (Utility.isVirusScanningEnabled()) {
+							try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+								IOUtils.copy(is, baos);
+								try (ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray())) {
+									Map<String, Collection<String>> viruses = VirusScannerUtils
+											.getViruses(resolvedFileName, bais);
+									if (!viruses.isEmpty()) {
+										String error = "Virus scan blocked downloaded file '" + resolvedFileName
+												+ "' from URL '" + url + "': detected " + viruses.size() + " threat";
+										if (viruses.size() > 1) {
+											error = error + "s";
+										}
+
+										throw new IllegalArgumentException(error + ".");
+									}
+
+									bais.reset();
+									FileUtils.copyInputStreamToFile(bais, savedFile);
+								}
+							}
+						} else {
+							FileUtils.copyInputStreamToFile(is, savedFile);
+						}
+					} catch (IOException e) {
+						classLogger.error("Failed while reading or scanning downloaded file content from URL: " + url,
+								e);
+						throw new IllegalArgumentException("Failed to read or save downloaded content from URL '" + url
+								+ "' to '" + savedFile.getAbsolutePath() + "'.", e);
+					}
+
+					return savedFile;
+				}
+			});
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} finally {
-			if (is != null) {
-				IOUtils.closeQuietly(is);
-			}
-			if (bais != null) {
-				IOUtils.closeQuietly(bais);
-			}
-			if (baos != null) {
-				IOUtils.closeQuietly(baos);
-			}
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to download file from URL: " + url, e);
+			throw buildConnectionException("GET (file download)", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param bodyMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP POST request with a URL-encoded form body.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyMap      optional form parameters encoded as
+	 *                     {@code application/x-www-form-urlencoded}
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap,
 			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
@@ -390,41 +409,41 @@ public final class HttpHelperUtility {
 				}
 				httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 			}
-			response = httpClient.execute(httpPost);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(
-					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
+			return httpClient.execute(httpPost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param body
-	 * @param contentType
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP POST request with a string payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param body         request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpPost httpPost = new HttpPost(url);
@@ -436,40 +455,89 @@ public final class HttpHelperUtility {
 			if (body != null && !body.isEmpty()) {
 				httpPost.setEntity(new StringEntity(body, contentType));
 			}
-			response = httpClient.execute(httpPost);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			return httpClient.execute(httpPost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param body
-	 * @param contentType
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP POST request with a byte-array payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyBytes    request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String postRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+
+			HttpPost httpPost = new HttpPost(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+					httpPost.addHeader(entry.getKey(), entry.getValue());
+				}
+			}
+			if (bodyBytes != null && bodyBytes.length > 0) {
+				httpPost.setEntity(new ByteArrayEntity(bodyBytes, contentType));
+			}
+
+			return httpClient.execute(httpPost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("POST", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute POST request with byte[] payload to URL: " + url, e);
+			throw buildConnectionException("POST", url, e);
+		}
+	}
+
+	/**
+	 * Executes an HTTP PUT request with a string payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param body         request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpPut httpPut = new HttpPut(url);
@@ -481,39 +549,41 @@ public final class HttpHelperUtility {
 			if (body != null && !body.isEmpty()) {
 				httpPut.setEntity(new StringEntity(body, contentType));
 			}
-			response = httpClient.execute(httpPut);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			return httpClient.execute(httpPut, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			throw buildConnectionException("PUT", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param bodyMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP PUT request with a URL-encoded form body.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyMap      optional form parameters encoded as
+	 *                     {@code application/x-www-form-urlencoded}
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap,
 			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpPut httpPost = new HttpPut(url);
@@ -529,40 +599,84 @@ public final class HttpHelperUtility {
 				}
 				httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 			}
-			response = httpClient.execute(httpPost);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException(
-					"Could not connect to URL at " + url + " and received error = " + e.getMessage());
+			return httpClient.execute(httpPost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			throw buildConnectionException("PUT", url, e);
 		}
 	}
 
 	/**
-	 * Return the headers from the request only
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP PATCH request with a string form body.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param body         optional body as string
+	 * @param contentType  optional contenttype for the body
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+			HttpPatch httpPatch = new HttpPatch(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (String key : headersMap.keySet()) {
+					httpPatch.addHeader(key, headersMap.get(key));
+				}
+			}
+			if (body != null && !body.isEmpty()) {
+				httpPatch.setEntity(new StringEntity(body, contentType));
+			}
+			return httpClient.execute(httpPatch, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PATCH", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PATCH request to URL: " + url, e);
+			throw buildConnectionException("PATCH", url, e);
+		}
+	}
+
+	/**
+	 * Executes an HTTP HEAD request and returns response headers as JSON.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return JSON array of header name/value maps
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass,
 			String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpHead httpHead = new HttpHead(url);
@@ -571,43 +685,44 @@ public final class HttpHelperUtility {
 					httpHead.addHeader(key, headersMap.get(key));
 				}
 			}
-			response = httpClient.execute(httpHead);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				List<Map<String, String>> headersArray = new ArrayList<>();
-				Header[] allHeaders = response.getHeaders();
-				for (Header h : allHeaders) {
-					Map<String, String> headerMap = new HashMap<>();
-					headerMap.put(h.getName(), h.getValue());
-					headersArray.add(headerMap);
+			return httpClient.execute(httpHead, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						List<Map<String, String>> headersArray = new ArrayList<>();
+						Header[] allHeaders = response.getHeaders();
+						for (Header h : allHeaders) {
+							Map<String, String> headerMap = new HashMap<>();
+							headerMap.put(h.getName(), h.getValue());
+							headersArray.add(headerMap);
+						}
+						return new GsonBuilder().disableHtmlEscaping().create().toJson(headersArray);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("HEAD", url, statusCode, responseData);
 				}
-				responseData = new Gson().toJson(headersArray);
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute HEAD request to URL: " + url, e);
+			throw buildConnectionException("HEAD", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP HEAD request and returns only the HTTP status code.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return HTTP status code from the response
+	 * @throws IllegalArgumentException if the URL cannot be reached
 	 */
 	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore,
 			String keyStorePass, String keyPass) {
-		CloseableHttpResponse response = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpHead httpHead = new HttpHead(url);
@@ -616,37 +731,33 @@ public final class HttpHelperUtility {
 					httpHead.addHeader(key, headersMap.get(key));
 				}
 			}
-			response = httpClient.execute(httpHead);
-			int statusCode = response.getCode();
-			return statusCode;
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url, e);
-		} finally {
-			if (response != null) {
-				try {
-					response.close();
-				} catch (Exception ignore) {
+			return httpClient.execute(httpHead, new HttpClientResponseHandler<Integer>() {
+				@Override
+				public Integer handleResponse(ClassicHttpResponse response) throws IOException {
+					return response.getCode();
 				}
-			}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute HEAD request while fetching status for URL: " + url, e);
+			throw buildConnectionException("HEAD", url, e);
 		}
 	}
 
 	/**
-	 * 
-	 * @param url
-	 * @param headersMap
-	 * @param contentType
-	 * @param keyStore
-	 * @param keyStorePass
-	 * @param keyPass
-	 * @return
+	 * Executes an HTTP DELETE request and returns the response body as UTF-8 text.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
 	 */
 	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore,
 			String keyStorePass, String keyPass) {
-		String responseData = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpDelete httpHead = new HttpDelete(url);
@@ -655,21 +766,21 @@ public final class HttpHelperUtility {
 					httpHead.addHeader(key, headersMap.get(key));
 				}
 			}
-			response = httpClient.execute(httpHead);
-
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Could not connect to URL at " + url);
+			return httpClient.execute(httpHead, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("DELETE", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute DELETE request to URL: " + url, e);
+			throw buildConnectionException("DELETE", url, e);
 		}
 	}
 
@@ -682,13 +793,17 @@ public final class HttpHelperUtility {
 	 */
 
 	/**
-	 * Make a request to get an access token Uses hashtable for list of params
-	 * 
-	 * @param url
-	 * @param params
-	 * @param json
-	 * @param extract
-	 * @return
+	 * Requests an OAuth token endpoint and optionally parses the response into an
+	 * {@link AccessToken}.
+	 *
+	 * @param url     token endpoint URL
+	 * @param params  form parameters sent as URL-encoded body values
+	 * @param json    {@code true} when the response is JSON; {@code false} for
+	 *                key-value form responses
+	 * @param extract {@code true} to parse and return a token object; {@code false}
+	 *                to skip parsing
+	 * @return parsed {@link AccessToken} when {@code extract} is {@code true} and
+	 *         parsing succeeds; otherwise {@code null}
 	 */
 	public static AccessToken getAccessToken(String url, Map<String, String> params, boolean json, boolean extract) {
 		AccessToken tok = null;
@@ -705,35 +820,47 @@ public final class HttpHelperUtility {
 			// set within post
 			httppost.setEntity(new UrlEncodedFormEntity(paramList));
 
-			CloseableHttpResponse response = httpclient.execute(httppost);
-			int status = response.getCode();
-			classLogger.info("Request for access token at " + url + " returned status code = " + status);
+			final String[] resultHolder = new String[1];
+			tok = httpclient.execute(httppost, new HttpClientResponseHandler<AccessToken>() {
+				@Override
+				public AccessToken handleResponse(ClassicHttpResponse response) throws IOException {
+					int status = response.getCode();
+					classLogger.info("Request for access token at " + url + " returned status code = " + status);
 
-			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			classLogger.info("Request response = " + Utility.cleanLogString(result));
+					HttpEntity entity = response.getEntity();
+					if (entity != null) {
+						try (InputStream content = entity.getContent()) {
+							resultHolder[0] = IOUtils.toString(content, StandardCharsets.UTF_8);
+						}
+					} else {
+						resultHolder[0] = null;
+					}
+					classLogger.info("Request response = " + Utility.cleanLogString(resultHolder[0]));
 
-			// this will set the token to use
-			if (status == 200 && extract) {
-				if (json) {
-					tok = getJAccessToken(result);
-				} else {
-					tok = getAccessToken(result);
+					if (status == 200 && extract) {
+						if (json) {
+							return getJAccessToken(resultHolder[0]);
+						}
+						return getAccessToken(resultHolder[0]);
+					}
+					return null;
 				}
-			}
+			});
+			result = resultHolder[0];
 		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unsupported encoding while processing token response from URL: " + url, e);
 		} catch (ClientProtocolException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("HTTP protocol error while requesting token from URL: " + url, e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unsupported operation while requesting token from URL: " + url, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("I/O error while requesting token from URL: " + url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after token request to URL: " + url, e);
 				}
 			}
 		}
@@ -747,13 +874,17 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * Make a request to get an id token Uses hashtable for list of params
-	 * 
-	 * @param url
-	 * @param params
-	 * @param json
-	 * @param extract
-	 * @return
+	 * Requests an OAuth token endpoint and optionally parses the response into an
+	 * ID-token-oriented {@link AccessToken}.
+	 *
+	 * @param url     token endpoint URL
+	 * @param params  form parameters sent as URL-encoded body values
+	 * @param json    {@code true} when the response is JSON; {@code false} for
+	 *                key-value form responses
+	 * @param extract {@code true} to parse and return a token object; {@code false}
+	 *                to skip parsing
+	 * @return parsed {@link AccessToken} when {@code extract} is {@code true} and
+	 *         parsing succeeds; otherwise {@code null}
 	 */
 	public static AccessToken getIdToken(String url, Map<String, String> params, boolean json, boolean extract) {
 		// still using accessToken object
@@ -770,35 +901,41 @@ public final class HttpHelperUtility {
 			// set within post
 			httppost.setEntity(new UrlEncodedFormEntity(paramList, StandardCharsets.UTF_8));
 
-			CloseableHttpResponse response = httpclient.execute(httppost);
-			int status = response.getCode();
-			classLogger.info("Request for access token at " + url + " returned status code = " + status);
+			final String[] resultHolder = new String[1];
+			tok = httpclient.execute(httppost, new HttpClientResponseHandler<AccessToken>() {
+				@Override
+				public AccessToken handleResponse(ClassicHttpResponse response) throws IOException {
+					int status = response.getCode();
+					classLogger.info("Request for access token at " + url + " returned status code = " + status);
 
-			result = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
-			classLogger.info("Request response = " + Utility.cleanLogString(result));
+					HttpEntity entity = response.getEntity();
+					if (entity != null) {
+						try (InputStream content = entity.getContent()) {
+							resultHolder[0] = IOUtils.toString(content, StandardCharsets.UTF_8);
+						}
+					} else {
+						resultHolder[0] = null;
+					}
+					classLogger.info("Request response = " + Utility.cleanLogString(resultHolder[0]));
 
-			// this will set the token to use
-			if (status == 200 && extract) {
-				if (json) {
-					tok = getJIDToken(result);
-				} else {
-					tok = getIDToken(result);
+					if (status == 200 && extract) {
+						if (json) {
+							return getJIDToken(resultHolder[0]);
+						}
+						return getIDToken(resultHolder[0]);
+					}
+					return null;
 				}
-			}
-		} catch (UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (ClientProtocolException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (UnsupportedOperationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			});
+			result = resultHolder[0];
+		} catch (Exception e) {
+			classLogger.error("Failed to request or parse ID token from URL: " + url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after ID token request to URL: " + url, e);
 				}
 			}
 		}
@@ -812,100 +949,154 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * Get access token from a basic string
-	 * 
-	 * @param input
-	 * @return
+	 * Parses an access token from a URL-encoded key-value response body.
+	 *
+	 * @param input response body containing an {@code access_token} entry
+	 * @return parsed {@link AccessToken}
 	 */
 	public static AccessToken getAccessToken(String input) {
 		return getAccessToken(input, "access_token");
 	}
 
 	/**
-	 * Get id token from a basic string
-	 * 
-	 * @param input
-	 * @return
+	 * Parses an ID token from a URL-encoded key-value response body.
+	 *
+	 * @param input response body containing an {@code id_token} entry
+	 * @return parsed {@link AccessToken}
 	 */
 	public static AccessToken getIDToken(String input) {
 		return getAccessToken(input, "id_token");
 	}
 
 	/**
-	 * Get access token from a basic string Example:
-	 * access_token=2577b7a6ef68c2a736bf0648ea024b0f4d10e32d&scope=public_repo%2Cuser&token_type=bearer
-	 * 
-	 * @param input
-	 * @param nameOfToken
-	 * @return
+	 * Parses token values from a URL-encoded key-value response body.
+	 * <p>
+	 * Example input: {@code access_token=...&scope=...&token_type=bearer}.
+	 * </p>
+	 *
+	 * @param input       response body in key-value pair format
+	 * @param nameOfToken token key to read (for example {@code access_token} or
+	 *                    {@code id_token})
+	 * @return populated {@link AccessToken} including optional refresh-token
+	 *         metadata
 	 */
 	public static AccessToken getAccessToken(String input, String nameOfToken) {
 		String accessToken = null;
+		String refreshToken = null;
 		String[] tokens = input.split("&");
 		for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
 			if (thisToken.startsWith(nameOfToken)) {
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
-				break;
+			} else if (thisToken.startsWith("refresh_token=")) {
+				refreshToken = thisToken.replaceAll("refresh_token=", "");
 			}
 		}
 		AccessToken tok = new AccessToken();
 		tok.setAccess_token(accessToken);
+		if (refreshToken != null && !refreshToken.isEmpty()) {
+			try {
+				tok.addMetaValue("refresh_token", URLDecoder.decode(refreshToken, StandardCharsets.UTF_8.toString()));
+			} catch (UnsupportedEncodingException e) {
+				classLogger.error("Failed to decode refresh token value while parsing token response", e);
+				tok.addMetaValue("refresh_token", refreshToken);
+			}
+		}
 		tok.init();
 
 		return tok;
 	}
 
 	/**
-	 * Get the access token from a json
-	 * 
-	 * @param input
-	 * @return
+	 * Parses an access token from a JSON token response.
+	 *
+	 * @param input token response JSON
+	 * @return parsed {@link AccessToken}
 	 */
 	public static AccessToken getJAccessToken(String input) {
-		return getJAccessToken(input, "[access_token, token_type, expires_in]");
-	}
-
-	/**
-	 * Get the id token from a json
-	 * 
-	 * @param input
-	 * @return
-	 */
-	public static AccessToken getJIDToken(String input) {
-		return getJAccessToken(input, "[id_token, token_type, expires_in]");
-	}
-
-	/**
-	 * Get the access token from a json
-	 * 
-	 * @param json
-	 * @param nameOfToken
-	 * @return
-	 */
-	public static AccessToken getJAccessToken(String json, String nameOfToken) {
 		AccessToken tok = new AccessToken();
 		try {
-			JmesPath<JsonNode> jmespath = new JacksonRuntime();
-			// Expressions need to be compiled before you can search. Compiled expressions
-			// are reusable and thread safe
-			// Compile your expressions once, just like database prepared statements.
-			Expression<JsonNode> expression = jmespath.compile(nameOfToken);
-
-			JsonNode input = mapper.readTree(json);
-			JsonNode result = expression.search(input);
-			if (result.size() >= 0) {
-				tok.setAccess_token(result.get(0).asText());
+			JsonNode json = mapper.readTree(input);
+			JsonNode accessTokenNode = json.get("access_token");
+			if (accessTokenNode != null && !accessTokenNode.isNull()) {
+				String accessToken = accessTokenNode.asText();
+				if (accessToken != null && !accessToken.isEmpty()) {
+					tok.setAccess_token(accessToken);
+				}
 			}
-			if (result.size() >= 1) {
-				tok.setToken_type(result.get(1).asText());
+			JsonNode tokenTypeNode = json.get("token_type");
+			if (tokenTypeNode != null && !tokenTypeNode.isNull()) {
+				String tokenType = tokenTypeNode.asText();
+				if (tokenType != null && !tokenType.isEmpty()) {
+					tok.setToken_type(tokenType);
+				}
 			}
-			if (result.size() >= 2) {
-				tok.setExpires_in(result.get(2).asInt());
+			JsonNode expiresInNode = json.get("expires_in");
+			if (expiresInNode != null && !expiresInNode.isNull()) {
+				int expiresIn = expiresInNode.asInt();
+				tok.setExpires_in(expiresIn);
+			}
+			JsonNode instanceUrlNode = json.get("instance_url");
+			if (instanceUrlNode != null && !instanceUrlNode.isNull()) {
+				String instanceUrl = instanceUrlNode.asText();
+				if (instanceUrl != null && !instanceUrl.isEmpty()) {
+					tok.setInstance_url(instanceUrl);
+				}
+			}
+			JsonNode refreshTokenNode = json.get("refresh_token");
+			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
+				String refreshToken = refreshTokenNode.asText();
+				if (refreshToken != null && !refreshToken.isEmpty()) {
+					tok.addMetaValue("refresh_token", refreshToken);
+				}
 			}
 			tok.init();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to parse access-token JSON response: " + input, e);
+		}
+		return tok;
+
+	}
+
+	/**
+	 * Parses an ID token from a JSON token response.
+	 *
+	 * @param input token response JSON
+	 * @return parsed {@link AccessToken}
+	 */
+	public static AccessToken getJIDToken(String input) {
+		AccessToken tok = new AccessToken();
+		try {
+			JsonNode json = mapper.readTree(input);
+			JsonNode accessTokenNode = json.get("id_token");
+			if (accessTokenNode != null && !accessTokenNode.isNull()) {
+				String accessToken = accessTokenNode.asText();
+				if (accessToken != null && !accessToken.isEmpty()) {
+					tok.setAccess_token(accessToken);
+				}
+			}
+			JsonNode tokenTypeNode = json.get("token_type");
+			if (tokenTypeNode != null && !tokenTypeNode.isNull()) {
+				String tokenType = tokenTypeNode.asText();
+				if (tokenType != null && !tokenType.isEmpty()) {
+					tok.setToken_type(tokenType);
+				}
+			}
+			JsonNode expiresInNode = json.get("expires_in");
+			if (expiresInNode != null && !expiresInNode.isNull()) {
+				int expiresIn = expiresInNode.asInt();
+				tok.setExpires_in(expiresIn);
+			}
+			JsonNode refreshTokenNode = json.get("refresh_token");
+			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
+				String refreshToken = refreshTokenNode.asText();
+				if (refreshToken != null && !refreshToken.isEmpty()) {
+					tok.addMetaValue("refresh_token", refreshToken);
+				}
+			}
+			tok.init();
+		} catch (IOException e) {
+			classLogger.error("Failed to parse ID-token JSON response: " + input, e);
 		}
 		return tok;
 	}
@@ -919,24 +1110,28 @@ public final class HttpHelperUtility {
 	 */
 
 	/**
-	 * Makes the call to every resource going forward with the specified keys as get
-	 * 
-	 * @param urlStr
-	 * @param accessToken
-	 * @return
+	 * Executes an authenticated GET request without query parameters.
+	 *
+	 * @param urlStr      target URL
+	 * @param accessToken bearer token value
+	 * @return response body
 	 */
 	public static String makeGetCall(String urlStr, String accessToken) {
 		return makeGetCall(urlStr, accessToken, null, true);
 	}
 
 	/**
-	 * Makes the call to every resource going forward with the specified keys as get
-	 * 
-	 * @param urlStr
-	 * @param accessToken
-	 * @param params
-	 * @param auth
-	 * @return
+	 * Executes a GET request with optional query parameters and optional bearer
+	 * authentication.
+	 *
+	 * @param urlStr      target URL
+	 * @param accessToken bearer token used when {@code auth} is {@code true}
+	 * @param params      optional query-string parameters
+	 * @param auth        {@code true} to add an Authorization header; {@code false}
+	 *                    for an unauthenticated request
+	 * @return response body
+	 * @throws NullPointerException     if {@code urlStr} is {@code null}
+	 * @throws IllegalArgumentException if the response status is 4xx/5xx
 	 */
 	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
 		if (urlStr == null) {
@@ -961,12 +1156,13 @@ public final class HttpHelperUtility {
 		}
 
 		String retString = null;
-		String responseCode = null;
+		Integer responseCode = null;
+		Exception requestException = null;
 		BufferedReader br = null;
 		InputStreamReader isr = null;
 		try {
 			HttpURLConnection con = null;
-			URL url = new URL(urlStr);
+			URL url = new URI(urlStr).toURL();
 			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
 			con.setDoOutput(true);
@@ -988,37 +1184,56 @@ public final class HttpHelperUtility {
 			}
 			retString = str.toString();
 
-			responseCode = String.valueOf(con.getResponseCode());
-		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			responseCode = con.getResponseCode();
+		} catch (Exception e) {
+			classLogger.error("Failed to execute GET request to URL: " + urlStr, e);
+			requestException = e;
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close response BufferedReader for URL: " + urlStr, e);
 				}
 			}
 			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close response InputStreamReader for URL: " + urlStr, e);
 				}
 			}
 		}
 
 		classLogger.info("Return from " + urlStr + " with response " + responseCode + " = " + retString);
-		if (responseCode.startsWith("4") || responseCode.startsWith("5")) {
-			throw new IllegalArgumentException(retString);
+		if (requestException != null) {
+			throw buildConnectionException("GET", urlStr, requestException);
+		}
+		if (responseCode == null) {
+			throw new IllegalArgumentException(
+					"GET request to '" + urlStr + "' did not return an HTTP status code or response body.");
+		}
+		if (responseCode >= 400) {
+			throw buildHttpStatusException("GET", urlStr, responseCode, retString);
 		}
 
 		return retString;
 	}
 
-	// makes the call to every resource going forward with the specified keys as get
+	/**
+	 * Opens a GET request and returns a reader for streaming the response body.
+	 * <p>
+	 * The caller is responsible for closing the returned {@link BufferedReader}.
+	 * </p>
+	 *
+	 * @param urlStr      target URL
+	 * @param accessToken bearer token used when {@code auth} is {@code true}
+	 * @param params      optional query-string parameters
+	 * @param auth        {@code true} to add an Authorization header; {@code false}
+	 *                    for an unauthenticated request
+	 * @return open {@link BufferedReader} for the response body, or {@code null}
+	 *         when the request fails
+	 */
 	public static BufferedReader getHttpStream(String urlStr, String accessToken, Map<String, Object> params,
 			boolean auth) {
 		// fill the params on the get since it is not null
@@ -1042,7 +1257,7 @@ public final class HttpHelperUtility {
 
 		try {
 			HttpURLConnection con = null;
-			URL url = new URL(urlStr);
+			URL url = new URI(urlStr).toURL();
 			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
 			con.setDoOutput(true);
@@ -1057,17 +1272,25 @@ public final class HttpHelperUtility {
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 			return br;
-		} catch (MalformedURLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to open HTTP stream for URL: " + urlStr, e);
 		}
 
 		return null;
 	}
 
-	// make a post call
-
+	/**
+	 * Executes an authenticated POST request with either URL-encoded form values or
+	 * a JSON payload.
+	 *
+	 * @param url         target URL
+	 * @param accessToken bearer token value
+	 * @param input       request body object; expected to be a {@link Hashtable}
+	 *                    when {@code json} is {@code false}
+	 * @param json        {@code true} to serialize {@code input} as JSON;
+	 *                    {@code false} to send URL-encoded form fields
+	 * @return response body, or {@code null} when the request fails
+	 */
 	public static String makePostCall(String url, String accessToken, Object input, boolean json) {
 		CloseableHttpClient httpclient = null;
 		try {
@@ -1093,25 +1316,33 @@ public final class HttpHelperUtility {
 				httppost.setEntity(new StringEntity(inputJson));
 			}
 
-			ResponseHandler<String> handler = new BasicResponseHandler();
-			CloseableHttpResponse response = httpclient.execute(httppost);
+			return httpclient.execute(httppost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					HttpEntity entity = response.getEntity();
+					if (entity == null) {
+						return null;
+					}
 
-			BufferedReader rd = new BufferedReader(
-					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			return result.toString();
+					try (BufferedReader rd = new BufferedReader(
+							new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
+						StringBuffer result = new StringBuffer();
+						String line = "";
+						while ((line = rd.readLine()) != null) {
+							result.append(line);
+						}
+						return result.toString();
+					}
+				}
+			});
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to execute POST request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after POST request to URL: " + url, e);
 				}
 			}
 		}
@@ -1119,6 +1350,16 @@ public final class HttpHelperUtility {
 		return null;
 	}
 
+	/**
+	 * Uploads a local file using an authenticated HTTP PUT request.
+	 *
+	 * @param url         target URL
+	 * @param accessToken bearer token value
+	 * @param fileName    file name label used by callers (not used directly in the
+	 *                    request payload)
+	 * @param localPath   path to the local file to upload
+	 * @return response body, or {@code null} when the request fails
+	 */
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
 		CloseableHttpClient httpclient = null;
 		try {
@@ -1128,26 +1369,33 @@ public final class HttpHelperUtility {
 			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
 			File fileupload = new File(localPath);
 			httpput.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
-			ResponseHandler<String> handler = new BasicResponseHandler();
-			CloseableHttpResponse response = httpclient.execute(httpput);
+			return httpclient.execute(httpput, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					HttpEntity entity = response.getEntity();
+					if (entity == null) {
+						return null;
+					}
 
-			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(
-					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			return result.toString();
+					try (BufferedReader rd = new BufferedReader(
+							new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
+						StringBuffer result = new StringBuffer();
+						String line = "";
+						while ((line = rd.readLine()) != null) {
+							result.append(line);
+						}
+						return result.toString();
+					}
+				}
+			});
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to upload file via PUT request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after PUT file upload to URL: " + url, e);
 				}
 			}
 		}
@@ -1156,6 +1404,15 @@ public final class HttpHelperUtility {
 
 	}
 
+	/**
+	 * Uploads a local file using an authenticated HTTP POST request.
+	 *
+	 * @param url         target URL
+	 * @param accessToken bearer token value
+	 * @param filename    remote file name used in provider-specific headers
+	 * @param filepath    path to the local file to upload
+	 * @return response body, or {@code null} when the request fails
+	 */
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
@@ -1167,32 +1424,47 @@ public final class HttpHelperUtility {
 					"{\"path\": \"/" + filename + "\",\"mode\": \"add\",\"autorename\": true,\"mute\": false}");
 			File fileupload = new File(filepath);
 			httppost.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
-			ResponseHandler<String> handler = new BasicResponseHandler();
-			CloseableHttpResponse response = httpclient.execute(httppost);
+			return httpclient.execute(httppost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					HttpEntity entity = response.getEntity();
+					if (entity == null) {
+						return null;
+					}
 
-			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(
-					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			return result.toString();
+					try (BufferedReader rd = new BufferedReader(
+							new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
+						StringBuffer result = new StringBuffer();
+						String line = "";
+						while ((line = rd.readLine()) != null) {
+							result.append(line);
+						}
+						return result.toString();
+					}
+				}
+			});
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to upload file via POST request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after POST file upload to URL: " + url, e);
 				}
 			}
 		}
 		return null;
 	}
 
+	/**
+	 * Uploads a local file using an authenticated HTTP PATCH request.
+	 *
+	 * @param url         target URL
+	 * @param accessToken bearer token value
+	 * @param filepath    path to the local file to upload
+	 * @return response body, or {@code null} when the request fails
+	 */
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
@@ -1202,35 +1474,140 @@ public final class HttpHelperUtility {
 
 			File fileupload = new File(filepath);
 			httppatch.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
-			ResponseHandler<String> handler = new BasicResponseHandler();
-			CloseableHttpResponse response = httpclient.execute(httppatch);
+			return httpclient.execute(httppatch, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					HttpEntity entity = response.getEntity();
+					if (entity == null) {
+						return null;
+					}
 
-			int status = response.getCode();
-			BufferedReader rd = new BufferedReader(
-					new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-			StringBuffer result = new StringBuffer();
-			String line = "";
-			while ((line = rd.readLine()) != null) {
-				result.append(line);
-			}
-			return result.toString();
+					try (BufferedReader rd = new BufferedReader(
+							new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
+						StringBuffer result = new StringBuffer();
+						String line = "";
+						while ((line = rd.readLine()) != null) {
+							result.append(line);
+						}
+						return result.toString();
+					}
+				}
+			});
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to upload file via PATCH request to URL: " + url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close HTTP client after PATCH file upload to URL: " + url, e);
 				}
 			}
 		}
 		return null;
 	}
 
-	// makes the call to every resource going forward with the specified keys as
-	// post
+	/**
+	 * Reads an HTTP entity as a UTF-8 string.
+	 *
+	 * @param entity response entity
+	 * @return string representation of the entity, or {@code null} when no entity
+	 *         is present
+	 * @throws IOException if the entity cannot be read or parsed
+	 */
+	private static String readEntityAsString(HttpEntity entity) throws IOException {
+		if (entity == null) {
+			return null;
+		}
+		try {
+			return EntityUtils.toString(entity, StandardCharsets.UTF_8);
+		} catch (ParseException e) {
+			throw new IOException("Failed to parse HTTP response body", e);
+		}
+	}
 
+	/**
+	 * Reads an HTTP entity as a UTF-8 string and normalizes {@code null} to an
+	 * empty string.
+	 *
+	 * @param entity response entity
+	 * @return entity contents as a string, or an empty string when no entity is
+	 *         present
+	 * @throws IOException if the entity cannot be read or parsed
+	 */
+	private static String readEntityAsStringOrEmpty(HttpEntity entity) throws IOException {
+		String body = readEntityAsString(entity);
+		return body == null ? "" : body;
+	}
+
+	/**
+	 * Builds a consistent exception for non-2xx HTTP responses.
+	 *
+	 * @param method       HTTP method (GET, POST, etc.)
+	 * @param url          target URL
+	 * @param statusCode   HTTP status code returned by the server
+	 * @param responseBody response payload, if present
+	 * @return populated {@link IllegalArgumentException}
+	 */
+	private static IllegalArgumentException buildHttpStatusException(String method, String url, int statusCode,
+			String responseBody) {
+		StringBuilder message = new StringBuilder();
+		message.append(method).append(" request to ").append(url).append(" returned HTTP ").append(statusCode);
+
+		String normalizedBody = normalizeErrorBody(responseBody);
+		if (!normalizedBody.isEmpty()) {
+			message.append(". Response body: ").append(normalizedBody);
+		}
+
+		return new IllegalArgumentException(message.toString());
+	}
+
+	/**
+	 * Builds a consistent exception for transport-level failures.
+	 *
+	 * @param method HTTP method or operation label
+	 * @param url    target URL
+	 * @param cause  root cause from the HTTP client
+	 * @return populated {@link IllegalArgumentException}
+	 */
+	private static IllegalArgumentException buildConnectionException(String method, String url, Exception cause) {
+		StringBuilder message = new StringBuilder();
+		message.append("Failed to execute ").append(method).append(" request to ").append(url);
+		String causeMessage = cause.getMessage();
+		if (causeMessage != null && !causeMessage.trim().isEmpty()) {
+			message.append(". Cause: ").append(causeMessage.trim());
+		}
+
+		return new IllegalArgumentException(message.toString(), cause);
+	}
+
+	/**
+	 * Normalizes and truncates response bodies for inclusion in exception messages.
+	 *
+	 * @param responseBody raw response body text
+	 * @return one-line response text, truncated when very long
+	 */
+	private static String normalizeErrorBody(String responseBody) {
+		if (responseBody == null) {
+			return "";
+		}
+
+		String normalized = responseBody.replace("\r", " ").replace("\n", " ").trim();
+		if (normalized.length() <= MAX_ERROR_RESPONSE_CHARS) {
+			return normalized;
+		}
+
+		return normalized.substring(0, MAX_ERROR_RESPONSE_CHARS) + "... [truncated]";
+	}
+
+	/**
+	 * Parses OAuth callback query parameters and extracts authorization code and
+	 * state.
+	 *
+	 * @param queryStr query string from a callback URL
+	 * @return array with two elements: index {@code 0} is {@code code}, index
+	 *         {@code 1} is {@code state}
+	 */
 	public static String[] getCodes(String queryStr) {
 		String[] retString = new String[2];
 		String[] inputCodes = URLDecoder.decode(queryStr, StandardCharsets.UTF_8).split("&");
@@ -1247,12 +1624,9 @@ public final class HttpHelperUtility {
 		return retString;
 	}
 
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////
-
+	/**
+	 * Utility class constructor intentionally hidden.
+	 */
 	private HttpHelperUtility() {
 
 	}

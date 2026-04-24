@@ -34,15 +34,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class PortAllocator {
+public final class PortAllocator {
 
 	private static final Logger classLogger = LogManager.getLogger(PortAllocator.class);
 
-	private static PortAllocator instance;
+	private static volatile PortAllocator instance;
 	private final int MIN_PORT;
 	private final int MAX_PORT;
 	private final int PORT_DOMAIN;
-	private AtomicInteger nextPort;
+	private static AtomicInteger nextPort;
 
 	/**
 	 * 
@@ -56,20 +56,18 @@ public class PortAllocator {
 				lowPort = Integer.parseInt(Utility.getDIHelperProperty("LOW_PORT"));
 			} catch (Exception ignore) {
 			}
-			;
 		}
 		if (Utility.getDIHelperProperty("HIGH_PORT") != null) {
 			try {
 				highPort = Integer.parseInt(Utility.getDIHelperProperty("HIGH_PORT"));
 			} catch (Exception ignore) {
 			}
-			;
 		}
 
 		MIN_PORT = lowPort;
 		MAX_PORT = highPort;
 		PORT_DOMAIN = highPort - lowPort;
-		nextPort = new AtomicInteger(MIN_PORT);
+		PortAllocator.nextPort = new AtomicInteger(MIN_PORT);
 	}
 
 	/**
@@ -77,6 +75,10 @@ public class PortAllocator {
 	 * @return
 	 */
 	public static PortAllocator getInstance() {
+		if (instance != null) {
+			return instance;
+		}
+
 		if (instance == null) {
 			synchronized (PortAllocator.class) {
 				if (instance == null) {
@@ -95,18 +97,21 @@ public class PortAllocator {
 		int port;
 		int counter = 0;
 		while (true) {
-			port = nextPort.getAndIncrement();
+			port = PortAllocator.nextPort.getAndIncrement();
 			if (port > MAX_PORT) {
-				nextPort.set(MIN_PORT);
-				port = MIN_PORT;
+				// use compareAndSet so only 1 thread can change the value to MIN_PORT if there
+				// is a race condition
+				PortAllocator.nextPort.compareAndSet(port + 1, MIN_PORT);
+				// let the loop re-run and pick up a valid port
+				continue;
 			}
 			if (isPortAvailable(port)) {
 				break;
 			}
-			
+
 			// make sure we don't have an infinite loop
 			counter++;
-			if(counter > PORT_DOMAIN) {
+			if (counter > PORT_DOMAIN) {
 				throw new IllegalArgumentException("Unable to find an open port");
 			}
 		}
@@ -120,10 +125,10 @@ public class PortAllocator {
 	 */
 	public static boolean isPortAvailable(int port) {
 		try (ServerSocket ignored = new ServerSocket(port)) {
-			classLogger.info("Port " + port + " is available");
+			classLogger.info("Port {} is available", port);
 			return true;
 		} catch (IOException e) {
-			classLogger.info("Port " + port + " is unavailable");
+			classLogger.info("Port {} is unavailable", port);
 			return false;
 		}
 	}

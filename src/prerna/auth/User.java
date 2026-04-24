@@ -80,7 +80,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	private Map<String, Object> roomHash = new HashMap<>();
+	private Map<String, Object> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -691,6 +691,14 @@ public class User implements Serializable {
 					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
 					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
 					symlinkHelper = new SymlinkHelper(chrootPath);
+
+          // symlink the user asset folder into the chroot on boot
+          try {
+            symlinkHelper.symlinkUserAsset(this);
+          } catch (Exception e) {
+            classLogger.warn("Unable to symlink user asset folder into chroot", e);
+          }
+          
 				}
 			}
 			return symlinkHelper;

@@ -25,6 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
+/*******************************************************************************
+* Copyright 2015 Defense Health Agency (DHA)
+*
+* If your use of this software does not include any GPLv2 components:
+* 	Licensed under the Apache License, Version 2.0 (the "License");
+* 	you may not use this file except in compliance with the License.
+* 	You may obtain a copy of the License at
+*
+* 	  http://www.apache.org/licenses/LICENSE-2.0
+*
+* 	Unless required by applicable law or agreed to in writing, software
+* 	distributed under the License is distributed on an "AS IS" BASIS,
+* 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* 	See the License for the specific language governing permissions and
+* 	limitations under the License.
+* ----------------------------------------------------------------------------
+* If your use of this software includes any GPLv2 components:
+* 	This program is free software; you can redistribute it and/or
+* 	modify it under the terms of the GNU General Public License
+* 	as published by the Free Software Foundation; either version 2
+* 	of the License, or (at your option) any later version.
+*
+* 	This program is distributed in the hope that it will be useful,
+* 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+* 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* 	GNU General Public License for more details.
+*******************************************************************************/
 package prerna.engine.impl.storage;
 
 import java.io.ByteArrayInputStream;
@@ -195,7 +222,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					uploadedFiles.add(uploadFileToBlob(file, localFilePath, containerClient, blobDirectory, metadata));
 				} catch (Exception e) {
 					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: " + file, e);
+					classLogger.error("Failed to upload file: {}", file, e);
 				}
 			});
 			found = true;
@@ -205,11 +232,13 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			throw e;
 		}
 
-		classLogger.info(
-				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
 
-		classLogger.info(found ? "Sync completed successfully for: " + storagePath
-				: "No files found to sync for: " + storagePath);
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
@@ -217,14 +246,11 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		// Extract container and blob directory
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
-		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
+		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
 		Path localDirectory = Paths.get(localPath);
 
 		BlobContainerClient containerClient = this.blobServiceClient.getBlobContainerClient(containerName);
 		Files.createDirectories(localDirectory); // Ensure local directory exists
-		if (blobDirectory.startsWith("/")) {
-			blobDirectory = blobDirectory.substring(1);
-		}
 
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
@@ -237,9 +263,12 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Delete empty folder from azure storage (zero-byte blob)
 			deleteEmptyBlobs(containerClient);
 
-			Path localFilePath = localDirectory.resolve(blobItem.getName().startsWith(blobDirectory)
-					? blobItem.getName().substring(blobDirectory.length()).replace("/", File.separator)
-					: blobItem.getName().replace("/", File.separator));
+			String relativePath = resolveRelativeStoragePath(blobItem.getName(), blobDirectory);
+			if (relativePath == null) {
+				continue;
+			}
+
+			Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 			cloudFiles.add(localFilePath.toString());
 			Files.createDirectories(localFilePath.getParent());
 
@@ -261,13 +290,12 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
 							"Syncing file to local: " + blobItem.getName());
 					downloadedFiles.add(blobItem.getName());
-					classLogger.info(
-							isUpdated ? "Updated file: " + localFilePath : "Downloaded new file: " + localFilePath);
+					classLogger.info(isUpdated ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 				}
 				found = true;
 			} catch (Exception e) {
-				failedFiles.add(blobItem.getName());
-				classLogger.error("Failed to sync file: " + blobItem.getName(), e);
+				failedFiles.add(relativePath);
+				classLogger.error("Failed to sync file: {}", blobItem.getName(), e);
 			}
 		}
 		// Delete local files not present in Azure
@@ -275,23 +303,25 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
 					try {
 						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: " + localFile);
+						classLogger.info("Deleted extra local file: {}", localFile);
 					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: " + localFile, e);
+						classLogger.error("Failed to delete extra file: {}", localFile, e);
 					}
 				});
 
 		// Delete Empty Directories Locally
 		deleteEmptyDirectories(localDirectory);
 
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to sync. Rolling back...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
-		classLogger.info(found ? "Sync completed successfully for: " + storagePath
-				: "No files found to sync for: " + storagePath);
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
@@ -309,7 +339,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<Path> paths = parseLocalPaths(localFilePath);
 		for (Path filePath : paths) {
 			if (!Files.exists(filePath)) {
-				classLogger.error("File not found: " + filePath);
+				classLogger.error("File not found: {}", filePath);
 				failedFiles.add(filePath.toString());
 				continue;
 			}
@@ -323,7 +353,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 							uploadedFiles.add(uploadFile(containerClient, filePath, file, blobDirectory, metadata));
 						} catch (Exception e) {
 							failedFiles.add(file.toString());
-							classLogger.error("Failed to upload file: " + file, e);
+							classLogger.error("Failed to upload file: {}", file, e);
 							rollbackUploads(containerClient, failedFiles);
 						}
 					});
@@ -336,17 +366,20 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					found = true;
 				} catch (Exception e) {
 					failedFiles.add(filePath.toString());
-					classLogger.error("Failed to upload file: " + filePath, e);
+					classLogger.error("Failed to upload file: {}", filePath, e);
 					rollbackUploads(containerClient, failedFiles);
 				}
 			}
 		}
 		// Delete empty folder from azure storage (zero-byte blob)
 		deleteEmptyBlobs(containerClient);
-		classLogger.info(
-				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
-		classLogger.info(found ? "Copy completed successfully for: " + storageFolderPath
-				: "No files found to copy for: " + storageFolderPath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFolderPath);
 	}
 
 	@Override
@@ -364,8 +397,9 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
 		for (String path : paths) {
-			Iterable<BlobItem> getBlobItems = paths.isEmpty() ? containerClient.listBlobs()
-					: containerClient.listBlobs(new ListBlobsOptions().setPrefix(path), null);
+			String requestedPath = normalizeStoragePrefixPath(path);
+			Iterable<BlobItem> getBlobItems = requestedPath.isEmpty() ? containerClient.listBlobs()
+					: containerClient.listBlobs(new ListBlobsOptions().setPrefix(requestedPath), null);
 
 			for (BlobItem blobItem : getBlobItems) {
 				String blobName = blobItem.getName();
@@ -374,42 +408,46 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				// Delete empty folder from azure storage (zero-byte blob)
 				deleteEmptyBlobs(containerClient);
 
-				Path localFilePath = localDirectory
-						.resolve(blobName.substring(path.length()).replace("/", File.separator));
+				String relativePath = resolveRelativeStoragePath(blobName, requestedPath);
+				if (relativePath == null) {
+					continue;
+				}
+
+				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 				try {
 					Files.createDirectories(localFilePath.getParent());
 					retryOperation(() -> blobClient.downloadToFile(localFilePath.toString(), true),
 							"Downloading file: " + blobName);
 					downloadedFiles.add(blobName);
-					classLogger.info("Downloaded file: " + localFilePath);
+					classLogger.info("Downloaded file: {}", localFilePath);
 					found = true;
 				} catch (Exception e) {
-					failedFiles.add(blobName);
-					classLogger.error("Failed to download: " + blobName, e);
+					failedFiles.add(relativePath);
+					classLogger.error("Failed to download: {}", blobName, e);
 				}
 			}
 		}
 
 		// Delete empty directories after download
 		deleteEmptyDirectories(localDirectory);
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to download. Retrying...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
-		classLogger.info(found ? "Copy completed successfully for: " + storageFilePath
-				: "No files found to copy for: " + storageFilePath);
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFilePath);
 	}
 
 	@Override
 	public void deleteFromStorage(String storagePath) throws Exception {
 		String[] containerAndPath = extractContainerAndPath(storagePath);
 		String containerName = containerAndPath[0];
-		String blobDirectory = Utility.normalizePath(containerAndPath[1]);
-		if (blobDirectory.startsWith("/")) {
-			blobDirectory = blobDirectory.substring(1);
-		}
+		String blobDirectory = normalizeStoragePrefixPath(containerAndPath[1]);
 
 		List<String> deletedFiles = new ArrayList<>();
 		List<String> failedFiles = new ArrayList<>();
@@ -424,8 +462,8 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		for (BlobItem blobItem : blobItems) {
 			String blobName = blobItem.getName();
-			if (blobDirectory.isEmpty()
-					|| (!blobName.equals(blobDirectory) && !blobName.substring(blobDirectory.length()).contains("/"))) {
+			String relativePath = resolveRelativeStoragePath(blobName, blobDirectory);
+			if (blobDirectory.isEmpty() || (relativePath != null && !relativePath.contains("/"))) {
 				hasFilesToDelete = true;
 				if (deleteBlob(containerClient, blobName)) {
 					deletedFiles.add(blobName);
@@ -436,13 +474,17 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (!hasFilesToDelete) {
-			classLogger.warn(blobDirectory.isEmpty() ? "No files found in container: " + containerName
-					: "No files found in directory: " + blobDirectory);
+			classLogger.warn(
+					blobDirectory.isEmpty() ? "No files found in container: {}" : "No files found in directory: {}",
+					blobDirectory.isEmpty() ? containerName : blobDirectory);
 			return;
 		}
 
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -477,10 +519,14 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				failedFiles.add(blobName);
 			}
 		}
-		classLogger.info(hasFilesToDelete ? "Deletion process completed for: " + storagePath
-				: "No files found to delete in path: " + storagePath);
 		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+				hasFilesToDelete ? "Deletion process completed for: {}" : "No files found to delete in path: {}",
+				storagePath);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -504,9 +550,8 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		boolean folderExists = false;
 
-		classLogger.info(
-				blobDirectory.isEmpty() ? "Blob directory is empty. Deleting all files in container: " + containerName
-						: "Deleting folder: " + blobDirectory);
+		classLogger.info(blobDirectory.isEmpty() ? "Blob directory is empty. Deleting all files in container: {}"
+				: "Deleting folder: {}", blobDirectory.isEmpty() ? containerName : blobDirectory);
 
 		for (BlobItem blobItem : containerClient.listBlobs()) {
 			String blobName = blobItem.getName();
@@ -517,24 +562,27 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					retryOperation(() -> {
 						BlobClient blobClient = containerClient.getBlobClient(blobName);
 						if (blobClient.deleteIfExists()) {
-							classLogger.info("Deleted file: " + blobName);
+							classLogger.info("Deleted file: {}", blobName);
 							deletedFiles.add(blobName);
 						}
 					}, "Deleting file: " + blobName);
 				} catch (Exception e) {
 					failedFiles.add(blobName);
-					classLogger.error("Failed to delete file: " + blobName, e);
+					classLogger.error("Failed to delete file: {}", blobName, e);
 				}
 			}
 		}
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
 			retryDelete(failedFiles, containerClient);
 		}
-		classLogger.info(folderExists ? "Successfully deleted folder: " + storageFolderPath
-				: "No files found in directory: " + blobDirectory);
+		classLogger.info(folderExists ? "Successfully deleted folder: {}" : "No files found in directory: {}",
+				folderExists ? storageFolderPath : blobDirectory);
 	}
 
 	private String uploadFileToBlob(Path file, Path basePath, BlobContainerClient containerClient, String blobDirectory,
@@ -558,15 +606,15 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					// Sync conditions: If file size or modified time differs
 					if (localFileSize != blobFileSize || localLastModified > blobLastModified) {
 						blobClient.uploadFromFile(file.toString(), true);
-						classLogger.info("Updated file: " + blobName);
+						classLogger.info("Updated file: {}", blobName);
 					} else {
-						classLogger.info("Skipping file (No changes detected): " + blobName);
+						classLogger.info("Skipping file (No changes detected): {}", blobName);
 					}
 				} catch (BlobStorageException e) {
 					// If blob doesn't exist, upload it as a new file
 					if (e.getStatusCode() == 404) {
 						blobClient.uploadFromFile(file.toString(), true);
-						classLogger.info("Uploaded new file: " + blobName);
+						classLogger.info("Uploaded new file: {}", blobName);
 					} else {
 						throw e;
 					}
@@ -577,7 +625,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			}, "Uploading file: " + blobName);
 
 		} catch (IOException e) {
-			classLogger.error("Failed to read file properties: " + file, e);
+			classLogger.error("Failed to read file properties: {}", file, e);
 			return null;
 		}
 		return blobName;
@@ -588,12 +636,12 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			retryOperation(() -> {
 				BlobClient blobClient = containerClient.getBlobClient(blobName);
 				if (blobClient.deleteIfExists()) {
-					classLogger.info("Deleted file: " + blobName);
+					classLogger.info("Deleted file: {}", blobName);
 				}
 			}, "Deleting file: " + blobName);
 			return true;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete file: " + blobName, e);
+			classLogger.error("Failed to delete file: {}", blobName, e);
 			return false;
 		}
 	}
@@ -606,7 +654,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		folderPaths.forEach(folderPath -> {
 			BlobClient folderBlobClient = containerClient.getBlobClient(folderPath);
 			folderBlobClient.upload(new ByteArrayInputStream(new byte[0]), 0, true);
-			classLogger.info("Preserved folder structure: " + folderPath);
+			classLogger.info("Preserved folder structure: {}", folderPath);
 		});
 	}
 
@@ -615,7 +663,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			BlobClient blobClient = containerClient.getBlobClient(blobItem.getName());
 			if (blobClient.getProperties().getBlobSize() == 0) {
 				blobClient.delete();
-				classLogger.info("Deleted empty blob folder: " + blobItem.getName());
+				classLogger.info("Deleted empty blob folder: {}", blobItem.getName());
 			}
 		}
 	}
@@ -631,7 +679,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		retryOperation(() -> {
 			blobClient.uploadFromFile(file.toString(), true);
-			classLogger.info("Uploaded file: " + blobName);
+			classLogger.info("Uploaded file: {}", blobName);
 			applyMetadata(blobClient, metadata);
 		}, "Uploading: " + blobName);
 
@@ -643,7 +691,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			Map<String, String> metadataMap = metadata.entrySet().stream()
 					.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
 			blobClient.setMetadata(metadataMap);
-			classLogger.info("Metadata applied to: " + blobClient.getBlobName());
+			classLogger.info("Metadata applied to: {}", blobClient.getBlobName());
 		}
 	}
 
@@ -663,13 +711,13 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 				if (!Files.exists(localFilePath)) {
 					blobClient.delete();
-					classLogger.info("Deleted storage file not found in local: " + blobName);
+					classLogger.info("Deleted storage file not found in local: {}", blobName);
 				} else if (blobSize == 0) { // Check for empty blobs
 					blobClient.delete();
-					classLogger.info("Deleted empty folder placeholder: " + blobName);
+					classLogger.info("Deleted empty folder placeholder: {}", blobName);
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to delete blob: " + blobName, e);
+				classLogger.error("Failed to delete blob: {}", blobName, e);
 			}
 		}
 	}
@@ -684,10 +732,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
 					if (!entries.iterator().hasNext()) { // Directory is empty
 						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: " + dir);
+						classLogger.info("Deleted empty local folder: {}", dir);
 					}
 				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: " + dir, e);
+					classLogger.error("Failed to delete empty folder: {}", dir, e);
 				}
 			}
 		} catch (IOException e) {
@@ -704,10 +752,10 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 				operation.run();
 				return;
 			} catch (Exception e) {
-				classLogger.error("Attempt " + attempt + " failed for " + actionDescription, e);
+				classLogger.error("Attempt {} failed for {}", attempt, actionDescription, e);
 				// If last attempt fails, throw an exception
 				if (attempt == maxRetries) {
-					classLogger.error("All retry attempts failed for: " + actionDescription);
+					classLogger.error("All retry attempts failed for: {}", actionDescription);
 					throw new RuntimeException(
 							"Operation failed after " + maxRetries + " retries: " + actionDescription, e);
 				}
@@ -729,11 +777,11 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 					BlobClient blobClient = containerClient.getBlobClient(blobName);
 					if (blobClient.exists()) {
 						blobClient.delete();
-						classLogger.info("Rolled back failed upload: " + blobName);
+						classLogger.info("Rolled back failed upload: {}", blobName);
 					}
 				}, "Rolling back failed upload: " + blobName);
 			} catch (Exception e) {
-				classLogger.error("Rollback failed for: " + blobName, e);
+				classLogger.error("Rollback failed for: {}", blobName, e);
 			}
 		}
 	}
@@ -745,12 +793,12 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			if (Files.isRegularFile(localFile)) { // Ensures it's not a directory or symbolic link
 				try {
 					Files.delete(localFile);
-					classLogger.info("Rolled back partially downloaded file: " + file);
+					classLogger.info("Rolled back partially downloaded file: {}", file);
 				} catch (IOException e) {
-					classLogger.error("Failed to rollback file: " + file, e);
+					classLogger.error("Failed to rollback file: {}", file, e);
 				}
 			} else {
-				classLogger.warn("Skipping rollback for non-regular file: " + file);
+				classLogger.warn("Skipping rollback for non-regular file: {}", file);
 			}
 		}
 	}
@@ -764,23 +812,23 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 
 				// Check if the blob exists before retrying delete
 				if (!blobClient.exists()) {
-					classLogger.info("Blob already deleted: " + blobName);
+					classLogger.info("Blob already deleted: {}", blobName);
 					continue;
 				}
 
 				retryOperation(() -> {
 					blobClient.delete();
-					classLogger.info("Retried and deleted file: " + blobName);
+					classLogger.info("Retried and deleted file: {}", blobName);
 				}, "Retrying delete for file: " + blobName);
 
 			} catch (Exception e) {
 				remainingFailedFiles.add(blobName);
-				classLogger.error("Retry failed for file: " + blobName, e);
+				classLogger.error("Retry failed for file: {}", blobName, e);
 			}
 		}
 
 		if (!remainingFailedFiles.isEmpty()) {
-			classLogger.error("Some files still failed to delete after retries: " + remainingFailedFiles);
+			classLogger.error("Some files still failed to delete after retries: {}", remainingFailedFiles);
 		} else {
 			classLogger.info("All files deleted successfully after retries.");
 		}
@@ -813,7 +861,7 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (blobDirectory.isEmpty()) {
-			classLogger.warn("Blob directory is empty for container: " + containerName);
+			classLogger.warn("Blob directory is empty for container: {}", containerName);
 		}
 
 		return new String[] { containerName, blobDirectory };

@@ -99,7 +99,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// ---- Build the InputMessage
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
@@ -113,7 +113,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {

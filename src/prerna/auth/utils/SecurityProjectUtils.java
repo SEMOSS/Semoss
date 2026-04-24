@@ -44,7 +44,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import prerna.util.SystemEngineRegistry;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -81,6 +80,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -90,6 +90,7 @@ import prerna.util.InsightsRDBMSUtils;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -148,8 +149,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = new String[] { prop.getOrDefault(Constants.PROJECT_ENUM_TYPE, "") + "", "" };
 		boolean projectExists = containsProjectId(projectId);
 		if (projectExists && !reloadInsights) {
-			classLogger.info("Security database already contains project with unique id = "
-					+ Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			classLogger.info("Security database already contains project with unique id = {}",
+					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if (!projectExists) {
 			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], hasPortal, portalName,
@@ -161,7 +162,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global);
 		}
 
-		classLogger.info("Security database going to add project with alias = " + Utility.cleanLogString(projectName));
+		classLogger.info("Security database going to add project with alias = {}", Utility.cleanLogString(projectName));
 
 		// load just the insights database
 		// first see if engine is already loaded
@@ -179,7 +180,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 
 		// if we are doing a reload
@@ -211,7 +212,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"LAYOUT", "CACHEABLE", "CACHEMINUTES", "CACHECRON", "CACHEDON", "CACHEENCRYPT", "RECIPE",
 					"SCHEMANAME" });
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 		// keep a batch size so we dont get heapspace
 		final int batchSize = 5000;
@@ -310,7 +311,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						classLogger.info("Executing batch .... row num = " + count);
+						classLogger.info("Executing batch .... row num = {}", count);
 						ps.executeBatch();
 					}
 
@@ -318,19 +319,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						insightPermissionIds.remove(insightId);
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create the project and initialize project security records", e);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 
 		// well, we are done looping through now
-		classLogger.info("Executing final batch .... row num = " + count);
+		classLogger.info("Executing final batch .... row num = {}", count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 		// commit
 		try {
@@ -338,7 +339,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -351,14 +352,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try {
 			securityDb.removeData(deleteQuery);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 
 		try {
 			ps = securityDb.bulkInsertPreparedStatement(
 					new String[] { "INSIGHTMETA", "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" });
 		} catch (SQLException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to create the project and initialize project security records", e1);
 		}
 
 		qs = new SelectQueryStruct();
@@ -391,30 +392,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						classLogger.info("Executing batch .... row num = " + count);
+						classLogger.info("Executing batch .... row num = {}", count);
 						ps.executeBatch();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create the project and initialize project security records", e);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 
 		// well, we are done looping through now
-		classLogger.info("Executing final batch .... row num = " + count);
+		classLogger.info("Executing final batch .... row num = {}", count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 		try {
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -431,7 +432,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			try {
 				Utility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the project and initialize project security records", e);
 			}
 
 			// need to remove existing insights w/ permissions that do not exist anymore
@@ -443,12 +444,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					securityDb.removeData(deleteInsightPermissionQuery);
 					securityDb.commit();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create the project and initialize project security records", e);
 				}
 			}
 		}
 
-		classLogger.info("Finished adding project = " + Utility.cleanLogString(projectId));
+		classLogger.info("Finished adding project = {}", Utility.cleanLogString(projectId));
 	}
 
 	/**
@@ -510,7 +511,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -537,7 +538,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add project owner", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -567,13 +568,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project properties in the security database", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
-	// For updating Last Edited Date for Block Apps
+	/**
+	 * For updating Last Edited Date for Apps
+	 * 
+	 * @param projectID
+	 */
 	public static void updateProjectLastEditedDate(String projectID) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
@@ -588,7 +593,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project last edited date", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -612,7 +617,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete project insights before recreation", e);
 			throw new IllegalArgumentException("An error occurred deleting the insights for project " + projectId);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -696,12 +701,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 								breakdown = PixelUtility.parsePixel(pixelString);
 								pixelList.addAll(breakdown);
 							} catch (ParserException | LexerException | IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
+								classLogger.error("Failed to create or initialize the project insights database", e);
 								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 							}
 						}
 					} else {
-						classLogger.warn("Cannot write insight id '" + insightId + "' with no pixel recipe");
+						classLogger.warn("Cannot write insight id '{}' with no pixel recipe", insightId);
 						continue;
 					}
 
@@ -715,7 +720,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			} catch (Exception e) {
 				error = true;
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create or initialize the project insights database", e);
 				throw new IllegalArgumentException("Error occured creating the insights database");
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
@@ -723,7 +728,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					try {
 						newInsightDatabase.close();
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to create or initialize the project insights database", e);
 					}
 					String databaseFileLocation = newInsightDatabase.getSmssProp()
 							.getProperty(AbstractSqlQueryUtil.HOSTNAME);
@@ -765,7 +770,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			} catch (Exception e) {
 				// insight metadata is not as important, log the error
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create or initialize the project insights database", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 			}
@@ -909,7 +914,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project display name", e);
 			throw new IllegalArgumentException("An error occurred updating the project display name");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1057,13 +1062,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve user project permissions", e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to retrieve user project permissions", e);
 				}
 			}
 		}
@@ -1104,7 +1109,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check whether project exists", e);
 		}
 		return false;
 	}
@@ -1131,7 +1136,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether project is global", e);
 		}
 		return false;
 	}
@@ -1153,7 +1158,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether the project has portal", e);
 		}
 		return false;
 	}
@@ -1173,7 +1178,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return (SemossDate) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve project portal published timestamp", e);
 		}
 		return null;
 	}
@@ -1196,7 +1201,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project portal published status", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1217,7 +1222,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return (SemossDate) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve project reactor compilation timestamp", e);
 		}
 		return null;
 	}
@@ -1239,7 +1244,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project reactor compilation timestamp", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1334,7 +1339,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve project permission from user access request", e);
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -1458,7 +1463,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add project user", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1545,7 +1550,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project user permission", e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this project");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1650,7 +1655,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project user permissions", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1682,7 +1687,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to delete project", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1739,7 +1744,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to remove project user", e);
 				throw new IllegalArgumentException(
 						"An error occurred removing the user permissions for the project and insights of this project");
 			} finally {
@@ -1800,7 +1805,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project global visibility setting", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1827,7 +1832,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set project visibility to globally accessible", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1846,7 +1851,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set project visibility to globally accessible", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1880,7 +1885,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project discoverability setting", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1916,7 +1921,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project name", e);
 			throw new IllegalArgumentException("An error occurred updating the project name");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1980,7 +1985,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			deletePs.execute();
 			ConnectionUtils.commitConnection(deletePs.getConnection());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project dependency mappings", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -2007,7 +2012,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.executeBatch();
 				ConnectionUtils.commitConnection(ps.getConnection());
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update project dependency mappings", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -2039,7 +2044,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			deletePs.execute();
 			ConnectionUtils.commitConnection(deletePs.getConnection());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove project dependency mappings", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -2294,8 +2299,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		Set<String> visiting = new HashSet<>();
 		for (Map<String, Object> dep : allDependencies) {
 			String engineId = (String) dep.get("engine_id");
-			boolean canView = calculateCanViewRecursive(engineId, dependencyMap, childrenMap, canViewCache,
-					visiting);
+			boolean canView = calculateCanViewRecursive(engineId, dependencyMap, childrenMap, canViewCache, visiting);
 			dep.put("can_view_dependencies", canView);
 		}
 	}
@@ -2312,9 +2316,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return true if user has view access to this engine and all its
 	 *         subdependencies
 	 */
-	private static boolean calculateCanViewRecursive(String engineId,
-			Map<String, Map<String, Object>> dependencyMap, Map<String, List<String>> childrenMap,
-			Map<String, Boolean> canViewCache, Set<String> visiting) {
+	private static boolean calculateCanViewRecursive(String engineId, Map<String, Map<String, Object>> dependencyMap,
+			Map<String, List<String>> childrenMap, Map<String, Boolean> canViewCache, Set<String> visiting) {
 		// Check cache first
 		if (canViewCache.containsKey(engineId)) {
 			return canViewCache.get(engineId);
@@ -2387,8 +2390,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 *                        dependencies
 	 * @param allDependencies Accumulated list of all dependencies
 	 */
-	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, User user,
-			Set<String> visited, List<Map<String, Object>> allDependencies) {
+	private static void getProjectDependencyDetailsWithUserRecursive(String projectId, User user, Set<String> visited,
+			List<Map<String, Object>> allDependencies) {
 		// Avoid circular dependencies
 		if (visited.contains(projectId)) {
 			return;
@@ -2408,8 +2411,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Query to get project dependency details with user and group permissions for a
-	 * single
-	 * project
+	 * single project
 	 * 
 	 * @param projectId
 	 * @param user
@@ -2596,16 +2598,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						AndQueryFilter customAndFilter = new AndQueryFilter();
 						customAndFilter.addFilter(
 								SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", "CUSTOM"));
-						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPENGINEPERMISSION__ID", "==", userCustomGroups));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID",
+								"==", userCustomGroups));
 						groupOrFilters.addFilter(customAndFilter);
 					}
 					if (!userGroups.isEmpty()) {
 						AndQueryFilter andFilter = new AndQueryFilter();
-						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPENGINEPERMISSION__TYPE", "==", userGroupType));
-						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPENGINEPERMISSION__ID", "==", userGroups));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==",
+								userGroupType));
+						andFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", userGroups));
 						groupOrFilters.addFilter(andFilter);
 					}
 				}
@@ -2627,8 +2629,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 
 			SubqueryRelationship engineGroupPermRel = new SubqueryRelationship(engineGroupPermQs, "EGP",
-					"left.outer.join",
-					new String[] { "EGP__ENGINEID", "ENGINE__ENGINEID", "=" });
+					"left.outer.join", new String[] { "EGP__ENGINEID", "ENGINE__ENGINEID", "=" });
 			qs.addRelation(engineGroupPermRel);
 
 			// PROJECT group permissions sub-query
@@ -2644,16 +2645,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						AndQueryFilter customAndFilter = new AndQueryFilter();
 						customAndFilter.addFilter(
 								SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", "CUSTOM"));
-						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPPROJECTPERMISSION__ID", "==", userCustomGroups));
+						customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID",
+								"==", userCustomGroups));
 						groupProjectOrFilters.addFilter(customAndFilter);
 					}
 					if (!userGroups.isEmpty()) {
 						AndQueryFilter andFilter = new AndQueryFilter();
-						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPPROJECTPERMISSION__TYPE", "==", userGroupType));
-						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(
-								"GROUPPROJECTPERMISSION__ID", "==", userGroups));
+						andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==",
+								userGroupType));
+						andFilter.addFilter(
+								SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", userGroups));
 						groupProjectOrFilters.addFilter(andFilter);
 					}
 				}
@@ -2674,8 +2675,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 
 			SubqueryRelationship projectGroupPermRel = new SubqueryRelationship(projectGroupPermQs, "PGP",
-					"left.outer.join",
-					new String[] { "PGP__PROJECTID", "PROJECT__PROJECTID", "=" });
+					"left.outer.join", new String[] { "PGP__PROJECTID", "PROJECT__PROJECTID", "=" });
 			qs.addRelation(projectGroupPermRel);
 
 			// Use conditional selector for group permission based on engine type
@@ -2789,14 +2789,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// action
 			if (currentNewUserPermission == requestedPermissionNumeric) {
 				alreadyHaveAccess.add(dependentEngineId);
-				classLogger.info("User already has " + requestedPermission + " access to " + dependentEngineId);
+				classLogger.info("User already has {} access to {}", requestedPermission, dependentEngineId);
 				// if newUser has already requested this access and it is still pending, take no
 				// action
 			} else if (currentPendingUserPermission != null
 					&& requestedPermissionNumeric == currentPendingUserPermission) {
 				requestAlreadyExists.add(dependentEngineId);
-				classLogger.info("user has already requested " + requestedPermission + "access to " + dependentEngineId
-						+ " and the request is pending.");
+				classLogger.info("user has already requested {} access to {} and the request is pending.",
+						requestedPermission, dependentEngineId);
 				// if requester has insufficient privileges on the engine so forward request to
 				// engine owner
 			} else if (requesterEnginePermission == null || requesterEnginePermission == 3) {
@@ -2809,11 +2809,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 								"No Comment at this time", requestedPermissionNumeric, requester);
 					}
 					newRequestAdded.add(dependentEngineId);
-					classLogger.info("User has forwarded " + newUserId + "'s request to the owner of engine "
-							+ dependentEngineId);
+					classLogger.info("User has forwarded {}'s request to the owner of engine {}", newUserId,
+							dependentEngineId);
 				} catch (Exception e) {
 					couldNotAddRequest.add(dependentEngineId);
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
 				// if the newUser has permissions on the engine but not to the level requested,
 				// edit the existing record
@@ -2830,10 +2830,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					accessGranted.add(dependentEngineId);
-					classLogger.info("User has updated permission for " + newUserId + " to " + dependentEngineId);
+					classLogger.info("User has updated permission for {} to {}", newUserId, dependentEngineId);
 				} catch (IllegalAccessException e) {
 					couldNotAddRequest.add(dependentEngineId);
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
 				// if none of the above and requestor has proper permission, add user to the
 				// engine permission database
@@ -2848,15 +2848,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					accessGranted.add(dependentEngineId);
-					classLogger.info("User has added " + newUserId + " to " + dependentEngineId);
+					classLogger.info("User has added {} to {}", newUserId, dependentEngineId);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
 					couldNotAddRequest.add(dependentEngineId);
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
 			} else {
 				couldNotAddRequest.add(dependentEngineId);
-				classLogger.info(
-						"User could not add or forward " + newUserId + "'s request for engine " + dependentEngineId);
+				classLogger.info("User could not add or forward {}'s request for engine {}", newUserId,
+						dependentEngineId);
 			}
 		}
 
@@ -2898,7 +2898,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -2936,7 +2936,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3016,13 +3016,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to aggregate project metadata values", e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to aggregate project metadata values", e);
 				}
 			}
 		}
@@ -3046,7 +3046,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				removeExpiredProjectUser(userId, projectId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify user access to the project", e);
 			throw e;
 		}
 
@@ -3058,7 +3058,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify user access to the project", e);
 			throw e;
 		}
 	}
@@ -3123,7 +3123,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertTargetProjectPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy project permissions to the target project", e);
 			throw e;
 		}
 
@@ -3144,7 +3144,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertTargetProjectPermissionStatement.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy project permissions to the target project", e);
 			throw new IllegalArgumentException("An error occurred transferring the project permissions");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -3228,6 +3228,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			List<String> projectIdFilters, boolean favoritesOnly, boolean portalsOnly,
 			Map<String, Object> projectMetadataFilter, List<Integer> permissionFilters, String searchTerm, String limit,
 			String offset) {
+		return getUserProjectList(user, projectTypes, projectIdFilters, favoritesOnly, portalsOnly,
+				projectMetadataFilter, permissionFilters, searchTerm, limit, offset, null);
+	}
+
+	public static List<Map<String, Object>> getUserProjectList(User user, List<String> projectTypes,
+			List<String> projectIdFilters, boolean favoritesOnly, boolean portalsOnly,
+			Map<String, Object> projectMetadataFilter, List<Integer> permissionFilters, String searchTerm, String limit,
+			String offset, Map<String, String> sortFields) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -3493,7 +3501,28 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		if (sortFields == null || sortFields.isEmpty()) {
+			qs1.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
+		} else {
+			for (Map.Entry<String, String> sortEntry : sortFields.entrySet()) {
+				String sortKey = sortEntry.getKey();
+				String sortDirection = sortEntry.getValue();
+				if (sortKey == null || sortDirection == null) {
+					throw new SemossPixelException("Sort parameters cannot contain null keys or values");
+				}
+				String normalizedKey = sortKey.replace("_", "").toUpperCase();
+				if ("PROJECTNAME".equals(normalizedKey)) {
+					qs1.addOrderBy("low_project_name", sortDirection);
+				} else if ("DATECREATED".equals(normalizedKey)) {
+					qs1.addOrderBy(projectPrefix + "DATECREATED", sortDirection);
+				} else if ("DATELASTEDITED".equals(normalizedKey)) {
+					qs1.addOrderBy(projectPrefix + "DATELASTEDITED", sortDirection);
+				} else {
+					throw new SemossPixelException(
+							"Invalid Sort Parameters passed: Only \"PROJECTNAME\", \"DATECREATED\", and \"DATELASTEDITED\" are supported");
+				}
+			}
+		}
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -3704,7 +3733,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether project is discoverable", e);
 		}
 		return false;
 	}
@@ -3987,7 +4016,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update project visibility", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -4018,7 +4047,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update project visibility", e);
 					throw e;
 				} finally {
 					if (ps != null) {
@@ -4027,7 +4056,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project visibility", e);
 		}
 	}
 
@@ -4077,7 +4106,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update project favorite", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -4108,14 +4137,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update project favorite", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project favorite", e);
 		}
 	}
 
@@ -4155,7 +4184,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update project portal availability setting", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -4241,7 +4270,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether the user can request project access", e);
 		}
 		return false;
 	}
@@ -4329,7 +4358,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update metadata key options", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -4394,7 +4423,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update the user access request record", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request with detailed message = " + e.getMessage());
 		} finally {
@@ -4429,7 +4458,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update the user access request record", e);
 			throw new IllegalArgumentException(
 					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4467,7 +4496,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve pending user access requests", e);
 		}
 
 		return -1;
@@ -4560,7 +4589,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
@@ -4589,7 +4618,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -4633,7 +4662,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4704,7 +4733,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to deny project user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -4791,7 +4820,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add project user permissions", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -4849,7 +4878,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove project users", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
