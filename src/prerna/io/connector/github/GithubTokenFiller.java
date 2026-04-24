@@ -37,14 +37,27 @@ import org.kohsuke.github.GitHub;
 
 import prerna.auth.AccessToken;
 import prerna.io.connector.IAccessTokenFiller;
-import prerna.util.Constants;
 
+/**
+ * Populates GitHub-specific user attributes on an {@link AccessToken}.
+ */
 public class GithubTokenFiller implements IAccessTokenFiller {
 
 	private static final Logger classLogger = LogManager.getLogger(GithubTokenFiller.class);
 
+	/**
+	 * Populates the access token with data fetched from GitHub's authenticated user
+	 * endpoint.
+	 *
+	 * @param gitAccessToken GitHub access token to enrich
+	 * @param userInfoUrl    configured user info URL (not used by this filler)
+	 * @param jsonPattern    configured parsing pattern (not used by this filler)
+	 * @param beanProps      configured bean properties (not used by this filler)
+	 * @param params         additional connector parameters
+	 */
 	@Override
-	public void fillAccessToken(AccessToken gitAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
+	public void fillAccessToken(AccessToken gitAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params) {
 		// add specific Git values
 		GHMyself myGit = null;
 		try {
@@ -55,14 +68,27 @@ public class GithubTokenFiller implements IAccessTokenFiller {
 			gitAccessToken.setLocale(myGit.getLocation());
 			gitAccessToken.setUsername(myGit.getLogin());
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to populate GitHub access token details for user info URL '{}'.", userInfoUrl, e);
 		}
 	}
-	
+
+	/**
+	 * Delegates to
+	 * {@link #fillAccessToken(AccessToken, String, String, String[], Map)} because
+	 * GitHub token enrichment does not require response sanitization.
+	 *
+	 * @param accessToken      GitHub access token to enrich
+	 * @param userInfoUrl      configured user info URL
+	 * @param jsonPattern      configured parsing pattern
+	 * @param beanProps        configured bean properties
+	 * @param params           additional connector parameters
+	 * @param sanitizeResponse unused for this implementation
+	 */
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params, boolean sanitizeResponse) {
+	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params, boolean sanitizeResponse) {
 		// dont need to sanitize
 		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
 	}
-	
+
 }

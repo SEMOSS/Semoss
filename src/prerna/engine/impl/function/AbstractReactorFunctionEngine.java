@@ -29,6 +29,8 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -77,7 +79,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 	protected List<FunctionParameter> parameters;
 	protected List<String> requiredParameters;
 
-	protected LoggerContext engineSpecificLoggerCtx;
+	protected volatile LoggerContext engineSpecificLoggerCtx;
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
@@ -256,12 +258,12 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 
 	@Override
 	public void delete() throws IOException {
-		classLogger.debug("Delete function engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+		String uniqueName = SmssUtilities.getUniqueName(this.engineName, this.engineId);
+		classLogger.debug("Delete function engine {}", uniqueName);
 		try {
 			this.close();
 		} catch (IOException e) {
-			classLogger.warn("Error occurred trying to close service engine");
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error trying to close function engine {} during delete", uniqueName, e);
 		}
 
 		File engineFolder = new File(EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.FUNCTION,
@@ -269,15 +271,15 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 		try {
 			FileUtils.deleteDirectory(engineFolder);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete function engine folder {}", engineFolder, e);
 		}
 
-		classLogger.debug("Deleting smss " + this.smssFilePath);
+		classLogger.debug("Deleting smss {}", this.smssFilePath);
 		File smssFile = new File(this.smssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete function engine smss file {}", smssFile, e);
 		}
 
 		// remove from DIHelper
@@ -462,12 +464,16 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 			return null;
 		}
 
-		if (this.engineSpecificLoggerCtx == null) {
-			synchronized (loggerName) {
-				this.engineSpecificLoggerCtx = Configurator.initialize(this.engineId,
-						"file:" + log4j2.getAbsolutePath());
+		if (engineSpecificLoggerCtx == null) {
+			synchronized (this) {
+				if (engineSpecificLoggerCtx == null) {
+					ClassLoader isolatedLoader = new URLClassLoader(new URL[0], null);
+					engineSpecificLoggerCtx = Configurator.initialize(this.engineId, isolatedLoader,
+							"file:" + log4j2.getAbsolutePath());
+				}
 			}
 		}
+
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 }

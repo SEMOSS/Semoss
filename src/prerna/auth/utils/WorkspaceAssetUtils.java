@@ -183,7 +183,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to register user workspace project.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -224,7 +224,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to register user asset project.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -277,7 +277,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return rs.toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user workspace project.", e);
 		}
 
 		return null;
@@ -326,7 +326,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				// return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user asset project.", e);
 		}
 
 		return null;
@@ -362,7 +362,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 				return isAssetProject(projectId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the project is an asset or workspace project.", e);
 		}
 
 		return false;
@@ -382,7 +382,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the project is an asset project.", e);
 		}
 
 		return false;

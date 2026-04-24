@@ -212,12 +212,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 				if (execModeEnum != null) {
 					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
 				} else {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'auto'.",
 							execModeInput, reactorNames.get(i));
 				}
 			} else if (!hasMethodMeta) {
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 			}
 
 			// UI: mcpMetadata overrides getMcpToolMetadata() values
@@ -290,12 +290,12 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakePixelMCP executed";
+			comment = "add: configured Pixel MCP tool";
 		}
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
