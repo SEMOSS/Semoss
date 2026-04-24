@@ -47,9 +47,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import prerna.reactor.scheduler.SchedulerDatabaseUtility;
-import prerna.reactor.shortcuts.temporal.WorkflowEntity;
-import prerna.reactor.shortcuts.temporal.WorkflowExecutionService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.conductor.client.http.MetadataClient;
+import com.netflix.conductor.client.http.WorkflowClient;
+
+import prerna.reactor.shortcuts.conductor.oss.WorkflowService;
 import prerna.util.Utility;
 
 public class FileUploadWatcher implements Runnable {
@@ -57,6 +59,11 @@ public class FileUploadWatcher implements Runnable {
 
 // WatchKey -> Directory
 	private final Map<WatchKey, Path> keyToDir = new ConcurrentHashMap<>();
+
+	private final ObjectMapper mapper = new ObjectMapper();
+
+	private final MetadataClient metadataClient = new MetadataClient();
+	private final WorkflowClient workflowClient = new WorkflowClient();
 
 // Paused directories
 	private final Set<Path> pausedDirs = ConcurrentHashMap.newKeySet();
@@ -197,36 +204,91 @@ public class FileUploadWatcher implements Runnable {
 
 					// Trigger workflow
 
-					WorkflowEntity workflowEntity = null;
+					// Temporal
+					/*
+					 * WorkflowEntity workflowEntity = null; try { workflowEntity =
+					 * SchedulerDatabaseUtility.findWorkflowActiveByDirectory(Utility.normalizePath(
+					 * parentDir.toString())); // String workflowJson =
+					 * workflowEntity.getWorkflowJson(); // workflowJson =
+					 * workflowJson.replace("{filename}", fileName); } catch (Exception e) { // TODO
+					 * Auto-generated catch block e.printStackTrace(); } if (workflowEntity == null)
+					 * { System.out.println("No active file watcher workflow found for " +
+					 * parentDir.toString()); continue; }
+					 * 
+					 * 
+					 * if (workflow.filePattern != null && workflow.filePattern.endsWith(".csv")) {
+					 * if (!fileName.endsWith(".csv")) { continue; } }
+					 * 
+					 * 
+					 * try {
+					 * 
+					 * new WorkflowExecutionService().executeFileWatcherWorkflow(workflowEntity,
+					 * fullPath); } catch (Exception e) { // TODO Auto-generated catch block
+					 * inProgressFiles.remove(path); e.printStackTrace(); }
+					 */
+
+					// }
+
+					// Create workers dynamically
+					// WorkflowEntity workflowEntity = null;
 					try {
-						workflowEntity = SchedulerDatabaseUtility
-								.findWorkflowActiveByDirectory(Utility.normalizePath(parentDir.toString()));
-						// String workflowJson = workflowEntity.getWorkflowJson();
-						// workflowJson = workflowJson.replace("{filename}", fileName);
+						/*
+						 * workflowEntity = SchedulerDatabaseUtility
+						 * .findWorkflowActiveByDirectory(Utility.normalizePath(parentDir.toString()));
+						 * // String workflowJson = workflowEntity.getWorkflowJson(); // workflowJson =
+						 * workflowJson.replace("{filename}", fileName); List<Worker> workers =
+						 * WorkerFactory.createWorkers(workflowJson);
+						 * 
+						 * // Start workers WorkerInitializer.startWorkers(workers);
+						 */
+						// ===== 1. Find workflow =====
+						WorkflowService workflowService = new WorkflowService();
+						workflowService.startWorkflow(Utility.normalizePath(parentDir.toString()));
+						/*
+						 * String workflowName = SchedulerDatabaseUtility
+						 * .getWorkflowJsonByDirectory(Utility.normalizePath(parentDir.toString()));
+						 * 
+						 * if (workflowName == null) { throw new RuntimeException(
+						 * "No workflow mapped for directory: " +
+						 * Utility.normalizePath(parentDir.toString())); }
+						 * 
+						 * // ===== 2. Get active version ===== String json =
+						 * SchedulerDatabaseUtility.getActiveWorkflowJson(workflowName); int version =
+						 * SchedulerDatabaseUtility.getActiveWorkflowVersion(workflowName);
+						 * 
+						 * if (json == null) { throw new
+						 * RuntimeException("No active workflow found for: " + workflowName); }
+						 * 
+						 * // ===== 3. Convert JSON → WorkflowDef ===== WorkflowDef def =
+						 * mapper.readValue(json, WorkflowDef.class);
+						 * 
+						 * // ===== SAFE REGISTER ===== try {
+						 * metadataClient.getWorkflowDef(def.getName(), def.getVersion()); // already
+						 * exists → do nothing } catch (Exception e) { // not found → register
+						 * metadataClient.registerWorkflowDef(def); }
+						 * 
+						 * // ===== 5. Prepare input ===== Map<String, Object> input = new HashMap<>();
+						 * input.put("watchDirectory", Utility.normalizePath(parentDir.toString()));
+						 * input.put("filename", fileName); input.put("filePattern", "*.txt");
+						 * 
+						 * // ✅ FIXED HERE StartWorkflowRequest request = new StartWorkflowRequest();
+						 * request.setName(workflowName); request.setVersion(version);
+						 * request.setInput(input); request.setCorrelationId("file-" + fileName);
+						 * 
+						 * String workflowId = workflowClient.startWorkflow(request);
+						 * 
+						 * SchedulerDatabaseUtility.startWorkflowExecution(workflowId, workflowName,
+						 * version);
+						 */
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
-					}
-					if (workflowEntity == null) {
-						System.out.println("No active file watcher workflow found for " + parentDir.toString());
-						continue;
 					}
 
 					/*
-					 * if (workflow.filePattern != null && workflow.filePattern.endsWith(".csv")) {
-					 * if (!fileName.endsWith(".csv")) { continue; } }
+					 * if (workflowEntity == null) {
+					 * System.out.println("No active file watcher workflow found for " +
+					 * parentDir.toString()); continue; }
 					 */
-
-					try {
-
-						new WorkflowExecutionService().executeFileWatcherWorkflow(workflowEntity, fullPath);
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						inProgressFiles.remove(path);
-						e.printStackTrace();
-					}
-
-					// }
 
 				}
 

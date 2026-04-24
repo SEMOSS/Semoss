@@ -156,6 +156,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.reactor.shortcuts.conductor.oss.TaskConfig;
+import prerna.reactor.shortcuts.conductor.oss.WorkflowDefinition;
 import prerna.reactor.shortcuts.temporal.WorkflowEntity;
 import prerna.reactor.shortcuts.temporal.WorkflowTemplate;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -2145,5 +2147,636 @@ public class SchedulerDatabaseUtility {
 			ps.setString(8, status);
 			ps.executeUpdate();
 		}
+	}
+
+	// ************************************************
+	public static void createTenant(String key, String name) throws Exception {
+		var sql = "INSERT INTO tenant(tenant_key,name) VALUES(?,?)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, key);
+			ps.setString(2, name);
+			ps.executeUpdate();
+		}
+	}
+
+	public Long findIdTenant(String key) throws Exception {
+		var sql = "SELECT id FROM tenant WHERE tenant_key=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, key);
+			var rs = ps.executeQuery();
+			return rs.next() ? rs.getLong(1) : null;
+		}
+	}
+
+	public static void updateTenant(Long id, String name) throws Exception {
+		var sql = "UPDATE tenant SET name=? WHERE id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void deleteTenant(Long id) throws Exception {
+		var sql = "DELETE FROM tenant WHERE id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static int nextVersion(String name) throws Exception {
+		var sql = "SELECT MAX(version) FROM workflow_template WHERE name=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			var rs = ps.executeQuery();
+			return rs.next() ? rs.getInt(1) + 1 : 1;
+		}
+	}
+
+	// CREATE (trigger + json)
+	public static void saveWorkflow(String name, int version, boolean active, String directory, String pattern,
+			String json) throws Exception {
+
+		String sql = "INSERT INTO workflow(name,version,is_active,directory,file_pattern,workflow_json) VALUES(?,?,?,?,?,?)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.setBoolean(3, active);
+			ps.setString(4, directory);
+			ps.setString(5, pattern);
+			ps.setString(6, json);
+
+			ps.executeUpdate();
+		}
+	}
+
+	// READ BY DIRECTORY
+	public static ResultSet findByWorkflowDirectory(String dir) throws Exception {
+
+		String sql = "SELECT * FROM workflow WHERE directory=? AND is_active=true";
+
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement(sql);
+		ps.setString(1, dir);
+
+		return ps.executeQuery();
+	}
+
+	// GET JSON
+	public static String getWorkflowJsonByDirectory(String dir) throws Exception {
+
+		try (ResultSet rs = findByWorkflowDirectory(dir)) {
+			if (rs.next()) {
+				return rs.getString("workflow_json");
+			}
+		}
+		return null;
+	}
+
+	public static int getVersion(String dir) throws Exception {
+
+		try (ResultSet rs = findByWorkflowDirectory(dir)) {
+			if (rs.next()) {
+				return rs.getInt("version");
+			}
+		}
+		return 1;
+	}
+
+	public static String getName(String dir) throws Exception {
+
+		try (ResultSet rs = findByWorkflowDirectory(dir)) {
+			if (rs.next()) {
+				return rs.getString("name");
+			}
+		}
+		return null;
+	}
+
+	// UPDATE
+	public static void updateWorkflow(Long id, String json) throws Exception {
+
+		String sql = "UPDATE workflow SET workflow_json=? WHERE id=?";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, json);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+		}
+	}
+
+	// DELETE
+	public static void deleteWorkflow(Long id) throws Exception {
+
+		String sql = "DELETE FROM workflow WHERE id=?";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setLong(1, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void saveWorkflowTemplate(String name, int version, String json) throws Exception {
+
+		String sql = "INSERT INTO workflow_template(name,version,is_active,workflow_json) VALUES(?,?,true,?)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.setString(3, json);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void createWorkflowTemplate(String name, String json, String changeLog) throws Exception {
+		int version = nextVersion(name);
+
+		var sql = "INSERT INTO workflow_template(name,version,is_active,parent_version,change_log,workflow_json) VALUES(?,?,?,?,?,?,?)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.setBoolean(3, true);
+			ps.setInt(4, version - 1);
+			ps.setString(5, changeLog);
+			ps.setString(6, json);
+			ps.executeUpdate();
+		}
+
+		deactivateOldWorkflowTemplate(name, version);
+	}
+
+	public static void deactivateOldWorkflowTemplate(String name, int activeVersion) throws Exception {
+		var sql = "UPDATE workflow_template SET is_active=false WHERE name=? AND version<>?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, name);
+			ps.setInt(2, activeVersion);
+			ps.executeUpdate();
+		}
+	}
+
+	public static String getActiveWorkflowJson(String name) throws Exception {
+		var sql = "SELECT workflow_json FROM workflow_template WHERE name=? AND is_active=true";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			var rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	public static int getActiveWorkflowVersion(String name) throws Exception {
+		var sql = "SELECT version FROM workflow_template WHERE name=? AND is_active=true";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			var rs = ps.executeQuery();
+			return rs.next() ? rs.getInt(1) : 1;
+		}
+	}
+
+	public static void deleteWorkflowTemplate(String name, int version) throws Exception {
+		var sql = "DELETE FROM workflow_template WHERE  name=? AND version=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void createWorkflowTriggerMapping(String dir, String pattern, String wf) throws Exception {
+		var sql = "INSERT INTO workflow_trigger_mapping(directory,file_pattern,workflow_name) VALUES(?,?,?,?)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, dir);
+			ps.setString(2, pattern);
+			ps.setString(3, wf);
+			ps.executeUpdate();
+		}
+	}
+
+	public static String findWorkflowByDirectory(String dir) throws Exception {
+		var sql = "SELECT workflow_name FROM workflow_trigger_mapping WHERE directory=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, dir);
+			var rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	public static void updateWorkflowTriggerMapping(Long id, String wf) throws Exception {
+		var sql = "UPDATE workflow_trigger_mapping SET workflow_name=? WHERE id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, wf);
+			ps.setLong(2, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void deleteWorkflowTriggerMapping(Long id) throws Exception {
+		var sql = "DELETE FROM workflow_trigger_mapping WHERE id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void startWorkflowExecution(String wfId, String name, int version) throws Exception {
+		var sql = "INSERT INTO workflow_execution(workflow_id,workflow_name,version,status,started_at) VALUES(?,?,?,?,?,CURRENT_TIMESTAMP)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, wfId);
+			ps.setString(2, name);
+			ps.setInt(3, version);
+			ps.setString(4, "RUNNING");
+			ps.executeUpdate();
+		}
+	}
+
+	public static void completeWorkflowExecution(String wfId, String status) throws Exception {
+		var sql = "UPDATE workflow_execution SET status=?,completed_at=CURRENT_TIMESTAMP WHERE workflow_id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, status);
+			ps.setString(2, wfId);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet listWorkflowExecutions() throws Exception {
+		Connection c = connectToScheduler();
+		return c.createStatement().executeQuery("SELECT * FROM workflow_execution");
+	}
+
+	public static void insertDLQ(String wfId, String task, String reason, String payload) throws Exception {
+		var sql = "INSERT INTO workflow_dlq(workflow_id,task_ref_name,reason,payload) VALUES(?,?,?,?,?)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, wfId);
+			ps.setString(2, task);
+			ps.setString(3, reason);
+			ps.setString(3, payload);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet listUnresolved() throws Exception {
+		Connection c = connectToScheduler();
+		return c.createStatement().executeQuery("SELECT * FROM workflow_dlq WHERE resolved=false");
+	}
+
+	public static void markResolved(Long id) throws Exception {
+		var sql = "UPDATE workflow_dlq SET resolved=true WHERE id=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, id);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void logTaskExecutionStart(String workflowId, String taskRef, String taskName, int retryCount,
+			String input) throws Exception {
+
+		String sql = "INSERT INTO task_execution(workflow_id, task_ref_name, task_name, status, retry_count, input, started_at) VALUES(?,?,?,?,?,?,?)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, workflowId);
+			ps.setString(2, taskRef);
+			ps.setString(3, taskName);
+			ps.setString(4, "IN_PROGRESS");
+			ps.setInt(5, retryCount);
+			ps.setString(6, input);
+			ps.setTimestamp(7, Timestamp.from(Instant.now()));
+			ps.executeUpdate();
+		}
+	}
+
+	public static void logTaskExecutionBasedOnStatus(String workflowId, String taskRef, String status, String output)
+			throws Exception {
+
+		String sql = "UPDATE task_execution SET status=?, output=?, completed_at=? WHERE workflow_id=? AND task_ref_name=?";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, status);
+			ps.setString(2, output);
+			ps.setTimestamp(3, Timestamp.from(Instant.now()));
+			ps.setString(4, workflowId);
+			ps.setString(5, taskRef);
+
+			ps.executeUpdate();
+		}
+	}
+
+	public static long saveWorkflowDefinition(String name, int version, String json, String status) throws Exception {
+		String sql = "INSERT INTO workflow_definition(name,version,json,status) VALUES(?,?,?,?)";
+		try (Connection con = connectToScheduler();
+				PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.setString(3, json);
+			ps.setString(4, status);
+			ps.executeUpdate();
+			ResultSet rs = ps.getGeneratedKeys();
+			rs.next();
+			return rs.getLong(1);
+		}
+	}
+
+	public static WorkflowDefinition findWorkflowDefinitionByName(String name, int version) throws Exception {
+
+		String sql = "SELECT * FROM workflow_definition WHERE name=? AND version=?";
+
+		WorkflowDefinition w = new WorkflowDefinition();
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ResultSet rs = ps.executeQuery();
+
+			while (rs.next()) {
+
+				w.id = rs.getLong("id");
+				w.name = rs.getString("name");
+				w.version = rs.getInt("version");
+				w.json = rs.getString("json");
+				w.status = rs.getString("status");
+
+			}
+		}
+
+		return w;
+	}
+
+	public static List<WorkflowDefinition> findAllActiveWorkflowDefinitions() throws Exception {
+
+		String sql = "SELECT * FROM workflow_definition WHERE status='ACTIVE'";
+
+		List<WorkflowDefinition> list = new ArrayList<>();
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ResultSet rs = ps.executeQuery();
+
+			while (rs.next()) {
+				WorkflowDefinition w = new WorkflowDefinition();
+				w.id = rs.getLong("id");
+				w.name = rs.getString("name");
+				w.version = rs.getInt("version");
+				w.json = rs.getString("json");
+				w.status = rs.getString("status");
+
+				list.add(w);
+			}
+		}
+
+		return list;
+	}
+
+	public static ResultSet findByNameVersion(String name, int version) throws Exception {
+		String sql = "SELECT * FROM workflow_definition WHERE name=? AND version=?";
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement(sql);
+		ps.setString(1, name);
+		ps.setInt(2, version);
+		return ps.executeQuery();
+	}
+
+	public static Long findIdByNameVersion(String name, int version) throws Exception {
+		String sql = "SELECT id FROM workflow_definition WHERE name=? AND version=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ResultSet rs = ps.executeQuery();
+			return rs.next() ? rs.getLong("id") : null;
+		}
+	}
+
+	public static ResultSet findByWorkflowId(Long workflowId) throws Exception {
+		String sql = "SELECT * FROM workflow_instance WHERE workflow_instance_id=?";
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement(sql);
+		ps.setLong(1, workflowId);
+		return ps.executeQuery();
+	}
+
+	public void updateWorkflowDefinitionJson(String name, int version, String json, String status) throws Exception {
+		String sql = "UPDATE workflow_definition SET json=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE name=? AND version=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, json);
+			ps.setString(2, status);
+			ps.setString(3, name);
+			ps.setInt(4, version);
+			ps.executeUpdate();
+		}
+	}
+
+	public void deleteWorkflowDefinition(String name, int version) throws Exception {
+		String sql = "DELETE FROM workflow_definition WHERE name=? AND version=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, name);
+			ps.setInt(2, version);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void saveTaskConfig(long workflowId, String taskName, String ref, String pixel, int retry,
+			int retryDelay, int timeout, boolean async) throws Exception {
+
+		String sql = "INSERT INTO task_config(workflow_id,task_name,task_reference_name,pixel,retry_count,retry_delay_seconds,timeout_seconds,async) VALUES(?,?,?,?,?,?,?,?)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, workflowId);
+			ps.setString(2, taskName);
+			ps.setString(3, ref);
+			ps.setString(4, pixel);
+			ps.setInt(5, retry);
+			ps.setInt(6, retryDelay);
+			ps.setInt(7, timeout);
+			ps.setBoolean(8, async);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet findByWorkflowAndTaskName(long workflowId, String taskName) throws Exception {
+		String sql = "SELECT * FROM task_config WHERE workflow_id=? AND task_name=?";
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement(sql);
+		ps.setLong(1, workflowId);
+		ps.setString(2, taskName);
+		return ps.executeQuery();
+	}
+
+	public static TaskConfig findByWorkflowAndRef(long workflowId, String ref) throws Exception {
+		String sql = "SELECT * FROM task_config WHERE workflow_id=? AND task_reference_name=?";
+
+		TaskConfig t = new TaskConfig();
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, workflowId);
+			ps.setString(2, ref);
+			ResultSet rs = ps.executeQuery();
+
+			while (rs.next()) {
+
+				t.workflowId = rs.getLong("workflow_id");
+				t.taskName = rs.getString("task_name");
+				t.taskReferenceName = rs.getString("task_ref_name");
+
+				// You must define pixel mapping logic
+				t.pixel = rs.getString("pixel");
+
+				t.retryCount = rs.getInt("retry_count");
+				t.retryDelaySeconds = rs.getInt("retry_delay_seconds");
+				t.timeoutSeconds = rs.getInt("timeout_seconds");
+				t.async = rs.getBoolean("async");
+
+			}
+		}
+
+		return t;
+	}
+
+	public void updateTaskConfig(long workflowId, String ref, String pixel, int retry, int retryDelay, int timeout,
+			boolean async) throws Exception {
+
+		String sql = "UPDATE task_config SET pixel=?, retry_count=?, retry_delay_seconds=?, timeout_seconds=?, async=?, updated_at=CURRENT_TIMESTAMP WHERE workflow_id=? AND task_reference_name=?";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, pixel);
+			ps.setInt(2, retry);
+			ps.setInt(3, retryDelay);
+			ps.setInt(4, timeout);
+			ps.setBoolean(5, async);
+			ps.setLong(6, workflowId);
+			ps.setString(7, ref);
+			ps.executeUpdate();
+		}
+	}
+
+	public void deleteTaskConfig(long workflowId, String ref) throws Exception {
+		String sql = "DELETE FROM task_config WHERE workflow_id=? AND task_reference_name=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setLong(1, workflowId);
+			ps.setString(2, ref);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void saveWorkflowMapping(String dir, String wfName, int version) throws Exception {
+		String sql = "INSERT INTO workflow_mapping(directory,workflow_name,version) VALUES(?,?,?)";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, dir);
+			ps.setString(2, wfName);
+			ps.setInt(3, version);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet findByWorkflowMappingDirectory(String dir) throws Exception {
+		String sql = "SELECT * FROM workflow_mapping WHERE directory=?";
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement(sql);
+		ps.setString(1, dir);
+		return ps.executeQuery();
+	}
+
+	public void updateWorkflowMapping(String dir, String wfName, int version) throws Exception {
+		String sql = "UPDATE workflow_mapping SET workflow_name=?, version=?, updated_at=CURRENT_TIMESTAMP WHERE directory=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, wfName);
+			ps.setInt(2, version);
+			ps.setString(3, dir);
+			ps.executeUpdate();
+		}
+	}
+
+	public void deleteWorkflowMapping(String dir) throws Exception {
+		String sql = "DELETE FROM workflow_mapping WHERE directory=?";
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, dir);
+			ps.executeUpdate();
+		}
+	}
+
+	public static void insertTaskExecutionLog(String wfInstanceId, String wfName, int version, String ref,
+			String taskName, String status, int retry, String input, String output, String error) throws Exception {
+
+		String sql = "INSERT INTO task_execution_log(workflow_instance_id,workflow_name,version,task_ref,task_name,status,retry_count,input_json,output_json,error_msg,completed_at) VALUES(?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, wfInstanceId);
+			ps.setString(2, wfName);
+			ps.setInt(3, version);
+			ps.setString(4, ref);
+			ps.setString(5, taskName);
+			ps.setString(6, status);
+			ps.setInt(7, retry);
+			ps.setString(8, input);
+			ps.setString(9, output);
+			ps.setString(10, error);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet findByWorkflowInstance(String wfInstanceId) throws Exception {
+		Connection con = connectToScheduler();
+		PreparedStatement ps = con.prepareStatement("SELECT * FROM task_execution_log WHERE workflow_instance_id=?");
+		ps.setString(1, wfInstanceId);
+		return ps.executeQuery();
+	}
+
+	public static void insertWorkflowDlq(String wfInstanceId, String wfName, int version, String ref, String error,
+			String input) throws Exception {
+
+		String sql = "INSERT INTO workflow_dlq(workflow_instance_id,workflow_name,version,task_ref,error_msg,input_json) VALUES(?,?,?,?,?,?)";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+			ps.setString(1, wfInstanceId);
+			ps.setString(2, wfName);
+			ps.setInt(3, version);
+			ps.setString(4, ref);
+			ps.setString(5, error);
+			ps.setString(6, input);
+			ps.executeUpdate();
+		}
+	}
+
+	public ResultSet findAllWorkflowDlq() throws Exception {
+		Connection con = connectToScheduler();
+		return con.createStatement().executeQuery("SELECT * FROM workflow_dlq");
+	}
+
+	public TaskConfig findByWorkflowAndTask(String workflowName, int version, String taskRef) throws Exception {
+
+		String sql = """
+				    SELECT t.*
+				    FROM task_config t
+				    JOIN workflow_definition w
+				      ON t.workflow_id = w.id
+				    WHERE w.name = ?
+				      AND w.version = ?
+				      AND t.task_reference_name = ?
+				""";
+
+		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
+
+			ps.setString(1, workflowName);
+			ps.setInt(2, version);
+			ps.setString(3, taskRef);
+
+			ResultSet rs = ps.executeQuery();
+
+			if (rs.next()) {
+				TaskConfig t = new TaskConfig();
+				t.id = rs.getLong("id");
+				t.taskName = rs.getString("task_name");
+				t.pixel = rs.getString("pixel");
+				t.retryCount = rs.getInt("retry_count");
+				t.timeoutSeconds = rs.getInt("timeout_seconds");
+				t.async = rs.getBoolean("async");
+				return t;
+			}
+		}
+		return null;
 	}
 }

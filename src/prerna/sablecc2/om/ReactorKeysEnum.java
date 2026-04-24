@@ -249,6 +249,7 @@ public enum ReactorKeysEnum {
 	PROMPT_TITLE("promptTitle",									"String title of prompt title that is about to be created"),
 	PREDEFINED_PARAM_STRUCT("preDefinedParamStruct",			"Map containing the details for a predefined paramter"),	
 	PROJECT("project", 											"Name of the project"),
+	WATCH_DIRECTORY("watchDirectory", 											"WATCH_DIRECTORY"),
 	RESULT("result", 											"Reactor Result "),
 	PROJECT_TEMPLATE("projectTemplate",                         "project template to facilitate application cloning"),
 	PROJECT_TYPE("projectType", 								"The type of the project being created"),
