@@ -219,7 +219,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             hasattr(response, "candidates")
             and response.candidates
             and hasattr(response.candidates[0], "content")
-            and hasattr(response.candidates[0].content, "parts")
+            and getattr(response.candidates[0].content, "parts", None)
         ):
             parts_with_fc = [
                 p
@@ -283,8 +283,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
                     latest_grounding_metadata = candidate.grounding_metadata
-                if hasattr(candidate, "content") and hasattr(
-                    candidate.content, "parts"
+                if hasattr(candidate, "content") and getattr(
+                    candidate.content, "parts", None
                 ):
                     for part in candidate.content.parts:
                         if (
@@ -601,6 +601,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             chunks = response.candidates[0].grounding_metadata.grounding_chunks
         except Exception:
             return getattr(response, "text", "") or ""
+
+        if not supports or not chunks:
+            return text or ""
 
         # Sort supports by end_index in descending order to avoid shifting issues when inserting.
         sorted_supports = sorted(

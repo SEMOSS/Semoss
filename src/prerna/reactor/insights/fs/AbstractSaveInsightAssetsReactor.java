@@ -60,6 +60,7 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 		if (filePaths.size() != contents.size()) {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
+		filePaths = Utility.normalizeFilePaths(filePaths);
 
 		String assetFolder = this.insight.getInsightFolder();
 //		String comment = this.keyValue.get(this.keysToGet[2]);
@@ -98,7 +99,7 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 
 		// push room to cloud storage
 		if (this.insight.getRoomId() != null) {
-			ClusterUtil.pushRoom(this.insight.getRoomId());
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");

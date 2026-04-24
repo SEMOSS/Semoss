@@ -67,7 +67,10 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
@@ -107,6 +110,10 @@ public class ApiSemossTestEngineUtils {
 		assertTrue(SystemEngineRegistry.isSchedulerDbLoaded(), "SchedulerDb should be loaded");
 		assertTrue(SystemEngineRegistry.isThemesDbLoaded(), "ThemesDb should be loaded");
 		assertTrue(SystemEngineRegistry.isUserTrackingDbLoaded(), "UserTrackingDb should be loaded");
+		assertTrue(SystemEngineRegistry.isPromptDbLoaded(), "PromptDB should be loaded");
+		assertTrue(SystemEngineRegistry.isNotificationDbLoaded(), "NotificationDB should be loaded");
+		assertTrue(SystemEngineRegistry.isAuditLogsDbLoaded(), "AuditLogDb should be loaded");
+		assertTrue(SystemEngineRegistry.isModelInferenceLogsDbLoaded(), "ModelInferenceLogsDb should be loaded");
 	}
 
 	static void unloadDatabases() {
@@ -120,6 +127,27 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
 		tasks.add(() -> initializePrompt());
+		tasks.add(() -> initializeNotification());
+		tasks.add(() -> initializeAuditLogs());
+		tasks.add(() -> initializeModelInferenceLogs());
+	}
+
+	private static Void initializeModelInferenceLogs() throws Exception {
+		doInitializeSemossDB(Constants.MODEL_INFERENCE_LOGS_DB, "database.mv.db");
+		ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeAuditLogs() throws Exception {
+		doInitializeSemossDB(Constants.AUDIT_LOGS_DB, "database.mv.db");
+		AuditLogsDbUtils.loadAuditLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeNotification() throws Exception {
+		doInitializeSemossDB(Constants.NOTIFICATION_DB, "database.mv.db");
+		NotificationDbUtils.loadNotificationDatabase();
+		return null;
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {

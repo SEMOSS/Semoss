@@ -31,68 +31,35 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
-public class PyUtils {
+public final class PyUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(PyUtils.class.getName());
 
 	public static final String PY_COMMAND_SEPARATOR = ";";
 
 	private static Boolean pyEnabled = null;
-	private static PyUtils instance;
-	public Map<User, String> userTupleMap = new Hashtable<>();
-	public Map<User, Process> userProcessMap = new Hashtable<>();
-
-	private PyUtils() {
-
-	}
-
-	public static PyUtils getInstance() throws IllegalArgumentException {
-		if (instance == null) {
-			setPyEnabled();
-			if (pyEnabled) {
-				instance = new PyUtils();
-			}
-		}
-
-		return instance;
-	}
 
 	/**
-	 * Method to set internally for this class if python is enabled
-	 */
-	private static void setPyEnabled() {
-		if (pyEnabled == null) {
-			pyEnabled = false;
-			String usePythonStr = Utility.getDIHelperProperty(Constants.USE_PYTHON);
-			if (usePythonStr != null) {
-				pyEnabled = Boolean.parseBoolean(usePythonStr);
-			}
-		}
-	}
-
-	/**
-	 * Getter if python is enabled
-	 * 
-	 * @return
+	 * Indicates whether Python integrations are enabled.
+	 *
+	 * @return {@code true} when Python usage is enabled; {@code false} otherwise
 	 */
 	public static boolean pyEnabled() {
 		if (pyEnabled == null) {
@@ -106,9 +73,10 @@ public class PyUtils {
 	}
 
 	/**
-	 * This is basically a utility method that attempts to generate the python code
-	 * (string) for a java object. It currently only does base types. Potentially
-	 * move it in the future but just keeping it here for now
+	 * Converts a Java object into a Python-safe literal string representation.
+	 *
+	 * @param obj object to convert
+	 * @return Python literal string for the provided object
 	 */
 	@SuppressWarnings("unchecked")
 	public static String determineStringType(Object obj) {
@@ -174,9 +142,11 @@ public class PyUtils {
 	}
 
 	/**
-	 * 
-	 * @param str
-	 * @return
+	 * Escapes Java string content so it can be safely embedded into Python strings.
+	 *
+	 * @param str raw string content
+	 * @return escaped string content, or an empty string when {@code str} is
+	 *         {@code null}
 	 */
 	private static String escapeString(String str) {
 		if (str == null) {
@@ -194,9 +164,9 @@ public class PyUtils {
 	 * This is good for python dictionaries but also for making sure we can easily
 	 * construct the logs into model inference python list, since everything is
 	 * python at this point.
-	 * 
-	 * @param map
-	 * @return
+	 *
+	 * @param map map to render as a Python dictionary
+	 * @return Python dictionary literal string
 	 */
 	private static String constructPyDictFromMap(Map<String, Object> map) {
 		StringBuilder dict = new StringBuilder("{");
@@ -220,9 +190,10 @@ public class PyUtils {
 	}
 
 	/**
-	 * 
-	 * @param name
-	 * @return
+	 * Validates whether a string can be used as a Python variable identifier.
+	 *
+	 * @param name candidate variable name
+	 * @return {@code true} if the name is a valid non-keyword Python identifier
 	 */
 	public static boolean isValidPythonVariableName(String name) {
 		// Check if the string is null or empty
@@ -253,9 +224,10 @@ public class PyUtils {
 	}
 
 	/**
-	 * 
-	 * @param name
-	 * @return
+	 * Checks whether a string matches a reserved Python keyword.
+	 *
+	 * @param name value to check
+	 * @return {@code true} if the value is a Python keyword
 	 */
 	private static boolean isPythonKeyword(String name) {
 		String[] keywords = { "False", "None", "True", "and", "as", "assert", "async", "await", "break", "class",
@@ -271,6 +243,11 @@ public class PyUtils {
 		return false;
 	}
 
+	/**
+	 * Checks whether {@code pypi.org} is reachable from the current runtime.
+	 *
+	 * @return {@code true} when PyPI can be reached; {@code false} otherwise
+	 */
 	public static boolean isPyPIReachable() {
 		try {
 			// Try to reach pypi.org with a timeout of 1000 milliseconds
@@ -282,6 +259,13 @@ public class PyUtils {
 		}
 	}
 
+	/**
+	 * Resolves the configured Python home directory from environment variables and
+	 * platform settings.
+	 *
+	 * @return configured Python home directory
+	 * @throws NullPointerException when no Python home is configured
+	 */
 	public static String getPythonHomeDir() {
 		String py = System.getenv(Settings.PYTHONHOME);
 		if (py == null) {
@@ -299,6 +283,12 @@ public class PyUtils {
 		return py;
 	}
 
+	/**
+	 * Appends the expected Python executable to the provided interpreter directory.
+	 *
+	 * @param interpreterDir base interpreter directory
+	 * @return full path to the platform-specific Python executable
+	 */
 	private static String appendPythonExecutable(String interpreterDir) {
 		if (SystemUtils.IS_OS_WINDOWS) {
 			return interpreterDir + "/python.exe";
@@ -307,6 +297,12 @@ public class PyUtils {
 		}
 	}
 
+	/**
+	 * Appends the virtual environment Python executable to the provided directory.
+	 *
+	 * @param interpreterDir base virtual environment directory
+	 * @return full path to the virtual environment Python executable
+	 */
 	public static String appendVenvPythonExecutable(String interpreterDir) {
 		if (SystemUtils.IS_OS_WINDOWS) {
 			return interpreterDir + "Scripts/python.exe";
@@ -315,6 +311,12 @@ public class PyUtils {
 		}
 	}
 
+	/**
+	 * Appends the virtual environment pip executable to the provided directory.
+	 *
+	 * @param interpreterDir base virtual environment directory
+	 * @return full path to the virtual environment pip executable
+	 */
 	public static String appendVenvPipExecutable(String interpreterDir) {
 		if (SystemUtils.IS_OS_WINDOWS) {
 			return interpreterDir + "/Scripts/pip.exe";
@@ -323,6 +325,13 @@ public class PyUtils {
 		}
 	}
 
+	/**
+	 * Resolves the site-packages directory for a Python interpreter home.
+	 *
+	 * @param interpreterDir interpreter home directory
+	 * @return full path to the site-packages directory
+	 * @throws IOException when the directory cannot be determined for the platform
+	 */
 	public static String appendSitePackagesPath(String interpreterDir) throws IOException {
 		if (SystemUtils.IS_OS_WINDOWS) {
 			if (new File(interpreterDir + "/Lib/site-packages").isDirectory()) {
@@ -346,21 +355,33 @@ public class PyUtils {
 			}
 
 		}
-		throw new IOException("Unable to find site packages directory for OS");
+		throw new IOException("Unable to find site-packages directory under '" + interpreterDir + "' for OS '"
+				+ System.getProperty("os.name") + "'");
 	}
 
+	/**
+	 * Returns site-packages paths for the configured Python home.
+	 *
+	 * @return list of site-packages directories
+	 * @throws IOException when site-packages cannot be determined
+	 */
 	public static List<String> getPythonHomeSitePackages() throws IOException {
 		String mainPySitePackages = Utility.getDIHelperProperty(Settings.PYTHONHOME_SITE_PACKAGES);
 		if (mainPySitePackages == null || (mainPySitePackages = mainPySitePackages.trim()).isEmpty()) {
 			String pythonExecutablePath = appendPythonExecutable(getPythonHomeDir());
 			ProcessBuilder processBuilder = new ProcessBuilder(pythonExecutablePath, "-c",
 					"\"import site; import json; print(json.dumps(site.getsitepackages()))\"");
-
+			String commandDescription = String.join(" ", processBuilder.command());
+			Process process;
 			try {
-				Process process = processBuilder.start();
-				java.io.BufferedReader reader = new java.io.BufferedReader(
-						new java.io.InputStreamReader(process.getInputStream()));
+				process = processBuilder.start();
+			} catch (IOException e) {
+				String message = "Failed to start Python site-packages command: " + commandDescription;
+				classLogger.error(message, e);
+				throw new IOException(message, e);
+			}
 
+			try (java.io.BufferedReader reader = process.inputReader()) {
 				// Read the input stream using a BufferedReader and collect lines into a list
 				String sitePackagePathsString = reader.lines().collect(Collectors.joining(System.lineSeparator()));
 				// Create a TypeToken for List<String>
@@ -371,13 +392,27 @@ public class PyUtils {
 				process.waitFor();
 
 				return sitePackagePaths;
-			} catch (IOException | InterruptedException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IOException("Unable to find site packages using python home executable");
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				String message = "Interrupted while waiting for Python site-packages command to finish: "
+						+ commandDescription;
+				classLogger.error(message, e);
+				throw new IOException(message, e);
+			} catch (IOException e) {
+				String message = "Failed to read output from Python site-packages command: " + commandDescription;
+				classLogger.error(message, e);
+				throw new IOException(message, e);
 			}
 		} else {
 			return Arrays.asList(mainPySitePackages);
 		}
+	}
+
+	/**
+	 * Private constructor for utility class.
+	 */
+	private PyUtils() {
+
 	}
 
 }

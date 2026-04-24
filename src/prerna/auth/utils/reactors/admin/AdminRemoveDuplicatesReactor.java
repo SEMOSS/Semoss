@@ -38,7 +38,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -84,18 +83,18 @@ public class AdminRemoveDuplicatesReactor extends AbstractReactor {
 		String query4 = queryUtil.dropTable(oldTableName);
 
 		try {
-			logger.info("Running query " + query1);
+			logger.info("Running query {}", query1);
 			app.insertData(query1);
-			logger.info("Running query " + query2);
+			logger.info("Running query {}", query2);
 			app.insertData(query2);
-			logger.info("Running query " + query3);
+			logger.info("Running query {}", query3);
 			app.insertData(query3);
 			if (dropTable) {
-				logger.info("Running query " + query4);
+				logger.info("Running query {}", query4);
 				app.insertData(query4);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Unable to remove duplicate rows from the target table.", e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 

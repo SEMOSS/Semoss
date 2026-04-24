@@ -72,7 +72,6 @@ import prerna.reactor.qs.SubQueryExpression;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -153,7 +152,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 //		try {
 //			FileUtils.forceDelete(indexFilesFolder);
 //		} catch (IOException e) {
-//			classLogger.error(Constants.STACKTRACE, e);
+//			classLogger.error("Failed to clean up indexed files folder: " + indexFilesFolder.getAbsolutePath(), e);
 //		}
 	}
 
@@ -225,7 +224,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						filesToCopyToCloud.add(documentDestinationFile.getAbsolutePath());
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
+							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ documentDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -243,7 +243,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					// store to move to cloud
 					filesToCopyToCloud.add(indexDestinationFile.getAbsolutePath());
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to copy CSV file '" + vectorF.getAbsolutePath()
+							+ "' to indexed-files directory '" + indexFilesDir.getAbsolutePath() + "'", e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ indexDestinationFile.getName() + " or move it to the document directory");
 				}
@@ -446,7 +447,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				try {
 					stream = Files.newDirectoryStream(indexDirectory, fileNameFilters);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to list indexed files in directory: " + indexDirectory, e);
 					throw new IllegalArgumentException("Unable determine files in " + indexDirectory.getFileName());
 				}
 				for (Path entry : stream) {
@@ -455,7 +456,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						Files.delete(entry);
 						filesToRemoveFromCloud.add(entry.toString());
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to delete indexed file: " + entry, e);
 						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
 					}
 					classLogger.info("Deleted: " + entry.toString());
@@ -468,7 +469,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete document '" + document
+							+ "' from documents directory for index class: " + indexClass, e);
 					throw new IllegalArgumentException("Unable to delete " + document + "from documents directory");
 				}
 			}
@@ -477,7 +479,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				try {
 					stream.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close indexed-files directory stream for index class: " + indexClass,
+							e);
 				}
 			}
 		}
@@ -500,7 +503,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 				// delete the entire folder
 				FileUtils.forceDelete(indexClassDirectory);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to delete index class folder for index class: " + indexClass, e);
 				throw new IllegalArgumentException("Unable to delete remove the index class folder");
 			}
 			this.pyTranslator

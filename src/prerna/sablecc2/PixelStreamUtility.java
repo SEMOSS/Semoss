@@ -689,8 +689,12 @@ public class PixelStreamUtility {
 			ps.print(",\"core_engine\":" + gson.toJson(innerInsight.getProjectId()));
 			ps.print(",\"core_engine_id\":" + gson.toJson(innerInsight.getRdbmsId()));
 			ps.print(",\"recipe\":" + gson.toJson(innerInsight.getPixelList().getPixelRecipe()));
-			ps.print(",\"params\":" + gson.toJson(params));
-			ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			if (params != null) {
+				ps.print(",\"params\":" + gson.toJson(params));
+			}
+			if (additionalPixels != null) {
+				ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			}
 			if (variableOutput != null) {
 				ps.print(",\"variableOutput\":" + gson.toJson(variableOutput));
 			}

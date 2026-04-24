@@ -34,11 +34,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class PortAllocator {
+public final class PortAllocator {
 
 	private static final Logger classLogger = LogManager.getLogger(PortAllocator.class);
 
-	private volatile static PortAllocator instance;
+	private static volatile PortAllocator instance;
 	private final int MIN_PORT;
 	private final int MAX_PORT;
 	private final int PORT_DOMAIN;
@@ -125,10 +125,10 @@ public class PortAllocator {
 	 */
 	public static boolean isPortAvailable(int port) {
 		try (ServerSocket ignored = new ServerSocket(port)) {
-			classLogger.info("Port " + port + " is available");
+			classLogger.info("Port {} is available", port);
 			return true;
 		} catch (IOException e) {
-			classLogger.info("Port " + port + " is unavailable");
+			classLogger.info("Port {} is unavailable", port);
 			return false;
 		}
 	}

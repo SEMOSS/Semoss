@@ -4,3 +4,6 @@ themes
 scheduler
 usertrackingdatabase
 PromptDatabase
+Notification
+ModelInferenceLogsDatabase
+AuditLogs
