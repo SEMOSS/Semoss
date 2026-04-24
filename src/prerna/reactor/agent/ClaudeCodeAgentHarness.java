@@ -74,7 +74,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
 
     @Override
     @SuppressWarnings("unchecked")
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+    public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
         Room               room    = ctx.getRoom();
         Map<String, Object> params = ctx.getParamMap();
         String             input   = ctx.getInput();
