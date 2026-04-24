@@ -2620,7 +2620,7 @@ public class SchedulerDatabaseUtility {
 
 				t.workflowId = rs.getLong("workflow_id");
 				t.taskName = rs.getString("task_name");
-				t.taskReferenceName = rs.getString("task_ref_name");
+				t.taskReferenceName = rs.getString("task_reference_name");
 
 				// You must define pixel mapping logic
 				t.pixel = rs.getString("pixel");

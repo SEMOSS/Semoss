@@ -37,7 +37,6 @@ import com.netflix.conductor.common.metadata.tasks.TaskResult;
 
 import prerna.om.Insight;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
-import prerna.reactor.shortcuts.conductor.oss.TaskConfig;
 import prerna.reactor.shortcuts.conductor.oss.WorkflowDefinition;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -79,8 +78,10 @@ public class PixelWorker implements Worker {
 		Map<String, Object> output = new HashMap<>();
 		try {
 
-			TaskConfig taskConfig = SchedulerDatabaseUtility
-					.findByWorkflowAndRef(Long.valueOf(workflowDefinition.getId()), taskRef);
+			/*
+			 * TaskConfig taskConfig = SchedulerDatabaseUtility
+			 * .findByWorkflowAndRef(Long.valueOf(workflowDefinition.getId()), taskRef);
+			 */
 
 			// String pixel = taskConfig.getPixel();
 

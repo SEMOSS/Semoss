@@ -243,7 +243,7 @@ public class FileUploadWatcher implements Runnable {
 						 */
 						// ===== 1. Find workflow =====
 						WorkflowService workflowService = new WorkflowService();
-						workflowService.startWorkflow(Utility.normalizePath(parentDir.toString()));
+						workflowService.startWorkflow(Utility.normalizePath(fullPath));
 						/*
 						 * String workflowName = SchedulerDatabaseUtility
 						 * .getWorkflowJsonByDirectory(Utility.normalizePath(parentDir.toString()));
