@@ -73,8 +73,8 @@ public class AdminServiceNowInsertConnectionsReactor extends AbstractReactor {
 
 		Map<Object, Object> responseMap = new HashMap<>();
 		try {
-			String profileId = adminUtils.insertServiceNowConnection(instanceUrl, clientId, clientSecret,
-					userProfileUrl, alias);
+			String profileId = adminUtils.insertServiceNowConnection(instanceUrl, alias, clientId, clientSecret,
+					userProfileUrl);
 			responseMap.put("id", profileId);
 			responseMap.put("success", profileId != null && !profileId.isEmpty());
 			return new NounMetadata(responseMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
