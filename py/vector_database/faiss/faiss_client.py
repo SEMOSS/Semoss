@@ -128,7 +128,7 @@ class FAISSSearcher:
 
     def _init_device(self):
         """
-        Utility method to determine whether or not the devie running the interpreter has a gpu
+        Utility method to determine whether or not the device running the interpreter has a gpu
         """
         self.class_logger.info(f"Loading torch in faiss client")
         import torch
@@ -136,7 +136,7 @@ class FAISSSearcher:
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
         self._device_loaded = True
-        self.class_logger.warn(f"Done loading torch in faiss client")
+        self.class_logger.info(f"Done loading torch in faiss client")
 
     def _concatenate_columns(
         self,
