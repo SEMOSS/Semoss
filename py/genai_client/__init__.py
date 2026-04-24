@@ -12,10 +12,6 @@ def __getattr__(name: str) -> Any:
         from .text_generation.openai_clients import OpenAiClient
 
         return OpenAiClient
-    elif name == "TextGenClient":
-        from .text_generation.textgen_client import TextGenClient
-
-        return TextGenClient
     elif name == "BedrockClient":
         from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
@@ -118,10 +114,6 @@ def get_text_gen_client(client_type, **kwargs):
             from .text_generation.openai_clients import OpenAiClient
 
             return OpenAiClient(**kwargs)
-    elif client_type == "TEXT_GENERATION":
-        from .text_generation.textgen_client import TextGenClient
-
-        return TextGenClient(**kwargs)
     elif client_type == "BEDROCK":
         from .text_generation.bedrock_client import BedrockClient
 
@@ -194,7 +186,6 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
 __all__ = [
     "AzureOpenAiClient",
     "OpenAiClient",
-    "TextGenClient",
     "BedrockClient",
     "VertexClient",
     "AnthropicClient",

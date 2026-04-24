@@ -102,7 +102,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					}
 				}
 
-				classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
+				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 				while (!connected && attempt < 6) {
 					try {
 						clientSocket = new Socket(this.HOST, this.PORT);
@@ -121,7 +121,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						}
 					} catch (Exception ex) {
 						attempt++;
-						classLogger.info("Attempting Number " + attempt);
+						classLogger.info("Attempting connection number {}", attempt);
 						// see if sleeping helps ?
 						try {
 							// sleeping only for 1 second here
@@ -189,7 +189,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									ps.epoc, ps.operation, ps.response, ps.interim);
 
 							PayloadStruct lock = requestMap.get(ps.epoc);
-							classLogger.debug("incoming payload " + ps);
+							classLogger.debug("Incoming payload {}", ps);
 							classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
 							// cancelled operations
@@ -736,9 +736,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		Callable<String> callableTask = () -> {
 			try {
-				for (Object k : this.requestMap.keySet()) {
-					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+					for (Object k : this.requestMap.keySet()) {
+						PayloadStruct ps = this.requestMap.get(k);
+						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
 					ps.ex = "Client is disconnected from the server.";
 					synchronized (ps) {
 						ps.notifyAll();
