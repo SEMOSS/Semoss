@@ -207,6 +207,7 @@ __all__ = [
     "VertexAiEmbedder",
     "OpenAiTokenizer",
     "HuggingfaceTokenizer",
+    "LocalWordCountTokenizer",
     "get_text_gen_client",
     "get_embedder",
     "get_tokenizer",
