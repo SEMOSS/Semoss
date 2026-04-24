@@ -16,7 +16,9 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.Insight;
+import prerna.om.Pixel;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
+import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -53,6 +55,7 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 		long startTime = System.currentTimeMillis();
 		boolean success = false;
 		String errorMessage = null;
+		String schedulerOutput = null;
 
 		try {
 			// Insert execution record
@@ -62,8 +65,8 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 				jobRequest.getJobGroup()
 			);
 
-			// Execute Pixel script directly
-			executePixelDirectly(
+			// Execute Pixel script directly and capture output
+			schedulerOutput = executePixelDirectly(
 				jobRequest.getPixelScript(), 
 				jobRequest.getPixelParameters(),
 				jobRequest.getUserAccess(), 
@@ -78,6 +81,7 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 		} catch (Exception e) {
 			success = false;
 			errorMessage = e.getMessage();
+			schedulerOutput = e.getMessage();
 			LOGGER.error("Failed to execute Pixel job: {} - Error: {}", 
 				jobRequest.getJobId(), e.getMessage(), e);
 
@@ -95,10 +99,42 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 					startTime, 
 					endTime, 
 					success,
-					success ? "Execution completed successfully" : "Execution failed: " + errorMessage
+					schedulerOutput != null ? schedulerOutput : 
+						(success ? "Execution completed successfully" : "Execution failed: " + errorMessage)
 				);
 			} catch (Exception auditEx) {
 				LOGGER.error("Failed to insert audit trail for job: {}", jobRequest.getJobId(), auditEx);
+			}
+			
+			// ENHANCED METADATA: Record execution success/failure in SMSS_JOB_RECIPES
+			// This updates EXECUTION_COUNT, RETRY_COUNT, LAST_EXECUTION_STATUS, etc.
+			try {
+				if (success) {
+					SchedulerDatabaseUtility.recordJobSuccess(
+						jobRequest.getJobId(),
+						new java.sql.Timestamp(endTime)
+					);
+					LOGGER.info("Recorded successful execution for job: {}", jobRequest.getJobId());
+				} else {
+					SchedulerDatabaseUtility.recordJobFailure(
+						jobRequest.getJobId(),
+						errorMessage,
+						new java.sql.Timestamp(endTime)
+					);
+					LOGGER.info("Recorded failed execution for job: {} (Error: {})", 
+						jobRequest.getJobId(), errorMessage);
+				}
+			} catch (Exception metadataEx) {
+				// Don't fail the job if metadata recording fails
+				LOGGER.error("Failed to record execution metadata for job: {}", jobRequest.getJobId(), metadataEx);
+			}
+			
+			// Clean up execution ID from database
+			try {
+				SchedulerDatabaseUtility.removeExecutionId(finalExecId);
+				LOGGER.debug("Removed execution ID: {} from database", finalExecId);
+			} catch (Exception cleanupEx) {
+				LOGGER.warn("Failed to remove execution ID: {}", finalExecId, cleanupEx);
 			}
 
 			LOGGER.info("Pixel job execution finished: {} (Duration: {}ms, Success: {})", 
@@ -116,9 +152,10 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 	 * @param execId          Execution ID for tracking
 	 * @param jobId           Job ID
 	 * @param jobGroup        Job group
+	 * @return Execution output/result string
 	 * @throws Exception if execution fails
 	 */
-	private void executePixelDirectly(String pixelScript, String pixelParameters, String userAccess, 
+	private String executePixelDirectly(String pixelScript, String pixelParameters, String userAccess, 
 			String execId, String jobId, String jobGroup) throws Exception {
 		
 		LOGGER.info("Executing Pixel script directly for job: {}", jobId);
@@ -126,6 +163,7 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 		LOGGER.debug("Parameters: {}", pixelParameters);
 
 		Insight insight = null;
+		String executionOutput = null;
 		
 		try {
 			// Parse user access information
@@ -161,20 +199,36 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 
 			LOGGER.info("Executing Pixel script for job: {} with user: {}", jobId, user.getPrimaryLogin());
 
+			// Ensure pixel script ends with semicolon
+			if (!pixelScript.trim().endsWith(";")) {
+				pixelScript = pixelScript.trim() + ";";
+			}
+
 			// Execute the Pixel script
-			insight.runPixel(pixelScript);
+			PixelRunner runner = insight.runPixel(pixelScript);
+			
+			// Capture execution output from results
+			if (runner != null && runner.getResults() != null && !runner.getResults().isEmpty()) {
+				NounMetadata lastResult = runner.getResults().get(runner.getResults().size() - 1);
+				if (lastResult != null && lastResult.getValue() != null) {
+					executionOutput = lastResult.getValue().toString();
+					LOGGER.debug("Pixel execution output captured for job: {}", jobId);
+				}
+			}
 
 			LOGGER.info("Pixel script execution completed successfully for job: {}", jobId);
+			return executionOutput;
 
 		} catch (Exception e) {
 			LOGGER.error("Error executing Pixel script for job: {}", jobId, e);
+			executionOutput = "Pixel execution failed: " + e.getMessage();
 			throw new Exception("Pixel execution failed: " + e.getMessage(), e);
 			
 		} finally {
 			// Clean up insight resources
 			if (insight != null) {
 				try {
-					// Close any open engines or resources
+					// Close any open engines and resources
 					cleanupInsight(insight);
 				} catch (Exception cleanupEx) {
 					LOGGER.warn("Error during insight cleanup for job: {}", jobId, cleanupEx);
@@ -292,21 +346,7 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 		}
 
 		try {
-			// Close any open engines
-//			Map<String, IEngine> engineMap = insight.);
-//			if (engineMap != null && !engineMap.isEmpty()) {
-//				for (IEngine engine : engineMap.values()) {
-//					try {
-//						if (engine != null) {
-//							engine.close();
-//						}
-//					} catch (Exception e) {
-//						LOGGER.warn("Error closing engine: {}", e.getMessage());
-//					}
-//				}
-//			}
-
-			// Clear variable store
+			// Clear variable store to release memory
 			if (insight.getVarStore() != null) {
 				insight.getVarStore().clear();
 			}

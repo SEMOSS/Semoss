@@ -134,6 +134,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -466,8 +467,15 @@ public class SchedulerDatabaseUtility {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
 		Connection conn = connectToScheduler();
+		// Check if this is a JobRunr job (only JobRunr jobs need enhanced metadata)
+		boolean isJobRunrJob = "JOBRUNR".equalsIgnoreCase(jobCategory);
+		
 		try (PreparedStatement statement = conn.prepareStatement(
-				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE) VALUES (?,?,?,?,?,?,?,?,?,?,?)")) {
+				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE" +
+				(isJobRunrJob ? ", JOB_STATUS, IS_RUNNING, EXECUTION_COUNT, RETRY_COUNT, LAST_EXECUTION_STATUS" : "") +
+				") VALUES (?,?,?,?,?,?,?,?,?,?,?" +
+				(isJobRunrJob ? ",?,?,?,?,?" : "") +
+				")")) {
 			int index = 1;
 			statement.setString(index++, userId);
 			statement.setString(index++, jobId);
@@ -481,6 +489,20 @@ public class SchedulerDatabaseUtility {
 			statement.setBoolean(index++, triggerOnLoad);
 			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 
+			
+			// Enhanced metadata columns (ONLY for JobRunr jobs)
+			if (isJobRunrJob) {
+				statement.setString(index++, "ACTIVE");  // JOB_STATUS
+				statement.setBoolean(index++, false);     // IS_RUNNING
+				statement.setLong(index++, 0);            // EXECUTION_COUNT
+				statement.setInt(index++, 0);             // RETRY_COUNT
+				statement.setString(index++, "PENDING");  // LAST_EXECUTION_STATUS
+				
+				classLogger.info("Inserting JobRunr job {} with enhanced metadata", jobId);
+			} else {
+				classLogger.info("Inserting Quartz job {} without enhanced metadata", jobId);
+			}
+			
 			statement.executeUpdate();
 		} catch (SQLException | UnsupportedEncodingException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -1421,6 +1443,62 @@ public class SchedulerDatabaseUtility {
 					}
 				}
 			}
+			
+            // Enhanced JobRunr metadata columns for execution guards, retry tracking, etc.
+			// These columns support the enhanced JobRunrService with better job management
+			{
+				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema);
+				
+				// Job status tracking (ACTIVE, PAUSED)
+				if (!allCols.contains("JOB_STATUS") && !allCols.contains("job_status")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "JOB_STATUS", "VARCHAR(20)");
+					classLogger.info("Adding JOB_STATUS column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Execution guard - prevents duplicate execution
+				if (!allCols.contains("IS_RUNNING") && !allCols.contains("is_running")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "IS_RUNNING", BOOLEAN_DATATYPE);
+					classLogger.info("Adding IS_RUNNING column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Execution count tracking
+				if (!allCols.contains("EXECUTION_COUNT") && !allCols.contains("execution_count")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "EXECUTION_COUNT", "BIGINT");
+					classLogger.info("Adding EXECUTION_COUNT column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Retry count for failed jobs
+				if (!allCols.contains("RETRY_COUNT") && !allCols.contains("retry_count")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "RETRY_COUNT", "INTEGER");
+					classLogger.info("Adding RETRY_COUNT column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Last execution status (PENDING, SUCCESS, FAILED)
+				if (!allCols.contains("LAST_EXECUTION_STATUS") && !allCols.contains("last_execution_status")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "LAST_EXECUTION_STATUS", "VARCHAR(20)");
+					classLogger.info("Adding LAST_EXECUTION_STATUS column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Error message storage for failed executions
+				if (!allCols.contains("ERROR_MESSAGE") && !allCols.contains("error_message")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "ERROR_MESSAGE", CLOB_DATATYPE);
+					classLogger.info("Adding ERROR_MESSAGE column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+				// Last execution timestamp
+				if (!allCols.contains("LAST_EXECUTION_AT") && !allCols.contains("last_execution_at")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "LAST_EXECUTION_AT", dateTimeType);
+					classLogger.info("Adding LAST_EXECUTION_AT column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
+			}
 
 			// SMSS_JOB_TAGS
 			colNames = new String[] { JOB_ID, JOB_TAG };
@@ -1879,4 +1957,286 @@ public class SchedulerDatabaseUtility {
 	        }
 	    }
 	}
+	
+	// ============================================================================
+	// ENHANCED METADATA METHODS
+	// Support for execution guards, retry tracking, and enhanced job management
+	// ============================================================================
+	
+	/**
+	 * Update the IS_RUNNING flag for execution guard
+	 */
+	public static boolean updateJobRunningFlag(String jobId, boolean isRunning) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"UPDATE SMSS_JOB_RECIPES SET IS_RUNNING = ? WHERE JOB_ID = ?")) {
+			
+			statement.setBoolean(1, isRunning);
+			statement.setString(2, jobId);
+			
+			int rowsUpdated = statement.executeUpdate();
+			
+			if (rowsUpdated > 0) {
+				classLogger.info("Updated job {} running flag to {}", jobId, isRunning);
+				return true;
+			} else {
+				classLogger.warn("No job found with ID {}", jobId);
+				return false;
+			}
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Mark job as running (execution guard)
+	 * Returns false if job is already running (prevents duplicate execution)
+	 */
+	public static boolean markJobAsRunning(String jobId) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"UPDATE SMSS_JOB_RECIPES SET IS_RUNNING = TRUE WHERE JOB_ID = ? AND (IS_RUNNING = FALSE OR IS_RUNNING IS NULL)")) {
+			
+			statement.setString(1, jobId);
+			int rowsUpdated = statement.executeUpdate();
+			
+			if (rowsUpdated > 0) {
+				classLogger.info("Marked job {} as running", jobId);
+				return true;
+			} else {
+				classLogger.warn("Job {} is already running or not found", jobId);
+				return false;
+			}
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Check if a job is currently running
+	 */
+	public static Boolean isJobRunning(String jobId) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"SELECT IS_RUNNING FROM SMSS_JOB_RECIPES WHERE JOB_ID = ?")) {
+			
+			statement.setString(1, jobId);
+			
+			try (ResultSet rs = statement.executeQuery()) {
+				if (rs.next()) {
+					return rs.getBoolean("IS_RUNNING");
+				}
+				return null; // Job not found
+			}
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Record successful job execution
+	 * Increments execution count, resets retry count, clears error message
+	 */
+	public static boolean recordJobSuccess(String jobId, Timestamp executionTime) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"UPDATE SMSS_JOB_RECIPES SET " +
+				"EXECUTION_COUNT = COALESCE(EXECUTION_COUNT, 0) + 1, " +
+				"LAST_EXECUTION_AT = ?, " +
+				"LAST_EXECUTION_STATUS = 'SUCCESS', " +
+				"RETRY_COUNT = 0, " +
+				"ERROR_MESSAGE = NULL, " +
+				"IS_RUNNING = FALSE " +
+				"WHERE JOB_ID = ?")) {
+			
+			statement.setTimestamp(1, executionTime);
+			statement.setString(2, jobId);
+			
+			int rowsUpdated = statement.executeUpdate();
+			return rowsUpdated > 0;
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Record failed job execution
+	 * Increments retry count and stores error message
+	 */
+	public static boolean recordJobFailure(String jobId, String errorMessage, Timestamp executionTime) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"UPDATE SMSS_JOB_RECIPES SET " +
+				"LAST_EXECUTION_AT = ?, " +
+				"LAST_EXECUTION_STATUS = 'FAILED', " +
+				"ERROR_MESSAGE = ?, " +
+				"RETRY_COUNT = COALESCE(RETRY_COUNT, 0) + 1, " +
+				"IS_RUNNING = FALSE " +
+				"WHERE JOB_ID = ?")) {
+			
+			statement.setTimestamp(1, executionTime);
+			statement.setString(2, errorMessage != null && errorMessage.length() > 1000 ? 
+					errorMessage.substring(0, 1000) : errorMessage);
+			statement.setString(3, jobId);
+			
+			int rowsUpdated = statement.executeUpdate();
+			return rowsUpdated > 0;
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Get enhanced job metadata
+	 */
+	public static Map<String, Object> getJobMetadata(String jobId) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"SELECT JOB_STATUS, IS_RUNNING, EXECUTION_COUNT, RETRY_COUNT, " +
+				"LAST_EXECUTION_STATUS, ERROR_MESSAGE, LAST_EXECUTION_AT " +
+				"FROM SMSS_JOB_RECIPES WHERE JOB_ID = ?")) {
+			
+			statement.setString(1, jobId);
+			
+			try (ResultSet rs = statement.executeQuery()) {
+				if (rs.next()) {
+					Map<String, Object> metadata = new HashMap<>();
+					metadata.put("JOB_STATUS", rs.getString("JOB_STATUS"));
+					metadata.put("IS_RUNNING", rs.getBoolean("IS_RUNNING"));
+					metadata.put("EXECUTION_COUNT", rs.getObject("EXECUTION_COUNT") != null ? 
+							rs.getLong("EXECUTION_COUNT") : 0L);
+					metadata.put("RETRY_COUNT", rs.getObject("RETRY_COUNT") != null ? 
+							rs.getInt("RETRY_COUNT") : 0);
+					metadata.put("LAST_EXECUTION_STATUS", rs.getString("LAST_EXECUTION_STATUS"));
+					metadata.put("ERROR_MESSAGE", rs.getString("ERROR_MESSAGE"));
+					metadata.put("LAST_EXECUTION_AT", rs.getTimestamp("LAST_EXECUTION_AT"));
+					return metadata;
+				}
+				return null;
+			}
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return null;
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Get jobs that failed and can be retried
+	 */
+	public static List<Map<String, String>> getJobsNeedingRetry(int maxRetries, int limit) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		List<Map<String, String>> jobs = new ArrayList<>();
+		
+		try (PreparedStatement statement = conn.prepareStatement(
+				"SELECT JOB_ID, JOB_NAME, JOB_GROUP, RETRY_COUNT, ERROR_MESSAGE " +
+				"FROM SMSS_JOB_RECIPES " +
+				"WHERE LAST_EXECUTION_STATUS = 'FAILED' " +
+				"AND (RETRY_COUNT IS NULL OR RETRY_COUNT < ?) " +
+				"AND (JOB_STATUS = 'ACTIVE' OR JOB_STATUS IS NULL) " +
+				"AND (IS_RUNNING = FALSE OR IS_RUNNING IS NULL) " +
+				"ORDER BY LAST_EXECUTION_AT ASC " +
+				"LIMIT ?")) {
+			
+			statement.setInt(1, maxRetries);
+			statement.setInt(2, limit);
+			
+			try (ResultSet rs = statement.executeQuery()) {
+				while (rs.next()) {
+					Map<String, String> job = new HashMap<>();
+					job.put("jobId", rs.getString("JOB_ID"));
+					job.put("jobName", rs.getString("JOB_NAME"));
+					job.put("jobGroup", rs.getString("JOB_GROUP"));
+					job.put("retryCount", rs.getString("RETRY_COUNT"));
+					job.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+					jobs.add(job);
+				}
+			}
+			
+		} catch (SQLException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+		
+		return jobs;
+	}
+	
 }
