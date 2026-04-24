@@ -523,4 +523,48 @@ public class AuditLogsDbUtils {
 		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__USER_TYPE"));
 		return QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
 	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param projectId
+	 * @param engineId
+	 * @param engineType
+	 * @param methodName
+	 * @param requestMessage
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public static List<Map<String, Object>> getAuditLogMethodnameAndRequest(String userId, String projectId,
+			String engineId, String engineType, String methodName, String requestMessage, int limit, int offset) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME", "methodName"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST", "request"));
+
+		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
+		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
+		addFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", "==", engineType);
+
+		if (methodName != null || !methodName.isEmpty()) {
+			qs.addExplicitFilter(
+					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__METHOD_NAME", methodName));
+		}
+
+		if (requestMessage != null || !requestMessage.isEmpty()) {
+			qs.addExplicitFilter(
+					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__REQUEST", requestMessage));
+		}
+
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+
+		return QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+	}
 }
