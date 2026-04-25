@@ -95,8 +95,9 @@ COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update -qq \
-	&& apt-get install -y -qq git curl unzip lsof vim nano \
-	&& curl -fsSL https://rclone.org/install.sh | bash > /dev/null \
+	&& apt-get install -y -qq git curl unzip lsof vim nano
+
+RUN curl -fsSL https://rclone.org/install.sh | bash \
 	&& chmod 755 /usr/bin/rclone
 
 ## TODO - couldnt get the following to work
