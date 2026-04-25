@@ -79,8 +79,7 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 				IProject project = Utility.getProject(workspaceId);
 				deleteProject(project);
 				if (ClusterUtil.IS_CLUSTER) {
-					Thread deleteThread = new Thread(new DeleteProjectRunner(workspaceId));
-					deleteThread.start();
+					Thread.ofVirtual().start(new DeleteProjectRunner(workspaceId));
 				}
 			}
 		} catch (Exception e) {
