@@ -1,5 +1,4 @@
 import base64
-import io
 import uuid
 from datetime import datetime
 from typing import List, Optional
@@ -37,11 +36,18 @@ class TranscriptionResponseFormat(StringEnum):
 
 _FORMAT_TO_MIME = {
     "mp3": "audio/mpeg",
+    "mpeg": "audio/mpeg",
+    "mpga": "audio/mpeg",
     "opus": "audio/ogg",
     "aac": "audio/aac",
     "flac": "audio/flac",
     "wav": "audio/wav",
     "pcm": "audio/L16",
+    "webm": "audio/webm",
+    "m4a": "audio/mp4",
+    "mp4": "audio/mp4",
+    "ogg": "audio/ogg",
+    "oga": "audio/ogg",
 }
 
 _RESERVED_KWARGS = {
@@ -207,11 +213,12 @@ class OpenAiAudioClient:
         except Exception as e:
             raise ValueError(f"Failed to decode base64 audio data: {e}") from e
 
-        buf = io.BytesIO(audio_bytes)
-        buf.name = file_name or f"audio.{file_format}"
+        upload_name = file_name or f"audio.{file_format}"
+        mime_type = _FORMAT_TO_MIME.get(file_format, "application/octet-stream")
+        file_tuple = (upload_name, audio_bytes, mime_type)
 
         stt_config = self._create_stt_config(**merged)
-        return self._generate_transcription(buf, stt_config)
+        return self._generate_transcription(file_tuple, stt_config)
 
     @staticmethod
     def _sanitize_base64(s: str) -> str:
@@ -284,10 +291,10 @@ class OpenAiAudioClient:
         )
 
     def _generate_transcription(
-        self, file_obj: io.BytesIO, stt_config: STTConfig
+        self, file_tuple: tuple, stt_config: STTConfig
     ) -> AskModelEngineResponse2:
         response = self.client.client.audio.transcriptions.create(
-            file=file_obj,
+            file=file_tuple,
             **stt_config.model_dump(exclude_none=True),
         )
 
