@@ -31,6 +31,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -45,8 +49,8 @@ public class StoreReactor extends AbstractReactor {
 
 	public StoreReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.INPUT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
@@ -54,7 +58,7 @@ public class StoreReactor extends AbstractReactor {
 
 		organizeKeys();
 		NounMetadata nounMetadata = null;
-		Object output = null;
+		// Object output = null;
 		// Map<String, Object> inputMap = getResultMap();
 		Map<String, Object> result = new HashMap<String, Object>();
 		// WorkflowActionResult workflowActionResult = new WorkflowActionResult();
@@ -63,6 +67,15 @@ public class StoreReactor extends AbstractReactor {
 		// ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
 
 		Map<String, Object> config = getConfigMap();
+		Map<String, Object> input = getInputMap();
+
+		Map<String, Object> resultMap = (Map<String, Object>) input.get("result");
+		Map<String, Object> output = new HashMap<String, Object>();
+		for (String key : resultMap.keySet()) {
+			System.out.println("Key: " + key);
+			output = (Map<String, Object>) resultMap.get(key);
+
+		}
 
 		this.storage = (String) config.get("storage");
 		this.keyPrefix = (String) config.get("keyPrefix");
@@ -90,22 +103,23 @@ public class StoreReactor extends AbstractReactor {
 	}
 
 	private NounMetadata processVarStoreInput(NounMetadata nounMetadata, Map<String, Object> result,
-			Map<String, Object> config, Object output) {
+			Map<String, Object> config, Map<String, Object> output) {
 
 		List<String> inputs = (List<String>) config.get("inputs");
-
-		for (String key : inputs) {
-			nounMetadata = planner.getVariable(key);
-			Map<String, Object> inputMap = (Map<String, Object>) nounMetadata.getValue();
-			FileExtractionResult fileExtractionResult = (FileExtractionResult) inputMap.get(key);
-
-			output = store(fileExtractionResult);
-			System.out.println("Input Key   : " + key);
-		}
+		output = store(output);
+		/*
+		 * for (String key : inputs) { nounMetadata = planner.getVariable(key);
+		 * Map<String, Object> inputMap = (Map<String, Object>) nounMetadata.getValue();
+		 * FileExtractionResult fileExtractionResult = (FileExtractionResult)
+		 * inputMap.get(key);
+		 * 
+		 * 
+		 * System.out.println("Input Key   : " + key); }
+		 */
 
 		// Process output
 
-		nounMetadata = processVarStoreOutput(nounMetadata, result, config, output);
+		output = processVarStoreOutput(nounMetadata, result, config, output);
 
 		/*
 		 * Map<String, String> input = (Map<String, String>) varStore.get("input");
@@ -128,16 +142,16 @@ public class StoreReactor extends AbstractReactor {
 		 * nounMetadata = processVarStoreOutput(nounMetadata, result, varStore, output);
 		 * } }
 		 */
-		return nounMetadata;
+		return new NounMetadata(output, PixelDataType.MAP);
 	}
 
-	private Map<String, Object> store(FileExtractionResult fileExtractionResult) {
+	private Map<String, Object> store(Map<String, Object> output) {
 		return switch (storage) {
-		case "INSIGHT" -> storeToInsight(fileExtractionResult, this.insight);
+		case "INSIGHT" -> storeToInsight(output, this.insight);
 
-		case "DB" -> storeToDatabase(fileExtractionResult, this.insight);
+		case "DB" -> storeToDatabase(output, this.insight);
 
-		case "FILE" -> storeToFile(fileExtractionResult, this.insight);
+		case "FILE" -> storeToFile(output, this.insight);
 
 		default -> throw new IllegalArgumentException("Unsupported storage type: " + storage);
 		};
@@ -145,29 +159,29 @@ public class StoreReactor extends AbstractReactor {
 
 	/* ---------- Storage Implementations ---------- */
 
-	private Map<String, Object> storeToInsight(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> storeToInsight(Map<String, Object> output1, Insight insight) {
 		// Replace with real Insight / NoSQL persistence
 
-		System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
-		System.out.println(fileExtractionResult.extractedText);
+		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
+		// System.out.println(fileExtractionResult.extractedText);
 
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("FileExtractionResult", output1);
 		output.put("message", "storeToInsight successfully");
 
-		return output;
+		return output1;
 
 		// return workflowActionResult;
 	}
 
-	private NounMetadata processVarStoreOutput(NounMetadata nounMetadata, Map<String, Object> result,
+	private Map<String, Object> processVarStoreOutput(NounMetadata nounMetadata, Map<String, Object> result,
 			Map<String, Object> config, Object output) {
 
 		String resultKey = (String) config.get("resultKey");
 
 		result.put(resultKey, output);
-		nounMetadata = new NounMetadata(result, PixelDataType.MAP);
-		planner.addVariable(resultKey, nounMetadata);
+		// nounMetadata = new NounMetadata(result, PixelDataType.MAP);
+		// planner.addVariable(resultKey, nounMetadata);
 		System.out.println("Output Key   : " + resultKey);
 		System.out.println("Output Value : " + output);
 
@@ -186,7 +200,7 @@ public class StoreReactor extends AbstractReactor {
 		 * + key); System.out.println("Output Value : " + value); } }
 		 */
 
-		return nounMetadata;
+		return result;
 	}
 
 	public Object resolveExpression(String expression, Object workflowResult) {
@@ -199,24 +213,24 @@ public class StoreReactor extends AbstractReactor {
 		return expression;
 	}
 
-	private Map<String, Object> storeToDatabase(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> storeToDatabase(Map<String, Object> output1, Insight insight) {
 		// JDBC / JPA integration goes here
-		System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
-		System.out.println(fileExtractionResult.extractedText);
+		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
+		// System.out.println(fileExtractionResult.extractedText);
 
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("FileExtractionResult", output1);
 		output.put("message", "storeToDatabase successfully");
 		return output;
 	}
 
-	private Map<String, Object> storeToFile(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> storeToFile(Map<String, Object> output1, Insight insight) {
 		// JDBC / JPA integration goes here
-		System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
-		System.out.println(fileExtractionResult.extractedText);
+		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
+		// System.out.println(fileExtractionResult.extractedText);
 
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("FileExtractionResult", output1);
 		output.put("message", "storeToFile successfully");
 		return output;
 	}
@@ -252,6 +266,47 @@ public class StoreReactor extends AbstractReactor {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
 			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getInputMap() {
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.INPUT.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+
+			ObjectMapper mapper = new ObjectMapper();
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				String result = (String) mapInputs.get(0).getValue();
+
+				// 1) keys: result, action1, fileName, fileType, mimeType - "key":
+				String json = result.replaceAll("([\\{,]\\s*)([A-Za-z0-9_]+)=", "$1\"$2\":");
+
+				// 2) values: =value - :"value"
+				json = json.replaceAll(":([^\",\\{\\}\\[\\]]+)", ":\"$1\"");
+
+				// Now it's valid JSON:
+				System.out.println(json);
+				// {"result":{"action1":{"fileName":"workflow.txt","fileType":"TXT","mimeType":"text/plain"}}}
+
+				// 3) Parse
+				Map<String, Object> map = new HashMap<String, Object>();
+				try {
+					map = mapper.readValue(json, Map.class);
+				} catch (JsonMappingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return map;
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);

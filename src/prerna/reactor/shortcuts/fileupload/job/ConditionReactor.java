@@ -31,7 +31,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.shortcuts.conductor.oss.ConditionEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -41,26 +46,41 @@ public class ConditionReactor extends AbstractReactor {
 
 	public ConditionReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.INPUT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// TODO Auto-generated method stub
-		Map<String, Object> resultMap = new HashMap<String, Object>();
+
 		Map<String, Object> config = getConfigMap();
+		Map<String, Object> input = getInputMap();
 
-		String resultFrom = (String) config.get("resultFrom");
+		Map<String, Object> resultMap = (Map<String, Object>) input.get("result");
+		Map<String, Object> output = new HashMap<String, Object>();
+		for (String key : resultMap.keySet()) {
+			System.out.println("Key: " + key);
+			Map<String, Object> actionOutput = (Map<String, Object>) resultMap.get(key);
+			// NounMetadata result = planner.getVariable(key);
+			// Map<String, Object> actionOutput = (Map<String, Object>) result.getValue();
+			output = ConditionEngine.execute(actionOutput, config);
+		}
 
-		NounMetadata result = planner.getVariable(resultFrom);
-		Map<String, Object> map = (Map<String, Object>) result.getValue();
-		Object object = map.get(resultFrom);
-		;
-		Object nextNode = DecisionEvaluator.evaluate(config, object);
-		resultMap.put("nextNode", nextNode);
+		// return Map.of("route", config.get("default"));
 
-		return new NounMetadata(resultMap, PixelDataType.MAP);
+		/*
+		 * List<String> inputs = (List<String>) config.get("inputs");
+		 * 
+		 * for (String key : inputs) { NounMetadata result = planner.getVariable(key);
+		 * Map<String, Object> map = (Map<String, Object>) result.getValue(); Object
+		 * object = map.get(resultFrom); ; Object nextNode =
+		 * DecisionEvaluator.evaluate(config, object); resultMap.put("nextNode",
+		 * nextNode); }
+		 */
+		// String resultFrom = (String) config.get("resultFrom");
+
+		return new NounMetadata(output, PixelDataType.MAP);
 
 	}
 
@@ -84,4 +104,44 @@ public class ConditionReactor extends AbstractReactor {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> getInputMap() {
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.INPUT.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+
+			ObjectMapper mapper = new ObjectMapper();
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				String result = (String) mapInputs.get(0).getValue();
+
+				// 1) keys: result, action1, fileName, fileType, mimeType - "key":
+				String json = result.replaceAll("([\\{,]\\s*)([A-Za-z0-9_]+)=", "$1\"$2\":");
+
+				// 2) values: =value - :"value"
+				json = json.replaceAll(":([^\",\\{\\}\\[\\]]+)", ":\"$1\"");
+
+				// Now it's valid JSON:
+				System.out.println(json);
+				// {"result":{"action1":{"fileName":"workflow.txt","fileType":"TXT","mimeType":"text/plain"}}}
+
+				// 3) Parse
+				Map<String, Object> map = new HashMap<String, Object>();
+				try {
+					map = mapper.readValue(json, Map.class);
+				} catch (JsonMappingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (JsonProcessingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return map;
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
 }
