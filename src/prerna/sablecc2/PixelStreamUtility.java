@@ -66,8 +66,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.comm.PixelJobStatus;
-import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -103,7 +103,7 @@ public class PixelStreamUtility {
 	 * @param jt
 	 * @return
 	 */
-	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobThread jt) {
+	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobRunner jt) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
