@@ -92,14 +92,13 @@ public class SyncUserAssetsThread implements Runnable {
 	}
 
 	public static void execute(Collection<String> assetIds) {
-		// now push all the values to be stored
 		if (ClusterUtil.IS_CLUSTER) {
 			if (assetIds != null) {
 				for (String assetAppId : assetIds) {
 					try {
 						ClusterUtil.pushUserAsset(assetAppId);
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to push user asset app {} to cloud storage", assetAppId, e);
 					}
 				}
 			}
