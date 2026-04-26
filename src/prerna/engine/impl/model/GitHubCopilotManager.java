@@ -117,7 +117,7 @@ public class GitHubCopilotManager {
 		AtomicBoolean idlePublished = new AtomicBoolean(false);
 		AtomicReference<String> sessionErrorMessage = new AtomicReference<>(null);
 
-		CopilotClientOptions clientOptions = new CopilotClientOptions();
+		CopilotClientOptions clientOptions = new CopilotClientOptions().setLogLevel("debug");
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
 		String cliPath = DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH);
 		if (cliPath != null) {
