@@ -143,16 +143,10 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			// 4 — Re-publish the project so SEMOSS picks up the new assets
 			this.insight.runPixel("PublishProject(project=['" + projectId + "']);");
 
-			// 5 — In cluster mode, push the full project (assets/client + assets/portals,
-			// .smss, etc.) up to central storage so other pods see the agent's edits and
-			// the freshly-built portal. No-op when ClusterUtil.IS_CLUSTER is false, so
-			// local single-node dev is unaffected.
+			// 5 — Push project to central storage so other pods see the changes
 			try {
 				ClusterUtil.pushProject(projectId);
 			} catch (Exception e) {
-				// Don't fail the whole build/publish on a cluster sync hiccup — the
-				// build succeeded and the local pod is correct. Log loudly and let
-				// the next BuildAndPublishApp (or an explicit release) retry.
 				logger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
 			}
 
