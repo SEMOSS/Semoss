@@ -511,8 +511,20 @@ class GitHubCopilotClient:
         # due to invalid configuration"). "*" enables every tool the server
         # advertises, matching the in-Java path that lets the CLI pull tool
         # lists at runtime.
+        #
+        # Bearer must be the same 3-segment shape as the Java path
+        # (GitHubCopilotManager.buildBearerToken):
+        #     accessKey:secretKey:room-{roomId}
+        # Monolith CodeAssistantFilter splits on ":" and only extracts the
+        # roomId when split.length == 3 with the third segment starting with
+        # "room-". Without that, OpenAIEndpoints / MCP endpoints create a
+        # fresh SEMOSS Room every turn instead of reusing the room linked to
+        # this conversation, which breaks multi-turn history reuse.
         servers: dict[str, dict[str, Any]] = {}
-        bearer = f"Bearer {self.cfg.access_key}:{self.cfg.secret_key}"
+        bearer = (
+            f"Bearer {self.cfg.access_key}:{self.cfg.secret_key}"
+            f":room-{self.cfg.room_id}"
+        )
         for mcp in self.cfg.mcps or []:
             safe_name = mcp.name.replace(" ", "_").lower()
             servers[safe_name] = {
@@ -526,11 +538,23 @@ class GitHubCopilotClient:
     def _build_provider(self) -> Optional[dict[str, Any]]:
         if not self.cfg.base_url:
             return None
+        # Mirror GitHubCopilotManager.buildProviderConfig — the bearer_token
+        # must include the `:room-{roomId}` 3rd segment so
+        # CodeAssistantFilter can pin the model call to the same SEMOSS
+        # Room across follow-on turns. The api_key field is unused by the
+        # filter (which only inspects Authorization: Bearer ...), but we
+        # keep an empty value present to satisfy the SDK's BYOK precondition.
         return {
             "type": "openai",
             "base_url": self.cfg.base_url,
-            "api_key": f"room-{self.cfg.room_id}",
-            "bearer_token": f"{self.cfg.access_key}:{self.cfg.secret_key}",
+            "api_key": (
+                f"{self.cfg.access_key}:{self.cfg.secret_key}"
+                f":room-{self.cfg.room_id}"
+            ),
+            "bearer_token": (
+                f"{self.cfg.access_key}:{self.cfg.secret_key}"
+                f":room-{self.cfg.room_id}"
+            ),
         }
 
     def _mark_session_created(self) -> None:
