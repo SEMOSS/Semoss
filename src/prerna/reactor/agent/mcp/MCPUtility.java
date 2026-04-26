@@ -289,7 +289,7 @@ public final class MCPUtility {
 				        globals()['<modMtimeKey>'] = _mt
 				    _drv = globals()['<modAlias>']
 
-				    <legacyVarCodeSnipped>
+				<legacyVarCodeSnipped>
 
 				    return _drv.<functionName>(<paramString>)
 				<funcDefName>()
@@ -299,8 +299,9 @@ public final class MCPUtility {
 		final String legacyVarCodeSnippet = String.join(
 				"\n",
 				PY_INDENT + "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:",
-				PY_INDENT + PY_INDENT + "if _k in globals():",
-				PY_INDENT + PY_INDENT + PY_INDENT + "setattr(_drv, _k, globals()[_k])"
+				PY_INDENT + PY_INDENT + "_v = smss_get_runtime_var(_k)",
+				PY_INDENT + PY_INDENT + "if _v is not None:",
+				PY_INDENT + PY_INDENT + PY_INDENT + "setattr(_drv, _k, _v)"
 				);
 		runScript = runScript
 				/*
