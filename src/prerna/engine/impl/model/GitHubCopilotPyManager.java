@@ -90,7 +90,7 @@ public class GitHubCopilotPyManager {
 		String workingDir = (filePath != null && !filePath.trim().isEmpty()) ? filePath : roomFolderPath;
 		Files.createDirectories(Paths.get(workingDir));
 
-		boolean sessionExists = sessionStateExists(roomFolderPath);
+		boolean sessionExists = sessionStateExists(roomFolderPath, roomId);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
@@ -182,9 +182,18 @@ public class GitHubCopilotPyManager {
 				+ ", system_prompt=" + pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
-	private boolean sessionStateExists(String roomFolderPath) {
-		Path sentinel = Paths.get(roomFolderPath, "copilot-session", ".created");
-		return Files.exists(sentinel);
+	/**
+	 * Mirrors {@link ClaudeCodeManager#agentHistoryExists}: check the file the
+	 * CLI itself writes, not a hand-rolled Java/Python sentinel. The CLI
+	 * persists per-room session state to
+	 * {@code <roomFolder>/session-state/<roomId>/events.jsonl}; if that file
+	 * exists the next turn must call {@code resume_session}, otherwise
+	 * {@code create_session}. This is pure pass-through — no drift between
+	 * what we tell the SDK and what the CLI is about to load.
+	 */
+	private boolean sessionStateExists(String roomFolderPath, String roomId) {
+		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
+		return Files.exists(eventsLog);
 	}
 
 	/** Quote-and-escape a Java string into a single-quoted Python string literal. */

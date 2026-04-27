@@ -252,6 +252,12 @@ class GitHubCopilotClient:
                 "content": system_prompt,
             }
 
+        # Pure pass-through — Java's `sessionStateExists` checks the CLI's own
+        # `events.jsonl` (mirroring ClaudeCodeManager.agentHistoryExists), so
+        # the same file we're about to hand the SDK is the file Java consulted.
+        # No hand-rolled sentinel, no preemptive sanitize, no recovery purge:
+        # if the CLI rejects its own log we want the error to surface, not be
+        # masked.
         if self.cfg.session_exists:
             session = await self._client.resume_session(
                 self.cfg.room_id, **common_kwargs
@@ -260,7 +266,6 @@ class GitHubCopilotClient:
             session = await self._client.create_session(
                 session_id=self.cfg.room_id, **common_kwargs
             )
-            self._mark_session_created()
 
         # Disable per-tool permission prompting at the wire level. Without
         # this, every tool invocation round-trips through
@@ -556,23 +561,6 @@ class GitHubCopilotClient:
                 f":room-{self.cfg.room_id}"
             ),
         }
-
-    def _mark_session_created(self) -> None:
-        """Drop a sentinel under the room folder so the next Java RunAgent call
-        knows to call resume_session instead of create_session. Mirrors the
-        ClaudeCodeManager.agentHistoryExists check pattern."""
-        if not self.cfg.room_folder_path:
-            return
-        try:
-            sentinel_dir = os.path.join(
-                self.cfg.room_folder_path, "copilot-session"
-            )
-            os.makedirs(sentinel_dir, exist_ok=True)
-            sentinel_file = os.path.join(sentinel_dir, ".created")
-            with open(sentinel_file, "a", encoding="utf-8"):
-                pass
-        except OSError:
-            pass
 
     def _build_available_tools(self) -> Optional[list[str]]:
         if not self.cfg.allowed_tools:
