@@ -72,12 +72,7 @@ NETTY_PYTHON true
 NATIVE_PY_SERVER true
 
 USE_PYTHON true
-#PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv
-PYTHONHOME C:\\Users\\shmahure\\.pyenv\\pyenv-win\\versions\\3.12.3
-TCP_WORKER prerna.tcp.SocketServer
-TCP_CLIENT prerna.tcp.client.NativePySocketClient
-
-
+PYTHONHOME C:\\workspace\\Semoss\\py\\install_config\\.venv\\Scripts
 
 USE_R false
 R_CONNECTION_JRI	false
@@ -136,15 +131,10 @@ LOG_ENCODING false
 EXPORT_SEMOSS_LOGO C:\\workspace\\Semoss\\images\\embed\\semoss_logo.png
 PLAYWRIGHT_EXPORT true
 
-# ============================================
 # JobRunr Scheduler Configuration
-# ============================================
-
-scheduler_use_jobrunr=true
-
-jobrunr_dashboard_port=8001
-
-jobrunr_background_job_server_workers=10
+SCHEDULER_USE_JOBRUNR
+JOBRUNR_DASHBOARD_PORT
+JOBRUNR_WORKER_COUNT
 
 #SCHEDULER ENDPOINT - ONLY THE ROOT OF THE URL - example: http://localhost:8080/Monolith
 SCHEDULER_ENDPOINT	http://localhost:9090/Monolith
