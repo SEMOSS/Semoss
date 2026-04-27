@@ -128,20 +128,12 @@ class OpenAiClient(AbstractTextGenerationClient):
             )
 
             if self.model_settings.model_type == "audio":
-                last_message = semoss_messages[-1]
-                text = last_message.content if hasattr(last_message, "content") else ""
-                return self.audio_client.ask(text, **kwargs)
+                return self.audio_client.ask(semoss_messages, **kwargs)
 
             try:
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
-
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
-                openai_messages.update(self.model_settings.global_param_override)
 
             if self.model_settings.model_type == "image":
                 return self.image_client.ask(openai_messages, **kwargs)

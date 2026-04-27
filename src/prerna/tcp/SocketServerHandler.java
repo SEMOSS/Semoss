@@ -35,9 +35,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -62,6 +62,10 @@ import prerna.util.FstUtil;
 import prerna.util.TCPChromeDriverUtility;
 import prerna.util.Utility;
 
+/**
+ * Handles socket payload processing for a connected client and coordinates
+ * request/response routing between SEMOSS core and runtime components.
+ */
 public class SocketServerHandler implements Runnable {
 
 	public static Logger classLogger = null;
@@ -74,35 +78,47 @@ public class SocketServerHandler implements Runnable {
 	private int bytesReadSoFar = 0;
 	private int lenBytesReadSoFar = 0;
 	private boolean done = false;
-	private boolean blocking = false; // processes one payload and moves to the next one. This is how it currently
-										// behaves
+	// processes one payload and moves to the next one. This is how it currently
+	// behaves
+	private boolean blocking = false;
 	private long averageMillis = 200;
 
 	ServerSocket socket = null;
+	// Back-reference to the owning SocketServer; used for crash signaling.
 	SocketServer server = null;
 	OutputStream os = null;
 	InputStream is = null;
 	String mainFolder = null;
 
-	private RConnection retCon = null;
+	private volatile RConnection retCon = null;
+	private final Object translatorInitLock = new Object();
 
-	private Map<String, AbstractRJavaTranslator> rtMap = new HashMap<String, AbstractRJavaTranslator>();
-	private Map<String, Insight> insightMap = new HashMap<String, Insight>();
-	private Map<String, Project> projectMap = new HashMap<String, Project>();
-	private Map<String, CmdExecUtil> cmdMap = new HashMap<String, CmdExecUtil>();
+	private final Map<String, AbstractRJavaTranslator> rtMap = new ConcurrentHashMap<String, AbstractRJavaTranslator>();
+	private Map<String, Insight> insightMap = new ConcurrentHashMap<String, Insight>();
+	private Map<String, Project> projectMap = new ConcurrentHashMap<String, Project>();
+	private Map<String, CmdExecUtil> cmdMap = new ConcurrentHashMap<String, CmdExecUtil>();
 
-	private Map<String, PayloadStruct> incoming = new HashMap<String, PayloadStruct>();
-	private Map<String, PayloadStruct> outgoing = new HashMap<String, PayloadStruct>();
+	private final Map<String, PayloadStruct> incoming = new ConcurrentHashMap<String, PayloadStruct>();
+	private final Map<String, PayloadStruct> outgoing = new ConcurrentHashMap<String, PayloadStruct>();
 
 	private int curEpoc = 1;
 
-//	ErrorThread et = null;
-
+	/**
+	 * Sets the logger used by handler instances.
+	 * 
+	 * @param classLogger logger to use for handler lifecycle and payload processing
+	 */
 	public void setLogger(Logger classLogger) {
 		SocketServerHandler.classLogger = classLogger;
 	}
 
-	// this is where the processing happens
+	/**
+	 * Processes an incoming payload and returns the response payload that should be
+	 * sent back over the socket.
+	 * 
+	 * @param ps incoming payload
+	 * @return response payload, or {@code null} when processing fails
+	 */
 	public PayloadStruct getFinalOutput(PayloadStruct ps) {
 		try {
 			// System.err.println("Received For Processing " + ps.methodName + " bytes : " +
@@ -117,7 +133,7 @@ public class SocketServerHandler implements Runnable {
 			outgoing.put(ps.epoc, ps);
 
 			// System.out.println("Getting final output for " + ps.methodName);
-			classLogger.info("Getting final output for " + ps.methodName);
+			classLogger.info("Getting final output for method '{}'", ps.methodName);
 
 			//// System.err.println("Payload set to " + ps);
 			if (ps.methodName.equalsIgnoreCase("EMPTYEMPTYEMPTY")) { // trigger message ignore
@@ -133,8 +149,9 @@ public class SocketServerHandler implements Runnable {
 
 			if (ps.operation == PayloadStruct.OPERATION.R) {
 				try {
-					Method method = findRMethod(getTranslator(ps.env), ps.methodName, ps.payloadClasses);
-					Object output = runMethodR(getTranslator(ps.env), method, ps.payload);
+					AbstractRJavaTranslator translator = getTranslator(ps.env);
+					Method method = findRMethod(translator, ps.methodName, ps.payloadClasses);
+					Object output = runMethodR(translator, method, ps.payload);
 					if (output != null) {
 						// System.out.println("Output is not null - R");
 						classLogger.info("Output is not null - R");
@@ -145,15 +162,13 @@ public class SocketServerHandler implements Runnable {
 					ps.processed = true;
 					ps.response = true;
 				} catch (InvocationTargetException ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					classLogger.info(ex + ps.methodName);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Invocation error while executing R operation '{}'", ps.methodName, ex);
+					classLogger.debug("R operation '{}' failed with exception '{}'", ps.methodName, ex.toString());
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					classLogger.info(ex + ps.methodName);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while executing R operation '{}'", ps.methodName, ex);
+					classLogger.debug("R operation '{}' failed with exception '{}'", ps.methodName, ex.toString());
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 				}
@@ -169,14 +184,14 @@ public class SocketServerHandler implements Runnable {
 						output = new Object();
 					}
 					if (output instanceof String) {
-						classLogger.info("Output is >>>>>>>>>>>>>>>  " + output);
+						classLogger.info("CHROME operation '{}' returned String output: {}", ps.methodName, output);
 					}
 					Object[] retObject = new Object[1];
 					retObject[0] = output;
 					ps.payload = retObject;
 					ps.processed = true;
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while executing CHROME operation '{}'", ps.methodName, ex);
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 					// TCPChromeDriverUtility.quit("stop");
@@ -191,8 +206,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payload = retObject;
 					ps.processed = true;
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while executing ECHO operation '{}'", ps.methodName, ex);
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 					// TCPChromeDriverUtility.quit("stop");
@@ -210,8 +224,7 @@ public class SocketServerHandler implements Runnable {
 					ps.response = true;
 					insightMap.put(output.getInsightId(), output);
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while processing INSIGHT payload for insight '{}'", ps.insightId, ex);
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 					// TCPChromeDriverUtility.quit("stop");
@@ -260,8 +273,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payload = new Object[] { nmd };
 					ps.payloadClasses = new Class[] { NounMetadata.class };
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while executing REACTOR operation '{}'", ps.objId, ex);
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 					// TCPChromeDriverUtility.quit("stop");
@@ -285,8 +297,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payload = new Object[] { "method " + ps.methodName + " execution complete" };
 					ps.payloadClasses = new Class[] { String.class };
 				} catch (Exception ex) {
-					classLogger.error(Constants.STACKTRACE, ex);
-					// classLogger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Error while executing PROJECT operation '{}'", ps.methodName, ex);
 					// System.err.println("Method.. " + ps.methodName);
 					ps.ex = ExceptionUtils.getStackTrace(ex);
 					// TCPChromeDriverUtility.quit("stop");
@@ -320,7 +331,6 @@ public class SocketServerHandler implements Runnable {
 //						}
 //					}
 //				} catch(Exception ex) {
-//					classLogger.error(Constants.STACKTRACE, ex);
 //					ps.ex = ExceptionUtils.getStackTrace(ex);						
 //					//TCPChromeDriverUtility.quit("stop");
 //				}
@@ -328,19 +338,19 @@ public class SocketServerHandler implements Runnable {
 //				return ps;
 //			}
 		} catch (Exception ex) {
-			// classLogger.error(Constants.STACKTRACE, ex);
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Unhandled error while processing payload for method '{}'", ps.methodName, ex);
 			ps.ex = ex.getMessage();
 		}
 		return null;
 	}
 
 	/**
+	 * Gets a reactor from a project, creating the project reference when needed.
 	 * 
 	 * @param projectId
 	 * @param projectName
 	 * @param reactorName
-	 * @return
+	 * @return resolved reactor, or {@code null} if the project cannot provide it
 	 */
 	private IReactor getProjectReactor(String projectId, String projectName, String reactorName) {
 		Project project = null;
@@ -354,6 +364,13 @@ public class SocketServerHandler implements Runnable {
 		return reactor;
 	}
 
+	/**
+	 * Creates and registers a project wrapper for socket-based reactor execution.
+	 * 
+	 * @param projectId   project id
+	 * @param projectName project name
+	 * @return initialized project wrapper
+	 */
 	private Project makeProject(String projectId, String projectName) {
 		Project project = new Project();
 		project.setProjectId(projectId);
@@ -366,6 +383,12 @@ public class SocketServerHandler implements Runnable {
 		return project;
 	}
 
+	/**
+	 * Serializes and writes a payload response to the connected client.
+	 * 
+	 * @param ps payload to write
+	 * @return response payload for caller-waited operations, otherwise {@code null}
+	 */
 	public PayloadStruct writeResponse(PayloadStruct ps) {
 		byte[] psBytes = null;
 		// if this is the response
@@ -381,7 +404,7 @@ public class SocketServerHandler implements Runnable {
 			psBytes = FstUtil.packBytes(ps);
 		} catch (Exception ex) {
 			// dont choke this thread
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to serialize payload response for epoc '{}'", ps.epoc, ex);
 			if (psBytes == null) {
 				// hmm we are in the non serializable land
 				// let us try it this way now
@@ -393,12 +416,12 @@ public class SocketServerHandler implements Runnable {
 		// send it
 		// System.out.println(" Sending bytes " + psBytes.length + " >> " +
 		// ps.methodName + " " + ps.epoc + " >> ");
-		classLogger.info("  Sending bytes " + psBytes.length + " >> " + ps.methodName + "  " + ps.epoc + " >> ");
+		classLogger.info("Sending {} bytes for method '{}' (epoc '{}')", psBytes.length, ps.methodName, ps.epoc);
 		try {
 			os.write(psBytes);
 			// remove from the epoc queue
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write payload response for epoc '{}'", ps.epoc, ex);
 		}
 
 		// if this is what socket is sending
@@ -427,46 +450,72 @@ public class SocketServerHandler implements Runnable {
 				synchronized (ps) {
 					try {
 						// wait to see if there is response
-						classLogger.info("Going into wait for epoc " + ps.epoc);
+						classLogger.info("Waiting for response epoc '{}'", ps.epoc);
 						ps.wait(averageMillis);
 						// once response remove this from the outgoing queue
 						// the main input is available on incoming
 					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						classLogger.error(Constants.STACKTRACE, e);
+						Thread.currentThread().interrupt();
+						classLogger.error("Interrupted while waiting for response epoc '{}'", ps.epoc, e);
+						outgoing.remove(ps.epoc);
+						return createErrorResponse(ps,
+								"Interrupted while waiting for socket response for epoc '" + ps.epoc + "'");
 					}
 				}
 			}
-			classLogger.info("Got re sponse for " + ps.epoc);
+			classLogger.info("Received response for epoc '{}'", ps.epoc);
 			// assumes we already got the response
 			outgoing.remove(ps.epoc);
-			ps = incoming.remove(ps.epoc);
-			return ps;
+			PayloadStruct responsePayload = incoming.remove(ps.epoc);
+			if (responsePayload == null) {
+				return createErrorResponse(ps, "Response for epoc '" + ps.epoc + "' was not available");
+			}
+			return responsePayload;
 
 		}
 		return null;
 	}
 
-	public void releaseAll() {
-		// take all the unprocessed and remove all of it
-		Iterator<String> keys = incoming.keySet().iterator();
-		while (keys.hasNext()) {
-			String thisEpoc = keys.next();
-			PayloadStruct ps = incoming.get(thisEpoc);
+	private PayloadStruct createErrorResponse(PayloadStruct originalRequest, String message) {
+		PayloadStruct errorResponse = new PayloadStruct();
+		if (originalRequest != null) {
+			errorResponse.epoc = originalRequest.epoc;
+			errorResponse.operation = originalRequest.operation;
+			errorResponse.methodName = originalRequest.methodName;
+		}
+		errorResponse.response = true;
+		errorResponse.processed = true;
+		errorResponse.ex = message;
+		errorResponse.payload = new Object[] { message };
+		errorResponse.payloadClasses = new Class[] { String.class };
+		return errorResponse;
+	}
 
-			if (ps != null) {
-				String message = "Releasing this payload";
-				if (ps.payload != null && ps.payload.length >= 1) {
-					message = message + ps.payload[0];
-				}
-				ps.payload = new String[] { message };
-				writeResponse(ps);
+	/**
+	 * Forces responses for all pending incoming payloads.
+	 */
+	public void releaseAll() {
+		// Snapshot first to avoid iterating over a map being mutated by writeResponse()
+		PayloadStruct[] pendingPayloads;
+		synchronized (incoming) {
+			pendingPayloads = incoming.values().toArray(new PayloadStruct[0]);
+		}
+		for (PayloadStruct ps : pendingPayloads) {
+			if (ps == null) {
+				continue;
 			}
+			String message = "Releasing this payload";
+			if (ps.payload != null && ps.payload.length >= 1) {
+				message = message + ps.payload[0];
+			}
+			ps.payload = new String[] { message };
+			writeResponse(ps);
 		}
 	}
 
 	/**
-	 * Delete the entire folder from insight cache and stop processes
+	 * Deletes the socket working folder and shuts down translator/database
+	 * resources.
 	 */
 	public void cleanUp() {
 		try {
@@ -516,6 +565,14 @@ public class SocketServerHandler implements Runnable {
 		System.exit(1);
 	}
 
+	/**
+	 * Finds an R translator method by name and arguments.
+	 * 
+	 * @param rt         translator instance
+	 * @param methodName method name
+	 * @param arguments  argument classes
+	 * @return resolved method, or {@code null} if it cannot be found
+	 */
 	public Method findRMethod(AbstractRJavaTranslator rt, String methodName, Class[] arguments) {
 		Method retMethod = null;
 
@@ -526,7 +583,7 @@ public class SocketServerHandler implements Runnable {
 				try {
 					retMethod = rt.getClass().getDeclaredMethod(methodName, arguments);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and fallback to superclass lookup
 				}
 				if (retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
@@ -535,23 +592,29 @@ public class SocketServerHandler implements Runnable {
 				try {
 					retMethod = rt.getClass().getDeclaredMethod(methodName);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and fallback to superclass lookup
 				}
 				if (retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
 				}
 			}
-			classLogger.info("Found the method " + retMethod);
+			classLogger.info("Found method {}", retMethod);
 		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to resolve R method '{}'", methodName, e);
 		} catch (SecurityException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Security manager prevented access to R method '{}'", methodName, e);
 		}
 		return retMethod;
 	}
 
+	/**
+	 * Finds a project method by name and arguments.
+	 * 
+	 * @param rt         project wrapper instance
+	 * @param methodName method name
+	 * @param arguments  argument classes
+	 * @return resolved method, or {@code null} if it cannot be found
+	 */
 	public Method findProjectMethod(Project rt, String methodName, Class[] arguments) {
 		Method retMethod = null;
 
@@ -562,7 +625,7 @@ public class SocketServerHandler implements Runnable {
 				try {
 					retMethod = rt.getClass().getDeclaredMethod(methodName, arguments);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and fallback to superclass lookup
 				}
 				if (retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
@@ -572,23 +635,28 @@ public class SocketServerHandler implements Runnable {
 				try {
 					retMethod = rt.getClass().getDeclaredMethod(methodName);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and fallback to superclass lookup
 				}
 				if (retMethod == null) {
 					retMethod = rt.getClass().getSuperclass().getDeclaredMethod(methodName, arguments);
 				}
 			}
-			classLogger.info("Found the method " + retMethod);
+			classLogger.info("Found method {}", retMethod);
 		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to resolve project method '{}'", methodName, e);
 		} catch (SecurityException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Security manager prevented access to project method '{}'", methodName, e);
 		}
 		return retMethod;
 	}
 
+	/**
+	 * Finds a chrome utility method by name and arguments.
+	 * 
+	 * @param methodName method name
+	 * @param arguments  argument classes
+	 * @return resolved method, or {@code null} if it cannot be found
+	 */
 	public Method findChromeMethod(String methodName, Class[] arguments) {
 		Method retMethod = null;
 
@@ -597,23 +665,32 @@ public class SocketServerHandler implements Runnable {
 				try {
 					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName, arguments);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and continue
 				}
 			} else {
 				try {
 					retMethod = TCPChromeDriverUtility.class.getDeclaredMethod(methodName);
 				} catch (Exception ex) {
-					// classLogger.error(Constants.STACKTRACE, ex);
+					// ignore and continue
 				}
 			}
-			classLogger.info("Found the method " + retMethod);
+			classLogger.info("Found method {}", retMethod);
 		} catch (SecurityException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Security manager prevented access to chrome method '{}'", methodName, e);
 		}
 		return retMethod;
 	}
 
+	/**
+	 * Invokes a method on the R translator and unwraps invocation target
+	 * exceptions.
+	 * 
+	 * @param rt2       translator instance
+	 * @param method    method to invoke
+	 * @param arguments invocation arguments
+	 * @return invocation return value
+	 * @throws Exception when the underlying translator method throws
+	 */
 	public Object runMethodR(AbstractRJavaTranslator rt2, Method method, Object[] arguments) throws Exception {
 		try {
 			Object retObject = null;
@@ -624,6 +701,14 @@ public class SocketServerHandler implements Runnable {
 		}
 	}
 
+	/**
+	 * Invokes a static chrome utility method.
+	 * 
+	 * @param method    method to invoke
+	 * @param arguments invocation arguments
+	 * @return invocation return value
+	 * @throws Exception when reflection invocation fails
+	 */
 	public Object runMethodChrome(Method method, Object[] arguments) throws Exception {
 		Object retObject = null;
 
@@ -632,46 +717,80 @@ public class SocketServerHandler implements Runnable {
 		return retObject;
 	}
 
+	/**
+	 * Retrieves or creates an R translator for the requested environment.
+	 * 
+	 * @param env environment id
+	 * @return translator bound to the provided environment
+	 */
 	private AbstractRJavaTranslator getTranslator(String env) {
-		if (!rtMap.containsKey(env)) {
-			boolean JRI = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null
-					|| DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
-			AbstractRJavaTranslator arjt = null;
-			if (JRI) {
-				arjt = new RJavaJriTranslator();
-				arjt.setLogger(classLogger);
-				arjt.startR();
-				arjt.initREnv(env);
-			} else // try doing rserve
-			{
-				arjt = new RJavaRserveTranslator();
-				if (retCon == null) {
-					arjt.setLogger(classLogger);
-					arjt.startR();
-					this.retCon = ((RJavaRserveTranslator) arjt).getConnection();
-				} else {
-					arjt.setLogger(classLogger);
-					arjt.setConnection(retCon);
-					arjt.initREnv(env);
-				}
-			}
-			rtMap.put(env, arjt);
+		AbstractRJavaTranslator translator = rtMap.get(env);
+		if (translator != null) {
+			return translator;
 		}
-		return rtMap.get(env);
+
+		synchronized (translatorInitLock) {
+			translator = rtMap.get(env);
+			if (translator != null) {
+				return translator;
+			}
+
+			boolean useJri = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null
+					|| DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
+			if (useJri) {
+				translator = new RJavaJriTranslator();
+				translator.setLogger(classLogger);
+				translator.startR();
+				translator.initREnv(env);
+			} else {
+				RJavaRserveTranslator rserveTranslator = new RJavaRserveTranslator();
+				rserveTranslator.setLogger(classLogger);
+				RConnection existingConnection = this.retCon;
+				if (existingConnection == null) {
+					rserveTranslator.startR();
+					this.retCon = rserveTranslator.getConnection();
+				} else {
+					rserveTranslator.setConnection(existingConnection);
+					rserveTranslator.initREnv(env);
+				}
+				translator = rserveTranslator;
+			}
+			rtMap.put(env, translator);
+			return translator;
+		}
 	}
 
+	/**
+	 * Sets the socket output stream.
+	 * 
+	 * @param os output stream
+	 */
 	public void setOutputStream(OutputStream os) {
 		this.os = os;
 	}
 
+	/**
+	 * Sets the socket input stream.
+	 * 
+	 * @param is input stream
+	 */
 	public void setInputStream(InputStream is) {
 		this.is = is;
 	}
 
+	/**
+	 * Sets the shared server socket reference.
+	 * 
+	 * @param socket server socket
+	 */
 	public void setServerSocket(ServerSocket socket) {
 		this.socket = socket;
 	}
 
+	/**
+	 * Reads payload bytes from the socket stream and dispatches requests/responses
+	 * until the handler stops.
+	 */
 	@Override
 	public void run() {
 		// there are 2 types of interactions
@@ -725,9 +844,10 @@ public class SocketServerHandler implements Runnable {
 							// this is a response to the request that just came in
 							// synchronize on the ps and then notify
 							PayloadStruct responseStruct = (PayloadStruct) retObject;
-							classLogger.info("Received payload with epoc " + responseStruct.epoc);
+							classLogger.info("Received payload with epoc '{}'", responseStruct.epoc);
 							PayloadStruct requestStruct = outgoing.get(responseStruct.epoc);
-							classLogger.info("Have response with epoc " + outgoing.containsKey(responseStruct.epoc));
+							classLogger.info("Outgoing queue contains response epoc '{}': {}", responseStruct.epoc,
+									outgoing.containsKey(responseStruct.epoc));
 							incoming.put(responseStruct.epoc, responseStruct);
 							if (requestStruct != null) {
 								synchronized (requestStruct) {
@@ -748,18 +868,13 @@ public class SocketServerHandler implements Runnable {
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				classLogger.error(Constants.STACKTRACE, e);
-//				System.err.println("Client socket has been closed !");
-				synchronized (server.crash) {
-					try {
-						// ask it to listen again
-						this.done = true;
-						server.crash.notify();
-					} catch (Exception e1) {
-						classLogger.error(Constants.STACKTRACE, e1);
-						classLogger.error(Constants.STACKTRACE, e1);
-					}
+				classLogger.error("Socket handler read failed; signaling crash recovery", e);
+				try {
+					// Notify SocketServer.run() so it can unwind/cleanup and re-listen.
+					this.done = true;
+					server.signalCrash();
+				} catch (Exception e1) {
+					classLogger.error("Failed to signal server crash recovery", e1);
 				}
 				// dont quit.. work hard
 				if (!SocketServer.isMulti()) {
@@ -769,6 +884,12 @@ public class SocketServerHandler implements Runnable {
 		}
 	}
 
+	/**
+	 * Gets the stored payload for a given epoc.
+	 * 
+	 * @param epoc epoc identifier
+	 * @return payload associated with the epoc, or {@code null}
+	 */
 	public PayloadStruct getPayloadForEpoc(String epoc) {
 		return incoming.get(epoc);
 	}

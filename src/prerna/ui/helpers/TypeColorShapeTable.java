@@ -29,7 +29,8 @@ package prerna.ui.helpers;
 
 import java.awt.Color;
 import java.awt.Shape;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -49,15 +50,15 @@ public final class TypeColorShapeTable {
 	private static final Logger classLogger = LogManager.getLogger(TypeColorShapeTable.class);
 
 	// the singleton
-	private static TypeColorShapeTable instance = null;
+	private static volatile TypeColorShapeTable instance = null;
 
-	private Hashtable<String, Shape> shapeHash = new Hashtable<String, Shape>();
-	private Hashtable<String, Color> colorHash = new Hashtable<String, Color>();
+	private Map<String, Shape> shapeHash = new HashMap<String, Shape>();
+	private Map<String, Color> colorHash = new HashMap<String, Color>();
 
-	private Hashtable<String, Shape> shapeHashL = new Hashtable<String, Shape>();
+	private Map<String, Shape> shapeHashL = new HashMap<String, Shape>();
 
-	private Hashtable<String, String> shapeStringHash = new Hashtable<String, String>();
-	private Hashtable<String, String> colorStringHash = new Hashtable<String, String>();
+	private Map<String, String> shapeStringHash = new HashMap<String, String>();
+	private Map<String, String> colorStringHash = new HashMap<String, String>();
 
 	private String[] shapes = null;
 	private String[] colors = null;

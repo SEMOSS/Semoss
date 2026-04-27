@@ -39,7 +39,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IDatabaseEngine;
@@ -61,38 +61,42 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteDatabaseReactor.class);
 
+	@Deprecated
 	public DeleteDatabaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		List<String> databaseIds = getDatabaseIds();
 		// first validate all the inputs
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if(!isAdmin) {
+		if (!isAdmin) {
 			for (String databaseId : databaseIds) {
-				if(AbstractSecurityUtils.adminOnlyEngineDelete(databaseId)) {
+				if (AbstractSecurityUtils.adminOnlyEngineDelete(databaseId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
-				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(databaseId)) {
-					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
+				if (UserAssetUtils.isAssetProject(databaseId)) {
+					throw new IllegalArgumentException(
+							"Users are not allowed to delete your workspace or asset database.");
 				}
 				// we may have the alias
 				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
+				if (!isOwner) {
+					throw new IllegalArgumentException("Database " + databaseId
+							+ " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 				}
-			} 
+			}
 		}
-		
+
 		for (String databaseId : databaseIds) {
 			// we may have the alias
 			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
-			
+
 			deleteDatabase(database);
 			EngineSyncUtility.clearEngineCache(databaseId);
 			UserTrackingUtils.deleteEngine(databaseId);
@@ -102,7 +106,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 				deleteAppThread.start();
 			}
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_ENGINE);
 	}
 
@@ -121,7 +125,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		SecurityEngineUtils.deleteEngine(engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
-		
+
 		try {
 			database.delete();
 		} catch (IOException e) {
@@ -132,8 +136,10 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 
 	/**
 	 * Get inputs
+	 * 
 	 * @return list of databases to delete
 	 */
+	@Deprecated
 	public List<String> getDatabaseIds() {
 		List<String> databaseIds = new Vector<String>();
 

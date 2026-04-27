@@ -51,6 +51,35 @@ class DatabaseEngine(ServerProxy):
             if os.path.exists(fileLoc):
                 os.remove(fileLoc)
 
+    def get_database_structure(self, insight_id: Optional[str] = None):
+        """
+        Retrieve the modeled database structure metadata for this engine.
+
+        Args:
+            insight_id (`Optional[str]`): Unique identifier for the temporal workspace where actions are being isolated.
+
+        Returns:
+            list: Rows containing table/column metadata fields such as
+            `PARENTSEMOSSNAME`, `SEMOSSNAME`, `PARENTPHYSICALNAME`,
+            `PHYSICALNAME`, `PROPERTY_TYPE`, and `PK`.
+        """
+        if insight_id is None:
+            insight_id = self.insight_id
+
+        epoc = super().get_next_epoc()
+        pixel = f'GetDatabaseTableStructure(database = "{self.engine_id}");'
+        pixelReturn = super().callReactor(
+            epoc=epoc,
+            pixel=pixel,
+            insight_id=insight_id,
+        )
+
+        if pixelReturn is not None and len(pixelReturn) > 0:
+            output = pixelReturn[0]["pixelReturn"][0]
+            return output["output"]
+
+        return pixelReturn
+
     def insertData(
         self, query=None, insight_id: Optional[str] = None, commit: bool = True
     ):

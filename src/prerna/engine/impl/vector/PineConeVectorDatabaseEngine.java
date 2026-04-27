@@ -48,8 +48,6 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -128,10 +126,10 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			    vectorCsvTable.generateAndAssignEmbeddings(embeddingsEngine, insight);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"Error occurred creating the embeddings for the generated chunks. Detailed error message = "
-							+ e.getMessage());
+							+ e.getMessage(),
+					e);
 		}
 
 		// Sample URL:
@@ -186,7 +184,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			if (json.has("upsertedCount")) {
 				insertedCount = json.get("upsertedCount").getAsLong();
 			} else {
-				classLogger.warn("Pinecone upsert response did not contain 'upsertedCount': " + response);
+				classLogger.warn("Pinecone upsert response did not contain 'upsertedCount': {}", response);
 			}
 			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
 				String file = entry.getKey();
@@ -247,7 +245,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 		}
 
-		Gson gson = new GsonBuilder().create();
 		List<String> filesToRemoveFromCloud = new ArrayList<String>();
 
 		Map<String, String> headersMap = new HashMap<>();
@@ -269,7 +266,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				}
 
 				String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-				Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+				Map<String, Object> responseMap = GSON.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
 				}.getType());
 
 				List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
@@ -298,7 +295,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to delete document file '{}'", documentFile.getAbsolutePath(), e);
 			}
 		}
 
@@ -364,8 +361,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(url, headersMap, queryJson.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 
-		Gson gson = new Gson();
-		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> responseMap = GSON.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		List<Map<String, Object>> matches = (List<Map<String, Object>>) responseMap.get("matches");
 
@@ -407,8 +403,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get(INDEX_CLASS);
 		}
 
-		Gson gson = new GsonBuilder().create();
-
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -424,7 +418,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");
@@ -495,8 +489,6 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		 * the vectors
 		 */
 
-		Gson gson = new GsonBuilder().create();
-
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(API_KY, this.apiKey);
 		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
@@ -512,7 +504,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(idListResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			List<Map<String, String>> vectors = (List<Map<String, String>>) responseMap.get("vectors");

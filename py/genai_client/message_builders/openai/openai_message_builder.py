@@ -1,4 +1,3 @@
-from email.mime import message
 from typing import List, Dict, Any, Optional, Tuple, Union
 import json
 from pydantic import BaseModel
@@ -48,13 +47,29 @@ class OpenAIMessageBuilder:
     def build_request(self, semoss_messages: List[SEMOSSMessage]) -> Dict[str, Any]:
         """Build complete OpenAI request with messages and parameters. This is a dictionary that can be sent directly to OpenAI"""
         if self.chat_type == "responses":
-            return self.build_responses_request(semoss_messages)
+            request = self.build_responses_request(semoss_messages)
         elif self.chat_type == "chat-completion":
-            return self.build_chat_completions_request(semoss_messages)
+            request = self.build_chat_completions_request(semoss_messages)
         elif self.chat_type == "completions":
-            return self.build_completions_messages(semoss_messages)
+            request = self.build_completions_messages(semoss_messages)
         else:
             raise ValueError(f"Unsupported chat type: {self.chat_type}")
+
+        if (
+            hasattr(self.model_settings, "global_param_override")
+            and self.model_settings.global_param_override
+        ):
+            request.update(self.model_settings.global_param_override)
+
+        if "built_in_tools" in request:
+            built_in_tools = request.pop("built_in_tools")
+            openai_built_in = [{"type": tool} for tool in built_in_tools]
+            if openai_built_in:
+                existing_tools = request.get("tools", [])
+                existing_tools.extend(openai_built_in)
+                request["tools"] = existing_tools
+
+        return request
 
     def build_responses_request(
         self, semoss_messages: List[SEMOSSMessage]
@@ -819,6 +834,12 @@ class OpenAIMessageBuilder:
                 else bool(streaming)
             )
             param_map["stream"] = streaming_bool
+
+        stream_options = param_map.get("stream_options")
+        if isinstance(stream_options, dict):
+            stream_options.pop("include_usage", None)
+            if not stream_options:
+                param_map.pop("stream_options", None)
 
         # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)

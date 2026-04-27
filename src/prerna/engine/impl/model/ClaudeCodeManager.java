@@ -79,6 +79,8 @@ public class ClaudeCodeManager {
 		String localProtocol = ThreadStore.getLocalProtocol();
 		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		boolean agentHistoryExists = agentHistoryExists(roomFolderPath, roomId);
 		List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
 		if (mcps != null) {
 			for (Map<String, String> mcp : mcps) {
@@ -95,8 +97,15 @@ public class ClaudeCodeManager {
 				.collect(Collectors.joining(",", "[", "]"));
 
 		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s')",
-				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId);
+				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s', room_folder_path='%s', agent_history_exists='%s')",
+				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId, roomFolderPath, agentHistoryExists);
+	}
+
+	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
+		Path projectsDir = Paths.get(roomFolderPath, "projects");
+		boolean exists = Files.exists(projectsDir) && Files.isDirectory(projectsDir);
+		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId, exists ? "found" : "not found", projectsDir);
+		return exists;
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
@@ -139,12 +148,14 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 		
-		createClaudeDir(filePath);
+		String finalFilePath = filePath + "/client";
+		
+		createClaudeDir(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
+		String initScript = createInitScript(roomId, finalFilePath, accessKey, secretKey, allowedTools, permissionMode,
 				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
@@ -161,7 +172,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName);
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName);
 
 		if (!Files.exists(skillPath)) {
 			return true;
@@ -192,7 +203,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 		String slugifiedName = skillName.toLowerCase().replace(" ", "-");
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", slugifiedName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", slugifiedName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -214,7 +225,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -237,7 +248,7 @@ public class ClaudeCodeManager {
 				projectName);
 		Map<String, String> skillsMap = new HashMap<>();
 
-		Path claudeMd = Paths.get(projectPath, "CLAUDE.md");
+		Path claudeMd = Paths.get(projectPath, "client", "CLAUDE.md");
 		if (Files.exists(claudeMd)) {
 			try {
 				String content = new String(Files.readAllBytes(claudeMd));
@@ -247,7 +258,7 @@ public class ClaudeCodeManager {
 			}
 		}
 
-		Path skillsDir = Paths.get(projectPath, ".claude", "skills");
+		Path skillsDir = Paths.get(projectPath, "client", ".claude", "skills");
 		if (!Files.exists(skillsDir)) {
 			return skillsMap;
 		}
