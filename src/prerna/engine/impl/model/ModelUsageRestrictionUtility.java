@@ -27,7 +27,9 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -178,4 +180,120 @@ public final class ModelUsageRestrictionUtility {
 	private ModelUsageRestrictionUtility() {
 		
 	}
+
+	/**
+	 * Parse a frequency string and return the appropriate date range.
+	 * Supports complex frequency specifications:
+	 * - Simple: WEEK, MONTH, YEAR, ALL_TIME, DAY
+	 *
+	 * @param frequency The frequency string
+	 * @param currentDateTime The current date/time
+	 * @return Map containing "start" and "end" ZonedDateTime values
+	 */
+	public static Map<String, ZonedDateTime> getDateRangeFromFrequency(String frequency, ZonedDateTime currentDateTime) {
+		if (frequency == null || frequency.isEmpty()) {
+			// Default to daily
+			return getDayStartEndDate(currentDateTime);
+		}
+
+		String freq = frequency.toUpperCase().trim();
+
+		// Handle simple calendar-based cases
+		if (freq.equals("WEEK")) {
+			return getWeekStartEndDate(currentDateTime);
+		} else if (freq.equals("MONTH")) {
+			return getMonthStartEndDate(currentDateTime);
+		} else if (freq.equals("YEAR")) {
+			return getYearStartEndDate(currentDateTime);
+		} else if (freq.equals("ALL_TIME")) {
+			return getEpochStartEndDate(currentDateTime);
+		}
+
+		// Default to daily
+		return getDayStartEndDate(currentDateTime);
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the week.
+	 */
+	private static Map<String, ZonedDateTime> getWeekStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> weekDates = new HashMap<>();
+
+		// Find the start of the week (Sunday)
+		ZonedDateTime start = utcDateTime;
+		while (start.getDayOfWeek() != DayOfWeek.SUNDAY) {
+			start = start.minusDays(1);
+		}
+
+		// Find the end of the week (Saturday)
+		ZonedDateTime end = utcDateTime;
+		while (end.getDayOfWeek() != DayOfWeek.SATURDAY) {
+			end = end.plusDays(1);
+		}
+		// Convert ZonedDateTime to LocalDateTime
+		weekDates.put("start", start);
+		weekDates.put("end", end);
+
+		return weekDates;
+	}
+
+	/**
+	 * 
+	 * @param utcDateTime
+	 * @return the map containing start and end of the month.
+	 */
+	private static Map<String, ZonedDateTime> getMonthStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the month by setting the day to 1.
+		dates.put("start", utcDateTime.withDayOfMonth(1));
+		// Find the end of the month by setting the day to the last day of the month.
+		dates.put("end", utcDateTime.withDayOfMonth(utcDateTime.toLocalDate().lengthOfMonth()));
+
+		return dates;
+	}
+
+	/**
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start and end of the year.
+	 */
+	private static Map<String, ZonedDateTime> getYearStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		// Find the start of the year by setting the day to January 1.
+		dates.put("start", utcDateTime.withDayOfYear(1));
+		// Find the end of the year by setting the day to the last day of the year.
+		dates.put("end", utcDateTime.withDayOfYear(utcDateTime.toLocalDate().lengthOfYear()));
+
+		return dates;
+	}
+
+	/**
+	 *
+	 * @param utcDateTime
+	 * @return the map containing start of epoch and current datetime.
+	 */
+	private static Map<String, ZonedDateTime> getEpochStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		dates.put("start", ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC));
+		dates.put("end", utcDateTime);
+		return dates;
+	}
+
+	/**
+	 * Get start and end of the current day in UTC.
+	 *
+	 * @param utcDateTime The current date/time
+	 * @return Map with start (00:00:00) and end (23:59:59.999999999) of the day
+	 */
+	private static Map<String, ZonedDateTime> getDayStartEndDate(ZonedDateTime utcDateTime) {
+		Map<String, ZonedDateTime> dates = new HashMap<>();
+		ZonedDateTime startOfDay = utcDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
+		ZonedDateTime endOfDay = startOfDay.plusDays(1).minusNanos(1);
+		dates.put("start", startOfDay);
+		dates.put("end", endOfDay);
+		return dates;
+	}
+
 }

@@ -91,6 +91,10 @@ def __getattr__(name: str) -> Any:
         from .agents.claude_code.claude_code_client import ClaudeCodeClient
 
         return ClaudeCodeClient
+    elif name == "GitHubCopilotClient":
+        from .agents.github_copilot.github_copilot_client import GitHubCopilotClient
+
+        return GitHubCopilotClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -198,4 +202,5 @@ __all__ = [
     "get_tokenizer",
     "BedrockEmbedder",
     "ClaudeCodeClient",
+    "GitHubCopilotClient",
 ]

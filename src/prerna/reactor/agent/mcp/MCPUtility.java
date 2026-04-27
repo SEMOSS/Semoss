@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -42,6 +43,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +55,7 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
@@ -62,6 +67,8 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -239,6 +246,13 @@ public final class MCPUtility {
 			if (pyEngine.equalsIgnoreCase("project")) {
 				pyt = ((IProject) engine).getProjectPyTranslator();
 			}
+
+			// dont forget to mount the project into the symlink folder if chroot is enabled
+			// so that the python process can access the files
+			User user = insight.getUser();
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(user, engine.getEngineId());
+			}
 		}
 		if (pyt == null) {
 			pyt = insight.getPyTranslator();
@@ -252,14 +266,13 @@ public final class MCPUtility {
 		String modMtimeKey = modAlias + "_mtime__";
 		String funcDefName = "__smss_run_" + engine.getEngineId().replace("-", "_") + "__";
 		String mcpFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
-		// All temp vars (_f, _mt, _spec, _mod, _drv, …) live inside the function's
+		// All temp vars (_f, _mt, _spec, _mod, _drv, ...) live inside the function's
 		// local scope and never touch insight_globals. Only globals()[modAlias] and
-		// globals()[modMtimeKey] are written — both are per-engine keys — so
+		// globals()[modMtimeKey] are written - both are per-engine keys - so
 		// concurrent
 		// threads for different engines on the same insight cannot overwrite each
 		// other's
 		// state. funcDefName is also per-engine so the def itself doesn't collide.
-		// @formatter:off
 		String runScript = """
 				def <funcDefName>():
 				    import importlib.util as _ilu, os as _os, hashlib as _hl, sys as _sys
@@ -275,12 +288,28 @@ public final class MCPUtility {
 				        globals()['<modAlias>'] = _mod
 				        globals()['<modMtimeKey>'] = _mt
 				    _drv = globals()['<modAlias>']
-				    for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:
-				        if _k in globals():
-				            setattr(_drv, _k, globals()[_k])
+
+				<legacyVarCodeSnipped>
+
 				    return _drv.<functionName>(<paramString>)
 				<funcDefName>()
-				"""
+				""";
+		// @formatter:off 
+		final String PY_INDENT = "    ";
+		final String legacyVarCodeSnippet = String.join(
+				"\n",
+				PY_INDENT + "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:",
+				PY_INDENT + PY_INDENT + "_v = smss_get_runtime_var(_k)",
+				PY_INDENT + PY_INDENT + "if _v is not None:",
+				PY_INDENT + PY_INDENT + PY_INDENT + "setattr(_drv, _k, _v)"
+				);
+		runScript = runScript
+				/*
+				 * Will delete the below replace. Only here for backwards compatability using
+				 * incorrect syntax to access ROOT, APP_ROOT, USER_ROOT as storing in globals
+				 * can cause race conditions
+				 */
+				.replace("<legacyVarCodeSnipped>", legacyVarCodeSnippet)
 				.replace("<funcDefName>", funcDefName)
 				.replace("<mcpFilePath>", mcpFilePath)
 				.replace("<modAlias>", modAlias)
@@ -363,6 +392,10 @@ public final class MCPUtility {
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
+		if (result.getNounType() == PixelDataType.PIXEL_RUNNER) {
+			PixelRunner runner = (PixelRunner) ((Map<String, Object>) result.getValue()).get("runner");
+			return stringifyMcpResult(runner);
+		}
 		return stringifyMcpResult(result.getValue());
 	}
 
@@ -377,6 +410,17 @@ public final class MCPUtility {
 		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
 				|| value instanceof com.google.gson.JsonElement) {
 			return value.toString();
+		} else if (value instanceof PixelRunner) {
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+				// The StreamingOutput writes its data to the provided OutputStream
+				StreamingOutput streamingOutput = PixelStreamUtility.collectPixelData((PixelRunner) value, null);
+				streamingOutput.write(baos);
+				// Convert the captured bytes to a String using UTF-8 encoding
+				return baos.toString(StandardCharsets.UTF_8.name());
+			} catch (WebApplicationException | IOException e) {
+				classLogger.error("The pixel ran but an error occurred streaming the pixel results", e.getMessage());
+				return "An error occurred streaming the pixel execution output: " + e.getMessage();
+			}
 		}
 
 		return GSON.toJson(value);
@@ -405,7 +449,7 @@ public final class MCPUtility {
 				try {
 					return Integer.parseInt(smssValue.trim());
 				} catch (NumberFormatException e) {
-					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} — falling back to provider default",
+					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} - falling back to provider default",
 							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
 				}
 			}
