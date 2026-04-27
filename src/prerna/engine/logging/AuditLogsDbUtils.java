@@ -530,32 +530,46 @@ public class AuditLogsDbUtils {
 	 * @param projectId
 	 * @param engineId
 	 * @param engineType
+	 * @param filterName
 	 * @param methodName
 	 * @param requestMessage
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public static List<Map<String, Object>> getAuditLogMethodnameAndRequest(String userId, String projectId,
-			String engineId, String engineType, String methodName, String requestMessage, int limit, int offset) {
+	public static List<String[]> getAuditLogMethodnameAndRequest(String userId, String projectId, String engineId,
+			String engineType, String filterName, String methodName, String requestMessage, int limit, int offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME", "methodName"));
-		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST", "request"));
+		if (filterName.equalsIgnoreCase("methodName")) {
+			qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
+		}
+
+		if (filterName.equalsIgnoreCase("requestMessage")) {
+			qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
+		}
+
+		if (methodName != null && !methodName.isEmpty()) {
+			qs.addExplicitFilter(
+					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__METHOD_NAME", methodName));
+		}
+
+		if (requestMessage != null && !requestMessage.isEmpty()) {
+			qs.addExplicitFilter(
+					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__REQUEST", requestMessage));
+		}
 
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", "==", engineType);
 
-		if (methodName != null || !methodName.isEmpty()) {
-			qs.addExplicitFilter(
-					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__METHOD_NAME", methodName));
+		if (filterName.equalsIgnoreCase("methodName")) {
+			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
 		}
 
-		if (requestMessage != null || !requestMessage.isEmpty()) {
-			qs.addExplicitFilter(
-					auditLogsDb.getQueryUtil().getSearchRegexFilter("AUDIT_LOGS__REQUEST", requestMessage));
+		if (filterName.equalsIgnoreCase("requestMessage")) {
+			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
 		}
 
 		if (limit > 0) {
@@ -565,6 +579,7 @@ public class AuditLogsDbUtils {
 			qs.setOffSet(offset);
 		}
 
-		return QueryExecutionUtility.flushRsToMap(auditLogsDb, qs);
+		List<String[]> resultList = QueryExecutionUtility.flushRsToListOfStrArray(auditLogsDb, qs);
+		return resultList;
 	}
 }

@@ -40,14 +40,15 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 		String projectId = getString(map, SemossLogUtils.PROJECT_ID);
 		String engineId = getString(map, SemossLogUtils.ENGINE_ID);
 		String filterUserId = getString(map, SemossLogUtils.FILTER_USER_ID);
+		String filterName = getString(map, SemossLogUtils.FILTER_NAME);
 
 		String limitStr = getString(map, ReactorKeysEnum.LIMIT.getKey());
 		String offsetStr = getString(map, ReactorKeysEnum.OFFSET.getKey());
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, 0);
 
-		List<Map<String, Object>> resultList = AuditLogsDbUtils.getAuditLogMethodnameAndRequest(filterUserId, projectId,
-				engineId, engineType, methodName, request, limit, offset);
+		List<String[]> resultList = AuditLogsDbUtils.getAuditLogMethodnameAndRequest(filterUserId, projectId, engineId,
+				engineType, filterName, methodName, request, limit, offset);
 
 		return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
 	}

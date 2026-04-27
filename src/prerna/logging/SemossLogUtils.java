@@ -48,6 +48,7 @@ public class SemossLogUtils {
 	public static final String HOST = "host";
 
 	public static final String IS_SUCCESS = "isSuccess";
+	public static final String FILTER_NAME = "filterName";
 	public static final String ENGINE_ID = "engineId";
 	public static final String ENGINE_NAME = "engineName";
 	public static final String ENGINE_TYPE = "engineType";
