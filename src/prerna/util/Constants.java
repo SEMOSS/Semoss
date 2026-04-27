@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.util.List;
+
 /**
  * This class contains all of the constants referenced elsewhere in the code.
  */
@@ -479,10 +481,10 @@ public class Constants {
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
-	// Comma-separated list of room option keys that should be forwarded into the
-	// model invocation kwarg map (per-message values still win). Lets each model
-	// self-declare which room-level options it accepts instead of a hardcoded list.
-	public static final String ROOM_OPTION_PARAM_KEYS = "ROOM_OPTION_PARAM_KEYS";
+	// Room option keys that should be forwarded into the model invocation kwarg
+	// map (per-message values still win).
+	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of(
+			"numOfImages", "imageHeight", "imageWidth", "detailLevel", "seed");
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";

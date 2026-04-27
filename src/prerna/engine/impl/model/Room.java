@@ -251,9 +251,9 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// merge in room-option defaults the model declares via ROOM_OPTION_PARAM_KEYS
+		// merge in room-option defaults for image model param keys
 		// (per-message values in kwArgMap always win)
-		applyRoomModelParams(kwArgMap, modelEngine);
+		applyImageModelParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -655,33 +655,28 @@ public class Room {
 
 	/**
 	 * Pulls room-option values into the model invocation kwarg map for the keys
-	 * the model engine declares via the {@code ROOM_OPTION_PARAM_KEYS} SMSS
-	 * property (comma-separated). Existing entries in {@code kwArgMap} are
-	 * preserved so per-message overrides always win over room-level defaults.
+	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
+	 * {@code kwArgMap} are preserved so per-message overrides always win over
+	 * room-level defaults.
+	 * 
+	 * Param list:
+	 * <ul>
+	 * 	<li>numOfImages: number of images for the model to completely generate 
+	 * 	<li>imageHeight: height of the image in pixels to generate
+	 * 	<li>imageWidth: width of the image in pixels to generate
+	 * 	<li>detailLevel: relative level of detail to pass
+	 * 	<li>seed: number to control randomness of each generation
+	 * </ul>
 	 *
-	 * @param kwArgMap    mutable model parameter map
-	 * @param modelEngine model engine whose SMSS declares which room-option keys
-	 *                    to forward
+	 * @param kwArgMap mutable model parameter map
 	 */
-	private void applyRoomModelParams(Map<String, Object> kwArgMap, IModelEngine modelEngine) {
+	private void applyImageModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
 		if (options == null || options.isEmpty()) {
 			return;
 		}
-		if (modelEngine == null || modelEngine.getSmssProp() == null) {
-			return;
-		}
 
-		String declared = modelEngine.getSmssProp().getProperty(Constants.ROOM_OPTION_PARAM_KEYS);
-		if (declared == null || declared.trim().isEmpty()) {
-			return;
-		}
-
-		for (String rawKey : declared.split(",")) {
-			String key = rawKey.trim();
-			if (key.isEmpty()) {
-				continue;
-			}
+		for (String key : Constants.IMAGE_MODEL_PARAM_KEYS) {
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);
