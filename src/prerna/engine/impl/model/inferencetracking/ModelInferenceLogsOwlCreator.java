@@ -47,6 +47,8 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> feedbackColumns = null;
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
+	private List<Pair<String, String>> agentTraceColumns = null;
+	private List<Pair<String, String>> agentTraceStepColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -66,6 +68,8 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("FEEDBACK");
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
+		conceptsRequired.add("AGENT_TRACE");
+		conceptsRequired.add("AGENT_TRACE_STEP");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -180,14 +184,42 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
 				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
 			);
-		
+
+		this.agentTraceColumns = Arrays.asList(
+				Pair.with("TRACE_ID",           "VARCHAR(255)"),
+				Pair.with("ROOM_ID",            "VARCHAR(255)"),
+				Pair.with("USER_ID",            "VARCHAR(255)"),
+				Pair.with("MODEL_ENGINE_ID",    "VARCHAR(255)"),
+				Pair.with("START_TIME",         TIMESTAMP_DATATYPE_NAME),
+				Pair.with("END_TIME",           TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ITERATIONS",         INTEGER_DATATYPE_NAME),
+				Pair.with("REFLECTIONS_USED",   INTEGER_DATATYPE_NAME),
+				Pair.with("TERMINATION_REASON", "VARCHAR(255)"),
+				Pair.with("METRICS_JSON",       CLOB_DATATYPE_NAME),
+				Pair.with("TOOL_CALL_COUNT",    INTEGER_DATATYPE_NAME)
+			);
+
+		this.agentTraceStepColumns = Arrays.asList(
+				Pair.with("TRACE_ID",            "VARCHAR(255)"),
+				Pair.with("STEP_INDEX",          INTEGER_DATATYPE_NAME),
+				Pair.with("RESPONSE_TYPE",       "VARCHAR(64)"),
+				Pair.with("INPUT_MESSAGE_ID",    "VARCHAR(255)"),
+				Pair.with("RESPONSE_MESSAGE_ID", "VARCHAR(255)"),
+				Pair.with("TOOL_CALLS_JSON",     CLOB_DATATYPE_NAME),
+				Pair.with("GUARDRAILS_JSON",     CLOB_DATATYPE_NAME),
+				Pair.with("TOKEN_COUNT",         INTEGER_DATATYPE_NAME),
+				Pair.with("STEP_TIMESTAMP",      TIMESTAMP_DATATYPE_NAME)
+			);
+
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
+				Pair.with("AGENT_TRACE", agentTraceColumns),
+				Pair.with("AGENT_TRACE_STEP", agentTraceStepColumns)
 			);
 	}
 	

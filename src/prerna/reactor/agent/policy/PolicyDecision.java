@@ -25,28 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.workflow.engine.handlers;
-
-import java.util.Map;
-
-import prerna.om.Insight;
-import prerna.reactor.workflow.engine.StepResult;
-import prerna.reactor.workflow.engine.WorkflowContext;
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); ...
+ *******************************************************************************/
+package prerna.reactor.agent.policy;
 
 /**
- * Simplest handler — returns a static value from config.
- * Useful for injecting constants, default values, or test data into a workflow.
- * 
- * Config:
- *   value — the value to output (any type)
+ * Result of an {@link IAgentPolicy} check — what should happen and why.
  */
-public class StaticStepHandler implements IWorkflowStepHandler {
+public final class PolicyDecision {
 
-	@Override
-	public StepResult execute(String stepId, Map<String, Object> config,
-			WorkflowContext context, Insight insight) {
-		long start = System.currentTimeMillis();
-		Object value = config.get("value");
-		return StepResult.success(stepId, value, System.currentTimeMillis() - start);
-	}
+    public enum PolicyAction { ALLOW, BLOCK, ESCALATE_TO_HUMAN }
+
+    private final boolean      allowed;
+    private final String       reason;
+    private final PolicyAction action;
+
+    private PolicyDecision(boolean allowed, String reason, PolicyAction action) {
+        this.allowed = allowed;
+        this.reason  = reason;
+        this.action  = action;
+    }
+
+    public boolean      isAllowed() { return allowed; }
+    public String       getReason() { return reason;  }
+    public PolicyAction getAction() { return action;  }
+
+    public static PolicyDecision allow() {
+        return new PolicyDecision(true, null, PolicyAction.ALLOW);
+    }
+
+    public static PolicyDecision block(String reason) {
+        return new PolicyDecision(false, reason, PolicyAction.BLOCK);
+    }
+
+    public static PolicyDecision escalate(String reason) {
+        return new PolicyDecision(false, reason, PolicyAction.ESCALATE_TO_HUMAN);
+    }
+
+    @Override
+    public String toString() {
+        return "PolicyDecision{action=" + action + ", reason=" + reason + '}';
+    }
 }

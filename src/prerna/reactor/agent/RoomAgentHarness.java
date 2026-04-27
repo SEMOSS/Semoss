@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
@@ -74,7 +76,7 @@ import prerna.util.Utility;
  */
 public class RoomAgentHarness implements IAgentHarness {
 
-    private static final Logger logger = LogManager.getLogger(RoomAgentHarness.class);
+    private static final Logger classLogger = LogManager.getLogger(RoomAgentHarness.class);
 
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "room_loop";
@@ -121,57 +123,113 @@ public class RoomAgentHarness implements IAgentHarness {
         Map<String, Object> paramMap       = new HashMap<>(ctx.getParamMap());
 
         List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
+        List<AgentHarnessResult.DecisionStep>   decisionSteps   = new ArrayList<>();
         AtomicInteger iterationsCounter = new AtomicInteger(0);
 
-        // 1. Initial ask
-        String systemPrompt = room.getEffectiveSystemPrompt();
-        InputMessage firstMsg = InputMessage.builder(room)
-                .withSystemPrompt(systemPrompt)
-                .withText(ctx.getInput())
-                .withModelType(ctx.getModelEngine().getModelType())
-                .withParamMap(paramMap)
-                .build();
+        // Resolve content-logging policy on the calling thread so it can safely cross
+        // thread boundaries when we dispatch trace persistence asynchronously.
+        String  modelEngineId  = ctx.getModelEngine() != null ? ctx.getModelEngine().getEngineId() : null;
+        boolean keepContent;
+        try {
+            keepContent = ctx.getModelEngine() != null && ctx.getModelEngine().keepInputOutput();
+        } catch (Exception e) {
+            keepContent = false;
+        }
 
-        logger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}",
-                room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
-        ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
+        // Build the trace — populated incrementally and always emitted (even on failure).
+        AgentHarnessResult.Builder traceBuilder = AgentHarnessResult.builder()
+                .roomId(room.getId())
+                .modelEngineId(modelEngineId)
+                .startTime(Instant.now());
 
-        // 2. Tool loop
-        response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
+        String terminationReason = "SUCCESS";
 
-        // 3. Reflection rounds
-        int reflectionsUsed = 0;
-        while (reflectionsUsed < maxReflections
-                && response != null
-                && response.getMessageType() == MessageType.RESPONSE_TEXT) {
-
-            reflectionsUsed++;
-            logger.info("RoomAgentHarness: reflection round {}/{}", reflectionsUsed, maxReflections);
-
-            InputMessage reflectionMsg = InputMessage.builder(room)
+        try {
+            // 1. Initial ask
+            String systemPrompt = room.getEffectiveSystemPrompt();
+            InputMessage firstMsg = InputMessage.builder(room)
                     .withSystemPrompt(systemPrompt)
-                    .withText(REFLECTION_PROMPT)
+                    .withText(ctx.getInput())
                     .withModelType(ctx.getModelEngine().getModelType())
-                    .withParamMap(new HashMap<>(paramMap))
+                    .withParamMap(paramMap)
                     .build();
 
-            response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+            classLogger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}",
+                    room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+            ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
-            if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-                response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
+            // 2. Tool loop
+            response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, decisionSteps, ctx);
+
+            // 3. Reflection rounds
+            int reflectionsUsed = 0;
+            while (reflectionsUsed < maxReflections
+                    && response != null
+                    && response.getMessageType() == MessageType.RESPONSE_TEXT) {
+
+                reflectionsUsed++;
+                classLogger.info("RoomAgentHarness: reflection round {}/{}", reflectionsUsed, maxReflections);
+
+                InputMessage reflectionMsg = InputMessage.builder(room)
+                        .withSystemPrompt(systemPrompt)
+                        .withText(REFLECTION_PROMPT)
+                        .withModelType(ctx.getModelEngine().getModelType())
+                        .withParamMap(new HashMap<>(paramMap))
+                        .build();
+
+                response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+
+                if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+                    response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, decisionSteps, ctx);
+                }
             }
-        }
 
-        // 4. Iteration cap check
-        if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
-                    ctx.getMaxIterations());
-            throw new AgentMaxIterationsException(ctx.getMaxIterations());
-        }
+            // 4. Iteration cap check
+            if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+                terminationReason = "MAX_ITERATIONS";
+                classLogger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
+                        ctx.getMaxIterations());
+                throw new AgentMaxIterationsException(ctx.getMaxIterations());
+            }
 
-        // 5. Return result
-        String content = (response != null) ? response.getContent() : null;
-        return new AgentHarnessResult(content, iterationsCounter.get(), toolCallRecords, reflectionsUsed);
+            // 5. Build result with trace
+            String content = (response != null) ? response.getContent() : null;
+            return traceBuilder
+                    .finalText(content)
+                    .iterations(iterationsCounter.get())
+                    .toolCallRecords(toolCallRecords)
+                    .reflectionsUsed(reflectionsUsed)
+                    .steps(decisionSteps)
+                    .terminationReason(terminationReason)
+                    .endTime(Instant.now())
+                    .build();
+
+        } catch (AgentMaxIterationsException e) {
+            // Already set terminationReason = "MAX_ITERATIONS" above; rethrow for caller.
+            throw e;
+        } catch (Exception e) {
+            terminationReason = "EXCEPTION:" + e.getMessage();
+            throw e;
+        } finally {
+            // Always persist the trace (even partial / failed runs) — failures are the most
+            // valuable runs to debug. Capture all scalars here; do not pass mutable objects.
+            final AgentHarnessResult traceResult = traceBuilder
+                    .endTime(Instant.now())
+                    .terminationReason(terminationReason)
+                    .toolCallRecords(toolCallRecords)
+                    .steps(decisionSteps)
+                    .build();
+            final String  capturedUserId      = ctx.getUserId();
+            final boolean capturedKeepContent = keepContent;
+            CompletableFuture.runAsync(() -> {
+                try {
+                    AgentTraceLogsUtils.logTrace(traceResult, capturedUserId, capturedKeepContent);
+                } catch (Exception ex) {
+                    classLogger.warn("RoomAgentHarness: async trace persistence failed for trace={}",
+                            traceResult.getTraceId(), ex);
+                }
+            });
+        }
     }
 
     /**
@@ -182,6 +240,7 @@ public class RoomAgentHarness implements IAgentHarness {
      * Single-tool responses use the fast path without thread overhead.
      *
      * @param iterationsCounter accumulates iteration count across multiple driveToolLoop calls
+     * @param decisionSteps     accumulator for {@link AgentHarnessResult.DecisionStep} records
      */
     @SuppressWarnings("unchecked")
     private ResponseMessage driveToolLoop(
@@ -189,6 +248,7 @@ public class RoomAgentHarness implements IAgentHarness {
             AtomicInteger iterationsCounter,
             Map<String, Object> paramMap,
             List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
+            List<AgentHarnessResult.DecisionStep> decisionSteps,
             AgentRunContext ctx) throws Exception {
 
         Room room          = ctx.getRoom();
@@ -202,6 +262,9 @@ public class RoomAgentHarness implements IAgentHarness {
 
             String parentMessageId = response.getMessageId();
             List<Map<String, Object>> toolCalls = response.getToolResponses();
+
+            // Capture pre-iteration tail to compute DecisionStep.toolCalls delta below.
+            int preIterToolCallSize = toolCallRecords.size();
 
             AskModelEngineResponse<?> nextModelResponse = null;
 
@@ -217,7 +280,7 @@ public class RoomAgentHarness implements IAgentHarness {
                 // Room.addToolExecutionResult() is synchronized and only triggers the next model
                 // call once every tool ID in the batch has been answered, so concurrent
                 // submissions from multiple threads are safe.
-                logger.info("RoomAgentHarness executing {} tools in parallel iter={}",
+                classLogger.info("RoomAgentHarness executing {} tools in parallel iter={}",
                         toolCalls.size(), iterations);
                 ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size());
                 try {
@@ -240,7 +303,7 @@ public class RoomAgentHarness implements IAgentHarness {
                             toolCallRecords.add(r.record);
                             if (r.modelResponse != null) nextModelResponse = r.modelResponse;
                         } catch (ExecutionException e) {
-                            logger.error("RoomAgentHarness: tool execution threw unexpectedly", e.getCause());
+                            classLogger.error("RoomAgentHarness: tool execution threw unexpectedly", e.getCause());
                         }
                     }
                 } finally {
@@ -253,13 +316,24 @@ public class RoomAgentHarness implements IAgentHarness {
                 if (lastMsg instanceof ResponseMessage) {
                     response = (ResponseMessage) lastMsg;
                 } else {
-                    logger.warn("RoomAgentHarness: unexpected last message type: {}",
+                    classLogger.warn("RoomAgentHarness: unexpected last message type: {}",
                             lastMsg == null ? "null" : lastMsg.getClass().getName());
                     break;
                 }
             } else {
                 break;
             }
+
+            // Record a DecisionStep for this tool-call round (observable artifacts only).
+            // Compute delta: tool call records added during this iteration only.
+            List<AgentHarnessResult.ToolCallRecord> stepRecords =
+                    new ArrayList<>(toolCallRecords.subList(preIterToolCallSize, toolCallRecords.size()));
+            decisionSteps.add(AgentHarnessResult.DecisionStep.builder()
+                    .stepIndex(iterations)
+                    .modelResponseType(MessageType.RESPONSE_TOOL)
+                    .responseMessageId(parentMessageId)
+                    .toolCalls(stepRecords)
+                    .build());
         }
 
         return response;
@@ -302,12 +376,12 @@ public class RoomAgentHarness implements IAgentHarness {
     private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, Map<String, Object> paramMap,
                                           String parentMessageId, AgentRunContext ctx) {
         Room room = ctx.getRoom();
-        logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
+        classLogger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, iter);
         long startMs = System.currentTimeMillis();
         ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
         long durationMs = System.currentTimeMillis() - startMs;
-        logger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
+        classLogger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
                 tc.rawToolName, durationMs, outcome.success);
 
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
@@ -341,7 +415,7 @@ public class RoomAgentHarness implements IAgentHarness {
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
                     + rawToolName + "'";
-            logger.warn("RoomAgentHarness: {}", msg);
+            classLogger.warn("RoomAgentHarness: {}", msg);
             return new ToolExecOutcome(msg, false);
         }
         String engineId = parsed[0];
@@ -353,7 +427,7 @@ public class RoomAgentHarness implements IAgentHarness {
             return new ToolExecOutcome(result, success);
         } catch (Exception e) {
             String msg = "Tool execution error: " + e.getMessage();
-            logger.warn("RoomAgentHarness: uncaught exception from tool '{}': {}", rawToolName, e.getMessage(), e);
+            classLogger.warn("RoomAgentHarness: uncaught exception from tool '{}'", rawToolName, e);
             return new ToolExecOutcome(msg, false);
         }
     }

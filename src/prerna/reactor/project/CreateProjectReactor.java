@@ -159,7 +159,7 @@ public class CreateProjectReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		// Create the workflow directory under assets
-		File workflowDir = new File(assetFolder + "/" + IProject.WORKFLOW_FOLDER);
+		File workflowDir = new File(assetFolder + File.separator + IProject.WORKFLOW_FOLDER);
 		if (!workflowDir.exists()) {
 			workflowDir.mkdirs();
 		}
@@ -191,7 +191,7 @@ public class CreateProjectReactor extends AbstractReactor {
 			GsonUtility.writeObjectToJsonFile(workflowFile,
 					new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), workflowJson);
 		} catch (IOException e) {
-			classLogger.error("Failed to write default workflow.json for project " + projectId, e);
+			classLogger.error("Failed to write default workflow.json for project {}", projectId, e);
 			throw new IllegalArgumentException(
 					"Project was created but could not write the workflow.json. Error = " + e.getMessage());
 		}

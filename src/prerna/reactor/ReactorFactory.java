@@ -410,6 +410,7 @@ import prerna.reactor.workflow.GetWorkflowStatusReactor;
 import prerna.reactor.workflow.ModifyInsightDatasourceReactor;
 import prerna.reactor.workflow.RunWorkflowReactor;
 import prerna.reactor.workflow.SaveWorkflowReactor;
+import prerna.reactor.agent.trace.AgentSummaryMetricsReactor;
 import prerna.reactor.workspace.DeleteUserAssetReactor;
 import prerna.reactor.workspace.MoveUserAssetReactor;
 import prerna.reactor.workspace.NewDirReactor;
@@ -1097,6 +1098,7 @@ public class ReactorFactory {
 		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
 		// Workflow Engine
 		reactorHash.put("RunWorkflow", RunWorkflowReactor.class);
+		reactorHash.put("AgentSummaryMetrics", AgentSummaryMetricsReactor.class);
 		reactorHash.put("SaveWorkflow", SaveWorkflowReactor.class);
 		reactorHash.put("GetWorkflowStatus", GetWorkflowStatusReactor.class);
 		// Recommendations

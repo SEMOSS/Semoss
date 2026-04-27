@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.workflow.engine.handlers;
 
 import java.util.ArrayList;
@@ -8,9 +35,13 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
@@ -41,6 +72,10 @@ import prerna.reactor.agent.mcp.MCPUtility;
 public class LLMAgentStepHandler implements IWorkflowStepHandler {
 
 	private static final Logger classLogger = LogManager.getLogger(LLMAgentStepHandler.class);
+	private static final Gson GSON = new GsonBuilder().create();
+	@SuppressWarnings("serial")
+	private static final java.lang.reflect.Type LIST_MAP_TYPE =
+			new TypeToken<List<Map<String, Object>>>() {}.getType();
 	private static final int DEFAULT_MAX_ITERATIONS = 10;
 
 	@SuppressWarnings("unchecked")
@@ -68,6 +103,10 @@ public class LLMAgentStepHandler implements IWorkflowStepHandler {
 		}
 
 		try {
+			if (!SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId)) {
+				return StepResult.error(stepId, "User does not have access to model engine: " + modelId,
+						System.currentTimeMillis() - start);
+			}
 			IModelEngine modelEngine = (IModelEngine) Utility.getEngine(modelId);
 			if (modelEngine == null) {
 				return StepResult.error(stepId, "Model engine not found: " + modelId,
@@ -79,6 +118,10 @@ public class LLMAgentStepHandler implements IWorkflowStepHandler {
 			Map<String, IMCP> toolNameToMcp = new HashMap<>();
 			if (toolEngineIds != null) {
 				for (String engineId : toolEngineIds) {
+					if (!SecurityEngineUtils.userCanViewEngine(insight.getUser(), engineId)) {
+						classLogger.warn("User does not have access to tool engine '{}', skipping", engineId);
+						continue;
+					}
 					IEngine engine = Utility.getEngine(engineId);
 					if (engine == null) {
 						engine = Utility.getProject(engineId);
@@ -106,8 +149,7 @@ public class LLMAgentStepHandler implements IWorkflowStepHandler {
 
 			InputMessage msg = InputMessage.builder(room)
 					.withSystemPrompt(systemPrompt)
-					.withInputUIPrompt(userPrompt)
-					.withInputPrompt(userPrompt)
+					.withText(userPrompt, userPrompt)
 					.withModelType(modelEngine.getModelType())
 					.withParamMap(paramMap)
 					.withTools(allTools)
@@ -184,20 +226,15 @@ public class LLMAgentStepHandler implements IWorkflowStepHandler {
 
 	/**
 	 * Load tool definitions from an engine in the List of Map format expected by InputMessage.withTools().
+	 * Converts via JSON string to avoid the lossy org.json toMap() conversion.
 	 */
 	private List<Map<String, Object>> getToolsFromEngine(IEngine engine, String engineId) {
 		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
 		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
-			JSONArray arr = updatedToolMap.getJSONArray("tools");
-			List<Map<String, Object>> result = new ArrayList<>();
-			for (int i = 0; i < arr.length(); i++) {
-				JSONObject toolObj = arr.optJSONObject(i);
-				if (toolObj != null) {
-					result.add(toolObj.toMap());
-				}
-			}
-			return result;
+			String toolsJson = updatedToolMap.getJSONArray("tools").toString();
+			List<Map<String, Object>> result = GSON.fromJson(toolsJson, LIST_MAP_TYPE);
+			return result != null ? result : Collections.emptyList();
 		}
 		return Collections.emptyList();
 	}
