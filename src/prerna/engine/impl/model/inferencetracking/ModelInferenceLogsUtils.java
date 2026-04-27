@@ -115,8 +115,6 @@ public class ModelInferenceLogsUtils {
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if (modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
 		}
 
 		Connection conn = null;
@@ -1829,7 +1827,8 @@ public class ModelInferenceLogsUtils {
 
 		// Get the date range based on the frequency specification
 		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, currentDateTime);
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1916,7 +1915,8 @@ public class ModelInferenceLogsUtils {
 
 		// Step 2: Get the date range based on the frequency specification
 		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, currentDateTime);
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");
