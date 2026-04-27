@@ -47,14 +47,23 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.clients.AppCloudClientProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class ClusterSynchronizer {
+/**
+ * Coordinates cross-node synchronization events through ZooKeeper for engines,
+ * projects, and user asset state.
+ * <p>
+ * This component publishes change notifications to ZooKeeper paths and listens
+ * for updates from other nodes so stale local resources can be refreshed from
+ * shared cloud storage.
+ */
+public final class ClusterSynchronizer {
 
-	private static ClusterSynchronizer sync = null;
+	private static volatile ClusterSynchronizer sync = null;
 
 	private static final Logger classLogger = LogManager.getLogger(ClusterSynchronizer.class);
 
@@ -72,10 +81,42 @@ public class ClusterSynchronizer {
 
 	String host;
 
+	/**
+	 * Creates a synchronizer and immediately initializes ZooKeeper connectivity and
+	 * listeners.
+	 */
 	private ClusterSynchronizer() {
 		initalizeClusterSyncronizer();
 	}
 
+	/**
+	 * Returns the singleton synchronizer instance.
+	 *
+	 * @return singleton {@link ClusterSynchronizer}
+	 * @throws Exception if synchronizer initialization fails
+	 */
+	public static ClusterSynchronizer getInstance() throws Exception {
+		if (sync != null) {
+			return sync;
+		}
+
+		if (sync == null) {
+			synchronized (ClusterSynchronizer.class) {
+				if (sync != null) {
+					return sync;
+				}
+
+				sync = new ClusterSynchronizer();
+			}
+		}
+
+		return sync;
+	}
+
+	/**
+	 * Initializes Curator client state and ensures the watched synchronization
+	 * paths exist in ZooKeeper.
+	 */
 	private void initalizeClusterSyncronizer() {
 		classLogger.info("Starting up cluster synchronizer");
 		AppCloudClientProperties clientProps = new AppCloudClientProperties();
@@ -121,11 +162,20 @@ public class ClusterSynchronizer {
 			userCache = createCacheListener(SYNC_USER_PATH);
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to initialize ClusterSynchronizer with zkServer='{}' and host='{}'. Watch paths: '{}', '{}', '{}'.",
+					zk_server, host, SYNC_PROJECT_PATH, SYNC_ENGINE_PATH, SYNC_USER_PATH, e);
 		}
 
 	}
 
+	/**
+	 * Creates, starts, and wires a {@link CuratorCache} listener for a sync root
+	 * path.
+	 *
+	 * @param pathToWatch path root to monitor for child updates
+	 * @return initialized cache for the supplied path
+	 */
 	private CuratorCache createCacheListener(String pathToWatch) {
 		CuratorCache cache = CuratorCache.build(client, pathToWatch);
 		CuratorCacheListener listener = CuratorCacheListener.builder()
@@ -163,7 +213,6 @@ public class ClusterSynchronizer {
 
 								if (pull) {
 									try {
-
 										// actual method param types could be primitives or wrappers
 										// params are all Objects (wrappers)
 										// invoke method with utility to handle primitive lookups
@@ -172,15 +221,16 @@ public class ClusterSynchronizer {
 										MethodUtils.invokeStaticMethod(ClusterUtil.class,
 												dataMap.get("methodName").toString(), params.toArray());
 									} catch (Exception e) {
-										classLogger.error(Constants.STACKTRACE, e);
+										classLogger.error(
+												"Failed to process cluster sync update for path='{}', id='{}', method='{}', params='{}'.",
+												fullPath, id, dataMap.get("methodName"), dataMap.get("params"), e);
 									}
 								}
 
 							}
 						}
 					}
-				})
-				.build();
+				}).build();
 
 		cache.listenable().addListener(listener);
 		cache.start();
@@ -188,6 +238,13 @@ public class ClusterSynchronizer {
 		return cache;
 	}
 
+	/**
+	 * Determines whether a project is currently loaded on this node.
+	 *
+	 * @param projectId project identifier
+	 * @return {@code true} if loaded and should be refreshed, otherwise
+	 *         {@code false}
+	 */
 	private static boolean projectLoaded(String projectId) {
 		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
 
@@ -200,6 +257,13 @@ public class ClusterSynchronizer {
 		}
 	}
 
+	/**
+	 * Determines whether an engine is currently loaded on this node.
+	 *
+	 * @param engineId engine identifier
+	 * @return {@code true} if loaded and should be refreshed, otherwise
+	 *         {@code false}
+	 */
 	private static boolean engineLoaded(String engineId) {
 		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
 
@@ -212,45 +276,38 @@ public class ClusterSynchronizer {
 		}
 	}
 
+	/**
+	 * Determines whether a user asset project is present locally on this node.
+	 *
+	 * @param projectId user asset project identifier
+	 * @return {@code true} if local files indicate loaded state, otherwise
+	 *         {@code false}
+	 */
 	private static boolean userLoaded(String projectId) {
-		// User assets/workspaces are not registered in DIHelper like projects/engines.
+		// User assetss are not registered in DIHelper like projects/engines.
 		// Check if the SMSS file exists locally it is only written here by
 		// pullUserAssetOrWorkspace, meaning this pod has previously fetched this
 		// user's data and may have a stale copy.
 		String userFolder = prerna.util.EngineUtility.USER_FOLDER;
 		String assetSmss = userFolder + java.io.File.separator
-				+ prerna.engine.impl.SmssUtilities.getUniqueName(
-						prerna.auth.utils.WorkspaceAssetUtils.ASSET_APP_NAME, projectId) + ".smss";
-		String workspaceSmss = userFolder + java.io.File.separator
-				+ prerna.engine.impl.SmssUtilities.getUniqueName(
-						prerna.auth.utils.WorkspaceAssetUtils.WORKSPACE_APP_NAME, projectId) + ".smss";
-		if (new java.io.File(assetSmss).exists() || new java.io.File(workspaceSmss).exists()) {
-			classLogger.info("User asset/workspace " + projectId + " is out of date. Pulling latest changes");
+				+ prerna.engine.impl.SmssUtilities.getUniqueName(UserAssetUtils.ASSET_APP_NAME, projectId) + ".smss";
+		if (new java.io.File(assetSmss).exists()) {
+			classLogger.info("User asset " + projectId + " is out of date. Pulling latest changes");
 			return true;
 		}
 		return false;
 	}
 
-	public static ClusterSynchronizer getInstance() throws Exception {
-		if (sync != null) {
-			return sync;
-		}
-
-		if (sync == null) {
-			synchronized (ClusterSynchronizer.class) {
-				if (sync != null) {
-					return sync;
-				}
-
-				sync = new ClusterSynchronizer();
-			}
-		}
-
-		return sync;
-	}
-
+	/**
+	 * Publishes an engine change event to ZooKeeper so other nodes can pull
+	 * updates.
+	 *
+	 * @param engineId   engine identifier
+	 * @param methodName {@code ClusterUtil} static method to execute on peers
+	 * @param params     serialized method arguments
+	 * @throws Exception if path creation, serialization, or publish fails
+	 */
 	public void publishEngineChange(String engineId, String methodName, Object... params) throws Exception {
-
 		String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
 
 		// this creates the path if it doesnt exist
@@ -273,8 +330,16 @@ public class ClusterSynchronizer {
 
 	}
 
+	/**
+	 * Publishes a user asset change event to ZooKeeper so other nodes can pull
+	 * updates.
+	 *
+	 * @param projectId  user asset project identifier
+	 * @param methodName {@code ClusterUtil} static method to execute on peers
+	 * @param params     serialized method arguments
+	 * @throws Exception if path creation, serialization, or publish fails
+	 */
 	public void publishUserChange(String projectId, String methodName, Object... params) throws Exception {
-
 		String userPath = SYNC_USER_PATH + "/" + projectId;
 
 		// this creates the path if it doesnt exist
@@ -282,7 +347,7 @@ public class ClusterSynchronizer {
 			client.create().creatingParentsIfNeeded().forPath(userPath);
 		}
 
-		classLogger.info("Publishing change for user asset/workspace " + projectId + " and for nodes to " + methodName);
+		classLogger.info("Publishing change for user asset " + projectId + " and for nodes to " + methodName);
 		Map<String, Object> dataMap = new HashMap<>();
 		dataMap.put("nodeId", host);
 		dataMap.put("methodName", methodName);
@@ -297,8 +362,16 @@ public class ClusterSynchronizer {
 
 	}
 
+	/**
+	 * Publishes a project change event to ZooKeeper so other nodes can pull
+	 * updates.
+	 *
+	 * @param projectId  project identifier
+	 * @param methodName {@code ClusterUtil} static method to execute on peers
+	 * @param params     serialized method arguments
+	 * @throws Exception if path creation, serialization, or publish fails
+	 */
 	public void publishProjectChange(String projectId, String methodName, Object... params) throws Exception {
-
 		String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
 
 		// this creates the path if it doesnt exist
@@ -318,77 +391,21 @@ public class ClusterSynchronizer {
 		out.writeObject(dataMap);
 
 		client.setData().forPath(projectPath, byteOut.toByteArray());
-
 	}
 
-	//
-	// //TODO - break this out smarter to be for all different pushes
-	// public void publishEngineChange(String engineId, String methodName) throws
-	// Exception {
-	//
-	// String enginePath = SYNC_ENGINE_PATH + "/" + engineId;
-	//
-	// //this creates the path if it doesnt exist
-	// if (client.checkExists().forPath(enginePath) == null) {
-	// client.create().creatingParentsIfNeeded().forPath(enginePath);
-	// }
-	//
-	// Map<String, String> dataMap = new HashMap<>();
-	// dataMap.put("nodeId", host);
-	// dataMap.put("methodName", methodName);
-	//
-	// ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-	// ObjectOutputStream out = new ObjectOutputStream(byteOut);
-	// out.writeObject(dataMap);
-	//
-	// // this updates the path and the watcher is watching for updates
-	// //TODO - pass a full map as the data where host will be a key along with the
-	// function used - ex. pushOwl, pushInsightDB
-	// //client.setData().forPath(enginePath, host.getBytes());
-	// client.setData().forPath(enginePath, byteOut.toByteArray());
-	//
-	// }
-	//
-	// //TODO - break this out smarter to be for all different pushes
-	// public void publishProjectChange(String projectId, String methodName) throws
-	// Exception {
-	//
-	// String projectPath = SYNC_PROJECT_PATH + "/" + projectId;
-	//
-	// //this creates the path if it doesnt exist
-	// if (client.checkExists().forPath(projectPath) == null) {
-	// client.create().creatingParentsIfNeeded().forPath(projectPath);
-	// }
-	//
-	// Map<String, String> dataMap = new HashMap<>();
-	// dataMap.put("nodeId", host);
-	// dataMap.put("methodName", methodName);
-	//
-	// ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
-	// ObjectOutputStream out = new ObjectOutputStream(byteOut);
-	// out.writeObject(dataMap);
-	//
-	// // this updates the path and the watcher is watching for updates
-	// //TODO - pass a full map as the data where host will be a key along with the
-	// function used - ex. pushOwl, pushInsightDB
-	// //client.setData().forPath(enginePath, host.getBytes());
-	// client.setData().forPath(projectPath, byteOut.toByteArray());
-	//
-	// }
-	//
-
-	public static void main(String[] args) {
-
-		try {
-			ClusterSynchronizer instance = ClusterSynchronizer.getInstance();
-
-			Thread.sleep(Integer.MAX_VALUE);
-
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
-		}
-
-	}
+//	/**
+//	 * Manual entrypoint used for long-running local verification of listener
+//	 * behavior.
+//	 *
+//	 * @param args command line args (unused)
+//	 */
+//	public static void main(String[] args) {
+//		try {
+//			ClusterSynchronizer instance = ClusterSynchronizer.getInstance();
+//			Thread.sleep(Integer.MAX_VALUE);
+//		} catch (Exception e) {
+//			classLogger.error("ClusterSynchronizer main loop terminated unexpectedly.", e);
+//		}
+//	}
 
 }

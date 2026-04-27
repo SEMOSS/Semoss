@@ -36,36 +36,35 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
-import prerna.util.Constants;
 import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 
-public class UserRegistrationEmailService {
+public final class UserRegistrationEmailService {
 
 	private static final Logger classLogger = LogManager.getLogger(UserRegistrationEmailService.class);
-	
-	private static UserRegistrationEmailService instance;
-	
+
+	private static volatile UserRegistrationEmailService instance;
+
 	private String emailTemplatesFolder = "";
-	
+
 	private final String EMAIL_TEMPLATES_FOLDER = "emailTemplates";
 	private final String REPLACE_LINK = "{{{REPLACE_LINK}}}";
-	
+
 	public static UserRegistrationEmailService getInstance() {
-		if(instance != null) {
+		if (instance != null) {
 			return instance;
 		}
 
-		if(instance == null) {
-			synchronized(PasswordRequirements.class) {
-				if(instance != null) {
+		if (instance == null) {
+			synchronized (PasswordRequirements.class) {
+				if (instance != null) {
 					return instance;
 				}
-				
+
 				instance = new UserRegistrationEmailService();
 				String baseFolder = Utility.getBaseFolder();
-				if(baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
+				if (baseFolder.endsWith("/") || baseFolder.endsWith("\\")) {
 					instance.emailTemplatesFolder = baseFolder + instance.EMAIL_TEMPLATES_FOLDER + "/";
 				} else {
 					instance.emailTemplatesFolder = baseFolder + "/" + instance.EMAIL_TEMPLATES_FOLDER + "/";
@@ -75,68 +74,72 @@ public class UserRegistrationEmailService {
 
 		return instance;
 	}
-	
+
 	public boolean sendPasswordResetRequestEmail(String recipient, String customUrl, String customEmailSubject) {
 		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
 		Session emailSession = socialProps.getEmailSession();
 		String sender = socialProps.getSmtpSender();
 		String subject = customEmailSubject;
-		if(subject == null || (subject=subject.trim()).isEmpty()) {
+		if (subject == null || (subject = subject.trim()).isEmpty()) {
 			subject = "SEMOSS Reset Password : Request";
 		}
-		
+
 		boolean isHtml = true;
 		String[] ccRecipients = null;
 		String[] bccRecipients = null;
 		String[] attachments = null;
 
-		String[] recipients = new String[] {recipient};
+		String[] recipients = new String[] { recipient };
 
 		// construct the message
 		String message;
+		String templatePath = this.emailTemplatesFolder + "passResetRequest.html";
 		try {
-			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetRequest.html")));
+			message = new String(Files.readAllBytes(Paths.get(templatePath)));
 			message = message.replace(this.REPLACE_LINK, customUrl);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load password reset request email template from path='{}'.", templatePath, e);
 			return false;
 		}
-		
+
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject, message, isHtml, attachments);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject,
+				message, isHtml, attachments);
 		return success;
 	}
-	
+
 	public boolean sendPasswordResetSuccessEmail(String recipient, String customEmailSubject) {
 		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
 		Session emailSession = socialProps.getEmailSession();
 		String sender = socialProps.getSmtpSender();
 		String subject = customEmailSubject;
-		if(subject == null || (subject=subject.trim()).isEmpty()) {
+		if (subject == null || (subject = subject.trim()).isEmpty()) {
 			subject = "SEMOSS Reset Password : Success";
 		}
-		
+
 		boolean isHtml = true;
 		String[] ccRecipients = null;
 		String[] bccRecipients = null;
 		String[] attachments = null;
 
-		String[] recipients = new String[] {recipient};
+		String[] recipients = new String[] { recipient };
 
 		// construct the message
 		String message;
+		String templatePath = this.emailTemplatesFolder + "passResetSuccess.html";
 		try {
-			message = new String(Files.readAllBytes(Paths.get(this.emailTemplatesFolder + "passResetSuccess.html")));
+			message = new String(Files.readAllBytes(Paths.get(templatePath)));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load password reset success email template from path='{}'.", templatePath, e);
 			return false;
 		}
-		
+
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject, message, isHtml, attachments);
+		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject,
+				message, isHtml, attachments);
 		return success;
 	}
-	
+
 //	public static void main(String[] args) {
 //		TestUtilityMethods.loadDIHelper("/Users/mahkhalil/development/workspace/Semoss_Dev/RDF_Map.prop");
 //		UserRegistrationEmailService emailInstance = UserRegistrationEmailService.getInstance();
@@ -144,5 +147,5 @@ public class UserRegistrationEmailService {
 //				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***", 
 //				null);
 //	}
-	
+
 }

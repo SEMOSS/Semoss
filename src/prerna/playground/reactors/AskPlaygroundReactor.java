@@ -47,7 +47,6 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.playground.PlaygroundUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -101,7 +100,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		// Generates room title for new rooms BEFORE ask
 		// This prevents Room.ask() from setting a truncated prompt name
@@ -121,7 +120,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			response = MessageUtils.processMarkdownCodeBlocks(response, modelEngine, room);
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
@@ -139,7 +137,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 		// MessageUtils.applyLegacyResponseFields(response, responseMap);
 		pixelReturn.put("responseMessage", responseMap);
 
-		ClusterUtil.pushRoom(room.getId());
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
 

@@ -12,14 +12,18 @@ def __getattr__(name: str) -> Any:
         from .text_generation.openai_clients import OpenAiClient
 
         return OpenAiClient
-    elif name == "TextGenClient":
-        from .text_generation.textgen_client import TextGenClient
-
-        return TextGenClient
     elif name == "BedrockClient":
         from .text_generation.bedrock_clients.bedrock_client import BedrockClient
 
         return BedrockClient
+
+    elif name == "BedrockImageClient":
+        from .text_generation.bedrock_clients.bedrock_image_client import (
+            BedrockImageClient,
+        )
+
+        return BedrockImageClient
+
     elif name == "VertexClient":
         from .text_generation.google_clients.vertex_controller import (
             VertexAiClientController as VertexClient,
@@ -89,6 +93,10 @@ def __getattr__(name: str) -> Any:
         from .agents.claude_code.claude_code_client import ClaudeCodeClient
 
         return ClaudeCodeClient
+    elif name == "GitHubCopilotClient":
+        from .agents.github_copilot.github_copilot_client import GitHubCopilotClient
+
+        return GitHubCopilotClient
     else:
         raise AttributeError(f"Could not find: {name}")
 
@@ -107,10 +115,6 @@ def get_text_gen_client(client_type, **kwargs):
             from .text_generation.openai_clients import OpenAiClient
 
             return OpenAiClient(**kwargs)
-    elif client_type == "TEXT_GENERATION":
-        from .text_generation.textgen_client import TextGenClient
-
-        return TextGenClient(**kwargs)
     elif client_type == "BEDROCK":
         from .text_generation.bedrock_client import BedrockClient
 
@@ -167,7 +171,7 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
         from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 
         return HuggingfaceTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
-    elif tokenizer_type == "OPEN_AI":
+    elif (tokenizer_type == "OPEN_AI") or (tokenizer_type == "AZURE_OPEN_AI"):
         from .tokenizers.openai_tokenizer import OpenAiTokenizer
 
         return OpenAiTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)
@@ -183,7 +187,6 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
 __all__ = [
     "AzureOpenAiClient",
     "OpenAiClient",
-    "TextGenClient",
     "BedrockClient",
     "VertexClient",
     "AnthropicClient",
@@ -201,4 +204,5 @@ __all__ = [
     "get_tokenizer",
     "BedrockEmbedder",
     "ClaudeCodeClient",
+    "GitHubCopilotClient",
 ]

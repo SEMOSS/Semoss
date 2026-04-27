@@ -113,7 +113,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -153,6 +153,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
@@ -2328,14 +2329,6 @@ public final class Utility {
 		 * started running)
 		 */
 
-		// grab the local master engine
-		IDatabaseEngine localMaster = (IDatabaseEngine) DIHelper.getInstance()
-				.getEngineProperty(Constants.LOCAL_MASTER_DB);
-		if (localMaster == null) {
-			classLogger.info(">>>>>>>> Unable to find local master database in DIHelper.");
-			return;
-		}
-
 		// generate the appropriate query to execute on the local master engine to get
 		// the time stamp
 		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
@@ -2361,9 +2354,6 @@ public final class Utility {
 		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
 		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
 		if (owlFile == null) {
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
-			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			classLogger.warn("Engine " + SmssUtilities.getUniqueName(prop) + " does not have an OWL file");
 			return;
 		}
@@ -2514,7 +2504,12 @@ public final class Utility {
 		return EngineProxyFactory.createGuardedProject(project);
 	}
 
-	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static IProject getUserAssetProject(String projectId) {
 		IProject project = null;
 
 		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
@@ -2523,10 +2518,10 @@ public final class Utility {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			classLogger.info("Applying lock for user asset/workspace " + projectId);
+			classLogger.info("Applying lock for user asset project " + projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			classLogger.info("User asset/workspace " + projectId + " is locked");
+			classLogger.info("User asset project " + projectId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2540,16 +2535,11 @@ public final class Utility {
 				// TODO >>>timb: need to pull sec and lmd each time. They also need
 				// correct jdbcs...
 				if (ClusterUtil.IS_CLUSTER) {
-					ClusterUtil.pullUserWorkspace(projectId, isAsset, false);
+					ClusterUtil.pullUserAsset(projectId, false);
 				}
 
 				// Now that the app has been pulled, grab the smss file
-				String folderName = null;
-				if (isAsset) {
-					folderName = "Asset";
-				} else {
-					folderName = "Workplace";
-				}
+				String folderName = UserAssetUtils.ASSET_APP_NAME;
 				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
 						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 				// Start up the engine using the details in the smss
@@ -2557,12 +2547,12 @@ public final class Utility {
 					// actual load engine process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
-					classLogger.debug("There is no SMSS File for the user asset/workspace " + projectId + "...");
+					classLogger.debug("There is no SMSS File for the user asset project " + projectId + "...");
 				}
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				classLogger.info("User asset/workspace " + projectId + " is unlocked");
+				classLogger.info("User asset project " + projectId + " is unlocked");
 			}
 		}
 
@@ -3722,6 +3712,31 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	/**
+	 *
+	 * @param filePaths
+	 * @return
+	 */
+	public static List<String> normalizeFilePaths(List<String> filePaths) {
+		if (filePaths == null) {
+			throw new NullPointerException("File paths cannot be null");
+		}
+
+		List<String> normalizedPaths = new ArrayList<>(filePaths.size());
+		for (String rawFilePath : filePaths) {
+			if (rawFilePath == null) {
+				throw new NullPointerException("File path cannot be null");
+			}
+
+			String normalizedPath = normalizePath(rawFilePath.trim());
+			if (normalizedPath == null || normalizedPath.isEmpty()) {
+				throw new IllegalArgumentException("Must provide a valid filePath");
+			}
+			normalizedPaths.add(normalizedPath);
+		}
+		return normalizedPaths;
 	}
 
 	/**

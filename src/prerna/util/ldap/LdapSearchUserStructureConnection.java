@@ -48,8 +48,8 @@ import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 
 /**
- * Assumes that the authentication for each user has the same DN structure
- * but only the CN will change based on the user input
+ * Assumes that the authentication for each user has the same DN structure but
+ * only the CN will change based on the user input
  */
 public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator {
 
@@ -62,7 +62,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	// and then try to login as the user
 	String applicationMasterPrincipal = null;
 	String applicationMasterCredentials = null;
-	transient DirContext applicationContext = null;	
+	transient DirContext applicationContext = null;
 
 	// attribute mapping
 	String attributeIdKey = null;
@@ -76,7 +76,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 	// do we use a different user/pass for changing pwds
 	boolean useCustomContextForPwdChange = false;
-	transient DirContext customPwdChangeLdapContext = null;	
+	transient DirContext customPwdChangeLdapContext = null;
 
 	String[] requestAttributes = null;
 
@@ -86,6 +86,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	int searchContextScope = 2;
 	String searchMatchingAttributes = null;
 
+	@Override
 	public void load() throws IOException {
 
 		// now load the values in social props
@@ -102,44 +103,46 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 		this.attributeLastPwdChangeKey = socialData.getProperty(LDAP_LAST_PWD_CHANGE_KEY);
 		String requirePwdChangeDays = socialData.getProperty(LDAP_FORCE_PWD_CHANGE_KEY);
-		if(requirePwdChangeDays != null && !requirePwdChangeDays.isEmpty()) {
+		if (requirePwdChangeDays != null && !requirePwdChangeDays.isEmpty()) {
 			try {
 				requirePwdChangeAfterDays = Integer.parseInt(requirePwdChangeDays);
-			} catch(NumberFormatException e) {
-				throw new IllegalArgumentException("Invalid value for " + LDAP_FORCE_PWD_CHANGE_KEY + ". " + e.getMessage());
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException(
+						"Invalid value for " + LDAP_FORCE_PWD_CHANGE_KEY + ". " + e.getMessage());
 			}
 		}
 		this.searchContextName = socialData.getProperty(LDAP_SEARCH_CONTEXT_NAME);
-		if(this.searchContextName == null || (this.searchContextName=this.searchContextName.trim()).isEmpty()) {
+		if (this.searchContextName == null || (this.searchContextName = this.searchContextName.trim()).isEmpty()) {
 			this.searchContextName = "(&(cn=<username>)(objectClass=inetOrgPerson))";
 		}
 		// should match integer values of
 		// OBJECT_SCOPE, ONELEVEL_SCOPE, SUBTREE_SCOPE
 		this.searchContextScopeString = socialData.getProperty(LDAP_SEARCH_CONTEXT_SCOPE);
-		if(this.searchContextScopeString == null || (this.searchContextScopeString=this.searchContextScopeString.trim()).isEmpty()) {
+		if (this.searchContextScopeString == null
+				|| (this.searchContextScopeString = this.searchContextScopeString.trim()).isEmpty()) {
 			this.searchContextScopeString = "2";
 		}
 		this.searchMatchingAttributes = socialData.getProperty(LDAP_SEARCH_MATCHING_ATTRIBUTES);
-		if(this.searchMatchingAttributes == null || (this.searchMatchingAttributes=this.searchMatchingAttributes.trim()).isEmpty()) {
+		if (this.searchMatchingAttributes == null
+				|| (this.searchMatchingAttributes = this.searchMatchingAttributes.trim()).isEmpty()) {
 			this.searchMatchingAttributes = "(objectClass=inetOrgPerson)";
 		}
 
 		List<String> requestAttributesList = new ArrayList<>();
 		requestAttributesList.add(this.attributeIdKey);
-		if(this.attributeNameKey != null && !this.attributeNameKey.isEmpty()) {
+		if (this.attributeNameKey != null && !this.attributeNameKey.isEmpty()) {
 			requestAttributesList.add(this.attributeNameKey);
 		}
-		if(this.attributeEmailKey != null && !this.attributeEmailKey.isEmpty()) {
+		if (this.attributeEmailKey != null && !this.attributeEmailKey.isEmpty()) {
 			requestAttributesList.add(this.attributeEmailKey);
 		}
-		if(this.attributeUserNameKey != null && !this.attributeUserNameKey.isEmpty()) {
+		if (this.attributeUserNameKey != null && !this.attributeUserNameKey.isEmpty()) {
 			requestAttributesList.add(this.attributeUserNameKey);
 		}
-		if(this.attributeLastPwdChangeKey != null && !this.attributeLastPwdChangeKey.isEmpty()) {
+		if (this.attributeLastPwdChangeKey != null && !this.attributeLastPwdChangeKey.isEmpty()) {
 			requestAttributesList.add(this.attributeLastPwdChangeKey);
 		}
-		this.requestAttributes = requestAttributesList.toArray(new String[]{});
-
+		this.requestAttributes = requestAttributesList.toArray(new String[] {});
 
 		// validate any inputs and throw errors if invalid
 		validate();
@@ -148,46 +151,51 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	@Override
 	public void validate() throws IOException {
 		// always need the provider url
-		if(this.providerUrl == null || (this.providerUrl=this.providerUrl.trim()).isEmpty()) {
+		if (this.providerUrl == null || (this.providerUrl = this.providerUrl.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the AD connection URL");
 		}
-		if(!this.providerUrl.startsWith("ldaps://") && !this.providerUrl.startsWith("ldap://")) {
+		if (!this.providerUrl.startsWith("ldaps://") && !this.providerUrl.startsWith("ldap://")) {
 			this.providerUrl = "ldap://" + this.providerUrl;
 		}
 
 		// we require a valid application context
-		if(this.applicationMasterPrincipal == null || (this.applicationMasterPrincipal=this.applicationMasterPrincipal.trim()).isEmpty()) {
+		if (this.applicationMasterPrincipal == null
+				|| (this.applicationMasterPrincipal = this.applicationMasterPrincipal.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the application ldap principal");
 		}
-		if(this.applicationMasterCredentials == null || (this.applicationMasterCredentials=this.applicationMasterCredentials.trim()).isEmpty()) {
+		if (this.applicationMasterCredentials == null
+				|| (this.applicationMasterCredentials = this.applicationMasterCredentials.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the application ldap credentials");
 		}
 		try {
-			this.applicationContext = LDAPConnectionHelper.createLdapContext(this.providerUrl, this.applicationMasterPrincipal, this.applicationMasterCredentials);
+			this.applicationContext = LDAPConnectionHelper.createLdapContext(this.providerUrl,
+					this.applicationMasterPrincipal, this.applicationMasterCredentials);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unable to login to create the application ldap context");
 		}
 
-
 		// need to at least have the ID
-		if(this.attributeIdKey == null || (this.attributeIdKey=this.attributeIdKey.trim()).isEmpty()) {
+		if (this.attributeIdKey == null || (this.attributeIdKey = this.attributeIdKey.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide the attribute for the user id");
 		}
 
 		try {
 			this.searchContextScope = Integer.parseInt(this.searchContextScopeString);
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Search Context scope must be of value 0, 1, or 2");
 		}
 
-		// do we have anything for custom context to change pwds if users are unable to change
+		// do we have anything for custom context to change pwds if users are unable to
+		// change
 		SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
-		this.useCustomContextForPwdChange = Boolean.parseBoolean(socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_CHANGE_KEY)+"");
-		if(this.useCustomContextForPwdChange) {
+		this.useCustomContextForPwdChange = Boolean
+				.parseBoolean(socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_CHANGE_KEY) + "");
+		if (this.useCustomContextForPwdChange) {
 			String customUsername = socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_USERNAME_KEY);
 			String customPwd = socialData.getProperty(LDAP_USE_CUSTOM_CONTEXT_FOR_PWD_PASSWORD_KEY);
 			try {
-				this.customPwdChangeLdapContext = LDAPConnectionHelper.createLdapContext(this.providerUrl, customUsername, customPwd);
+				this.customPwdChangeLdapContext = LDAPConnectionHelper.createLdapContext(this.providerUrl,
+						customUsername, customPwd);
 			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE + "Unable to login for processing password changes");
 				classLogger.error(Constants.STACKTRACE, e);
@@ -195,16 +203,17 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		}
 	}
 
-
 	@Override
 	public AccessToken authenticate(String username, String password) throws Exception {
-		// first, need to find the users DN 
+		// first, need to find the users DN
 		// then need to validate the password is accurate
 
 		// need to search for the user who just logged in
 		// so that i can grab the attributes
-		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
-		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
 
 		SearchControls controls = new SearchControls();
 		controls.setSearchScope(this.searchContextScope);
@@ -214,7 +223,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 
 		boolean foundUser = false;
 		SearchResult result = null;
-		while(findUser.hasMoreElements()) {
+		while (findUser.hasMoreElements()) {
 			foundUser = true;
 			result = findUser.next();
 			// confirm the password works for this user
@@ -224,15 +233,16 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			try {
 				// if successful at login, we are good
 				userConnection = LDAPConnectionHelper.createLdapContext(this.providerUrl, userDN, password);
-				
+
 				Attributes attr = result.getAttributes();
-				return this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
-						this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays);
-			} catch(Exception e) {
+				return this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey,
+						this.attributeEmailKey, this.attributeUserNameKey, this.attributeLastPwdChangeKey,
+						this.requirePwdChangeAfterDays);
+			} catch (Exception e) {
 				String message = "Incorrect login for '" + userDN + "'. ";
-				if(e instanceof NamingException) {
+				if (e instanceof NamingException) {
 					String possibleExplanation = ((NamingException) e).getExplanation();
-					if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+					if (possibleExplanation != null && !(possibleExplanation = possibleExplanation.trim()).isEmpty()) {
 						message += "Error message explanation: " + possibleExplanation;
 					} else {
 						message += "Error message = " + e.getMessage();
@@ -244,57 +254,62 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 				classLogger.error(Constants.STACKTRACE, e);
 				continue;
 			} finally {
-				if(userConnection != null) {
+				if (userConnection != null) {
 					userConnection.close();
 				}
 			}
 		}
 
-		if(foundUser) {
-			// see if we can determine that they cannot signin but actually need to reset their password details
-			if(result != null) {
-				// this method will throw LDAPPasswordChangeRequiredException if the password needs to be reset to login
+		if (foundUser) {
+			// see if we can determine that they cannot signin but actually need to reset
+			// their password details
+			if (result != null) {
+				// this method will throw LDAPPasswordChangeRequiredException if the password
+				// needs to be reset to login
 				try {
-					this.getLastPwdChange(result.getAttributes(), this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays);
-				} catch(LDAPPasswordChangeRequiredException e) {
+					this.getLastPwdChange(result.getAttributes(), this.attributeLastPwdChangeKey,
+							this.requirePwdChangeAfterDays);
+				} catch (LDAPPasswordChangeRequiredException e) {
 					throw e;
-				} catch(Exception e) {
+				} catch (Exception e) {
 					classLogger.error("Error occurred seeing if login issue is that user must change password");
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			
+
 			throw new IllegalArgumentException("Found username but invalid credentials to login");
 		} else {
 			throw new IllegalArgumentException("Unable to find username = " + username);
 		}
 	}
 
-
 	@Override
 	public void updateUserPassword(String username, String curPassword, String newPassword) throws NamingException {
 		// first find the user DN
-		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
-		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
 
 		SearchControls controls = new SearchControls();
 		controls.setSearchScope(this.searchContextScope);
 		controls.setReturningAttributes(this.requestAttributes);
 
-		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter,
+				controls);
 
 		String principalDN = null;
 		boolean foundUser = false;
 		SearchResult result = null;
-		while(findUser.hasMoreElements()) {
+		while (findUser.hasMoreElements()) {
 			foundUser = true;
 			result = findUser.next();
 			// we got the user DN
 			principalDN = result.getNameInNamespace();
 			classLogger.info("Found user DN = " + principalDN + " > attemping to login");
 		}
-		
-		if(!foundUser) {
+
+		if (!foundUser) {
 			throw new IllegalArgumentException("Unable to find username = " + username);
 		}
 
@@ -309,9 +324,10 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("unicodePwd", oldPwd));
 			mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("unicodePwd", newPwd));
 			classLogger.info(principalDN + " is attemping to change password");
-			if(this.useCustomContextForPwdChange) {
-				if(this.customPwdChangeLdapContext == null) {
-					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+			if (this.useCustomContextForPwdChange) {
+				if (this.customPwdChangeLdapContext == null) {
+					throw new IllegalArgumentException(
+							"Invalid configuration for changing user passwords - please contact your administrator");
 				}
 				this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
 			} else {
@@ -320,9 +336,9 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
 			String message = "Failed to change password. ";
-			if(e instanceof NamingException) {
+			if (e instanceof NamingException) {
 				String possibleExplanation = ((NamingException) e).getExplanation();
-				if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+				if (possibleExplanation != null && !(possibleExplanation = possibleExplanation.trim()).isEmpty()) {
 					message += "Error message explanation: " + possibleExplanation;
 				} else {
 					message += "Error message = " + e.getMessage();
@@ -330,7 +346,7 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			} else {
 				message += "Error message = " + e.getMessage();
 			}
-			
+
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(message);
 		}
@@ -339,39 +355,43 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	@Override
 	public void updateForgottenPassword(String username, String newPassword) throws Exception {
 		// first find the user DN
-		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
-		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME, username);
+		String searchContextName = this.searchContextName.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
+		String searchFilter = this.searchMatchingAttributes.replace(SECURITY_PRINCIPAL_TEMPLATE_USERNAME,
+				escapeLdapFilter(username));
 
 		SearchControls controls = new SearchControls();
 		controls.setSearchScope(this.searchContextScope);
 		controls.setReturningAttributes(this.requestAttributes);
 
-		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter,
+				controls);
 
 		String principalDN = null;
 		boolean foundUser = false;
 		SearchResult result = null;
-		while(findUser.hasMoreElements()) {
+		while (findUser.hasMoreElements()) {
 			foundUser = true;
 			result = findUser.next();
 			// we got the user DN
 			principalDN = result.getNameInNamespace();
 			classLogger.info("Found user DN = " + principalDN + " > attemping to login");
 		}
-		
-		if(!foundUser) {
+
+		if (!foundUser) {
 			throw new IllegalArgumentException("Unable to find username = " + username);
 		}
-		
+
 		try {
 			byte[] pwd = LDAPConnectionHelper.toUnicodePassword(newPassword);
 			ModificationItem[] mods = new ModificationItem[1];
 			mods[0] = new ModificationItem(DirContext.REPLACE_ATTRIBUTE, new BasicAttribute("unicodePwd", pwd));
 
 			classLogger.info(principalDN + " is attemping to change password");
-			if(this.useCustomContextForPwdChange) {
-				if(this.customPwdChangeLdapContext == null) {
-					throw new IllegalArgumentException("Invalid configuration for changing user passwords - please contact your administrator");
+			if (this.useCustomContextForPwdChange) {
+				if (this.customPwdChangeLdapContext == null) {
+					throw new IllegalArgumentException(
+							"Invalid configuration for changing user passwords - please contact your administrator");
 				}
 				this.customPwdChangeLdapContext.modifyAttributes(principalDN, mods);
 			} else {
@@ -380,9 +400,9 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			classLogger.info(principalDN + " successfully changed password");
 		} catch (Exception e) {
 			String message = "Failed to change password. ";
-			if(e instanceof NamingException) {
+			if (e instanceof NamingException) {
 				String possibleExplanation = ((NamingException) e).getExplanation();
-				if(possibleExplanation != null && !(possibleExplanation=possibleExplanation.trim()).isEmpty()) {
+				if (possibleExplanation != null && !(possibleExplanation = possibleExplanation.trim()).isEmpty()) {
 					message += "Error message explanation: " + possibleExplanation;
 				} else {
 					message += "Error message = " + e.getMessage();
@@ -390,12 +410,12 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 			} else {
 				message += "Error message = " + e.getMessage();
 			}
-			
+
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(message);
 		}
 	}
-	
+
 	@Override
 	public void close() {
 		try {
@@ -406,10 +426,11 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 	}
 
 	@Override
-	public List<AccessToken> findUsers(String searchContextName, String searchFilter, int searchContextScope) throws Exception {
+	public List<AccessToken> findUsers(String searchContextName, String searchFilter, int searchContextScope)
+			throws Exception {
 		List<AccessToken> foundUsers = new ArrayList<>();
-		
-		if(searchContextScope < 0) {
+
+		if (searchContextScope < 0) {
 			searchContextScope = this.searchContextScope;
 		}
 
@@ -417,19 +438,21 @@ public class LdapSearchUserStructureConnection extends AbstractLdapAuthenticator
 		controls.setSearchScope(searchContextScope);
 		controls.setReturningAttributes(requestAttributes);
 
-		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter, controls);
+		NamingEnumeration<SearchResult> findUser = this.applicationContext.search(searchContextName, searchFilter,
+				controls);
 
 		SearchResult result = null;
-		while(findUser.hasMoreElements()) {
+		while (findUser.hasMoreElements()) {
 			result = findUser.next();
 			String userDN = result.getNameInNamespace();
 
 			Attributes attr = result.getAttributes();
-			AccessToken accessToken = this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey, this.attributeEmailKey, 
-					this.attributeUserNameKey, this.attributeLastPwdChangeKey, this.requirePwdChangeAfterDays, true);
+			AccessToken accessToken = this.generateAccessToken(attr, userDN, this.attributeIdKey, this.attributeNameKey,
+					this.attributeEmailKey, this.attributeUserNameKey, this.attributeLastPwdChangeKey,
+					this.requirePwdChangeAfterDays, true);
 			foundUsers.add(accessToken);
 		}
-		
+
 		return foundUsers;
 	}
 
