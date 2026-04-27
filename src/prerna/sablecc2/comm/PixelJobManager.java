@@ -40,7 +40,11 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.om.Insight;
 import prerna.sablecc2.PixelRunner;
 
-public class PixelJobManager {
+public final class PixelJobManager {
+
+	public enum InterruptResult {
+		NOT_FOUND, ALREADY_DONE, CANCEL_REQUESTED
+	}
 
 	/**
 	 * Inner class to hold job output data and its lock
@@ -67,10 +71,10 @@ public class PixelJobManager {
 		private final Lock lock = new ReentrantLock();
 	}
 
-	private static PixelJobManager manager = new PixelJobManager();
+	private static volatile PixelJobManager manager = new PixelJobManager();
 
 	// keeps the job to thread
-	private Map<String, PixelJobThread> threadPool = new ConcurrentHashMap<>();
+	private Map<String, PixelJobRunner> runnerPool = new ConcurrentHashMap<>();
 
 	// Map of job id to its standard output
 	private Map<String, JobOutputHolder<String>> jobStdOut = new ConcurrentHashMap<>();
@@ -106,25 +110,25 @@ public class PixelJobManager {
 		return manager;
 	}
 
-	public PixelJobThread makeJob(Insight insight, String sessionId, String routeId) {
+	public PixelJobRunner makeJob(Insight insight, String sessionId, String routeId) {
 		String jobId = GUID.v7().toUUID().toString();
-		PixelJobThread jt = new PixelJobThread(jobId, insight, sessionId, routeId);
-		threadPool.put(jobId, jt);
-		return jt;
+		PixelJobRunner jobRunner = new PixelJobRunner(jobId, insight, sessionId, routeId);
+		runnerPool.put(jobId, jobRunner);
+		return jobRunner;
 	}
 
-	public PixelJobThread makeJob(String jobId, Insight insight, String sessionId, String routeId) {
-		PixelJobThread jt = new PixelJobThread(jobId, insight, sessionId, routeId);
-		threadPool.put(jobId, jt);
-		return jt;
+	public PixelJobRunner makeJob(String jobId, Insight insight, String sessionId, String routeId) {
+		PixelJobRunner jobRunner = new PixelJobRunner(jobId, insight, sessionId, routeId);
+		runnerPool.put(jobId, jobRunner);
+		return jobRunner;
 	}
 
-	public PixelJobThread removeJob(String jobId) {
-		return threadPool.remove(jobId);
+	public PixelJobRunner removeJob(String jobId) {
+		return runnerPool.remove(jobId);
 	}
 
-	public PixelJobThread getJob(String jobId) {
-		return threadPool.get(jobId);
+	public PixelJobRunner getJob(String jobId) {
+		return runnerPool.get(jobId);
 	}
 
 	/**
@@ -248,7 +252,11 @@ public class PixelJobManager {
 	}
 
 	public String getStatus(String jobId) {
-		return threadPool.get(jobId).getStatus();
+		PixelJobRunner job = runnerPool.get(jobId);
+		if (job == null) {
+			return PixelJobStatus.UNKNOWN_JOB.getValue();
+		}
+		return job.getStatus();
 	}
 
 	public void clearJob(String jobId) {
@@ -261,20 +269,38 @@ public class PixelJobManager {
 	}
 
 	public void flagStatus(String jobId, PixelJobStatus status) {
-		threadPool.get(jobId).setStatus(status);
-	}
-
-	public void interruptThread(String jobId) {
-		if (threadPool.get(jobId) != null) {
-			PixelJobThread pixelThread = threadPool.get(jobId);
-			pixelThread.interrupt();
-			pixelThread.setStatus(PixelJobStatus.CANCELED);
+		PixelJobRunner job = runnerPool.get(jobId);
+		if (job != null) {
+			job.setStatus(status);
 		}
 	}
 
+	public InterruptResult interruptThread(String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			return InterruptResult.NOT_FOUND;
+		}
+
+		PixelJobRunner pixelThread = runnerPool.get(jobId);
+		if (pixelThread == null) {
+			return InterruptResult.NOT_FOUND;
+		}
+
+		PixelJobStatus curStatus = pixelThread.getPixelJobStatus();
+		if (curStatus == PixelJobStatus.COMPLETE || curStatus == PixelJobStatus.PROGRESS_COMPLETE
+				|| curStatus == PixelJobStatus.ERROR || curStatus == PixelJobStatus.CANCELED) {
+			return InterruptResult.ALREADY_DONE;
+		}
+
+		pixelThread.requestCancel();
+		return InterruptResult.CANCEL_REQUESTED;
+	}
+
 	public PixelRunner getOutput(String jobId) {
-		PixelJobThread jt = threadPool.get(jobId);
-		return jt.getRunner();
+		PixelJobRunner jobRunner = runnerPool.get(jobId);
+		if (jobRunner == null) {
+			return null;
+		}
+		return jobRunner.getRunner();
 	}
 
 	/**

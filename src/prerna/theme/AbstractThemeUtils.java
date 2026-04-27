@@ -42,7 +42,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractThemeUtils {
@@ -50,7 +50,6 @@ public abstract class AbstractThemeUtils {
 	private static final Logger classLogger = LogManager.getLogger(AbstractThemeUtils.class);
 
 	static boolean initialized = false;
-	static IRDBMSEngine themeDb;
 
 	/**
 	 * Only used for static references
@@ -60,7 +59,7 @@ public abstract class AbstractThemeUtils {
 	}
 
 	public static void loadThemingDatabase() throws Exception {
-		themeDb = (IRDBMSEngine) Utility.getDatabase(Constants.THEMING_DB);
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		ThemeOwlCreator owlCreator = new ThemeOwlCreator(themeDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -71,6 +70,7 @@ public abstract class AbstractThemeUtils {
 	}
 
 	private static void initialize() throws Exception {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String[] adminThemeColNames = null;
 		String[] adminThemeTypes = null;
 		String[] blocksTableTypes = null;
@@ -119,6 +119,7 @@ public abstract class AbstractThemeUtils {
 
 	private static void populateBlocksTemplateTable(String[] blocksTemplateColNames, String[] blocksTemplateTypes,
 			AbstractSqlQueryUtil queryUtil) throws Exception {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 
 		classLogger.info("Rebuilding Blocks_Table Table");
 

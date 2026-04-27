@@ -40,7 +40,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
@@ -52,7 +51,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -77,10 +75,6 @@ public class DeleteEngineReactor extends AbstractReactor {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 
-				if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-					throw new IllegalArgumentException(
-							"Users are not allowed to delete your workspace or asset database.");
-				}
 				// we may have the alias
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
@@ -108,12 +102,9 @@ public class DeleteEngineReactor extends AbstractReactor {
 			}
 
 			deleteEngines(engine, engineId, engineName, engineType);
-			EngineSyncUtility.clearEngineCache(engineId);
-			UserTrackingUtils.deleteEngine(engineId);
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteAppThread = new Thread(new DeleteEngineRunner(engineId, engineType));
-				deleteAppThread.start();
+				Thread.ofVirtual().start(new DeleteEngineRunner(engineId, engineType));
 			}
 		}
 
@@ -135,13 +126,15 @@ public class DeleteEngineReactor extends AbstractReactor {
 		SecurityEngineUtils.deleteEngine(engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
+		// remove the cache
+		EngineSyncUtility.clearEngineCache(engineId);
 
 		// now try to actually remove from disk
 		if (engine != null) {
 			try {
 				engine.delete();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("An error occurred attempting to call the delete method for engine {}", engineId, e);
 			}
 		} else {
 			// try to delete based on the name of the folder and smss file

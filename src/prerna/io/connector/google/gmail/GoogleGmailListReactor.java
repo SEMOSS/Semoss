@@ -41,12 +41,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleGmailListReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailListReactor.class);
-	
+
 	public GoogleGmailListReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -60,26 +59,32 @@ public class GoogleGmailListReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
+			if (limit <= 0) {
+				throw new SemossPixelException("The limit must be a positive integer.");
+			}
 			List<Map<String, Object>> result = GoogleGmailHelper.getEmailList(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (NumberFormatException e) {
+			classLogger.error("Invalid Gmail list limit '{}'", limitStr, e);
+			throw new SemossPixelException("The limit must be a positive integer.");
+		} catch (SemossPixelException e) {
+			classLogger.error("Error while listing Gmail emails", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list Gmail emails", e);
 			throw new SemossPixelException("An error occurred getting the emails. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Get the list of emails";
+		return "Retrieve a list of emails.";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit for the maximum number of unread emails";
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Maximum number of emails to return.";
 		}
 		return super.getDescriptionForKey(key);
 	}

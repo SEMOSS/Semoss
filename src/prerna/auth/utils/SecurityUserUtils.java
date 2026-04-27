@@ -45,6 +45,7 @@ import com.google.common.collect.Lists;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -53,6 +54,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserUtils extends AbstractSecurityUtils {
 
@@ -84,7 +86,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve aggregate user metadata.", e);
 		}
 
 		return retMap;
@@ -96,6 +98,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions(Collection<String> metakeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY", "metakey"));
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__SINGLEMULTI", "single_multi"));
@@ -121,6 +124,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getUserMetadataWrapper(Collection<String> userIds,
 			Collection<AuthProvider> userTypes, List<String> metaKeys, boolean ignoreMarkdown) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("USERMETA__USERID"));
@@ -157,6 +161,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static boolean editUser(User user, Map<String, Object> userInfo) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> loggedInUser = User.getPrimaryUserIdAndTypePair(user);
 
 		String userId = loggedInUser.getValue0();
@@ -170,7 +175,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			try {
 				validEmail(email, false);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update user.", e);
 				throw new IllegalArgumentException("Email " + email + " is not valid");
 			}
 		}
@@ -194,7 +199,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				editUserPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user.", e);
 			throw new IllegalArgumentException(e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, editUserPs);
@@ -210,6 +215,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllMetakeys() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERMETAKEYS__METAKEY"));
 		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -222,6 +228,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean valid = false;
 		PreparedStatement insertPs = null;
 		try {
@@ -252,7 +259,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update metakey options.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -280,6 +287,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @param val
 	 */
 	public static void updateUserMetadata(AccessToken token, String metaKey, Object val) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String userId = token.getId();
 		String userType = token.getProvider().getLabel();
 		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
@@ -292,7 +300,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		}
 
 		// now we do the new insert with the order of the tags
@@ -324,7 +332,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -336,6 +344,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @param user
 	 */
 	public static void loadUserMetadata(AccessToken token) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String userId = token.getId();
 		String userType = token.getProvider().getLabel();
 
@@ -366,7 +375,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to load user metadata.", e);
 		}
 
 		token.setMeta(metadata);
@@ -392,6 +401,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 	 * @param val
 	 */
 	public static void updateUserMetadata(AccessToken token, Map<String, Collection<String>> metadata) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String userId = token.getId();
 		String userType = token.getProvider().getLabel();
 		String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
@@ -407,7 +417,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		}
 
 		// now we do the new insert with the order of the tags
@@ -437,10 +447,51 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update user metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	/**
+	 * Get the userName and user email by using userId
+	 * 
+	 * @param userId
+	 * @return userType
+	 */
+	public static List<Map<String, Object>> getUserNameEmailByUserId(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "userName"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "userEmail"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param userIds
+	 * @return
+	 */
+	public static Map<String, String> getUserNamesByIds(Collection<String> userIds) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Map<String, String> userMap = new HashMap<>();
+		if (userIds == null || userIds.isEmpty()) {
+			return userMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				userMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return userMap;
 	}
 
 }

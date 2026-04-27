@@ -129,13 +129,13 @@ public class AdminProjectInfoReactorUnitTests {
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(null);
+			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(null);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 			assertEquals("Could not find any project data", e.getMessage());
 
 			ArgumentCaptor<List<String>> listCaptor = ArgumentCaptor.forClass(List.class);
-			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null));
+			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null), eq(null));
 			assertEquals(1, listCaptor.getValue().size());
 		}
 	}
@@ -149,13 +149,13 @@ public class AdminProjectInfoReactorUnitTests {
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllProjectSettings(any(List.class), any(List.class),  eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
 			assertEquals("Could not find any project data", e.getMessage());
 
 			ArgumentCaptor<List<String>> listCaptor = ArgumentCaptor.forClass(List.class);
-			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null));
+			verify(s, times(1)).getAllProjectSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null), eq(null));
 			assertEquals(1, listCaptor.getValue().size());
 		}
 	}
@@ -172,7 +172,7 @@ public class AdminProjectInfoReactorUnitTests {
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
 
 			GenRowStruct grss = new GenRowStruct();
 			NounMetadata n = new NounMetadata(keyvalues, PixelDataType.CUSTOM_DATA_STRUCTURE,
@@ -199,7 +199,7 @@ public class AdminProjectInfoReactorUnitTests {
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
 
 			GenRowStruct grss = new GenRowStruct();
 			when(ns.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey())).thenReturn(grss);
@@ -223,7 +223,7 @@ public class AdminProjectInfoReactorUnitTests {
 			Map<String, Object> temp = new HashMap<>();
 			temp.put("test", "test");
 			baseInfo.add(temp);
-			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
+			when(s.getAllProjectSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null))).thenReturn(baseInfo);
 
 			NounMetadata result = reactor.execute();
 			assertNotNull(result.getValue());

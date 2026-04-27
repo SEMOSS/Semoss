@@ -62,7 +62,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -121,7 +120,8 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		this.databaseName = UploadInputUtility.getDatabaseNameOrId(this.store);
+		this.databaseName = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		try {
 			// make a new id
 			this.databaseId = UUID.randomUUID().toString();
@@ -140,7 +140,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			FileUtils.copyFile(this.tempSmss, this.smssFile);
 			this.tempSmss.delete();
 			this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
+			UploadUtilities.addEngineToDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 			// sync metadata
 			this.logger.info("Process database metadata to allow for traversing across databases");
 			UploadUtilities.updateMetadata(this.databaseId, user);
@@ -239,8 +239,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		this.logger.info(stepCounter + ". Complete");
 		stepCounter++;
 

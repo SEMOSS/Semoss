@@ -50,15 +50,15 @@ class BedrockMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
                         media_content = self._build_media_content_single_part(
-                            p.mediaInfo
+                            p.media_info
                         )
                         content_blocks.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_use_data = {
-                            "toolUseId": p.toolCall.id or "",
-                            "name": p.toolCall.function.name,
-                            "input": p.toolCall.function.parameters,
+                            "toolUseId": p.tool_call.id or "",
+                            "name": p.tool_call.function.name,
+                            "input": p.tool_call.function.parameters,
                         }
                         tool_use_part = BedrockToolUseContentBlock(
                             toolUse=tool_use_data
@@ -67,8 +67,8 @@ class BedrockMessageBuilder:
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         tool_result_data = {
-                            "toolUseId": p.toolResult.id,
-                            "content": [{"text": p.toolResult.output}],
+                            "toolUseId": p.tool_result.id,
+                            "content": [{"text": p.tool_result.output}],
                         }
                         tool_result_part = BedrockToolResultContentBlock(
                             toolResult=tool_result_data
@@ -119,13 +119,22 @@ class BedrockMessageBuilder:
                         )
 
                     last_message_tools = message.param_map.get("tools")
+                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
                     tool_choice = message.param_map.pop("tool_choice", None)
                     if last_message_tools:
                         mcp_tools = self._convert_mcp_to_bedrock_tools(
                             last_message_tools
                         )
+                        if last_message_built_in_tools:
+                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            mcp_tools["tools"].extend(built_in)
                         tools = self._build_tool_config_for_bedrock(
                             mcp_tools, tool_choice
+                        )
+                    elif last_message_built_in_tools:
+                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        tools = self._build_tool_config_for_bedrock(
+                            {"tools": built_in}, tool_choice
                         )
 
                     stream = message.param_map.get("stream", True)
@@ -216,13 +225,22 @@ class BedrockMessageBuilder:
                         )
 
                     last_message_tools = message.param_map.get("tools")
+                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
                     tool_choice = message.param_map.pop("tool_choice", None)
                     if last_message_tools:
                         mcp_tools = self._convert_mcp_to_bedrock_tools(
                             last_message_tools
                         )
+                        if last_message_built_in_tools:
+                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            mcp_tools["tools"].extend(built_in)
                         tools = self._build_tool_config_for_bedrock(
                             mcp_tools, tool_choice
+                        )
+                    elif last_message_built_in_tools:
+                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        tools = self._build_tool_config_for_bedrock(
+                            {"tools": built_in}, tool_choice
                         )
 
                     stream = message.param_map.get("stream", True)
@@ -409,6 +427,10 @@ class BedrockMessageBuilder:
 
         return None
 
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        """Convert generic built-in tool names to Bedrock systemTool format."""
+        return [{"systemTool": {"name": tool}} for tool in built_in_tools]
+
     def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
         """Convert MCP-formatted tools to Bedrock tool configuration."""
         tools_list = []
@@ -471,6 +493,7 @@ class BedrockMessageBuilder:
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         param_map.pop("tools", None)
+        param_map.pop("built_in_tools", None)
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
         param_map.pop("schema", None)

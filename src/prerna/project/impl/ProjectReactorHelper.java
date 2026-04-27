@@ -49,7 +49,6 @@ import org.apache.maven.shared.invoker.InvocationRequest;
 import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
-import org.xeustechnologies.jcl.JarClassLoader;
 import org.xeustechnologies.jcl.JclObjectFactory;
 
 import io.github.classgraph.ClassGraph;
@@ -64,9 +63,11 @@ import prerna.reactor.IReactor;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.reactor.frame.py.AbstractPyFrameReactor;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
+import prerna.reactor.task.TaskBuilderReactor;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.SemossClassloader;
+import prerna.util.SemossClassLoader;
+import prerna.util.SemossJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
@@ -79,16 +80,25 @@ import prerna.util.git.GitAssetUtils;
  */
 public class ProjectReactorHelper {
 
-	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+	/**
+	 * Custom reactors must never declare a package inside the core prerna.*
+	 * namespace. A class that does so could spoof the StackWalker package check in
+	 * SystemEngineRegistry and gain access to system engines it is not authorised
+	 * to touch. Any class whose fully-qualified name starts with this prefix is
+	 * rejected at load time.
+	 */
+	private static final String PROTECTED_PACKAGE_PREFIX = "prerna.";
+
+	private static final Logger classLogger = LogManager.getLogger(ProjectReactorHelper.class);
 	private static final String DIR_SEPARATOR = "/";
 
-	private SemossClassloader projectClassLoader = null;
+	private SemossClassLoader projectClassLoader = null;
 
 	// for jars
 	private URLClassLoader urlClassLoader;
 	// for pom
 	private boolean mvnDefined = false;
-	private JarClassLoader mvnClassLoader = null;
+	private SemossJarClassLoader mvnClassLoader = null;
 
 	private IProject project = null;
 
@@ -122,7 +132,7 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
-		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
 
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
@@ -163,6 +173,10 @@ public class ProjectReactorHelper {
 				for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
 					ClassInfo classObject = classes.get(classIndex);
 					String className = classObject.getName();
+					if (isProtectedPackage(className)) {
+						classLogger.warn("Blocked custom reactor with protected package name: {}", className);
+						continue;
+					}
 
 					if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 							&& isValidReactor(classObject)) {
@@ -179,7 +193,8 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load reactors from folder '{}' for project '{}'", folder,
+					project.getProjectId(), ex);
 		}
 
 		return reactorMap;
@@ -225,7 +240,7 @@ public class ProjectReactorHelper {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				classLogger.error("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from >> " + classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -248,11 +263,16 @@ public class ProjectReactorHelper {
 					pool.insertClassPath(classesFolder);
 
 					for (int classIndex = 0; classIndex < classes.size(); classIndex++) {
+						String mvnClassName = classes.get(classIndex).getName();
+						if (isProtectedPackage(mvnClassName)) {
+							classLogger.warn("Blocked custom reactor with protected package name: {}", mvnClassName);
+							continue;
+						}
 						// this will load the reactor with everything
 						JclObjectFactory factory = JclObjectFactory.getInstance();
 
 						// Create object of loaded class
-						Object loadedObject = factory.create(this.mvnClassLoader, classes.get(classIndex).getName());
+						Object loadedObject = factory.create(this.mvnClassLoader, mvnClassName);
 
 						String reactorName = classes.get(classIndex).getSimpleName();
 						final String REACTOR_KEY = "REACTOR";
@@ -265,7 +285,8 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to load reactors from pom '{}' for project '{}'", folder, project.getProjectId(),
+					ex);
 		}
 
 		return reactors;
@@ -296,7 +317,7 @@ public class ProjectReactorHelper {
 			}
 		}
 
-		projectClassLoader = new SemossClassloader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
 		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
@@ -313,6 +334,10 @@ public class ProjectReactorHelper {
 
 				if (!classObject.isInterface() && !classObject.isAbstract() && classObject.isPublic()
 						&& isValidReactor(classObject)) {
+					if (isProtectedPackage(className)) {
+						classLogger.warn("Blocked custom reactor with protected package name: {}", className);
+						continue;
+					}
 					Class<IReactor> actualClass = (Class<IReactor>) urlClassLoader.loadClass(className);
 
 					String reactorName = classes.get(classIndex).getSimpleName();
@@ -325,7 +350,7 @@ public class ProjectReactorHelper {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load reactors from JARs for project '{}'", project.getProjectId(), e);
 		}
 
 		return reactorsMap;
@@ -354,7 +379,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new JarClassLoader();
+			mvnClassLoader = new SemossJarClassLoader(Map.of());
 
 			// classes are in
 			// appRoot / classes
@@ -448,17 +473,20 @@ public class ProjectReactorHelper {
 
 			return finalCP;
 		} catch (MavenInvocationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Maven invocation failed while resolving dependencies for pom '{}'",
+					pomFile.getAbsolutePath(), e);
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Maven dependency output file not found for pom '{}'", pomFile.getAbsolutePath(), e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("IO error while reading Maven dependency output for pom '{}'", pomFile.getAbsolutePath(),
+					e);
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close Maven dependency output reader for pom '{}'",
+							pomFile.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -484,7 +512,7 @@ public class ProjectReactorHelper {
 			try {
 				urlClassLoader.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close URL classloader for project '{}'", project.getProjectId(), e);
 			}
 		}
 
@@ -494,17 +522,28 @@ public class ProjectReactorHelper {
 	}
 
 	/**
+	 * Returns true if the fully-qualified class name falls inside the protected
+	 * prerna.* namespace. Custom reactors must not declare themselves in this
+	 * namespace because doing so would spoof the StackWalker package check in
+	 * SystemEngineRegistry and grant them unauthorised access to system engines.
+	 */
+	private static boolean isProtectedPackage(String className) {
+		return className.startsWith(PROTECTED_PACKAGE_PREFIX);
+	}
+
+	/**
 	 * Checks if a given class is a valid reactor. A valid reactor is a class that
 	 * implements the IReactor interface or extends a known reactor base class.
 	 *
 	 * @param classObject The ClassInfo object representing the class to check.
 	 * @return true if the class is a valid reactor, false otherwise.
 	 */
-	public static boolean isValidReactor(ClassInfo classObject) {
+	private static boolean isValidReactor(ClassInfo classObject) {
 		String className = classObject.getName();
 		if (className.equals(AbstractRFrameReactor.class.getName())
 				|| className.equals(AbstractPyFrameReactor.class.getName())
 				|| className.equals(AbstractFrameReactor.class.getName())
+				|| className.equals(TaskBuilderReactor.class.getName())
 				|| className.equals(AbstractReactor.class.getName()) || className.equals(IReactor.class.getName())
 				|| className.equals(prerna.sablecc2.reactor.AbstractReactor.class.getName())) {
 			return true;

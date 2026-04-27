@@ -49,6 +49,7 @@ import com.google.gson.ToNumberPolicy;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -60,8 +61,8 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
@@ -96,6 +97,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static Set<String> getMatchingGroupsByType(Collection<String> groupIds, String groupType) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Set<String> results = new HashSet<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -111,7 +113,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve matching groups by type.", e);
 			throw e;
 		}
 
@@ -127,6 +129,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Connection conn = null;
 		try {
 			conn = securityDb.getConnection();
@@ -151,7 +154,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add group.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -166,6 +169,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void deleteGroupAndPropagate(String groupId, String groupType) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
@@ -214,7 +218,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -234,6 +238,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	@Deprecated
 	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newGroupType, String newDescription) throws Exception {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
@@ -288,7 +294,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -306,6 +312,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void editGroupDetailsAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
 			String newDescription) throws Exception {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
@@ -369,7 +377,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -385,6 +393,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate)
 			throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
@@ -428,7 +437,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -443,6 +452,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
@@ -466,7 +476,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove user from group.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -498,6 +508,46 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
+	}
+
+	/**
+	 * Get specific group details
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getGroupDetails(String groupId, String groupType) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERID", "CREATED_BY_USERID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__USERIDTYPE", "CREATED_BY_USERIDTYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DATEADDED"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
+
+		List<Map<String, Object>> group = getSimpleQuery(qs);
+		if (group != null && !group.isEmpty()) {
+			return group.get(0);
+		}
+
+		throw new IllegalArgumentException("Group " + groupId + " does not exist");
+	}
+
+	/**
+	 * Get number of groups
+	 * 
+	 * @return
+	 */
+	public Long getNumGroups(String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_GROUP__ID", "numGroups"));
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 	/**
@@ -555,6 +605,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumMembersInGroup(String groupId, String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
@@ -633,6 +684,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumNonMembersInGroup(String groupId, String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, "CUSTOM")) {
 			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
 		}
@@ -674,6 +726,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission,
 			String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -713,7 +766,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -731,6 +784,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId,
 			int permission, String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int curPermission = groupProjectPermission(groupId, groupType, projectId);
 		if (curPermission == -1) {
 			throw new IllegalArgumentException(
@@ -771,7 +825,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -786,6 +840,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int curPermission = groupProjectPermission(groupId, groupType, projectId);
 		if (curPermission == -1) {
 			throw new IllegalArgumentException(
@@ -805,7 +860,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove group project permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -823,6 +878,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getProjectsForGroup(String groupId, String groupType, String searchTerm,
 			long limit, long offset, boolean onlyApps) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -903,6 +959,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -951,6 +1008,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getAvailableProjectsForGroup(String groupId, String groupType, String searchTerm,
 			long limit, long offset, boolean onlyApps) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1032,6 +1090,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1083,6 +1142,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1123,7 +1183,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1141,6 +1201,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if (curPermission == -1) {
 			throw new IllegalArgumentException(
@@ -1181,7 +1242,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1196,6 +1257,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int curPermission = groupEnginePermission(groupId, groupType, engineId);
 		if (curPermission == -1) {
 			throw new IllegalArgumentException(
@@ -1215,7 +1277,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove group engine permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1233,6 +1295,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit,
 			long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1297,6 +1360,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1334,6 +1398,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public List<Map<String, Object>> getAvailableEnginesForGroup(String groupId, String groupType, String searchTerm,
 			long limit, long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1399,6 +1464,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public Long getNumAvailableEnginesForGroup(String groupId, String groupType, String searchTerm) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
 		}
@@ -1439,6 +1505,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getUserCustomGroups(AccessToken accessToken) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> groups = new ArrayList<>();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
@@ -1454,7 +1521,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user custom groups.", e);
 		}
 		return groups;
 	}
@@ -1473,6 +1540,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public boolean userInCustomGroup(String groupId, String userId, String userType) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
@@ -1484,7 +1552,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user belongs to the custom group.", e);
 		}
 
 		return false;
@@ -1498,6 +1566,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 
 	public boolean groupExists(String groupId, String groupType) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
@@ -1507,7 +1576,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the group exists.", e);
 		}
 
 		return false;
@@ -1521,6 +1590,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 
 	public boolean isCustomGroup(String groupId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
@@ -1531,7 +1601,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the group is custom.", e);
 		}
 
 		return false;
@@ -1544,6 +1614,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public boolean userExists(String userId, String userType) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
@@ -1554,7 +1625,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
 		return false;
@@ -1568,6 +1639,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public int groupProjectPermission(String groupId, String groupType, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupId));
@@ -1579,7 +1651,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group permission for the project.", e);
 		}
 
 		return -1;
@@ -1593,6 +1665,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public int groupEnginePermission(String groupId, String groupType, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
@@ -1603,7 +1676,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group permission for the engine.", e);
 		}
 
 		return -1;

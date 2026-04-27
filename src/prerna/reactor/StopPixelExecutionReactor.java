@@ -29,7 +29,8 @@ package prerna.reactor;
 
 import prerna.auth.User;
 import prerna.sablecc2.comm.PixelJobManager;
-import prerna.sablecc2.comm.PixelJobThread;
+import prerna.sablecc2.comm.PixelJobManager.InterruptResult;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -37,42 +38,69 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
 
 public class StopPixelExecutionReactor extends AbstractReactor {
-			
+
 	public StopPixelExecutionReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ID.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		
 		this.organizeKeys();
-		
+
 		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
-		
 		PixelJobManager jobManager = PixelJobManager.getManager();
-		
-		jobManager.interruptThread(jobId);
-		jobManager.clearJob(jobId);
-		PixelJobThread pjt = jobManager.removeJob(jobId);
-		
-		SocketClient pySocketClient = user.getPythonSocketClient(false);
-		if(pySocketClient != null) {
-			pySocketClient.interruptInsight(pjt.getInsight().getInsightId());
+		PixelJobRunner jobRunner = jobManager.getJob(jobId);
+		String insightId = null;
+		if (jobRunner != null && jobRunner.getInsight() != null) {
+			insightId = jobRunner.getInsight().getInsightId();
 		}
-		
-		return new NounMetadata("Pixel operation ended", PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
+
+		InterruptResult interruptResult = jobManager.interruptThread(jobId);
+
+		User user = this.insight.getUser();
+		SocketClient pySocketClient = user == null ? null : user.getPythonSocketClient(false);
+		if (pySocketClient != null && (insightId != null || jobId != null)) {
+			pySocketClient.interruptInsightJob(insightId, jobId);
+		}
+
+		if (jobRunner == null) {
+			jobManager.clearJob(jobId);
+		} else {
+			final PixelJobRunner jobThread = jobRunner;
+			Thread cleanupThread = new Thread(() -> {
+				try {
+					jobThread.joinExecution();
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				} finally {
+					jobManager.clearJob(jobId);
+					jobManager.removeJob(jobId);
+				}
+			}, "pixel-job-cleanup-" + jobId);
+			cleanupThread.setDaemon(true);
+			cleanupThread.start();
+		}
+
+		String message;
+		if (interruptResult == InterruptResult.CANCEL_REQUESTED) {
+			message = "Cancel requested for pixel job " + jobId;
+		} else if (interruptResult == InterruptResult.ALREADY_DONE) {
+			message = "Pixel job " + jobId + " already completed";
+		} else {
+			message = "Pixel job " + jobId + " not found";
+		}
+		return new NounMetadata(message, PixelDataType.CONST_STRING, PixelOperationType.OPERATION);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "Stop the current execution of a pixel job";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey()) ) {
+		if (key.equalsIgnoreCase(ReactorKeysEnum.ID.getKey())) {
 			return "The id for the job. If running the pixel synchronously, the job id will be the same as the insight id.";
 		}
 		return super.getDescriptionForKey(key);

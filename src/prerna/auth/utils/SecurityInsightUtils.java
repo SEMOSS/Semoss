@@ -59,6 +59,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -82,6 +83,7 @@ import prerna.sablecc2.parser.ParserException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -96,6 +98,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Insight getInsight(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
@@ -151,7 +154,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						breakdown = PixelUtility.parsePixel(pixelString);
 						pixelList.addAll(breakdown);
 					} catch (ParserException | LexerException | IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to retrieve insight.", e);
 						throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 					}
 				}
@@ -163,7 +166,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return in;
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Unable to retrieve insight.", e1);
 		}
 		return null;
 	}
@@ -176,6 +179,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String insightNameExists(String projectId, String insightName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
@@ -191,7 +195,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the insight name exists.", e);
 		}
 
 		return null;
@@ -204,6 +208,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getInsightSchemaName(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__SCHEMANAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
@@ -214,7 +219,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve insight schema name.", e);
 		}
 
 		return null;
@@ -227,6 +232,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String makeInsightSchemaNameUnique(String projectId, String schemaName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first clean up
 		if (schemaName == null) {
 			return null;
@@ -258,7 +264,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					testSchemaName = schemaName + "_" + (counter++);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to generate a unique insight schema name.", e);
 			}
 
 		} while (true);
@@ -272,6 +278,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean insightNameExistsMinusId(String projectId, String insightName, String currInsightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		QueryFunctionSelector fun = new QueryFunctionSelector();
@@ -286,7 +293,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the insight name already exists for another insight.", e);
 		}
 
 		return false;
@@ -310,6 +317,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllInsightIds() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -324,6 +332,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getUserInsightIdList(User user, boolean includeGlobal, boolean includeExistingAccess) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insightPrefix = "INSIGHT__";
 		String projectPrefix = "PROJECT__";
 		String userInsightPermissionPrefix = "USERINSIGHTPERMISSION__";
@@ -475,6 +484,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserEditableInsights(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String permission = SecurityUserProjectUtils.getActualUserProjectPermission(user, projectId);
 		if (permission == null || permission.equals(AccessPermissionEnum.READ_ONLY.getPermission())) {
 			return new ArrayList<>();
@@ -534,6 +544,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserInsightPermission(String singleUserId, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND USERID='" + singleUserId + "'";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -552,7 +563,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user insight permission.", e);
 		}
 
 		return null;
@@ -576,7 +587,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user insight permission.", e);
 		}
 		return retMap;
 	}
@@ -590,6 +601,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getUserInsightPermissionsWrapper(List<String> userIds, String projectId,
 			String insightId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -607,6 +619,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean insightIsGlobal(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT INSIGHT.GLOBAL FROM INSIGHT  "
 //				+ "WHERE ENGINEID='" + engineId + "' AND INSIGHTID='" + insightId + "' AND INSIGHT.GLOBAL=TRUE";
 //		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
@@ -623,7 +636,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the insight is global.", e);
 		}
 		return false;
 	}
@@ -718,6 +731,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void setInsightGlobalWithinProject(User user, String projectId, String insightId, boolean isPublic)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!userIsInsightOwner(user, projectId, insightId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this insight as global. Only the owner or an admin can perform this action.");
@@ -736,7 +750,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -821,6 +835,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void addInsight(String projectId, String insightId, String insightName, boolean global, String layout,
 			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
 			List<String> recipe, String schemaName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -869,7 +884,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -882,6 +897,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void addUserInsightCreator(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		List<AuthProvider> logins = user.getLogins();
 		int ownerId = AccessPermissionEnum.OWNER.getId();
@@ -907,7 +923,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add user insight creator.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -929,6 +945,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static void updateInsight(String projectId, String insightId, String insightName, boolean global,
 			String layout, boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn,
 			boolean cacheEncrypt, List<String> recipe, String schemaName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
 				+ "RECIPE=?, SCHEMANAME=? WHERE INSIGHTID = ? AND PROJECTID=?";
@@ -975,7 +992,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add user insight creator.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -989,6 +1006,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightName
 	 */
 	public static void updateInsightName(String projectId, String insightId, String insightName) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
@@ -1005,7 +1023,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight name.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1022,6 +1040,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes,
 			String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
@@ -1050,7 +1069,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight name.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1066,6 +1085,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheEncrypt
 	 */
 	public static void updateInsightCachedOn(String projectId, String insightId, ZonedDateTime cachedOn) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE INSIGHT SET CACHEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -1083,7 +1103,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight cached on.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1098,6 +1118,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param metadata
 	 */
 	public static void updateInsightMetadata(String projectId, String insightId, Map<String, Object> metadata) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1115,7 +1136,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1154,7 +1175,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1169,6 +1190,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param description
 	 */
 	public static void updateInsightDescription(String projectId, String insightId, String description) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// try to do an update
 		// if nothing is updated
 		// do an insert
@@ -1191,7 +1213,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			updateCount = ps.getUpdateCount();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight description.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1212,7 +1234,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update insight description.", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1228,6 +1250,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param tags
 	 */
 	public static void updateInsightTags(String projectId, String insightId, List<String> tags) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		final String metaKey = "tag";
 		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
@@ -1243,7 +1266,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1270,7 +1293,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1285,6 +1308,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param tags
 	 */
 	public static void updateInsightTags(String projectId, String insightId, String[] tags) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		final String metaKey = "tag";
 		String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
@@ -1300,7 +1324,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1326,7 +1350,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1340,6 +1364,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightFrames
 	 */
 	public static void updateInsightFrames(String projectId, String insightId, Set<ITableDataFrame> insightFrames) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String query = "DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?";
 		PreparedStatement ps = null;
@@ -1353,7 +1378,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight frames.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1401,7 +1426,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight frames.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1434,23 +1459,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param insightId
 	 */
-	public static void updateExecutionCount(String projectId, String insightId) {
-		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, insightId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
+	public static void updateExecutionCountAsync(String projectId, String insightId) {
+		Thread.ofVirtual().start(() -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				classLogger.error("Unable to update execution count for project '{}' insight '{}'", projectId,
+						insightId, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		});
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1468,6 +1497,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void addInsightUser(User user, String newUserId, String projectId, String insightId,
 			String permission, String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -1518,7 +1548,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1537,6 +1567,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId,
 			String newPermission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -1597,7 +1628,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1615,6 +1646,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void editInsightUserPermissions(User user, String projectId, String insightId,
 			List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the database
@@ -1680,7 +1712,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1697,6 +1729,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeInsightUser(User user, String existingUserId, String projectId, String insightId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -1734,7 +1767,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1768,6 +1801,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> searchUserInsights(User user, List<String> projectFilter, String searchTerm,
 			Boolean favoritesOnly, QueryColumnOrderBySelector sortBy, Map<String, Object> insightMetadataFilter,
 			String limit, String offset) {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		Collection<String> userIds = getUserFiltersQs(user);
 		// if we have filters
@@ -2208,7 +2243,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 //		}
 //		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//			SystemEngineRegistry.getSecurityDb().getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 //		}
 ////		// if we have tag filters
 ////		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -2247,7 +2282,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //			}
 //		}
 //		
-//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+//		return QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(), qs);
 //	}
 
 	/**
@@ -2263,6 +2298,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static SelectQueryStruct searchUserInsightsUsage(User user, List<String> projectFilter, String searchTerm,
 			List<String> tags) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean hasEngineFilters = projectFilter != null && !projectFilter.isEmpty();
 
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -2402,7 +2438,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectFilter));
 //		}
 //		if(searchTerm != null && !searchTerm.trim().isEmpty()) {
-//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
+//			SystemEngineRegistry.getSecurityDb().getQueryUtil().appendSearchRegexFilter(qs, "INSIGHT__INSIGHTNAME", searchTerm);
 //		}
 //		// if we have tag filters
 //		boolean tagFiltering = tags != null && !tags.isEmpty();
@@ -2431,6 +2467,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getInsightMetadataWrapper(String projectId, Collection<String> insightIds,
 			List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
@@ -2449,7 +2486,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 		return wrapper;
 	}
@@ -2464,6 +2501,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getInsightMetadataWrapper(Map<String, List<String>> projectToInsightMap,
 			List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
@@ -2493,7 +2531,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 		return wrapper;
 	}
@@ -2508,6 +2546,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Object> getSpecificInsightMetadata(String projectId, String insightId,
 			List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__PROJECTID"));
@@ -2548,7 +2587,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 
 		return retMap;
@@ -2562,6 +2601,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, Object> getSpecificInsightCacheDetails(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHT__CACHEABLE"));
@@ -2596,7 +2636,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put("cacheEncrypt", cacheEncrypt);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the cache details for the requested insight.", e);
 		}
 
 		return retMap;
@@ -2609,6 +2649,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAvailableInsightTagsAndCounts(List<String> projectFilters) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAVALUE", "tag"));
@@ -2648,6 +2689,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Object[]> getInsightFrames(String projectId, String insightId, String frameNamePattern) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTFRAMES__INSIGHTID"));
@@ -2687,6 +2729,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> predictUserInsightSearch(User user, String searchTerm, String limit, String offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String userFilters = getUserFilters(user);
 //
 //		String query = "SELECT DISTINCT "
@@ -2752,6 +2795,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	public static List<String> predictInsightSearch(String searchTerm, String limit, String offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 //		String query = "SELECT DISTINCT "
 //				+ "INSIGHT.INSIGHTNAME as \"name\", "
 //				+ "LOWER(INSIGHT.INSIGHTNAME) as \"low_name\" "
@@ -2807,6 +2851,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void copyInsightPermissions(String sourceProjectId, String sourceInsightId, String targetProjectId,
 			String targetInsightId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (PROJECTID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
 		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb
 				.getPreparedStatement(insertTargetAppInsightPermissionSql);
@@ -2835,7 +2880,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertTargetAppInsightPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to generate insight search suggestions.", e);
 			throw e;
 		}
 
@@ -2862,6 +2907,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getInsightUsersNoCredentials(User user, String projectId, String insightId,
 			String searchTerm, long limit, long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * Security check to ensure the user can access the insight provided.
 		 */
@@ -2917,6 +2963,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<String> getAllMetakeys() {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__METAKEY"));
 		List<String> metakeys = QueryExecutionUtility.flushToListString(securityDb, qs);
@@ -2929,6 +2976,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getMetakeyOptions(String metakey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__METAKEY", "metakey"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETAKEYS__SINGLEMULTI", "single_multi"));
@@ -2947,6 +2995,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean updateMetakeyOptions(List<Map<String, Object>> metaoptions) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean valid = false;
 		PreparedStatement insertPs = null;
 		String tableName = "INSIGHTMETAKEYS";
@@ -2970,7 +3019,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update metakey options.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -2985,6 +3034,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getAvailableMetaValues(List<String> insightFilter, List<String> metaKeys) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// selectors
 		qs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAKEY"));
@@ -3016,6 +3066,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void addInsightUserPermissions(User user, String projectId, String insightId,
 			List<Map<String, String>> permission, String endDate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user can edit the insight
@@ -3073,7 +3124,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve available metadata values.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3087,6 +3138,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeInsightUsers(User user, List<String> existingUserIds, String projectId, String insightId)
 			throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the insight
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3126,7 +3178,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve available metadata values.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3140,6 +3192,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static void removeExpiredInsightUser(String userId, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		PreparedStatement ps = null;
 		try {
@@ -3169,6 +3222,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId,
 			List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		// make sure user has right permission level to approve access requests
@@ -3215,7 +3269,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
@@ -3245,7 +3299,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3274,7 +3328,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -3293,6 +3347,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void denyInsightUserAccessRequests(User user, String projectId, String insightId,
 			List<String> requestIdList) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user has right permission level to approve access requests
 		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
 		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -3327,7 +3382,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -3344,6 +3399,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserAccessRequestInsightPermission(String userId, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__PERMISSION"));
 		qs.addExplicitFilter(
@@ -3363,6 +3419,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserAccessRequestsByInsight(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__ID"));
 		qs.addSelector(new QueryColumnSelector("INSIGHTACCESSREQUEST__REQUEST_USERID"));
@@ -3397,6 +3454,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static List<String> getInsightOwners(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
@@ -3415,6 +3473,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getInsightAliasForId(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
@@ -3439,6 +3498,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void setUserAccessRequest(String userId, String userType, String projectId, String requestReason,
 			String insightId, int permission, User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// first do a delete
 		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_DECISION = 'OLD' WHERE REQUEST_USERID=? AND REQUEST_TYPE=? AND PROJECTID=? AND INSIGHTID=? AND APPROVER_DECISION='NEW_REQUEST'";
 		PreparedStatement updatePs = null;
@@ -3456,7 +3516,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while marking old user access request with detailed message = "
 							+ e.getMessage());
@@ -3491,7 +3551,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {

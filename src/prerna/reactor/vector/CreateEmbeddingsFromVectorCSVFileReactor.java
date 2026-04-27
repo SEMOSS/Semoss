@@ -66,17 +66,18 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	private final String FILE_PATHS_KEY = "filePaths";
 
 	public CreateEmbeddingsFromVectorCSVFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, 
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey()};
-		this.keyRequired = new int[] {1, 1, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FILE_PATHS_KEY, ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Vector db " + engineId + " does not exist or user does not have access to this engine");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Vector db " + engineId + " does not exist or user does not have access to this engine");
 		}
 
 		IVectorDatabaseEngine vectorDatabase = Utility.getVectorDatabase(engineId);
@@ -85,14 +86,14 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
-		// check user has access to any embedding models as well 
+
+		// check user has access to any embedding models as well
 		// this actually throws an error
 		// but will wrap in if statement just in case
-		if(!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
+		if (!vectorDatabase.userCanAccessEmbeddingModels(this.insight.getUser())) {
 			throw new IllegalArgumentException("User does not have access to all the vector database dependent models");
 		}
 
@@ -107,10 +108,11 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		try {
 			getFiles(rootFolder, validFiles, invalidFiles);
 			if (validFiles.isEmpty()) {
-				throw new IllegalArgumentException("Please provide valid input files using \"filePaths\". This method assumes a valid csv file format");
+				throw new IllegalArgumentException(
+						"Please provide valid input files using \"filePaths\". This method assumes a valid csv file format");
 			}
 
-			for (String filePath: validFiles) {
+			for (String filePath : validFiles) {
 				File file = new File(Utility.normalizePath(filePath));
 				// Check if the file exists
 				if (!file.exists()) {
@@ -120,38 +122,41 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
 			fileStatusList = vectorDatabase.addEmbeddings(validFiles, insight, paramMap);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error creating embeddings from vector CSV files for engine {}", engineId, e);
 			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
 		}
 
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		if(!invalidFiles.isEmpty()) {
+		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.OPERATION);
+		if (!invalidFiles.isEmpty()) {
 			List<String> invalidFileNamesRelative = new ArrayList<>(invalidFiles.size());
-			for(String invalidF : invalidFiles) {
+			for (String invalidF : invalidFiles) {
 				invalidFileNamesRelative.add(invalidF.replace(rootFolder, ""));
 			}
-			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
+			noun.addAdditionalReturn(NounMetadata
+					.getWarningNounMessage("Unable to upload " + String.join(", ", invalidFileNamesRelative)));
 		}
 		return noun;
 	}
 
 	/**
 	 * Get the map from the paramValues noun store
+	 * 
 	 * @return list of engines to delete
 	 */
 	private Map<String, Object> getMap() {
 		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if(mapInputs != null && !mapInputs.isEmpty()) {
+		if (mapInputs != null && !mapInputs.isEmpty()) {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
-		
+
 		return null;
 	}
 
@@ -173,8 +178,8 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 					File zipFileExtractFolder = new File(insightFolder, PATH_TO_UNZIP_FILES);
 					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
 				} else {
-					//String filePath = destDirectory + File.separator + entry.getName();
-					if(isSupportedFileType(filePath)) {
+					// String filePath = destDirectory + File.separator + entry.getName();
+					if (isSupportedFileType(filePath)) {
 						validFiles.add(filePath);
 					} else {
 						invalidFiles.add(filePath);
@@ -185,8 +190,8 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Recursively go through all the zips, directories and files in a zip file and save the paths of 
-	 * valid file types
+	 * Recursively go through all the zips, directories and files in a zip file and
+	 * save the paths of valid file types
 	 * 
 	 * @param zipFilePath
 	 * @param destDirectory
@@ -194,7 +199,8 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @param invalidFiles
 	 * @throws IOException
 	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles, List<String> invalidFiles) throws IOException {
+	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
+			List<String> invalidFiles) throws IOException {
 		File destDir = new File(Utility.normalizePath(destDirectory));
 		if (!destDir.exists()) {
 			destDir.mkdir();
@@ -206,7 +212,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 			while (entry != null) {
 				String filePath = destDirectory + "/" + entry.getName();
 				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
-					if(isSupportedFileType(filePath)) {
+					if (isSupportedFileType(filePath)) {
 						extractFile(zipIn, filePath);
 						validFiles.add(filePath);
 					} else {
@@ -221,21 +227,21 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
 					// Check if the entry is not in the root directory
 					String parentPath = null;
-					if(filePath.contains("/")) { // ZIP entries use "/" as a separator
+					if (filePath.contains("/")) { // ZIP entries use "/" as a separator
 						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
 					}
 
 					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/") 
-							? filePath.substring(filePath.lastIndexOf('/') + 1) 
-									: filePath;
+					String fileNameWithExtension = filePath.contains("/")
+							? filePath.substring(filePath.lastIndexOf('/') + 1)
+							: filePath;
 
-							// Remove the extension
-							String baseName = fileNameWithExtension.contains(".") 
-									? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.')) 
-											: fileNameWithExtension;
+					// Remove the extension
+					String baseName = fileNameWithExtension.contains(".")
+							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
+							: fileNameWithExtension;
 
-									unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
 				}
 
 				zipIn.closeEntry();
@@ -243,7 +249,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -254,7 +260,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		if (spaceGrs != null && !spaceGrs.isEmpty()) {
 			space = spaceGrs.get(0).toString();
 		}
-		
+
 		return AssetUtility.getRootFolderPath(this.insight, space, false);
 	}
 
@@ -286,7 +292,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 			String extension = filePath.substring(dotIndex + 1).toLowerCase();
 			return extension.equals("csv");
 		}
-		
+
 		return false;
 	}
 
@@ -295,7 +301,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @param filePath
 	 * @return
 	 */
-	private boolean isZipFile(String filePath) {        
+	private boolean isZipFile(String filePath) {
 		// Find the last index of '.'
 		int dotIndex = filePath.lastIndexOf('.');
 
@@ -315,7 +321,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 					if (mimeType.equalsIgnoreCase("application/zip")) {
 						return true;
 					}
-				} 
+				}
 
 				return false;
 			} catch (IOException e) {
@@ -326,26 +332,49 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return """
+				Creates embeddings from VectorCSVFile-formatted csv files and adds them to a vector database. \
+				Accepts csv files directly or zip archives containing csv files. \
+				Expected csv headers are: Source, Modality, Divider, Part, Tokens, Content. \
+				Header names should match exactly as shown (case-sensitive). \
+				Standard CSV quoting is supported, but quotes are optional unless a value contains commas, newlines, or quotes. \
+				`Tokens` should be numeric, and `Modality` is typically `text` but can be `image`, `audio`, `video`, etc. \
+				Relative file paths are resolved from the current insight/room space by default, \
+				or from another space when the optional `space` parameter is provided.\
+				""";
+	}
+
+	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to add embeddings into.";
+		} else if (key.equals(FILE_PATHS_KEY)) {
+			return """
+					The list of csv file paths (or zip files containing csv files) to process. \
+					Each csv should include headers: Source, Modality, Divider, Part, Tokens, Content. \
+					Use these header names exactly (case-sensitive). \
+					CSV field quotes are optional unless needed for commas/newlines/quotes. \
+					Paths are resolved relative to the selected `space` \
+					(or current insight when `space` is omitted).\
+					""";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return """
+					Optional space used to resolve relative file paths. \
+					When omitted, files are resolved from the current insight/room space. \
+					Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
+					""";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
 			for (CreateEmbeddingsParamOptions entry : CreateEmbeddingsParamOptions.values()) {
-				finalDescription.append("\n")
-				.append("\t\t\t\t\t")
-				.append(entry.getVectorDbType().getVectorDatabaseName())
-				.append(":");
+				finalDescription.append("\n").append("\t\t\t\t\t")
+						.append(entry.getVectorDbType().getVectorDatabaseName()).append(":");
 
 				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n")
-					.append("\t\t\t\t\t\t")
-					.append(paramKey)
-					.append("\t")
-					.append("-")
-					.append("\t")
-					.append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-					.append(" ")
-					.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
+					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
+							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
+							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 				}
 			}
 			return finalDescription.toString();

@@ -52,6 +52,12 @@ public class GetExcelFormReactor extends AbstractReactor {
 				ReactorKeysEnum.SHEET_NAME.getKey() };
 	}
 
+	/**
+	 * Builds insert-form metadata from Excel data validations for the requested
+	 * sheet(s).
+	 *
+	 * @return map of sheet name to generated form metadata
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();

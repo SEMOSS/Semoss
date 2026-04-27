@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
+from google.genai import Client as GoogleGenAIClient
 from ...clients.google_clients import (
     GoogleClient,
     GoogleClientConfig,
@@ -38,6 +39,8 @@ class StreamingResponse(BaseModel):
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
+    client: GoogleGenAIClient
+
     def __init__(
         self,
         service_account_credentials: Optional[Dict] = None,
@@ -180,7 +183,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if text_response:
                 parts.append({"type": "TEXT", "text": text_response})
             for media_info in image_data or []:
-                parts.append({"type": "MEDIA", "mediaInfo": media_info})
+                parts.append({"type": "MEDIA", "media_info": media_info})
 
             return AskModelEngineResponse2(
                 response=text_response,
@@ -210,17 +213,36 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prompt_tokens: int,
     ) -> AskModelEngineResponse2:
         tools_result = []
-        for i, function_call in enumerate(response.function_calls):
-            function_id = str(i)
 
-            tools_result.append(
-                {
-                    "id": function_id,
-                    "type": "function",
-                    "name": function_call.name,
-                    "arguments": getattr(function_call, "args", {}),
-                }
-            )
+        parts_with_fc = []
+        if (
+            hasattr(response, "candidates")
+            and response.candidates
+            and hasattr(response.candidates[0], "content")
+            and getattr(response.candidates[0].content, "parts", None)
+        ):
+            parts_with_fc = [
+                p
+                for p in response.candidates[0].content.parts
+                if getattr(p, "function_call", None) is not None
+            ]
+
+        for i, function_call in enumerate(response.function_calls):
+            function_id = function_call.id or str(uuid.uuid4())
+            tool_entry = {
+                "id": function_id,
+                "type": "function",
+                "name": function_call.name,
+                "arguments": getattr(function_call, "args", {}),
+            }
+            if i < len(parts_with_fc):
+                ts = getattr(parts_with_fc[i], "thought_signature", None)
+                if ts:
+                    tool_entry["thought_signature"] = base64.b64encode(ts).decode(
+                        "utf-8"
+                    )
+            tools_result.append(tool_entry)
+
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
@@ -228,7 +250,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "toolCall": t} for t in tools_result],
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _handle_streaming(
@@ -256,20 +278,25 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         )
 
         for event in stream:
+            parts_with_fc = []
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
                     latest_grounding_metadata = candidate.grounding_metadata
-                if hasattr(candidate, "content") and hasattr(
-                    candidate.content, "parts"
+                if hasattr(candidate, "content") and getattr(
+                    candidate.content, "parts", None
                 ):
                     for part in candidate.content.parts:
                         if (
                             hasattr(part, "thought")
                             and part.thought
                             and hasattr(part, "text")
+                            and part.text
                         ):
                             thinking_response += part.text
+                            data = StreamUtil.create_thinking_chunk(part.text)
+                            smss_stream(data, stream_type="thinking")
+                            print(prefix + part.text, end="", flush=True)
                         if part.inline_data:
                             image_data.append(
                                 self._create_media_info(
@@ -277,6 +304,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                                     image_bytes=part.inline_data.data,
                                 )
                             )
+                        if getattr(part, "function_call", None) is not None:
+                            parts_with_fc.append(part)
 
             if event.text:
                 this_content_block["final_response"] = ""
@@ -305,7 +334,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(i)
+                    function_id = function_call.id or str(uuid.uuid4())
                     this_content_block.update(
                         {
                             "id": function_id,
@@ -316,7 +345,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     this_content_block["function"]["name"] = function_call.name
 
                     data = StreamUtil.create_tool_id_chunk(
-                        index=len(tool_result), tool_id=function_call.id
+                        index=len(tool_result), tool_id=function_id
                     )
                     smss_stream(data, stream_type="tool")
                     print(prefix + str(data), end="")
@@ -351,14 +380,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         except Exception:
                             arguments = this_content_block["function"]["arguments"]
 
-                    tool_result.append(
-                        {
-                            "id": this_content_block["id"],
-                            "type": this_content_block["type"],
-                            "name": this_content_block["function"]["name"],
-                            "arguments": arguments,
-                        }
-                    )
+                    tool_entry = {
+                        "id": this_content_block["id"],
+                        "type": this_content_block["type"],
+                        "name": this_content_block["function"]["name"],
+                        "arguments": arguments,
+                    }
+                    if i < len(parts_with_fc):
+                        ts = getattr(parts_with_fc[i], "thought_signature", None)
+                        if ts:
+                            tool_entry["thought_signature"] = base64.b64encode(
+                                ts
+                            ).decode("utf-8")
+                    tool_result.append(tool_entry)
 
                     content_array.append(this_content_block)
                     this_content_block = {}
@@ -388,7 +422,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             {"type": "THINKING", "thinking": thinking_response}
                         )
                     for media_info in image_data or []:
-                        parts.append({"type": "MEDIA", "mediaInfo": media_info})
+                        parts.append({"type": "MEDIA", "media_info": media_info})
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
@@ -403,8 +437,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if thinking_response:
                 parts.append({"type": "THINKING", "thinking": thinking_response})
             for media_info in image_data or []:
-                parts.append({"type": "MEDIA", "mediaInfo": media_info})
-            parts.extend([{"type": "TOOL_CALL", "toolCall": t} for t in tool_result])
+                parts.append({"type": "MEDIA", "media_info": media_info})
+            parts.extend([{"type": "TOOL_CALL", "tool_call": t} for t in tool_result])
 
             return AskModelEngineResponse2(
                 response=tool_result,
@@ -437,7 +471,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if final_text:
             parts.append({"type": "TEXT", "text": final_text})
         for media_info in image_data or []:
-            parts.append({"type": "MEDIA", "mediaInfo": media_info})
+            parts.append({"type": "MEDIA", "media_info": media_info})
 
         return AskModelEngineResponse2(
             response=final_text,
@@ -567,6 +601,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             chunks = response.candidates[0].grounding_metadata.grounding_chunks
         except Exception:
             return getattr(response, "text", "") or ""
+
+        if not supports or not chunks:
+            return text or ""
 
         # Sort supports by end_index in descending order to avoid shifting issues when inserting.
         sorted_supports = sorted(

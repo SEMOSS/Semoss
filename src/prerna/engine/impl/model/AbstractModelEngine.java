@@ -37,8 +37,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -51,7 +49,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -80,6 +77,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public static final String FULL_PROMPT = "full_prompt";
 	public static final String APPEND_FULL_PROMPT = "append_full_prompt";
 	public static final String CONTEXT_WINDOW = "context_window";
+
+	// the init script loading tells us the provider we are using
+	// but we also want to know what the model brand actually is
+	public static final String MODEL_BRAND = "MODEL_BRAND";
 
 	protected boolean keepConversationHistory = false;
 	protected int contextWindow = 0;
@@ -293,72 +294,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
 	 * 
-	 * @param task
-	 * @param context
-	 * @param insight
-	 * @param hyperParameters
-	 * @return
-	 */
-	protected abstract InstructModelEngineResponse instructCall(String task, String context,
-			List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters);
-
-	@Override
-	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData,
-			Insight insight, Map<String, Object> parameters) {
-		// do we have any usage restriction on the user
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
-
-		if (parameters == null) {
-			parameters = new HashMap<String, Object>();
-		}
-
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		InstructModelEngineResponse instructModelResponse = instructCall(task, context, projectData, insight,
-				parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
-
-		instructModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		instructModelResponse.setRoomId(insight.getInsightId());
-
-		// @formatter:off
-		if (inferenceLogsEnbaled) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/instructModelResponse.getMessageId(),
-					/*transactionId*/instructModelResponse.getMessageId(), 
-					/*messageMethod*/"instruct", 
-					/*engine*/this, 
-					/*insightId*/insight.getInsightId(),
-					/*projectContextId*/insight.getContextProjectId(),
-					/*projectId*/insight.getProjectId(),
-					/*user*/insight.getUser(),
-					/*sessionId*/ThreadStore.getSessionId(),
-					/*roomId*/ThreadStore.getInsightId(),
-					/*context*/context,
-					/*prompt*/null,
-					/*fullPrompt*/task,
-					/*promptTokens*/instructModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
-					/*response*/gson.toJson(instructModelResponse.getResponse()),
-					/*responseTokens*/instructModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
-					));
-			inferenceRecorder.start();
-		}
-		// @formatter:on
-
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, instructModelResponse,
-				inputTime, outputTime);
-
-		return instructModelResponse;
-	}
-
-	/**
-	 * This is an abstract method for the implementation class such that tracking
-	 * occurs
-	 * 
 	 * @param stringsToEmbed
 	 * @param insight
 	 * @param parameters
@@ -484,6 +419,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
+		// if we know the model brand
+		// return that for subtype
+		if (smssProp.containsKey(MODEL_BRAND)) {
+			return smssProp.getProperty(MODEL_BRAND);
+		}
+		// default to the model provider
 		return this.getModelType().toString();
 	}
 

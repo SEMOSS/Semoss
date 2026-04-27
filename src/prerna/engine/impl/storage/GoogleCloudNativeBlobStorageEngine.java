@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -49,8 +50,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import com.google.api.gax.paging.Page;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Blob;
@@ -59,7 +62,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.gson.Gson;
+
 import prerna.engine.api.StorageTypeEnum;
 import prerna.util.Utility;
 
@@ -70,11 +73,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	public static final String GCS_SERVICE_ACCOUNT_FILE_KEY = "GCS_SERVICE_ACCOUNT_FILE";
 	public static final String GCS_BUCKET_KEY = "GCS_BUCKET";
 	public static final String GCS_PROJECT_ID = "GCS_PROJECT_ID";
+
 	private transient String GCP_SERVICE_ACCOUNT_FILE = null;
 	private transient String BUCKET;
-	private String PROJECT_ID = null;
-	private Storage storage;
-	private Bucket bucket;
+	private transient String PROJECT_ID = null;
+	private transient Storage storage;
+	private transient Bucket bucket;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -103,7 +107,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			throw new IllegalArgumentException("Bucket does not exist: " + this.BUCKET);
 		}
 
-		classLogger.info("Successfully connected to GCS Bucket: " + this.BUCKET);
+		classLogger.info("Successfully connected to GCS Bucket: {}", this.BUCKET);
 
 	}
 
@@ -119,6 +123,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		return StorageTypeEnum.GOOGLE_CLOUD_NATIVE_STORAGE;
 	}
 
+	@Override
 	public byte[] readBlobToMemory(String storagePath) throws Exception {
 		Blob blob = this.bucket.get(storagePath);
 		if (blob == null) {
@@ -127,6 +132,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		return blob.getContent();
 	}
 
+	@Override
 	public void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
 		String normalizedPath = Utility.normalizePath(storagePath);
 		if (normalizedPath.startsWith("/")) {
@@ -143,36 +149,34 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		Map<String, String> flatMetadata = new HashMap<>();
-		Gson gson = new Gson();
 		for (Map.Entry<String, Object> entry : metadata.entrySet()) {
 			Object val = entry.getValue();
 			if (val instanceof String) {
 				flatMetadata.put(entry.getKey(), (String) val);
 			} else {
-				// Lists, Maps, etc. → JSON string
-				flatMetadata.put(entry.getKey(), gson.toJson(val));
+				// Lists, Maps, etc. JSON string
+				flatMetadata.put(entry.getKey(), GSON.toJson(val));
 			}
 		}
 
 		retryOperation(() -> {
 			storage.get(blobId).toBuilder().setMetadata(flatMetadata).build().update();
-			classLogger.info("Updated metadata for: " + blobPath);
+			classLogger.info("Updated metadata for: {}", blobPath);
 		}, "Updating metadata for: " + blobPath);
 	}
 
 	@Override
 	public List<String> list(String containerPrefix) throws Exception {
-		List<String> fileList = new ArrayList<>();
-		containerPrefix = Utility.normalizePath(containerPrefix);
-
-		if (containerPrefix.startsWith("/")) {
-			containerPrefix = containerPrefix.substring(1);
-		}
-		if (containerPrefix.endsWith("/")) {
-			containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
-		}
-		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-			fileList.add(blob.getName());
+		List<Map<String, Object>> details = listDetails(containerPrefix);
+		List<String> fileList = new ArrayList<>(details.size());
+		for (Map<String, Object> item : details) {
+			Object nameObj = item.get("Name");
+			if (nameObj == null) {
+				continue;
+			}
+			String name = nameObj.toString();
+			boolean isDir = Boolean.TRUE.equals(item.get("IsDir"));
+			fileList.add(isDir ? name + "/" : name);
 		}
 		return fileList;
 	}
@@ -180,39 +184,65 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	@Override
 	public List<Map<String, Object>> listDetails(String containerPrefix) throws Exception {
 		List<Map<String, Object>> detailsList = new ArrayList<>();
-		containerPrefix = Utility.normalizePath(containerPrefix);
+		containerPrefix = containerPrefix == null ? "" : Utility.normalizePath(containerPrefix);
 		if (containerPrefix.startsWith("/")) {
 			containerPrefix = containerPrefix.substring(1);
 		}
 		if (containerPrefix.endsWith("/")) {
 			containerPrefix = containerPrefix.substring(0, containerPrefix.length() - 1);
 		}
+		String prefix = containerPrefix.isEmpty() ? "" : containerPrefix + "/";
 
-		Gson gson = new Gson();
+		Page<Blob> page = prefix.isEmpty() ? this.bucket.list(Storage.BlobListOption.currentDirectory())
+				: this.bucket.list(Storage.BlobListOption.prefix(prefix), Storage.BlobListOption.currentDirectory());
 
-		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(containerPrefix)).iterateAll()) {
-			Map<String, Object> details = new HashMap<>();
-			details.put("name", blob.getName());
-			details.put("size", blob.getSize());
-			details.put("contentType", blob.getContentType());
-
-			Map<String, String> rawMetadata = blob.getMetadata();
-			if (rawMetadata != null && !rawMetadata.isEmpty()) {
-				Map<String, Object> parsed = new HashMap<>();
-				for (Map.Entry<String, String> entry : rawMetadata.entrySet()) {
-					try {
-						Object jsonVal = gson.fromJson(entry.getValue(), Object.class);
-						parsed.put(entry.getKey(), jsonVal);
-					} catch (Exception e) {
-						// Not valid JSON, keep as plain string
-						parsed.put(entry.getKey(), entry.getValue());
-					}
-				}
-				details.put("metadata", parsed);
-			} else {
-				details.put("metadata", Collections.emptyMap());
+		for (Blob blob : page.iterateAll()) {
+			String blobName = blob.getName();
+			if (blobName == null || blobName.equals(prefix)) {
+				continue;
+			}
+			String name = prefix.isEmpty() ? blobName : blobName.substring(prefix.length());
+			boolean isDir = blob.isDirectory();
+			if (name.endsWith("/")) {
+				name = name.substring(0, name.length() - 1);
+			}
+			if (name.isEmpty() || name.contains("/")) {
+				continue;
 			}
 
+			Map<String, Object> details = new HashMap<>();
+			details.put("Path", containerPrefix.isEmpty() ? "/" + name : "/" + containerPrefix + "/" + name);
+			details.put("Name", name);
+			details.put("IsDir", isDir);
+
+			if (isDir) {
+				details.put("Size", 0L);
+				details.put("MimeType", "inode/directory");
+				details.put("ModTime", null);
+				details.put("Metadata", Collections.emptyMap());
+			} else {
+				details.put("Size", blob.getSize());
+				details.put("MimeType", blob.getContentType());
+				Long updateTime = blob.getUpdateTime();
+				details.put("ModTime", updateTime == null ? null : Instant.ofEpochMilli(updateTime).toString());
+
+				Map<String, String> rawMetadata = blob.getMetadata();
+				if (rawMetadata != null && !rawMetadata.isEmpty()) {
+					Map<String, Object> parsed = new HashMap<>();
+					for (Map.Entry<String, String> entry : rawMetadata.entrySet()) {
+						try {
+							Object jsonVal = GSON.fromJson(entry.getValue(), Object.class);
+							parsed.put(entry.getKey(), jsonVal);
+						} catch (Exception e) {
+							// Not valid JSON, keep as plain string
+							parsed.put(entry.getKey(), entry.getValue());
+						}
+					}
+					details.put("Metadata", parsed);
+				} else {
+					details.put("Metadata", Collections.emptyMap());
+				}
+			}
 			detailsList.add(details);
 		}
 		return detailsList;
@@ -244,7 +274,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 					uploadedFiles.add(uploadingFileToGCS(file, localBasePath, storagePath, metadata));
 				} catch (Exception e) {
 					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: " + file, e);
+					classLogger.error("Failed to upload file: {}", file, e);
 				}
 			});
 			found = true;
@@ -254,10 +284,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			throw e;
 		}
 
-		classLogger.info(
-				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
-		classLogger.info(found ? "Sync completed successfully for: " + storagePath
-				: "No files found to sync for: " + storagePath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
@@ -267,11 +299,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
+		String requestedPath = normalizeStoragePrefixPath(storagePath);
 		// Delete empty blobs from GCS
-		deleteEmptyBlobs(storagePath);
-		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(storagePath)).iterateAll()) {
-			String relativePath = storagePath.isEmpty() ? blob.getName()
-					: blob.getName().substring(storagePath.length());
+		deleteEmptyBlobs(requestedPath);
+		for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(requestedPath)).iterateAll()) {
+			String relativePath = resolveRelativeStoragePath(blob.getName(), requestedPath);
+			if (relativePath == null) {
+				continue;
+			}
 			Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 			cloudFiles.add(localFilePath.toString());
 			Files.createDirectories(localFilePath.getParent());
@@ -296,18 +331,17 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 						try {
 							Files.write(localFilePath, blob.getContent());
 						} catch (IOException e) {
-							classLogger.error("Failed to write file: " + localFilePath, e);
+							classLogger.error("Failed to write file: {}", localFilePath, e);
 							throw new RuntimeException("Error writing file: " + localFilePath, e);
 						}
 					}, "Syncing file to local: " + blob.getName());
 					downloadedFiles.add(blob.getName());
-					classLogger.info(
-							fileExists ? "Updated file: " + localFilePath : "Downloaded new file: " + localFilePath);
+					classLogger.info(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 				}
 				found = true;
 			} catch (Exception e) {
-				failedFiles.add(blob.getName());
-				classLogger.error("Failed to sync file: " + blob.getName(), e);
+				failedFiles.add(relativePath);
+				classLogger.error("Failed to sync file: {}", blob.getName(), e);
 			}
 		}
 
@@ -316,23 +350,25 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
 					try {
 						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: " + localFile);
+						classLogger.info("Deleted extra local file: {}", localFile);
 					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: " + localFile, e);
+						classLogger.error("Failed to delete extra file: {}", localFile, e);
 					}
 				});
 
 		// Delete Empty Directories Locally
 		deleteEmptyDirectories(localDirectory);
 
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to sync. Rolling back...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
-		classLogger.info(found ? "Sync completed successfully for: " + storagePath
-				: "No files found to sync for: " + storagePath);
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
@@ -344,7 +380,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 		for (Path filePath : paths) {
 			if (!Files.exists(filePath)) {
-				classLogger.error("File not found: " + filePath);
+				classLogger.error("File not found: {}", filePath);
 				failedFiles.add(filePath.toString());
 				continue;
 			}
@@ -359,7 +395,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 							uploadedFiles.add(uploadFileToGCS(filePath, file, storageFolderPath, metadata));
 						} catch (Exception e) {
 							failedFiles.add(file.toString());
-							classLogger.error("Failed to upload file: " + file, e);
+							classLogger.error("Failed to upload file: {}", file, e);
 							rollbackUploads(storage, failedFiles);
 						}
 					});
@@ -371,7 +407,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 					found = true;
 				} catch (Exception e) {
 					failedFiles.add(filePath.toString());
-					classLogger.error("Failed to upload file: " + filePath, e);
+					classLogger.error("Failed to upload file: {}", filePath, e);
 					rollbackUploads(storage, failedFiles);
 				}
 			}
@@ -380,10 +416,13 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		// Delete empty blobs from GCS
 		deleteEmptyBlobs(storageFolderPath);
 
-		classLogger.info(
-				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
-		classLogger.info(found ? "Copy completed successfully for: " + storageFolderPath
-				: "No files found to copy for: " + storageFolderPath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFolderPath);
 	}
 
 	@Override
@@ -396,29 +435,33 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
 		for (String path : paths) {
+			String requestedPath = normalizeStoragePrefixPath(path);
 			// Delete empty blobs (zero-byte files)
-			deleteEmptyBlobs(path);
+			deleteEmptyBlobs(requestedPath);
 
 			// Fetch all files matching the given prefix
-			for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(path)).iterateAll()) {
+			for (Blob blob : this.bucket.list(Storage.BlobListOption.prefix(requestedPath)).iterateAll()) {
 				String blobName = blob.getName();
-				Path localFilePath = localDirectory
-						.resolve(blobName.substring(path.length()).replace("/", File.separator));
+				String relativePath = resolveRelativeStoragePath(blobName, requestedPath);
+				if (relativePath == null) {
+					continue;
+				}
+				Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 				try {
 					Files.createDirectories(localFilePath.getParent());
 					retryOperation(() -> {
 						try {
 							downloadFile(blob, localFilePath);
 						} catch (IOException e) {
-							classLogger.error("Failed to add file to downloaded list: " + blobName, e);
+							classLogger.error("Failed to add file to downloaded list: {}", blobName, e);
 						}
 					}, "Downloading file: " + blobName);
 					downloadedFiles.add(blobName);
-					classLogger.info("Downloaded file: " + localFilePath);
+					classLogger.info("Downloaded file: {}", localFilePath);
 					found = true;
 				} catch (Exception e) {
-					failedFiles.add(blobName);
-					classLogger.error("Failed to download: " + blobName, e);
+					failedFiles.add(relativePath);
+					classLogger.error("Failed to download: {}", blobName, e);
 				}
 			}
 		}
@@ -426,16 +469,19 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		// Delete empty directories after download
 		deleteEmptyDirectories(localDirectory);
 
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to download. Retrying...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
 
-		classLogger.info(found ? "Copy completed successfully for: " + storageFilePath
-				: "No files found to copy for: " + storageFilePath);
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFilePath);
 	}
 
 	@Override
@@ -470,13 +516,16 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (!hasFilesToDelete) {
-			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + this.BUCKET
-					: "No files found in directory: " + storagePath);
+			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: {}" : "No files found in directory: {}",
+					storagePath.isEmpty() ? this.BUCKET : storagePath);
 			return;
 		}
 
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -512,10 +561,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			}
 		}
 
-		classLogger.info(hasFilesToDelete ? "Deletion process completed for: " + storagePath
-				: "No files found to delete in path: " + storagePath);
 		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+				hasFilesToDelete ? "Deletion process completed for: {}" : "No files found to delete in path: {}",
+				storagePath);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -537,7 +590,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			BlobId blobId = BlobId.of(this.BUCKET, folderPath);
 			BlobInfo blobInfo = BlobInfo.newBuilder(blobId).build();
 			storage.create(blobInfo, "".getBytes(StandardCharsets.UTF_8));
-			classLogger.info("Preserved folder structure: " + folderPath);
+			classLogger.info("Preserved folder structure: {}", folderPath);
 		}
 	}
 
@@ -555,9 +608,8 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		boolean folderExists = false;
 
-		classLogger
-				.info(storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: " + this.bucket
-						: "Deleting folder: " + storageFolderPath);
+		classLogger.info(storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: {}"
+				: "Deleting folder: {}", storageFolderPath.isEmpty() ? this.bucket : storageFolderPath);
 
 		Page<Blob> blobs = this.bucket.list(Storage.BlobListOption.prefix(storageFolderPath));
 
@@ -568,25 +620,28 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				retryOperation(() -> {
 					boolean deleted = blob.delete();
 					if (deleted) {
-						classLogger.info("Deleted file: " + blobName);
+						classLogger.info("Deleted file: {}", blobName);
 						deletedFiles.add(blobName);
 					}
 				}, "Deleting file: " + blobName);
 			} catch (Exception e) {
 				failedFiles.add(blobName);
-				classLogger.error("Failed to delete file: " + blobName, e);
+				classLogger.error("Failed to delete file: {}", blobName, e);
 			}
 		}
 
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
 			retryDelete(failedFiles, this.bucket);
 		}
 
-		classLogger.info(folderExists ? "Successfully deleted folder: " + storageFolderPath
-				: "No files found in directory: " + storageFolderPath);
+		classLogger.info(folderExists ? "Successfully deleted folder: {}" : "No files found in directory: {}",
+				storageFolderPath);
 
 	}
 
@@ -618,21 +673,21 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 					if (localFileSize != cloudFileSize || localLastModified > cloudLastModified) {
 						try {
 							storage.create(blobInfoBuilder.build(), Files.readAllBytes(file));
-							classLogger.info("Updated file: " + blobName);
+							classLogger.info("Updated file: {}", blobName);
 						} catch (IOException ioException) {
-							classLogger.error("Failed to read file: " + file, ioException);
+							classLogger.error("Failed to read file: {}", file, ioException);
 							throw new RuntimeException("Failed to read file: " + file, ioException);
 						}
 
 					} else {
-						classLogger.info("Skipping file (No changes detected): " + blobName);
+						classLogger.info("Skipping file (No changes detected): {}", blobName);
 					}
 				} else {
 					try {
 						storage.create(blobInfoBuilder.build(), Files.readAllBytes(file));
-						classLogger.info("Uploaded new file: " + blobName);
+						classLogger.info("Uploaded new file: {}", blobName);
 					} catch (IOException ioException) {
-						classLogger.error("Failed to read file: " + file, ioException);
+						classLogger.error("Failed to read file: {}", file, ioException);
 						throw new RuntimeException("Failed to read file: " + file, ioException);
 					}
 				}
@@ -640,7 +695,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			}, "Uploading file: " + blobName);
 
 		} catch (IOException e) {
-			classLogger.error("Failed to read file properties: " + file, e);
+			classLogger.error("Failed to read file properties: {}", file, e);
 			return null;
 		}
 		return blobName;
@@ -665,11 +720,11 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 					BlobId blobId = BlobId.of(this.BUCKET, blobName);
 					boolean deleted = storage.delete(blobId);
 					if (deleted) {
-						classLogger.info("Rolled back failed upload: " + blobName);
+						classLogger.info("Rolled back failed upload: {}", blobName);
 					}
 				}, "Rolling back failed upload: " + blobName);
 			} catch (Exception e) {
-				classLogger.error("Rollback failed for: " + blobName, e);
+				classLogger.error("Rollback failed for: {}", blobName, e);
 			}
 		}
 	}
@@ -678,12 +733,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		try {
 			retryOperation(() -> {
 				if (blob.delete()) {
-					classLogger.info("Deleted file: " + blob.getName());
+					classLogger.info("Deleted file: {}", blob.getName());
 				}
 			}, "Deleting file: " + blob.getName());
 			return true;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete file: " + blob.getName(), e);
+			classLogger.error("Failed to delete file: {}", blob.getName(), e);
 			return false;
 		}
 	}
@@ -694,14 +749,14 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		for (String blobName : failedFiles) {
 			Blob blob = this.bucket.get(blobName);
 			if (blob != null && deleteBlob(blob)) {
-				classLogger.info("Successfully deleted on retry: " + blobName);
+				classLogger.info("Successfully deleted on retry: {}", blobName);
 			} else {
 				remainingFailedFiles.add(blobName);
 			}
 		}
 
 		if (!remainingFailedFiles.isEmpty()) {
-			classLogger.error("Some files still failed to delete after retries: " + remainingFailedFiles);
+			classLogger.error("Some files still failed to delete after retries: {}", remainingFailedFiles);
 		} else {
 			classLogger.info("All files deleted successfully after retries.");
 		}
@@ -716,10 +771,10 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				operation.run();
 				return;
 			} catch (Exception e) {
-				classLogger.error("Attempt " + attempt + " failed for " + actionDescription, e);
+				classLogger.error("Attempt {} failed for {}", attempt, actionDescription, e);
 				// If last attempt fails, throw an exception
 				if (attempt == maxRetries) {
-					classLogger.error("All retry attempts failed for: " + actionDescription);
+					classLogger.error("All retry attempts failed for: {}", actionDescription);
 					throw new RuntimeException(
 							"Operation failed after " + maxRetries + " retries: " + actionDescription, e);
 				}
@@ -744,10 +799,10 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
 					if (!entries.iterator().hasNext()) { // Directory is empty
 						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: " + dir);
+						classLogger.info("Deleted empty local folder: {}", dir);
 					}
 				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: " + dir, e);
+					classLogger.error("Failed to delete empty folder: {}", dir, e);
 				}
 			}
 		} catch (IOException e) {
@@ -768,13 +823,13 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 
 				if (!Files.exists(localFilePath)) {
 					storage.delete(blob.getBlobId());
-					classLogger.info("Deleted storage file not found in local: " + blobName);
+					classLogger.info("Deleted storage file not found in local: {}", blobName);
 				} else if (blobSize == 0) { // Check for empty blobs
 					storage.delete(blob.getBlobId());
-					classLogger.info("Deleted empty folder placeholder: " + blobName);
+					classLogger.info("Deleted empty folder placeholder: {}", blobName);
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to delete blob: " + blobName, e);
+				classLogger.error("Failed to delete blob: {}", blobName, e);
 			}
 		}
 	}
@@ -786,12 +841,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			if (Files.exists(localFile) && Files.isRegularFile(localFile)) {
 				try {
 					Files.delete(localFile);
-					classLogger.info("Rolled back partially downloaded file: " + localFile);
+					classLogger.info("Rolled back partially downloaded file: {}", localFile);
 				} catch (IOException e) {
-					classLogger.error("Failed to rollback file: " + localFile, e);
+					classLogger.error("Failed to rollback file: {}", localFile, e);
 				}
 			} else {
-				classLogger.warn("Skipping rollback for non-existing or non-regular file: " + localFile);
+				classLogger.warn("Skipping rollback for non-existing or non-regular file: {}", localFile);
 			}
 		}
 	}
@@ -817,9 +872,9 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		retryOperation(() -> {
 			try {
 				storage.create(blobInfoBuilder.build(), Files.readAllBytes(file));
-				classLogger.info("Uploaded file to GCS: " + blobName);
+				classLogger.info("Uploaded file to GCS: {}", blobName);
 			} catch (IOException e) {
-				classLogger.error("Failed to upload file to GCS: " + blobName, e);
+				classLogger.error("Failed to upload file to GCS: {}", blobName, e);
 			}
 		}, "Uploading: " + blobName);
 
@@ -832,7 +887,7 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		for (Blob blob : blobs.iterateAll()) {
 			if (blob.getSize() == 0) { // Check if the blob is empty (zero-byte file)
 				storage.delete(blob.getBlobId());
-				classLogger.info("Deleted empty blob folder: " + blob.getName());
+				classLogger.info("Deleted empty blob folder: {}", blob.getName());
 			}
 		}
 	}
@@ -845,7 +900,12 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void close() throws IOException {
-		// there is no disconnect logic
-
+		if (storage != null) {
+			try {
+				storage.close();
+			} catch (Exception e) {
+				classLogger.error("Failed to close Google Cloud Storage client for bucket='{}'.", this.BUCKET, e);
+			}
+		}
 	}
 }

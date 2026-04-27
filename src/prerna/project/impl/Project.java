@@ -135,6 +135,7 @@ public class Project implements IProject {
 
 	private String projectId;
 	private String projectName;
+	private String displayName = null;
 	private String projectGitProvider;
 	private String projectGitRepo;
 	private AuthProvider gitProvider;
@@ -187,7 +188,7 @@ public class Project implements IProject {
 
 	protected IMCP projectMCP = null;
 
-	protected LoggerContext engineSpecificLoggerCtx;
+	protected volatile LoggerContext engineSpecificLoggerCtx;
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -200,15 +201,15 @@ public class Project implements IProject {
 		setSmssProp(smssProp);
 		this.projectId = this.smssProp.getProperty(Constants.PROJECT);
 		this.projectName = this.smssProp.getProperty(Constants.PROJECT_ALIAS);
+		String smssDisplayName = this.smssProp.getProperty(Constants.PROJECT_DISPLAY_NAME);
+		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
+				: this.projectName;
 
 		this.isAsset = Boolean.parseBoolean(this.smssProp.getProperty(Constants.IS_ASSET_APP));
 		if (this.isAsset) {
-			this.projectBaseFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(this.projectName,
-					this.projectId);
-			this.projectVersionFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder(this.projectName,
-					this.projectId);
-			this.projectAssetFolder = AssetUtility.getUserAssetAndWorkspaceAssetFolder(this.projectName,
-					this.projectId);
+			this.projectBaseFolder = AssetUtility.getUserAssetAppRootFolder(this.projectName, this.projectId);
+			this.projectVersionFolder = AssetUtility.getUserAssetVersionFolder(this.projectName, this.projectId);
+			this.projectAssetFolder = AssetUtility.getUserAssetFolder(this.projectName, this.projectId);
 		} else {
 			this.projectBaseFolder = AssetUtility.getProjectAppRootFolder(this.projectName, this.projectId);
 			this.projectVersionFolder = AssetUtility.getProjectVersionFolder(this.projectName, this.projectId);
@@ -273,9 +274,8 @@ public class Project implements IProject {
 		try {
 			loadCompiledProjectReactors();
 		} catch (Exception e) {
-			classLogger.error(
-					"Unable to compile project reactors on project initialization. Detailed error: " + e.getMessage(),
-					e);
+			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
 	}
 
@@ -427,8 +427,8 @@ public class Project implements IProject {
 			try {
 				this.insightRdbms.close();
 			} catch (IOException e) {
-				classLogger.warn("Error on closing insights database");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing insights database for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
 		}
 
@@ -444,7 +444,7 @@ public class Project implements IProject {
 						FileUtils.forceDelete(file);
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete project symbolic link at {}", file, e);
 				}
 			}
 		}
@@ -479,17 +479,17 @@ public class Project implements IProject {
 	@Override
 	public void delete() {
 		String folderName = SmssUtilities.getUniqueName(this.projectName, this.projectId);
-		classLogger.debug("Closing " + folderName);
+		classLogger.debug("Closing {}", folderName);
 		this.close();
 
 		if (this.insightDatabaseLoc != null) {
 			File insightFile = new File(this.insightDatabaseLoc);
 			if (insightFile.exists()) {
-				classLogger.info("Deleting insight file " + insightFile.getAbsolutePath());
+				classLogger.info("Deleting insight file {}", insightFile.getAbsolutePath());
 				try {
 					FileUtils.forceDelete(insightFile);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to delete insight file {}", insightFile.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -499,20 +499,20 @@ public class Project implements IProject {
 				+ Constants.PROJECT_FOLDER + DIR_SEPARATOR + folderName;
 		File folder = new File(folderPath);
 		if (folder.exists() && folder.isDirectory()) {
-			classLogger.debug("folder getting deleted is " + folder.getAbsolutePath());
+			classLogger.debug("Folder getting deleted is {}", folder.getAbsolutePath());
 			try {
 				FileUtils.deleteDirectory(folder);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e.getMessage());
+				classLogger.error("Failed to delete project folder {}", folder.getAbsolutePath(), e);
 			}
 		}
 
-		classLogger.debug("Deleting smss " + this.projectSmssFilePath);
+		classLogger.debug("Deleting smss {}", this.projectSmssFilePath);
 		File smssFile = new File(this.projectSmssFilePath);
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete project smss file {}", this.projectSmssFilePath, e);
 		}
 
 		// remove from DIHelper
@@ -551,7 +551,7 @@ public class Project implements IProject {
 
 		if (!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
-			classLogger.info("Running insights query " + Utility.cleanLogString(query));
+			classLogger.info("Running insights query {}", Utility.cleanLogString(query));
 
 			IRawSelectWrapper wrap = null;
 			try {
@@ -640,7 +640,8 @@ public class Project implements IProject {
 								breakdown = PixelUtility.parsePixel(pixelString);
 								pixelList.addAll(breakdown);
 							} catch (ParserException | LexerException | IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
+								classLogger.error("Error parsing pixel expression '{}' for insight id '{}'",
+										pixelString, rdbmsId, e);
 								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 							}
 						}
@@ -651,13 +652,13 @@ public class Project implements IProject {
 			} catch (IllegalArgumentException e) {
 				throw e;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve insights for query IDs {}", idString, e);
 			} finally {
 				if (wrap != null) {
 					try {
 						wrap.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close insight query wrapper for query IDs {}", idString, e);
 					}
 				}
 			}
@@ -679,13 +680,14 @@ public class Project implements IProject {
 				stringBuilder.append(ss.getVar(names[0]) + "").append("%!%");
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to generate insight definition script for project '{}'",
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		} finally {
 			if (wrap != null) {
 				try {
 					wrap.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close SCRIPT wrapper while generating insight definition", e);
 				}
 			}
 		}
@@ -714,7 +716,7 @@ public class Project implements IProject {
 				FileUtils.cleanDirectory(classesDir);
 				classesDir.mkdir();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to clean project classes directory {}", classesDir.getAbsolutePath(), e);
 			}
 		}
 
@@ -738,8 +740,7 @@ public class Project implements IProject {
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-		classLogger
-				.info("Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
+		classLogger.info("Project '{}' has new last compilation date {}", projectId, this.lastReactorCompilationDate);
 	}
 
 	/**
@@ -796,7 +797,8 @@ public class Project implements IProject {
 				return retReac;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to instantiate reactor '{}' from project pom for project '{}'", className,
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
 		return retReac;
 	}
@@ -813,7 +815,7 @@ public class Project implements IProject {
 				try {
 					urls[i] = jars[i].toURI().toURL();
 				} catch (MalformedURLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to resolve jar URL for project reactor jar '{}'", jars[i].getName(), e);
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
@@ -838,7 +840,8 @@ public class Project implements IProject {
 				retReac = thisReactorClass.getDeclaredConstructor().newInstance();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to instantiate reactor '{}' from project jars for project '{}'", className,
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
 
 		return retReac;
@@ -914,7 +917,7 @@ public class Project implements IProject {
 				targetFolder = nodes.item(i).getNodeValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to evaluate Maven target folder from pom file {}", pomFile.getAbsolutePath(), e);
 		}
 		return targetFolder;
 	}
@@ -974,8 +977,9 @@ public class Project implements IProject {
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if (outOfDate || this.lastReactorCompilationDate == null) {
-			classLogger.info("Pulling Java folder for project = " + this.projectId + ". Current reactors out of date = "
-					+ outOfDate + ". Last compilation date = " + this.lastReactorCompilationDate);
+			classLogger.info(
+					"Pulling Java folder for project {}. Current reactors out of date = {}. Last compilation date = {}",
+					this.projectId, outOfDate, this.lastReactorCompilationDate);
 			ClusterUtil.pullProjectFolder(this, this.projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
 			this.clearClassCache();
 		}
@@ -989,7 +993,8 @@ public class Project implements IProject {
 					retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to instantiate cached reactor '{}' for project '{}'", className,
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
 		} else {
 			// else we will see if we have java
@@ -1001,9 +1006,8 @@ public class Project implements IProject {
 				// dont need to keep setting this
 				if (this.lastReactorCompilationDate == null) {
 					this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-					classLogger.info("Project '" + projectId
-							+ "' does not have a Java folder. Will still set the last compilation date = "
-							+ this.lastReactorCompilationDate);
+					classLogger.info("Project '{}' does not have a Java folder. Setting last compilation date to {}",
+							projectId, this.lastReactorCompilationDate);
 				}
 				return null;
 			}
@@ -1031,13 +1035,13 @@ public class Project implements IProject {
 						retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to instantiate reactor '{}' from project java source", className, e);
 				}
 			}
 
 			this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-			classLogger.info(
-					"Project '" + projectId + "' has new last compilation date = " + this.lastReactorCompilationDate);
+			classLogger.info("Project '{}' has new last compilation date {}", projectId,
+					this.lastReactorCompilationDate);
 		}
 
 		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
@@ -1155,8 +1159,8 @@ public class Project implements IProject {
 			// but not published
 			if (pullFromCloud) {
 				classLogger.info(
-						"Pulling Portals folder for project = " + this.projectId + ". Current portal out of date = "
-								+ outOfDate + ". Last portal publish date = " + this.lastPortalPublishDate);
+						"Pulling Portals folder for project {}. Current portal out of date = {}. Last portal publish date = {}",
+						this.projectId, outOfDate, this.lastPortalPublishDate);
 				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
 			}
 		}
@@ -1224,11 +1228,12 @@ public class Project implements IProject {
 				this.publishedPortal = true;
 				this.republishPortal = false;
 				this.lastPortalPublishDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-				classLogger.info("Project '" + SmssUtilities.getUniqueName(this.projectName, this.projectId)
-						+ "' has new last portal published date = " + this.lastPortalPublishDate);
+				classLogger.info("Project '{}' has new last portal published date {}",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), this.lastPortalPublishDate);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to publish portals for project '{}'",
+					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			this.publishedPortal = false;
 			this.lastPortalPublishDate = null;
 		}
@@ -1248,7 +1253,7 @@ public class Project implements IProject {
 		try {
 			return NotebookHelperFactory.getNotebookHelper(blocksF);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load notebook helper from {}", blocksF.getAbsolutePath(), e);
 		}
 
 		return null;
@@ -1270,7 +1275,8 @@ public class Project implements IProject {
 			INotebookBuilder builder = NotebookWriterFactory.getNotebookBuilder(blocksF);
 			return builder.createNotebooks(projectNotebookF);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write notebooks from {} into {}", blocksF.getAbsolutePath(),
+					projectNotebookF.getAbsolutePath(), e);
 		} finally {
 			ClusterUtil.pushProjectFolder(this, this.projectNotebookFolder);
 		}
@@ -1291,7 +1297,7 @@ public class Project implements IProject {
 			INotebookHelper helper = NotebookHelperFactory.getNotebookHelper(blocksF);
 			return helper.executeNotebook(insight, inputReplacements);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute notebooks from {}", blocksF.getAbsolutePath(), e);
 		}
 
 		return null;
@@ -1309,7 +1315,8 @@ public class Project implements IProject {
 			Map<String, String> engineMap = helper.getBlocksEngineDependencies();
 			return engineMap;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read engine dependencies from notebook blocks file {}",
+					blocksF.getAbsolutePath(), e);
 		}
 
 		return null;
@@ -1326,7 +1333,7 @@ public class Project implements IProject {
 			Map<String, String> engineMap = helper.getNotebookVariables();
 			return engineMap;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read notebook variables from {}", blocksF.getAbsolutePath(), e);
 		}
 
 		return null;
@@ -1368,7 +1375,7 @@ public class Project implements IProject {
 				fw.flush();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to rewrite portal index html {}", indexHtmlF.getAbsolutePath(), e);
 		}
 	}
 
@@ -1429,7 +1436,8 @@ public class Project implements IProject {
 			try {
 				this.cpw.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to reconnect TCP client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 				throw new IllegalArgumentException("Failed to start TCP Server for Project = "
 						+ SmssUtilities.getUniqueName(this.projectName, this.projectId));
 			}
@@ -1491,7 +1499,8 @@ public class Project implements IProject {
 						debug = true;
 					} catch (NumberFormatException e) {
 						// ignore
-						classLogger.warn("Model " + this.getEngineName() + " has an invalid FORCE_PORT value");
+						classLogger.warn("Project {} has an invalid FORCE_PORT value '{}'", this.getEngineName(),
+								forcePort);
 					}
 				}
 			}
@@ -1503,7 +1512,8 @@ public class Project implements IProject {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 						debug, timeout, loggerLevel);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to create project TCP process/client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -1511,7 +1521,8 @@ public class Project implements IProject {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to reconnect project TCP process/client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 				throw new IllegalArgumentException(
 						"Failed to start TCP Server for Python Model Engine = " + this.getEngineName());
 			}
@@ -1557,7 +1568,7 @@ public class Project implements IProject {
 				finalOutput = FileUtils.readFileToString(new File(compilerOutput), StandardCharsets.UTF_8);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read compile output for project '{}'", this.projectId, e);
 		}
 
 		return finalOutput;
@@ -1574,12 +1585,16 @@ public class Project implements IProject {
 			return null;
 		}
 
-		if (this.engineSpecificLoggerCtx == null) {
-			synchronized (loggerName) {
-				this.engineSpecificLoggerCtx = Configurator.initialize(this.projectId,
-						"file:" + log4j2.getAbsolutePath());
+		if (engineSpecificLoggerCtx == null) {
+			synchronized (this) {
+				if (engineSpecificLoggerCtx == null) {
+					ClassLoader isolatedLoader = new URLClassLoader(new URL[0], null);
+					engineSpecificLoggerCtx = Configurator.initialize(this.projectId, isolatedLoader,
+							"file:" + log4j2.getAbsolutePath());
+				}
 			}
 		}
+
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 
@@ -1689,6 +1704,16 @@ public class Project implements IProject {
 	@Override
 	public Object callTool(String toolName, Map<String, Object> params, Insight insight) {
 		return getProjectMCP().callTool(toolName, params, insight);
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
+	}
+
+	@Override
+	public String getDisplayName() {
+		return (this.displayName != null && !this.displayName.trim().isEmpty()) ? this.displayName : this.projectName;
 	}
 
 }

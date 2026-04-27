@@ -40,6 +40,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -50,7 +51,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
@@ -66,6 +67,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanViewInsight(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
@@ -116,7 +118,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can view insight.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -132,6 +134,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupCanEditInsight(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
@@ -179,7 +182,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can edit insight.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -199,6 +202,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userGroupIsOwner(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(
@@ -234,7 +238,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -286,6 +290,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getBestInsightPermission(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// get best permission from user
 		Integer bestUserInsightPermission = null;
 
@@ -304,7 +309,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		}
 
@@ -342,7 +347,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		}
 
@@ -372,6 +377,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String permission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
 		}
@@ -408,7 +414,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -424,6 +430,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static Integer getGroupInsightPermission(String groupId, String groupType, String projectId,
 			String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(
@@ -440,7 +447,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		}
 
 		return null;
@@ -459,6 +466,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String newPermission, String endDate) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the insight
 		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -518,7 +526,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -536,6 +544,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the insight
 		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
 		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
@@ -574,7 +583,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -591,6 +600,8 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	 */
 	public static void removeExpiredInsightGroupPermission(String groupId, String groupType, String projectId,
 			String insightId) throws IllegalAccessException {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
@@ -613,7 +624,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
