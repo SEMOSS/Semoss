@@ -225,6 +225,20 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			long end = System.currentTimeMillis();
 			SchedulerDatabaseUtility.insertIntoAuditTrailTable(jobId, jobGroup, start, end, success, schedulerOutput);
 			classLogger.info("##SCHEDULED JOB: Execution time: " + (end - start) / 1000 + " seconds.");
+			
+			// Record execution success/failure in SMSS_JOB_RECIPES
+			try {
+				if (success) {
+					SchedulerDatabaseUtility.recordJobSuccess(jobId, new java.sql.Timestamp(end));
+					classLogger.info("Recorded successful execution for Quartz job: {}", jobId);
+				} else {
+					String errorMsg = "HTTP Status: " + status + (schedulerOutput != null ? " - " + schedulerOutput : "");
+					SchedulerDatabaseUtility.recordJobFailure(jobId, errorMsg, new java.sql.Timestamp(end));
+					classLogger.info("Recorded failed execution for Quartz job: {}", jobId);
+				}
+			} catch (Exception metadataEx) {
+				classLogger.error("Failed to record execution metadata for Quartz job: {}", jobId, metadataEx);
+			}
 		} finally {
 			// always delete the UUID
 			SchedulerDatabaseUtility.removeExecutionId(execId);

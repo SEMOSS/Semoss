@@ -127,8 +127,16 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.pauseTrigger(triggerKey);
-				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+				
+			//Update JOB_STATUS in SMSS_JOB_RECIPES
+			try {
+				SchedulerDatabaseUtility.pauseJob(jobId);
+				logger.info("Updated JOB_STATUS to PAUSED for Quartz job: {}", jobId);
+			} catch (Exception metadataEx) {
+				logger.error("Failed to update JOB_STATUS for Quartz job: {}", jobId, metadataEx);
 			}
+			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+		}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
 		}

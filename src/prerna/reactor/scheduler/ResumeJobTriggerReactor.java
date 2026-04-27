@@ -138,6 +138,14 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 			// reschedule job
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.resumeTrigger(triggerKey);
+
+				// Update JOB_STATUS in SMSS_JOB_RECIPES
+				try {
+					SchedulerDatabaseUtility.resumeJob(jobId);
+					logger.info("Updated JOB_STATUS to ACTIVE for Quartz job: {}", jobId);
+				} catch (Exception metadataEx) {
+					logger.error("Failed to update JOB_STATUS for Quartz job: {}", jobId, metadataEx);
+				}
 			}
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);

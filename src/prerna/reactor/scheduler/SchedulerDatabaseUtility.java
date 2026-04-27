@@ -467,15 +467,10 @@ public class SchedulerDatabaseUtility {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
 		Connection conn = connectToScheduler();
-		// Check if this is a JobRunr job (only JobRunr jobs need enhanced metadata)
-		boolean isJobRunrJob = "JOBRUNR".equalsIgnoreCase(jobCategory);
-		
 		try (PreparedStatement statement = conn.prepareStatement(
-				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE" +
-				(isJobRunrJob ? ", JOB_STATUS, IS_RUNNING, EXECUTION_COUNT, RETRY_COUNT, LAST_EXECUTION_STATUS" : "") +
-				") VALUES (?,?,?,?,?,?,?,?,?,?,?" +
-				(isJobRunrJob ? ",?,?,?,?,?" : "") +
-				")")) {
+				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE, " +
+				"JOB_STATUS, IS_RUNNING, EXECUTION_COUNT, RETRY_COUNT, LAST_EXECUTION_STATUS) " +
+				"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
 			int index = 1;
 			statement.setString(index++, userId);
 			statement.setString(index++, jobId);
@@ -488,20 +483,14 @@ public class SchedulerDatabaseUtility {
 			statement.setString(index++, jobCategory);
 			statement.setBoolean(index++, triggerOnLoad);
 			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
-
+			// Enhanced metadata columns (for both JobRunr and Quartz jobs)
+			statement.setString(index++, "ACTIVE");  // JOB_STATUS
+			statement.setBoolean(index++, false);     // IS_RUNNING
+			statement.setLong(index++, 0);            // EXECUTION_COUNT
+			statement.setInt(index++, 0);             // RETRY_COUNT
+			statement.setString(index++, "PENDING");  // LAST_EXECUTION_STATUS
 			
-			// Enhanced metadata columns (ONLY for JobRunr jobs)
-			if (isJobRunrJob) {
-				statement.setString(index++, "ACTIVE");  // JOB_STATUS
-				statement.setBoolean(index++, false);     // IS_RUNNING
-				statement.setLong(index++, 0);            // EXECUTION_COUNT
-				statement.setInt(index++, 0);             // RETRY_COUNT
-				statement.setString(index++, "PENDING");  // LAST_EXECUTION_STATUS
-				
-				classLogger.info("Inserting JobRunr job {} with enhanced metadata", jobId);
-			} else {
-				classLogger.info("Inserting Quartz job {} without enhanced metadata", jobId);
-			}
+			classLogger.info("Inserting JobRunr job {} with enhanced metadata", jobId);
 			
 			statement.executeUpdate();
 		} catch (SQLException | UnsupportedEncodingException e) {
@@ -1911,6 +1900,24 @@ public class SchedulerDatabaseUtility {
 	            }
 	        }
 	    }
+	}
+	
+	/**
+	 * Pause a job by updating its status to PAUSED
+	 * @param jobId The job ID to pause
+	 * @return true if successfully updated
+	 */
+	public static boolean pauseJob(String jobId) {
+		return updateJobStatus(jobId, "PAUSED");
+	}
+
+	/**
+	 * Resume a job by updating its status to ACTIVE
+	 * @param jobId The job ID to resume
+	 * @return true if successfully updated
+	 */
+	public static boolean resumeJob(String jobId) {
+		return updateJobStatus(jobId, "ACTIVE");
 	}
 
 	public static Map<String, String> getJobById(String jobId) {
