@@ -3,7 +3,7 @@ package prerna.rpa.jobrunr.jobs;
 import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
-public class PixelExecutionJobRequest implements JobRequest {
+public class JobRunrPixelExecutionJobRequest implements JobRequest {
 
 	private String pixelScript;
 	private String pixelParameters;
@@ -13,7 +13,7 @@ public class PixelExecutionJobRequest implements JobRequest {
 	private String jobGroup;
 	private String jobName;
 
-	public PixelExecutionJobRequest() {
+	public JobRunrPixelExecutionJobRequest() {
 		this(null, null, null, null, null, null, null);
 	}
 
@@ -27,7 +27,7 @@ public class PixelExecutionJobRequest implements JobRequest {
 	 * @param jobId           Job identifier
 	 * @param jobGroup        Job group identifier
 	 */
-	public PixelExecutionJobRequest(String pixelScript, String pixelParameters, String userAccess, String execId,
+	public JobRunrPixelExecutionJobRequest(String pixelScript, String pixelParameters, String userAccess, String execId,
 			String jobId, String jobGroup, String jobName) {
 		this.pixelScript = pixelScript;
 		this.pixelParameters = pixelParameters;
@@ -40,7 +40,7 @@ public class PixelExecutionJobRequest implements JobRequest {
 
 	@Override
 	public Class<? extends JobRequestHandler> getJobRequestHandler() {
-		return PixelExecutionJobHandler.class;
+		return JobRunrPixelExecutionJobHandler.class;
 	}
 
 	// Getters and Setters for JSON serialization
@@ -103,7 +103,7 @@ public class PixelExecutionJobRequest implements JobRequest {
 
 	@Override
 	public String toString() {
-		return "PixelExecutionJobRequest{" + "pixelScript='"
+		return "JobRunrPixelExecutionJobRequest{" + "pixelScript='"
 				+ (pixelScript != null ? pixelScript.substring(0, Math.min(50, pixelScript.length())) + "..." : "null")
 				+ '\'' + ", execId='" + execId + '\'' + ", jobId='" + jobId + '\'' + ", jobGroup='" + jobGroup + '\''
 				+ '}';

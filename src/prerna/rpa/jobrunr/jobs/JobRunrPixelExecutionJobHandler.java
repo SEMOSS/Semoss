@@ -29,9 +29,9 @@ import prerna.util.Utility;
  * This replaces the Quartz-based PixelJob implementation with a more efficient
  * direct execution approach.
  */
-public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutionJobRequest> {
+public class JobRunrPixelExecutionJobHandler implements JobRequestHandler<JobRunrPixelExecutionJobRequest> {
 
-	private static final Logger LOGGER = LogManager.getLogger(PixelExecutionJobHandler.class);
+	private static final Logger LOGGER = LogManager.getLogger(JobRunrPixelExecutionJobHandler.class);
 
 	/**
 	 * Execute the Pixel script job
@@ -41,7 +41,7 @@ public class PixelExecutionJobHandler implements JobRequestHandler<PixelExecutio
 	 */
 	@Override
 	@Job(name = "Execute Pixel Script: %0", retries = 3)
-	public void run(PixelExecutionJobRequest jobRequest) throws Exception {
+	public void run(JobRunrPixelExecutionJobRequest jobRequest) throws Exception {
 		LOGGER.info("Starting execution of Pixel job: {} in group: {}", 
 			jobRequest.getJobId(), jobRequest.getJobGroup());
 
