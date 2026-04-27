@@ -897,7 +897,7 @@ public class Room {
 
 	/**
 	 * Checks whether the specified message id belongs to an assistant-authored
-	 * visible output message in this room.
+	 * output message in this room.
 	 *
 	 * @param messageId message id to validate
 	 * @return {@code true} when a matching assistant output message exists
@@ -905,8 +905,7 @@ public class Room {
 	public boolean isMessageAuthor(String messageId) {
 		return getMessages().parallelStream()
 				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage
-						&& (m.hasTextPart() || m.hasToolCallPart()));
+						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----
