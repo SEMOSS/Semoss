@@ -25,7 +25,7 @@ import org.jobrunr.storage.StorageProviderUtils.DatabaseOptions;
 import org.jobrunr.storage.sql.h2.H2StorageProvider;
 
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
-import prerna.rpa.jobrunr.jobs.PixelExecutionJobRequest;
+import prerna.rpa.jobrunr.jobs.JobRunrPixelExecutionJobRequest;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.model.JobMetadata;
@@ -352,7 +352,7 @@ public class JobRunrService {
 		}
 	}
 	
-	public JobId enqueue(PixelExecutionJobRequest jobRequest) {
+	public JobId enqueue(JobRunrPixelExecutionJobRequest jobRequest) {
 		validateEnabled();
 		try {
 			JobId jobId = jobRequestScheduler.enqueue(jobRequest);
@@ -497,7 +497,7 @@ public class JobRunrService {
 			}
 
 			// Create job request with system access marker
-			PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(
+			JobRunrPixelExecutionJobRequest jobRequest = new JobRunrPixelExecutionJobRequest(
 					recipe,
 					recipeParameters != null ? recipeParameters : "",
 					"SYSTEM:RESUMED",
@@ -572,7 +572,7 @@ public class JobRunrService {
 
 					// Create immediate execution request
 					String execId = java.util.UUID.randomUUID().toString();
-					PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(
+					JobRunrPixelExecutionJobRequest jobRequest = new JobRunrPixelExecutionJobRequest(
 							recipe,
 							recipeParameters != null ? recipeParameters : "",
 							"SYSTEM:TRIGGERED",
@@ -607,7 +607,7 @@ public class JobRunrService {
 
 					// Create immediate execution request
 					String execId = java.util.UUID.randomUUID().toString();
-					PixelExecutionJobRequest jobRequest = new PixelExecutionJobRequest(
+					JobRunrPixelExecutionJobRequest jobRequest = new JobRunrPixelExecutionJobRequest(
 							recipe,
 							recipeParameters != null ? recipeParameters : "",
 							"SYSTEM:TRIGGERED",

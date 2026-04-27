@@ -47,7 +47,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.rpa.jobrunr.jobs.PixelExecutionJobRequest;
+import prerna.rpa.jobrunr.jobs.JobRunrPixelExecutionJobRequest;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -175,7 +175,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			jobRunrService.deleteRecurringJob(jobId);
 
 			// Create new job request with updated details
-			PixelExecutionJobRequest updatedJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+			JobRunrPixelExecutionJobRequest updatedJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
 					providerInfo.toString(), null, // execId will be generated per execution
 					jobId, jobGroup, jobName);
 
@@ -193,7 +193,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			// Trigger job now if requested
 			if (triggerNow) {
 				// Create a new request for immediate execution
-				PixelExecutionJobRequest immediateRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+				JobRunrPixelExecutionJobRequest immediateRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
 						providerInfo.toString(), null, // execId will be generated
 						jobId, jobGroup, jobName);
 

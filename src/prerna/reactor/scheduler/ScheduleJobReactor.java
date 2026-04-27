@@ -55,7 +55,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.rpa.config.JobConfigKeys;
-import prerna.rpa.jobrunr.jobs.PixelExecutionJobRequest;
+import prerna.rpa.jobrunr.jobs.JobRunrPixelExecutionJobRequest;
 import prerna.rpa.quartz.jobs.insight.RunPixelJobFromDB;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -181,7 +181,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			JobRunrService jobRunrService = JobRunrService.getJobRunrService();
 
 			// inside the JobRequestHandler with a new execId each time
-			PixelExecutionJobRequest recurringJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+			JobRunrPixelExecutionJobRequest recurringJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
 					providerInfo.toString(), null, // execId will be generated per execution
 					jobId, jobGroup, jobName);
 
@@ -199,7 +199,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			// Trigger immediately if requested (with unique execId)
 			if (triggerNow || triggerOnLoad) {
 				String immediateExecId = UUID.randomUUID().toString();
-				PixelExecutionJobRequest immediateJobRequest = new PixelExecutionJobRequest(recipe, recipeParameters,
+				JobRunrPixelExecutionJobRequest immediateJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
 						providerInfo.toString(), immediateExecId, jobId, jobGroup, jobName);
 
 				jobRunrService.enqueue(immediateJobRequest);
