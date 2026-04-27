@@ -56,35 +56,20 @@ import prerna.util.DIHelper;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
-public class WorkspaceAssetUtils extends AbstractSecurityUtils {
+public class UserAssetUtils extends AbstractSecurityUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(WorkspaceAssetUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(UserAssetUtils.class);
 
-	public static final String WORKSPACE_APP_NAME = "Workspace";
 	public static final String ASSET_APP_NAME = "Asset";
 	public static final String HIDDEN_FILE = ".semoss";
 
-	WorkspaceAssetUtils() {
+	UserAssetUtils() {
 		super();
 	}
 
 	//////////////////////////////////////////////////////////////////////
 	// Creating workspace and asset metadata
 	//////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Create the user workspace project for the provided user and auth token
-	 * 
-	 * @param user
-	 * @param provider
-	 * @return
-	 * @throws Exception
-	 */
-	public static String createUserWorkspaceProject(User user, AuthProvider provider) throws Exception {
-		String projectId = createEmptyProject(user, provider, WORKSPACE_APP_NAME, false);
-		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
-		return projectId;
-	}
 
 	/**
 	 * Create the user asset project for the provided user and auth token
@@ -116,7 +101,7 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		// Create a new project id
 		String projectId = UUID.randomUUID().toString();
 
-		String userFolderLocation = AssetUtility.getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
+		String userFolderLocation = AssetUtility.getUserAssetAppRootFolder(projectName, projectId);
 		File userFolder = new File(userFolderLocation);
 		userFolder.mkdirs();
 
@@ -149,58 +134,11 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		project.open(smssFile.getAbsolutePath());
 
 		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pushUserWorkspace(projectId, isAsset);
+			ClusterUtil.pushUserAsset(projectId);
 		}
 
 		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		return projectId;
-	}
-
-	//////////////////////////////////////////////////////////////////////
-	// Updating workspace and asset metadata
-	//////////////////////////////////////////////////////////////////////
-	// TODO >>>timb: WORKSPACE - DONE - register workspace
-
-	/**
-	 * Register the user workspace project for the provided access token and project
-	 * id
-	 * 
-	 * @param token
-	 * @param projectId
-	 * @throws SQLException
-	 */
-	public static void registerUserWorkspaceProject(AccessToken token, String projectId) throws SQLException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO WORKSPACEENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, token.getProvider().name());
-			ps.setString(parameterIndex++, token.getId());
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to register user workspace project.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
-	/**
-	 * Register the user workspace project for the provided user, auth provider, and
-	 * project id
-	 * 
-	 * @param user
-	 * @param provider
-	 * @param projectId
-	 * @throws SQLException
-	 */
-	public static void registerUserWorkspaceProject(User user, AuthProvider provider, String projectId)
-			throws SQLException {
-		registerUserWorkspaceProject(user.getAccessToken(provider), projectId);
 	}
 
 	/**
@@ -244,57 +182,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	// Querying workspace and asset metadata
-	//////////////////////////////////////////////////////////////////////
-
-	/**
-	 * Get the user workspace project for the provided access token; returns null if
-	 * there is none
-	 * 
-	 * @param token
-	 * @return
-	 */
-	public static String getUserWorkspaceProject(AccessToken token) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT PROJECTID FROM WORKSPACEENGINE WHERE "
-//				+ "TYPE = '" + token.getProvider().name() + "' AND "
-//				+ "USERID = '" + token.getId() + "'"
-//				;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__PROJECTID"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__TYPE", "==", token.getProvider().name()));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__USERID", "==", token.getId()));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				Object rs = wrapper.next().getValues()[0];
-				if (rs == null) {
-					return null;
-				}
-				return rs.toString();
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve user workspace project.", e);
-		}
-
-		return null;
-	}
-
-	/**
-	 * Get the user workspace project for the provided user and auth provider;
-	 * returns null if is there is none
-	 * 
-	 * @param user
-	 * @param provider
-	 * @return
-	 */
-	public static String getUserWorkspaceProject(User user, AuthProvider provider) {
-		return getUserWorkspaceProject(user.getAccessToken(provider));
-	}
-
 	/**
 	 * Get the user asset project for the provided access token; returns null if
 	 * there is none
@@ -305,12 +192,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static String getUserAssetProject(AccessToken token) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT PROJECTID FROM ASSETENGINE WHERE "
-//				+ "TYPE = '" + token.getProvider().name() + "' AND "
-//				+ "USERID = '" + token.getId() + "'"
-//				;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
 		qs.addExplicitFilter(
@@ -323,7 +204,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 					return null;
 				}
 				return rs.toString();
-				// return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user asset project.", e);
@@ -342,30 +222,6 @@ public class WorkspaceAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static String getUserAssetProject(User user, AuthProvider provider) {
 		return getUserAssetProject(user.getAccessToken(provider));
-	}
-
-	/**
-	 * See if the project is a workspace or asset
-	 * 
-	 * @param projectId
-	 * @return
-	 */
-	public static boolean isAssetOrWorkspaceProject(String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("WORKSPACEENGINE__PROJECTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("WORKSPACEENGINE__PROJECTID", "==", projectId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			} else {
-				return isAssetProject(projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to determine whether the project is an asset or workspace project.", e);
-		}
-
-		return false;
 	}
 
 	/**

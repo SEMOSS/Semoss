@@ -45,9 +45,9 @@ import prerna.util.Utility;
  * High-level orchestrator for the generic agent loop.
  *
  */
-public final class GenericAgent {
+public final class AgentRunner {
 
-    private static final Logger logger = LogManager.getLogger(GenericAgent.class);
+    private static final Logger logger = LogManager.getLogger(AgentRunner.class);
 
     /** Key under which {@code filePath} is injected into {@code paramMap}. */
     public static final String FILE_PATH_PARAM_KEY = "file_path";
@@ -55,7 +55,7 @@ public final class GenericAgent {
     /** Options-map keys checked (in order) when room.getModelId() is not set. */
     private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
 
-    private GenericAgent() { /* static utility */ }
+    private AgentRunner() { /* static utility */ }
 
     /**
      * Run the agent loop.
@@ -95,14 +95,13 @@ public final class GenericAgent {
                     "No model engine found for room '" + roomId + "'. "
                     + "Set MODEL_ID on the room or pass engine= to the reactor.");
         }
-        logger.debug("GenericAgent: room={} resolved modelId={}", roomId, modelId);
+        logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
 
         IModelEngine modelEngine = Utility.getModel(modelId);
         if (modelEngine == null) {
             throw new IllegalArgumentException(
                     "Could not load model engine '" + modelId + "' for room '" + roomId + "'");
         }
-        
         room.setModelId(modelId);
 
         insight.setRoomForInsight(room);
@@ -121,7 +120,7 @@ public final class GenericAgent {
             if (!roomFolder.exists()) {
                 roomFolder.mkdirs();
             }
-            logger.info("GenericAgent: agentInsight folder set to room folder={}", roomFolderPath);
+            logger.info("AgentRunner: agentInsight folder set to room folder={}", roomFolderPath);
         }
         
 
@@ -131,7 +130,7 @@ public final class GenericAgent {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
-        GenericAgentContext ctx = GenericAgentContext.builder()
+        AgentRunContext ctx = AgentRunContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
                 .insight(insight)
@@ -143,7 +142,7 @@ public final class GenericAgent {
                 .build();
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
-        logger.info("GenericAgent: using harness '{}' for room={}", harness.getName(), roomId);
+        logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
         return harness.execute(ctx);
     }
 
@@ -164,7 +163,7 @@ public final class GenericAgent {
             for (String key : MODEL_ID_OPTION_KEYS) {
                 Object val = opts.get(key);
                 if (val instanceof String && !((String) val).trim().isEmpty()) {
-                    logger.info("GenericAgent: resolved modelId from options['{}']={}", key, val);
+                    logger.info("AgentRunner: resolved modelId from options['{}']={}", key, val);
                     return ((String) val).trim();
                 }
             }
@@ -172,7 +171,7 @@ public final class GenericAgent {
 
         // Tier 3: caller-supplied fallback (e.g. engine= param from reactor)
         if (fallback != null && !fallback.trim().isEmpty()) {
-            logger.info("GenericAgent: using caller-supplied engine fallback={}", fallback);
+            logger.info("AgentRunner: using caller-supplied engine fallback={}", fallback);
             return fallback.trim();
         }
 
