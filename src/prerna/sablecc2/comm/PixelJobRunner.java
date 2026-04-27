@@ -39,15 +39,15 @@ import org.apache.logging.log4j.ThreadContext;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
-import prerna.util.Constants;
 
-public class PixelJobThread extends Thread {
+public class PixelJobRunner implements Runnable {
 
 	public static final String JOB_KEY = "$JOB_ID";
 
-	private static final Logger logger = LogManager.getLogger(PixelJobThread.class);
+	private static final Logger classLogger = LogManager.getLogger(PixelJobRunner.class);
 
 	private volatile PixelJobStatus status = PixelJobStatus.CREATED;
+	private volatile Thread executingThread;
 	private String jobId;
 	private String sessionId;
 	private String routeId;
@@ -63,7 +63,7 @@ public class PixelJobThread extends Thread {
 
 	private Map<String, String> log4jContextMap;
 
-	public PixelJobThread(String jobId, Insight insight, String sessionId, String routeId) {
+	public PixelJobRunner(String jobId, Insight insight, String sessionId, String routeId) {
 		this.jobId = jobId;
 		this.insight = insight;
 		this.sessionId = sessionId;
@@ -78,6 +78,7 @@ public class PixelJobThread extends Thread {
 
 	@Override
 	public void run() {
+		this.executingThread = Thread.currentThread();
 		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(this.log4jContextMap)) {
 			// set ThreadStore
 			ThreadStore.setInsightId(insight.getInsightId());
@@ -91,7 +92,7 @@ public class PixelJobThread extends Thread {
 
 			this.runner = new PixelRunner();
 			if (isCancelRequested()) {
-				this.runner.interrupt();
+				this.runner.cancelRequest();
 				setStatus(PixelJobStatus.CANCELED);
 				return;
 			}
@@ -108,14 +109,13 @@ public class PixelJobThread extends Thread {
 				if (isCancelRequested()) {
 					setStatus(PixelJobStatus.CANCELED);
 				} else {
-					logger.error(Constants.STACKTRACE, ex);
+					classLogger.error("Pixel runnable failed during execution of: {}", this.pixel, ex);
 					setStatus(PixelJobStatus.ERROR);
 				}
 			}
 		}
 	}
 
-	@Override
 	public void interrupt() {
 		requestCancel();
 	}
@@ -123,15 +123,25 @@ public class PixelJobThread extends Thread {
 	public boolean requestCancel() {
 		this.cancelRequested.set(true);
 		setStatus(PixelJobStatus.CANCELED);
-		super.interrupt();
+		Thread t = this.executingThread;
+		if (t != null) {
+			t.interrupt();
+		}
 		if (this.runner != null) {
-			this.runner.interrupt();
+			this.runner.cancelRequest();
 		}
 		return true;
 	}
 
 	public boolean isCancelRequested() {
-		return this.cancelRequested.get() || Thread.currentThread().isInterrupted() || this.isInterrupted();
+		return this.cancelRequested.get() || Thread.currentThread().isInterrupted();
+	}
+
+	public void joinExecution() throws InterruptedException {
+		Thread t = this.executingThread;
+		if (t != null) {
+			t.join();
+		}
 	}
 
 	public void addPixel(String pixel) {

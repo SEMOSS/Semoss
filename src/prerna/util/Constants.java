@@ -564,7 +564,6 @@ public class Constants {
 	// userid by adding: %{log_semoss_user_id}
 	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
-	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
@@ -884,11 +883,6 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
-	// Workspace
-	public static final String USER_WORKSPACE = "USER_WORKSPACE";
-	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
-	public static final String SECURE_PROMPT = "SECURE_PROMPT";
-
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -933,6 +927,7 @@ public class Constants {
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 
 	// model
+	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
 

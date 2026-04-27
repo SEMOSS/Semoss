@@ -246,7 +246,7 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		synchronized (lockDestroy) {
 			if (this.socketClient != null && this.socketClient.isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 				Callable<Boolean> callableTask = () -> {
 					boolean result = false;

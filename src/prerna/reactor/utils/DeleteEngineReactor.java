@@ -40,7 +40,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
@@ -76,10 +75,6 @@ public class DeleteEngineReactor extends AbstractReactor {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 
-				if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-					throw new IllegalArgumentException(
-							"Users are not allowed to delete your workspace or asset database.");
-				}
 				// we may have the alias
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);

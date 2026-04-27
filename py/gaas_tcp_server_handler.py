@@ -870,6 +870,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        runtime_vars = payload.get("runtime_vars") or {}
         cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
         cancel_trace = self._build_cancel_trace(cancel_events)
 
@@ -919,6 +920,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # on the 'smss_clear_app_imports' key in insight_globals.
         _asset_thread_local.insight_globals = insight_globals
         insight_globals["smss_clear_app_imports"] = _smss_clear_app_imports
+
+        # Store runtime vars in thread-local so they can be accessed by the smss_get_runtime_var function that is injected into the insight's globals. This is so variables can be passed from Java to Python without running into a race condition on the insight_globals when multiple threads are running for the same insight.
+        _asset_thread_local.runtime_vars = runtime_vars
+
+        def smss_get_runtime_var(key, default=None):
+            return (getattr(_asset_thread_local, "runtime_vars", None) or {}).get(
+                key, default
+            )
+
+        insight_globals["smss_get_runtime_var"] = smss_get_runtime_var
 
         # Define and inject the smss_stream function
         def smss_stream_func(
@@ -992,6 +1003,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             clear_smss_stream()
             _asset_thread_local.active_paths = None
             _asset_thread_local.insight_globals = None
+            _asset_thread_local.runtime_vars = None
             # Always change back to the original process CWD
             if process_cwd is not None:
                 os.chdir(process_cwd)
