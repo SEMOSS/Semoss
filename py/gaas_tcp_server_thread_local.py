@@ -13,6 +13,11 @@ def _asset_ns_key(path: str) -> str:
     return "_smss_" + hashlib.md5(path.encode()).hexdigest()[:12]
 
 
+def smss_get_runtime_var(key, default=None):
+    """Retrieve a runtime variable passed from Java for the current execution."""
+    return (getattr(_asset_thread_local, "runtime_vars", None) or {}).get(key, default)
+
+
 def smss_clear_app_imports():
     """
     Evicts all cached project-local module imports for the current app's asset paths

@@ -467,32 +467,49 @@ public class PyTranslator {
 	 */
 	public Object runScriptWithExplicitAssetPaths(Insight executionInsight, String script, String assetsDir,
 			String[] additionalAssetsDirs) {
-		String[] paths = getDefaultPaths(this.globalStoreInsight);
-		assetsDir = assetsDir.replace('\\', '/');
-		paths[1] = assetsDir;
-		StringBuilder pathVars = generateDefaultVars(paths);
+		final String ROOT = executionInsight.getInsightFolder().replace('\\', '/');
+		final String APP_ROOT = assetsDir.replace('\\', '/');
+		String userRootTmp = null;
+		try {
+			userRootTmp = AssetUtility.getRootFolderPath(executionInsight, AssetUtility.USER_SPACE_KEY, false)
+					.replace('\\', '/');
+		} catch (Exception e) {
+			// best effort; keep null
+		}
+		final String USER_ROOT = userRootTmp;
+
+		// get runtime vars
+		Map<String, Object> runtimeVars = new HashMap<>();
+		runtimeVars.put("ROOT", ROOT);
+		runtimeVars.put("APP_ROOT", APP_ROOT);
+		if (USER_ROOT != null) {
+			runtimeVars.put("USER_ROOT", USER_ROOT);
+		}
+
+		// get paths
 		int numAssetsDir = 1 + (additionalAssetsDirs == null ? 0 : additionalAssetsDirs.length);
 		String[] finalAssetsDir = new String[numAssetsDir];
-		finalAssetsDir[0] = assetsDir;
+		finalAssetsDir[0] = assetsDir.replace('\\', '/');
 		if (additionalAssetsDirs != null) {
 			for (int i = 0; i < additionalAssetsDirs.length; i++) {
-				finalAssetsDir[i + 1] = finalAssetsDir[i].replace('\\', '/');
+				finalAssetsDir[i + 1] = additionalAssetsDirs[i].replace('\\', '/');
 			}
 		}
 
-		Object output = transportScriptWithExplicitPaths(executionInsight, pathVars.toString() + script,
-				finalAssetsDir);
+		// execute
+		Object output = transportScriptWithExplicitPaths(executionInsight, script, finalAssetsDir, runtimeVars);
 
+		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
-			if (paths[0] != null && strOutput.contains(paths[0])) {
-				strOutput = strOutput.replace(paths[0], "$IF");
+			if (ROOT != null && strOutput.contains(ROOT)) {
+				strOutput = strOutput.replace(ROOT, "$IF");
 			}
-			if (paths[1] != null && strOutput.contains(paths[1])) {
-				strOutput = strOutput.replace(paths[1], "$APP_IF");
+			if (APP_ROOT != null && strOutput.contains(APP_ROOT)) {
+				strOutput = strOutput.replace(APP_ROOT, "$APP_IF");
 			}
-			if (paths[2] != null && strOutput.contains(paths[2])) {
-				strOutput = strOutput.replace(paths[2], "$USER_IF");
+			if (USER_ROOT != null && strOutput.contains(USER_ROOT)) {
+				strOutput = strOutput.replace(USER_ROOT, "$USER_IF");
 			}
 			return strOutput;
 		}
@@ -514,7 +531,7 @@ public class PyTranslator {
 	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
-			String[] explicitAssetPaths) {
+			String[] explicitAssetPaths, Map<String, Object> runtimeVars) {
 		PayloadStruct ps = new PayloadStruct();
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = "transportScript";
@@ -524,6 +541,9 @@ public class PyTranslator {
 		ps.insightId = this.globalStoreInsight.getInsightId();
 		if (explicitAssetPaths != null) {
 			ps.asset_paths = explicitAssetPaths;
+		}
+		if (runtimeVars != null) {
+			ps.runtime_vars = runtimeVars;
 		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();

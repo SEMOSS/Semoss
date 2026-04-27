@@ -835,6 +835,12 @@ class OpenAIMessageBuilder:
             )
             param_map["stream"] = streaming_bool
 
+        stream_options = param_map.get("stream_options")
+        if isinstance(stream_options, dict):
+            stream_options.pop("include_usage", None)
+            if not stream_options:
+                param_map.pop("stream_options", None)
+
         # Removing any unhandled semoss specific params
         param_map.pop("max_completion_tokens", None)
         param_map.pop("max_tokens", None)
