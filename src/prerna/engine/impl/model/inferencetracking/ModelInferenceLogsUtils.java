@@ -33,7 +33,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +61,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -1817,7 +1817,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        engine identifier
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
@@ -1827,21 +1827,9 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equalsIgnoreCase("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			// assume they want daily
-			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
-			dates.put("start", startOfTodayUtc);
-			dates.put("end", endOfTodayUtc);
-		}
+		// Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1900,7 +1888,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        current engine id used to derive exclusions
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
@@ -1926,19 +1914,9 @@ public class ModelInferenceLogsUtils {
 			excludePSString = excludeSB.toString();
 		}
 
-		// Step 2: Get the date range based on the frequency
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equals("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equals("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-		}
+		// Step 2: Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, currentDateTime);
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");

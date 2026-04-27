@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.test;
+package prerna.reactor.project;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -53,6 +53,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -141,6 +142,13 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 
 			// 4 — Re-publish the project so SEMOSS picks up the new assets
 			this.insight.runPixel("PublishProject(project=['" + projectId + "']);");
+
+			// 5 — Push project to central storage so other pods see the changes
+			try {
+				ClusterUtil.pushProject(projectId);
+			} catch (Exception e) {
+				logger.error("BuildAndPublishApp: ClusterUtil.pushProject failed for project {}", projectId, e);
+			}
 
 			return new NounMetadata("App [" + projectId + "] built and published successfully.",
 					PixelDataType.CONST_STRING, PixelOperationType.SUCCESS);
