@@ -133,7 +133,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                 return self.audio_client.ask(text, **kwargs)
 
             if self.model_settings.model_type == "image":
-                return self.image_client.ask(semoss_messages, **kwargs)
+                return self.image_client.ask_call(semoss_messages, **kwargs)
 
             try:
                 openai_messages = self.message_builder.build_request(semoss_messages)

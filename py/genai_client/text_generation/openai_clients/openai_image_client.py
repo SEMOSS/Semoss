@@ -15,7 +15,7 @@ from .openai_image_models import (
     ImageGenerationConfig,
     OpenAIImageTaskType,
 )
-from ...constants import AskModelEngineResponse, AskModelEngineResponse2
+from ...constants import AskModelEngineResponse2
 
 if TYPE_CHECKING:
     from .openai_client import OpenAiClient
@@ -49,18 +49,6 @@ class OpenAiImageClient:
         # `client.client` (the openai SDK) and `client.model_settings`.
         self.client = client
 
-    def ask(
-        self, semoss_messages: List[SEMOSSMessage], prefix: str = "", **kwargs
-    ) -> Dict[str, Any]:
-        response = self.ask_call(semoss_messages, prefix=prefix, **kwargs)
-        if isinstance(response, AskModelEngineResponse2):
-            return response.model_dump(exclude_none=True)
-        if isinstance(response, AskModelEngineResponse):
-            return response.to_dict()
-        if isinstance(response, ErrorDetails):
-            return response.model_dump()
-        raise ValueError("Invalid response type from ask_call.")
-
     def ask_call(
         self,
         semoss_messages: List[SEMOSSMessage],
@@ -88,7 +76,7 @@ class OpenAiImageClient:
             param_map.setdefault("model", model_settings.model_name)
 
             # Default stream on to match chat-completion/responses defaults.
-            stream = self._resolve_bool(param_map.pop("stream", True), default=True)
+            stream = self._resolve_bool(param_map.pop("stream", False), default=False)
             param_map["stream"] = stream
 
             if task_type == OpenAIImageTaskType.GENERATE:
