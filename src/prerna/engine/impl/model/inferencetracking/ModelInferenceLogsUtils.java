@@ -1851,8 +1851,8 @@ public class ModelInferenceLogsUtils {
 			int psIndex = 1;
 			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
 			ps.setString(psIndex++, engineId);
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
 
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
