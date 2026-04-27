@@ -156,7 +156,7 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("CLIENT Connection complete !!!!!!!");
+				classLogger.info("Connected to socket server at {}:{}", this.HOST, this.PORT);
 				Thread.sleep(100); // sleep some before executing command
 				// prime it
 				// logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -181,7 +181,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		if (attempt >= 6) {
-			classLogger.info("CLIENT Connection Failed !!!!!!!");
+			classLogger.error("Failed to connect to socket server at {}:{} after {} attempts", this.HOST, this.PORT, attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
@@ -293,7 +293,7 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 				Callable<Boolean> callableTask = () -> {
 					PayloadStruct ps = new PayloadStruct();
@@ -314,7 +314,7 @@ public class SocketClient implements Runnable, Closeable {
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping server", e);
+					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -340,7 +340,7 @@ public class SocketClient implements Runnable, Closeable {
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 		Callable<String> callableTask = () -> {
 			try {
