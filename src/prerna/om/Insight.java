@@ -298,6 +298,27 @@ public class Insight implements Serializable {
 		return runPixel(getPixelRunner(), pixelList);
 	}
 
+	/**
+	 * Runs a pixel with a pinned project context for this thread only.
+	 * <p>
+	 * The provided projectId/projectName are stored in ThreadStore for the duration
+	 * of the call so that concurrent executions on the same Insight (e.g. parallel
+	 * MCP tool calls) each see their own context without overwriting the shared
+	 * instance fields. Any SetContext / LoadApp reactor inside the pixel string
+	 * will also update the ThreadStore entry rather than the instance fields, so
+	 * its effect is scoped to this thread and does not persist after the call
+	 * returns.
+	 */
+	public PixelRunner runPixelWithContext(String projectId, String projectName, String pixelString) {
+		ThreadStore.setContextProjectIdOverride(projectId);
+		ThreadStore.setContextProjectNameOverride(projectName);
+		try {
+			return runPixel(pixelString);
+		} finally {
+			ThreadStore.clearContextProjectOverride();
+		}
+	}
+
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
 		int size = pixelList.size();
 		if (size == 0) {
@@ -554,7 +575,8 @@ public class Insight implements Serializable {
 	}
 
 	public String getContextProjectId() {
-		return contextProjectId;
+		String override = ThreadStore.getContextProjectIdOverride();
+		return override != null ? override : contextProjectId;
 	}
 
 	public void setContextProjectId(String contextProjectId) {
@@ -562,7 +584,8 @@ public class Insight implements Serializable {
 	}
 
 	public String getContextProjectName() {
-		return contextProjectName;
+		String override = ThreadStore.getContextProjectNameOverride();
+		return override != null ? override : contextProjectName;
 	}
 
 	public void setContextProjectName(String contextProjectName) {
@@ -953,8 +976,9 @@ public class Insight implements Serializable {
 		IReactor retReac = null;
 
 		// user has manually set the specific context
-		if (this.contextProjectId != null) {
-			IProject project = Utility.getProject(this.contextProjectId);
+		String contextProjectId = getContextProjectId();
+		if (contextProjectId != null) {
+			IProject project = Utility.getProject(contextProjectId);
 			retReac = project.getReactor(className);
 		}
 
@@ -1082,17 +1106,35 @@ public class Insight implements Serializable {
 	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
-		if (this.contextProjectId != null && this.contextProjectId.equals(projectId)) {
+		boolean inScopedExecution = ThreadStore.getContextProjectIdOverride() != null;
+
+		// check against the effective context - ThreadStore override takes precedence
+		String effectiveContextId = inScopedExecution ? ThreadStore.getContextProjectIdOverride()
+				: this.contextProjectId;
+		if (effectiveContextId != null && effectiveContextId.equals(projectId)) {
 			return true;
 		}
+
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			// clear out the current context even if this failed
-			this.contextProjectId = null;
-			this.contextProjectName = null;
+			if (inScopedExecution) {
+				ThreadStore.clearContextProjectOverride();
+			} else {
+				this.contextProjectId = null;
+				this.contextProjectName = null;
+			}
 			return false;
 		}
-		this.contextProjectId = projectId;
-		this.contextProjectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+
+		String resolvedName = SecurityProjectUtils.getProjectAliasForId(projectId);
+		if (inScopedExecution) {
+			// keep the context change thread-local; do not touch instance fields
+			ThreadStore.setContextProjectIdOverride(projectId);
+			ThreadStore.setContextProjectNameOverride(resolvedName);
+		} else {
+			this.contextProjectId = projectId;
+			this.contextProjectName = resolvedName;
+		}
 
 		User user = getUser();
 		if (user != null) {
@@ -1101,7 +1143,7 @@ public class Insight implements Serializable {
 				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 			}
 
-			String appRootFolder = AssetUtility.getProjectAssetsFolder(this.contextProjectName, this.contextProjectId);
+			String appRootFolder = AssetUtility.getProjectAssetsFolder(resolvedName, projectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
 		}
 
