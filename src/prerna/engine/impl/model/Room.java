@@ -528,10 +528,25 @@ public class Room {
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap, modelEngine);
 
+			// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
+			// message row stores the actual tool output instead of null.
+			StringBuilder toolResultsForLogging = new StringBuilder();
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && tr.getOutput() != null) {
+						if (toolResultsForLogging.length() > 0) {
+							toolResultsForLogging.append("\n");
+						}
+						toolResultsForLogging.append(tr.getOutput());
+					}
+				}
+			}
+
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage, paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
