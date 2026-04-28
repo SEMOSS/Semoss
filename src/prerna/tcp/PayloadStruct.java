@@ -109,6 +109,14 @@ public class PayloadStruct implements Serializable {
 	 */
 	public Map<String, Object> runtime_vars = null;
 
+	/**
+	 * This is to support legacy code execution for variables like ROOT, APP_ROOT,
+	 * USER_ROOT. We should not use this but instead shift towards
+	 * {@link #runtime_vars}
+	 */
+	@Deprecated
+	public Map<String, Object> append_vars = null;
+
 	/*
 	 * This is really important If we have a User invoking an engine python process
 	 * The engine python process has its own unique insight for variable
