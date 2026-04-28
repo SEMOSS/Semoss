@@ -127,7 +127,7 @@ public class GitHubCopilotPyManager {
 			allowedToolsLiteral = "[]";
 		} else {
 			allowedToolsLiteral = allowedTools.stream()
-					.map(GitHubCopilotPyManager::pyQuote)
+					.map(PyUtils::pyQuote)
 					.collect(Collectors.joining(",", "[", "]"));
 		}
 
@@ -148,8 +148,8 @@ public class GitHubCopilotPyManager {
 				}
 				first = false;
 				mcpsLiteral.append("{")
-						.append("'name':").append(pyQuote(name)).append(",")
-						.append("'url':").append(pyQuote(mcpBaseUrl + mcpProjectId + "/comms"))
+						.append("'name':").append(PyUtils.pyQuote(name)).append(",")
+						.append("'url':").append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms"))
 						.append("}");
 			}
 		}
@@ -157,29 +157,29 @@ public class GitHubCopilotPyManager {
 
 		StringBuilder script = new StringBuilder();
 		script.append("import genai_client;github_copilot = genai_client.GitHubCopilotClient(")
-				.append("model=").append(pyQuote(model)).append(",")
-				.append("cwd_path=").append(pyQuote(cwdPath)).append(",")
-				.append("room_id=").append(pyQuote(roomId)).append(",")
-				.append("access_key=").append(pyQuote(accessKey)).append(",")
-				.append("secret_key=").append(pyQuote(secretKey)).append(",")
+				.append("model=").append(PyUtils.pyQuote(model)).append(",")
+				.append("cwd_path=").append(PyUtils.pyQuote(cwdPath)).append(",")
+				.append("room_id=").append(PyUtils.pyQuote(roomId)).append(",")
+				.append("access_key=").append(PyUtils.pyQuote(accessKey)).append(",")
+				.append("secret_key=").append(PyUtils.pyQuote(secretKey)).append(",")
 				.append("allowed_tools=").append(allowedToolsLiteral).append(",")
-				.append("permission_mode=").append(pyQuote(permissionMode != null ? permissionMode : "default"))
+				.append("permission_mode=").append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default"))
 				.append(",")
-				.append("base_url=").append(pyQuote(baseUrl)).append(",")
+				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",")
 				.append("mcps=").append(mcpsLiteral).append(",")
-				.append("insight_id=").append(pyQuote(insightId != null ? insightId : "")).append(",")
-				.append("room_folder_path=").append(pyQuote(roomFolderPath)).append(",")
+				.append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : "")).append(",")
+				.append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
 				.append("session_exists=").append(sessionExists ? "True" : "False");
 		if (cliPath != null) {
-			script.append(",cli_path=").append(pyQuote(cliPath));
+			script.append(",cli_path=").append(PyUtils.pyQuote(cliPath));
 		}
 		script.append(")");
 		return script.toString();
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
-		return "github_copilot.query_copilot(prompt=" + pyQuote(prompt != null ? prompt : "")
-				+ ", system_prompt=" + pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
+		return "github_copilot.query_copilot(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
+				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
 	/**
@@ -194,33 +194,6 @@ public class GitHubCopilotPyManager {
 	private boolean sessionStateExists(String roomFolderPath, String roomId) {
 		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
 		return Files.exists(eventsLog);
-	}
-
-	/** Quote-and-escape a Java string into a single-quoted Python string literal. */
-	static String pyQuote(String value) {
-		if (value == null) {
-			return "None";
-		}
-		StringBuilder sb = new StringBuilder(value.length() + 4);
-		sb.append('\'');
-		for (int i = 0; i < value.length(); i++) {
-			char c = value.charAt(i);
-			switch (c) {
-				case '\\': sb.append("\\\\"); break;
-				case '\'': sb.append("\\'"); break;
-				case '\n': sb.append("\\n"); break;
-				case '\r': sb.append("\\r"); break;
-				case '\t': sb.append("\\t"); break;
-				default:
-					if (c < 0x20) {
-						sb.append(String.format("\\x%02x", (int) c));
-					} else {
-						sb.append(c);
-					}
-			}
-		}
-		sb.append('\'');
-		return sb.toString();
 	}
 
 	private static String trimToNull(String value) {

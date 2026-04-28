@@ -75,6 +75,7 @@ from gaas_tcp_server_thread_local import (
     _asset_thread_local,
     _asset_ns_key,
     smss_clear_app_imports as _smss_clear_app_imports,
+    smss_get_runtime_var as _smss_get_runtime_var,
 )
 
 
@@ -900,6 +901,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     )
                 command = path_script + command
 
+        # If legacy append_vars are provided, prepend these vars at the start of the script
+        append_vars = payload.get("append_vars") or {}
+        if append_vars:
+            append_vars_script = ""
+            # Add each variable
+            for key in append_vars:
+                append_vars_script += textwrap.dedent(
+                    f"""
+                        {key} = r'{append_vars.get(key)}'
+                        """
+                )
+            append_vars_script += "\n"
+            command = append_vars_script + command
+
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
@@ -924,12 +939,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         # Store runtime vars in thread-local so they can be accessed by the smss_get_runtime_var function that is injected into the insight's globals. This is so variables can be passed from Java to Python without running into a race condition on the insight_globals when multiple threads are running for the same insight.
         _asset_thread_local.runtime_vars = runtime_vars
 
-        def smss_get_runtime_var(key, default=None):
-            return (getattr(_asset_thread_local, "runtime_vars", None) or {}).get(
-                key, default
-            )
-
-        insight_globals["smss_get_runtime_var"] = smss_get_runtime_var
+        insight_globals["smss_get_runtime_var"] = _smss_get_runtime_var
 
         # Define and inject the smss_stream function
         def smss_stream_func(
