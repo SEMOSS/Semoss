@@ -21,6 +21,7 @@ from ...tokenizers.tgi_tokenizer import TGITokenizer
 from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
+from ...utils import string_to_bool
 
 
 class OpenAiClient(AbstractTextGenerationClient):
@@ -41,6 +42,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         "thinking",
         "thinking_budget",
         "global_param_override",
+        "simplify_messages",
     }
 
     def __init__(
@@ -64,8 +66,13 @@ class OpenAiClient(AbstractTextGenerationClient):
         self.chat_type = self.model_settings.chat_type
         self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(api_key, is_azure, **client_kwargs)
+        self.simplify_messages = string_to_bool(
+            parent_kwargs.get("simplify_messages", False)
+        )
 
-        self.message_builder = OpenAIMessageBuilder(self.model_settings, self.chat_type)
+        self.message_builder = OpenAIMessageBuilder(
+            self.model_settings, self.chat_type, self.simplify_messages
+        )
         self.image_client = OpenAiImageClient(client=self)
         self.audio_client = OpenAiAudioClient(client=self)
 
@@ -121,29 +128,12 @@ class OpenAiClient(AbstractTextGenerationClient):
             )
 
             if self.model_settings.model_type == "audio":
-                last_message = semoss_messages[-1]
-                text = last_message.content if hasattr(last_message, "content") else ""
-                return self.audio_client.ask(text, **kwargs)
+                return self.audio_client.ask(semoss_messages, **kwargs)
 
             try:
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
-
-            # moving streaming param into openai_messages rather than kwargs
-            streaming = kwargs.pop("stream", True)
-            if self.chat_type == "chat-completion" and streaming:
-                openai_messages.update(
-                    {"stream": True, "stream_options": {"include_usage": True}}
-                )
-            elif self.chat_type == "responses" and streaming:
-                openai_messages.update({"stream": True})
-
-            if (
-                hasattr(self.model_settings, "global_param_override")
-                and self.model_settings.global_param_override
-            ):
-                openai_messages.update(self.model_settings.global_param_override)
 
             if self.model_settings.model_type == "image":
                 return self.image_client.ask(openai_messages, **kwargs)

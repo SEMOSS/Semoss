@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -61,12 +62,17 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.util.Constants;
+import prerna.util.SandboxedJavaExecution;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
-public class PixelRunner extends Thread {
+public class PixelRunner {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
+
 	private static final String CANCELLED_MESSAGE = "The request was cancelled by the user";
+	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
 	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
@@ -127,6 +133,12 @@ public class PixelRunner extends Thread {
 		}
 	}
 
+	/**
+	 * This is the main method for parsing and executing a pixel expression
+	 * 
+	 * @param expression
+	 * @param insight
+	 */
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
 		throwIfCancelRequested();
@@ -134,7 +146,15 @@ public class PixelRunner extends Thread {
 				this.encodedTextToOriginal);
 		throwIfCancelRequested();
 
+		final boolean USER_CHROOT = insight.getUser() != null
+				&& Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE));
 		try {
+			if (USER_CHROOT) {
+				SandboxedJavaExecution
+						.setSandboxRootForCurrentThread(insight.getUser().getUserSymlinkHelper().getUserChrootFolder());
+			} else {
+				SandboxedJavaExecution.setSandboxRootForCurrentThread(null);
+			}
 			Parser p = new Parser(new Lexer(new InterruptiblePushbackReader(new PushbackReader(
 					new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
 							StandardCharsets.UTF_8),
@@ -190,6 +210,9 @@ public class PixelRunner extends Thread {
 			}
 			this.encodingList.clear();
 			this.encodedTextToOriginal.clear();
+
+			// always clear the sandbox
+			SandboxedJavaExecution.clearSandboxRootForCurrentThread();
 		}
 	}
 
@@ -319,8 +342,12 @@ public class PixelRunner extends Thread {
 		}
 	}
 
-	private boolean isCancelRequested() {
-		return this.isInterrupted() || Thread.currentThread().isInterrupted();
+	public void cancelRequest() {
+		this.cancelRequested.set(true);
+	}
+
+	public boolean isCancelRequested() {
+		return this.cancelRequested.get() || Thread.currentThread().isInterrupted();
 	}
 
 	private void throwCancellationException() {

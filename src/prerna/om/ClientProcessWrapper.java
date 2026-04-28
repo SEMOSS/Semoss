@@ -41,13 +41,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.plexus.util.FileUtils;
 
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
-import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
@@ -55,6 +54,9 @@ import prerna.util.Utility;
 public class ClientProcessWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
+
+	private static final long SOCKET_CLIENT_READY_WAIT_INTERVAL_MS = 1_000L;
+	private static final long SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS = 60_000L;
 
 	private final Object lockCreate = new Object();
 	private final Object lockDestroy = new Object();
@@ -205,25 +207,25 @@ public class ClientProcessWrapper {
 				this.socketClient.connect("127.0.0.1", this.port, false);
 				Thread t = new Thread(socketClient);
 				t.start();
-				while (!socketClient.isReady()) {
-					// since this is in a while loop
-					// the socket client might have notified us
-					// however, the isReady is false
-					// because the socket couldn't connect
-					// so we also set the killAll
-					// and break out of this loop
-					// since the loop is also in a sync block
-					// it causes an infinite wait and the reconnect server logic doesn't work
-					if (socketClient.isKillAll()) {
-						throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-					}
-					synchronized (socketClient) {
+				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;
+				synchronized (socketClient) {
+					while (!socketClient.isReady() && !socketClient.isKillAll()) {
+						long remainingWaitMillis = waitDeadline - System.currentTimeMillis();
+						if (remainingWaitMillis <= 0) {
+							throw new IllegalArgumentException(
+									"Timed out waiting for isolated analytics engine socket client to become ready");
+						}
 						try {
-							socketClient.wait();
+							socketClient.wait(Math.min(SOCKET_CLIENT_READY_WAIT_INTERVAL_MS, remainingWaitMillis));
 						} catch (InterruptedException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							Thread.currentThread().interrupt();
+							classLogger.error("Interrupted while waiting for socket client readiness", e);
+							throw new IllegalStateException("Interrupted while waiting for socket client readiness", e);
 						}
 					}
+				}
+				if (socketClient.isKillAll()) {
+					throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
 				}
 				classLogger.info("Setting the socket client ");
 			} catch (Exception e) {
@@ -231,7 +233,8 @@ public class ClientProcessWrapper {
 					throw new IllegalArgumentException("Could not connect to process - note force port is on " + port
 							+ " and your server might not be started");
 				}
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to initialize socket client for isolated analytics engine on port {}",
+						this.port, e);
 				throw e;
 			}
 		}
@@ -243,7 +246,7 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		synchronized (lockDestroy) {
 			if (this.socketClient != null && this.socketClient.isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 				Callable<Boolean> callableTask = () -> {
 					boolean result = false;
@@ -255,7 +258,7 @@ public class ClientProcessWrapper {
 						while (!result && attempt < 3) {
 							try {
 								if (serverDir.exists()) {
-									FileUtils.deleteDirectory(this.serverDirectory);
+									FileUtils.deleteDirectory(new File(this.serverDirectory));
 									classLogger.info("Sucessfully cleaned up the directory");
 								} else {
 									classLogger.info("Server directory does not exist");
@@ -268,7 +271,10 @@ public class ClientProcessWrapper {
 								try {
 									Thread.sleep(attempt * 1000);
 								} catch (InterruptedException e1) {
-									classLogger.error(Constants.STACKTRACE, e1);
+									Thread.currentThread().interrupt();
+									classLogger.error(
+											"Interrupted while waiting between cleanup retries for server directory {}",
+											this.serverDirectory, e1);
 								}
 							}
 						}
@@ -290,8 +296,11 @@ public class ClientProcessWrapper {
 				} catch (TimeoutException e) {
 					classLogger.warn("Task did not finish within the timeout");
 					future.cancel(true);
-				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting for socket client shutdown task to finish", e);
+				} catch (ExecutionException e) {
+					classLogger.error("Socket client shutdown task failed", e);
 				} finally {
 					executor.shutdown();
 
@@ -304,7 +313,7 @@ public class ClientProcessWrapper {
 				try {
 					this.process.destroy();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
 				}
 			}
 		}

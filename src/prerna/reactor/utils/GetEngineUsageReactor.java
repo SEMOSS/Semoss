@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.github.f4b6a3.uuid.alt.GUID;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -54,604 +52,960 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PYTHON = "python";
 	private static final String JAVA = "java";
 	private static final String PIXEL = "pixel";
+	private static final String LANGCHAIN = "LANGCHAIN";
+	private static final String OPENAI = "OPENAI";
+
+	private static final String PIXEL_LABEL = "How to use in Pixel";
+	private static final String PYTHON_LABEL = "How to use in Python";
+	private static final String JAVA_LABEL = "How to use in Java";
+	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
+	private static final String OPENAI_LABEL = "How to use externally with OpenAI API (with or without our Python SDK)";
+
+	private static class EngineSelection {
+		private final String engineId;
+		private final IEngine.CATALOG_TYPE engineType;
+
+		private EngineSelection(String engineId, IEngine.CATALOG_TYPE engineType) {
+			this.engineId = engineId;
+			this.engineType = engineType;
+		}
+	}
 
 	public GetEngineUsageReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.TYPE.getKey() };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		// get the selectors
 		this.organizeKeys();
+		EngineSelection selection = resolveEngineSelection();
+		List<Map<String, Object>> output = getUsageForEngineType(selection.engineType, selection.engineId);
+		return new NounMetadata(output, PixelDataType.VECTOR);
+	}
+
+	private EngineSelection resolveEngineSelection() {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
-		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
-		List<Map<String, Object>> output;
+		IEngine.CATALOG_TYPE engineType = null;
+		if (engineId != null && !engineId.isEmpty()) {
+			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+			engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
+		} else {
+			String engineTypeStr = this.keyValue.get(this.keysToGet[1]);
+			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
+				try {
+					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
+					engineId = "SAMPLE_ENGINE_ID";
+				} catch (IllegalArgumentException e) {
+					// do nothing
+				}
+			}
+		}
+
+		if (engineType == null) {
+			throw new IllegalArgumentException("Must provide a valid engine id or a valid engine type");
+		}
+		return new EngineSelection(engineId, engineType);
+	}
+
+	private List<Map<String, Object>> getUsageForEngineType(IEngine.CATALOG_TYPE engineType, String engineId) {
 		switch (engineType) {
 		case DATABASE:
-			output = getDatabaseUsage(engineId);
-			break;
+			return getDatabaseUsage(engineId);
 		case STORAGE:
-			output = getStorageUsage(engineId);
-			break;
+			return getStorageUsage(engineId);
 		case MODEL:
-			output = getModelUsage(engineId);
-			break;
+			return getModelUsage(engineId);
 		case VECTOR:
-			output = getVectorUsage(engineId);
-			break;
+			return getVectorUsage(engineId);
 		case FUNCTION:
-			output = getFunctionUsage(engineId);
-			break;
+			return getFunctionUsage(engineId);
 		default:
-			output = getPendingUsage();
-			break;
+			return getPendingUsage();
 		}
-		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 
 	private List<Map<String, Object>> getModelUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		{
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
-					"""
-							Generation
-							
-							
-							roomId is used to maintain conversational history if that is enabled for a model.
-							
-							```python
-							myRoom=UUID();
-							LLM(engine = "<engineid>", roomId = myRoom, command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						Setup Room ID (Optional - this will default to the current insight id if not provided)
 
-							LLM ( engine = "<engineid>" , roomId = myRoom,  command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
-							LLM ( engine = "<engineid>" , roomId = myRoom,  command = "<encode>Sample Question With Image", image = "myImage.png");
-							```
+						Use `roomId` when you want follow-up calls to share the same conversation history.
 
-							Generation with ChatML
+						```
+						myRoom = UUID();
+						```
 
-							```python
-							LLM(engine = "<engineid>", command = "<encode>ignore</encode>", paramValues=[
-							    {"full_prompt":[
-							        {"role":"system", "content": "You are a helpful assistant."},
-							        {"role": "user", "content": "Who won the world series in 2020?"},
-							        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-							        {"role": "user", "content": "Where was it played?"}
-							    ],
-							    'max_completion_tokens':2000,
-							    'temperature':0.3
-							}]);
-							```
+						Basic Generation
 
-							Embeddings
+						```
+						LLM(engine = "<engineid>", command = "<encode>Sample Question</encode>", paramValues=[{'max_completion_tokens':2000,'temperature':0.3}]);
+						```
 
-							```python
-							Embeddings(engine = "<engineid>", values = ["Sample String 1", "Sample String 2"], paramValues=[{}]);
-							```
+						Generation with Image
 
-							Additional parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
-							"""
-							.trim().replace("<engineid>", engineId)
+						```
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
+						```
 
-			);
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python",
-					"""
-							```python
-							\"\"\"
-						        Args:
-						            - command (str): The command to send to the model.
-						            - question (str): **Deprecated**. Use `command` instead.
-						            - room_id (Optional[str]): Identifier for the room/conversation.
-						            - context (Optional[str]): Context for the model (the system prompt).
-						            - image (Optional[List]): List of base64 image data to provide to the model.
-						            - url (Optional[List]): List of image URLs to provide to the model.
-						            - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
-						            - param_dict (Optional[Dict]): Additional parameters.
-						            - insight_id (Optional[str]): Identifier for insights.
-						    \"\"\"
-						    
-						    
-							from ai_server import ModelEngine
-							model = ModelEngine(engine_id = "<engineid>")
+						Generation with ChatML
 
-							# Text Generation
-							command = 'Sample Question'
-							output = model.ask(command = command, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						Pass a full prompt array to fully control conversation history for that call.
 
-							# Text Generation with Vision (if supported by model)
-							command = 'Sample Command With Image'
-							output = model.ask(command = command, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-							output = model.ask(command = command, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-							
-							# Continue Conversation with Room ID
-							command = 'Sample Question'
-							room_id = 'my_room_id'
-							output = model.ask(command = command, room_id= room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
-		
-							# Structured Ouputs (if supported by model)
-							command = 'Sample Command With Structured Output'
-							json_schema = {
-										    "type": "object",
-										    "properties": {
-										        "sample_property": {
-										            "type": "array",
-										            "items": {
-										                "type": "object",
-										                "properties": {
-										                    "sample_property_1": {"type": "string"},
-										                    "sample_property_2": {"type": "string"},
-										                },
-										                "required": ["sample_property_1", "sample_property_2"],
-										            },
-										        }
-										    },
-										    "required": ["sample_property"],
-										}
-							output = model.ask(command = command, param_dict={"schema": json_schema}) 
+						```
+						LLM(engine = "<engineid>", command = "<encode>ignore</encode>", paramValues=[
+						    {"full_prompt":[
+						        {"role":"system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    'max_completion_tokens':2000,
+						    'temperature':0.3
+						}]);
+						```
 
-							# Geneartion with ChatML
-							model.ask(question='ignore', param_dict=
-							    {"full_prompt":[
-							        {"role":"system", "content": "You are a helpful assistant."},
-							        {"role": "user", "content": "Who won the world series in 2020?"},
-							        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-							        {"role": "user", "content": "Where was it played?"}
-							    ],
-							    'max_completion_tokens':2000,
-							    'temperature':0.3
-							});
+						Embeddings
 
-							# Embeddings
-							text_arr = ['Sample String 1', 'Sample String 2']
-							model.embeddings(strings_to_embed = text_arr)
-							```
+						```
+						Embeddings(engine = "<engineid>", values = ["Sample String 1", "Sample String 2"], paramValues=[{}]);
+						```
 
-							Additional chat parameters found at: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap("LANGCHAIN", "How to use with Langchain API", """
-					```python
-					from ai_server import ModelEngine
-					model = ModelEngine(engine_id = "<engineid>")
+						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
+						""",
+				engineId);
 
-					# Generation
-					langchain_llm = model.to_langchain_chat_model()
-					question = 'Sample Question'
-					output = langchain_llm.invoke(input = question)
+		addUsage(usage, PYTHON, PYTHON_LABEL,
+				"""
+						Method Parameters<br/>
+						`command` (str): prompt sent to the model.<br/>
+						`question` (str): deprecated, use `command`.<br/>
+						`room_id` (Optional[str]): conversation identifier.<br/>
+						`context` (Optional[str]): system prompt context.<br/>
+						`image` (Optional[List]): base64 image payload(s).<br/>
+						`url` (Optional[List]): image URL(s).<br/>
+						`use_history` (Optional[bool]): include history for this call.<br/>
+						`param_dict` (Optional[Dict]): model/provider parameters.<br/>
+						`insight_id` (Optional[str]): insight identifier.<br/>
+						<br/>
 
-					# Embeddings
-					langchain_llm = model.to_langchain_embedder()
-					text_arr = ['Sample String 1', 'Sample String 2']
-					langchain_llm.embed_query(text = text_arr[0])
-					langchain_llm.embed_documents(texts = text_arr)
-					```
-					""".trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap("OPENAI", "How to use externally with OpenAI API and our Python SDK",
-					"""
-							```python
-							# import the ai platform package - requires user access/secret, service account, or bearer_token
-							import ai_server
-							server_connection=ai_server.ServerClient(
-							    base="<the api endpoint>",         # example: https://{domain}/{direcotry/path segment}/Monolith/api
-							    access_key="<your access key>",    # example: 'd0033d40-ea83-4083-96ce-17a01451f831'
-							    secret_key="<your secret key>"     # example: 'c2b3fae8-20d1-458c-8565-30ae935c4dfb'
-							)
+						Getting Started
 
-							# import the openai package and httpx
-							from openai import OpenAI
-							import httpx as httpx
-							http_client = httpx.Client()
-							http_client.cookies=server_connection.cookies
+						```python
+						# ModelEngine is the Semoss SDK wrapper for a configured LLM engine.
+						# Use it to send prompts, continue conversations, and request embeddings.
+						from ai_server import ModelEngine
+						model = ModelEngine(engine_id = "<engineid>")
+						```
 
-							# setup openai to point to this running instance
-							client = OpenAI(
-							    api_key="EMPTY",
-							    base_url=server_connection.get_openai_endpoint(),
-							    default_headers=server_connection.get_auth_headers(),
-							    http_client=http_client
-							)
+						Text Generation
 
-							# chat completitions using openai
-							response = client.chat.completions.create(
-							    model="<engineid>",
-							    messages=[
-							        {"role": "system", "content": "You are a helpful assistant."},
-							        {"role": "user", "content": "Who won the world series in 2020?"},
-							        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-							        {"role": "user", "content": "Where was it played?"}
-							    ],
-							    extra_body={"insight_id":server_connection.cur_insight}
-							)
+						```python
+						prompt = 'Sample Question'
+						output = model.ask(command = prompt, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						```
 
-							# completitions using openai - note this is marked deprecated by openai
-							response = client.completions.create(
-							    model="<engineid>",
-							    prompt="Write a tagline for an ice cream shop.",
-							    extra_body={"insight_id":server_connection.cur_insight}
-							)
+						Generation with Image / Vision
 
-							# embeddings using openai
-							embeddings = client.embeddings.create(
-							    model="<engineid>",
-							    input=["Your text string goes here"],
-							    extra_body={"insight_id":server_connection.cur_insight}
-							)
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", """
-					```java
-					import prerna.util.Utility;
-					import prerna.engine.api.IModelEngine;
-					IModelEngine modelEngine = Utility.getModel("<engineid>");
-					```
-					""".trim().replace("<engineid>", engineId));
+						Use only for models that support image input.
 
-			usage.add(usageMap);
-		}
+						```python
+						prompt = 'Sample Command With Image'
+						output = model.ask(command = prompt, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						output = model.ask(command = prompt, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						```
+
+						Continue Conversation with Room ID
+
+						```python
+						prompt = 'Sample Question'
+						room_id = 'my_room_id'
+						output = model.ask(command = prompt, room_id = room_id, param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						```
+
+						Structured Outputs
+
+						Use for models that support schema-constrained generation.
+
+						```python
+						prompt = 'Sample Command With Structured Output'
+						json_schema = {
+						    "type": "object",
+						    "properties": {
+						        "sample_property": {
+						            "type": "array",
+						            "items": {
+						                "type": "object",
+						                "properties": {
+						                    "sample_property_1": {"type": "string"},
+						                    "sample_property_2": {"type": "string"}
+						                },
+						                "required": ["sample_property_1", "sample_property_2"]
+						            }
+						        }
+						    },
+						    "required": ["sample_property"]
+						}
+						output = model.ask(command = prompt, param_dict={"schema": json_schema})
+						```
+
+						Generation with ChatML
+
+						Pass `full_prompt` to explicitly define message history for a single call.
+
+						```python
+						model.ask(command='ignore', param_dict=
+						    {"full_prompt":[
+						        {"role":"system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    'max_completion_tokens':2000,
+						    'temperature':0.3
+						});
+						```
+
+						Embeddings
+
+						```python
+						text_arr = ['Sample String 1', 'Sample String 2']
+						model.embeddings(strings_to_embed = text_arr)
+						```
+
+						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
+						""",
+				engineId);
+
+		addUsage(usage, LANGCHAIN, LANGCHAIN_LABEL, """
+				Getting Started
+				```python
+				# ModelEngine connects to a Semoss model and can expose LangChain-compatible adapters.
+				from ai_server import ModelEngine
+				model = ModelEngine(engine_id = "<engineid>")
+				```
+
+				Chat Model
+				```python
+				langchain_llm = model.to_langchain_chat_model()
+				question = 'Sample Question'
+				output = langchain_llm.invoke(input = question)
+				```
+
+				Embedding Model
+				```python
+				langchain_llm = model.to_langchain_embedder()
+				text_arr = ['Sample String 1', 'Sample String 2']
+				langchain_llm.embed_query(text = text_arr[0])
+				langchain_llm.embed_documents(texts = text_arr)
+				```
+				""", engineId);
+
+		addUsage(usage, OPENAI, OPENAI_LABEL,
+				"""
+						Direct Client Setup (Without ai_server SDK)
+						```python
+						from openai import OpenAI
+
+						# access key + secret key format
+						client = OpenAI(
+						    api_key="<accesskey>:<secretkey>",
+						    base_url="<the api endpoint>"         # example: https://{domain}/{directory/path segment}/Monolith/api
+						)
+						```
+
+						Chat Completions (Without ai_server SDK)
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ],
+						    extra_body={"insight_id":"<optional insight id>"}
+						)
+						```
+
+						Client Setup (With ai_server SDK)
+
+						SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
+						```python
+						# Requires user access/secret, service account, or bearer token
+						import ai_server
+						server_connection=ai_server.ServerClient(
+						    base="<the api endpoint>",         # example: https://{domain}/{directory/path segment}/Monolith/api
+						    access_key="<your access key>",
+						    secret_key="<your secret key>"
+						)
+
+						# Configure the OpenAI client to route through this Semoss instance
+						from openai import OpenAI
+						import httpx as httpx
+						http_client = httpx.Client()
+						http_client.cookies=server_connection.cookies
+
+						client = OpenAI(
+						    api_key="EMPTY",
+						    base_url=server_connection.get_openai_endpoint(),
+						    default_headers=server_connection.get_auth_headers(),
+						    http_client=http_client
+						)
+						```
+
+						Chat Completions (With ai_server SDK)
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Legacy Completions (Deprecated)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"],
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVA, JAVA_LABEL, """
+				```java
+				import prerna.util.Utility;
+				import prerna.engine.api.IModelEngine;
+				IModelEngine modelEngine = Utility.getModel("<engineid>");
+				```
+				""", engineId);
 		return usage;
 	}
 
 	private List<Map<String, Object>> getStorageUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		{
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
-					"""
-							```python
-							Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
-							Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
-							Storage(storage = "<engineid>") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');
-							Storage(storage = "<engineid>") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
-							Storage(storage = "<engineid>") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');
-							Storage(storage = "<engineid>") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
-							Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python",
-					"""
-							```python
-							from ai_server import StorageEngine
-							storageEngine = StorageEngine(engine_id = "<engineid>")
-							storageEngine.list(storagePath = '/your/path/')
-							storageEngine.listDetails(storagePath = '/your/path/')
-							storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path', metadata={'metaKey':'metaValue'})
-							storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')
-							storageEngine.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
-							storageEngine.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path', metadata={'metaKey':'metaValue'})
-							storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap("LANGCHAIN", "How to use with Langchain API",
-					"""
-							```python
-							from ai_server import StorageEngine
-							storage = StorageEngine(engine_id = "<engineid>")
-							langhchain_storage = storage.to_langchain_storage()
-							langhchain_storage.list(storagePath = '/your/path/')
-							langhchain_storage.listDetails(storagePath = '/your/path/')
-							langhchain_storage.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')
-							langhchain_storage.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')
-							langhchain_storage.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
-							langhchain_storage.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
-							langhchain_storage.deleteFromStorage(storagePath = 'your/storage/file/path')
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", """
-					```java
-					import prerna.util.Utility;
-					import prerna.engine.api.IStorageEngine;
-					IStorageEngine storage = Utility.getStorage("<engineid>");
-					```
-					""".trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						List Paths
+						```
+						Storage(storage = "<engineid>") | ListStoragePath(storagePath='/your/storage/path');
+						```
+
+						List Path Details<br/>
+						Returns one object per file/folder with common keys:<br/>
+						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.<br/>
+						`Metadata` is a key-value map (empty map when none exists).
+						```
+						Storage(storage = "<engineid>") | ListStoragePathDetails(storagePath='/your/storage/path');
+						```
+
+						Download from Storage
+						```
+						Storage(storage = "<engineid>") | PullFromStorage(storagePath='/your/storage/path', filePath='/your/local/path');
+						```
+
+						Upload to Storage
+						```
+						Storage(storage = "<engineid>") | PushToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
+						```
+
+						Sync Storage to Local
+						```
+						Storage(storage = "<engineid>") | SyncStorageToLocal(storagePath='/your/storage/path', filePath='/your/local/path');
+						```
+
+						Sync Local to Storage
+						```
+						Storage(storage = "<engineid>") | SyncLocalToStorage(storagePath='/your/storage/path', filePath='/your/local/path', metadata=[{'metaKey':'metaValue'}]);
+						```
+
+						Delete from Storage
+						```
+						Storage(storage = "<engineid>") | DeleteFromStorage(storagePath='/your/storage/path', leaveFolderStructure=false);
+						```
+						""",
+				engineId);
+
+		addUsage(usage, PYTHON, PYTHON_LABEL,
+				"""
+						Getting Started
+						```python
+						# StorageEngine is the Semoss SDK wrapper for file/object storage engines.
+						# Use it to list, upload, download, sync, and delete storage content.
+						from ai_server import StorageEngine
+						storageEngine = StorageEngine(engine_id = "<engineid>")
+						```
+
+						List Paths
+						```python
+						storageEngine.list(storagePath = '/your/path/')
+						```
+
+						List Path Details<br/>
+						Returns one object per file/folder with common keys:<br/>
+						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
+						```python
+						storageEngine.listDetails(storagePath = '/your/path/')
+						```
+
+						Sync Local to Storage
+						```python
+						storageEngine.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path', metadata={'metaKey':'metaValue'})
+						```
+
+						Sync Storage to Local
+						```python
+						storageEngine.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')
+						```
+
+						Copy File to Local
+						```python
+						storageEngine.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
+						```
+
+						Copy File to Storage
+						```python
+						storageEngine.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path', metadata={'metaKey':'metaValue'})
+						```
+
+						Delete from Storage
+						```python
+						storageEngine.deleteFromStorage(storagePath = 'your/storage/file/path', leaveFolderStructure=False)
+						```
+						""",
+				engineId);
+
+		addUsage(usage, LANGCHAIN, LANGCHAIN_LABEL,
+				"""
+						Getting Started
+						```python
+						# StorageEngine can expose a LangChain-compatible storage adapter.
+						from ai_server import StorageEngine
+						storage = StorageEngine(engine_id = "<engineid>")
+						langchain_storage = storage.to_langchain_storage()
+						```
+
+						List Paths
+						```python
+						langchain_storage.list(storagePath = '/your/path/')
+						```
+
+						List Path Details
+						Returns one object per file/folder with common keys:
+						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
+						```python
+						langchain_storage.listDetails(storagePath = '/your/path/')
+						```
+
+						Sync Local to Storage
+						```python
+						langchain_storage.syncLocalToStorage(localPath= 'your/local/path', storagePath = 'your/storage/path')
+						```
+
+						Sync Storage to Local
+						```python
+						langchain_storage.syncStorageToLocal(localPath= 'your/local/path', storagePath = 'your/storage/path')
+						```
+
+						Copy File to Local
+						```python
+						langchain_storage.copyToLocal(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
+						```
+
+						Copy File to Storage
+						```python
+						langchain_storage.copyToStorage(localPath= 'your/local/file/path', storagePath = 'your/storage/file/path')
+						```
+
+						Delete from Storage
+						```python
+						langchain_storage.deleteFromStorage(storagePath = 'your/storage/file/path')
+						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVA, JAVA_LABEL, """
+				```java
+				import prerna.util.Utility;
+				import prerna.engine.api.IStorageEngine;
+				IStorageEngine storage = Utility.getStorage("<engineid>");
+				```
+				""", engineId);
 		return usage;
 	}
 
 	private List<Map<String, Object>> getDatabaseUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		{
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
-					"""
-							```python
-							Database(database = "<engineid>")|Query("<encode> your select query </encode>")|Collect(500);
-							Database(database = "<engineid>")|Query("<encode> your insert/update/delete query </encode>")|ExecQuery();
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python",
-					"""
-							```python
-							from ai_server import DatabaseEngine
-							databaseEngine = DatabaseEngine(engine_id = "<engineid>")
-							databaseEngine.execQuery(query = 'SELECT * FROM table_name')
-							databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')
-							databaseEngine.updateData(query = 'UPDATE table_name set column1=value1 WHERE condition')
-							databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap("LANGCHAIN", "How to use with Langchain API",
-					"""
-							```python
-							from ai_server import DatabaseEngine
-							database = DatabaseEngine(engine_id = "<engineid>")
-							langhchain_db = database.to_langchain_database()
-							langhchain_db.executeQuery(query = 'SELECT * FROM table_name')
-							langhchain_db.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')
-							langhchain_db.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')
-							langhchain_db.removeQuery(query = 'DELETE FROM table_name WHERE condition')
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", """
-					```java
-					import prerna.util.Utility;
-					import prerna.engine.api.IDatabaseEngine;
-					IDatabaseEngine database = Utility.getDatabase("<engineid>");
-					```
-					""".trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						Select Queries
+						```
+						Database(database = "<engineid>")|Query("<encode> your select query </encode>")|Collect(500);
+						```
+
+						Insert/Update/Delete Queries
+						```
+						Database(database = "<engineid>")|Query("<encode> your insert/update/delete query </encode>")|ExecQuery();
+						```
+
+						Direct SQL Query<br/>
+						`SqlQuery` auto-detects the SQL type and routes to the appropriate execution path.<br/>
+						Select queries use select-style handling (`limit`).<br/>
+						Insert/update/delete queries use modification-style handling (`commit`).
+						```
+						SqlQuery(database = "<engineid>", query = "<encode> SELECT * FROM table_name </encode>", limit = 500);
+						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
+						```
+
+						Get Database Structure (logical + physical metadata)<br/>
+						Each result row contains:<br/>
+						1\\. Logical table name (RDBMS) or vertex name (Graph)<br/>
+						2\\. Logical column name (RDBMS) or property name (Graph)<br/>
+						3\\. Data type of the column or property<br/>
+						4\\. Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)<br/>
+						5\\. Physical column/property name as stored in the database<br/>
+						6\\. Physical table/vertex name as stored in the database<br/>
+						```
+						GetDatabaseTableStructure(database = "<engineid>");
+						```
+
+
+						Direct Base64 SQL Query<br/>
+						`SqlQueryBase64` uses the same wrapper behavior as `SqlQuery`; only the query input format changes (base64-encoded UTF-8 SQL string).<br/>
+						`U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==` decodes to `SELECT * FROM table_name;`
+						```
+						SqlQueryBase64(database = "<engineid>", query = "U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==", limit = 500);
+						```
+						""",
+				engineId);
+
+		addUsage(usage, PYTHON, PYTHON_LABEL,
+				"""
+						Getting Started
+						```python
+						# DatabaseEngine is the Semoss SDK wrapper for database query execution.
+						# Use it for read/write SQL operations against the selected engine.
+						from ai_server import DatabaseEngine
+						databaseEngine = DatabaseEngine(engine_id = "<engineid>")
+						```
+
+						Get Database Structure
+						Each result row contains:<br/>
+						1\\. Logical table name (RDBMS) or vertex name (Graph)<br/>
+						2\\. Logical column name (RDBMS) or property name (Graph)<br/>
+						3\\. Data type of the column or property<br/>
+						4\\. Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)<br/>
+						5\\. Physical column/property name as stored in the database<br/>
+						6\\. Physical table/vertex name as stored in the database<br/>
+						```python
+						database_structure = databaseEngine.get_database_structure()
+						```
+
+						Run Select Query
+						```python
+						databaseEngine.execQuery(query = 'SELECT * FROM table_name')
+						```
+
+						Insert Data
+						```python
+						databaseEngine.insertData(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')
+						```
+
+						Update Data
+						```python
+						databaseEngine.updateData(query = 'UPDATE table_name set column1=value1 WHERE condition')
+						```
+
+						Delete Data
+						```python
+						databaseEngine.removeData(query = 'DELETE FROM table_name WHERE condition')
+						```
+						""",
+				engineId);
+
+		addUsage(usage, LANGCHAIN, LANGCHAIN_LABEL,
+				"""
+						Getting Started
+						```python
+						# DatabaseEngine can be adapted to LangChain database interfaces.
+						from ai_server import DatabaseEngine
+						database = DatabaseEngine(engine_id = "<engineid>")
+						langchain_db = database.to_langchain_database()
+						```
+
+						Run Select Query
+						```python
+						langchain_db.executeQuery(query = 'SELECT * FROM table_name')
+						```
+
+						Insert Data
+						```python
+						langchain_db.insertQuery(query = 'INSERT INTO table_name (column1, column2, column3, ...) VALUES (value1, value2, value3, ...)')
+						```
+
+						Update Data
+						```python
+						langchain_db.updateQuery(query = 'UPDATE table_name set column1=value1 WHERE condition')
+						```
+
+						Delete Data
+						```python
+						langchain_db.removeQuery(query = 'DELETE FROM table_name WHERE condition')
+						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVA, JAVA_LABEL, """
+				```java
+				import prerna.util.Utility;
+				import prerna.engine.api.IDatabaseEngine;
+				IDatabaseEngine database = Utility.getDatabase("<engineid>");
+				```
+				""", engineId);
 		return usage;
 	}
 
 	private List<Map<String, Object>> getVectorUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		{
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript",
-					"""
-							List all the documents the vector database currently comprises of
-							```python
-							ListDocumentsInVectorDatabase (engine = "<engineid>");
-							```
-							Add document(s) that have been uploaded to the insight
-							```python
-							CreateEmbeddingsFromDocuments (engine = "<engineid>", filePaths = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
-							```
-							Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight
-							```python
-							CreateEmbeddingsFromVectorCSVFile (engine = "<engineid>", filePaths = ["fileName1.csv", "fileName2.csv", ..., "fileNameX.csv"]);
-							```
-							Perform a nearest neighbor search on the embedded documents
-							```python
-							##filters of the form Filter(Source == ["your document name 1", "your document name 2"])##
-							##metaFilters of the form Filter( MetadataKey == "Metadata Value" )##
-							VectorDatabaseQuery (engine = "<engineid>", command = "Sample Search Statement", limit = 5, filters=[], metaFilters=[]);
-							```
-							Remove document(s) from the vector database
-							```python
-							RemoveDocumentFromVectorDatabase (engine = "<engineid>", filePaths = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python",
-					"""
-							```python
-							# import vector engine class and initialize
-							from ai_server import VectorEngine
-							vectorEngine = VectorEngine(engine_id = "<engineid>")
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						List current vector documents (unique `Source` values)
+						```
+						ListDocumentsInVectorDatabase (engine = "<engineid>");
+						```
 
-							# List all the documents the vector database currently comprises of
-							vectorEngine.listDocuments()
+						Add uploaded documents from the current insight/room space
 
-							# Add document(s) that have been uploaded to the insight
-							vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])
+						```
+						CreateEmbeddingsFromDocuments (engine = "<engineid>", filePaths = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
+						```
 
-							# Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight
-							vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])
+						Add uploaded documents from app/project/user space
 
-							# Perform a nearest neighbor search on the embedded documents
-							# filters is Optional[Dict] | Optional[str]
-							# 	str of the form 'Filter(Source == ["your document name 1", "your document name 2"])'
-							# 	dict of the form {"Source": ["constitution.pdf", "scientific_journal.pdf"] and comparator is assumed to be '=' for all values
-							# metafilters is Optional[Dict] | Optional[str].
-							# 	str of the form 'Filter( MetadataKey == "Metadata Value" )'
-							# 	dict of the form {"age": [5,6,7]} and comparator is assumed to be '=' for all values
-							vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')
+						Use `space` when files are not in the current insight folder.<br/>
+						`space = "app_id"` (project/app UUID), `space = "user"` (user space).
+						```
+						CreateEmbeddingsFromDocuments (engine = "<engineid>", filePaths = ["docs/file1.pdf"], space = "app_id");
+						```
 
-							# Remove document(s) from the vector database
-							vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])
-							```
-							"""
-							.trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap("LANGCHAIN", "How to use with Langchain API", """
-					```python
-					from ai_server import VectorEngine
-					vector = VectorEngine(engine_id = "<engineid>")
-					langhchain_vector = vector.to_langchain_vector_store()
-					langhchain_vector.listDocs()
-					langhchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])
-					langhchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])
-					langhchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)
-					```
-					""".trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", """
-					```java
-					// imports
-					import prerna.util.Utility;
-					import prerna.engine.api.IVectorDatabaseEngine;
+						Add VectorCSVFile-formatted CSV files from current insight/room space
 
-					// get the vector engine
-					IVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase("<engineid>");
+						Supported file types: csv or zip archives containing csv files.<br/>
+						Expected csv headers: `Source`, `Modality`, `Divider`, `Part`, `Tokens`, `Content`<br/>
+						Headers are case-sensitive and should match exactly as shown.<br/>
+						CSV quotes are optional unless a value contains commas/newlines/quotes (`doc1.pdf` does not need quotes).
+						```csv
+						Source,Modality,Divider,Part,Tokens,Content
+						doc1.pdf,text,1,0,120,"First chunk of text"
+						```
+						```
+						CreateEmbeddingsFromVectorCSVFile (engine = "<engineid>", filePaths = ["fileName1.csv", "fileName2.csv", ..., "fileNameX.csv"]);
+						```
 
-					// List all the documents the vector database currently comprises of
-					vectorEngine.listDocuments(Map<String, Object> parameters)
+						Add VectorCSVFile-formatted CSV files from app/project/user space
+						```
+						CreateEmbeddingsFromVectorCSVFile (engine = "<engineid>", filePaths = ["vector_data/chunks.csv"], space = "app_id");
+						```
 
-					// Add document(s) that have been uploaded to the insight
-					vectorEngine.addDocument(List<String> filePaths, Map<String, Object> parameters);
+						Run nearest-neighbor search
+						```
+						## filters format: Filter(Source == ["your document name 1", "your document name 2"]) ##
+						## metaFilters format: Filter(MetadataKey == "Metadata Value") ##
+						VectorDatabaseQuery (engine = "<engineid>", command = "Sample Search Statement", limit = 5, filters=[], metaFilters=[]);
+						```
 
-					// Add the VectorCSVFile Formatted CSVs that have been uploaded to the insight
-					vectorEngine.addEmbeddings(List<String> filePaths, Insight insight, Map<String, Object> parameters);
+						Remove files from the vector index
 
-					// Perform a nearest neighbor search on the embedded documents
-					vectorEngine.nearestNeighbor(String searchStatement, Number limit, Map<String, Object> parameters);
+						Use `fileNames` (source identifiers), not file paths.
+						```
+						RemoveDocumentFromVectorDatabase (engine = "<engineid>", fileNames = ["fileName1.pdf", "fileName2.pdf", ..., "fileNameX.pdf"]);
+						```
+						""",
+				engineId);
 
-					// Remove document(s) from the vector database
-					vectorEngine.removeDocument(List<String> fileNames, Map <String, Object> parameters);
-					```
-					""".trim().replace("<engineid>", engineId));
-			usage.add(usageMap);
-		}
+		addUsage(usage, PYTHON, PYTHON_LABEL,
+				"""
+						Getting Started
+						```python
+						# VectorEngine manages document indexing and semantic search in vector stores.
+						from ai_server import VectorEngine
+						vectorEngine = VectorEngine(engine_id = "<engineid>")
+						```
+
+						List Indexed Documents
+
+						Returns unique source identifiers currently stored in the vector database.
+						```python
+						vectorEngine.listDocuments()
+						```
+
+						Add Uploaded Documents (insight/room space)
+						```python
+						vectorEngine.addDocument(file_paths = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])
+						```
+
+						Add Uploaded Documents (app/project/user space)
+
+						`space='app_id'` (project/app UUID), `space='user'` (user space).
+						```python
+						vectorEngine.addDocument(file_paths = ['docs/fileName1.pdf'], space='app_id')
+						```
+
+						Add VectorCSVFile-formatted CSVs (insight/room space)
+
+						Expected csv headers: `Source`, `Modality`, `Divider`, `Part`, `Tokens`, `Content`<br/>
+						Headers are case-sensitive and should match exactly as shown.<br/>
+						CSV quotes are optional unless a value contains commas/newlines/quotes (`doc1.pdf` does not need quotes).
+						```csv
+						Source,Modality,Divider,Part,Tokens,Content
+						doc1.pdf,text,1,0,120,"First chunk of text"
+						```
+						```python
+						vectorEngine.addVectorCSVFile(file_paths = ['fileName1.csv', 'fileName2.csv', ..., 'fileNameX.csv'])
+						```
+
+						Add VectorCSVFile-formatted CSVs (app/project/user space)
+						```python
+						vectorEngine.addVectorCSVFile(file_paths = ['vector_data/chunks.csv'], space='app_id')
+						```
+
+						Nearest-neighbor Search
+
+						`filters` can be a dict or string expression.<br/>
+						`metafilters` can be a dict or string expression.
+						```python
+						# str filter example: 'Filter(Source == ["your document name 1", "your document name 2"])'
+						# str metafilter example: 'Filter(MetadataKey == "Metadata Value")'
+						vectorEngine.nearestNeighbor(search_statement = 'Sample Search Statement', limit = 5, param_dict={}, filters='', metafilters='')
+						```
+
+						Remove Indexed Documents
+
+						Use `file_names` as source identifiers (for example names returned by `listDocuments()`).
+						```python
+						vectorEngine.removeDocument(file_names = ['fileName1.pdf', 'fileName2.pdf', ..., 'fileNameX.pdf'])
+						```
+						""",
+				engineId);
+
+		addUsage(usage, LANGCHAIN, LANGCHAIN_LABEL, """
+				Getting Started
+				```python
+				# VectorEngine can be adapted to a LangChain vector store.
+				from ai_server import VectorEngine
+				vector = VectorEngine(engine_id = "<engineid>")
+				langchain_vector = vector.to_langchain_vector_store()
+				```
+
+				List Indexed Documents
+				```python
+				langchain_vector.listDocs()
+				```
+
+				Add Documents
+				```python
+				langchain_vector.addDocs(file_paths = ['file1.pdf','file2.pdf',...])
+				```
+
+				Add Documents from app/project/user space
+
+				`to_langchain_vector_store().addDocs(...)` uses insight space.<br/>
+				Use the base vector engine call when you need `space`.
+				```python
+				vector.addDocument(file_paths=['docs/file1.pdf'], space='app_id')
+				```
+
+				Remove Documents
+				```python
+				langchain_vector.removeDocs(file_names = ['file1.pdf','file2.pdf',...])
+				```
+
+				Similarity Search
+				```python
+				langchain_vector.similaritySearch(query = 'Sample Search Statement', k=5)
+				```
+				""", engineId);
+
+		addUsage(usage, JAVA, JAVA_LABEL, """
+				Getting Started
+				```java
+				// imports
+				import java.util.HashMap;
+				import java.util.List;
+				import java.util.Map;
+				import prerna.util.Utility;
+				import prerna.engine.api.IVectorDatabaseEngine;
+				import prerna.om.Insight;
+
+				// get the vector engine
+				IVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase("<engineid>");
+				Map<String, Object> parameters = new HashMap<>();
+				```
+
+				List Indexed Documents
+				```java
+				vectorEngine.listDocuments(parameters);
+				```
+
+				Add Uploaded Documents
+				```java
+				vectorEngine.addDocument(List.of("fileName1.pdf", "fileName2.pdf"), parameters);
+				```
+
+				Add VectorCSVFile-formatted CSV Files
+				```java
+				Insight insight = ...; // use the current insight context
+				vectorEngine.addEmbeddings(List.of("fileName1.csv", "fileName2.csv"), insight, parameters);
+				```
+
+				Run Nearest-neighbor Search
+				```java
+				vectorEngine.nearestNeighbor("Sample Search Statement", 5, parameters);
+				```
+
+				Remove Indexed Documents
+				```java
+				vectorEngine.removeDocument(List.of("fileName1.pdf"), parameters);
+				```
+				""", engineId);
 		return usage;
 	}
 
 	private List<Map<String, Object>> getFunctionUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		IFunctionEngine ife = Utility.getFunctionEngine(engineId);
-		List<FunctionParameter> fps = ife.getParameters();
-		if (fps == null) {
-			fps = new ArrayList<>();
-		}
-		List<Map<String, Object>> paramInfo = new ArrayList<>();
-		List<String> requiredParams = ife.getRequiredParameters();
-		if (requiredParams == null) {
-			requiredParams = new ArrayList<>();
-		}
+		IFunctionEngine functionEngine = Utility.getFunctionEngine(engineId);
+		List<FunctionParameter> parameters = getFunctionParameters(functionEngine);
+		List<String> requiredParameters = getRequiredFunctionParameters(functionEngine);
+		List<Map<String, Object>> paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
+		String mapParams = buildFunctionMapParams(parameters);
+		String pixelMapArg = mapParams.isEmpty() ? "" : " , map=[" + mapParams + "] ";
 
-		boolean first = true;
-		String mapParams = "";
-		for (FunctionParameter fp : fps) {
-			Map<String, Object> pinfo = new HashMap<>();
-			String name = fp.getParameterName();
-			String type = fp.getParameterType();
-			String description = fp.getParameterDescription();
+		addUsage(usage, PIXEL, PIXEL_LABEL, """
+				Execute Function
+				```
+				ExecuteFunctionEngine(engine = "<engineid>"<javastring>);
+				```
+				""".replace("<javastring>", pixelMapArg), engineId, paramInfo);
 
-			if (requiredParams.contains(name)) {
-				pinfo.put("required", true);
-			} else {
-				pinfo.put("required", false);
-			}
-			pinfo.put("name", name);
-			pinfo.put("type", type);
-			pinfo.put("description", description);
+		addUsage(usage, PYTHON, PYTHON_LABEL, """
+				Getting Started
+				```python
+				# FunctionEngine is the Semoss SDK wrapper for calling function engines.
+				# Use it to execute the engine with a parameter dictionary payload.
+				from ai_server import FunctionEngine
+				function = FunctionEngine(engine_id = "<engineid>")
+				```
 
-			paramInfo.add(pinfo);
-			if (first) {
-				mapParams = mapParams + "{";
-				first = false;
-			} else {
-				mapParams = mapParams + ", ";
-			}
+				Execute Function
+				```python
+				output = function.execute(<mapparams>)
+				```
+				""".replace("<mapparams>", mapParams), engineId, paramInfo);
 
-			mapParams = mapParams + "\"" + name + "\":";
-
-			if (type.equalsIgnoreCase("string")) {
-				mapParams = mapParams + "\"string\"";
-			} else {
-				mapParams = mapParams + type;
-			}
-
-		}
-
-		if (fps.size() == 0) {
-			mapParams = "";
-		} else {
-			mapParams = mapParams + "}";
-		}
-
-		{
-			String javaString = "";
-			if (!mapParams.isEmpty()) {
-				javaString = javaString + " , map=[" + mapParams + "] ";
-			}
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript", """
-					```python
-					ExecuteFunctionEngine(engine = "<engineid>"<javastring>);
-					```
-					""".trim().replace("<engineid>", engineId).replace("<javastring>", javaString), paramInfo);
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python", """
-					```python
-					from ai_server import FunctionEngine
-					function = FunctionEngine(engine_id = "<engineid>")
-					output = function.execute(<mapparams>)
-					```
-					""".trim().replace("<engineid>", engineId).replace("<mapparams>", mapParams), paramInfo);
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", """
-					```java
-					import prerna.util.Utility;
-					import prerna.engine.api.IFunctionEngine;
-					IFunctionEngine function = Utility.getFunction("<engineid>");
-					```
-					""".trim().replace("<engineid>", engineId), paramInfo);
-			usage.add(usageMap);
-		}
+		addUsage(usage, JAVA, JAVA_LABEL, """
+				```java
+				import prerna.util.Utility;
+				import prerna.engine.api.IFunctionEngine;
+				IFunctionEngine function = Utility.getFunction("<engineid>");
+				```
+				""", engineId, paramInfo);
 		return usage;
 	}
 
 	private List<Map<String, Object>> getPendingUsage() {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		{
-			Map<String, Object> usageMap = fillMap(PIXEL, "How to use in Javascript", "Documentation pending");
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(PYTHON, "How to use in Python", "Documentation pending");
-			usage.add(usageMap);
-		}
-		{
-			Map<String, Object> usageMap = fillMap(JAVA, "How to use in Java", "Documentation pending");
-			usage.add(usageMap);
-		}
+		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
+		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
 		return usage;
 	}
 
+	private List<FunctionParameter> getFunctionParameters(IFunctionEngine functionEngine) {
+		List<FunctionParameter> parameters = functionEngine.getParameters();
+		return parameters == null ? new ArrayList<>() : parameters;
+	}
+
+	private List<String> getRequiredFunctionParameters(IFunctionEngine functionEngine) {
+		List<String> requiredParameters = functionEngine.getRequiredParameters();
+		return requiredParameters == null ? new ArrayList<>() : requiredParameters;
+	}
+
+	private List<Map<String, Object>> buildFunctionParamInfo(List<FunctionParameter> parameters,
+			List<String> requiredParameters) {
+		List<Map<String, Object>> paramInfo = new ArrayList<>();
+		for (FunctionParameter fp : parameters) {
+			Map<String, Object> pinfo = new HashMap<>();
+			pinfo.put("required", requiredParameters.contains(fp.getParameterName()));
+			pinfo.put("name", fp.getParameterName());
+			pinfo.put("type", fp.getParameterType());
+			pinfo.put("description", fp.getParameterDescription());
+			paramInfo.add(pinfo);
+		}
+		return paramInfo;
+	}
+
+	private String buildFunctionMapParams(List<FunctionParameter> parameters) {
+		if (parameters.isEmpty()) {
+			return "";
+		}
+		StringBuilder mapParams = new StringBuilder("{");
+		for (int i = 0; i < parameters.size(); i++) {
+			FunctionParameter fp = parameters.get(i);
+			if (i > 0) {
+				mapParams.append(", ");
+			}
+			mapParams.append("\"").append(fp.getParameterName()).append("\":")
+					.append(getDefaultParamValue(fp.getParameterType()));
+		}
+		mapParams.append("}");
+		return mapParams.toString();
+	}
+
+	private String getDefaultParamValue(String type) {
+		if ("string".equalsIgnoreCase(type)) {
+			return "\"string\"";
+		}
+		return type;
+	}
+
 	/**
-	 * 
-	 * @param type
-	 * @param label
-	 * @param code
-	 * @return
+	 * Adds a usage entry and performs common formatting for code templates.
 	 */
+	private void addUsage(List<Map<String, Object>> usage, String type, String label, String codeTemplate,
+			String engineId) {
+		usage.add(fillMap(type, label, formatUsageCode(codeTemplate, engineId)));
+	}
+
+	private void addUsage(List<Map<String, Object>> usage, String type, String label, String codeTemplate,
+			String engineId, List<Map<String, Object>> paramInfo) {
+		usage.add(fillMap(type, label, formatUsageCode(codeTemplate, engineId), paramInfo));
+	}
+
+	private String formatUsageCode(String codeTemplate, String engineId) {
+		if (engineId == null || engineId.isEmpty()) {
+			return codeTemplate.trim();
+		}
+		return codeTemplate.trim().replace("<engineid>", engineId);
+	}
+
 	private Map<String, Object> fillMap(String type, String label, String code) {
 		Map<String, Object> usageMap = new HashMap<>();
 		usageMap.put(TYPE, type);
@@ -668,4 +1022,41 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		usageMap.put(PARAM_INFO, paramInfo);
 		return usageMap;
 	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Builds sample usage snippets for a selected engine across Pixel, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+
+				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
+				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
+				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
+				- Function-engine responses also include `parameters`, where each item contains `name`, `type`, `description`, and `required`.
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return """
+					Engine ID used to derive both the catalog type and engine-specific usage examples.
+
+					- If both `engine` and `type` are provided, this value takes precedence.
+					""";
+		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
+			String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
+					IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
+					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+			return """
+					Fallback engine catalog type used only when `engine` is not provided.
+
+					- Values are case-insensitive. If valid, examples are generated with `SAMPLE_ENGINE_ID`.
+					- Valid values: %s.
+					- If neither a valid `engine` nor a valid `type` is provided, the reactor throws an `IllegalArgumentException`.
+					"""
+					.formatted(validValues);
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

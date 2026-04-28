@@ -40,13 +40,14 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityShareSessionUtils extends AbstractSecurityUtils {
@@ -122,6 +123,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 */
 	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
 			boolean authToken) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null || user.isAnonymous()) {
 			throw new IllegalArgumentException("Cannot share a session for a user who is not logged in");
 		}
@@ -149,7 +151,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create a share-session authentication token.", e);
 			throw new IllegalArgumentException("Error occurred inserting to create a new token");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -198,6 +200,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Object[] getShareSessionDetails(String shareToken) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(QS_SHARE_VAL));
 		qs.addSelector(new QueryColumnSelector(QS_SESSION_VAL));
@@ -215,7 +218,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve share session details.", e);
 		}
 		return null;
 	}
@@ -229,6 +232,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @throws SQLException
 	 */
 	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED + "=?, "
@@ -242,7 +246,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to record share-session usage.", e);
 			throw new IllegalArgumentException("Error occurred logging the session share result");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -258,6 +262,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static AccessToken generateAccessTokenForShareAuth(Object[] shareDetails) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int index = 0;
 		String shareToken = (String) shareDetails[index++];
 		String sessionVal = (String) shareDetails[index++];
@@ -309,7 +314,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 				token.setEmail(email);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to generate an access token for share-session authentication.", e);
 		}
 
 		return token;

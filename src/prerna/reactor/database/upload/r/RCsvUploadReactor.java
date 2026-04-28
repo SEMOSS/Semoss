@@ -42,20 +42,18 @@ import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
-	
+
 	private CSVFileHelper helper;
 
 	public RCsvUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
-				UploadInputUtility.ADDITIONAL_DATA_TYPES};
+				UploadInputUtility.ADDITIONAL_DATA_TYPES };
 	}
 
 	@Override
@@ -74,15 +72,16 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 			// but i want to remove it so things are "pretty"
 			fileName = fileName.substring(0, fileName.indexOf("_____UNIQUE"));
 		}
-		
+
 		int stepCounter = 1;
 		logger.info(stepCounter + ". Create smss file for database...");
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.databaseId, newDatabaseName, owlFile, fileName, newHeaders, dataTypesMap, additionalDataTypeMap);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, this.tempSmss.getAbsolutePath());
+		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.databaseId, newDatabaseName, owlFile, fileName,
+				newHeaders, dataTypesMap, additionalDataTypeMap);
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		logger.info(stepCounter + ". Parse data types...");
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
@@ -92,7 +91,6 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		String[] additionalTypes = (String[]) headerTypesArr[2];
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
 
 		logger.info(stepCounter + ". Start generating database metadata");
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
@@ -106,17 +104,19 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 			owlEngine.addProp(tableName, headers[i], types[i].toString(), additionalTypes[i]);
 		}
 		// add descriptions and logical names
-		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers, UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
+		UploadUtilities.insertFlatOwlMetadata(owlEngine, tableName, headers,
+				UploadInputUtility.getCsvDescriptions(this.store), UploadInputUtility.getCsvLogicalNames(this.store));
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
-		
+
 		// move file
-		File dataFile = SmssUtilities.getDataFile(Utility.loadProperties(Utility.normalizePath(this.tempSmss.getAbsolutePath())));
+		File dataFile = SmssUtilities
+				.getDataFile(Utility.loadProperties(Utility.normalizePath(this.tempSmss.getAbsolutePath())));
 		FileUtils.copyFile(uploadFile, dataFile);
-		
+
 		logger.info(stepCounter + ". Create database store...");
 		this.database = new RNativeEngine();
 		this.database.open(this.tempSmss.getAbsolutePath());

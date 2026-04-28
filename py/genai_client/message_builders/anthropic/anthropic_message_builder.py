@@ -152,10 +152,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
@@ -325,10 +328,13 @@ class AnthropicMessageBuilder:
                         )
                     if "built_in_tools" in param_map:
                         built_in_tools = self._build_built_in_tools(
-                            param_map["built_in_tools"]
+                            param_map.pop("built_in_tools")
                         )
-                        if "tools" in param_map:
-                            param_map["tools"].extend(built_in_tools)
+                        if built_in_tools:
+                            if "tools" in param_map:
+                                param_map["tools"].extend(built_in_tools)
+                            else:
+                                param_map["tools"] = built_in_tools
                     if "tool_choice" in param_map:
                         param_map["tool_choice"] = self._build_tool_choice(
                             param_map["tool_choice"]
@@ -731,12 +737,14 @@ class AnthropicMessageBuilder:
             or self.model_limits.max_completion_tokens
         )
 
-        # MAX TOKENS MUST BE LARGER THAN THINKING BUDGET
-        if thinking_map and (
-            thinking_map.get("type") == "enabled"
-            and thinking_map.get("budget_tokens", 0) <= max_tokens
-        ):
-            max_tokens = self._get_model_max_output_tokens(self.model_name)
+        # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET
+        if thinking_map and thinking_map.get("type") == "enabled":
+            budget_tokens = thinking_map.get("budget_tokens", 0)
+            if max_tokens is None or max_tokens <= budget_tokens:
+                model_cap = self._get_model_max_output_tokens(self.model_name)
+                max_tokens = min(budget_tokens * 2, model_cap)
+                if max_tokens <= budget_tokens:
+                    max_tokens = min(budget_tokens + 1024, model_cap)
 
         temperature = kwargs.pop("temperature", None)
         top_p = kwargs.pop("top_p", None)
@@ -759,7 +767,7 @@ class AnthropicMessageBuilder:
         return AnthropicRequestConfig(
             model=self.model_name,
             system=system_prompt,
-            messages=[message.model_dump(mode="json") for message in history],
+            messages=[message.model_dump(mode="json", exclude_none=True) for message in history],
             betas=[self.beta_feature_name] if self.use_beta_header else None,
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),

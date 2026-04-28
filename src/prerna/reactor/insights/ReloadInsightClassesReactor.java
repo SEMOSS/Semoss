@@ -42,27 +42,26 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
 @Deprecated
 public class ReloadInsightClassesReactor extends AbstractReactor {
 
+	@Deprecated
 	public ReloadInsightClassesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		this.insight.resetClassCache();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
 
 		List<String> messages = new ArrayList<>();
-
 		if (projectId != null && !projectId.isEmpty()) {
 			// make sure valid id for user
 			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
@@ -137,9 +136,8 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 
 		// if we are doing reactors on socket side
 		boolean executeOnSocket = false;
-		if (DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean
-					.parseBoolean(DIHelper.getInstance().getProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
+		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
+			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
 		}
 
 		if (executeOnSocket && this.insight.getUser() != null
@@ -154,6 +152,7 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 	}
 
+	@Deprecated
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";

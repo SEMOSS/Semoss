@@ -52,7 +52,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
@@ -101,7 +101,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineid));
 		}
 
-		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(database, qs);
@@ -144,7 +144,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to export user database permissions.", e);
 			throw new IllegalArgumentException(
 					"An error occurred retrieving the users. Message is : " + e.getMessage());
 		} finally {
@@ -152,7 +152,7 @@ public class AdminExportUserDatabasePermissionsReactor extends ToExcelReactor {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to export user database permissions.", e);
 				}
 			}
 		}

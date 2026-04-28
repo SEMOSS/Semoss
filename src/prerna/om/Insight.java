@@ -28,11 +28,7 @@
 package prerna.om;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLDecoder;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,13 +56,11 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
-import prerna.engine.impl.SaveInsightIntoWorkspace;
 import prerna.engine.impl.model.Room;
 import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.IReactor;
-import prerna.reactor.InsightCustomReactorCompilator;
 import prerna.reactor.browser.PlaywrightBrowserUtil;
 import prerna.reactor.export.IFormatter;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
@@ -92,6 +86,8 @@ import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class Insight implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	public static final String DEFAULT_SHEET_ID = "0";
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
@@ -123,7 +119,9 @@ public class Insight implements Serializable {
 	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
 	private transient ZonedDateTime cachedDateTime = null;
-	protected int count = 0;
+
+	// determination if it is an old insight format
+	protected boolean isOldInsight = false;
 
 	// if this is a room
 	protected String roomId;
@@ -157,12 +155,10 @@ public class Insight implements Serializable {
 	// we will keep a central rJavaTranslator for the entire insight
 	// that can be referenced through all the reactors
 	// since reactors have access to insight
-	private transient AbstractRJavaTranslator rJavaTranslator; // need a way keep the environment name so it is
-																// communicated
+	private transient AbstractRJavaTranslator rJavaTranslator;
+	private String rEnvName = null;
+	// same for python
 	private transient PyTranslator pyTranslator;
-
-	private transient SaveInsightIntoWorkspace workspaceCacheThread = null;
-	private transient boolean cacheInWorkspace = false;
 
 	/*
 	 * TODO: find a better way of doing this keep a list of all the files that are
@@ -184,17 +180,6 @@ public class Insight implements Serializable {
 
 	private transient Set<String> queriedDatabaseIds = new HashSet<String>();
 
-	// old - for pkql
-	@Deprecated
-	private transient Map<String, Map<String, Object>> pkqlVarMap = new ConcurrentHashMap<String, Map<String, Object>>();
-
-	// need a way to shift between old and new insights...
-	// dont know how else to shift to this
-	protected boolean isOldInsight = false;
-
-	// insight specific reactors
-	private transient Map<String, Class> insightSpecificHash = new HashMap<>();
-
 	// last panel id touched
 	private String lastPanelId = null;
 
@@ -211,8 +196,6 @@ public class Insight implements Serializable {
 
 	// chrome proxy
 	private transient ChromeDriverUtility chromeUtil = null;
-
-	private String rEnvName = null;
 
 	private boolean contextReinitialized = false;
 
@@ -334,76 +317,16 @@ public class Insight implements Serializable {
 					}
 				} catch (Exception e) {
 					classLogger.error(Constants.STACKTRACE, e);
-				} finally {
-					if (this.user != null && !this.user.isAnonymous() && SaveInsightIntoWorkspace.isCacheUserWorkspace()
-							&& this.cacheInWorkspace && !this.pixelList.isEmpty()) {
-						List<Pixel> returnedPixelList = runner.getReturnPixelList();
-						if (!returnedPixelList.isEmpty()
-								&& !returnedPixelList.get(returnedPixelList.size() - 1).isMeta()) {
-							SaveInsightIntoWorkspace thread = getWorkspaceCacheThread();
-							if (thread != null) {
-								thread.addToQueue(this.pixelList.getPixelRecipe());
-							}
-						}
-					}
 				}
 			}
 		}
-		// track the pixels
-		this.trackPixel(runner);
-		// return
 		return runner;
-	}
-
-	private void trackPixel(PixelRunner runner) {
-		try {
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
 	}
 
 	public PixelRunner getPixelRunner() {
 		PixelRunner runner = new PixelRunner();
 		return runner;
 	}
-
-	private SaveInsightIntoWorkspace getWorkspaceCacheThread() {
-		if (this.workspaceCacheThread == null && this.user != null && this.user.isLoggedIn()) {
-			String worksapceId = this.user.getWorkspaceProjectId(this.user.getPrimaryLogin());
-			if (worksapceId != null) {
-				boolean isCacheOfCache = worksapceId.equals(this.projectId);
-				this.workspaceCacheThread = new SaveInsightIntoWorkspace(worksapceId, this.rdbmsId, this.insightName,
-						isCacheOfCache);
-			}
-		}
-		return this.workspaceCacheThread;
-	}
-
-	public void setCacheInWorkspace(boolean cacheInWorkspace) {
-		this.cacheInWorkspace = cacheInWorkspace;
-	}
-
-	public boolean isCacheInWorkspace() {
-		return this.cacheInWorkspace;
-	}
-
-	public void dropWorkspaceCache() {
-		if (this.workspaceCacheThread != null) {
-			this.workspaceCacheThread.killThread();
-			this.workspaceCacheThread.dropWorkspaceCache();
-		}
-		this.cacheInWorkspace = false;
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// END EXECUTION OF PIXEL
-	//////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	/////////////////////////////////////////////////////////
-	// insight panels
 
 	public Map<String, InsightPanel> getInsightPanels() {
 		return this.insightPanels;
@@ -513,7 +436,7 @@ public class Insight implements Serializable {
 	public String getUserFolder() {
 		AuthProvider provider = user.getPrimaryLogin();
 		String projectId = user.getAssetProjectId(provider);
-		this.userFolder = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", projectId);
+		this.userFolder = AssetUtility.getUserAssetVersionFolder("Asset", projectId);
 		return userFolder;
 	}
 
@@ -652,9 +575,6 @@ public class Insight implements Serializable {
 
 	public void setInsightName(String insightName) {
 		this.insightName = insightName;
-		if (this.workspaceCacheThread != null) {
-			this.workspaceCacheThread.setInsightName(insightName);
-		}
 	}
 
 	public boolean isCacheable() {
@@ -886,176 +806,6 @@ public class Insight implements Serializable {
 		return this.queriedDatabaseIds;
 	}
 
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-	// TODO: methods i have but dont want to keep
-
-	public void setIsOldInsight(boolean isOldInsight) {
-		this.isOldInsight = isOldInsight;
-	}
-
-	public boolean isOldInsight() {
-		return this.isOldInsight;
-	}
-
-	public IDataMaker getDataMaker() {
-		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if (curFrameNoun != null) {
-			return ((IDataMaker) curFrameNoun.getValue());
-		}
-		return null;
-	}
-
-	public ITableDataFrame getCurFrame() {
-		Object frame = getDataMaker();
-		if (frame != null) {
-			return (ITableDataFrame) frame;
-		}
-		return null;
-	}
-
-	public void setDataMaker(IDataMaker datamaker) {
-		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
-	}
-
-	@Deprecated
-	public String getDataMakerName() {
-		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
-		if (curFrameNoun != null) {
-			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
-		}
-		// TODO: how do i handle this???
-		// might not be a grid in reality
-		// causing issues since we want to load the data maker before we execute
-		// anything
-		// but if we have multiple frames, we need to be smarter about how we do this
-		return "H2Frame";
-	}
-
-	public Map<String, Object> getWebData() {
-		return null;
-	}
-
-	public String getOrder() {
-		return "0";
-	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////// START EXECUTION OF PKQL
-	//////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-//	@Deprecated
-//	public Map<String, Object> runPkql(String pkqlString) {
-//		PKQLRunner runner = getPkqlRunner();
-//		try {
-//			logger.info("Running >>> " + pkqlString);
-//			// we need to account for the fact that the data.output
-//			// will create a completely new insight object
-//			// so even though we add the reactors
-//			// we end up with a new translation that needs them again
-//			if(this.getDataMaker() != null) {
-//				runner.runPKQL(pkqlString, this.getDataMaker());
-//			} else {
-//				// ugh... i dont like having to have a h2frame...
-//				// but FE never adds data.frame(grid)
-//				runner.runPKQL(pkqlString, new H2Frame());
-//			}
-//		} catch(Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//			throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
-//		}
-//		this.pixelList.addPixel(pkqlString);
-//		return collectPkqlResults(runner);
-//	}
-//
-//	// run a new list of pkql routines
-//	@Deprecated
-//	public Map<String, Object> runPkql(List<String> pqlList) {
-//		PKQLRunner runner = getPkqlRunner();
-//		int size = pqlList.size();
-//		for(int i = 0; i < size; i++) {
-//			String pkqlString = pqlList.get(i);
-//			try {
-//				logger.info("Running >>> " + pkqlString);
-//				if(this.getDataMaker() != null) {
-//					runner.runPKQL(pkqlString, this.getDataMaker());
-//				} else {
-//					// ugh... i dont like having to have a h2frame...
-//					// but FE never adds data.frame(grid)
-//					runner.runPKQL(pkqlString, new H2Frame());
-//				}
-//			} catch(Exception e) {
-//				classLogger.error(Constants.STACKTRACE, e);
-//				throw new IllegalArgumentException("Error with " + pkqlString + "\n" + e.getMessage());
-//			}
-//			this.pixelList.addPixel(pkqlString);
-//		}
-//		return collectPkqlResults(runner);
-//	}
-
-	/**
-	 * A routine to grab all the random data we need for the previously run insight
-	 * pixel routines
-	 * 
-	 * @return
-	 */
-//	@Deprecated
-//	private Map<String, Object> collectPkqlResults(PKQLRunner pkqlRunner) {
-//		Map<String, Object> returnObj = new HashMap<String, Object>();
-//		
-//		// add insight information
-//		returnObj.put("insightID", this.insightId);
-//		IDataMaker datamaker = pkqlRunner.getDataFrame();
-//		if(datamaker != null) {
-//			returnObj.put("dataID", datamaker.getDataId());
-//			// TODO: just cause i want as many things to be in future state as possible
-//			this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
-//		}
-//		
-//		// add the pkql data
-//		returnObj.put("newColumns", pkqlRunner.getNewColumns());
-//		returnObj.put("newInsights", pkqlRunner.getNewInsights());
-//		returnObj.put("clear", pkqlRunner.getDataClear());
-//		returnObj.put("pkqlData", pkqlRunner.getResults());
-//		returnObj.put("feData", pkqlRunner.getFeData());
-//		
-//		// ... in case this is some dashboard object
-//		if(pkqlRunner.getDashboardData() != null) {
-//			Map dashboardMap = new HashMap();
-//			dashboardMap.putAll((Map)pkqlRunner.getDashboardData());
-//			returnObj.put("Dashboard", dashboardMap);
-//		}
-//		
-//		// need to grab the metadata
-//		// in case there is a file used that i need to keep track of
-//		// if this insight is later saved
-////		parseMetadataResponse(pkqlRunner.getMetadataResponse());
-//		
-//		// store the varmap after the operation is done
-//		this.pkqlVarMap = pkqlRunner.getVarMap();
-//		
-//		return returnObj;
-//	}
-
-//	@Deprecated
-//	public Map<String, Object> reRunInsight() {
-//		// just clear the varStore
-//		// TODO: need to do better clean up
-//		// like actually removing the data makers so we do not 
-//		// have too much in memory
-//		this.varStore.clear();
-//		this.insightPanels.clear();
-//		return runPkql(this.pixelList.getPixelRecipe());
-//	}
-
 	/**
 	 * re-run the optimized version of the pixel recipe
 	 * 
@@ -1192,62 +942,15 @@ public class Insight implements Serializable {
 		}
 	}
 
-//	/**
-//	 * Get a new instance of the pkql runner
-//	 * @return
-//	 */
-//	@Deprecated
-//	public PKQLRunner getPkqlRunner() {
-//		PKQLRunner runner = new PKQLRunner();
-//		runner.setInsightId(this.insightId);
-//		runner.setVarMap(this.pkqlVarMap);
-//		return runner;
-//	}
-
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////// END EXECUTION OF PKQL
-	//////////////////////////////////////////////////////////////////////////////////////// ////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////
-
-	///////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////////
-	//////////////////// LOAD
-	/////////////////////////////////////////////////////////////////////////////////////// REACTORS//////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////////
-	///////////////////////////////////////////////////////////////////////////////////////
-
-	// get insight specific class
+	/**
+	 * Retrieve a reactor based on the insights context (app space) for custom
+	 * project reactors
+	 * 
+	 * @param className
+	 * @return
+	 */
 	public IReactor getReactor(String className) {
-		// try to get to see if this class already exists
-		// no need to recreate if it does
 		IReactor retReac = null;
-
-		String key = InsightCustomReactorCompilator.getKey(this);
-		// see if I need to compile this again
-		if (!InsightCustomReactorCompilator.isCompiled(key)) {
-			int status = Utility.compileJava(getInsightFolder(), getCP());
-			if (status == 0) {
-				InsightCustomReactorCompilator.setCompiled(key);
-			}
-		}
-
-		if (insightSpecificHash == null || insightSpecificHash.isEmpty()) {
-			insightSpecificHash = Utility.loadReactors(getInsightFolder(), key);
-		}
-		// creates the insight specific map
-		try {
-			if (insightSpecificHash.containsKey(className.toUpperCase())) {
-				Class thisReactorClass = insightSpecificHash.get(className.toUpperCase());
-				retReac = (IReactor) thisReactorClass.newInstance();
-				return retReac;
-			}
-		} catch (InstantiationException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
 
 		// user has manually set the specific context
 		if (this.contextProjectId != null) {
@@ -1268,94 +971,6 @@ public class Insight implements Serializable {
 		}
 
 		return retReac;
-	}
-
-	public void resetClassCache() {
-		String key = InsightCustomReactorCompilator.getKey(this);
-		InsightCustomReactorCompilator.reset(key);
-	}
-
-	public String getCP() {
-		String envClassPath = null;
-
-		StringBuilder retClassPath = new StringBuilder("");
-		ClassLoader cl = getClass().getClassLoader();
-
-		// Fix for differing class loaders during runtime in tomcat server and unit
-		// tests.
-		URL[] urls = getUrlsFromClassLoader(cl);
-
-		if (System.getProperty("os.name").toLowerCase().contains("win")) {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile().replaceFirst("/", "")));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
-				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(";");
-
-			}
-		} else {
-			for (URL url : urls) {
-				String thisURL = URLDecoder.decode((url.getFile()));
-				if (thisURL.endsWith("/")) {
-					thisURL = thisURL.substring(0, thisURL.length() - 1);
-				}
-
-				retClassPath
-						// .append("\"")
-						.append(thisURL)
-						// .append("\"")
-						.append(":");
-			}
-		}
-		// Adding it, even though this might not exist
-		if (insightFolder != null) {
-			File file = new File(Utility.normalizePath(insightFolder));
-			if (file.exists()) {
-				retClassPath.append(insightFolder + "/classes;");
-
-				// now the db
-				String dbDir = file.getParentFile().getParent() + "/classes";
-				retClassPath.append(dbDir);
-			}
-			// this should also add the db classes folder and the insight classes folder if
-			// one exists
-		}
-		envClassPath = "\"" + retClassPath.toString() + "\"";
-
-		return envClassPath;
-
-		// we should also add to sys.path for py and then also remove it
-		// sys.path.add
-		// sys.path.remove - the remove is tricky however
-	}
-
-	/**
-	 * Either casts to or creates a URLClassLoader from default class loader This is
-	 * needed because during runtime of unit tests, the default class loader is not
-	 * an instance of URLClassLoader in Java 9+. Also, this now closes the
-	 * URLClassLoader to prevent resource leaks.
-	 * 
-	 * @param cl Class loader to get URLs from
-	 * @return array of URL
-	 */
-	private URL[] getUrlsFromClassLoader(ClassLoader cl) {
-		URL[] urls = null;
-		if (cl instanceof URLClassLoader) {
-			urls = ((URLClassLoader) cl).getURLs();
-		} else {
-			try (URLClassLoader urlCl = new URLClassLoader(new URL[] {}, cl)) {
-				urls = urlCl.getURLs();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		return urls;
 	}
 
 	public void setLastPanelId(String panelId) {
@@ -1428,11 +1043,6 @@ public class Insight implements Serializable {
 		this.pragmap.clear();
 	}
 
-	public int getCount() {
-		count++;
-		return count;
-	}
-
 	public void setBaseURL(String baseURL) {
 		this.baseURL = baseURL;
 	}
@@ -1469,9 +1079,6 @@ public class Insight implements Serializable {
 	 * @return
 	 */
 	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
-	// TODO: on tomcat side, when context changes needs to be told
 	public boolean setContext(String projectId) {
 		// sets the context space for the user
 		// also set the cmd context right here
@@ -1479,6 +1086,9 @@ public class Insight implements Serializable {
 			return true;
 		}
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			// clear out the current context even if this failed
+			this.contextProjectId = null;
+			this.contextProjectName = null;
 			return false;
 		}
 		this.contextProjectId = projectId;
@@ -1704,5 +1314,56 @@ public class Insight implements Serializable {
 
 	public void setPlaywrightUtil(PlaywrightBrowserUtil pbu) {
 		this.playwrightUtil = pbu;
+	}
+
+	/*
+	 * Below are legacy methods used only for the purpose of processing OldInsight
+	 * pixel execution
+	 */
+
+	public void setIsOldInsight(boolean isOldInsight) {
+		this.isOldInsight = isOldInsight;
+	}
+
+	public boolean isOldInsight() {
+		return this.isOldInsight;
+	}
+
+	public IDataMaker getDataMaker() {
+		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
+		if (curFrameNoun != null) {
+			return ((IDataMaker) curFrameNoun.getValue());
+		}
+		return null;
+	}
+
+	public ITableDataFrame getCurFrame() {
+		Object frame = getDataMaker();
+		if (frame != null) {
+			return (ITableDataFrame) frame;
+		}
+		return null;
+	}
+
+	public void setDataMaker(IDataMaker datamaker) {
+		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
+	}
+
+	@Deprecated
+	public String getDataMakerName() {
+		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
+		if (curFrameNoun != null) {
+			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
+		}
+		return "H2Frame";
+	}
+
+	/**
+	 * This method only exists so OldInsight (playsheet datamaker) can implement it
+	 * 
+	 * @return
+	 */
+	public Map<String, Object> getWebData() {
+		return null;
 	}
 }

@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.ui.helpers.TypeColorShapeTable;

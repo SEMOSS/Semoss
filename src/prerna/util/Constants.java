@@ -560,7 +560,6 @@ public class Constants {
 	// userid by adding: %{log_semoss_user_id}
 	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
-	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
@@ -730,6 +729,7 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
+	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -762,6 +762,7 @@ public class Constants {
 
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
+	public static final String GITHUB_COPILOT_CLI_PATH = "GITHUB_COPILOT_CLI_PATH";
 	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
 
 	// cookie name of a load load balancing routing
@@ -878,11 +879,6 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
-	// Workspace
-	public static final String USER_WORKSPACE = "USER_WORKSPACE";
-	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
-	public static final String SECURE_PROMPT = "SECURE_PROMPT";
-
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -927,6 +923,7 @@ public class Constants {
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 
 	// model
+	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
 

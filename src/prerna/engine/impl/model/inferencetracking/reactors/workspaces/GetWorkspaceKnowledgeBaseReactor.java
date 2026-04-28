@@ -50,12 +50,14 @@ import prerna.util.Utility;
 @Deprecated
 public class GetWorkspaceKnowledgeBaseReactor extends AbstractReactor {
 
+	@Deprecated
 	public GetWorkspaceKnowledgeBaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -83,7 +85,7 @@ public class GetWorkspaceKnowledgeBaseReactor extends AbstractReactor {
 
 		List<Map<String, Object>> knowledgeBase = new ArrayList<>();
 		List<Map<String, Object>> workspaceKnowledgeEntries = ModelInferenceLogsUtils
-				.getWorkspaceResourcesByType(workspaceId, IEngine.CATALOG_TYPE.VECTOR.toString());
+				.getWorkspaceResourcesByType(workspaceId, List.of(IEngine.CATALOG_TYPE.VECTOR.toString()));
 		for (Map<String, Object> workspaceKnowledgeEntry : workspaceKnowledgeEntries) {
 			String knowledgeId = (String) workspaceKnowledgeEntry.get("resource_id");
 			if (knowledgeId == null) {

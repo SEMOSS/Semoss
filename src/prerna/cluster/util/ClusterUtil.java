@@ -146,25 +146,26 @@ public class ClusterUtil {
 
 			// finally dynamic
 
-//			String hostName = System.getenv("HOSTNAME");
-//			logger.info("pod host name is " + hostName);
-//
-//			if(hostName == null || hostName.isEmpty()) {
-//				throw new IllegalArgumentException("Hostname is null or empty along with no reference to scheduler execution in RDF_Map or env vars");
-//			}
-//		    try {
-//		    	// TODO make this dynamic url instead of hard coded
-//				JSONObject json = readJsonFromUrl("http://localhost:4040/");
-//			    String electedLeader = json.get("name").toString();
-//				logger.info("elected leader is " + electedLeader);
-//
-//				return hostName.equals(electedLeader);
-//			} catch (JSONException e) {
-//				logger.error(STACKTRACE, e);
-//			} catch (IOException e) {
-//				logger.error(STACKTRACE, e);
-//			}
-//		    return false;
+			// String hostName = System.getenv("HOSTNAME");
+			// logger.info("pod host name is " + hostName);
+			//
+			// if(hostName == null || hostName.isEmpty()) {
+			// throw new IllegalArgumentException("Hostname is null or empty along with no
+			// reference to scheduler execution in RDF_Map or env vars");
+			// }
+			// try {
+			// // TODO make this dynamic url instead of hard coded
+			// JSONObject json = readJsonFromUrl("http://localhost:4040/");
+			// String electedLeader = json.get("name").toString();
+			// logger.info("elected leader is " + electedLeader);
+			//
+			// return hostName.equals(electedLeader);
+			// } catch (JSONException e) {
+			// logger.error(STACKTRACE, e);
+			// } catch (IOException e) {
+			// logger.error(STACKTRACE, e);
+			// }
+			// return false;
 		} else {
 			// if its not clustered, return true to say its a executor
 			return true;
@@ -1040,6 +1041,7 @@ public class ClusterUtil {
 
 	public static void pushRoom(String roomId) {
 		if (ClusterUtil.IS_CLUSTER) {
+			classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
 			try {
 				getCentralStorageClient().pushRoomFolderToCloud(roomId);
 			} catch (Exception e) {
@@ -1048,6 +1050,22 @@ public class ClusterUtil {
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
+		}
+	}
+
+	public static void pushRoomAsync(String roomId) {
+		if (ClusterUtil.IS_CLUSTER) {
+			Thread.ofVirtual().start(() -> {
+				classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
+				try {
+					getCentralStorageClient().pushRoomFolderToCloud(roomId);
+				} catch (Exception e) {
+					classLogger.error("Failed to push room '{}' to cloud storage", roomId, e);
+					SemossPixelException err = new SemossPixelException("Failed to push room to cloud storage");
+					err.setContinueThreadOfExecution(false);
+					throw err;
+				}
+			});
 		}
 	}
 
@@ -1066,23 +1084,21 @@ public class ClusterUtil {
 
 	/*
 	 * 
-	 * USER ASSET / WORKSPACE
+	 * USER ASSET
 	 * 
 	 */
 
 	/**
 	 * 
 	 * @param project
-	 * @param isAsset
 	 */
-	public static void pushUserWorkspace(String projectId, boolean isAsset) {
+	public static void pushUserAsset(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pushUserAssetOrWorkspace(projectId, isAsset);
+				getCentralStorageClient().pushUserAsset(projectId);
 			} catch (Exception e) {
-				classLogger.error("Failed to push user/workspace project '{}' (isAsset: {}) to cloud storage",
-						projectId, isAsset, e);
-				SemossPixelException err = new SemossPixelException("Failed to push user/workplace project");
+				classLogger.error("Failed to push user asset project '{}' to cloud storage", projectId, e);
+				SemossPixelException err = new SemossPixelException("Failed to push user asset project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -1090,10 +1106,9 @@ public class ClusterUtil {
 
 		if (ClusterUtil.IS_CLUSTER_ZK) {
 			try {
-				getClusterSynchronizer().publishProjectChange(projectId, "pullUserWorkspace", projectId, isAsset);
+				getClusterSynchronizer().publishUserChange(projectId, "pullUserAsset", projectId);
 			} catch (Exception e) {
-				classLogger.error("Failed to publish user/workspace project '{}' (isAsset: {}) change to ZK cluster",
-						projectId, isAsset, e);
+				classLogger.error("Failed to publish user asset project '{}' change to ZK cluster", projectId, e);
 				SemossPixelException err = new SemossPixelException(
 						"Failed to publish user workspace '" + projectId + "' to sync with ZK cluster");
 				err.setContinueThreadOfExecution(true);
@@ -1105,16 +1120,14 @@ public class ClusterUtil {
 	/**
 	 * 
 	 * @param project
-	 * @param isAsset
 	 */
-	public static void pullUserWorkspace(String projectId, boolean isAsset) {
+	public static void pullUserAsset(String projectId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, false);
+				getCentralStorageClient().pullUserAsset(projectId, false);
 			} catch (Exception e) {
-				classLogger.error("Failed to pull user/workspace project '{}' (isAsset: {}) from cloud storage",
-						projectId, isAsset, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
+				classLogger.error("Failed to pull user asset project '{}' from cloud storage", projectId, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull user asset project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}
@@ -1124,17 +1137,16 @@ public class ClusterUtil {
 	/**
 	 * 
 	 * @param project
-	 * @param isAsset
+	 * @param alreadyLoaded
 	 */
-	public static void pullUserWorkspace(String projectId, boolean isAsset, boolean alreadyLoaded) {
+	public static void pullUserAsset(String projectId, boolean alreadyLoaded) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullUserAssetOrWorkspace(projectId, isAsset, alreadyLoaded);
+				getCentralStorageClient().pullUserAsset(projectId, alreadyLoaded);
 			} catch (Exception e) {
-				classLogger.error(
-						"Failed to pull user/workspace project '{}' (isAsset: {}, alreadyLoaded: {}) from cloud storage",
-						projectId, isAsset, alreadyLoaded, e);
-				SemossPixelException err = new SemossPixelException("Failed to pull user/workplace project");
+				classLogger.error("Failed to pull user asset project '{}' (alreadyLoaded: {}) from cloud storage",
+						projectId, alreadyLoaded, e);
+				SemossPixelException err = new SemossPixelException("Failed to pull user asset project");
 				err.setContinueThreadOfExecution(false);
 				throw err;
 			}

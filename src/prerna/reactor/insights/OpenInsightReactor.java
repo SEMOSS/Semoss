@@ -71,7 +71,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -176,7 +175,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 
 		// if we have a chroot, mount the project for that user.
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(project.getProjectName(),
 					project.getProjectId());
@@ -300,9 +299,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				logger.info("Caching insight for future use");
 				try {
 					InsightCacheUtility.cacheInsight(newInsight, getCachedRecipeVariableExclusion(runner), paramValues);
-					Path projectFolder = Paths
-							.get(DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR + "project"
-									+ DIR_SEPARATOR + SmssUtilities.getUniqueName(project.getProjectName(), projectId));
+					Path projectFolder = Paths.get(Utility.getBaseFolder() + DIR_SEPARATOR + "project" + DIR_SEPARATOR
+							+ SmssUtilities.getUniqueName(project.getProjectName(), projectId));
 					String cacheFolder = InsightCacheUtility.getInsightCacheFolderPath(newInsight, paramValues);
 					Path relative = projectFolder.relativize(Paths.get(Utility.normalizePath(cacheFolder)));
 					ClusterUtil.pushProjectFolder(projectId, cacheFolder, relative.toString());
@@ -336,11 +334,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 
 		// update the universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, rdbmsId);
-		// tracking execution
-
-		// add to user workspace
-		newInsight.setCacheInWorkspace(true);
+		SecurityInsightUtils.updateExecutionCountAsync(projectId, rdbmsId);
 
 		// return the recipe steps
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
