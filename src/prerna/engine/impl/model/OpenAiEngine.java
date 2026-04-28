@@ -42,9 +42,11 @@ public class OpenAiEngine extends AbstractPythonModelEngine {
 	}
 
 	@Override
-	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(List<Map<String, Object>> inputsToEmbed,
-			Insight insight, Map<String, Object> parameters) {
-		// TODO Auto-generated method stub
-		return null;
+	protected EmbeddingsModelEngineResponse multimodalEmbeddingsCall(
+	    List<Map<String, Object>> inputsToEmbed,
+	    Insight insight, 
+	    Map<String, Object> parameters
+	) {
+	    throw new UnsupportedOperationException("This model does not support multimodal embeddings.");
 	}
 }

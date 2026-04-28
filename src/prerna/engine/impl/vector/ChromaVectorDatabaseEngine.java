@@ -158,7 +158,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		try {
 			if (embeddingsEngine.getModelType() == ModelTypeEnum.MULTIMODAL_EMBEDDINGS) {
 			    // Build multimodal input list from documents (text + images if present)
-			    List<Map<String, Object>> multimodalInputs = buildMultimodalInputs(vectorCsvTable);
+			    List<Map<String, Object>> multimodalInputs = VectorDatabaseUtils.buildMultimodalInputs(vectorCsvTable);
 			    embeddingsEngine.multimodalEmbeddings(multimodalInputs, insight, parameters);
 			} else {
 			    // Existing text-only path
@@ -243,42 +243,6 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 	    return fileStatusList;
-	}
-
-	private List<Map<String, Object>> buildMultimodalInputs(VectorDatabaseCSVTable vectorCsvTable) {
-		List<Map<String, Object>> inputs = new ArrayList<>();
-		
-	    // Iterate through all rows in the CSV table
-	    for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
-	        Map<String, Object> input = new HashMap<>();
-	 
-	        // Get modality (text, image, audio, video)
-	        String modality = row.getModality();
-	        if (modality == null || modality.trim().isEmpty()) {
-	            modality = "text";
-	        }
-	        modality = modality.toLowerCase();
-	 
-	        // Validate supported modalities
-	        if (!List.of("text", "image", "audio", "video").contains(modality)) {
-	            throw new IllegalArgumentException(
-	                "Unsupported modality type: " + modality +
-	                ". Supported types are: text, image, audio, video");
-	        }
-	        
-	        // Get content
-	        String content = row.getContent();
-	        if (content == null || content.trim().isEmpty()) {
-	            continue;
-	        }
-	        // Build input map
-	        input.put("type", modality);
-	        input.put("content", content);
-	 
-	        inputs.add(input);
-	    }
-	 
-	    return inputs;
 	}
 
 	@Override
