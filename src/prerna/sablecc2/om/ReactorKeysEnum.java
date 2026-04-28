@@ -343,7 +343,7 @@ public enum ReactorKeysEnum {
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
-	WORKSPACE_ID("workspaceId", 								"The id used for a workspace"),
+	WORKSPACE_ID("workspaceId", 								"The id used for an agent workspace"),
 	AUDIT_APIS_END_POINT("auditEndpoint", 						"Audit api end point"),
 	X("x",		 											    "The X coordiante."),
 	Y("y",		 											    "The Y coordiante."), 
