@@ -50,6 +50,18 @@ public final class ModelUsageRestrictionUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(ModelUsageRestrictionUtility.class);
 
+	// exception Message for throttle limit
+	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
+	public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
+	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+
+	/**
+	 * 
+	 * @param user
+	 * @param engineId
+	 * @return
+	 */
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId) {
 		Map<String, Object> userRestrictionMap = new HashMap<>();
 
@@ -93,7 +105,7 @@ public final class ModelUsageRestrictionUtility {
 							engineLvlModelUsageFrequency);
 
 					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
-						throw new IllegalArgumentException(String.format(Constants.ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 								currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
 					}
 
@@ -111,9 +123,8 @@ public final class ModelUsageRestrictionUtility {
 							engineLvlModelUsageFrequency);
 
 					if (currentUsage.doubleValue() > engineLvlModelUsageMaxResponseTime.doubleValue()) {
-						throw new IllegalArgumentException(
-								String.format(Constants.ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
-										currentUsage.doubleValue(), engineLvlModelUsageMaxResponseTime.doubleValue()));
+						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.doubleValue(), engineLvlModelUsageMaxResponseTime.doubleValue()));
 					}
 
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
@@ -141,7 +152,7 @@ public final class ModelUsageRestrictionUtility {
 							user, engineId, currentDateTime, userLvlModelUsageFrequency);
 
 					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
-						throw new IllegalArgumentException(String.format(Constants.USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 								currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
 					}
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
@@ -159,9 +170,8 @@ public final class ModelUsageRestrictionUtility {
 							userLvlModelUsageFrequency);
 
 					if (currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
-						throw new IllegalArgumentException(
-								String.format(Constants.USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
-										currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
+						throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
+								currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
 					}
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
 							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
@@ -183,7 +193,7 @@ public final class ModelUsageRestrictionUtility {
 	/**
 	 * 
 	 * @param userRestrictionMap
-	 * @param askModelResponse
+	 * @param modelResponse
 	 * @param inputTime
 	 * @param outputTime
 	 */
@@ -217,10 +227,6 @@ public final class ModelUsageRestrictionUtility {
 			// now add this to the model response
 			modelResponse.setUsageRestriction(userRestrictionMap);
 		}
-	}
-
-	private ModelUsageRestrictionUtility() {
-
 	}
 
 	/**
@@ -340,4 +346,7 @@ public final class ModelUsageRestrictionUtility {
 		return dates;
 	}
 
+	private ModelUsageRestrictionUtility() {
+
+	}
 }
