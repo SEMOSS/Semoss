@@ -437,6 +437,49 @@ public final class FileSystemUtil {
 	}
 
 	/**
+	 * Copies a file or directory within the asset folder.
+	 * 
+	 * @param assetFolder     The base folder for the assets.
+	 * @param sourceFileName  The current relative path of the file/directory to copy.
+	 * @param destFileName    The destination relative path for the copy.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		String sourceAbs = (assetFolder + "/" + sourceFileName).replace("\\", "/");
+		String destAbs = (assetFolder + "/" + destFileName).replace("\\", "/");
+		File sourceFile = new File(sourceAbs);
+		File destFile = new File(destAbs);
+
+		if (!sourceFile.exists()) {
+			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
+		}
+		if (destFile.exists()) {
+			throw new IllegalArgumentException("A file or directory already exists at the destination: " + destFileName);
+		}
+
+		try {
+			FileUtils.forceMkdirParent(destFile);
+		} catch (IOException e) {
+			classLogger.error("Error creating parent directory for copy destination {}", destFileName, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + destFileName));
+		}
+
+		try {
+			if (sourceFile.isDirectory()) {
+				FileUtils.copyDirectory(sourceFile, destFile);
+			} else {
+				FileUtils.copyFile(sourceFile, destFile);
+			}
+		} catch (IOException e) {
+			classLogger.error("Error copying asset from {} to {}", sourceFileName, destFileName, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to copy " + sourceFileName));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+	}
+
+	/**
 	 * Validates a list of file paths against a set of rules.
 	 * 
 	 * @param filePaths          A list of file paths to validate.
