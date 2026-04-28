@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +88,16 @@ public class RunAgentReactor extends AbstractReactor {
         String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
         String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
+
+        // FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
+        // forwarding to the harness so the prompt reaches the model intact.
+        if (input != null && input.indexOf('%') >= 0) {
+            try {
+                input = URLDecoder.decode(input, StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException e) {
+                logger.warn("RunAgentReactor: command failed URL-decode, passing through raw: {}", e.getMessage());
+            }
+        }
         
         // agentId reserved for future agent-config lookup
         // String agentId       = this.keyValue.get(AGENT_ID_KEY);

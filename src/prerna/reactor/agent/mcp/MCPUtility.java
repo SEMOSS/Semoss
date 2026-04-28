@@ -266,14 +266,13 @@ public final class MCPUtility {
 		String modMtimeKey = modAlias + "_mtime__";
 		String funcDefName = "__smss_run_" + engine.getEngineId().replace("-", "_") + "__";
 		String mcpFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
-		// All temp vars (_f, _mt, _spec, _mod, _drv, …) live inside the function's
+		// All temp vars (_f, _mt, _spec, _mod, _drv, ...) live inside the function's
 		// local scope and never touch insight_globals. Only globals()[modAlias] and
 		// globals()[modMtimeKey] are written - both are per-engine keys - so
 		// concurrent
 		// threads for different engines on the same insight cannot overwrite each
 		// other's
 		// state. funcDefName is also per-engine so the def itself doesn't collide.
-		// @formatter:off 
 		String runScript = """
 				def <funcDefName>():
 				    import importlib.util as _ilu, os as _os, hashlib as _hl, sys as _sys
@@ -289,12 +288,28 @@ public final class MCPUtility {
 				        globals()['<modAlias>'] = _mod
 				        globals()['<modMtimeKey>'] = _mt
 				    _drv = globals()['<modAlias>']
-				    for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:
-				        if _k in globals():
-				            setattr(_drv, _k, globals()[_k])
+
+				<legacyVarCodeSnipped>
+
 				    return _drv.<functionName>(<paramString>)
 				<funcDefName>()
-				"""
+				""";
+		// @formatter:off 
+		final String PY_INDENT = "    ";
+		final String legacyVarCodeSnippet = String.join(
+				"\n",
+				PY_INDENT + "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:",
+				PY_INDENT + PY_INDENT + "_v = smss_get_runtime_var(_k)",
+				PY_INDENT + PY_INDENT + "if _v is not None:",
+				PY_INDENT + PY_INDENT + PY_INDENT + "setattr(_drv, _k, _v)"
+				);
+		runScript = runScript
+				/*
+				 * Will delete the below replace. Only here for backwards compatability using
+				 * incorrect syntax to access ROOT, APP_ROOT, USER_ROOT as storing in globals
+				 * can cause race conditions
+				 */
+				.replace("<legacyVarCodeSnipped>", legacyVarCodeSnippet)
 				.replace("<funcDefName>", funcDefName)
 				.replace("<mcpFilePath>", mcpFilePath)
 				.replace("<modAlias>", modAlias)
