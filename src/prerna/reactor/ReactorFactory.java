@@ -1148,6 +1148,10 @@ public class ReactorFactory {
 		reactorHash.put("WEEK", WeekReactor.class);
 		reactorHash.put("MONTH", MonthReactor.class);
 		reactorHash.put("YEAR", YearReactor.class);
+
+		// Agent trace reactors
+		reactorHash.put("ListAgentTraces", prerna.reactor.agent.trace.ListAgentTracesReactor.class);
+		reactorHash.put("GetAgentTrace", prerna.reactor.agent.trace.GetAgentTraceReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {
