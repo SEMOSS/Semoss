@@ -73,32 +73,62 @@ public class ClaudeCodeManager {
 			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
 			throws Exception {
 
-		String allowedToolsString = "allowed_tools=["
-				+ allowedTools.stream().map(tool -> "'" + tool + "'").collect(Collectors.joining(",")) + "]";
 		Integer localPort = ThreadStore.getLocalPort();
 		String localProtocol = ThreadStore.getLocalProtocol();
 		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
 		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		boolean agentHistoryExists = agentHistoryExists(roomFolderPath, roomId);
-		List<Map<String, String>> mcpUrlsAndNames = new ArrayList<>();
+
+		String allowedToolsLiteral;
+		if (allowedTools == null || allowedTools.isEmpty()) {
+			allowedToolsLiteral = "[]";
+		} else {
+			allowedToolsLiteral = allowedTools.stream()
+					.map(PyUtils::pyQuote)
+					.collect(Collectors.joining(",", "[", "]"));
+		}
+
+		StringBuilder mcpsLiteral = new StringBuilder("[");
 		if (mcps != null) {
+			boolean first = true;
 			for (Map<String, String> mcp : mcps) {
-				Map<String, String> mcpConfig = new HashMap<>();
-				mcpConfig.put("name", mcp.get("name"));
+				if (mcp == null) {
+					continue;
+				}
+				String name = mcp.get("name");
 				String mcpProjectId = mcp.get("id");
-				String fullMcpUrl = mcpBaseUrl + mcpProjectId + "/comms";
-				mcpConfig.put("url", fullMcpUrl);
-				mcpUrlsAndNames.add(mcpConfig);
+				if (name == null || mcpProjectId == null) {
+					continue;
+				}
+				if (!first) {
+					mcpsLiteral.append(",");
+				}
+				first = false;
+				mcpsLiteral.append("{")
+						.append("'name':").append(PyUtils.pyQuote(name)).append(",")
+						.append("'url':").append(PyUtils.pyQuote(mcpBaseUrl + mcpProjectId + "/comms"))
+						.append("}");
 			}
 		}
-		String mcpsString = mcpUrlsAndNames.stream()
-				.map(mcp -> "{'name':'" + mcp.get("name") + "', 'url': '" + mcp.get("url") + "'}")
-				.collect(Collectors.joining(",", "[", "]"));
+		mcpsLiteral.append("]");
 
-		return String.format(
-				"import genai_client;claude_code = genai_client.ClaudeCodeClient(model='%s', cwd_path='%s', room_id='%s', access_key='%s', secret_key='%s', %s, permission_mode='%s', base_url='%s', mcps=%s, insight_id='%s', room_folder_path='%s', agent_history_exists='%s')",
-				model, filePath, roomId, accessKey, secretKey, allowedToolsString, permissionMode, baseUrl, mcpsString, insightId, roomFolderPath, agentHistoryExists);
+		StringBuilder script = new StringBuilder();
+		script.append("import genai_client;claude_code = genai_client.ClaudeCodeClient(")
+				.append("model=").append(PyUtils.pyQuote(model)).append(",")
+				.append("cwd_path=").append(PyUtils.pyQuote(filePath)).append(",")
+				.append("room_id=").append(PyUtils.pyQuote(roomId)).append(",")
+				.append("access_key=").append(PyUtils.pyQuote(accessKey)).append(",")
+				.append("secret_key=").append(PyUtils.pyQuote(secretKey)).append(",")
+				.append("allowed_tools=").append(allowedToolsLiteral).append(",")
+				.append("permission_mode=").append(PyUtils.pyQuote(permissionMode != null ? permissionMode : "default")).append(",")
+				.append("base_url=").append(PyUtils.pyQuote(baseUrl)).append(",")
+				.append("mcps=").append(mcpsLiteral).append(",")
+				.append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : "")).append(",")
+				.append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
+				.append("agent_history_exists=").append(agentHistoryExists ? "True" : "False")
+				.append(")");
+		return script.toString();
 	}
 
 	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
@@ -109,7 +139,8 @@ public class ClaudeCodeManager {
 	}
 
 	private String createQueryScript(String prompt, String systemPrompt) {
-		return String.format("claude_code.query_cc(prompt='%s', system_prompt='%s')", prompt, systemPrompt);
+		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
+				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
 	private void createClaudeDir(String projectPath) {
@@ -148,12 +179,14 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 		
-		createClaudeDir(filePath);
+		String finalFilePath = filePath + "/client";
+		
+		createClaudeDir(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
-		String initScript = createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode,
+		String initScript = createInitScript(roomId, finalFilePath, accessKey, secretKey, allowedTools, permissionMode,
 				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
@@ -170,7 +203,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName);
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName);
 
 		if (!Files.exists(skillPath)) {
 			return true;
@@ -201,7 +234,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 		String slugifiedName = skillName.toLowerCase().replace(" ", "-");
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", slugifiedName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", slugifiedName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -223,7 +256,7 @@ public class ClaudeCodeManager {
 		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
 				projectName);
 
-		Path skillPath = Paths.get(projectPath, ".claude", "skills", skillName, "SKILL.md");
+		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName, "SKILL.md");
 
 		try {
 			Files.createDirectories(skillPath.getParent());
@@ -246,7 +279,7 @@ public class ClaudeCodeManager {
 				projectName);
 		Map<String, String> skillsMap = new HashMap<>();
 
-		Path claudeMd = Paths.get(projectPath, "CLAUDE.md");
+		Path claudeMd = Paths.get(projectPath, "client", "CLAUDE.md");
 		if (Files.exists(claudeMd)) {
 			try {
 				String content = new String(Files.readAllBytes(claudeMd));
@@ -256,7 +289,7 @@ public class ClaudeCodeManager {
 			}
 		}
 
-		Path skillsDir = Paths.get(projectPath, ".claude", "skills");
+		Path skillsDir = Paths.get(projectPath, "client", ".claude", "skills");
 		if (!Files.exists(skillsDir)) {
 			return skillsMap;
 		}

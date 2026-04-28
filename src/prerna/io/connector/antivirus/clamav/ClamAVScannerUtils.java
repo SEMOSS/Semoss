@@ -63,7 +63,7 @@ public final class ClamAVScannerUtils implements IVirusScanner {
 		Platform platform = Optional.ofNullable(getVirusScanningFileSystem())
 				.orElseThrow(() -> new Exception("Platform cannot be null"));
 
-		classLogger.info("address: " + address + " port: " + port + " platform: " + platform.toString());
+		classLogger.info("address: {} port: {} platform: {}", address, port, platform);
 
 		this.client = new ClamavClient(address, port, platform);
 	}

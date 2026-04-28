@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -44,202 +45,269 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
 
+/**
+ * TCP socket server responsible for accepting client connections and delegating
+ * request processing to {@link SocketServerHandler}.
+ */
 public class SocketServer implements Runnable {
-	
+
 	// basically a process which works by looking for commands in TCP space
 	private static final String CLASS_NAME = SocketServer.class.getName();
-	private static boolean multi = false; // allow multiple threads at the same time
+	private static final int ACCEPT_TIMEOUT_MS = 10_000;
+	private static final int MAX_INITIAL_ACCEPT_ATTEMPTS = 6;
+	private static final long CRASH_WAIT_TIMEOUT_MS = 10_000L;
+	// allow multiple threads at the same time
+	private static boolean multi = false;
 	public static boolean testMode = false;
-	
+
 	private static Logger classLogger = null;
 
-	private Properties prop = null; // this is basically reference to the RDF Map
+	// this is basically reference to the RDF Map
+	private Properties prop = null;
 	private String socketDir = null;
 
 	private boolean done = false;
-	
+	private boolean crashSignaled = false;
+	private int initialAcceptAttempts = 0;
+	private boolean hasAcceptedInitialConnection = false;
+
 	private Socket clientSocket = null;
 	private ServerSocket serverSocket = null;
-	
+
 	private InputStream is = null;
-	
+
 	private SocketServerHandler ssh = new SocketServerHandler();
-	private String baseFolder = null;
-	
+
 	public Object crash = new Object();
 
-	public static void main(String [] args) throws Exception {
+	/**
+	 * Entry point used to bootstrap the socket server process.
+	 *
+	 * @param args runtime arguments where index {@code 0} is the socket working
+	 *             directory, index {@code 1} is the RDF map path, and index
+	 *             {@code 2} is the server port
+	 * @throws Exception if startup dependencies cannot be initialized
+	 */
+	public static void main(String[] args) throws Exception {
 		// arg1 - the directory where commands would be thrown
 		// arg2 - access to the rdf map to load
 		// arg3 - port to start
-		
+
 		// create the watch service
 		// start this thread
-		
+
 		// when event comes write it to the command
 		// comment this for main execution
-		//-Dlog4j.defaultInitOverride=TRUE
-		
-		if(args == null || args.length == 0) {
+		// -Dlog4j.defaultInitOverride=TRUE
+
+		if (args == null || args.length == 0) {
 			args = new String[5];
 			args[0] = "C:/workspace/Semoss/InsightCache/z1";
-			args[1] = "C:/workspace/Semoss/RDF_Map.prop";;
+			args[1] = "C:/workspace/Semoss/RDF_Map.prop";
+			;
 			args[2] = "9999";
 			args[3] = "r";
 			args[4] = "mixed";
 			multi = true;
 			testMode = true;
 		}
-		
-		if(args.length < 3) {
-			throw new IllegalArgumentException("Must pass in at least 3 inputs - the log4j file, the rdf file map, and the port to run the socket on");
+
+		if (args.length < 3) {
+			throw new IllegalArgumentException(
+					"Must pass in at least 3 inputs - the log4j file, the rdf file map, and the port to run the socket on");
 		}
-		
+
 		// this socket dir should have the log4j file contianer inside it
 		String socketDir = args[0];
 		String rdfMapInput = args[1];
 		String portInput = args[2];
-		
-		String log4JPropFile = Paths.get(Utility.normalizePath(socketDir), "log4j2.properties").toAbsolutePath().toString();
 
-		
+		String log4JPropFile = Paths.get(Utility.normalizePath(socketDir), "log4j2.properties").toAbsolutePath()
+				.toString();
+
 		// set to say this is not core
 		DIHelper.getInstance().setLocalProperty("core", "false");
-		
-		FileInputStream fis = null;
-		try {
-			fis = new FileInputStream(Utility.normalizePath(log4JPropFile));
+
+		classLogger = LogManager.getLogger(CLASS_NAME);
+		try (FileInputStream fis = new FileInputStream(Utility.normalizePath(log4JPropFile))) {
 			new ConfigurationSource(fis);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if(fis != null) {
-				try {
-					fis.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to load log4j2 properties from {}", log4JPropFile, e);
 		}
-		classLogger = LogManager.getLogger(CLASS_NAME);
 
 		int port = -1;
 		try {
 			port = Integer.parseInt(portInput);
-		} catch(NumberFormatException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Input integer input for port='" + portInput+"'");
+		} catch (NumberFormatException e) {
+			classLogger.error("Invalid socket server port input: {}", portInput, e);
+			throw new IllegalArgumentException("Input integer input for port='" + portInput + "'");
 		}
-		
+
 		String rdfMapLocation = Utility.normalizePath(rdfMapInput);
 		Properties rdfMap = Utility.loadProperties(rdfMapLocation);
-        System.out.println("loaded rdf map");
-        classLogger.info("loaded rdf map");
+		classLogger.info("Loaded rdf map");
 
-		SocketServer worker = new SocketServer();
-		worker.baseFolder = rdfMap.getProperty(Constants.BASE_FOLDER).replace('\\', '/');
-		
 		DIHelper.getInstance().loadCoreProp(rdfMapLocation);
 		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
-		
-		worker.prop = rdfMap;
 
+		SocketServer worker = new SocketServer();
+		worker.prop = rdfMap;
 		worker.socketDir = socketDir;
 		String engine = "r";
-		if(args.length >= 4) {
+		if (args.length >= 4) {
 			engine = args[3];
 		}
-		if(args.length >= 5) {
+		if (args.length >= 5) {
 			SocketServer.multi = args[4].equalsIgnoreCase("multi");
 		}
-		
+
 		worker.bootServer(port, engine);
 	}
-	
-	public void bootServer(final int PORT, String engine) {
-        try {
-            serverSocket = new ServerSocket(PORT);
-        } catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
-            System.err.println("Could not listen on port: " + PORT);
-            System.exit(1);
-        }
-        System.out.println("server started");
-        classLogger.info("server started");
 
-        Thread listenerThread = new Thread(this);
-        listenerThread.start();
+	/**
+	 * Binds and starts the socket listener thread.
+	 *
+	 * @param PORT   socket port to bind
+	 * @param engine engine identifier kept for startup compatibility
+	 */
+	public void bootServer(final int PORT, String engine) {
+		try {
+			serverSocket = new ServerSocket(PORT);
+			// Avoid blocking forever on initial client connect attempts.
+			serverSocket.setSoTimeout(ACCEPT_TIMEOUT_MS);
+		} catch (IOException e) {
+			classLogger.error("Could not listen on port {}", PORT, e);
+			System.exit(1);
+		}
+		classLogger.info("server started");
+
+		Thread listenerThread = new Thread(this);
+		listenerThread.start();
 	}
-	
-	// start listening for connections
+
+	/**
+	 * Continuously accepts client connections and starts a handler thread for each
+	 * accepted socket based on the server's threading mode.
+	 */
+	@Override
 	public void run() {
 		// do the listening here and then spawn the thread
-			while(!done) {
-			if(this.clientSocket == null || multi) {
-		        try {
-		            clientSocket = serverSocket.accept();
-		        } catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					classLogger.error(Constants.STACKTRACE, e);
-		            System.err.println("Accept failed.");
-		            System.exit(1);
-		        }	
-		        try {
-			        ssh = new SocketServerHandler();
-			        DIHelper.getInstance().setLocalProperty("SSH", ssh);
-		        	ssh.setLogger(classLogger);
-					ssh.setOutputStream(clientSocket.getOutputStream());
-					is = clientSocket.getInputStream();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					classLogger.error(Constants.STACKTRACE, e);
-				}   
-		        
-		        // start processing
-		        // start a new thread
-		        //PyExecutorThread pt = startPyExecutor();
+		while (!done) {
+			if (this.clientSocket == null || multi) {
+				try {
+					clientSocket = serverSocket.accept();
+					if (!hasAcceptedInitialConnection) {
+						hasAcceptedInitialConnection = true;
+						initialAcceptAttempts = 0;
+						classLogger.info("Accepted initial socket connection");
+					}
+				} catch (SocketTimeoutException e) {
+					if (!hasAcceptedInitialConnection) {
+						initialAcceptAttempts++;
+						classLogger.warn("No socket client connected within {} ms (attempt {}/{})", ACCEPT_TIMEOUT_MS,
+								initialAcceptAttempts, MAX_INITIAL_ACCEPT_ATTEMPTS);
+						if (initialAcceptAttempts >= MAX_INITIAL_ACCEPT_ATTEMPTS) {
+							classLogger.error(
+									"Failed to establish initial socket client connection after {} timed attempts",
+									MAX_INITIAL_ACCEPT_ATTEMPTS);
+							done = true;
+							break;
+						}
+					}
+					continue;
+					} catch (IOException e) {
+						classLogger.error("Socket accept failed on listening port {}; shutting down server loop",
+								serverSocket != null ? serverSocket.getLocalPort() : "unknown", e);
+						System.exit(1);
+					}
+					try {
+					// One handler instance is bound to one accepted client connection.
+					ssh = new SocketServerHandler();
+					DIHelper.getInstance().setLocalProperty("SSH", ssh);
+						ssh.setLogger(classLogger);
+						ssh.setOutputStream(clientSocket.getOutputStream());
+						is = clientSocket.getInputStream();
+					} catch (IOException e) {
+						classLogger.error(
+								"Unable to initialize socket streams for client {}. Closing current client connection.",
+								clientSocket != null ? clientSocket.getRemoteSocketAddress() : "unknown", e);
+						closeStream(clientSocket);
+						clientSocket = null;
+						continue;
+					}
 
-		        //ssh.setPyExecutorThread(pt);
-		        ssh.is = is;
-		        ssh.socket = serverSocket;
-		        ssh.server = this;
-		        ssh.mainFolder = socketDir;
-		        
-		        Thread readerThread = new Thread(ssh);
-		        readerThread.start();
+				// Wire server->handler context so the handler can callback into
+				// signalCrash() when its socket loop fails.
+				ssh.is = is;
+				ssh.socket = serverSocket;
+				ssh.server = this;
+				ssh.mainFolder = socketDir;
+
+				// Handler owns the socket read loop for this client.
+				Thread readerThread = new Thread(ssh);
+				readerThread.start();
 			} else {
 				// just sleep
-				// see if something crashed
-				synchronized(crash) {
+				// See if the active handler crashed; handler calls signalCrash().
+				synchronized (crash) {
 					try {
-						crash.wait();
-						clientSocket = null;
+						while (!crashSignaled) {
+							crash.wait(CRASH_WAIT_TIMEOUT_MS);
+						}
+						crashSignaled = false;
 						closeStream(clientSocket);
+						clientSocket = null;
 						closeStream(serverSocket);
 						closeStream(is);
-						if(!testMode)	
+						is = null;
+						if (!testMode) {
 							ssh.cleanUp();
-					} catch (InterruptedException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						classLogger.error(Constants.STACKTRACE, e);
+						}
+						} catch (InterruptedException e) {
+							Thread.currentThread().interrupt();
+							done = true;
+							classLogger.error(
+									"Server listener thread interrupted while waiting up to {} ms for crash signal",
+									CRASH_WAIT_TIMEOUT_MS, e);
+						}
 					}
 				}
-			}
 		}
 	}
-	
-    private void closeStream(Closeable closeThis) {
-    	try {
+
+	/**
+	 * Signals the server listener thread that a handler crash was detected.
+	 */
+	public void signalCrash() {
+		synchronized (crash) {
+			crashSignaled = true;
+			crash.notifyAll();
+		}
+	}
+
+	/**
+	 * Closes a closeable resource while safely handling null references and close
+	 * failures.
+	 *
+	 * @param closeThis resource to close
+	 */
+	private void closeStream(Closeable closeThis) {
+		if (closeThis == null) {
+			return;
+		}
+		try {
 			closeThis.close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close resource of type {}", closeThis.getClass().getName(), e);
 		}
-    }
-	
+	}
+
+	/**
+	 * Indicates whether the server is configured to handle multiple connections in
+	 * parallel.
+	 *
+	 * @return {@code true} when running in multi-threaded mode
+	 */
 	public static boolean isMulti() {
 		return multi;
 	}

@@ -51,7 +51,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
-        prompt_caching: Optional[Union[str, bool]] = False,
+        prompt_caching: Optional[Union[str, bool]] = True,
         **kwargs,
     ):
         super().__init__(

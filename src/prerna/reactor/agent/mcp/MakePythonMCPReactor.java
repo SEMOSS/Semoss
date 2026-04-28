@@ -189,7 +189,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakePythonMCP executed";
+			comment = "add: configured Python MCP tool";
 		}
 
 		// add file to git

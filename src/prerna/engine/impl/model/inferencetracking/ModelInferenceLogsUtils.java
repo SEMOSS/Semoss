@@ -33,9 +33,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,6 +61,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -114,14 +115,6 @@ public class ModelInferenceLogsUtils {
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if (modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
-			// Isolate metadata sync so its failures never block the DDL migration below
-			try {
-				Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
-			} catch (Exception e) {
-				classLogger.error("Failed to synchronize engine metadata for "
-						+ Constants.MODEL_INFERENCE_LOGS_DB
-						+ "; continuing with schema migration.", e);
-			}
 		}
 
 		Connection conn = null;
@@ -812,8 +805,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -1575,31 +1568,51 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Get user conversations with flexible ordering/paging.
+	 * Retrieves conversation rooms for a user with optional filtering, sorting, and
+	 * paging.
+	 * <p>
+	 * Only active rooms are returned, and each room must have at least one stored
+	 * message row with non-null message content.
+	 * </p>
 	 *
-	 * @param userId    User's ID
-	 * @param projectId Project ID for filter (nullable)
-	 * @param limit     Max results to return; if <=0 or null, returns all
-	 * @param offset    Records to skip for pagination (nullable/0 = none)
-	 * @param sortDir   ASC or DESC - default DESC
-	 * @param search    Optional keyword to search for in room name or context
-	 * @return List of conversations (maps)
+	 * @param userId    user identifier used to scope rooms
+	 * @param projectId optional project identifier to further scope rooms; when
+	 *                  {@code null}, rooms across all projects are eligible
+	 * @param limit     maximum number of rooms to return; values {@code <= 0}
+	 *                  disable limiting
+	 * @param offset    number of rows to skip before collecting results; values
+	 *                  {@code <= 0} disable offset paging
+	 * @param sortDir   sort direction for {@code DATE_CREATED}; accepted values are
+	 *                  {@code ASC} and {@code DESC} (any other value is treated as
+	 *                  {@code DESC})
+	 * @param search    optional room-name contains filter (case-insensitive
+	 *                  {@code LIKE}); {@code null}/blank disables search filtering
+	 * @param pinned    optional pinned-state filter; {@code true} returns only
+	 *                  pinned rooms, {@code false} returns unpinned rooms
+	 *                  (including {@code null} pinned values), and {@code null}
+	 *                  disables pinned filtering
+	 * @return a list of room records, where each map contains the selected room
+	 *         fields for that row:
+	 *         <ul>
+	 *         <li>{@code ROOM_ID} (or aliased header for room id)</li>
+	 *         <li>{@code ROOM_NAME} (or aliased header for room name)</li>
+	 *         <li>{@code DATE_CREATED} (or aliased header for room create
+	 *         timestamp)</li>
+	 *         <li>{@code PINNED} (or aliased header for pinned state)</li>
+	 *         <li>{@code WORKSPACE_ID} (or aliased header for workspace link)</li>
+	 *         </ul>
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
-			long offset, String sortDir, String search) {
+			long offset, String sortDir, String search, Boolean pinned) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		// Subquery to filter only rooms with at least 1 message and correct
-		// user/project/active
+		// Subquery to filter only rooms that are active and fit query restraints
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
@@ -1610,12 +1623,26 @@ public class ModelInferenceLogsUtils {
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		// SEARCH
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
+		}
+
+		// PINNED filter
+		// when pinned == true -> only rooms with PINNED == true
+		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat
+		// unset as not pinned)
+		if (pinned != null) {
+			if (pinned.booleanValue()) {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true, PixelDataType.BOOLEAN));
+			} else {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==",
+						Arrays.asList(false, null), PixelDataType.BOOLEAN));
+			}
 		}
 
 		// LIMIT/OFFSET
@@ -1628,21 +1655,7 @@ public class ModelInferenceLogsUtils {
 		// SORTING
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
-
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
-	}
-
-	/**
-	 * Convenience overload for fetching all conversations for a user/project.
-	 *
-	 * @param userId    user identifier
-	 * @param projectId project identifier (nullable)
-	 * @return conversation rows
-	 */
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		return getUserConversations(userId, projectId, -1, 0, null, null);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1840,7 +1853,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        engine identifier
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
@@ -1850,21 +1863,10 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equalsIgnoreCase("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			// assume they want daily
-			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
-			dates.put("start", startOfTodayUtc);
-			dates.put("end", endOfTodayUtc);
-		}
+		// Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1887,8 +1889,8 @@ public class ModelInferenceLogsUtils {
 			int psIndex = 1;
 			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
 			ps.setString(psIndex++, engineId);
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
 
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
@@ -1923,7 +1925,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        current engine id used to derive exclusions
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
@@ -1949,19 +1951,10 @@ public class ModelInferenceLogsUtils {
 			excludePSString = excludeSB.toString();
 		}
 
-		// Step 2: Get the date range based on the frequency
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equals("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equals("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-		}
+		// Step 2: Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");
@@ -2166,8 +2159,8 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
+						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
@@ -2470,7 +2463,7 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		SelectQueryStruct outerQs = new SelectQueryStruct();
 		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_id", "room_id", SemossDataType.STRING));
