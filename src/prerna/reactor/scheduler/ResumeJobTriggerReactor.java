@@ -143,8 +143,11 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 				try {
 					SchedulerDatabaseUtility.resumeJob(jobId);
 					logger.info("Updated JOB_STATUS to ACTIVE for Quartz job: {}", jobId);
+					// Also reset execution guard when resuming
+					SchedulerDatabaseUtility.updateJobRunningFlag(jobId, false);
+					logger.info("Reset IS_RUNNING flag for resumed Quartz job: {}", jobId);
 				} catch (Exception metadataEx) {
-					logger.error("Failed to update JOB_STATUS for Quartz job: {}", jobId, metadataEx);
+					logger.error("Failed to update job metadata for Quartz job: {}", jobId, metadataEx);
 				}
 			}
 		} catch (SchedulerException se) {

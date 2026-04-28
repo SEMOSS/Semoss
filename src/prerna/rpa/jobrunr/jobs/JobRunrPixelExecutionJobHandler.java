@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.rpa.jobrunr.jobs;
 
 import java.time.Instant;
@@ -197,8 +224,6 @@ public class JobRunrPixelExecutionJobHandler implements JobRequestHandler<JobRun
 				insight.getVarStore().put(entry.getKey(), new NounMetadata(entry.getValue(), PixelDataType.CONST_STRING));
 			}
 
-			LOGGER.info("Executing Pixel script for job: {} with user: {}", jobId, user.getPrimaryLogin());
-
 			// Ensure pixel script ends with semicolon
 			if (!pixelScript.trim().endsWith(";")) {
 				pixelScript = pixelScript.trim() + ";";
@@ -240,7 +265,6 @@ public class JobRunrPixelExecutionJobHandler implements JobRequestHandler<JobRun
 	/**
 	 * Reconstruct User object from access string
 	 * Format: "provider1:userId1,provider2:userId2"
-	 * 
 	 * @param userAccess The user access string
 	 * @return Reconstructed User object
 	 */
@@ -252,6 +276,7 @@ public class JobRunrPixelExecutionJobHandler implements JobRequestHandler<JobRun
 
 		try {
 			User user = new User();
+			// Regular user access parsing
 			String[] accessPairs = userAccess.split(",");
 			
 			for (String accessPair : accessPairs) {
@@ -291,7 +316,7 @@ public class JobRunrPixelExecutionJobHandler implements JobRequestHandler<JobRun
 			return null;
 		}
 	}
-
+	
 	/**
 	 * Parse pixel parameters from JSON string
 	 * 

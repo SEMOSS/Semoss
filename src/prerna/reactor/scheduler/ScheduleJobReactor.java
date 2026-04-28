@@ -194,7 +194,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			// Insert into database
 			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
-					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, jobTags);
+					cronTimeZone, recipe, recipeParameters, "JOBRUNR", triggerOnLoad, uiState, providerInfo.toString(), jobTags);
 
 			// Trigger immediately if requested (with unique execId)
 			if (triggerNow || triggerOnLoad) {
@@ -269,7 +269,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			// insert into SMOSS_JOB_RECIPES table
 			classLogger.info("Saving JobId to database: " + jobId);
 			SchedulerDatabaseUtility.insertIntoJobRecipesTable(userId, jobId, jobName, jobGroup, cronExpression,
-					cronTimeZone, recipe, recipeParameters, "QUARTZ", triggerOnLoad, uiState, jobTags);
+					cronTimeZone, recipe, recipeParameters, "QUARTZ", triggerOnLoad, uiState, providerInfo.toString(), jobTags);
 
 			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
 					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());

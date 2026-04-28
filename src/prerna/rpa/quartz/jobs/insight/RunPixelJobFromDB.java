@@ -83,6 +83,18 @@ public class RunPixelJobFromDB implements InterruptableJob {
 		String userAccess = RPAProps.getInstance().decrypt(dataMap.getString(JobConfigKeys.USER_ACCESS));
 
 		String execId = UUID.randomUUID().toString();
+		// Set execution guard (IS_RUNNING = true)
+		try {
+			boolean marked = SchedulerDatabaseUtility.markJobAsRunning(jobId);
+			if (!marked) {
+				classLogger.warn("Failed to set execution guard for Quartz job {} - job may already be running", jobId);
+			} else {
+				classLogger.debug("Set execution guard for Quartz job: {}", jobId);
+			}
+		} catch (Exception guardEx) {
+			classLogger.error("Failed to update IS_RUNNING flag for Quartz job: {}", jobId, guardEx);
+		}
+		
 		// insert the exec id so we allow the execution
 		SchedulerDatabaseUtility.insertIntoExecutionTable(execId, jobId, jobGroup);
 		

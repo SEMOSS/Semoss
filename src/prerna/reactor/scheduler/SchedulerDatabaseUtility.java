@@ -463,14 +463,14 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean insertIntoJobRecipesTable(String userId, String jobId, String jobName, String jobGroup,
 			String cronExpression, TimeZone cronTimeZone, String recipe, String recipeParameters, String jobCategory,
-			boolean triggerOnLoad, String uiState, List<String> jobTags) {
+			boolean triggerOnLoad, String uiState, String userAccess, List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
 		Connection conn = connectToScheduler();
 		try (PreparedStatement statement = conn.prepareStatement(
-				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE, " +
+				"INSERT INTO SMSS_JOB_RECIPES (USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, JOB_CATEGORY, TRIGGER_ON_LOAD, UI_STATE, USER_ACCESS,  " +
 				"JOB_STATUS, IS_RUNNING, EXECUTION_COUNT, RETRY_COUNT, LAST_EXECUTION_STATUS) " +
-				"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+				"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
 			int index = 1;
 			statement.setString(index++, userId);
 			statement.setString(index++, jobId);
@@ -483,6 +483,7 @@ public class SchedulerDatabaseUtility {
 			statement.setString(index++, jobCategory);
 			statement.setBoolean(index++, triggerOnLoad);
 			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
+			statement.setString(index++, userAccess);  // USER_ACCESS
 			// Enhanced metadata columns (for both JobRunr and Quartz jobs)
 			statement.setString(index++, "ACTIVE");  // JOB_STATUS
 			statement.setBoolean(index++, false);     // IS_RUNNING
@@ -1438,6 +1439,13 @@ public class SchedulerDatabaseUtility {
 			{
 				List<String> allCols = queryUtil.getTableColumns(connection, SMSS_JOB_RECIPES, database, schema);
 				
+				// User access credentials for system-triggered executions
+				if (!allCols.contains("USER_ACCESS") && !allCols.contains("user_access")) {
+					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "USER_ACCESS", "VARCHAR(500)");
+					classLogger.info("Adding USER_ACCESS column: " + sql);
+					schedulerDb.insertData(sql);
+				}
+				
 				// Job status tracking (ACTIVE, PAUSED)
 				if (!allCols.contains("JOB_STATUS") && !allCols.contains("job_status")) {
 					String sql = queryUtil.alterTableAddColumn(SMSS_JOB_RECIPES, "JOB_STATUS", "VARCHAR(20)");
@@ -1926,7 +1934,7 @@ public class SchedulerDatabaseUtility {
 
 	    try (PreparedStatement statement = conn.prepareStatement(
 	            "SELECT USER_ID, JOB_ID, JOB_NAME, JOB_GROUP, CRON_EXPRESSION, CRON_TIMEZONE, " +
-	            "PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS " +
+	            "PIXEL_RECIPE, PIXEL_RECIPE_PARAMETERS, USER_ACCESS " +
 	            "FROM SMSS_JOB_RECIPES WHERE JOB_ID = ?")) {
 	    	
 	        statement.setString(1, jobId);
@@ -1942,7 +1950,7 @@ public class SchedulerDatabaseUtility {
 	                result.put("cronTz", rs.getString("CRON_TIMEZONE"));
 	                result.put("recipe", rs.getString("PIXEL_RECIPE"));
 	                result.put("recipeParameters", rs.getString("PIXEL_RECIPE_PARAMETERS"));
-
+	                result.put("userAccess", rs.getString("USER_ACCESS"));
 	                return result;
 	            } else {
 	                classLogger.warn("Job {} not found in database", jobId);
