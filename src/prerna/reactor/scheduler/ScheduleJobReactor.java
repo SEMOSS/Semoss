@@ -112,8 +112,10 @@ public class ScheduleJobReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 		List<String> jobTags = getJobTags();
-
-		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
+		
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression, isJobRunrJob);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -144,9 +146,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			throw new NullPointerException("UI State is null and needs to be passed");
 		}
 
-		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
-
-		if (useJobRunr) {
+		if (isJobRunrJob) {
 			// Use JobRunr for scheduling
 			return scheduleWithJobRunr(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe, recipeParameters,
 					triggerOnLoad, triggerNow, uiState, jobTags);
