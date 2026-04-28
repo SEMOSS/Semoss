@@ -1824,7 +1824,9 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
 				+ roomId;
-		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
+		// Use rclone copy (not sync) — sync deletes local files missing on cloud,
+		// which wipes in-flight session-state mid-turn when cloud is empty.
+		centralStorageEngine.copyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
 	}
 
 	/**
