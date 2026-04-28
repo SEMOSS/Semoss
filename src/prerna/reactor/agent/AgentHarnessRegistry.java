@@ -62,10 +62,12 @@ public final class AgentHarnessRegistry {
         IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
         IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
         IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
+        IAgentHarness orchestrator    = new OrchestratorAgentHarness();
         m.put(roomLoop.getName(),        roomLoop);
         m.put(claudeCode.getName(),      claudeCode);
         m.put(githubCopilot.getName(),   githubCopilot);
         m.put(githubCopilotPy.getName(), githubCopilotPy);
+        m.put(orchestrator.getName(),    orchestrator);
         REGISTRY = Collections.synchronizedMap(m);
     }
 

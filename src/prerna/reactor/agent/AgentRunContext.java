@@ -56,6 +56,7 @@ public final class AgentRunContext {
     private final Map<String, Object>    paramMap;
     private final int                    maxIterations;
     private final int                    maxReflections;
+    private final String                 parentTraceId;
 
     private AgentRunContext(Builder b) {
         this.room           = b.room;
@@ -67,6 +68,7 @@ public final class AgentRunContext {
         this.paramMap       = Collections.unmodifiableMap(b.paramMap);
         this.maxIterations  = b.maxIterations;
         this.maxReflections = b.maxReflections;
+        this.parentTraceId  = b.parentTraceId;
     }
 
     // Accessors
@@ -119,6 +121,11 @@ public final class AgentRunContext {
         return maxReflections;
     }
 
+    /** Trace ID of the parent agent run, or {@code null} if this is a root agent. */
+    public String getParentTraceId() {
+        return parentTraceId;
+    }
+
     // Builder
     public static Builder builder() {
         return new Builder();
@@ -134,6 +141,7 @@ public final class AgentRunContext {
         private Map<String, Object> paramMap       = new HashMap<>();
         private int                 maxIterations  = DEFAULT_MAX_ITERATIONS;
         private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
+        private String              parentTraceId;
 
         public Builder room(Room room)                       { this.room = room;                   return this; }
         public Builder modelEngine(IModelEngine modelEngine) { this.modelEngine = modelEngine;     return this; }
@@ -147,6 +155,7 @@ public final class AgentRunContext {
         }
         public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations;   return this; }
         public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
+        public Builder parentTraceId(String parentTraceId)   { this.parentTraceId = parentTraceId;   return this; }
 
         public AgentRunContext build() {
             if (room == null)        throw new IllegalStateException("room is required");

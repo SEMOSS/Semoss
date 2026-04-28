@@ -27,10 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -40,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
@@ -123,55 +126,90 @@ public class RoomAgentHarness implements IAgentHarness {
         List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
         AtomicInteger iterationsCounter = new AtomicInteger(0);
 
-        // 1. Initial ask
-        String systemPrompt = room.getEffectiveSystemPrompt();
-        InputMessage firstMsg = InputMessage.builder(room)
-                .withSystemPrompt(systemPrompt)
-                .withText(ctx.getInput())
-                .withModelType(ctx.getModelEngine().getModelType())
-                .withParamMap(paramMap)
-                .build();
+        String traceId    = UUID.randomUUID().toString();
+        Instant startTime = Instant.now();
+        String  terminationReason = "SUCCESS";
+        String  userId = (ctx.getInsight() != null && ctx.getInsight().getUser() != null)
+                ? ctx.getInsight().getUser().getPrimaryLoginToken().getId() : null;
 
-        logger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}",
-                room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
-        ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
+        AgentTraceLogsUtils.setActiveTraceId(ctx.getInsight().getInsightId(), traceId);
 
-        // 2. Tool loop
-        response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
-
-        // 3. Reflection rounds
         int reflectionsUsed = 0;
-        while (reflectionsUsed < maxReflections
-                && response != null
-                && response.getMessageType() == MessageType.RESPONSE_TEXT) {
-
-            reflectionsUsed++;
-            logger.info("RoomAgentHarness: reflection round {}/{}", reflectionsUsed, maxReflections);
-
-            InputMessage reflectionMsg = InputMessage.builder(room)
+        try {
+            // 1. Initial ask
+            String systemPrompt = room.getEffectiveSystemPrompt();
+            InputMessage firstMsg = InputMessage.builder(room)
                     .withSystemPrompt(systemPrompt)
-                    .withText(REFLECTION_PROMPT)
+                    .withText(ctx.getInput())
                     .withModelType(ctx.getModelEngine().getModelType())
-                    .withParamMap(new HashMap<>(paramMap))
+                    .withParamMap(paramMap)
                     .build();
 
-            response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+            logger.info("RoomAgentHarness: initial ask room={} model={} inputLength={}",
+                    room.getId(), ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+            ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 
-            if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-                response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
+            // 2. Tool loop
+            response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
+
+            // 3. Reflection rounds
+            while (reflectionsUsed < maxReflections
+                    && response != null
+                    && response.getMessageType() == MessageType.RESPONSE_TEXT) {
+
+                reflectionsUsed++;
+                logger.info("RoomAgentHarness: reflection round {}/{}", reflectionsUsed, maxReflections);
+
+                InputMessage reflectionMsg = InputMessage.builder(room)
+                        .withSystemPrompt(systemPrompt)
+                        .withText(REFLECTION_PROMPT)
+                        .withModelType(ctx.getModelEngine().getModelType())
+                        .withParamMap(new HashMap<>(paramMap))
+                        .build();
+
+                response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+
+                if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+                    response = driveToolLoop(response, iterationsCounter, paramMap, toolCallRecords, ctx);
+                }
             }
-        }
 
-        // 4. Iteration cap check
-        if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-            logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
-                    ctx.getMaxIterations());
-            throw new AgentMaxIterationsException(ctx.getMaxIterations());
-        }
+            // 4. Iteration cap check
+            if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
+                logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
+                        ctx.getMaxIterations());
+                throw new AgentMaxIterationsException(ctx.getMaxIterations());
+            }
 
-        // 5. Return result
-        String content = (response != null) ? response.getContent() : null;
-        return new AgentHarnessResult(content, iterationsCounter.get(), toolCallRecords, reflectionsUsed);
+            // 5. Return result
+            String content = (response != null) ? response.getContent() : null;
+            return AgentHarnessResult.builder()
+                    .finalText(content)
+                    .iterations(iterationsCounter.get())
+                    .toolCallRecords(toolCallRecords)
+                    .reflectionsUsed(reflectionsUsed)
+                    .parentTraceId(ctx.getParentTraceId())
+                    .build();
+
+        } catch (Exception e) {
+            terminationReason = "ERROR: " + e.getClass().getSimpleName();
+            throw e;
+        } finally {
+            AgentTraceLogsUtils.clearActiveTraceId(ctx.getInsight().getInsightId());
+            AgentTraceLogsUtils.logTrace(
+                    traceId,
+                    room.getId(),
+                    userId,
+                    ctx.getModelEngine() != null ? ctx.getModelEngine().getEngineId() : null,
+                    getName(),
+                    startTime,
+                    Instant.now(),
+                    iterationsCounter.get(),
+                    toolCallRecords.size(),
+                    terminationReason,
+                    null,
+                    ctx.getParentTraceId());
+        }
     }
 
     /**

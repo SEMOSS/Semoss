@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -55,6 +56,12 @@ public final class AgentHarnessResult {
     /** Number of reflection rounds actually executed (0 if reflection was disabled). */
     private final int reflectionsUsed;
 
+    /** Trace ID of the parent agent run, or {@code null} if this is a root agent. */
+    private final String parentTraceId;
+
+    /** Results from child sub-agents, if this is an orchestrator result. Immutable. */
+    private final List<AgentHarnessResult> childResults;
+
     /** Backward-compatible constructor — sets {@code reflectionsUsed = 0}. */
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords) {
         this(finalText, iterations, toolCallRecords, 0);
@@ -66,6 +73,21 @@ public final class AgentHarnessResult {
         this.iterations       = iterations;
         this.toolCallRecords  = Collections.unmodifiableList(toolCallRecords);
         this.reflectionsUsed  = reflectionsUsed;
+        this.parentTraceId    = null;
+        this.childResults     = Collections.emptyList();
+    }
+
+    private AgentHarnessResult(Builder b) {
+        this.finalText       = b.finalText != null ? b.finalText : "";
+        this.iterations      = b.iterations;
+        this.toolCallRecords = Collections.unmodifiableList(b.toolCallRecords);
+        this.reflectionsUsed = b.reflectionsUsed;
+        this.parentTraceId   = b.parentTraceId;
+        this.childResults    = Collections.unmodifiableList(new ArrayList<>(b.childResults));
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     /** Final text content of the model's {@code RESPONSE_TEXT} message. */
@@ -86,6 +108,38 @@ public final class AgentHarnessResult {
     /** Ordered list of all tool calls made during this run. */
     public List<ToolCallRecord> getToolCallRecords() {
         return toolCallRecords;
+    }
+
+    /** Trace ID of the parent agent run, or {@code null} if this is a root agent. */
+    public String getParentTraceId() {
+        return parentTraceId;
+    }
+
+    /** Immutable list of child sub-agent results (empty for non-orchestrator runs). */
+    public List<AgentHarnessResult> getChildResults() {
+        return childResults;
+    }
+
+    // Builder
+
+    public static final class Builder {
+        private String finalText = "";
+        private int iterations;
+        private List<ToolCallRecord> toolCallRecords = new ArrayList<>();
+        private int reflectionsUsed;
+        private String parentTraceId;
+        private List<AgentHarnessResult> childResults = new ArrayList<>();
+
+        public Builder finalText(String finalText)                   { this.finalText = finalText;             return this; }
+        public Builder iterations(int iterations)                    { this.iterations = iterations;           return this; }
+        public Builder toolCallRecords(List<ToolCallRecord> records) { this.toolCallRecords = records != null ? records : new ArrayList<>(); return this; }
+        public Builder reflectionsUsed(int reflectionsUsed)          { this.reflectionsUsed = reflectionsUsed; return this; }
+        public Builder parentTraceId(String parentTraceId)           { this.parentTraceId = parentTraceId;     return this; }
+        public Builder addChildResult(AgentHarnessResult r)          { if (r != null) this.childResults.add(r); return this; }
+
+        public AgentHarnessResult build() {
+            return new AgentHarnessResult(this);
+        }
     }
 
     // ToolCallRecord
