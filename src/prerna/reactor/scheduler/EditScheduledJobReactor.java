@@ -98,8 +98,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 
 		List<String> jobTags = getJobTags();
+		// Check if JobRunr is enabled
+	    boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
 
-		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression);
+		SchedulerDatabaseUtility.validateInput(jobName, jobGroup, cronExpression, isJobRunrJob);
 
 		// the job group is the app the user is in
 		// user must be an admin or editor of the app
@@ -137,10 +139,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			curJobGroup = jobGroup;
 		}
 
-		// Check if JobRunr is enabled
-		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
 
-		if (useJobRunr) {
+		if (isJobRunrJob) {
 			return editWithJobRunr(user, jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
 					recipeParameters, triggerOnLoad, triggerNow, uiState, curJobName, curJobGroup, jobTags);
 		} else {
