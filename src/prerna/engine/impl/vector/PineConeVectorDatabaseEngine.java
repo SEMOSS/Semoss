@@ -223,8 +223,39 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	private List<Map<String, Object>> buildMultimodalInputs(VectorDatabaseCSVTable vectorCsvTable) {
-		// TODO Auto-generated method stub
-		return null;
+		List<Map<String, Object>> inputs = new ArrayList<>();
+		
+	    // Iterate through all rows in the CSV table
+	    for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
+	        Map<String, Object> input = new HashMap<>();
+	 
+	        // Get modality (text, image, audio, video)
+	        String modality = row.getModality();
+	        if (modality == null || modality.trim().isEmpty()) {
+	            modality = "text";
+	        }
+	        modality = modality.toLowerCase();
+	        
+	        // Validate supported modalities
+	        if (!List.of("text", "image", "audio", "video").contains(modality)) {
+	            throw new IllegalArgumentException(
+	                "Unsupported modality type: " + modality +
+	                ". Supported types are: text, image, audio, video");
+	        }
+	 
+	        // Get content
+	        String content = row.getContent();
+	        if (content == null || content.trim().isEmpty()) {
+	            continue;
+	        }
+	        // Build input map
+	        input.put("type", modality);
+	        input.put("content", content);
+	 
+	        inputs.add(input);
+	    }
+	 
+	    return inputs;
 	}
 
 	@Override

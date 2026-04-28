@@ -69,21 +69,17 @@ class GeminiMultimodalEmbedder(AbstractEmbedder):
 
         logger.debug("Processing %d multimodal inputs for Gemini embedding", len(inputs_to_embed))
 
-        # TODO: Implement actual Gemini API call
-        # 1. Build the request payload from inputs_to_embed
+        # Implementing actual Gemini API call
+        # Build the request payload from inputs_to_embed
         parts = []
         for item in inputs_to_embed:
             input_type = item.get("type")
             content = item.get("content")
 
-            # 2. For each input, format based on type:
             if input_type == "text":
-                #    - text: {"text": content}
                 parts.append({"text": content})
 
             elif input_type in ["image", "audio"]:
-                #    - image: {"inlineData": {"mimeType": "image/...", "data": base64_content}}
-                #    - audio: {"inlineData": {"mimeType": "audio/...", "data": base64_content}}
                 mime_type, encoded_data = _encode_file(content)
                 parts.append({
                     "inlineData": {
@@ -93,7 +89,6 @@ class GeminiMultimodalEmbedder(AbstractEmbedder):
                 })
 
             elif input_type == "video":
-                #    - video: {"fileData": {"mimeType": "video/...", "fileUri": content}}
                 mime_type, _ = mimetypes.guess_type(content)
                 mime_type = mime_type or "video/mp4"
                 parts.append({
@@ -106,7 +101,7 @@ class GeminiMultimodalEmbedder(AbstractEmbedder):
             else:
                 raise ValueError(f"Unsupported modality type: {input_type}")
 
-        # 3. Send to Gemini embedding endpoint
+        # Send to Gemini embedding endpoint
         payload = {
             "model": "models/gemini-embedding-001",
             "content": {"parts": parts},
@@ -130,7 +125,7 @@ class GeminiMultimodalEmbedder(AbstractEmbedder):
                 f"Gemini API call failed: {response.status_code} - {response.text}"
             )
 
-        # 4. Parse response and return EmbeddingsModelEngineResponse
+        # Parse response and return EmbeddingsModelEngineResponse
         response_json = response.json()
 
         embeddings = [

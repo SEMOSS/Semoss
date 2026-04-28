@@ -74,17 +74,9 @@ public class MultimodalEmbeddingsEngine extends AbstractRESTModelEngine {
                 );
             }
         }
-
-        // TODO: Implement the actual API call to the multimodal embedding provider
-        // This will vary based on the provider (Gemini, etc.)
-        // Serialize inputs into the provider's expected format
-        // Make the HTTP call and parse the response
         
-        
-	    // This implementation delegates provider-specific logic to the Python
-	    // embedding service (e.g., GeminiMultimodalEmbedder). The Java engine
-	    // is responsible for batching inputs, invoking the service, and parsing
-	    // the returned embedding vectors.
+	    // Delegate API call to Python embedder;
+	    // Java handles batching and request/response flow
         List<List<Double>> embeddings = new ArrayList<>();
         
         List<List<Map<String, Object>>> inputBatches = new ArrayList<>();

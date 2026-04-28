@@ -284,6 +284,13 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        }
 	        modality = modality.toLowerCase();
 	 
+	        // Validate supported modalities
+	        if (!List.of("text", "image", "audio", "video").contains(modality)) {
+	            throw new IllegalArgumentException(
+	                "Unsupported modality type: " + modality +
+	                ". Supported types are: text, image, audio, video");
+	        }
+	        
 	        // Get content
 	        String content = row.getContent();
 	        if (content == null || content.trim().isEmpty()) {
