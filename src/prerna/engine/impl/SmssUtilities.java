@@ -33,9 +33,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -1058,7 +1060,7 @@ public class SmssUtilities {
      * - Form feeds (\f)
      * - Special characters (=, :, #, !)
      * - Leading spaces (if escapeSpace is true)
-     * - Non-ASCII characters (as \uXXXX)
+     * - Non-ASCII characters (as \\uXXXX)
      *
      * @param theString String to escape
      * @param escapeSpace Whether to escape spaces at the start
