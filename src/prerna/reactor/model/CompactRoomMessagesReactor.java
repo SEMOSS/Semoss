@@ -298,9 +298,24 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         }
 
         // Ask the LLM to summarize using a throw-away room (no history pollution)
-        String summarizationPrompt = "Summarize the following conversation history concisely, "
-                + "preserving all key facts, decisions, and context:\n\n"
-                + summaryTranscript.toString().trim();
+        String summarizationPrompt = """
+                Summarize the following conversation history. Your summary will be used to
+                continue this conversation in a new context window, so preserve:
+
+                - The user's current goal and any sub-tasks
+                - Decisions made and the reasoning behind them
+                - User preferences, constraints, or requirements stated
+                - Any unresolved questions or open threads
+                - Critical specifics (names, values, code, file names, etc.)
+                - Outcomes of any tool calls or actions taken (search results used, files
+                read, APIs called, etc.)
+
+                Be concise but do not omit anything that would be needed to seamlessly
+                continue the conversation. Write in present tense as if briefing someone
+                taking over the conversation. Only summarize up to the point the conversation
+                ends - do not speculate about what comes next.
+
+                """ + summaryTranscript.toString().trim();
 
         Room throwawayRoom = RoomUtils.createRoomIfNotExists(null, this.insight, modelEngine, null);
         InputMessage summarizationMsg = InputMessage.builder(throwawayRoom)
@@ -325,8 +340,26 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         int lastMessagesTokenCount = getLastMessageTokens(toKeep); // need this to determine tokens used by verbatim
                                                                    // messages
-        String compactedTextMessage = "The following is a summary of the earlier conversation:\n\n" + summaryText
-                + "\n\nThe following is the last n messages verbatim:\n\n" + keepTranscript;
+        String compactedTextMessage = """
+                You are continuing an ongoing conversation. The earlier portion of this
+                conversation has been summarized below. Treat the summary as accurate and
+                continue naturally from where it left off.
+
+                Be transparent about the summarization when relevant. If the user asks
+                whether something specific was mentioned earlier, only confirm it if it
+                is explicitly present in the summary. If it is not, be honest that the
+                conversation was summarized and you cannot confirm that specific detail
+                either way.
+
+                Match the tone and communication style established in the conversation.
+
+                Summary of earlier conversation:
+                """ + summaryText.trim() + """
+
+
+                The following are the most recent messages verbatim:
+
+                """ + keepTranscript;
 
         // Build the summary placeholder as a new user message at the root of the kept
         // chain
@@ -344,7 +377,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // UI needs a non-zero token count
         // Can't pull token count for this message without sending to llm
         // Token count will get updated regardless in the next ask call
-        compactedMessage.setTokensInMessage(2);
+        compactedMessage.setTokensInMessage(125);
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage compactedResponse = ResponseMessage.builder()

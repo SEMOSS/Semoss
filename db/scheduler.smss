@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	scheduler
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-OWL	db/scheduler/scheduler_OWL.OWL
+OWL	scheduler_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	
