@@ -46,8 +46,12 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolCallMessagePart;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -279,14 +283,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         List<AbstractMessage> toSummarize = new ArrayList<>(branch.subList(0, splitPoint));
         List<AbstractMessage> toKeep = new ArrayList<>(branch.subList(splitPoint, branch.size()));
 
-        // Build a human-readable transcript of only the text-bearing messages
+        // Build a human-readable transcript of the messages to summarize
         StringBuilder summaryTranscript = new StringBuilder();
         for (AbstractMessage m : toSummarize) {
-            String text = getMessageText(m);
-            if (text == null || text.isBlank())
-                continue;
-            summaryTranscript.append((m instanceof InputMessage) ? "User" : "Assistant")
-                    .append(": ").append(text).append("\n\n");
+            appendMessageToTranscript(m, summaryTranscript);
         }
 
         int beforeSummaryTokenCount = getLastMessageTokens(toSummarize);
@@ -316,14 +316,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             return result;
         }
 
-        // Build a human-readable transcript of only the text-bearing messages
+        // Build a human-readable transcript of the messages to keep verbatim
         StringBuilder keepTranscript = new StringBuilder();
+
         for (AbstractMessage m : toKeep) {
-            String text = getMessageText(m);
-            if (text == null || text.isBlank())
-                continue;
-            keepTranscript.append((m instanceof InputMessage) ? "User" : "Assistant")
-                    .append(": ").append(text).append("\n\n");
+            appendMessageToTranscript(m, keepTranscript);
         }
 
         int lastMessagesTokenCount = getLastMessageTokens(toKeep); // need this to determine tokens used by verbatim
@@ -373,6 +370,36 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         result.put("inputMessage", compactedMessage);
         result.put("responseMessage", compactedResponse);
         return result;
+    }
+
+    private static void appendMessageToTranscript(AbstractMessage m, StringBuilder transcript) {
+        String text = getMessageText(m);
+        if (text != null && !text.isBlank()) {
+            transcript.append((m instanceof InputMessage) ? "User" : "Assistant")
+                    .append(": ").append(text).append("\n\n");
+        }
+        if (m.hasToolCallPart()) {
+            for (MessagePart part : m.getParts()) {
+                if (part instanceof ToolCallMessagePart) {
+                    Map<String, Object> toolCall = ((ToolCallMessagePart) part).getToolCall();
+                    transcript.append("Assistant calls tool: ").append(toolCall).append("\n\n");
+                }
+            }
+        }
+        if (m.hasToolResultPart()) {
+            for (MessagePart part : m.getParts()) {
+                if (part instanceof ToolResultMessagePart) {
+                    ToolResultPart result = ((ToolResultMessagePart) part).getToolResult();
+                    if (result == null)
+                        continue;
+                    String toolName = result.getToolName();
+                    String output = result.getOutput();
+                    transcript.append("Tool result")
+                            .append(toolName != null ? " for " + toolName : "")
+                            .append(": ").append(output != null ? output : "").append("\n\n");
+                }
+            }
+        }
     }
 
     private static String getMessageText(AbstractMessage m) {
