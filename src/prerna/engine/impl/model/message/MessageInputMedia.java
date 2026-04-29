@@ -44,6 +44,8 @@ import org.apache.tika.mime.MediaType;
 import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 
 public class MessageInputMedia {
 
@@ -68,7 +70,7 @@ public class MessageInputMedia {
 	private transient String roomFolder;
 
 	/** Factory method for file-based image */
-	public static MessageInputMedia fromFile(String fileLocation, String roomId, String messageId, String roomFolder) {
+	public static MessageInputMedia fromFile(String fileLocation, String roomId, String roomFolder) {
 		MessageInputMedia info = new MessageInputMedia();
 		info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
 		info.fileLocation = fileLocation;
@@ -90,6 +92,32 @@ public class MessageInputMedia {
 		info.sourceUrl = url;
 		info.mediaInputType = MEDIA_INPUT_TYPE.URL;
 		return info;
+	}
+
+	/**
+	 * If the URL is a base64 data URI and a room is available, flush the bytes to
+	 * the room folder and return a FILE-typed record. Otherwise return a URL-typed
+	 * record. Keeps raw image bytes out of persisted history.
+	 */
+	public static MessageInputMedia fromUrlOrFile(String url, Room room) {
+		if (url != null && RoomUtils.isBase64MediaDataUri(url) && room != null
+				&& room.getRoomFolderPath() != null) {
+			try {
+				Path roomDir = Paths.get(room.getRoomFolderPath());
+				String fileName = RoomUtils.writeBase64ImageDataUriToDir(url, roomDir);
+				if (fileName != null) {
+					return fromFile(fileName, room.getId(), room.getRoomFolderPath());
+				}
+				classLogger.warn(
+						"Failed to flush data URI media to room {}; falling back to URL storage",
+						room.getId());
+			} catch (Exception e) {
+				classLogger.warn(
+						"Error flushing data URI media to room {}; falling back to URL storage",
+						room.getId(), e);
+			}
+		}
+		return fromUrl(url);
 	}
 
 	// Setters and getters
