@@ -2408,6 +2408,7 @@ public final class UploadUtilities {
 		// create file
 		File f = new File(Utility.normalizePath(metaModelFilePath));
 		try {
+			f.getParentFile().mkdirs();
 			// write json to file
 			FileUtils.writeStringToFile(f, json, StandardCharsets.UTF_8);
 		} catch (IOException e1) {
