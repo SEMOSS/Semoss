@@ -77,19 +77,21 @@ public class GetAuditLogReportUsersReactor extends AbstractReactor {
 			Map<String, Object> filtered = new LinkedHashMap<>();
 			filtered.put("id", member.get("id"));
 			filtered.put("type", member.get("type"));
+			filtered.put("name", member.get("name"));
 			return filtered;
 		}).collect(Collectors.toList());
 		// merge users' lists
 		Map<String, Map<String, Object>> mergedMap = new LinkedHashMap<>();
+		for (Map<String, Object> u : filteredExistingUsers) {
+			String key = u.get("id") + "_" + u.get("type");
+			mergedMap.putIfAbsent(key, u);
+		}
+
 		for (Map<String, Object> u : auditLogsReportUsers) {
 			String key = u.get("id") + "_" + u.get("type");
 			mergedMap.putIfAbsent(key, u);
 		}
 
-		for (Map<String, Object> u : filteredExistingUsers) {
-			String key = u.get("id") + "_" + u.get("type");
-			mergedMap.putIfAbsent(key, u);
-		}
 		List<Map<String, Object>> mergedUsers = new ArrayList<>(mergedMap.values());
 
 		return new NounMetadata(mergedUsers, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);

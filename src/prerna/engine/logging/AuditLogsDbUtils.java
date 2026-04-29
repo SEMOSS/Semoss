@@ -513,6 +513,7 @@ public class AuditLogsDbUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID", "id"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_NAME", "name"));
 
 		addFilter(qs, "AUDIT_LOGS__PROJECT_ID", "==", projectId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
@@ -541,10 +542,12 @@ public class AuditLogsDbUtils {
 
 		if (filterName.equalsIgnoreCase("methodName")) {
 			qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
+			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
 		}
 
 		if (filterName.equalsIgnoreCase("requestMessage")) {
 			qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
+			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
 		}
 
 		if (methodName != null && !methodName.isEmpty()) {
@@ -562,14 +565,6 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__ENGINE_ID", "==", engineId);
 		addFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", "==", engineType);
 
-		if (filterName.equalsIgnoreCase("methodName")) {
-			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__METHOD_NAME"));
-		}
-
-		if (filterName.equalsIgnoreCase("requestMessage")) {
-			qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__REQUEST"));
-		}
-
 		if (limit > 0) {
 			qs.setLimit(limit);
 		}
@@ -577,7 +572,6 @@ public class AuditLogsDbUtils {
 			qs.setOffSet(offset);
 		}
 
-		List<String[]> resultList = QueryExecutionUtility.flushRsToListOfStrArray(auditLogsDb, qs);
-		return resultList;
+		return QueryExecutionUtility.flushRsToListOfStrArray(auditLogsDb, qs);
 	}
 }
