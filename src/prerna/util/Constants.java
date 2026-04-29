@@ -485,6 +485,7 @@ public class Constants {
 	// Room option keys that should be forwarded into the model invocation kwarg
 	// map (per-message values still win).
 	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature", "tokenLength");
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";

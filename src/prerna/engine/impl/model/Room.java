@@ -255,6 +255,10 @@ public class Room {
 		// (per-message values in kwArgMap always win)
 		applyImageModelParams(kwArgMap);
 
+		// merge in room-option defaults for text model param keys
+		// (temperature, tokenLength, etc - per-message values in kwArgMap always win)
+		applyTextModelParams(kwArgMap);
+
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
 		boolean useHistory = true;
@@ -686,11 +690,27 @@ public class Room {
 	 */
 	private void applyImageModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
-		if (options == null || options.isEmpty()) {
+		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
+		if (options == null || options.isEmpty() || !isImageModel) {
 			return;
 		}
 
 		for (String key : Constants.IMAGE_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
+	}
+
+	private void applyTextModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
+		if (options == null || options.isEmpty() || !isTextModel) {
+			return;
+		}
+
+		for (String key : Constants.TEXT_MODEL_PARAM_KEYS) {
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);
