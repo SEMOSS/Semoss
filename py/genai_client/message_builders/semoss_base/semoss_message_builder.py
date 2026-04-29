@@ -139,16 +139,20 @@ class SEMOSSMessageBuilder:
             if message_type == "RESPONSE_TOOL" and message.get("tool_responses"):
                 tool_calls = []
                 for tool_resp in message["tool_responses"]:
-                    tool_calls.append(
-                        {
-                            "function": {
-                                "name": tool_resp["name"],
-                                "arguments": tool_resp.get("arguments", {}),
-                            },
-                            "id": str(tool_resp["id"]),
-                            "type": "function",
-                        }
-                    )
+                    tool_call_dict = {
+                        "function": {
+                            "name": tool_resp["name"],
+                            "arguments": tool_resp.get("arguments", {}),
+                        },
+                        "id": str(tool_resp["id"]),
+                        "type": "function",
+                    }
+                    # Preserve Vertex/Gemini extended-thinking signature (This is mostly for the agent harnesses for now)
+                    if tool_resp.get("thought_signature"):
+                        tool_call_dict["thought_signature"] = tool_resp[
+                            "thought_signature"
+                        ]
+                    tool_calls.append(tool_call_dict)
                 semoss_message.tool_calls = tool_calls
 
             if message_type == "INPUT_TOOL_EXEC":
@@ -179,7 +183,9 @@ class SEMOSSMessageBuilder:
         text_parts = []
         for part in parts:
             if isinstance(part, dict) and part.get("type") == "TEXT":
-                text = part.get("text") or part.get("uiText") or part.get("ui_text") or ""
+                text = (
+                    part.get("text") or part.get("uiText") or part.get("ui_text") or ""
+                )
                 if text:
                     text_parts.append(text)
         return "\n".join(text_parts) if text_parts else ""
