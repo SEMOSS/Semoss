@@ -29,6 +29,7 @@ package prerna.reactor.agent;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
@@ -53,6 +54,8 @@ public final class AgentRunContext {
     private final String                 userId;
     private final String                 filePath;
     private final String                 input;
+    private final String                 promptId;
+    private final List<AgentMediaInput>  mediaInputs;
     private final Map<String, Object>    paramMap;
     private final int                    maxIterations;
     private final int                    maxReflections;
@@ -64,6 +67,8 @@ public final class AgentRunContext {
         this.userId         = b.userId;
         this.filePath       = b.filePath;
         this.input          = b.input;
+        this.promptId       = b.promptId;
+        this.mediaInputs    = List.copyOf(b.mediaInputs);
         this.paramMap       = Collections.unmodifiableMap(b.paramMap);
         this.maxIterations  = b.maxIterations;
         this.maxReflections = b.maxReflections;
@@ -104,6 +109,16 @@ public final class AgentRunContext {
         return input;
     }
 
+    /** Stable frontend-generated prompt id for correlating attachments to the user turn. */
+    public String getPromptId() {
+        return promptId;
+    }
+
+    /** Room attachment descriptors associated with the current user turn. */
+    public List<AgentMediaInput> getMediaInputs() {
+        return mediaInputs;
+    }
+
     /** Extra parameters forwarded to the model engine. Immutable view. */
     public Map<String, Object> getParamMap() {
         return paramMap;
@@ -131,6 +146,8 @@ public final class AgentRunContext {
         private String              userId;
         private String              filePath;
         private String              input;
+        private String              promptId;
+        private List<AgentMediaInput> mediaInputs  = List.of();
         private Map<String, Object> paramMap       = new HashMap<>();
         private int                 maxIterations  = DEFAULT_MAX_ITERATIONS;
         private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
@@ -141,6 +158,11 @@ public final class AgentRunContext {
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
         public Builder filePath(String filePath)             { this.filePath = filePath;           return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
+        public Builder promptId(String promptId)             { this.promptId = promptId;           return this; }
+        public Builder mediaInputs(List<AgentMediaInput> mediaInputs) {
+            this.mediaInputs = mediaInputs != null ? mediaInputs : List.of();
+            return this;
+        }
         public Builder paramMap(Map<String, Object> paramMap){
             this.paramMap = paramMap != null ? paramMap : new HashMap<>();
             return this;

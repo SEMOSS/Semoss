@@ -65,6 +65,7 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		Room room = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String input = ctx.getInput();
+		String promptId = ctx.getPromptId();
 
 		String engineId = room.getModelId();
 		if (engineId == null || engineId.trim().isEmpty()) {
@@ -105,8 +106,8 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		}
 
 		GitHubCopilotPyManager manager = new GitHubCopilotPyManager();
-		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt, room.getId(),
-				allowedTools, permissionMode, buildMcpList(room), contextWindow);
+		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, promptId, systemPrompt,
+				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow, ctx.getMediaInputs());
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
 	}

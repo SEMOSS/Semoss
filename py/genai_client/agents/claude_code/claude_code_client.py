@@ -1,6 +1,9 @@
-from typing import Optional
+from typing import AsyncIterator, Optional
 from uuid import uuid4
 import asyncio
+import base64
+import mimetypes
+import os
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
     ClaudeAgentOptions,
@@ -141,35 +144,55 @@ class ClaudeCodeClient:
         self.sdk_client = ClaudeSDKClient(self.agent_options)
 
     def query_cc(
-        self, prompt: str, system_prompt: Optional[str] = None, **kwargs
+        self,
+        prompt: str,
+        prompt_id: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        media_inputs: Optional[list[dict]] = None,
+        **kwargs,
     ) -> str:
         """Synchronous wrapper that bridges into the async SDK."""
-        return asyncio.run(self._query_cc_async(prompt, system_prompt, **kwargs))
+        return asyncio.run(
+            self._query_cc_async(
+                prompt, prompt_id, system_prompt, media_inputs, **kwargs
+            )
+        )
 
     async def _query_cc_async(
-        self, prompt: str, system_prompt: Optional[str] = None, **kwargs
+        self,
+        prompt: str,
+        prompt_id: Optional[str] = None,
+        system_prompt: Optional[str] = None,
+        media_inputs: Optional[list[dict]] = None,
+        **kwargs,
     ) -> str:
         if system_prompt:
             self.agent_options.system_prompt = {
                 "type": "preset",
                 "preset": "claude_code",
                 "append": system_prompt,
-            }
+        }
         smss_stream = get_smss_stream()
         final_message = ""
+        effective_prompt_id = prompt_id or str(uuid4())
 
         if smss_stream:
             smss_stream(
                 make_user_prompt_event(
                     prompt=prompt,
-                    prompt_id=str(uuid4()),
+                    prompt_id=effective_prompt_id,
                     session_id=self.configuration.room_id,
                 ),
                 stream_type="content",
             )
 
         async with self.sdk_client as client:
-            await client.query(prompt)
+            if media_inputs:
+                await client.query(
+                    self._build_multimodal_message(prompt, media_inputs)
+                )
+            else:
+                await client.query(prompt)
             async for message in client.receive_response():
                 # logger.info(f"Claude-Code-chunk:: {message}")
                 if isinstance(message, AssistantMessage):
@@ -196,6 +219,42 @@ class ClaudeCodeClient:
         self.agent_options.resume = self.configuration.room_id
         self.agent_options.session_id = None
         return final_message
+
+    async def _build_multimodal_message(
+        self, prompt: str, media_inputs: list[dict]
+    ) -> AsyncIterator[dict]:
+        content_blocks: list[dict] = []
+        for media in media_inputs:
+            abs_path = media.get("path")
+            if not abs_path or not os.path.exists(abs_path):
+                continue
+            mime_type = (
+                media.get("mimeType")
+                or mimetypes.guess_type(abs_path)[0]
+                or "image/png"
+            )
+            with open(abs_path, "rb") as file_handle:
+                encoded = base64.standard_b64encode(file_handle.read()).decode(
+                    "ascii"
+                )
+            content_blocks.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": encoded,
+                    },
+                }
+            )
+
+        content_blocks.append({"type": "text", "text": prompt})
+        yield {
+            "type": "user",
+            "message": {"role": "user", "content": content_blocks},
+            "parent_tool_use_id": None,
+            "session_id": self.configuration.room_id,
+        }
 
     def _resolve_mcps(
         self,

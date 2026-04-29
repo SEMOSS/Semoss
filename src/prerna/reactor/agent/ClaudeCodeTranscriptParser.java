@@ -40,8 +40,8 @@ import prerna.reactor.agent.ClaudeCodeTranscriptModels.ToolStats;
 import prerna.reactor.agent.ClaudeCodeTranscriptModels.UserPrompt;
 
 /**
- * Parses a single JSONL line from a Claude Code transcript file and returns a
- * JSON representation using the models defined in
+ * Parses a single JSONL line from a Claude Code transcript file and returns
+ * normalized transcript events using the models defined in
  * {@link ClaudeCodeTranscriptModels}.
  *
  * <p>
@@ -49,27 +49,27 @@ import prerna.reactor.agent.ClaudeCodeTranscriptModels.UserPrompt;
  * <ul>
  * <li>"user" either a user prompt or a tool result</li>
  * <li>"assistant" text and/or tool invocations</li>
- * <li>"queue-operation", "last-prompt", "attachment" metadata (skipped)</li>
+ * <li>"queue-operation", "last-prompt" metadata (skipped)</li>
  * </ul>
  */
 public class ClaudeCodeTranscriptParser {
 
 	/**
-	 * Parse a raw JSONL line into a structured event JSONObject.
+	 * Parse a raw JSONL line into one or more structured event JSONObjects.
 	 *
 	 * @param raw the parsed JSONObject from one JSONL line
-	 * @return a structured JSON event, or null to skip this line
+	 * @return structured JSON events, or an empty list to skip this line
 	 */
-	public static JSONObject parse(JSONObject raw) {
+	public static List<JSONObject> parse(JSONObject raw, String roomFolderPath) {
 		String type = raw.optString("type", "");
 
 		switch (type) {
 		case "user":
-			return parseUserLine(raw);
+			return parseUserLine(raw, roomFolderPath);
 		case "assistant":
 			return parseAssistantLine(raw);
 		default:
-			return null;
+			return List.of();
 		}
 	}
 
@@ -77,29 +77,73 @@ public class ClaudeCodeTranscriptParser {
 	 * A "user" line is either: 1. A user prompt (message.content is a string) 2. A
 	 * tool result (toolUseResult is present)
 	 */
-	private static JSONObject parseUserLine(JSONObject raw) {
+	private static List<JSONObject> parseUserLine(JSONObject raw, String roomFolderPath) {
+		List<JSONObject> events = new ArrayList<>();
 		// Check if this is a tool result
 		if (raw.has("toolUseResult")) {
-			return parseToolResult(raw);
+			return appendIfPresent(events, parseToolResult(raw));
 		}
 
 		JSONObject message = raw.optJSONObject("message");
 		if (message == null) {
-			return null;
+			return events;
 		}
 
 		Object content = message.opt("content");
 		if (content instanceof String) {
-			UserPrompt prompt = new UserPrompt(raw.optString("promptId", null), (String) content,
+			UserPrompt prompt = new UserPrompt(resolvePromptId(raw), (String) content,
 					raw.optString("timestamp", ""));
-			return toEvent("user_prompt", userPromptToJson(prompt), raw);
+			return appendIfPresent(events, toEvent("user_prompt", userPromptToJson(prompt), raw));
 		}
 
 		if (content instanceof JSONArray) {
-			return parseToolResultFromContent(raw, (JSONArray) content);
+			JSONArray contentArray = (JSONArray) content;
+			if (containsToolResultBlock(contentArray)) {
+				return appendIfPresent(events, parseToolResultFromContent(raw, contentArray));
+			}
+
+			String promptId = resolvePromptId(raw);
+			String timestamp = raw.optString("timestamp", "");
+			for (int i = 0; i < contentArray.length(); i++) {
+				JSONObject block = contentArray.optJSONObject(i);
+				if (block == null || !"image".equals(block.optString("type", ""))) {
+					continue;
+				}
+
+				JSONObject source = block.optJSONObject("source");
+				String mimeType = firstNonBlank(source != null ? source.optString("media_type", null) : null, "image/png");
+				String sourceType = source != null ? source.optString("type", null) : null;
+				String rawData = source != null ? source.optString("data", null) : null;
+				String path = "path".equals(sourceType) ? normalizeAttachmentPath(rawData, roomFolderPath) : null;
+				String attachmentId = firstNonBlank(stemFromPath(path), promptId + ":" + i);
+				String fileName = firstNonBlank(fileNameFromPath(path),
+						attachmentId + "." + extensionFromMimeType(mimeType));
+				if (isBlank(fileName) || isBlank(attachmentId)) {
+					continue;
+				}
+
+				JSONObject attachment = new JSONObject();
+				attachment.put("attachmentId", attachmentId);
+				attachment.put("promptId", promptId);
+				attachment.put("fileName", fileName);
+				attachment.put("mimeType", mimeType);
+				if (!isBlank(path)) {
+					attachment.put("path", path);
+				} else if ("base64".equals(sourceType) && !isBlank(rawData)) {
+					attachment.put("dataUrl", "data:" + mimeType + ";base64," + rawData);
+				}
+				attachment.put("timestamp", timestamp);
+				events.add(toEvent("attachment", attachment, raw));
+			}
+
+			String promptText = extractTextFromContentArray(contentArray);
+			if (!isBlank(promptText)) {
+				UserPrompt prompt = new UserPrompt(promptId, promptText, timestamp);
+				events.add(toEvent("user_prompt", userPromptToJson(prompt), raw));
+			}
 		}
 
-		return null;
+		return events;
 	}
 
 	/**
@@ -280,15 +324,15 @@ public class ClaudeCodeTranscriptParser {
 	 *
 	 * We return one event per line, with lists of texts and tool invocations.
 	 */
-	private static JSONObject parseAssistantLine(JSONObject raw) {
+	private static List<JSONObject> parseAssistantLine(JSONObject raw) {
 		JSONObject message = raw.optJSONObject("message");
 		if (message == null) {
-			return null;
+			return List.of();
 		}
 
 		JSONArray contentBlocks = message.optJSONArray("content");
 		if (contentBlocks == null || contentBlocks.length() == 0) {
-			return null;
+			return List.of();
 		}
 
 		String model = message.optString("model", "");
@@ -323,7 +367,7 @@ public class ClaudeCodeTranscriptParser {
 		}
 		data.put("model", model);
 
-		return toEvent("assistant", data, raw);
+		return appendIfPresent(new ArrayList<>(), toEvent("assistant", data, raw));
 	}
 
 	// --- Helpers to extract a useful description from tool input ---
@@ -353,6 +397,82 @@ public class ClaudeCodeTranscriptParser {
 			return "";
 		}
 		return s.length() <= max ? s : s.substring(0, max) + "...";
+	}
+
+	private static boolean containsToolResultBlock(JSONArray contentArray) {
+		for (int i = 0; i < contentArray.length(); i++) {
+			JSONObject block = contentArray.optJSONObject(i);
+			if (block != null && "tool_result".equals(block.optString("type", ""))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String resolvePromptId(JSONObject raw) {
+		return firstNonBlank(raw.optString("promptId", null), raw.optString("uuid", null), raw.optString("sessionId", null));
+	}
+
+	private static String normalizeAttachmentPath(String value, String roomFolderPath) {
+		if (isBlank(value)) {
+			return null;
+		}
+		String normalized = value.replace("\\", "/");
+		if (!isBlank(roomFolderPath)) {
+			String normalizedRoomFolder = roomFolderPath.replace("\\", "/");
+			String prefix = normalizedRoomFolder.endsWith("/") ? normalizedRoomFolder : normalizedRoomFolder + "/";
+			if (normalized.startsWith(prefix)) {
+				normalized = normalized.substring(prefix.length());
+			}
+		}
+		return normalized;
+	}
+
+	private static String fileNameFromPath(String value) {
+		if (isBlank(value)) {
+			return null;
+		}
+		int slashIndex = value.lastIndexOf('/');
+		return slashIndex >= 0 ? value.substring(slashIndex + 1) : value;
+	}
+
+	private static String stemFromPath(String value) {
+		String fileName = fileNameFromPath(value);
+		if (isBlank(fileName)) {
+			return null;
+		}
+		int dotIndex = fileName.lastIndexOf('.');
+		return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+	}
+
+	private static String extensionFromMimeType(String mimeType) {
+		if (isBlank(mimeType) || !mimeType.contains("/")) {
+			return "png";
+		}
+		return mimeType.substring(mimeType.indexOf('/') + 1);
+	}
+
+	private static String firstNonBlank(String... values) {
+		if (values == null) {
+			return null;
+		}
+		for (String value : values) {
+			if (!isBlank(value)) {
+				return value;
+			}
+		}
+		return null;
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
+	}
+
+	private static List<JSONObject> appendIfPresent(List<JSONObject> events, JSONObject event) {
+		if (event != null) {
+			events.add(event);
+		}
+		return events;
 	}
 
 	private static JSONObject userPromptToJson(UserPrompt p) {

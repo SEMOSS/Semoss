@@ -31,34 +31,35 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomUtils;
 import prerna.util.Utility;
 
+
+
 /**
- * One-shot reactor that reads an existing room's Claude Code JSONL transcript
- * from disk and returns each line parsed through
- * {@link ClaudeCodeTranscriptParser} — the same parser the live websocket
- * tailer uses — so the frontend can render existing history with the same
- * logic it uses for streamed updates.
+ * One-shot reactor that reads an existing room's GitHub Copilot JSONL
+ * transcript from disk and returns normalized events in the same shape the live
+ * streaming path emits.
  */
-public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
+public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GetClaudeCodeTranscriptHistoryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetGitHubCopilotTranscriptHistoryReactor.class);
 
-	public GetClaudeCodeTranscriptHistoryReactor() {
+	public GetGitHubCopilotTranscriptHistoryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
@@ -71,21 +72,20 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Room id is required");
 		}
+
 		String finalRoomId = roomId.trim();
-		
-		Room room;
 		try {
-		    room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-		} catch(Exception e) {
-			classLogger.error("User does not have access to this room {}", finalRoomId, e);
+			RoomUtils.getOrLoadRoom(finalRoomId, this.insight);
+		} catch (Exception e) {
+			classLogger.error("User does not have access to GitHub Copilot room {}", finalRoomId, e);
 			throw new IllegalStateException("User does not have access to this room");
 		}
-
-		List<Object> events = new ArrayList<>();
 		String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator
 				+ finalRoomId;
 
-		Path jsonl = ClaudeCodeTranscriptLocator.findJsonlFile(roomId);
+		List<Object> events = new ArrayList<>();
+		Set<String> suppressedToolCallIds = new HashSet<>();
+		Path jsonl = GitHubCopilotTranscriptLocator.findJsonlFile(finalRoomId);
 		if (jsonl == null) {
 			return new NounMetadata(events, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
@@ -96,19 +96,21 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 				if (line.isEmpty()) {
 					return;
 				}
+
 				try {
-					List<JSONObject> parsedEvents = ClaudeCodeTranscriptParser.parse(new JSONObject(line), roomFolderPath);
-					for (JSONObject parsed : parsedEvents) {
-						if (parsed != null) {
-							events.add(parsed.toMap());
+					List<JSONObject> parsedEvents = GitHubCopilotTranscriptParser.parse(new JSONObject(line), finalRoomId,
+							roomFolderPath, suppressedToolCallIds);
+					for (JSONObject event : parsedEvents) {
+						if (event != null) {
+							events.add(event.toMap());
 						}
 					}
 				} catch (Exception e) {
-					classLogger.warn("Skipping malformed JSONL line in room {}", finalRoomId, e);
+					classLogger.warn("Skipping malformed GitHub Copilot JSONL line in room {}", finalRoomId, e);
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Unable to read JSONL transcript for room {}", finalRoomId, e);
+			classLogger.error("Unable to read GitHub Copilot JSONL transcript for room {}", finalRoomId, e);
 			throw new IllegalStateException("Unable to read transcript for the requested room id");
 		}
 
@@ -117,13 +119,13 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Reads an existing room's Claude Code JSONL transcript from disk and returns the parsed events in the same shape the live websocket emits.";
+		return "Reads an existing room's GitHub Copilot JSONL transcript from disk and returns parsed events in the same shape the live stream emits.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Room identifier whose Claude Code transcript should be read and parsed.";
+			return "Room identifier whose GitHub Copilot transcript should be read and parsed.";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -182,15 +182,21 @@ class GitHubCopilotClient:
     def query_copilot(
         self,
         prompt: str,
+        prompt_id: Optional[str] = None,
         system_prompt: Optional[str] = None,
+        attachments: Optional[list[dict[str, Any]]] = None,
         **_kwargs: Any,
     ) -> str:
-        return asyncio.run(self._query_async(prompt, system_prompt))
+        return asyncio.run(
+            self._query_async(prompt, prompt_id, system_prompt, attachments or [])
+        )
 
     async def _query_async(
         self,
         prompt: str,
+        prompt_id: Optional[str],
         system_prompt: Optional[str],
+        attachments: list[dict[str, Any]],
     ) -> str:
         if not self._client_started:
             await self._client.start()
@@ -199,7 +205,9 @@ class GitHubCopilotClient:
         smss_stream = get_smss_stream()
         if smss_stream:
             smss_stream(
-                build_user_prompt_envelope(prompt, str(uuid4()), self.cfg.room_id),
+                build_user_prompt_envelope(
+                    prompt, prompt_id or str(uuid4()), self.cfg.room_id
+                ),
                 stream_type="content",
             )
 
@@ -304,7 +312,10 @@ class GitHubCopilotClient:
                 )
 
         try:
-            await session.send(prompt)
+            if attachments:
+                await session.send(prompt, attachments=attachments)
+            else:
+                await session.send(prompt)
             await idle.wait()
         finally:
             try:
