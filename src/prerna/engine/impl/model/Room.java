@@ -546,7 +546,8 @@ public class Room {
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
@@ -676,10 +677,8 @@ public class Room {
 	 * 
 	 * Param list:
 	 * <ul>
-	 * <li>numOfImages: number of images for the model to completely generate
 	 * <li>imageHeight: height of the image in pixels to generate
 	 * <li>imageWidth: width of the image in pixels to generate
-	 * <li>detailLevel: relative level of detail to pass
 	 * <li>seed: number to control randomness of each generation
 	 * </ul>
 	 *
