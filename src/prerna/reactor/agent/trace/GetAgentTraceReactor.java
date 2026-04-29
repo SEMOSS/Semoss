@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,6 +44,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <pre>
  * GetAgentTrace(traceId=["&lt;id&gt;"])
  * </pre>
+ *
+ * Returns: MAP containing TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID,
+ * HARNESS_TYPE, START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT,
+ * TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID.
+ * Returns an error noun if the trace is not found or the user does not own it.
  */
 public class GetAgentTraceReactor extends AbstractReactor {
 
@@ -59,6 +65,12 @@ public class GetAgentTraceReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
+		User user = this.insight.getUser();
+		if (user == null || user.getPrimaryLoginToken() == null) {
+			throw new IllegalArgumentException("User must be authenticated to retrieve agent traces");
+		}
+		String userId = user.getPrimaryLoginToken().getId();
+
 		String traceId = this.keyValue.get(KEY_TRACE_ID);
 		if (traceId == null || traceId.isEmpty()) {
 			throw new IllegalArgumentException("traceId is required for GetAgentTrace");
@@ -74,6 +86,13 @@ public class GetAgentTraceReactor extends AbstractReactor {
 
 		if (trace == null) {
 			return NounMetadata.getErrorNounMessage("Trace not found: " + traceId);
+		}
+
+		// Verify the requesting user owns this trace
+		String traceOwner = (String) trace.get("USER_ID");
+		if (traceOwner != null && !traceOwner.equals(userId)) {
+			classLogger.warn("GetAgentTraceReactor: user '{}' attempted to access trace owned by '{}'.", userId, traceOwner);
+			return NounMetadata.getErrorNounMessage("Access denied: trace not found");
 		}
 
 		return new NounMetadata(trace, PixelDataType.MAP);

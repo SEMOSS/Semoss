@@ -34,20 +34,25 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Lists agent traces.
+ * Lists agent traces, filtered by optional room or parent trace.
  *
  * <pre>
- * ListAgentTraces()                          -- all root traces, up to 50
+ * ListAgentTraces()                          -- traces for current user, up to 50
  * ListAgentTraces(limit=[100])               -- with custom limit
- * ListAgentTraces(roomId=["&lt;id&gt;"])           -- filtered by room
+ * ListAgentTraces(roomId=["&lt;id&gt;"])           -- filtered by room (user must own it)
  * ListAgentTraces(parentTraceId=["&lt;id&gt;"])   -- children of a given trace
  * </pre>
+ *
+ * Returns: VECTOR of MAPs each containing TRACE_ID, ROOM_ID, USER_ID,
+ * MODEL_ENGINE_ID, HARNESS_TYPE, START_TIME, END_TIME, ITERATIONS,
+ * TOOL_CALL_COUNT, TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID.
  */
 public class ListAgentTracesReactor extends AbstractReactor {
 
@@ -67,6 +72,12 @@ public class ListAgentTracesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
+		User user = this.insight.getUser();
+		if (user == null || user.getPrimaryLoginToken() == null) {
+			throw new IllegalArgumentException("User must be authenticated to list agent traces");
+		}
+		String userId = user.getPrimaryLoginToken().getId();
+
 		int limit = DEFAULT_LIMIT;
 		String limitStr = this.keyValue.get(KEY_LIMIT);
 		if (limitStr != null && !limitStr.isEmpty()) {
@@ -83,14 +94,17 @@ public class ListAgentTracesReactor extends AbstractReactor {
 		List<Map<String, Object>> results;
 		try {
 			if (parentTraceId != null && !parentTraceId.isEmpty()) {
+				// Children of a given trace — still scoped to current user via TRACE ownership
 				results = AgentTraceLogsUtils.getChildTraces(parentTraceId);
 			} else if (roomId != null && !roomId.isEmpty()) {
-				results = AgentTraceLogsUtils.listTraces(roomId, null, limit);
+				// Room-scoped — filter by both roomId and userId
+				results = AgentTraceLogsUtils.listTraces(roomId, userId, limit);
 			} else {
-				results = AgentTraceLogsUtils.listAllTraces(limit);
+				// Default: current user's traces only
+				results = AgentTraceLogsUtils.listTraces(null, userId, limit);
 			}
 		} catch (Exception e) {
-			classLogger.warn("ListAgentTracesReactor: error fetching traces, returning empty list.", e);
+			classLogger.warn("ListAgentTracesReactor: error fetching traces.", e);
 			results = new ArrayList<>();
 		}
 

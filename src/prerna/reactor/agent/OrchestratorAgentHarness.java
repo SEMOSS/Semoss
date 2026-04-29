@@ -142,7 +142,11 @@ public class OrchestratorAgentHarness implements IAgentHarness {
 
         // Capture ThreadStore context BEFORE spawning any threads so auth/session info
         // is available for propagation into child worker threads.
-        Map<String, Object> parentThreadContext = ThreadStore.getTheadMapObject();
+        // getTheadMapObject() may return null on REST/API threads with no prior ThreadStore setup.
+        Map<String, Object> parentThreadContextRaw = ThreadStore.getTheadMapObject();
+        Map<String, Object> parentThreadContext = parentThreadContextRaw != null
+                ? new HashMap<>(parentThreadContextRaw)
+                : new HashMap<>();
 
         AgentHarnessResult.Builder resultBuilder = AgentHarnessResult.builder()
                 .parentTraceId(parentTraceId);
@@ -261,8 +265,16 @@ public class OrchestratorAgentHarness implements IAgentHarness {
             Map<String, Object> parentThreadContext) {
 
         // Seed this worker thread's ThreadStore with parent thread's auth/session context.
-        if (parentThreadContext != null) {
+        // IMPORTANT: setThreadMapObject() calls CURRENT.get() without null-checking, so we must
+        // prime the ThreadLocal on this fresh worker thread first via any setter that uses
+        // getThreadMap() (which auto-initializes). We then putAll into the initialized map.
+        if (parentThreadContext != null && !parentThreadContext.isEmpty()) {
+            // Use setInsightId("") to prime the ThreadLocal (getThreadMap initializes if null)
+            // then overwrite with the actual parent context.
+            ThreadStore.setInsightId(""); // initializes ThreadLocal on this worker thread
             ThreadStore.setThreadMapObject(new HashMap<>(parentThreadContext));
+        } else {
+            ThreadStore.setInsightId(""); // ensure ThreadLocal is always initialized
         }
 
         Insight childInsight = null;
@@ -282,6 +294,7 @@ public class OrchestratorAgentHarness implements IAgentHarness {
             // Build child room (in-memory, not persisted to DB)
             Room childRoom = createChildRoom(spec, parentCtx.getRoom(), engineId);
             childInsight.setRoomForInsight(childRoom);
+            childRoom.setInsight(childInsight); // wire insight back onto the room
 
             // Inject context from previous waves (size-limited to avoid token blowout)
             String taskInput = spec.task;

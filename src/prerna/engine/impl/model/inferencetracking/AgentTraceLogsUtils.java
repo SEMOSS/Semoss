@@ -28,12 +28,10 @@
 package prerna.engine.impl.model.inferencetracking;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,10 +40,27 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
-public class AgentTraceLogsUtils {
+/**
+ * Utility for persisting and querying agent execution traces stored in the
+ * {@code AGENT_TRACE} table of the ModelInferenceLogs database.
+ *
+ * <p>All SELECT operations use {@link SelectQueryStruct} to follow SEMOSS query
+ * conventions. INSERT operations use {@link PreparedStatement} because
+ * {@code SelectQueryStruct} is read-only.
+ */
+public final class AgentTraceLogsUtils {
+
+	private AgentTraceLogsUtils() {
+		// utility class
+	}
 
 	private static final Logger classLogger = LogManager.getLogger(AgentTraceLogsUtils.class);
 
@@ -142,145 +157,114 @@ public class AgentTraceLogsUtils {
 	}
 
 	// -------------------------------------------------------------------------
-	// Read operations
+	// Read operations  (all use SelectQueryStruct per SEMOSS convention)
 	// -------------------------------------------------------------------------
+
+	private static final String AGENT_TRACE_TABLE = "AGENT_TRACE__";
 
 	/**
 	 * Returns traces filtered by roomId and/or userId, ordered by START_TIME DESC.
 	 * Null parameters are omitted from the WHERE clause.
+	 *
+	 * @param roomId  room filter (nullable)
+	 * @param userId  user filter (nullable)
+	 * @param limit   max rows; use 0 for no limit
+	 * @return list of trace maps, newest first
 	 */
 	public static List<Map<String, Object>> listTraces(String roomId, String userId, int limit) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (modelInferenceLogsDb == null) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
 			classLogger.warn("ModelInferenceLogs database is unavailable; returning empty trace list.");
 			return new ArrayList<>();
 		}
-
-		StringBuilder sql = new StringBuilder(
-				"SELECT TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
-				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
-				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID "
-				+ "FROM AGENT_TRACE WHERE 1=1");
+		SelectQueryStruct qs = buildTraceSelector();
 		if (roomId != null) {
-			sql.append(" AND ROOM_ID = ?");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "ROOM_ID", "==", roomId));
 		}
 		if (userId != null) {
-			sql.append(" AND USER_ID = ?");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "USER_ID", "==", userId));
 		}
-		sql.append(" ORDER BY START_TIME DESC");
+		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_TABLE + "START_TIME", "DESC"));
 		if (limit > 0) {
-			sql.append(" LIMIT ").append(limit);
+			qs.setLimit(limit);
 		}
-
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(sql.toString());
-			int index = 1;
-			if (roomId != null) {
-				ps.setString(index++, roomId);
-			}
-			if (userId != null) {
-				ps.setString(index++, userId);
-			}
-			ps.execute();
-			ResultSet rs = ps.getResultSet();
-			return resultSetToList(rs);
+			return QueryExecutionUtility.flushRsToMap(db, qs);
 		} catch (Exception e) {
 			classLogger.error("Failed to list agent traces for roomId '{}', userId '{}'.", roomId, userId, e);
 			return new ArrayList<>();
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
 	/**
-	 * Returns all traces ordered by START_TIME DESC (admin use).
+	 * Returns all traces ordered by START_TIME DESC.
+	 *
+	 * @param limit max rows; use 0 for no limit
+	 * @return list of trace maps, newest first
 	 */
 	public static List<Map<String, Object>> listAllTraces(int limit) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (modelInferenceLogsDb == null) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
 			classLogger.warn("ModelInferenceLogs database is unavailable; returning empty trace list.");
 			return new ArrayList<>();
 		}
-
-		String sql = "SELECT TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
-				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
-				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID "
-				+ "FROM AGENT_TRACE ORDER BY START_TIME DESC"
-				+ (limit > 0 ? " LIMIT " + limit : "");
-
-		PreparedStatement ps = null;
+		SelectQueryStruct qs = buildTraceSelector();
+		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_TABLE + "START_TIME", "DESC"));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(sql);
-			ps.execute();
-			ResultSet rs = ps.getResultSet();
-			return resultSetToList(rs);
+			return QueryExecutionUtility.flushRsToMap(db, qs);
 		} catch (Exception e) {
 			classLogger.error("Failed to list all agent traces.", e);
 			return new ArrayList<>();
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
 	/**
 	 * Returns a single trace by TRACE_ID, or null if not found.
+	 *
+	 * @param traceId trace identifier
+	 * @return trace map or {@code null}
 	 */
 	public static Map<String, Object> getTrace(String traceId) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (modelInferenceLogsDb == null) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
 			classLogger.warn("ModelInferenceLogs database is unavailable; cannot retrieve traceId '{}'.", traceId);
 			return null;
 		}
-
-		String sql = "SELECT TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
-				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
-				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID "
-				+ "FROM AGENT_TRACE WHERE TRACE_ID = ?";
-
-		PreparedStatement ps = null;
+		SelectQueryStruct qs = buildTraceSelector();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "TRACE_ID", "==", traceId));
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(sql);
-			ps.setString(1, traceId);
-			ps.execute();
-			ResultSet rs = ps.getResultSet();
-			List<Map<String, Object>> rows = resultSetToList(rs);
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
 			return rows.isEmpty() ? null : rows.get(0);
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve agent trace for traceId '{}'.", traceId, e);
 			return null;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
 	/**
-	 * Returns all traces whose PARENT_TRACE_ID matches the given parentTraceId.
+	 * Returns all child traces whose PARENT_TRACE_ID matches, ordered by START_TIME ASC.
+	 *
+	 * @param parentTraceId parent trace identifier
+	 * @return list of child trace maps, oldest first
 	 */
 	public static List<Map<String, Object>> getChildTraces(String parentTraceId) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (modelInferenceLogsDb == null) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
 			classLogger.warn("ModelInferenceLogs database is unavailable; returning empty child trace list.");
 			return new ArrayList<>();
 		}
-
-		String sql = "SELECT TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
-				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
-				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID "
-				+ "FROM AGENT_TRACE WHERE PARENT_TRACE_ID = ? ORDER BY START_TIME ASC";
-
-		PreparedStatement ps = null;
+		SelectQueryStruct qs = buildTraceSelector();
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "PARENT_TRACE_ID", "==", parentTraceId));
+		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_TABLE + "START_TIME", "ASC"));
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(sql);
-			ps.setString(1, parentTraceId);
-			ps.execute();
-			ResultSet rs = ps.getResultSet();
-			return resultSetToList(rs);
+			return QueryExecutionUtility.flushRsToMap(db, qs);
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve child traces for parentTraceId '{}'.", parentTraceId, e);
 			return new ArrayList<>();
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -288,20 +272,21 @@ public class AgentTraceLogsUtils {
 	// Internal helpers
 	// -------------------------------------------------------------------------
 
-	private static List<Map<String, Object>> resultSetToList(ResultSet rs) throws Exception {
-		List<Map<String, Object>> results = new ArrayList<>();
-		if (rs == null) {
-			return results;
-		}
-		ResultSetMetaData meta = rs.getMetaData();
-		int columnCount = meta.getColumnCount();
-		while (rs.next()) {
-			Map<String, Object> row = new HashMap<>();
-			for (int i = 1; i <= columnCount; i++) {
-				row.put(meta.getColumnLabel(i), rs.getObject(i));
-			}
-			results.add(row);
-		}
-		return results;
+	/** Builds a {@link SelectQueryStruct} selecting all AGENT_TRACE columns. */
+	private static SelectQueryStruct buildTraceSelector() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "TRACE_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "ROOM_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "USER_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "MODEL_ENGINE_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "HARNESS_TYPE"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "START_TIME"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "END_TIME"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "ITERATIONS"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "TOOL_CALL_COUNT"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "TERMINATION_REASON"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "METRICS_JSON"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "PARENT_TRACE_ID"));
+		return qs;
 	}
 }
