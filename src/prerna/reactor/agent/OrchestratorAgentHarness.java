@@ -137,6 +137,7 @@ public class OrchestratorAgentHarness implements IAgentHarness {
         String  terminationReason = "SUCCESS";
         String  userId = (ctx.getInsight() != null && ctx.getInsight().getUser() != null)
                 ? ctx.getInsight().getUser().getPrimaryLoginToken().getId() : null;
+        String  projectId = (ctx.getInsight() != null) ? ctx.getInsight().getProjectId() : null;
 
         AgentTraceLogsUtils.setActiveTraceId(ctx.getInsight().getInsightId(), traceId);
 
@@ -240,10 +241,12 @@ public class OrchestratorAgentHarness implements IAgentHarness {
             }
 
             AgentTraceLogsUtils.clearActiveTraceId(ctx.getInsight().getInsightId());
+            AgentTraceLogsUtils.clearStepCounter(traceId);
             AgentTraceLogsUtils.logTrace(
                     traceId,
                     parentRoom.getId(),
                     userId,
+                    projectId,
                     ctx.getModelEngine() != null ? ctx.getModelEngine().getEngineId() : null,
                     NAME,
                     startTime,

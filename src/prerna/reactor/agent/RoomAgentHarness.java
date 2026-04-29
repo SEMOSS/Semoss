@@ -131,6 +131,7 @@ public class RoomAgentHarness implements IAgentHarness {
         String  terminationReason = "SUCCESS";
         String  userId = (ctx.getInsight() != null && ctx.getInsight().getUser() != null)
                 ? ctx.getInsight().getUser().getPrimaryLoginToken().getId() : null;
+        String  projectId = (ctx.getInsight() != null) ? ctx.getInsight().getProjectId() : null;
 
         AgentTraceLogsUtils.setActiveTraceId(ctx.getInsight().getInsightId(), traceId);
 
@@ -196,10 +197,12 @@ public class RoomAgentHarness implements IAgentHarness {
             throw e;
         } finally {
             AgentTraceLogsUtils.clearActiveTraceId(ctx.getInsight().getInsightId());
+            AgentTraceLogsUtils.clearStepCounter(traceId);
             AgentTraceLogsUtils.logTrace(
                     traceId,
                     room.getId(),
                     userId,
+                    projectId,
                     ctx.getModelEngine() != null ? ctx.getModelEngine().getEngineId() : null,
                     getName(),
                     startTime,
@@ -243,20 +246,28 @@ public class RoomAgentHarness implements IAgentHarness {
 
             AskModelEngineResponse<?> nextModelResponse = null;
 
+            // Retrieve the active traceId for step recording (null → no trace DB available).
+            String activeTraceId = AgentTraceLogsUtils.getActiveTraceId(ctx.getInsight().getInsightId());
+
             if (toolCalls.size() == 1) {
                 // Fast path: single tool — no thread overhead.
                 ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-                ToolExecResult result = executeOneTool(tc, iterations, paramMap, parentMessageId, ctx);
+                int stepIdx = activeTraceId != null ? AgentTraceLogsUtils.nextStepIndex(activeTraceId) : -1;
+                ToolExecResult result = executeOneTool(tc, iterations, stepIdx, activeTraceId, paramMap, parentMessageId, ctx);
                 toolCallRecords.add(result.record);
                 nextModelResponse = result.modelResponse;
 
             } else {
                 // Parallel path: execute all tools concurrently.
+                // Pre-assign step numbers before dispatch so model-issued order is preserved
+                // regardless of which tool finishes first.
                 // Room.addToolExecutionResult() is synchronized and only triggers the next model
                 // call once every tool ID in the batch has been answered, so concurrent
                 // submissions from multiple threads are safe.
                 logger.info("RoomAgentHarness executing {} tools in parallel iter={}",
                         toolCalls.size(), iterations);
+                int baseStep = activeTraceId != null
+                        ? AgentTraceLogsUtils.reserveStepIndices(activeTraceId, toolCalls.size()) : -1;
                 ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size());
                 try {
                     @SuppressWarnings("unchecked")
@@ -264,8 +275,9 @@ public class RoomAgentHarness implements IAgentHarness {
 
                     for (int i = 0; i < toolCalls.size(); i++) {
                         final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
+                        final int stepIdx = baseStep >= 0 ? baseStep + i : -1;
                         futures[i] = CompletableFuture.supplyAsync(
-                                () -> executeOneTool(tc, iterations, paramMap, parentMessageId, ctx),
+                                () -> executeOneTool(tc, iterations, stepIdx, activeTraceId, paramMap, parentMessageId, ctx),
                                 pool);
                     }
 
@@ -337,19 +349,43 @@ public class RoomAgentHarness implements IAgentHarness {
      * Executes one tool call and submits the result to the Room.
      * Called from both the single-tool fast path and each parallel future.
      */
-    private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, Map<String, Object> paramMap,
+    private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, int stepIdx, String traceId,
+                                          Map<String, Object> paramMap,
                                           String parentMessageId, AgentRunContext ctx) {
         Room room = ctx.getRoom();
         logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, iter);
         long startMs = System.currentTimeMillis();
         ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
-        long durationMs = System.currentTimeMillis() - startMs;
+        long endMs = System.currentTimeMillis();
         logger.info("RoomAgentHarness tool result: name={} durationMs={} success={}",
-                tc.rawToolName, durationMs, outcome.success);
+                tc.rawToolName, endMs - startMs, outcome.success);
+
+        // Record the tool call step if tracing is active for this room.
+        if (traceId != null && stepIdx >= 0) {
+            String[] parsed = MCPUtility.parseEngineIdFromFunctionName(tc.rawToolName);
+            String engineId   = parsed != null ? parsed[0] : null;
+            String engineType = null;
+            if (engineId != null) {
+                try {
+                    IEngine eng = Utility.getEngine(engineId);
+                    if (eng == null) eng = (IEngine) Utility.getProject(engineId);
+                    if (eng != null) engineType = eng.getCatalogType().name();
+                } catch (Exception ignored) { /* non-critical — leave engineType null */ }
+            }
+            String inputJson = tc.toolParams != null ? tc.toolParams.toString() : null;
+            AgentTraceLogsUtils.recordTraceStep(
+                    traceId, stepIdx, tc.toolCallId, tc.rawToolName,
+                    engineId, engineType, parsed != null,
+                    startMs, endMs,
+                    outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR,
+                    inputJson,
+                    outcome.success ? outcome.content : null,
+                    outcome.success ? null : outcome.content);
+        }
 
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
-                tc.rawToolName, tc.toolCallId, outcome.content, durationMs, outcome.success);
+                tc.rawToolName, tc.toolCallId, outcome.content, endMs - startMs, outcome.success);
 
         // IMPORTANT: pass a fresh copy of paramMap — Room.appendToolsToParams() mutates it.
         AskModelEngineResponse<?> modelResponse = room.addToolExecutionResult(

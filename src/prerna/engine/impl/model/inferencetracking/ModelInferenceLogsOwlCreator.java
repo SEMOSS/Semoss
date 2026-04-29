@@ -189,6 +189,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("TRACE_ID", "VARCHAR(255)"),
 				Pair.with("ROOM_ID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
+				Pair.with("PROJECT_ID", "VARCHAR(255)"),
 				Pair.with("MODEL_ENGINE_ID", "VARCHAR(255)"),
 				Pair.with("HARNESS_TYPE", "VARCHAR(100)"),
 				Pair.with("START_TIME", TIMESTAMP_DATATYPE_NAME),
@@ -212,7 +213,13 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("TOOL_OUTPUT_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("START_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("END_TIME", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME)
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME),
+				// Extended columns for MCP/engine tracking
+				Pair.with("TOOL_CALL_ID", "VARCHAR(255)"),
+				Pair.with("ENGINE_ID", "VARCHAR(255)"),
+				Pair.with("ENGINE_TYPE", "VARCHAR(50)"),
+				Pair.with("IS_MCP", BOOLEAN_DATATYPE_NAME),
+				Pair.with("STATUS", "VARCHAR(20)")
 			);
 
 		this.allSchemas = Arrays.asList(

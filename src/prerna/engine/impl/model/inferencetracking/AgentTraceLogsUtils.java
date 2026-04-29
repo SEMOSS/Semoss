@@ -34,7 +34,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,6 +69,9 @@ public final class AgentTraceLogsUtils {
 	/** Maps insightId → active traceId for parent trace propagation across threads. */
 	private static final ConcurrentHashMap<String, String> ACTIVE_TRACE_MAP = new ConcurrentHashMap<>();
 
+	/** Per-trace step counter for deterministic STEP_NUMBER assignment before parallel dispatch. */
+	private static final ConcurrentHashMap<String, AtomicInteger> STEP_COUNTER_MAP = new ConcurrentHashMap<>();
+
 	// -------------------------------------------------------------------------
 	// Active trace ID management
 	// -------------------------------------------------------------------------
@@ -87,6 +92,34 @@ public final class AgentTraceLogsUtils {
 	public static void clearActiveTraceId(String insightId) {
 		if (insightId != null) {
 			ACTIVE_TRACE_MAP.remove(insightId);
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Step counter helpers (call before dispatching parallel tool work)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Atomically reserves and returns the next step index for the given trace.
+	 * Use this on the single-tool fast path.
+	 */
+	public static int nextStepIndex(String traceId) {
+		return STEP_COUNTER_MAP.computeIfAbsent(traceId, k -> new AtomicInteger(0)).getAndIncrement();
+	}
+
+	/**
+	 * Atomically reserves {@code n} consecutive step indices and returns the base index.
+	 * Use this before dispatching a parallel tool batch: {@code baseStep + i} gives each
+	 * tool its deterministic step number regardless of finish order.
+	 */
+	public static int reserveStepIndices(String traceId, int n) {
+		return STEP_COUNTER_MAP.computeIfAbsent(traceId, k -> new AtomicInteger(0)).getAndAdd(n);
+	}
+
+	/** Clears the step counter for a trace. Call in the same finally block as clearActiveTraceId. */
+	public static void clearStepCounter(String traceId) {
+		if (traceId != null) {
+			STEP_COUNTER_MAP.remove(traceId);
 		}
 	}
 
@@ -153,6 +186,165 @@ public final class AgentTraceLogsUtils {
 			classLogger.error("Failed to insert agent trace for traceId '{}'.", traceId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+	}
+
+	/**
+	 * Inserts a completed agent trace into the AGENT_TRACE table, including the app PROJECT_ID.
+	 * Delegates null-projectId calls to the base overload for backward compatibility.
+	 */
+	public static void logTrace(
+			String traceId,
+			String roomId,
+			String userId,
+			String projectId,
+			String modelEngineId,
+			String harnessType,
+			Instant startTime,
+			Instant endTime,
+			int iterations,
+			int toolCallCount,
+			String terminationReason,
+			String metricsJson,
+			String parentTraceId) {
+
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (modelInferenceLogsDb == null) {
+			classLogger.warn("ModelInferenceLogs database is unavailable; skipping agent trace log for traceId '{}'.", traceId);
+			return;
+		}
+
+		String query = "INSERT INTO AGENT_TRACE "
+				+ "(TRACE_ID, ROOM_ID, USER_ID, PROJECT_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
+				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
+				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, traceId);
+			ps.setString(index++, roomId);
+			ps.setString(index++, userId);
+			if (projectId != null) {
+				ps.setString(index++, projectId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			ps.setString(index++, modelEngineId);
+			ps.setString(index++, harnessType);
+			ps.setTimestamp(index++, startTime != null ? Timestamp.from(startTime) : null);
+			ps.setTimestamp(index++, endTime != null ? Timestamp.from(endTime) : null);
+			ps.setInt(index++, iterations);
+			ps.setInt(index++, toolCallCount);
+			ps.setString(index++, terminationReason);
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, metricsJson, index++, null);
+			if (parentTraceId != null) {
+				ps.setString(index++, parentTraceId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to insert agent trace for traceId '{}'.", traceId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+	}
+
+	/**
+	 * Records a single tool-call step for the given trace into the AGENT_TRACE_STEP table.
+	 *
+	 * <p>Call {@link #nextStepIndex(String)} or {@link #reserveStepIndices(String, int)} to
+	 * obtain {@code stepNumber} <em>before</em> parallel tool dispatch so that step ordering
+	 * reflects model-issued order, not completion order.
+	 *
+	 * @param traceId      owning trace
+	 * @param stepNumber   pre-assigned step index (0-based)
+	 * @param toolCallId   LLM-issued tool_call_id from the message
+	 * @param rawToolName  full tool name as returned by the model (may include engine-id prefix)
+	 * @param engineId     SEMOSS engine UUID, or null for non-MCP tools
+	 * @param engineType   {@link prerna.engine.api.IEngine.CATALOG_TYPE} name, or null
+	 * @param isMcp        true when the call was routed through InternalMCP/RemoteMCP
+	 * @param startMs      wall-clock ms at tool execution start
+	 * @param endMs        wall-clock ms at tool execution end
+	 * @param status       "success" or "error" (matches TOOL_STATUS_* constants in harnesses)
+	 * @param toolInputJson JSON-serialised input params, stored as TOOL_INPUT_JSON (may be null)
+	 * @param outputText   tool result string, stored as OUTPUT_TEXT
+	 * @param errorMsg     error detail when status is "error", stored as ERROR_MESSAGE (may be null)
+	 *
+	 * <p>TODO: TOOL_OUTPUT_JSON can be populated here once tool results are returned as structured
+	 * objects rather than rendered strings. For now we only store OUTPUT_TEXT.
+	 */
+	public static void recordTraceStep(
+			String traceId,
+			int stepNumber,
+			String toolCallId,
+			String rawToolName,
+			String engineId,
+			String engineType,
+			boolean isMcp,
+			long startMs,
+			long endMs,
+			String status,
+			String toolInputJson,
+			String outputText,
+			String errorMsg) {
+
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			classLogger.warn("ModelInferenceLogs database unavailable; skipping trace step for traceId '{}'.", traceId);
+			return;
+		}
+
+		String query = "INSERT INTO AGENT_TRACE_STEP "
+				+ "(STEP_ID, TRACE_ID, STEP_NUMBER, STEP_TYPE, OUTPUT_TEXT, TOOL_NAME, "
+				+ "TOOL_INPUT_JSON, START_TIME, END_TIME, ERROR_MESSAGE, "
+				+ "TOOL_CALL_ID, ENGINE_ID, ENGINE_TYPE, IS_MCP, STATUS) "
+				+ "VALUES (?, ?, ?, 'TOOL_CALL', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, UUID.randomUUID().toString());
+			ps.setString(index++, traceId);
+			ps.setInt(index++, stepNumber);
+			db.getQueryUtil().handleInsertionOfClob(ps, outputText, index++, null);
+			ps.setString(index++, rawToolName);
+			db.getQueryUtil().handleInsertionOfClob(ps, toolInputJson, index++, null);
+			ps.setTimestamp(index++, new Timestamp(startMs));
+			ps.setTimestamp(index++, new Timestamp(endMs));
+			db.getQueryUtil().handleInsertionOfClob(ps, errorMsg, index++, null);
+			if (toolCallId != null) {
+				ps.setString(index++, toolCallId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			if (engineId != null) {
+				ps.setString(index++, engineId);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			if (engineType != null) {
+				ps.setString(index++, engineType);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
+			ps.setBoolean(index++, isMcp);
+			ps.setString(index++, status);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to insert trace step for traceId '{}' step {}.", traceId, stepNumber, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
 		}
 	}
 
@@ -278,6 +470,7 @@ public final class AgentTraceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "TRACE_ID"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "USER_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "PROJECT_ID"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "MODEL_ENGINE_ID"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "HARNESS_TYPE"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "START_TIME"));
@@ -288,5 +481,58 @@ public final class AgentTraceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "METRICS_JSON"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "PARENT_TRACE_ID"));
 		return qs;
+	}
+
+	private static final String AGENT_TRACE_STEP_TABLE = "AGENT_TRACE_STEP__";
+
+	/**
+	 * Returns all steps for a trace, ordered by STEP_NUMBER ASC.
+	 * Verifies ownership by joining to AGENT_TRACE and checking USER_ID == userId.
+	 *
+	 * @param traceId trace to fetch steps for
+	 * @param userId  requesting user — used to verify trace ownership
+	 * @return ordered list of step maps, or empty list if not found / not authorized
+	 */
+	public static List<Map<String, Object>> listTraceSteps(String traceId, String userId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			classLogger.warn("ModelInferenceLogs database unavailable; returning empty step list.");
+			return new ArrayList<>();
+		}
+
+		// Verify ownership: the trace must belong to this user.
+		List<Map<String, Object>> ownerCheck = listTraces(null, userId, 0);
+		boolean owned = ownerCheck.stream()
+				.anyMatch(t -> traceId.equals(t.get("AGENT_TRACE__TRACE_ID"))
+						|| traceId.equals(t.get("TRACE_ID")));
+		if (!owned) {
+			classLogger.warn("User '{}' attempted to list steps for trace '{}' they do not own.", userId, traceId);
+			return Collections.emptyList();
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "STEP_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "TRACE_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "STEP_NUMBER"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "STEP_TYPE"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "TOOL_NAME"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "OUTPUT_TEXT"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "TOOL_INPUT_JSON"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "START_TIME"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "END_TIME"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "ERROR_MESSAGE"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "TOOL_CALL_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "ENGINE_ID"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "ENGINE_TYPE"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "IS_MCP"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "STATUS"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_STEP_TABLE + "TRACE_ID", "==", traceId));
+		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_STEP_TABLE + "STEP_NUMBER", "ASC"));
+		try {
+			return QueryExecutionUtility.flushRsToMap(db, qs);
+		} catch (Exception e) {
+			classLogger.error("Failed to list trace steps for traceId '{}'.", traceId, e);
+			return new ArrayList<>();
+		}
 	}
 }
