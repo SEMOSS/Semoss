@@ -50,7 +50,6 @@ import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -159,9 +158,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			try {
 				this.dimension = ((Number) Double.parseDouble(dimensionInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger
-						.warn("Invalid string value for dimension '" + dimensionInput + "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for dimension '{}'. Must be an integer value", dimensionInput,
+						e);
 			}
 		}
 		String methodNameInput = this.smssProp.getProperty(METHOD_NAME);
@@ -186,9 +184,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			try {
 				this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for ef construction '" + efConstructionInput
-						+ "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for ef construction '{}'. Must be an integer value",
+						efConstructionInput, e);
 			}
 		}
 		String mValueInput = this.smssProp.getProperty(M_VALUE);
@@ -199,14 +196,13 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					throw new IllegalArgumentException("M_VALUE should be between 4 and 10");
 				}
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid string value for m value '" + mValueInput + "'. Must be an integer value");
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.warn("Invalid string value for m value '{}'. Must be an integer value", mValueInput, e);
 			}
 		}
 
 		String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
 		if (additionalMappingsStr != null && !(additionalMappingsStr = additionalMappingsStr.trim()).isEmpty()) {
-			this.otherPropsToType = new Gson().fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {
+			this.otherPropsToType = GSON.fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {
 			}.getType());
 		}
 
@@ -286,11 +282,11 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			throw new IllegalArgumentException("Received no response from azure ai search endpoint");
 		}
 
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		List<Map<String, Object>> insertions = (List<Map<String, Object>>) responseMap.get("value");
-		classLogger.info("Inserted " + insertions.size()
-				+ " bulk inserts (create index + record value) into azure ai search index " + this.indexName);
+		classLogger.info("Inserted {} bulk inserts (create index + record value) into azure ai search index '{}'",
+				insertions.size(), this.indexName);
 		Map<String, Long> successCountMap = new HashMap<>();
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
 		for (Map<String, Object> result : insertions) {
@@ -323,8 +319,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 		Boolean errors = (Boolean) responseMap.get("errors");
 		if (errors != null && errors) {
-			classLogger.warn("There were errors with some of the bulk insertions in the azure ai search index "
-					+ this.indexName);
+			classLogger.warn("There were errors with some of the bulk insertions in the azure ai search index '{}'",
+					this.indexName);
 		} else {
 			classLogger.info("All records inserted successfully into Azure AI Search index '{}'", this.indexName);
 		}
@@ -362,7 +358,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		getIdRq.addProperty("searchFields", VectorDatabaseCSVTable.SOURCE);
 		getIdRq.addProperty("count", true);
 
-		classLogger.info("Retriving ids against file name :: Request :: " + getIdRq);
+		classLogger.info("Retriving ids against file name :: Request :: {}", getIdRq);
 
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?"
 				+ this.getMustQueryParamString();
@@ -375,7 +371,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject responseJsonSearchId = JsonParser.parseString(responseSearchId).getAsJsonObject();
 		JsonArray sourceArrId = responseJsonSearchId.getAsJsonObject().getAsJsonArray("value");
-		classLogger.info("Response source ids :: " + sourceArrId);
+		classLogger.info("Response source ids :: {}", sourceArrId);
 		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
 				+ FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 		// Delete Rq
@@ -384,7 +380,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		// loop over this
 		for (JsonElement el : sourceArrId) {
 			String source = el.getAsJsonObject().get("Source").getAsString();
-			classLogger.info("Response :: Source ::  " + source + " fileNames in Para " + sourceNames);
+			classLogger.info("Response :: Source :: '{}' fileNames in Para {}", source, sourceNames);
 			if (sourceNames.contains(source)) {
 				String fId = el.getAsJsonObject().get("id").getAsString();
 				JsonObject sourceRq = new JsonObject();
@@ -394,7 +390,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			}
 		}
 
-		classLogger.info("Request Object for Deleting ::isEmpty Value   " + valueArr.isEmpty());
+		classLogger.info("Request Object for Deleting ::isEmpty Value {}", valueArr.isEmpty());
 
 		if (!valueArr.isEmpty()) {
 			JsonObject delRq = new JsonObject();
@@ -407,8 +403,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			String response = HttpHelperUtility.postRequestStringBody(urlDel, headersMap, delRq.toString(),
 					ContentType.APPLICATION_JSON, null, null, null);
 			JsonObject responseJson = JsonParser.parseString(response).getAsJsonObject();
-			classLogger.info("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " removed "
-					+ " docs for files = " + fileNames);
+			classLogger.info("For '{}' removed docs for files = {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), fileNames);
 			JsonArray responseArr = responseJson.get("value").getAsJsonArray();
 			JsonArray errors = new JsonArray();
 			for (JsonElement el : responseArr) {
@@ -420,8 +416,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			}
 
 			if (errors != null && !errors.isEmpty()) {
-				classLogger.warn("For " + SmssUtilities.getUniqueName(this.engineName, this.engineId) + " errors = '"
-						+ errors + "' when attempting to delete files = " + fileNames);
+				classLogger.warn("For '{}' errors = '{}' when attempting to delete files = {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), errors, fileNames);
 			}
 
 			// using the search result for the source, we need to delete all the ids we
@@ -435,7 +431,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					try {
 						FileUtils.forceDelete(documentFile);
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to delete document file '{}'", documentFile.getAbsolutePath(), e);
 					}
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
@@ -654,7 +650,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			HttpHelperUtility.getRequest(url, headersMap, null, null, null);
 			return true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check if index '{}' exists", specificIndexName, e);
 		}
 		return false;
 	}
@@ -761,7 +757,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			return false;
 		}
 
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
 		String createdIndexName = (String) responseMap.get("name");
 		if (createdIndexName.equals(specificIndexName)) {

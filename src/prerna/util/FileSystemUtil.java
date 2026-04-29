@@ -101,13 +101,16 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name case-insensitively
 		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 
@@ -129,13 +132,16 @@ public final class FileSystemUtil {
 		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name case-insensitively
 		Collections.sort(results, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 		return results;
@@ -431,6 +437,49 @@ public final class FileSystemUtil {
 			classLogger.error("Error renaming asset from {} to {}", currentFileName, newFileName, e);
 			SemossPixelException ex = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Failed to rename " + currentFileName));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+	}
+
+	/**
+	 * Copies a file or directory within the asset folder.
+	 * 
+	 * @param assetFolder     The base folder for the assets.
+	 * @param sourceFileName  The current relative path of the file/directory to copy.
+	 * @param destFileName    The destination relative path for the copy.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		String sourceAbs = (assetFolder + "/" + sourceFileName).replace("\\", "/");
+		String destAbs = (assetFolder + "/" + destFileName).replace("\\", "/");
+		File sourceFile = new File(sourceAbs);
+		File destFile = new File(destAbs);
+
+		if (!sourceFile.exists()) {
+			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
+		}
+		if (destFile.exists()) {
+			throw new IllegalArgumentException("A file or directory already exists at the destination: " + destFileName);
+		}
+
+		try {
+			FileUtils.forceMkdirParent(destFile);
+		} catch (IOException e) {
+			classLogger.error("Error creating parent directory for copy destination {}", destFileName, e);
+			throw new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Unable to create parent directory for " + destFileName));
+		}
+
+		try {
+			if (sourceFile.isDirectory()) {
+				FileUtils.copyDirectory(sourceFile, destFile);
+			} else {
+				FileUtils.copyFile(sourceFile, destFile);
+			}
+		} catch (IOException e) {
+			classLogger.error("Error copying asset from {} to {}", sourceFileName, destFileName, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to copy " + sourceFileName));
 			ex.setContinueThreadOfExecution(false);
 			throw ex;
 		}

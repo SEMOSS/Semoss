@@ -79,6 +79,7 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Room {
@@ -249,6 +250,10 @@ public class Room {
 
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
+
+		// merge in room-option defaults for image model param keys
+		// (per-message values in kwArgMap always win)
+		applyImageModelParams(kwArgMap);
 
 		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
 		// string "false"
@@ -523,10 +528,26 @@ public class Room {
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap, modelEngine);
 
+			// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
+			// message row stores the actual tool output instead of null.
+			StringBuilder toolResultsForLogging = new StringBuilder();
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && tr.getOutput() != null) {
+						if (toolResultsForLogging.length() > 0) {
+							toolResultsForLogging.append("\n");
+						}
+						toolResultsForLogging.append(tr.getOutput());
+					}
+				}
+			}
+
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
@@ -646,6 +667,35 @@ public class Room {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Pulls room-option values into the model invocation kwarg map for the keys
+	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
+	 * {@code kwArgMap} are preserved so per-message overrides always win over
+	 * room-level defaults.
+	 * 
+	 * Param list:
+	 * <ul>
+	 * <li>imageHeight: height of the image in pixels to generate
+	 * <li>imageWidth: width of the image in pixels to generate
+	 * <li>seed: number to control randomness of each generation
+	 * </ul>
+	 *
+	 * @param kwArgMap mutable model parameter map
+	 */
+	private void applyImageModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		if (options == null || options.isEmpty()) {
+			return;
+		}
+
+		for (String key : Constants.IMAGE_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
 	}
 
 	/**
@@ -861,7 +911,7 @@ public class Room {
 
 	/**
 	 * Checks whether the specified message id belongs to an assistant-authored
-	 * visible output message in this room.
+	 * output message in this room.
 	 *
 	 * @param messageId message id to validate
 	 * @return {@code true} when a matching assistant output message exists
@@ -869,8 +919,7 @@ public class Room {
 	public boolean isMessageAuthor(String messageId) {
 		return getMessages().parallelStream()
 				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage
-						&& (m.hasTextPart() || m.hasToolCallPart()));
+						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----

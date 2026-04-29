@@ -131,8 +131,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if (engineExists) {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 			updateEngineTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);
-			classLogger.info("Security database already contains engine of type " + typeAndCost[0]
-					+ " with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
+					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
@@ -148,7 +148,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// global);
 		// }
 
-		classLogger.info("Finished adding engine = " + Utility.cleanLogString(engineId));
+		classLogger.info("Finished adding engine = {}", Utility.cleanLogString(engineId));
 	}
 
 	/**
@@ -170,7 +170,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			engineType = emptyClass.getCatalogType();
 			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch (Exception e) {
-			classLogger.warn("Unknown class name = " + rawType);
+			classLogger.warn("Unknown class name = {}", rawType);
 		}
 
 		return new Object[] { engineType, engineSubType, engineCost };

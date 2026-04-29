@@ -61,7 +61,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -114,7 +113,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve matching groups by type.", e);
 			throw e;
 		}
 
@@ -155,7 +154,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add group.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -219,7 +218,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -295,7 +294,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -378,7 +377,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				throw e;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -438,7 +437,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -477,7 +476,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove user from group.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
@@ -767,7 +766,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -826,7 +825,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -861,7 +860,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove group project permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1184,7 +1183,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1243,7 +1242,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1278,7 +1277,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove group engine permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1522,7 +1521,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user custom groups.", e);
 		}
 		return groups;
 	}
@@ -1553,7 +1552,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user belongs to the custom group.", e);
 		}
 
 		return false;
@@ -1577,7 +1576,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the group exists.", e);
 		}
 
 		return false;
@@ -1602,7 +1601,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the group is custom.", e);
 		}
 
 		return false;
@@ -1626,7 +1625,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
 		return false;
@@ -1652,7 +1651,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group permission for the project.", e);
 		}
 
 		return -1;
@@ -1677,7 +1676,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group permission for the engine.", e);
 		}
 
 		return -1;
