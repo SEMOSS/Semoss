@@ -36,11 +36,15 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.time.Instant;
+import java.util.UUID;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
@@ -108,8 +112,41 @@ public class AskPlaygroundReactor extends AbstractReactor {
 				// .withTools(tools)
 				.build();
 
+		// ---- Trace setup
+		String traceId = UUID.randomUUID().toString();
+		String userId = user.getPrimaryLoginToken().getId();
+		String projectId = room.getProjectId();
+		Instant startTime = Instant.now();
+		String terminationReason = "RESPONSE_TEXT";
+		AgentTraceLogsUtils.setActiveTraceId(insight.getInsightId(), traceId);
+
 		// ---- Actually run LLM call
-		ResponseMessage response = room.ask(msg, modelEngine, parentMessageId);
+		ResponseMessage response;
+		try {
+			response = room.ask(msg, modelEngine, parentMessageId);
+			if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
+				terminationReason = "RESPONSE_TOOL";
+			}
+		} catch (Exception e) {
+			terminationReason = "ERROR: " + e.getClass().getSimpleName();
+			throw e;
+		} finally {
+			AgentTraceLogsUtils.clearActiveTraceId(insight.getInsightId());
+			AgentTraceLogsUtils.logTrace(
+					traceId,
+					room.getId(),
+					userId,
+					projectId,
+					engineId,
+					"AskPlayground",
+					startTime,
+					Instant.now(),
+					1,
+					0,
+					terminationReason,
+					null,
+					null);
+		}
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
