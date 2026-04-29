@@ -101,13 +101,16 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name case-insensitively
 		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 
@@ -129,13 +132,16 @@ public final class FileSystemUtil {
 		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
 
-		// Sort the list by name, case-insensitive
+		// Sort directories first, then files, each group sorted by name case-insensitively
 		Collections.sort(results, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-				String name1 = (String) o1.get("name");
-				String name2 = (String) o2.get("name");
-				return name1.compareToIgnoreCase(name2);
+				boolean d1 = "directory".equals(o1.get("type"));
+				boolean d2 = "directory".equals(o2.get("type"));
+				if (d1 != d2) {
+					return d1 ? -1 : 1;
+				}
+				return ((String) o1.get("name")).compareToIgnoreCase((String) o2.get("name"));
 			}
 		});
 		return results;
