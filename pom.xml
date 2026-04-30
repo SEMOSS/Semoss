@@ -133,6 +133,12 @@
 									</excludes>
 								</filter>
 								<filter>
+									<artifact>org.neo4j:neo4j-jdbc-bolt</artifact>
+									<excludes>
+										<exclude>com/fasterxml/jackson/**</exclude>
+									</excludes>
+								</filter>
+								<filter>
 									<artifact>org.apache.parquet:*</artifact>
 									<excludes>
 										<exclude>META-INF/maven/**</exclude>
@@ -673,6 +679,11 @@
 	</dependencyManagement>
 	<dependencies>
 		<!-- GitHub Copilot SDK (BYOK harness) -->
+		<dependency>
+			<groupId>com.github</groupId>
+			<artifactId>copilot-sdk-java</artifactId>
+			<version>0.2.2-java.1</version>
+		</dependency>
 		<dependency>
 			<groupId>com.github</groupId>
 			<artifactId>copilot-sdk-java</artifactId>

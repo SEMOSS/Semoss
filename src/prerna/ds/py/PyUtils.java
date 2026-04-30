@@ -160,6 +160,33 @@ public final class PyUtils {
 				.replace("\t", "\\t"); // Escape tabs
 	}
 
+	/** Quote-and-escape a Java string into a single-quoted Python string literal. Returns "None" for null. */
+	public static String pyQuote(String value) {
+		if (value == null) {
+			return "None";
+		}
+		StringBuilder sb = new StringBuilder(value.length() + 4);
+		sb.append('\'');
+		for (int i = 0; i < value.length(); i++) {
+			char c = value.charAt(i);
+			switch (c) {
+				case '\\': sb.append("\\\\"); break;
+				case '\'': sb.append("\\'"); break;
+				case '\n': sb.append("\\n"); break;
+				case '\r': sb.append("\\r"); break;
+				case '\t': sb.append("\\t"); break;
+				default:
+					if (c < 0x20) {
+						sb.append(String.format("\\x%02x", (int) c));
+					} else {
+						sb.append(c);
+					}
+			}
+		}
+		sb.append('\'');
+		return sb.toString();
+	}
+
 	/**
 	 * This is good for python dictionaries but also for making sure we can easily
 	 * construct the logs into model inference python list, since everything is

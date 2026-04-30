@@ -64,6 +64,9 @@ import com.github.copilot.sdk.events.ToolExecutionProgressEvent;
 import com.github.copilot.sdk.events.ToolExecutionStartEvent;
 import com.github.copilot.sdk.json.CopilotClientOptions;
 import com.github.copilot.sdk.json.MessageOptions;
+import com.github.copilot.sdk.json.ModelCapabilities;
+import com.github.copilot.sdk.json.ModelInfo;
+import com.github.copilot.sdk.json.ModelLimits;
 import com.github.copilot.sdk.json.PermissionHandler;
 import com.github.copilot.sdk.json.ProviderConfig;
 import com.github.copilot.sdk.json.ResumeSessionConfig;
@@ -99,12 +102,12 @@ public class GitHubCopilotManager {
 			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps)
 			throws Exception {
 		return query(insight, user, engineId, filePath, prompt, systemPrompt, roomId, allowedTools, permissionMode, mcps,
-				null);
+				0, null);
 	}
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String systemPrompt,
 			String roomId, List<String> allowedTools, String permissionMode, List<Map<String, String>> mcps,
-			SandboxPolicy sandboxPolicy)
+			int contextWindow, SandboxPolicy sandboxPolicy)
 			throws Exception {
 		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		Files.createDirectories(Paths.get(roomFolderPath));
@@ -124,6 +127,10 @@ public class GitHubCopilotManager {
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
+		if (contextWindow > 0) {
+			clientOptions.setOnListModels(() -> CompletableFuture.completedFuture(List.of(
+					buildModelInfo(engineId, contextWindow))));
+		}
 		applySandbox(clientOptions, sandboxPolicy, roomFolderPath, workingDirectory);
 
 		try (CopilotClient client = new CopilotClient(clientOptions)) {
@@ -229,6 +236,14 @@ public class GitHubCopilotManager {
 	private boolean hasPersistedSessionState(String roomFolderPath) {
 		Path sessionState = Paths.get(roomFolderPath, "session-state");
 		return Files.exists(sessionState) && Files.isDirectory(sessionState);
+	}
+
+	private ModelInfo buildModelInfo(String engineId, int contextWindow) {
+		return new ModelInfo()
+				.setId(engineId)
+				.setName(engineId)
+				.setCapabilities(new ModelCapabilities()
+						.setLimits(new ModelLimits().setMaxContextWindowTokens(contextWindow)));
 	}
 
 	private SessionConfig buildSessionConfig(String engineId, String workingDirectory, String roomFolderPath,

@@ -37,6 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
@@ -62,7 +63,7 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String input = ctx.getInput();
@@ -94,11 +95,23 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 			throw new IllegalArgumentException("GitHubCopilotAgentHarness: insight has no user");
 		}
 
+		IModelEngine modelEngine = ctx.getModelEngine();
+		if (modelEngine == null) {
+			throw new IllegalArgumentException("GitHubCopilotAgentHarness: model engine is required");
+		}
+		int contextWindow = modelEngine.getContextWindow();
+
 		logger.debug("GitHubCopilotAgentHarness: engine={} filePath={}", engineId, ctx.getFilePath());
 		GitHubCopilotManager manager = new GitHubCopilotManager();
+
+		String cwd = null;
+		if (ctx.getFilePath() != null && !ctx.getFilePath().trim().isEmpty()) {
+			cwd = ctx.getFilePath() + "/client";
+		}
+
 		SandboxPolicy policy = resolveSandboxPolicy(ctx, room.getId(), ctx.getFilePath());
-		String output = manager.query(ctx.getInsight(), user, engineId, ctx.getFilePath(), input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room), policy);
+		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
+				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow, policy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
 	}
@@ -107,7 +120,7 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 	 * Prefer the policy built by the caller (reactor inputs or explicit API); fall
 	 * back to the DIHelper-driven baseline for the given room + working directory.
 	 */
-	private SandboxPolicy resolveSandboxPolicy(GenericAgentContext ctx, String roomId, String workingDirectory) {
+	private SandboxPolicy resolveSandboxPolicy(AgentRunContext ctx, String roomId, String workingDirectory) {
 		SandboxPolicy p = ctx.getSandboxPolicy();
 		if (p != null) {
 			return p;

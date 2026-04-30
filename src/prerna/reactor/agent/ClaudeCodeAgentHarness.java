@@ -77,7 +77,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
 
     @Override
     @SuppressWarnings("unchecked")
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+    public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
         Room               room    = ctx.getRoom();
         Map<String, Object> params = ctx.getParamMap();
         String             input   = ctx.getInput();
@@ -138,7 +138,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         return new AgentHarnessResult(output, 0, new ArrayList<>());
     }
 
-    private SandboxPolicy resolveSandboxPolicy(GenericAgentContext ctx, String roomId, String workingDirectory) {
+    private SandboxPolicy resolveSandboxPolicy(AgentRunContext ctx, String roomId, String workingDirectory) {
         SandboxPolicy p = ctx.getSandboxPolicy();
         if (p != null) {
             return p;

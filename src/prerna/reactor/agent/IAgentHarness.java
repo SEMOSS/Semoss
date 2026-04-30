@@ -30,7 +30,7 @@ package prerna.reactor.agent;
 /**
  * Pluggable harness interface for the generic agent loop.
  *
- * <p>Implementations receive a fully-resolved {@link GenericAgentContext} and are
+ * <p>Implementations receive a fully-resolved {@link AgentRunContext} and are
  * responsible for driving the model/tool loop until a final text response is obtained.
  *
  * <p>Built-in implementations:
@@ -57,5 +57,5 @@ public interface IAgentHarness {
      * @return result with final text, iteration count, and per-tool-call trace
      * @throws Exception on unrecoverable errors (callers should wrap and surface to the user)
      */
-    AgentHarnessResult execute(GenericAgentContext ctx) throws Exception;
+    AgentHarnessResult execute(AgentRunContext ctx) throws Exception;
 }
