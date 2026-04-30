@@ -115,6 +115,9 @@ public class Room {
 
 	private Insight insight;
 	private String roomFolderPath;
+	
+	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature", "tokenLength");
 
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
@@ -251,16 +254,10 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// merge in room-option defaults for image model param keys
-		// (per-message values in kwArgMap always win)
 		applyImageModelParams(kwArgMap);
 
-		// merge in room-option defaults for text model param keys
-		// (temperature, tokenLength, etc - per-message values in kwArgMap always win)
 		applyTextModelParams(kwArgMap);
 
-		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
-		// string "false"
 		boolean useHistory = true;
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
@@ -695,7 +692,7 @@ public class Room {
 			return;
 		}
 
-		for (String key : Constants.IMAGE_MODEL_PARAM_KEYS) {
+		for (String key : IMAGE_MODEL_PARAM_KEYS) {
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);
@@ -710,7 +707,7 @@ public class Room {
 			return;
 		}
 
-		for (String key : Constants.TEXT_MODEL_PARAM_KEYS) {
+		for (String key : TEXT_MODEL_PARAM_KEYS) {
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);
