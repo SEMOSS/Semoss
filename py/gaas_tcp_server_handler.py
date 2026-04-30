@@ -901,6 +901,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     )
                 command = path_script + command
 
+        # If legacy append_vars are provided, prepend these vars at the start of the script
+        append_vars = payload.get("append_vars") or {}
+        if append_vars:
+            append_vars_script = ""
+            # Add each variable
+            for key in append_vars:
+                append_vars_script += textwrap.dedent(
+                    f"""
+                        {key} = r'{append_vars.get(key)}'
+                        """
+                )
+            append_vars_script += "\n"
+            command = append_vars_script + command
+
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
