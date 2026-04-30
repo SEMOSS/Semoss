@@ -188,9 +188,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 		if (logger.isDebugEnabled()) {
 			if (query.length() > 500) {
-				logger.debug("SPARQL QUERY....  " + query.substring(0, 500) + "...");
+				logger.debug("SPARQL QUERY: {}", query.substring(0, 500));
 			} else {
-				logger.debug("SPARQL QUERY....  " + query);
+				logger.debug("SPARQL QUERY: {}", query);
 			}
 		}
 		return query.toString();

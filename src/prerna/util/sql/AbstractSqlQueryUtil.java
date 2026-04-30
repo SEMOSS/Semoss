@@ -1960,9 +1960,9 @@ public abstract class AbstractSqlQueryUtil {
 
 			// first run a validation on the input
 			for (String tableName : updates.keySet()) {
-				logger.info("Validating table " + tableName);
+				logger.info("Validating table {}", tableName);
 				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
-					logger.info("Validating columns for " + tableName);
+					logger.info("Validating columns for {}", tableName);
 					// we are altering - make sure everything is valid
 
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
@@ -2010,17 +2010,17 @@ public abstract class AbstractSqlQueryUtil {
 
 			String query = null;
 			if (tableExists.contains(tableName)) {
-				logger.info("Altering table " + tableName);
+				logger.info("Altering table {}", tableName);
 				query = queryUtil.alterTableAddColumns(tableName, finalColumnUpdates);
 			} else {
-				logger.info("Creating table " + tableName);
+				logger.info("Creating table {}", tableName);
 				query = queryUtil.createTable(tableName, finalColumnUpdates);
 			}
 			try {
 				rdbmsDb.insertData(query);
 
 				// add to the owl
-				logger.info("Updating metadata for table " + tableName);
+				logger.info("Updating metadata for table {}", tableName);
 				owlEngine.addConcept(tableName, null, null);
 				for (String column : finalColumnUpdates.keySet()) {
 					String columnType = finalColumnUpdates.get(column);
@@ -2056,9 +2056,9 @@ public abstract class AbstractSqlQueryUtil {
 			String schema = rdbmsDb.getSchema();
 
 			for (String tableName : updates.keySet()) {
-				logger.info("Validating table " + tableName);
+				logger.info("Validating table {}", tableName);
 				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
-					logger.info("Validating columns for " + tableName);
+					logger.info("Validating columns for {}", tableName);
 
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
 					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase())
@@ -2100,11 +2100,11 @@ public abstract class AbstractSqlQueryUtil {
 			String query = null;
 			try {
 				if (deleteTable) {
-					logger.info("Dropping table " + tableName);
+					logger.info("Dropping table {}", tableName);
 					query = queryUtil.dropTable(tableName);
 					rdbmsDb.insertData(query);
 				} else {
-					logger.info("Removing columns from table " + tableName);
+					logger.info("Removing columns from table {}", tableName);
 					// prefer using multi-drop if supported
 					if (queryUtil.allowMultiDropColumn()) {
 						query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
@@ -2118,7 +2118,7 @@ public abstract class AbstractSqlQueryUtil {
 				}
 
 				// update the owl
-				logger.info("Updating metadata for table " + tableName);
+				logger.info("Updating metadata for table {}", tableName);
 				if (deleteTable) {
 					owlEngine.removeConcept(tableName);
 				} else {
