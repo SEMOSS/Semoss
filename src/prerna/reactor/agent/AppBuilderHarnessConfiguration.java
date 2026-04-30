@@ -80,8 +80,21 @@ public class AppBuilderHarnessConfiguration {
     public static final String ENGINE_NAME = "name";
     public static final String ENGINE_ID   = "id";
 
+    private static final String SELECTED_ENGINES_SKILL_NAME = "selected-engines";
+    private static final String SELECTED_ENGINES_SKILL_DESCRIPTION =
+            "Consult this skill when introducing a new engine call or adding a new LLM() invocation, "
+          + "a new database query against a not-yet-used engine, or a new vector store integration. "
+          + "Do not consult it for edits to existing engine calls (the engine ID is already in the code; preserve it). "
+          + "Do not consult it for unrelated work (UI, styling, non-engine logic).";
+
     private static final List<String> ENGINE_TYPES = Arrays.asList(
             MODEL_ENGINES, VECTOR_ENGINES, STORAGE_ENGINES, DATABASE_ENGINES);
+
+    private static final List<String[]> ENGINE_SECTIONS = Arrays.asList(
+            new String[] { MODEL_ENGINES,    "Model Engines"    },
+            new String[] { VECTOR_ENGINES,   "Vector Engines"   },
+            new String[] { STORAGE_ENGINES,  "Storage Engines"  },
+            new String[] { DATABASE_ENGINES, "Database Engines" });
 
     private AppBuilderHarnessConfiguration() {}
 
@@ -251,7 +264,7 @@ public class AppBuilderHarnessConfiguration {
     }
 
     /**
-     * Generic bulk-replace by type→list map. Validates each key and writes once.
+     * Generic bulk-replace by type list map. Validates each key and writes once.
      */
     public static boolean setSelectedEngines(String clientPath,
                                              Map<String, List<Map<String, String>>> updatesByType) {
@@ -337,6 +350,64 @@ public class AppBuilderHarnessConfiguration {
 
     private static void writeConfig(Path configFile, JSONObject root) throws IOException {
         Files.write(configFile, root.toString(4).getBytes(StandardCharsets.UTF_8));
+        // configFile lives at <clientPath>/.agents/AGENT_CONFIG.json
+        Path clientPath = configFile.getParent().getParent();
+        writeSelectedEnginesSkill(clientPath, root);
+    }
+
+    /**
+     * Writes (or overwrites) {@code .claude/skills/selected-engines/SKILL.md}
+     * with the current selected-engines listing. Errors are logged, not thrown,
+     * so a skill-write failure never breaks a config write.
+     */
+    private static void writeSelectedEnginesSkill(Path clientPath, JSONObject config) {
+        Path skillDir = clientPath
+                .resolve(AppBuildingHarness.CLAUDE_DIR)
+                .resolve(AppBuildingHarness.SKILLS_DIR)
+                .resolve(SELECTED_ENGINES_SKILL_NAME);
+        Path skillFile = skillDir.resolve(AppBuildingHarness.SKILL_FILE);
+        try {
+            Files.createDirectories(skillDir);
+            String content = buildSelectedEnginesSkill(config);
+            Files.write(skillFile, content.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            logger.error("Failed to write selected-engines skill at: {}", skillFile, e);
+        }
+    }
+
+    private static String buildSelectedEnginesSkill(JSONObject config) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("---\n");
+        sb.append("name: ").append(SELECTED_ENGINES_SKILL_NAME).append('\n');
+        sb.append("description: '").append(SELECTED_ENGINES_SKILL_DESCRIPTION).append("'\n");
+        sb.append("---\n\n");
+        sb.append("# Selected Engines\n\n");
+        sb.append("These are the engines currently selected for this project. ");
+        sb.append("When introducing a new engine call, choose one from the matching list ");
+        sb.append("and use its exact `id`.\n\n");
+
+        JSONObject engines = config.optJSONObject(SELECTED_ENGINES);
+        for (String[] section : ENGINE_SECTIONS) {
+            appendEngineSection(sb, section[1], engines, section[0]);
+        }
+        return sb.toString();
+    }
+
+    private static void appendEngineSection(StringBuilder sb, String title, JSONObject engines, String key) {
+        sb.append("## ").append(title).append("\n\n");
+        JSONArray list = engines == null ? null : engines.optJSONArray(key);
+        if (list == null || list.length() == 0) {
+            sb.append("_None selected._\n\n");
+            return;
+        }
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject e = list.optJSONObject(i);
+            if (e == null) continue;
+            String id = e.optString(ENGINE_ID, "");
+            String name = e.optString(ENGINE_NAME, id.isEmpty() ? "(unknown)" : id);
+            sb.append("- **").append(name).append("** `").append(id).append("`\n");
+        }
+        sb.append('\n');
     }
 
     private static JSONArray buildEngineArray(List<Map<String, String>> entries) {

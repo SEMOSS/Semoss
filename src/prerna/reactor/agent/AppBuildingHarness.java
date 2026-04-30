@@ -75,12 +75,12 @@ public abstract class AppBuildingHarness implements IAgentHarness {
     protected static final String PARAM_PERMISSION_MODE = "permission_mode";
 
     private static final String CLIENT_DIR   = "client";
-    private static final String CLAUDE_DIR   = ".claude";
-    private static final String SKILLS_DIR   = "skills";
+    static final String CLAUDE_DIR   = ".claude";
+    static final String SKILLS_DIR   = "skills";
     private static final String LOGS_DIR     = "logs";
     private static final String CHANGE_LOG   = "change_log.txt";
     private static final String CLAUDE_MD    = "CLAUDE.md";
-    private static final String SKILL_FILE   = "SKILL.md";
+    static final String SKILL_FILE   = "SKILL.md";
 
     // ============================================================
     // Template method
