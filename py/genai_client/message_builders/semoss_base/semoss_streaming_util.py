@@ -55,6 +55,28 @@ class StreamUtil:
         chunk = {"index": index, "function": {"arguments": arguments_chunk}}
         return chunk
 
+    def create_thought_signature_chunk(index: int, signature: str) -> dict:
+        """
+        Create a streaming chunk carrying a Vertex/Gemini thought_signature for a
+        tool call.
+
+        Vertex requires thought_signature to be re-attached to every prior
+        function_call Part on subsequent turns when extended thinking is enabled.
+        The Anthropic SSE wire format the harness consumes has nowhere to carry
+        this value, so we side-channel it: emit it here, capture it on the Java
+        side, and persist it in a sidecar keyed by tool_use_id.
+
+        Args:
+            index: Tool call index (matches the index used for id/type/name/args
+                chunks for the same tool call)
+            signature: base64-encoded thought_signature bytes
+
+        Returns:
+            A dictionary representing the streaming chunk
+        """
+        chunk = {"index": index, "thought_signature": signature}
+        return chunk
+
     def create_thinking_chunk(content: str) -> dict:
         """
         Create a thinking/reasoning chunk.
