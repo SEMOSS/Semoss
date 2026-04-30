@@ -34,6 +34,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.github.f4b6a3.uuid.alt.GUID;
+
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -100,18 +102,33 @@ public class RenameRoomReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Calls the model engine directly (bypassing synchronized room.ask()) to
-	 * generate a concise title from the given question.
+	 * Generates a concise LLM-based title from the given question.
+	 * Uses a temporary isolated room for the LLM call so the title prompt
+	 * does not bleed into the original room's conversation history.
 	 * Falls back to a truncated version of the question if the LLM call fails.
 	 */
-	public static String generateRoomTitle(Room room, IModelEngine modelEngine, String question) {
+	public static String generateRoomTitle(Room originalRoom, IModelEngine modelEngine, String question) {
 		String fallback = (question != null && !question.trim().isEmpty())
 				? question.trim()
 				: "New Conversation";
 
+		// Get the user ID from the original room's insight — needed for temp room c
+		// eanup
+		String userId = originalRoom.getInsight().getUser().getPrimaryLoginToken().getId();
+
+		// Generate a unique ID for the throwaway room
+		String tempRoomId = GUID.v7().toUUID().toString();
+
+		// Create a brand new isolated room — the Python model engine keys c
+		// nversation
+		// history by room ID, so using a separate room ID ensures the title prompt
+		// is completely isolated from the user's actual conversation
+		Room tempRoom = RoomUtils.createRoomIfNotExists(tempRoomId, originalRoom.getInsight(), modelEngine, null);
+
 		String title = null;
 		try {
-			InputMessage titleMsg = InputMessage.builder(room)
+			// Build the title prompt message using the temp room
+			InputMessage titleMsg = InputMessage.builder(tempRoom)
 					.withText("Generate a concise conversation title. "
 							+ "Hard limit: 50 characters. "
 							+ "Return only the title text with no prefix, quotes, or explanation.\n\nQuestion: "
@@ -119,26 +136,35 @@ public class RenameRoomReactor extends AbstractReactor {
 					.withModelType(modelEngine.getModelType())
 					.build();
 
-			// Call the engine directly — avoids the synchronized room.ask() lock
-			// which would block concurrent user prompts.
-			// Pass message_json so the Python model receives the prompt correctly.
+			// Serialize the single message to JSON — this is what the Python model e
+			// pects
 			Map<String, Object> params = new HashMap<>();
 			params.put("message_json",
 					MessageUtils.toJsonArrayWithImageData(Arrays.asList(titleMsg)));
 
+			// Call the engine directly through the temp room — avoids the synchronized
+			// room.ask() lock which would block concurrent user prompts
 			AskModelEngineResponse<?> llmResponse = modelEngine.askRoom(
-					titleMsg.getInputPrompt(), room, titleMsg, params);
+					titleMsg.getInputPrompt(), tempRoom, titleMsg, params);
 			Object raw = (llmResponse != null) ? llmResponse.getResponse() : null;
 			if (raw != null && !raw.toString().trim().isEmpty()) {
 				title = raw.toString().trim();
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not generate LLM room title for room {}", room.getId(), e);
+			classLogger.warn("Could not generate LLM room title, falling back to question text", e);
+		} finally {
+			// Always clean up the temp room regardless of success or failure:
+			// 1. Mark inactive in DB so it doesn't appear in room lists
+			ModelInferenceLogsUtils.doSetRoomToInactive(userId, tempRoomId);
+			// 2. Remove from the in-memory user cache
+			originalRoom.getInsight().getUser().getRoomHash().remove(tempRoomId);
 		}
 
+		// Fall back to the question text if LLM returned nothing
 		if (title == null || title.isEmpty()) {
 			title = fallback;
 		}
+		// Hard cap at 50 characters
 		if (title.length() > 50) {
 			title = title.substring(0, 50).trim();
 		}

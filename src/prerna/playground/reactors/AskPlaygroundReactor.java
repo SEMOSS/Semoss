@@ -42,7 +42,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.RenameRoomReactor;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -97,7 +96,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
 		room.setProjectId(PlaygroundUtils.PLAYGROUND_PROJECT_ID);
-		boolean isFirstMessage = room.getMessages().isEmpty();
 
 		String givenSystemPrompt = room.getEffectiveSystemPrompt();
 
@@ -121,33 +119,8 @@ public class AskPlaygroundReactor extends AbstractReactor {
 			room.updateToolResponseMeta(response);
 		}
 
-		// On the first message of a new room, generate an LLM title in a background
-		// thread. Fire-and-forget — the user gets their response immediately.
-		if (isFirstMessage && question != null && !question.trim().isEmpty()) {
-			final Room roomRef = room;
-			final IModelEngine modelEngineRef = modelEngine;
-			final String titleQuestion = question;
-			final String userId = insight.getUser().getPrimaryLoginToken().getId();
-			new Thread(() -> {
-				try {
-					String title = RenameRoomReactor.generateRoomTitle(roomRef, modelEngineRef, titleQuestion);
-					roomRef.setRoomName(title);
-					ModelInferenceLogsUtils.doSetNameForRoom(userId, roomRef.getId(), title);
-				} catch (Exception e) {
-					classLogger.warn("Background room title generation failed for room {}", roomRef.getId(), e);
-				}
-			}, "room-title-" + room.getId()).start();
-		}
-
 		// ---- Return both messages as a Map
 		Map<String, Object> pixelReturn = new LinkedHashMap<>();
-
-		// BEGIN room-title-flag: tells FE to re-fetch room list after a short delay
-		// so the async LLM-generated title appears in the sidebar.
-		if (isFirstMessage) {
-			pixelReturn.put("isFirstMessage", true);
-		}
-		// END room-title-flag
 
 		Map<String, Object> inputMap = jsonToMap(MessageUtils.toJsonWithImage(msg));
 		// MessageUtils.applyLegacyInputFields(msg, inputMap);
