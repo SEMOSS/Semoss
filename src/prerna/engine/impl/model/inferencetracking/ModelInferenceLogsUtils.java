@@ -1604,6 +1604,11 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1629,6 +1634,13 @@ public class ModelInferenceLogsUtils {
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
+		}
+
+		// ROOM OPTIONS SEARCH — free-text substring match on the OPTIONS text column.
+		// Portable across H2 and PostgreSQL since OPTIONS is stored as plain text.
+		if (roomOptionsSearch != null && !roomOptionsSearch.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?like",
+					"%" + roomOptionsSearch.trim() + "%", PixelDataType.CONST_STRING));
 		}
 
 		// PINNED filter

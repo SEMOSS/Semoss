@@ -399,9 +399,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     if i < len(parts_with_fc):
                         ts = getattr(parts_with_fc[i], "thought_signature", None)
                         if ts:
-                            tool_entry["thought_signature"] = base64.b64encode(
-                                ts
-                            ).decode("utf-8")
+                            ts_b64 = base64.b64encode(ts).decode("utf-8")
+                            tool_entry["thought_signature"] = ts_b64
+                            # Side-channel the signature through the SSE stream so
+                            # the AnthropicEndpoint can persist it in the room's
+                            # sidecar keyed by tool_use_id. The signature has no
+                            # home in the Anthropic wire protocol, so without this
+                            # extra chunk it would be dropped on the way to the
+                            # Claude Code SDK.
+                            sig_chunk = StreamUtil.create_thought_signature_chunk(
+                                index=len(tool_result),
+                                signature=ts_b64,
+                            )
+                            smss_stream(sig_chunk, stream_type="tool")
                     tool_result.append(tool_entry)
 
                     content_array.append(this_content_block)
