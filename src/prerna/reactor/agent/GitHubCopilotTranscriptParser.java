@@ -47,11 +47,12 @@ public class GitHubCopilotTranscriptParser {
 		// utility class
 	}
 
-	public static List<JSONObject> parse(JSONObject raw, String sessionIdFallback) {
-		return parse(raw, sessionIdFallback, new HashSet<String>());
+	public static List<JSONObject> parse(JSONObject raw, String sessionIdFallback, String roomFolderPath) {
+		return parse(raw, sessionIdFallback, roomFolderPath, new HashSet<String>());
 	}
 
-	public static List<JSONObject> parse(JSONObject raw, String sessionIdFallback, Set<String> suppressedToolCallIds) {
+	public static List<JSONObject> parse(JSONObject raw, String sessionIdFallback, String roomFolderPath,
+			Set<String> suppressedToolCallIds) {
 		List<JSONObject> events = new ArrayList<>();
 		if (raw == null) {
 			return events;
@@ -64,7 +65,7 @@ public class GitHubCopilotTranscriptParser {
 
 		switch (type) {
 		case "user.message":
-			addIfPresent(events, parseUserMessage(raw, sessionIdFallback));
+			events.addAll(parseUserMessage(raw, sessionIdFallback, roomFolderPath));
 			return events;
 		case "assistant.message":
 			return parseAssistantMessage(raw, sessionIdFallback, suppressedToolCallIds);
@@ -89,19 +90,57 @@ public class GitHubCopilotTranscriptParser {
 		}
 	}
 
-	private static JSONObject parseUserMessage(JSONObject raw, String sessionIdFallback) {
+	private static List<JSONObject> parseUserMessage(JSONObject raw, String sessionIdFallback, String roomFolderPath) {
+		List<JSONObject> events = new ArrayList<>();
 		JSONObject data = raw.optJSONObject("data");
+		if (data == null) {
+			return events;
+		}
 		String promptId = firstNonBlank(readString(raw, "id"), readString(data, "messageId"), readString(data, "message_id"));
 		String prompt = firstNonBlank(readString(data, "content"), readString(data, "text"));
-		if (isBlank(promptId) || isBlank(prompt)) {
-			return null;
+		if (isBlank(promptId)) {
+			return events;
+		}
+
+		String timestamp = readTimestamp(raw, data);
+		String sessionId = resolveSessionId(raw, sessionIdFallback);
+
+		JSONArray attachments = data.optJSONArray("attachments");
+		if (attachments != null) {
+			for (int i = 0; i < attachments.length(); i++) {
+				JSONObject attachment = attachments.optJSONObject(i);
+				if (attachment == null) {
+					continue;
+				}
+
+				String path = normalizeAttachmentPath(readString(attachment, "path"), roomFolderPath);
+				String fileName = firstNonBlank(readString(attachment, "displayName"), fileNameFromPath(path));
+				String attachmentId = firstNonBlank(stemFromPath(path), fileName, promptId + ":" + i);
+				if (isBlank(attachmentId) || isBlank(fileName) || isBlank(path)) {
+					continue;
+				}
+
+				JSONObject payload = new JSONObject();
+				payload.put("attachmentId", attachmentId);
+				payload.put("promptId", promptId);
+				payload.put("fileName", fileName);
+				payload.put("mimeType", firstNonBlank(readString(attachment, "mimeType"), "image/png"));
+				payload.put("path", path);
+				payload.put("timestamp", timestamp);
+				events.add(toEvent("attachment", attachmentId, sessionId, payload));
+			}
+		}
+
+		if (isBlank(prompt) || prompt.trim().startsWith("<skill-context")) {
+			return events;
 		}
 
 		JSONObject payload = new JSONObject();
 		payload.put("promptId", promptId);
 		payload.put("text", prompt);
-		payload.put("timestamp", readTimestamp(raw, data));
-		return toEvent("user_prompt", promptId, resolveSessionId(raw, sessionIdFallback), payload);
+		payload.put("timestamp", timestamp);
+		events.add(toEvent("user_prompt", promptId, sessionId, payload));
+		return events;
 	}
 
 	private static List<JSONObject> parseAssistantMessage(JSONObject raw, String sessionIdFallback,
@@ -515,6 +554,38 @@ public class GitHubCopilotTranscriptParser {
 
 	private static String valueOrEmpty(String value) {
 		return value != null ? value : "";
+	}
+
+	private static String normalizeAttachmentPath(String value, String roomFolderPath) {
+		if (isBlank(value)) {
+			return null;
+		}
+		String normalized = value.replace("\\", "/");
+		if (!isBlank(roomFolderPath)) {
+			String normalizedRoomFolder = roomFolderPath.replace("\\", "/");
+			String prefix = normalizedRoomFolder.endsWith("/") ? normalizedRoomFolder : normalizedRoomFolder + "/";
+			if (normalized.startsWith(prefix)) {
+				normalized = normalized.substring(prefix.length());
+			}
+		}
+		return normalized;
+	}
+
+	private static String fileNameFromPath(String value) {
+		if (isBlank(value)) {
+			return null;
+		}
+		int slashIndex = value.replace("\\", "/").lastIndexOf('/');
+		return slashIndex >= 0 ? value.substring(slashIndex + 1) : value;
+	}
+
+	private static String stemFromPath(String value) {
+		String fileName = fileNameFromPath(value);
+		if (isBlank(fileName)) {
+			return null;
+		}
+		int dotIndex = fileName.lastIndexOf('.');
+		return dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
 	}
 
 	private static void addIfPresent(List<JSONObject> events, JSONObject event) {

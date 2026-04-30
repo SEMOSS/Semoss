@@ -47,6 +47,7 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentMediaInput;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -77,9 +78,9 @@ public class GitHubCopilotPyManager {
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
 
-	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String promptId,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps, int contextWindow) throws Exception {
+			List<Map<String, String>> mcps, int contextWindow, List<AgentMediaInput> mediaInputs) throws Exception {
 
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
@@ -102,7 +103,7 @@ public class GitHubCopilotPyManager {
 				permissionMode, engineId, mcps, insightId, cliPath, sessionExists);
 		checkSocketStatus(initScript);
 
-		String queryScript = createQueryScript(prompt, systemPrompt);
+		String queryScript = createQueryScript(prompt, promptId, systemPrompt, roomFolderPath, mediaInputs);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
 	}
@@ -177,9 +178,23 @@ public class GitHubCopilotPyManager {
 		return script.toString();
 	}
 
-	private String createQueryScript(String prompt, String systemPrompt) {
-		return "github_copilot.query_copilot(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
-				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
+	private String createQueryScript(String prompt, String promptId, String systemPrompt, String roomFolderPath,
+			List<AgentMediaInput> mediaInputs) {
+		String attachmentsLiteral = "[]";
+		if (mediaInputs != null && !mediaInputs.isEmpty()) {
+			attachmentsLiteral = mediaInputs.stream().map((media) -> {
+				String absolutePath = Paths.get(roomFolderPath, media.path()).toAbsolutePath().normalize().toString();
+				return "{'type':'file','path':" + PyUtils.pyQuote(absolutePath) + ",'mimeType':"
+						+ PyUtils.pyQuote(media.mimeType()) + ",'displayName':" + PyUtils.pyQuote(media.fileName())
+						+ "}";
+			})
+					.collect(Collectors.joining(",", "[", "]"));
+		}
+
+		return "github_copilot.query_copilot(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "") + ", prompt_id="
+				+ PyUtils.pyQuote(promptId != null ? promptId : "") + ", system_prompt="
+				+ PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ", attachments=" + attachmentsLiteral
+				+ ")";
 	}
 
 	/**

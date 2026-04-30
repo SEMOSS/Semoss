@@ -127,6 +127,9 @@ public final class AgentRunner {
 
         
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+        String promptId = params.containsKey("promptId") ? String.valueOf(params.remove("promptId")) : null;
+        java.util.List<AgentMediaInput> mediaInputs = AgentMediaInput.fromUnknown(params.remove("mediaInputs"));
+        logger.info("AgentRunner: received {} media input(s) for room={}", mediaInputs.size(), roomId);
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
@@ -138,6 +141,8 @@ public final class AgentRunner {
                 .userId(room.getUserId())
                 .filePath(filePath)
                 .input(input)
+                .promptId(promptId)
+                .mediaInputs(mediaInputs)
                 .paramMap(params)
                 .maxReflections(maxReflections)
                 .build();

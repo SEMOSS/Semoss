@@ -78,6 +78,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         Room               room    = ctx.getRoom();
         Map<String, Object> params = ctx.getParamMap();
         String             input   = ctx.getInput();
+        String             promptId = ctx.getPromptId();
 
         String filePath = ctx.getFilePath();
 
@@ -124,11 +125,13 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
                 engineId,
                 filePath,
                 input,
+                promptId,
                 systemPrompt,
                 room.getId(),
                 allowedTools,
                 permissionMode,
-                mcps);
+                mcps,
+                ctx.getMediaInputs());
 
         return new AgentHarnessResult(output, 0, new ArrayList<>());
     }

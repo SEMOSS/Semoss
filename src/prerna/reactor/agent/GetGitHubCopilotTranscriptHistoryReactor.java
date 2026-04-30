@@ -46,6 +46,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 
 
@@ -79,6 +80,8 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 			classLogger.error("User does not have access to GitHub Copilot room {}", finalRoomId, e);
 			throw new IllegalStateException("User does not have access to this room");
 		}
+		String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator
+				+ finalRoomId;
 
 		List<Object> events = new ArrayList<>();
 		Set<String> suppressedToolCallIds = new HashSet<>();
@@ -96,7 +99,7 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 
 				try {
 					List<JSONObject> parsedEvents = GitHubCopilotTranscriptParser.parse(new JSONObject(line), finalRoomId,
-							suppressedToolCallIds);
+							roomFolderPath, suppressedToolCallIds);
 					for (JSONObject event : parsedEvents) {
 						if (event != null) {
 							events.add(event.toMap());

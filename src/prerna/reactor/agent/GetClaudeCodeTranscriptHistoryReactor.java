@@ -45,6 +45,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.util.Utility;
 
 /**
  * One-shot reactor that reads an existing room's Claude Code JSONL transcript
@@ -81,6 +82,8 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 		}
 
 		List<Object> events = new ArrayList<>();
+		String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator
+				+ finalRoomId;
 
 		Path jsonl = ClaudeCodeTranscriptLocator.findJsonlFile(roomId);
 		if (jsonl == null) {
@@ -94,9 +97,11 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 					return;
 				}
 				try {
-					JSONObject parsed = ClaudeCodeTranscriptParser.parse(new JSONObject(line));
-					if (parsed != null) {
-						events.add(parsed.toMap());
+					List<JSONObject> parsedEvents = ClaudeCodeTranscriptParser.parse(new JSONObject(line), roomFolderPath);
+					for (JSONObject parsed : parsedEvents) {
+						if (parsed != null) {
+							events.add(parsed.toMap());
+						}
 					}
 				} catch (Exception e) {
 					classLogger.warn("Skipping malformed JSONL line in room {}", finalRoomId, e);

@@ -50,6 +50,7 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.AgentMediaInput;
 import prerna.tcp.PayloadStruct;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -138,9 +139,22 @@ public class ClaudeCodeManager {
 		return exists;
 	}
 
-	private String createQueryScript(String prompt, String systemPrompt) {
-		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
-				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
+	private String createQueryScript(String prompt, String promptId, String systemPrompt, String roomFolderPath,
+			List<AgentMediaInput> mediaInputs) {
+		String mediaInputsLiteral = "[]";
+		if (mediaInputs != null && !mediaInputs.isEmpty()) {
+			mediaInputsLiteral = mediaInputs.stream().map((media) -> {
+				String absolutePath = Paths.get(roomFolderPath, media.path()).toAbsolutePath().normalize().toString();
+				return "{'attachmentId':" + PyUtils.pyQuote(media.attachmentId()) + ",'promptId':"
+						+ PyUtils.pyQuote(media.promptId()) + ",'fileName':" + PyUtils.pyQuote(media.fileName())
+						+ ",'mimeType':" + PyUtils.pyQuote(media.mimeType()) + ",'path':"
+						+ PyUtils.pyQuote(absolutePath) + "}";
+			}).collect(Collectors.joining(",", "[", "]"));
+		}
+		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "") + ", prompt_id="
+				+ PyUtils.pyQuote(promptId != null ? promptId : "") + ", system_prompt="
+				+ PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ", media_inputs=" + mediaInputsLiteral
+				+ ")";
 	}
 
 	private void createClaudeDir(String projectPath) {
@@ -172,9 +186,9 @@ public class ClaudeCodeManager {
 		}
 	}
 
-	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
+	public String query(Insight insight, User user, String engineId, String filePath, String prompt, String promptId,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps) throws Exception {
+			List<Map<String, String>> mcps, List<AgentMediaInput> mediaInputs) throws Exception {
 		
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
@@ -189,7 +203,8 @@ public class ClaudeCodeManager {
 		String initScript = createInitScript(roomId, finalFilePath, accessKey, secretKey, allowedTools, permissionMode,
 				engineId, mcps, insightId);
 		checkSocketStatus(initScript);
-		String queryScript = createQueryScript(prompt, systemPrompt);
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String queryScript = createQueryScript(prompt, promptId, systemPrompt, roomFolderPath, mediaInputs);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
 	}

@@ -273,7 +273,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					room.getInsight().getUser().getPrimaryLoginToken().getId(),
-					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
+					MessageUtils.toJsonArray(room.getMessages()));
 		}
 
 		return askModelResponse;
