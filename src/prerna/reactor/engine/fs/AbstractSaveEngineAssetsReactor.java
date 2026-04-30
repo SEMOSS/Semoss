@@ -93,6 +93,9 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		for (String fileName : filePaths) {
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 			// for git, we need to add the assets folder which is assumed in the path
 			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
 		}
