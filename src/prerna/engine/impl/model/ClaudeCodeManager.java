@@ -269,7 +269,10 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 
-		String finalFilePath = filePath + "/client";
+		String base = (filePath != null && !filePath.trim().isEmpty())
+				? filePath
+				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String finalFilePath = base + "/client";
 
 		createClaudeDir(finalFilePath);
 

@@ -165,4 +165,46 @@ public final class AgentSandboxConfig {
         }
         return b.build();
     }
+
+    /**
+     * Build the sandbox policy that should actually be applied to a run:
+     * always start from {@link #defaultPolicy(String, String, String)} (room
+     * folder + working dir + binary parent + DIHelper default reads), and
+     * overlay any pixel-supplied {@code override} on top — paths are unioned
+     * (RW wins over RO via the builder's dedupe), and the override's
+     * enforcement mode wins when present.
+     *
+     * <p>This is the entry point harnesses should call instead of branching on
+     * {@code ctx.getSandboxPolicy()} directly — otherwise pixel-level
+     * {@code sandbox_writes}/{@code sandbox_reads} would replace the defaults
+     * and leave the agent binary unreadable inside the sandbox.
+     */
+    public static SandboxPolicy buildEffectivePolicy(String roomFolderPath,
+                                                     String workingDirectory,
+                                                     String targetBinaryPath,
+                                                     SandboxPolicy override) {
+        SandboxPolicy base = defaultPolicy(roomFolderPath, workingDirectory, targetBinaryPath);
+        if (override == null) {
+            return base;
+        }
+        SandboxPolicyBuilder b = SandboxPolicy.builder()
+                .withEnforcement(override.getEnforcement() != null ? override.getEnforcement() : base.getEnforcement())
+                .withLoopbackNetwork(base.isLoopbackNetwork());
+        base.getTmpDir().ifPresent(b::withTmpDir);
+        for (AllowedPath ap : base.getAllowedPaths()) {
+            if (ap.getMode() == AccessMode.RW) {
+                b.withReadWrite(ap.getPath());
+            } else {
+                b.withRead(ap.getPath());
+            }
+        }
+        for (AllowedPath ap : override.getAllowedPaths()) {
+            if (ap.getMode() == AccessMode.RW) {
+                b.withReadWrite(ap.getPath());
+            } else {
+                b.withRead(ap.getPath());
+            }
+        }
+        return b.build();
+    }
 }

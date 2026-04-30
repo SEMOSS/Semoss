@@ -139,13 +139,9 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
     }
 
     private SandboxPolicy resolveSandboxPolicy(AgentRunContext ctx, String roomId, String workingDirectory) {
-        SandboxPolicy p = ctx.getSandboxPolicy();
-        if (p != null) {
-            return p;
-        }
         String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator + roomId;
         String targetBinary = Utility.getDIHelperProperty(ClaudeCodeManager.CFG_CLAUDE_CLI_PATH);
-        return AgentSandboxConfig.defaultPolicy(roomFolderPath, workingDirectory, targetBinary);
+        return AgentSandboxConfig.buildEffectivePolicy(roomFolderPath, workingDirectory, targetBinary, ctx.getSandboxPolicy());
     }
 
     // Helpers

@@ -107,40 +107,60 @@ public final class SandboxExecLauncher implements SandboxLauncher {
         StringBuilder sb = new StringBuilder();
         sb.append("(version 1)\n");
         sb.append("(deny default)\n");
-        // Baseline every process needs
+        // Pragmatic Node-on-Seatbelt model. A strict read-allowlist fights Node
+        // startup — the CLI silently aborts on file-reads we can't realistically
+        // enumerate (stat of "/", autofs, locale data, etc.). What the policy
+        // actually cares about is preventing writes outside the agent's RW set
+        // and pinning network to loopback; reads of system files are not the
+        // threat model. So: allow reads everywhere, gate writes + network.
         sb.append("(allow process-fork)\n");
         sb.append("(allow process-exec*)\n");
+        sb.append("(allow process-info*)\n");
         sb.append("(allow signal)\n");
         sb.append("(allow mach-lookup)\n");
+        sb.append("(allow mach-task-name)\n");
+        sb.append("(allow iokit-open)\n");
+        sb.append("(allow iokit-get-properties)\n");
         sb.append("(allow sysctl-read)\n");
         sb.append("(allow ipc-posix-shm)\n");
+        sb.append("(allow system-fsctl)\n");
+        sb.append("(allow file-read*)\n");
+        sb.append("(allow file-write* (literal \"/dev/null\"))\n");
+        sb.append("(allow file-write* (literal \"/dev/tty\"))\n");
+        sb.append("(allow file-write* (literal \"/dev/dtracehelper\"))\n");
         if (policy.isLoopbackNetwork()) {
             sb.append("(allow network* (remote ip \"localhost:*\"))\n");
             sb.append("(allow network* (local ip))\n");
         } else {
             sb.append("(deny network*)\n");
         }
-        // OS-level dyld / libraries / TLS trust root
-        sb.append("(allow file-read*\n");
-        sb.append("  (subpath \"/usr/lib\")\n");
-        sb.append("  (subpath \"/usr/share\")\n");
-        sb.append("  (subpath \"/System\")\n");
-        sb.append("  (subpath \"/Library\")\n");
-        sb.append("  (subpath \"/private/etc\")\n");
-        sb.append("  (subpath \"/private/var/db\")\n");
-        sb.append(")\n");
 
+        // RW set — emit each RW path twice: the literal path and the
+        // /private-prefixed form, since macOS resolves /tmp -> /private/tmp
+        // (and similar) before consulting the policy.
         for (AllowedPath ap : policy.getAllowedPaths()) {
-            String esc = escape(ap.getPath().toString());
-            if (ap.getMode() == AccessMode.RW) {
-                sb.append("(allow file-read* file-write* file-ioctl (subpath \"").append(esc).append("\"))\n");
-            } else {
-                sb.append("(allow file-read* (subpath \"").append(esc).append("\"))\n");
+            if (ap.getMode() != AccessMode.RW) {
+                continue;
+            }
+            String pathStr = ap.getPath().toString();
+            sb.append("(allow file-write* file-ioctl (subpath \"").append(escape(pathStr)).append("\"))\n");
+            if (pathStr.startsWith("/tmp/") || pathStr.equals("/tmp")
+                    || pathStr.startsWith("/var/folders/")
+                    || pathStr.equals("/var")) {
+                sb.append("(allow file-write* file-ioctl (subpath \"/private")
+                  .append(escape(pathStr)).append("\"))\n");
             }
         }
-        policy.getTmpDir().ifPresent(p ->
-                sb.append("(allow file-read* file-write* file-ioctl (subpath \"")
-                  .append(escape(p.toString())).append("\"))\n"));
+        policy.getTmpDir().ifPresent(p -> {
+            String pathStr = p.toString();
+            sb.append("(allow file-write* file-ioctl (subpath \"")
+              .append(escape(pathStr)).append("\"))\n");
+            if (pathStr.startsWith("/tmp/") || pathStr.equals("/tmp")
+                    || pathStr.startsWith("/var/folders/")) {
+                sb.append("(allow file-write* file-ioctl (subpath \"/private")
+                  .append(escape(pathStr)).append("\"))\n");
+            }
+        });
 
         try {
             Files.createDirectories(tmpDir);
