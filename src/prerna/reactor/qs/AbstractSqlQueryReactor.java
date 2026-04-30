@@ -149,7 +149,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 				return QueryType.OTHER;
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not parse SQL statement, using keyword fallback: " + e.getMessage());
+			classLogger.warn("Could not parse SQL statement, using keyword fallback: {}", e.getMessage());
 			return detectQueryTypeFromKeyword(sql);
 		}
 	}
@@ -304,15 +304,15 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 				limit = Integer.parseInt(limitStr.trim());
 
 				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: " + limit + ", using default " + DEFAULT_LIMIT);
+					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
 					limit = DEFAULT_LIMIT;
 				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value " + limit + " exceeds maximum " + MAX_LIMIT + ", using maximum");
+					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
 					limit = MAX_LIMIT;
 				}
 
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid limit value: " + limitStr + ", using default " + DEFAULT_LIMIT);
+				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}
 		}
 
