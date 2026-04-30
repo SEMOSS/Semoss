@@ -144,7 +144,6 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// BEGIN room-title-flag: tells FE to re-fetch room list after a short delay
 		// so the async LLM-generated title appears in the sidebar.
-		// To revert: remove this block only — everything else still works without it.
 		if (isFirstMessage) {
 			pixelReturn.put("isFirstMessage", true);
 		}
