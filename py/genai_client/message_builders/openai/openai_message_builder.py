@@ -302,6 +302,7 @@ class OpenAIMessageBuilder:
             reasoning = self._resolve_extended_reasoning(param_map)
             if reasoning:
                 param_map["reasoning"] = reasoning
+                param_map.pop("temperature", None)
         except Exception:
             pass
 
@@ -908,8 +909,6 @@ class OpenAIMessageBuilder:
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         param_map.pop("chat_type", None)
-        param_map.pop("temperature", None)
-        param_map.pop("tokenLength", None)
         return (openai_messages, param_map)
 
     def _clean_param_map_for_chat_completions(
