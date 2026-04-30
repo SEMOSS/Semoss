@@ -168,6 +168,7 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		Integer tokensInResponse = getTokens(modelResponse.get(NUMBER_OF_TOKENS_IN_RESPONSE));
 		Integer cacheReadTokens = getTokens(modelResponse.get(NUMBER_OF_CACHE_READ_TOKENS));
 		Integer cacheCreationTokens = getTokens(modelResponse.get(NUMBER_OF_CACHE_CREATION_TOKENS));
+		Integer thinkingTokens = getTokens(modelResponse.get(NUMBER_OF_THINKING_TOKENS));
 
 		// Parse parts payload if present (new format).
 		Integer schemaVersion = getTokens(modelResponse.get(SCHEMA_VERSION));
@@ -308,6 +309,9 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		if (cacheCreationTokens != null) {
 			askResponse.setNumberOfCacheCreationTokens(cacheCreationTokens);
+		}
+		if (thinkingTokens != null) {
+			askResponse.setNumberOfThinkingTokens(thinkingTokens);
 		}
 
 		return askResponse;

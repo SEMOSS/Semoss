@@ -71,6 +71,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private Integer outputTokens;
 	private Integer cacheReadTokens;
 	private Integer cacheCreationTokens;
+	// thinking tokens are recorded on the RESPONSE row only (assistant output)
+	private Integer thinkingTokens;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -95,7 +97,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	) {
     	this(messageId, transactionId, messageMethod, engine, insightId, projectContextId, projectId, user,
     			sessionId, roomId, context, prompt, fullPrompt, promptTokens, inputTime, response, responseTokens,
-    			responseTime, null, null, null, null);
+    			responseTime, null, null, null, null, null);
     }
 
     public ModelEngineInferenceLogsWorker(
@@ -120,7 +122,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	Integer inputTokens,
 	   	Integer outputTokens,
 	   	Integer cacheReadTokens,
-	   	Integer cacheCreationTokens
+	   	Integer cacheCreationTokens,
+	   	Integer thinkingTokens
 	) {
     	this.messageId = messageId;
     	this.transactionId = transactionId;
@@ -147,6 +150,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.outputTokens = outputTokens;
         this.cacheReadTokens = cacheReadTokens;
         this.cacheCreationTokens = cacheCreationTokens;
+        this.thinkingTokens = thinkingTokens;
     }
     // @formatter:on
 
@@ -243,7 +247,9 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		}
 
 		// @formatter:off
-		// Granular tokens mirrored on both rows so neither needs a JOIN for cost/cache metrics
+		// Granular tokens split by row type so SUM(<col>) gives correct totals without
+		// filtering by MESSAGE_TYPE. INPUT row carries prompt-side counts (input + cache),
+		// RESPONSE row carries assistant-side counts (output + thinking).
 		String messageBody = keepInputOutput ? this.prompt : null;
 		String responseBody = keepInputOutput ? this.response : null;
 		ModelInferenceLogsUtils.doRecordMessage(
@@ -254,9 +260,10 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.messageMethod,
 			this.promptTokens,
 			this.inputTokens,
-			this.outputTokens,
+			null, // output tokens belong on the RESPONSE row
 			this.cacheReadTokens,
 			this.cacheCreationTokens,
+			null, // thinking tokens belong on the RESPONSE row
 			millisecondsDouble,
 			this.inputTime,
 			this.engine.getEngineId(),
@@ -274,10 +281,11 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			responseBody,
 			this.messageMethod,
 			this.responseTokens,
-			this.inputTokens,
+			null, // input tokens belong on the INPUT row
 			this.outputTokens,
-			this.cacheReadTokens,
-			this.cacheCreationTokens,
+			null, // cache_read belongs on the INPUT row
+			null, // cache_creation belongs on the INPUT row
+			this.thinkingTokens,
 			millisecondsDouble,
 			this.responseTime,
 			this.engine.getEngineId(),

@@ -140,11 +140,18 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if web_search_enabled and inline_citations_enabled:
                 text_response = self._add_citations(model_response) or ""
 
+            # Gemini reports candidates and thoughts as DISJOINT (unlike OpenAI/Anthropic).
+            # Fold thoughts into response_tokens so output_tokens is total billed output.
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
             cache_read_tokens = getattr(
                 model_response.usage_metadata, "cached_content_token_count", None
             )
+            thinking_tokens = getattr(
+                model_response.usage_metadata, "thoughts_token_count", None
+            )
+            if thinking_tokens:
+                response_tokens = (response_tokens or 0) + thinking_tokens
 
             if len(getattr(model_response, "function_calls", None) or []) > 0:
                 return self._parse_tools_call_response(
@@ -152,6 +159,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    thinking_tokens=thinking_tokens,
                 )
 
             thinking_text = ""
@@ -194,6 +202,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 prompt_tokens=prompt_tokens,
                 response_tokens=response_tokens,
                 cache_read_tokens=cache_read_tokens,
+                thinking_tokens=thinking_tokens,
                 messageType="CHAT",
                 schemaVersion=2,
                 io="OUTPUT",
@@ -217,6 +226,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response_tokens: int,
         prompt_tokens: int,
         cache_read_tokens: Optional[int] = None,
+        thinking_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
 
@@ -254,6 +264,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             cache_read_tokens=cache_read_tokens,
+            thinking_tokens=thinking_tokens,
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
@@ -418,6 +429,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     this_content_block = {}
 
         cache_read_tokens = None
+        thinking_tokens = None
         if latest_usage_metadata is not None:
             if getattr(latest_usage_metadata, "prompt_token_count", None) is not None:
                 input_tokens = latest_usage_metadata.prompt_token_count
@@ -426,6 +438,13 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             cache_read_tokens = getattr(
                 latest_usage_metadata, "cached_content_token_count", None
             )
+            thinking_tokens = getattr(
+                latest_usage_metadata, "thoughts_token_count", None
+            )
+            # Gemini reports candidates and thoughts as DISJOINT; fold thoughts in
+            # so output_tokens is total billed output (matches OpenAI/Anthropic).
+            if thinking_tokens:
+                output_tokens = (output_tokens or 0) + thinking_tokens
         else:
             input_tokens = self._count_tokens(contents)
 
@@ -458,6 +477,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
                         cache_read_tokens=cache_read_tokens,
+                        thinking_tokens=thinking_tokens,
                         messageType="CHAT",
                         schemaVersion=2,
                         io="OUTPUT",
@@ -476,6 +496,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
                 cache_read_tokens=cache_read_tokens,
+                thinking_tokens=thinking_tokens,
                 messageType="TOOL",
                 schemaVersion=2,
                 io="OUTPUT",
@@ -510,6 +531,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             response_tokens=output_tokens,
             prompt_tokens=input_tokens,
             cache_read_tokens=cache_read_tokens,
+            thinking_tokens=thinking_tokens,
             messageType="CHAT",
             schemaVersion=2,
             io="OUTPUT",

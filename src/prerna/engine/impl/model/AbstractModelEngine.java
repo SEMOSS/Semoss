@@ -234,7 +234,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*inputTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 					/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
-					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens()
+					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
+					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
 					));
 			inferenceRecorder.start();
 		}

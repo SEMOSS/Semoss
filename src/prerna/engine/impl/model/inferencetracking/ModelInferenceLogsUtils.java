@@ -1121,7 +1121,7 @@ public class ModelInferenceLogsUtils {
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
 		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize,
-				null, null, null, null,
+				null, null, null, null, null,
 				reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
@@ -1149,7 +1149,7 @@ public class ModelInferenceLogsUtils {
 			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
 			String sessionId, String roomId, String userId, String userName, String userEmail) {
 		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize,
-				null, null, null, null,
+				null, null, null, null, null,
 				reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
@@ -1178,16 +1178,19 @@ public class ModelInferenceLogsUtils {
 			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize,
-				null, null, null, null,
+				null, null, null, null, null,
 				reponseTime, dateCreated, agentId, insightId, sessionId, roomId, userId, userName, userEmail);
 	}
 
 	/**
 	 * Records a message row with granular, nullable per-transaction token counts.
+	 * THINKING_TOKENS is intended for the RESPONSE row only (assistant output);
+	 * pass null for the INPUT row.
 	 */
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize,
 			Integer inputTokens, Integer outputTokens, Integer cacheReadTokens, Integer cacheCreationTokens,
+			Integer thinkingTokens,
 			Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -1197,9 +1200,9 @@ public class ModelInferenceLogsUtils {
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
 		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
-				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, RESPONSE_TIME,"
+				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1239,6 +1242,11 @@ public class ModelInferenceLogsUtils {
 			}
 			if (cacheCreationTokens != null) {
 				ps.setInt(index++, cacheCreationTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (thinkingTokens != null) {
+				ps.setInt(index++, thinkingTokens);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
