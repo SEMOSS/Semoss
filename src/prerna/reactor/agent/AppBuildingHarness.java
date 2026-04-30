@@ -91,6 +91,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
         String clientPath = resolveClientPath(ctx);
         if (clientPath != null) {
             ensureClaudeStructure(clientPath);
+            AppBuilderHarnessConfiguration.ensureAgentConfig(clientPath);
         }
         return doExecute(ctx);
     }
@@ -299,7 +300,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
         return skillsMap;
     }
 
-    private static String resolveProjectClientPath(String projectId) {
+    static String resolveProjectClientPath(String projectId) {
         IProject project = Utility.getProject(projectId);
         if (project == null) {
             throw new IllegalArgumentException("Could not find or load project = " + projectId);
