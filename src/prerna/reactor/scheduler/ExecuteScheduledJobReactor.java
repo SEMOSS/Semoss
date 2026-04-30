@@ -73,9 +73,9 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 		}
 
 		// Check if JobRunr is enabled
-		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
 
-		if (useJobRunr) {
+		if (isJobRunrJob) {
 			return executeWithJobRunr(jobId, jobGroup);
 		} else {
 			return executeWithQuartz(jobId, jobGroup);

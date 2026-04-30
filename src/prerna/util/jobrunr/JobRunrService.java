@@ -44,7 +44,6 @@ import org.jobrunr.configuration.JobRunrConfiguration.JobRunrConfigurationResult
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.jobs.RecurringJob;
 import org.jobrunr.jobs.lambdas.JobRequest;
-import org.jobrunr.scheduling.BackgroundJobRequest;
 import org.jobrunr.scheduling.JobRequestScheduler;
 import org.jobrunr.server.BackgroundJobServerConfiguration;
 import org.jobrunr.storage.StorageProvider;
@@ -102,11 +101,10 @@ public class JobRunrService {
 		try {
 			String flag = Utility.getDIHelperProperty(Constants.SCHEDULER_USE_JOBRUNR);
 			if (flag == null) {
-				flag = DEFAULT_ENABLED_VALUE; // Default to false for safety
+				flag = DEFAULT_ENABLED_VALUE; // Default to false
 			}
 			return Boolean.parseBoolean(flag);
 		} catch (Exception e) {
-			// Log warning but don't fail
 			LOGGER.warn("Could not read " + Constants.SCHEDULER_USE_JOBRUNR + ", defaulting to false");
 			return false;
 		}
@@ -146,17 +144,9 @@ public class JobRunrService {
 				}
 			}
 			
-			//Worker count configuration
-			String workerCountStr = Utility.getDIHelperProperty(Constants.JOBRUNR_WORKER_COUNT);
-			int workerCount = 10; // default workers
-
-			if (workerCountStr != null && !workerCountStr.trim().isEmpty()) {
-			    try {
-			        workerCount = Integer.parseInt(workerCountStr);
-			    } catch (NumberFormatException e) {
-			        LOGGER.warn("Invalid jobrunr_worker_count value: {}. Using default 10", workerCountStr);
-			    }
-			}
+			// Get configurable worker count
+			int workerCount = getWorkerCount();
+			LOGGER.info("Configuring JobRunr with {} workers", workerCount);
 
 			this.storageProvider = new H2StorageProvider(dataSource, DatabaseOptions.CREATE);
 
@@ -187,15 +177,7 @@ public class JobRunrService {
 	 */
 	private javax.sql.DataSource getDataSourceFromDIHelper() {
 		try {
-			// This follows the same pattern as SMSSWebWatcher.loadNewEngine()
 			String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-
-			// Fallback to current working directory if BASE_FOLDER not set
-			if (baseFolder == null || baseFolder.trim().isEmpty()) {
-				baseFolder = System.getProperty("user.dir");
-				LOGGER.warn("BASE_FOLDER not set in DIHelper, using current directory: {}", baseFolder);
-			}
-
 			String schedulerSmssPath = baseFolder + "/db/scheduler.smss";
 			File smssFile = new File(schedulerSmssPath);
 
@@ -220,10 +202,6 @@ public class JobRunrService {
 							driverClass = determineDriverClass(rdbmsType);
 						}
 
-						LOGGER.info("Using scheduler.smss configuration - URL: {}, Driver: {}", connectionUrl,
-								driverClass);
-						LOGGER.info("Database username: {}, password: {}", username,
-								password != null && !password.isEmpty() ? "***" : "(empty)");
 						return createDataSource(connectionUrl, driverClass, username, password);
 					} else {
 						LOGGER.error("CONNECTION_URL not found in scheduler.smss");
@@ -233,7 +211,6 @@ public class JobRunrService {
 				}
 			} else {
 				LOGGER.error("scheduler.smss not found at: {}", schedulerSmssPath);
-				LOGGER.error("Please ensure the file exists at this location");
 			}
 
 			LOGGER.warn("No DataSource configuration found for JobRunr");
@@ -287,7 +264,6 @@ public class JobRunrService {
 			LOGGER.info("Loading JDBC driver: {}", driver);
 			Class.forName(driver);
 			LOGGER.info("JDBC driver loaded successfully");
-
 			// Create HikariCP DataSource (if available) or basic DataSource
 			try {
 				LOGGER.info("Attempting to create HikariCP DataSource...");
@@ -295,7 +271,7 @@ public class JobRunrService {
 				ds.setJdbcUrl(jdbcUrl);
 				ds.setUsername(user);
 				ds.setPassword(password);
-				ds.setMaximumPoolSize(10);
+				ds.setMaximumPoolSize(getWorkerCount());
 				ds.setMinimumIdle(2);
 				ds.setConnectionTimeout(30000);
 
@@ -304,7 +280,6 @@ public class JobRunrService {
 				java.sql.Connection testConn = ds.getConnection();
 				if (testConn != null) {
 					LOGGER.info(" Database connection successful!");
-					LOGGER.info("  Connection URL: {}", jdbcUrl);
 					LOGGER.info("  Database product: {} {}", testConn.getMetaData().getDatabaseProductName(),
 							testConn.getMetaData().getDatabaseProductVersion());
 					testConn.close();
@@ -325,9 +300,6 @@ public class JobRunrService {
 
 		} catch (Exception e) {
 			LOGGER.error("Failed to create DataSource", e);
-			LOGGER.error("JDBC URL: {}", jdbcUrl);
-			LOGGER.error("Driver: {}", driver);
-			LOGGER.error("Username: {}", user);
 			LOGGER.error("Error: {}", e.getMessage());
 			return null;
 		}
@@ -402,7 +374,6 @@ public class JobRunrService {
 		validateEnabled();
 
 		try {
-			// Use storage provider directly to delete recurring job
 			storageProvider.deleteRecurringJob(jobId);
 			LOGGER.info("Deleted recurring job: {}", jobId);
 		} catch (Exception e) {
@@ -460,7 +431,7 @@ public class JobRunrService {
 			RecurringJob recurringJob = null;
 
 			for (RecurringJob job : storageProvider.getRecurringJobs()) {
-			    if (jobId.equals(job.getId())) { // safer (avoids NPE)
+			    if (jobId.equals(job.getId())) { 
 			        recurringJob = job;
 			        break;
 			    }
@@ -476,7 +447,6 @@ public class JobRunrService {
 			// Update status in SMSS_JOB_RECIPES table to PAUSED
 			SchedulerDatabaseUtility.updateJobStatus(jobId, "PAUSED");
 			
-			// Reset execution guard
 			SchedulerDatabaseUtility.updateJobRunningFlag(jobId, false);
 
 			LOGGER.info("Paused recurring job: {} (deleted from scheduler, status updated in database)", jobId);
@@ -527,7 +497,7 @@ public class JobRunrService {
 			JobRunrPixelExecutionJobRequest jobRequest = new JobRunrPixelExecutionJobRequest(
 					recipe,
 					recipeParameters != null ? recipeParameters : "",
-					userAccess,  // Use stored credentials instead of SYSTEM marker
+					userAccess,
 					null,
 					jobId,
 					jobGroup,
@@ -561,7 +531,7 @@ public class JobRunrService {
 		validateEnabled();
 		
 		try {
-			// EXECUTION GUARD: Check if job is already running
+			//Check if job is already running
 			Boolean isRunning = SchedulerDatabaseUtility.isJobRunning(jobId);
 			if (isRunning != null && isRunning) {
 				LOGGER.warn("Job is already running, skipping trigger: {}", jobId);
@@ -645,13 +615,11 @@ public class JobRunrService {
 							jobName
 					);
 
-					// Enqueue for immediate execution (doesn't affect recurring schedule)
 					jobRequestScheduler.enqueue(jobRequest);
 					
 					LOGGER.info("Triggered recurring job {} for immediate execution (execId: {})", jobId, execId);
 				}
 			} catch (Exception e) {
-				// On failure, reset execution guard
 				SchedulerDatabaseUtility.updateJobRunningFlag(jobId, false);
 				throw e;
 			}
@@ -665,10 +633,6 @@ public class JobRunrService {
 		}
 	}
 
-	// ============================================================================
-	// ENHANCED METADATA METHODS (Added 2026-04-22)
-	// ============================================================================
-	
 	/**
 	 * Record successful job execution
 	 * Updates execution count, resets retry count, and clears error message
@@ -825,6 +789,26 @@ public class JobRunrService {
 			LOGGER.error("Failed to get job execution history: {}", jobId, e);
 			return new HashMap<>();
 		}
+	}
+	
+	/**
+	 * Get worker count configuration for JobRunr background job server
+	 * Reads from JOBRUNR_WORKER_COUNT property, defaults to 10
+	 * 
+	 * @return Number of workers for processing jobs
+	 */
+	public int getWorkerCount() {
+		String workerCountStr = Utility.getDIHelperProperty(Constants.JOBRUNR_WORKER_COUNT);
+		int workerCount = 10; // default workers
+
+		if (workerCountStr != null && !workerCountStr.trim().isEmpty()) {
+			try {
+				workerCount = Integer.parseInt(workerCountStr);
+			} catch (NumberFormatException e) {
+				LOGGER.warn("Invalid jobrunr_worker_count value: {}. Using default 10", workerCountStr);
+			}
+		}
+		return workerCount;
 	}
 
 }

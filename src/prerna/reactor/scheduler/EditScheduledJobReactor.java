@@ -79,7 +79,6 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		}
 		organizeKeys();
 
-//		String userId = null;
 		// Get inputs
 		String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
@@ -176,7 +175,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			// Create new job request with updated details
 			JobRunrPixelExecutionJobRequest updatedJobRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
-					providerInfo.toString(), null, // execId will be generated per execution
+					providerInfo.toString(), null,
 					jobId, jobGroup, jobName);
 
 			// Schedule as new recurring job with updated cron
@@ -190,11 +189,10 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			classLogger.info("Edited JobRunr recurring job: {} with new cron: {}", jobId, cronExpression);
 
-			// Trigger job now if requested
 			if (triggerNow) {
 				// Create a new request for immediate execution
 				JobRunrPixelExecutionJobRequest immediateRequest = new JobRunrPixelExecutionJobRequest(recipe, recipeParameters,
-						providerInfo.toString(), null, // execId will be generated
+						providerInfo.toString(), null, 
 						jobId, jobGroup, jobName);
 
 				jobRunrService.enqueue(immediateRequest);

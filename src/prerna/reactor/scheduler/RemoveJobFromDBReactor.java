@@ -100,9 +100,9 @@ public class RemoveJobFromDBReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 
 		// Check if JobRunr is enabled
-		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
 
-		if (useJobRunr) {
+		if (isJobRunrJob) {
 			// Use JobRunr for deletion
 			return removeJobsWithJobRunr(jobIdsList, jobGroupList, user, retNoun, permissionErrorIds,
 					jobDeletionResult);

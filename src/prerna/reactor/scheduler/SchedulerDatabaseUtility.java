@@ -1975,11 +1975,6 @@ public class SchedulerDatabaseUtility {
 	    }
 	}
 	
-	// ============================================================================
-	// ENHANCED METADATA METHODS
-	// Support for execution guards, retry tracking, and enhanced job management
-	// ============================================================================
-	
 	/**
 	 * Update the IS_RUNNING flag for execution guard
 	 */

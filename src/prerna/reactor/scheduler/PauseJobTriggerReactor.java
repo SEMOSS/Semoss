@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.scheduler;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.quartz.JobKey;
@@ -82,9 +85,9 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 		}
 
 		// Check if JobRunr is enabled
-		boolean useJobRunr = JobRunrService.isJobRunrEnabled();
+		boolean isJobRunrJob = JobRunrService.isJobRunrEnabled();
 
-		if (useJobRunr) {
+		if (isJobRunrJob) {
 			return pauseWithJobRunr(jobId, jobGroup);
 		} else {
 			return pauseWithQuartz(jobId, jobGroup);
@@ -102,8 +105,12 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 			jobRunrService.pauseRecurringJob(jobId);
 
 			logger.info("Paused JobRunr recurring job: {}", jobId);
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+			jobMetadata.put("status", "PAUSED");
 
-			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Failed to pause job with JobRunr: " + e.getMessage(), e);
@@ -135,12 +142,20 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 			} catch (Exception metadataEx) {
 				logger.error("Failed to update JOB_STATUS for Quartz job: {}", jobId, metadataEx);
 			}
-			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
-		}
+			
+			// Return job metadata to confirm successful pause
+			Map<String, String> jobMetadata = new HashMap<>();
+			jobMetadata.put("jobId", jobId);
+			jobMetadata.put("jobGroup", jobGroup);
+			jobMetadata.put("status", "PAUSED");
+
+			return new NounMetadata(jobMetadata, PixelDataType.MAP, PixelOperationType.UNSCHEDULE_JOB);
+		  }
+			
 		} catch (SchedulerException se) {
 			logger.error(Constants.STACKTRACE, se);
 		}
 
-		return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
+	    throw new IllegalArgumentException("Job not found: " + jobId);
 	}
 }

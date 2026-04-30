@@ -94,7 +94,6 @@ public class ScheduleJobReactor extends AbstractReactor {
 		}
 		organizeKeys();
 
-//		String userId = null;
 		// Get inputs
 		String jobId = UUID.randomUUID().toString();
 		String jobName = this.keyValue.get(ReactorKeysEnum.JOB_NAME.getKey());
