@@ -674,6 +674,11 @@ public class MessageUtils {
 							Map<String, Object> flatTool = new HashMap<>();
 							flatTool.put("id", asStringOrNull(callMap.get("id"))); // tool_call id
 							flatTool.put("type", asStringOrNull(callMap.get("type")));
+							// Vertex/Gemini extended-thinking signature, attached upstream
+							Object thoughtSig = callMap.get("thought_signature");
+							if (thoughtSig instanceof String && !((String) thoughtSig).isEmpty()) {
+								flatTool.put("thought_signature", thoughtSig);
+							}
 							// openAI: "function": {...}
 							Object functionObj = callMap.get("function");
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {

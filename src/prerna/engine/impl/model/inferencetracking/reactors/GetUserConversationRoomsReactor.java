@@ -43,8 +43,8 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 	public GetUserConversationRoomsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.SORT.getKey(),
-				ReactorKeysEnum.PINNED.getKey() };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.PINNED.getKey(), "roomOptionsSearch" };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -81,9 +81,18 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 			pinned = Boolean.parseBoolean(pinnedStr.trim());
 		}
 
+		// Optional free-text search against the OPTIONS JSON column.
+		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
+		if (roomOptionsSearch != null) {
+			roomOptionsSearch = Utility.decodeURIComponent(roomOptionsSearch.trim());
+			if (roomOptionsSearch.isEmpty()) {
+				roomOptionsSearch = null;
+			}
+		}
+
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
-				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned);
+				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch);
 
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
@@ -107,6 +116,8 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 			return "Sort direction by room creation date. Accepts ASC or DESC (default is DESC).";
 		} else if (ReactorKeysEnum.PINNED.getKey().equals(key)) {
 			return "Optional pinned filter: true for pinned rooms only, false for unpinned rooms only, omit for no pinned filter.";
+		} else if ("roomOptionsSearch".equals(key)) {
+			return "Optional free-text search term applied against the room's options JSON. Any room whose options contain this substring is included.";
 		}
 		return super.getDescriptionForKey(key);
 	}

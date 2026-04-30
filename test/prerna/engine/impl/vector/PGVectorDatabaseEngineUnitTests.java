@@ -65,7 +65,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -98,7 +97,6 @@ import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.H2QueryUtil;
-import prerna.util.sql.RDBMSUtility;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
@@ -106,7 +104,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private Insight insight;
 	private PGVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
-		
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
@@ -142,10 +140,9 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
-		
+
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
-				MockedStatic<RDBMSUtility> ru = Mockito.mockStatic(RDBMSUtility.class);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
@@ -159,8 +156,6 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
-			ru.when(() -> RDBMSUtility.fillParameterizedFileConnectionUrl(nullable(String.class),
-					nullable(String.class), nullable(String.class))).thenReturn(url);
 			Connection mockConn = mock();
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(mockConn);
@@ -180,14 +175,14 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineAssetFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineVersionFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+							testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
 					engine.open(testProps);
 					assertTrue(Files.exists(engineAssetFolder));
@@ -196,16 +191,16 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					assertFalse(engineProperties.isEmpty());
 					assertFalse(testProps.isEmpty());
 					for (Entry<Object, Object> testProp : testProps.entrySet()) {
-						assertTrue(engineProperties.containsKey(testProp.getKey())); 
+						assertTrue(engineProperties.containsKey(testProp.getKey()));
 						assertTrue(engineProperties.containsValue(testProp.getValue()));
 					}
-					assertTrue(engineProperties.containsKey(Constants.CONNECTION_URL)); 
+					assertTrue(engineProperties.containsKey(Constants.CONNECTION_URL));
 					assertTrue(engineProperties.containsValue(url));
 				}
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenNoVectorTableName() throws Exception {
 		Properties testProps = new Properties();
@@ -231,10 +226,9 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
-		
+
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
-				MockedStatic<RDBMSUtility> ru = Mockito.mockStatic(RDBMSUtility.class);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
@@ -248,8 +242,6 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
-			ru.when(() -> RDBMSUtility.fillParameterizedFileConnectionUrl(nullable(String.class),
-					nullable(String.class), nullable(String.class))).thenReturn(url);
 			Connection mockConn = mock();
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(mockConn);
@@ -269,24 +261,22 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineAssetFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineVersionFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+							testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
-					NullPointerException e = assertThrows(
-							NullPointerException.class,
-							()->engine.open(testProps));
+					NullPointerException e = assertThrows(NullPointerException.class, () -> engine.open(testProps));
 					assertEquals("Must define the vector db table name", e.getMessage());
 				}
 			}
 		}
 	}
-	
+
 	@Test
 	void testOpenIncorrectChunkUnit() throws Exception {
 		Properties testProps = new Properties();
@@ -313,10 +303,9 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
-		
+
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
-				MockedStatic<RDBMSUtility> ru = Mockito.mockStatic(RDBMSUtility.class);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
@@ -330,8 +319,6 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
-			ru.when(() -> RDBMSUtility.fillParameterizedFileConnectionUrl(nullable(String.class),
-					nullable(String.class), nullable(String.class))).thenReturn(url);
 			Connection mockConn = mock();
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(mockConn);
@@ -351,26 +338,25 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineAssetFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineVersionFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+							testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
-					IllegalArgumentException e = assertThrows(
-							IllegalArgumentException.class,
-							()->engine.open(testProps));
+					IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+							() -> engine.open(testProps));
 					assertEquals("DEFAULT_CHUNK_UNIT should be either 'tokens' or 'characters'", e.getMessage());
 				}
 			}
 		}
 	}
-	
+
 	@Test
-	void testAddEmbeddings() throws Exception{
+	void testAddEmbeddings() throws Exception {
 		String testVectorTableName = "TEST_TABLE_NAME"; // set in openEngine() method
 		String createVectorTableQuery = createTestVectorTableString(testVectorTableName);
 		Map<String, Object> parameters = new HashMap<>();
@@ -392,88 +378,82 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-        // Create a temporary database file
-        Path dbFile = tempDir.resolve("test_database.db");
-        String dbUrl = "jdbc:sqlite:" + dbFile.toString();
 
-        // Set up the database
-        try (Connection connection = DriverManager.getConnection(dbUrl);
-			MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
-    		MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
-        	
-        	try (Statement statement = connection.createStatement()){
-        		statement.execute(createVectorTableQuery);
-        	}
-            
-            
-            String source = "testSource";
-            String modality = "testModality";
-            String divider = "testDivider";
-            String part = "testPart";
-            Number tokens = 10;
-            String content = "testContent";
-            
-            VectorDatabaseCSVTable dataTable = new VectorDatabaseCSVTable();
-            dataTable.addRow(source, modality, divider, part, tokens, content);
-            
-            asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
+		// Create a temporary database file
+		Path dbFile = tempDir.resolve("test_database.db");
+		String dbUrl = "jdbc:sqlite:" + dbFile.toString();
+
+		// Set up the database
+		try (Connection connection = DriverManager.getConnection(dbUrl);
+				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
+				MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+
+			try (Statement statement = connection.createStatement()) {
+				statement.execute(createVectorTableQuery);
+			}
+
+			String source = "testSource";
+			String modality = "testModality";
+			String divider = "testDivider";
+			String part = "testPart";
+			Number tokens = 10;
+			String content = "testContent";
+
+			VectorDatabaseCSVTable dataTable = new VectorDatabaseCSVTable();
+			dataTable.addRow(source, modality, divider, part, tokens, content);
+
+			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(connection);
-            
-            u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-            // used in VectorDatabaseCSVTable.generateAndAssingEmbeddings()
-            EmbeddingsModelEngineResponse outputMock = mock(EmbeddingsModelEngineResponse.class);
-            when(modelEmbedder.embeddings(any(), any(), nullable(Map.class))).thenReturn(outputMock);
-            when(outputMock.getResponse()).thenReturn(allEmbeddings);
-            
-            
+
+			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+			// used in VectorDatabaseCSVTable.generateAndAssingEmbeddings()
+			EmbeddingsModelEngineResponse outputMock = mock(EmbeddingsModelEngineResponse.class);
+			when(modelEmbedder.embeddings(any(), any(), nullable(Map.class))).thenReturn(outputMock);
+			when(outputMock.getResponse()).thenReturn(allEmbeddings);
+
 			engine.addEmbeddings(dataTable, insight, parameters);
-            
-         // Verify data
-            try (Statement statement = connection.createStatement()) {
-                ResultSet resultSet = statement.executeQuery("SELECT * from " + testVectorTableName);
-                int resultSetCount = 0;
-                if (resultSet.next()) {
-                	resultSetCount++;
-                	String actualEmbeddingsStr = (String) resultSet.getObject("EMBEDDING");
-                 	String embeddingsString = "["+String.join(",", firstRowEmbeddings.stream().map(String::valueOf).collect(Collectors.toList()))+"]";
-                	assertEquals(embeddingsString, actualEmbeddingsStr);
-                	assertEquals(source, resultSet.getString("SOURCE"));
-                    assertEquals(modality, resultSet.getString("MODALITY"));
-                    assertEquals(divider, resultSet.getString("DIVIDER"));
-                    assertEquals(part, resultSet.getString("PART"));
-                    assertEquals(tokens, resultSet.getInt("TOKENS"));
-                    assertEquals(content, resultSet.getString("CONTENT"));
-                }
-                assertEquals(1, resultSetCount);
-            }
-        }
+
+			// Verify data
+			try (Statement statement = connection.createStatement()) {
+				ResultSet resultSet = statement.executeQuery("SELECT * from " + testVectorTableName);
+				int resultSetCount = 0;
+				if (resultSet.next()) {
+					resultSetCount++;
+					String actualEmbeddingsStr = (String) resultSet.getObject("EMBEDDING");
+					String embeddingsString = "["
+							+ String.join(",",
+									firstRowEmbeddings.stream().map(String::valueOf).collect(Collectors.toList()))
+							+ "]";
+					assertEquals(embeddingsString, actualEmbeddingsStr);
+					assertEquals(source, resultSet.getString("SOURCE"));
+					assertEquals(modality, resultSet.getString("MODALITY"));
+					assertEquals(divider, resultSet.getString("DIVIDER"));
+					assertEquals(part, resultSet.getString("PART"));
+					assertEquals(tokens, resultSet.getInt("TOKENS"));
+					assertEquals(content, resultSet.getString("CONTENT"));
+				}
+				assertEquals(1, resultSetCount);
+			}
+		}
 	}
-	
-    private String createTestVectorTableString(String tableName) {
-    	String query = "CREATE TABLE " + tableName 
-    	+ " (EMBEDDING  blob, "
-    	+ "SOURCE varchar(100), "
-    	+ "MODALITY varchar(100), "
-    	+ "DIVIDER varchar(100), "
-    	+ "PART varchar(100), "
-    	+ "TOKENS int, "
-    	+ "CONTENT varchar(100))";
-    	return query;
-    }
-	
+
+	private String createTestVectorTableString(String tableName) {
+		String query = "CREATE TABLE " + tableName + " (EMBEDDING  blob, " + "SOURCE varchar(100), "
+				+ "MODALITY varchar(100), " + "DIVIDER varchar(100), " + "PART varchar(100), " + "TOKENS int, "
+				+ "CONTENT varchar(100))";
+		return query;
+	}
+
 	@Test
-	void testAddEmbeddingsNoInsight() throws Exception{
+	void testAddEmbeddingsNoInsight() throws Exception {
 		Map<String, Object> parameters = new HashMap<>();
 		VectorDatabaseCSVTable vectorCsvTable = new VectorDatabaseCSVTable();
-		
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.addEmbeddings(vectorCsvTable, null, parameters));
-		assertEquals("Insight must be provided to run Model Engine Encoder",
-				e.getMessage());
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.addEmbeddings(vectorCsvTable, null, parameters));
+		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
 	}
-	
+
 	@Test
 	void testAddEmbedding() throws Exception {
 		String testVectorTableName = "TEST_TABLE_NAME"; // set in openEngine() method
@@ -495,54 +475,53 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-        // Create a temporary database file
-        Path dbFile = tempDir.resolve("test_database.db");
-        String dbUrl = "jdbc:sqlite:" + dbFile.toString();
 
-        // Set up the database
-        try (Connection connection = DriverManager.getConnection(dbUrl);
-			MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);) {
-        	
-        	try (Statement statement = connection.createStatement()){
-        		statement.execute(createVectorTableQuery);
-        	}            
-            String source = "testSource";
-            String modality = "testModality";
-            String divider = "testDivider";
-            String part = "testPart";
-            int tokens = 10;
-            String content = "testContent";
+		// Create a temporary database file
+		Path dbFile = tempDir.resolve("test_database.db");
+		String dbUrl = "jdbc:sqlite:" + dbFile.toString();
 
-            asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
+		// Set up the database
+		try (Connection connection = DriverManager.getConnection(dbUrl);
+				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);) {
+
+			try (Statement statement = connection.createStatement()) {
+				statement.execute(createVectorTableQuery);
+			}
+			String source = "testSource";
+			String modality = "testModality";
+			String divider = "testDivider";
+			String part = "testPart";
+			int tokens = 10;
+			String content = "testContent";
+
+			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(connection);
-                        
+
 			engine.addEmbedding(embeddings, source, modality, divider, part, tokens, content, null);
 
-            
-         // Verify data
-            try (Statement statement = connection.createStatement()) {
-                ResultSet resultSet = statement.executeQuery("SELECT * from " + testVectorTableName);
-                int resultSetCount = 0;
-                if (resultSet.next()) {
-                	resultSetCount++;
-                	String actualEmbeddingsStr = (String) resultSet.getObject("EMBEDDING");
+			// Verify data
+			try (Statement statement = connection.createStatement()) {
+				ResultSet resultSet = statement.executeQuery("SELECT * from " + testVectorTableName);
+				int resultSetCount = 0;
+				if (resultSet.next()) {
+					resultSetCount++;
+					String actualEmbeddingsStr = (String) resultSet.getObject("EMBEDDING");
 					String embeddingsString = "["
 							+ String.join(",", embeddings.stream().map(String::valueOf).collect(Collectors.toList()))
 							+ "]";
-                	assertEquals(embeddingsString, actualEmbeddingsStr);
-                	assertEquals(source, resultSet.getString("SOURCE"));
-                    assertEquals(modality, resultSet.getString("MODALITY"));
-                    assertEquals(divider, resultSet.getString("DIVIDER"));
-                    assertEquals(part, resultSet.getString("PART"));
-                    assertEquals(tokens, resultSet.getInt("TOKENS"));
-                    assertEquals(content, resultSet.getString("CONTENT"));
-                }
-                assertEquals(1, resultSetCount);
-            }
-        }
+					assertEquals(embeddingsString, actualEmbeddingsStr);
+					assertEquals(source, resultSet.getString("SOURCE"));
+					assertEquals(modality, resultSet.getString("MODALITY"));
+					assertEquals(divider, resultSet.getString("DIVIDER"));
+					assertEquals(part, resultSet.getString("PART"));
+					assertEquals(tokens, resultSet.getInt("TOKENS"));
+					assertEquals(content, resultSet.getString("CONTENT"));
+				}
+				assertEquals(1, resultSetCount);
+			}
+		}
 	}
-	
+
 	@Test
 	void testAddEmbeddingExecuteFailed() throws Exception {
 		List<Double> embedding = new Vector<>();
@@ -553,7 +532,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		int tokens = 4;
 		String content = "content";
 		Map<String, Object> additionalMetadata = new HashMap<>();
-		
+
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
@@ -562,14 +541,14 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		PreparedStatement psMock = mock(PreparedStatement.class);
 		try (MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);) {
 			Connection mockConn = mock(Connection.class);
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(mockConn);
-			
-			//used in queryUtil.enhanceConnection()
+
+			// used in queryUtil.enhanceConnection()
 			Statement mockStm = mock(Statement.class);
 			when(mockStm.execute(any(String.class))).thenReturn(true);
 			when(mockConn.createStatement()).thenReturn(mockStm);
@@ -582,13 +561,12 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(psMock.executeUpdate()).thenReturn(PreparedStatement.EXECUTE_FAILED);
 			when(mockConn.getAutoCommit()).thenReturn(true);
 
-			SQLException e = assertThrows(
-					SQLException.class,
-					()->engine.addEmbedding(embedding, source, modality, divider, part, tokens, content, additionalMetadata));
+			SQLException e = assertThrows(SQLException.class, () -> engine.addEmbedding(embedding, source, modality,
+					divider, part, tokens, content, additionalMetadata));
 			assertEquals("Error inserting embeddings data", e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testRemoveDocument() throws Exception {
 		String indexClass = "index_class";
@@ -599,7 +577,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
@@ -633,83 +612,75 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 		}
 	}
-		
+
 	@Test
-    void testAddMetadata() throws Exception {
-    	String testMetadataTableName = "TEST_TABLE_NAME_METADATA"; // set in openEngine() method
-    	String createTableQuery = createTestMetadataTableString(testMetadataTableName);
-    	
-    	
-    	String testEmbedderId = "123-456-789";
+	void testAddMetadata() throws Exception {
+		String testMetadataTableName = "TEST_TABLE_NAME_METADATA"; // set in openEngine() method
+		String createTableQuery = createTestMetadataTableString(testMetadataTableName);
+
+		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
-    	
-        // Create a temporary database file
-        Path dbFile = tempDir.resolve("test_database.db");
-        String dbUrl = "jdbc:sqlite:" + dbFile.toString();
 
-        // Set up the database
-        try (Connection connection = DriverManager.getConnection(dbUrl);
-			MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);) {
-        	
-        	try (Statement statement = connection.createStatement()){
-        		statement.execute(createTableQuery);
-        	}
-            
-            
-            String source = "testSource";
-            String attribute = "testAtribute";
-            String strValue = "strValue";
-            Number intValue = 10;
-            Number numValue = 5.555;
-            Boolean boolValue = true;
-            Date currDate = new Date();
-            SemossDate dateValue = new SemossDate(currDate);
-            SemossDate timestampValue = new SemossDate(currDate);
-            
-            VectorDatabaseMetadataCSVTable metadataTable = new VectorDatabaseMetadataCSVTable();
-            metadataTable.addRow(source, attribute, strValue, intValue, numValue, boolValue, dateValue, timestampValue);
-            
-            asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
+		// Create a temporary database file
+		Path dbFile = tempDir.resolve("test_database.db");
+		String dbUrl = "jdbc:sqlite:" + dbFile.toString();
+
+		// Set up the database
+		try (Connection connection = DriverManager.getConnection(dbUrl);
+				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);) {
+
+			try (Statement statement = connection.createStatement()) {
+				statement.execute(createTableQuery);
+			}
+
+			String source = "testSource";
+			String attribute = "testAtribute";
+			String strValue = "strValue";
+			Number intValue = 10;
+			Number numValue = 5.555;
+			Boolean boolValue = true;
+			Date currDate = new Date();
+			SemossDate dateValue = new SemossDate(currDate);
+			SemossDate timestampValue = new SemossDate(currDate);
+
+			VectorDatabaseMetadataCSVTable metadataTable = new VectorDatabaseMetadataCSVTable();
+			metadataTable.addRow(source, attribute, strValue, intValue, numValue, boolValue, dateValue, timestampValue);
+
+			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(connection);
-            
-            engine.addMetadata(metadataTable);
-            
-         // Verify data
-            try (Statement statement = connection.createStatement()) {
-                ResultSet resultSet = statement.executeQuery("SELECT * from " + testMetadataTableName);
-                int resultSetCount = 0;
-                if (resultSet.next()) {
-                	resultSetCount++;
-                    assertEquals(source, resultSet.getString("SOURCE"));
-                    assertEquals(attribute, resultSet.getString("ATTRIBUTE"));
-                    assertEquals(strValue, resultSet.getString("STR_VALUE"));
-                    assertEquals(intValue, resultSet.getInt("INT_VALUE"));
-                    assertEquals(numValue, resultSet.getDouble("NUM_VALUE"));
-                    assertEquals(boolValue, resultSet.getBoolean("BOOL_VALUE"));
-                    Date dateFromLocalDT = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
-                    assertEquals(dateFromLocalDT, resultSet.getDate("DATE_VAL"));
-                    assertEquals(currDate, resultSet.getTimestamp("TIMESTAMP_VAL"));
-                }
-                assertEquals(1, resultSetCount);
-            }
-        }
-    }
-    
-    private String createTestMetadataTableString(String tableName) {
-    	String query = "CREATE TABLE " + tableName 
-    	+ " (SOURCE varchar(100), "
-    	+ "ATTRIBUTE varchar(100), "
-    	+ "STR_VALUE varchar(100), "
-    	+ "INT_VALUE int, "
-    	+ "NUM_VALUE decimal(20,4), "
-    	+ "BOOL_VALUE bit, "
-    	+ "DATE_VAL Date, "
-    	+ "TIMESTAMP_VAL datetime)";
-    	return query;
-    }
-	
+
+			engine.addMetadata(metadataTable);
+
+			// Verify data
+			try (Statement statement = connection.createStatement()) {
+				ResultSet resultSet = statement.executeQuery("SELECT * from " + testMetadataTableName);
+				int resultSetCount = 0;
+				if (resultSet.next()) {
+					resultSetCount++;
+					assertEquals(source, resultSet.getString("SOURCE"));
+					assertEquals(attribute, resultSet.getString("ATTRIBUTE"));
+					assertEquals(strValue, resultSet.getString("STR_VALUE"));
+					assertEquals(intValue, resultSet.getInt("INT_VALUE"));
+					assertEquals(numValue, resultSet.getDouble("NUM_VALUE"));
+					assertEquals(boolValue, resultSet.getBoolean("BOOL_VALUE"));
+					Date dateFromLocalDT = Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+					assertEquals(dateFromLocalDT, resultSet.getDate("DATE_VAL"));
+					assertEquals(currDate, resultSet.getTimestamp("TIMESTAMP_VAL"));
+				}
+				assertEquals(1, resultSetCount);
+			}
+		}
+	}
+
+	private String createTestMetadataTableString(String tableName) {
+		String query = "CREATE TABLE " + tableName + " (SOURCE varchar(100), " + "ATTRIBUTE varchar(100), "
+				+ "STR_VALUE varchar(100), " + "INT_VALUE int, " + "NUM_VALUE decimal(20,4), " + "BOOL_VALUE bit, "
+				+ "DATE_VAL Date, " + "TIMESTAMP_VAL datetime)";
+		return query;
+	}
+
 	@Test
 	void testNearestNeighborCall() throws Exception {
 		Number limit = 1;
@@ -722,7 +693,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		List<List<Double>> allEmbeddings = new Vector<>();
 		List<Double> firstRowEmbeddings = new Vector<>();
 		{
@@ -732,19 +703,20 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			firstRowEmbeddings.add(0.8);
 			allEmbeddings.add(firstRowEmbeddings);
 		}
-		
-		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
-			MockedStatic<QueryExecutionUtility> QEU = Mockito.mockStatic(QueryExecutionUtility.class);){
-            u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-            EmbeddingsModelEngineResponse mockEmbeddingResponse = mock();
-            when(modelEmbedder.embeddings(any(), any(), nullable(Map.class))).thenReturn(mockEmbeddingResponse);
-            when(mockEmbeddingResponse.getResponse()).thenReturn(allEmbeddings);
-            List<Map<String, Object>> output = new Vector<>();
-            QEU.when(()->QueryExecutionUtility.flushRsToMap(any(), any())).thenReturn(output);
-            
-            List<Map<String, Object>> nnCallOuput = engine.nearestNeighborCall(insight, searchStatement, limit, new HashMap<>());
+
+		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
+				MockedStatic<QueryExecutionUtility> QEU = Mockito.mockStatic(QueryExecutionUtility.class);) {
+			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+			EmbeddingsModelEngineResponse mockEmbeddingResponse = mock();
+			when(modelEmbedder.embeddings(any(), any(), nullable(Map.class))).thenReturn(mockEmbeddingResponse);
+			when(mockEmbeddingResponse.getResponse()).thenReturn(allEmbeddings);
+			List<Map<String, Object>> output = new Vector<>();
+			QEU.when(() -> QueryExecutionUtility.flushRsToMap(any(), any())).thenReturn(output);
+
+			List<Map<String, Object>> nnCallOuput = engine.nearestNeighborCall(insight, searchStatement, limit,
+					new HashMap<>());
 			assertEquals(output, nnCallOuput);
-			
+
 			Properties updateEngineProps = engine.getSmssProp();
 			assertNotNull(updateEngineProps);
 			assertTrue(updateEngineProps.containsKey(Constants.MODEL));
@@ -755,18 +727,16 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			assertEquals("None", updateEngineProps.get(Constants.MAX_TOKENS));
 			assertTrue(updateEngineProps.containsKey(Constants.MAX_TOKENS));
 			assertEquals("", updateEngineProps.get(Constants.KEYWORD_ENGINE_ID));
-		}		
+		}
 	}
-	
+
 	@Test
 	void testNearestNeighborCallNoInsight() {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.nearestNeighborCall(null, searchStatement, limit, null));
-		assertEquals("Insight must be provided to run Model Engine Encoder", 
-				e.getMessage());
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.nearestNeighborCall(null, searchStatement, limit, null));
+		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
 	}
 
 	@Test
@@ -779,7 +749,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Map<String, Object> parameters = new HashMap<>();
 		parameters.put("indexClass", indexClass);
 
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
@@ -793,7 +764,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Path newFilePath = docDirPath.resolve(fileName);
 			Files.createFile(newFilePath);
 		}
-		
+
 		try (MockedStatic<QueryExecutionUtility> QEU = Mockito.mockStatic(QueryExecutionUtility.class);) {
 			List<Map<String, Object>> postgresDbOutput = new Vector<>();
 			{
@@ -805,7 +776,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 
 			QEU.when(() -> QueryExecutionUtility.flushRsToMap(any(), any())).thenReturn(postgresDbOutput);
-			
+
 			fileNames.forEach(
 					fileName -> assertTrue(Files.exists(docDirPath.resolve(fileName)), fileName + " should exist"));
 			List<Map<String, Object>> documentsList = engine.listDocuments(parameters);
@@ -823,7 +794,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testListAllRecords() {
 		List<Map<String, Object>> records = new Vector<>();
@@ -854,19 +825,19 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-	
+
 	@Test
 	void testGetCatalogType() {
 		assertEquals(IEngine.CATALOG_TYPE.VECTOR, engine.getCatalogType());
 	}
-	
+
 	@Test
 	void testGetCatalogSubType() {
 		String vectorDatabaseTypeStr = VectorDatabaseTypeEnum.PGVECTOR.toString();
 		// smss properties can be null for this test
 		assertEquals(vectorDatabaseTypeStr, engine.getCatalogSubType(null));
 	}
-	
+
 	@Test
 	void testAddDocument() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -885,7 +856,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
 		Files.createDirectories(indexDirPath);
 		// create schema/index_class/documents
@@ -924,7 +896,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
 						(mock, context) -> {
-							//doNothing().when(mock).setSocketClient(scMock);
+							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						});
@@ -959,7 +931,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-		
+
 	/*
 	 * Used for debugging file directory contents
 	 */
@@ -975,7 +947,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			}
 		}
 	}
-		
+
 	@Test
 	void testAddDocumentNoInsight() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -986,39 +958,38 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String embedderModel = "embedder_model";
 		String embedderModelType = "embedder_model_type";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
+
 		Map<String, Object> parameters = new HashMap<>();
 		String indexClass = "TEST_INDEX_CLASS";
 		parameters.put("indexClass", indexClass);
-		
-	    IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 				() -> engine.addDocument(new Vector<>(), parameters));
 		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
 	}
-	
+
 	@Test
 	void testGetIndexFilesPath() {
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class,
-				()->engine.getIndexFilesPath(null));
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.getIndexFilesPath(null));
 		assertEquals("Indexed files are not persisted for PGVector", e.getMessage());
 	}
-	
+
 	@Test
 	void testGetDocumentsFilesPath() throws Exception {
 		String testEngine = "asdf-1234";
 		String testEngineAlias = "TEST_ENGINE_ALIAS";
 		String indexClass = "TEST_INDEX_CLASS";
-		
-		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
+
+		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER)
+				.resolve(SmssUtilities.getUniqueName(testEngineAlias, testEngine));
 		Path indexDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass);
- 		Files.createDirectories(indexDirPath);
-	    Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
-	    
-	    openEngine(tempDir, engine, null);
-	    assertEquals(Utility.normalizePath(docDirPath.toString()), engine.getDocumentsFilesPath(indexClass));
+		Files.createDirectories(indexDirPath);
+		Path docDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+
+		openEngine(tempDir, engine, null);
+		assertEquals(Utility.normalizePath(docDirPath.toString()), engine.getDocumentsFilesPath(indexClass));
 	}
-	
+
 	@Test
 	void testGetDocumentsFilesPathInvalidDir() throws Exception {
 		String nonExistantClass = "doesNotExist";
@@ -1027,7 +998,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				() -> engine.getDocumentsFilesPath(nonExistantClass));
 		assertEquals("Unable to retieve document csv from a directory that does not exist", e.getMessage());
 	}
-	
+
 	@Test
 	void testUserCanAccessEmbeddingModels() throws Exception {
 		String testEmbedderId = "123-456-789";
@@ -1037,11 +1008,11 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
-		
-		try(MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);){
+
+		try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);) {
 			// used in userCanAccessEmbeddingModels
-			seu.when(()->SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(true);
-			
+			seu.when(() -> SecurityEngineUtils.userCanViewEngine(user, testEmbedderId)).thenReturn(true);
+
 			assertTrue(engine.userCanAccessEmbeddingModels(user));
 			// verify added embedder engine props
 			Properties updateEngineProps = engine.getSmssProp();
@@ -1056,60 +1027,54 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			assertEquals("", updateEngineProps.get(Constants.KEYWORD_ENGINE_ID));
 		}
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoEmbedderId() throws Exception {
 		openEngine(tempDir, engine, null); // set initial properties
-		IllegalArgumentException e = assertThrows(
-				IllegalArgumentException.class, 
-				() -> engine.verifyModelProps());
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.verifyModelProps());
 		assertEquals(
 				"Must define the embedder engine id for this vector database using " + Constants.EMBEDDER_ENGINE_ID,
 				e.getMessage());
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoEmbedderEngine() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
-		
-		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);){
+
+		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
 			// used in verifyModelProps
-			u.when(()-> Utility.getModel(testEmbedderId)).thenReturn(null);
-			
-			NullPointerException e = assertThrows(
-					NullPointerException.class,
-					()->engine.verifyModelProps());
-			assertEquals("Could not find the defined embedder engine id for this vector database with value = " + testEmbedderId, 
-					e.getMessage());
+			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(null);
+
+			NullPointerException e = assertThrows(NullPointerException.class, () -> engine.verifyModelProps());
+			assertEquals("Could not find the defined embedder engine id for this vector database with value = "
+					+ testEmbedderId, e.getMessage());
 		}
 	}
-	
+
 	@Test
 	void testVerifyModelPropsNoModel() throws Exception {
 		String testEmbedderId = "123-456-789";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
-		
-		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);){
+
+		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
 			// used in verifyModelProps & addEmbeddings
-			u.when(()-> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			
+			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
+
 			// model embedder properties
 			Properties embedderProps = new Properties();
 			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
-						
-			IllegalArgumentException e = assertThrows(
-					IllegalArgumentException.class,
-					()->engine.verifyModelProps());
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.verifyModelProps());
 			assertEquals("Embedder engine exists but does not contain key " + Constants.MODEL, e.getMessage());
-		
+
 		}
 	}
-	
+
 	@Test
 	void testGetVectorDatabaseType() {
 		assertEquals(VectorDatabaseTypeEnum.PGVECTOR, engine.getVectorDatabaseType());
@@ -1146,10 +1111,9 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineFolder = tempDir.resolve(Constants.VECTOR_FOLDER).resolve(engineNameAndId);
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
-		
+
 		try (MockedStatic<SmssUtilities> su = Mockito.mockStatic(SmssUtilities.class);
 				MockedStatic<SqlQueryUtilFactory> squf = Mockito.mockStatic(SqlQueryUtilFactory.class);
-				MockedStatic<RDBMSUtility> ru = Mockito.mockStatic(RDBMSUtility.class);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
 				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 			// used in AbstractDatabaseEngine.open();
@@ -1163,8 +1127,6 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
-			ru.when(() -> RDBMSUtility.fillParameterizedFileConnectionUrl(nullable(String.class),
-					nullable(String.class), nullable(String.class))).thenReturn(url);
 			Connection mockConn = mock();
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(mockConn);
@@ -1184,14 +1146,14 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
-					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineAssetFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
-							.thenReturn(engineVersionFolder.toString());
-					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine, testEngineAlias))
-							.thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineAssetFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.VECTOR,
+							engineNameAndId)).thenReturn(engineVersionFolder.toString());
+					eu.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.VECTOR, testEngine,
+							testEngineAlias)).thenReturn(engineAssetFolder.toString());
 
 					engine.open(testProps);
 					assertTrue(Files.exists(engineAssetFolder));
@@ -1200,17 +1162,16 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					assertFalse(engineProperties.isEmpty());
 					assertFalse(testProps.isEmpty());
 					for (Entry<Object, Object> testProp : testProps.entrySet()) {
-						assertTrue(engineProperties.containsKey(testProp.getKey())); 
+						assertTrue(engineProperties.containsKey(testProp.getKey()));
 						assertTrue(engineProperties.containsValue(testProp.getValue()));
 					}
-					assertTrue(engineProperties.containsKey(Constants.CONNECTION_URL)); 
+					assertTrue(engineProperties.containsKey(Constants.CONNECTION_URL));
 					assertTrue(engineProperties.containsValue(url));
 				}
 			}
 		}
 	}
-	
-	
+
 	void verifyModelProps(PGVectorDatabaseEngine engine, String testEmbedderId, String embedderModel,
 			String embedderModelType) {
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
