@@ -45,6 +45,8 @@ import net.sf.jsqlparser.statement.update.Update;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
@@ -97,6 +99,11 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 		if (databaseId == null || databaseId.trim().isEmpty()) {
 			throw new SemossPixelException("Database id is required");
+		}
+
+		IEngine engine = Utility.getEngine(databaseId);
+		if (!(engine instanceof IRDBMSEngine)) {
+			throw new IllegalArgumentException("The database is not a RDBMS engine that accepts SQL");
 		}
 
 		try {
@@ -225,7 +232,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
-			this.insight.addQueriedDatabasesese(databaseId);
+			this.insight.addQueriedDatabases(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
 			classLogger.error("Error executing SELECT SQL query for database {}", databaseId, e);

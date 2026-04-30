@@ -78,6 +78,7 @@ public class BasicIteratorTask extends AbstractTask {
 
 	private long collectLimit = -1;
 	private long collectCounter = 0;
+	private boolean returnRaw = false;
 
 	public BasicIteratorTask(SelectQueryStruct qs) {
 		this.qs = qs;
@@ -153,6 +154,10 @@ public class BasicIteratorTask extends AbstractTask {
 		return iterator.hasNext();
 	}
 
+	public void setReturnRaw(boolean returnRaw) {
+		this.returnRaw = returnRaw;
+	}
+
 	@Override
 	public IHeadersDataRow next() {
 		if (this.iterator == null) {
@@ -162,7 +167,11 @@ public class BasicIteratorTask extends AbstractTask {
 		if (this.collectLimit > -1) {
 			collectCounter++;
 		}
-		return iterator.next();
+		IHeadersDataRow row = iterator.next();
+		if (row != null) {
+			row.setRaw(this.returnRaw);
+		}
+		return row;
 	}
 
 	@Override
