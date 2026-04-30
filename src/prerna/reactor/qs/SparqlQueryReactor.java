@@ -25,22 +25,28 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.ds.py;
+package prerna.reactor.qs;
 
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.Utility;
 
-class ThreadStateUnitTests {
-    @Test
-    void valueOf_init() { assertEquals(ThreadState.init, ThreadState.valueOf("init")); }
-    @Test
-    void valueOf_run() { assertEquals(ThreadState.run, ThreadState.valueOf("run")); }
-    @Test
-    void valueOf_wait() { assertEquals(ThreadState.wait, ThreadState.valueOf("wait")); }
-    @Test
-    void valueOf_stop() { assertEquals(ThreadState.stop, ThreadState.valueOf("stop")); }
-    @Test
-    void values_returnsFourElements() { assertEquals(4, ThreadState.values().length); }
-    @Test
-    void valueOf_invalid_throws() { assertThrows(IllegalArgumentException.class, () -> ThreadState.valueOf("invalid")); }
+/**
+ * Executes a URI-encoded SPARQL SELECT query against an RDF database. The query
+ * should be wrapped in encode/decode blocks for proper encoding.
+ */
+public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
+
+	@Override
+	protected String getDecodedQuery() {
+		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()));
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
+			return "The SPARQL SELECT query to execute. The query should be passed within <encode> </encode> blocks for proper encoding";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
 }

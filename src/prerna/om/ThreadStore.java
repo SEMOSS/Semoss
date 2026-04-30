@@ -135,6 +135,32 @@ public class ThreadStore {
 		return (Integer) getThreadMap().get("localport");
 	}
 
+	public static void setContextProjectIdOverride(String projectId) {
+		getThreadMap().put("contextProjectId", projectId);
+	}
+
+	public static String getContextProjectIdOverride() {
+		Map<String, Object> map = CURRENT.get();
+		return map != null ? (String) map.get("contextProjectId") : null;
+	}
+
+	public static void setContextProjectNameOverride(String projectName) {
+		getThreadMap().put("contextProjectName", projectName);
+	}
+
+	public static String getContextProjectNameOverride() {
+		Map<String, Object> map = CURRENT.get();
+		return map != null ? (String) map.get("contextProjectName") : null;
+	}
+
+	public static void clearContextProjectOverride() {
+		Map<String, Object> map = CURRENT.get();
+		if (map != null) {
+			map.remove("contextProjectId");
+			map.remove("contextProjectName");
+		}
+	}
+
 	public static void remove() {
 		CURRENT.remove();
 	}

@@ -1,6 +1,6 @@
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BedrockImageGenTaskType(str, Enum):
@@ -22,8 +22,8 @@ class ImageGenerationConfig(BaseModel):
     Common image generation parameters for Bedrock models.
     See https://docs.aws.amazon.com/nova/latest/userguide/image-gen-req-resp-structure.html for full usage
     """
-    width: Optional[int] = None
-    height: Optional[int] = None
+    width: Optional[int] = Field(default=None, alias="imageWidth")
+    height: Optional[int] = Field(default=None, alias="imageHeight")
     quality: Optional[str] = None
     cfgScale: Optional[float] = None
     seed: Optional[int] = None
