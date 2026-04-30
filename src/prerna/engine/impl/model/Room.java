@@ -114,6 +114,9 @@ public class Room {
 
 	private Insight insight;
 	private String roomFolderPath;
+	
+	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature", "tokenLength");
 
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
@@ -250,8 +253,10 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
-		// string "false"
+		applyImageModelParams(kwArgMap);
+
+		applyTextModelParams(kwArgMap);
+
 		boolean useHistory = true;
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
@@ -541,7 +546,8 @@ public class Room {
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
@@ -661,6 +667,51 @@ public class Room {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Pulls room-option values into the model invocation kwarg map for the keys
+	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
+	 * {@code kwArgMap} are preserved so per-message overrides always win over
+	 * room-level defaults.
+	 * 
+	 * Param list:
+	 * <ul>
+	 * <li>imageHeight: height of the image in pixels to generate
+	 * <li>imageWidth: width of the image in pixels to generate
+	 * <li>seed: number to control randomness of each generation
+	 * </ul>
+	 *
+	 * @param kwArgMap mutable model parameter map
+	 */
+	private void applyImageModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
+		if (options == null || options.isEmpty() || !isImageModel) {
+			return;
+		}
+
+		for (String key : IMAGE_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
+	}
+
+	private void applyTextModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
+		if (options == null || options.isEmpty() || !isTextModel) {
+			return;
+		}
+
+		for (String key : TEXT_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
 	}
 
 	/**
