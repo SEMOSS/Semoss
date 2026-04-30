@@ -1187,7 +1187,7 @@ public class Insight implements Serializable {
 	 *
 	 * @param databaseId the database engine ID that was queried
 	 */
-	public void addQueriedDatabasesese(String databaseId) {
+	public void addQueriedDatabases(String databaseId) {
 		// this is a set
 		this.queriedDatabaseIds.add(databaseId);
 	}
