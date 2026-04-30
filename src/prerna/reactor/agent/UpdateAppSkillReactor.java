@@ -25,33 +25,36 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent;
 
 import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ClaudeCodeUpdateSkillReactor extends AbstractReactor {
+/**
+ * Overwrites {@code SKILL.md} for an existing skill (creates the directory if missing).
+ *
+ * <p>Replaces {@code ClaudeCodeUpdateSkillReactor}.
+ */
+public class UpdateAppSkillReactor extends AbstractReactor {
 
-	public ClaudeCodeUpdateSkillReactor() {
+	public UpdateAppSkillReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
+		String projectId    = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String skillName    = this.keyValue.get("skillName");
 		String skillContent = this.keyValue.get("skillContent");
 
 		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-		Boolean response = manager.updateSkill(user, projectId, skillName, skillContent);
+		Boolean response = AppBuildingHarness.updateSkill(user, projectId, skillName, skillContent);
 		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 }
