@@ -324,6 +324,7 @@ class GoogleGenAIMessageBuilder:
             temperature=kwargs.pop("temperature", None),
             top_p=kwargs.pop("top_p", None),
             top_k=kwargs.pop("top_k", None),
+            seed=kwargs.pop("seed", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             presence_penalty=kwargs.pop("presence_penalty", None),
             frequency_penalty=kwargs.pop("frequency_penalty", None),
