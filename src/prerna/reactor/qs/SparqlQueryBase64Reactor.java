@@ -25,36 +25,34 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.qs;
 
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ClaudeCodeCreateSkillReactor extends AbstractReactor {
+/**
+ * Executes a Base64-encoded SPARQL SELECT query against an RDF database.
+ */
+public class SparqlQueryBase64Reactor extends AbstractSparqlQueryReactor {
 
-	public ClaudeCodeCreateSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1, 1 };
+	@Override
+	protected String getDecodedQuery() {
+		try {
+			return new String(Base64.getDecoder().decode(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey())),
+					StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Failed to decode query: input is not a base64-encoded utf-8 string", e);
+		}
 	}
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
-
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-
-		Boolean response = manager.createSkill(user, projectId, skillName, skillContent);
-
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
+			return "The SPARQL SELECT query to execute. The query should be passed as a base64-encoded utf-8 string";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

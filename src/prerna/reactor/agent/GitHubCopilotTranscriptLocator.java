@@ -25,33 +25,32 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent;
 
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-public class ClaudeCodeUpdateSkillReactor extends AbstractReactor {
+import prerna.util.Utility;
 
-	public ClaudeCodeUpdateSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1 };
+
+/**
+ * Locates the GitHub Copilot session-state JSONL log for a given room.
+ */
+public class GitHubCopilotTranscriptLocator {
+
+	private GitHubCopilotTranscriptLocator() {
+		// utility class
 	}
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
+	public static Path findJsonlFile(String roomId) {
+		if (roomId == null || roomId.isEmpty()) {
+			return null;
+		}
 
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-		Boolean response = manager.updateSkill(user, projectId, skillName, skillContent);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
+		return Files.exists(eventsLog) ? eventsLog : null;
 	}
 }

@@ -72,6 +72,12 @@ public class CopyAppAssetReactor extends AbstractReactor {
 
         String sourceFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
         String destFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[2]));
+        while (sourceFileName != null && sourceFileName.startsWith("/")) {
+            sourceFileName = sourceFileName.substring(1);
+        }
+        while (destFileName != null && destFileName.startsWith("/")) {
+            destFileName = destFileName.substring(1);
+        }
 
         if (sourceFileName == null || sourceFileName.trim().isEmpty() || destFileName == null
                 || destFileName.trim().isEmpty()) {

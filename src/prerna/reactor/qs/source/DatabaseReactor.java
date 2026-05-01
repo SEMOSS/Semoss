@@ -62,7 +62,7 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 
 		this.qs.setEngineId(databaseId);
 		// add the engine to the insight
-		this.insight.addQueriedDatabasesese(databaseId);
+		this.insight.addQueriedDatabases(databaseId);
 
 		// checking if it is a big data engine
 		Object bigDataProp = Utility.getEngine(databaseId).getSmssProp().get(Constants.BIG_DATA_ENGINE);
