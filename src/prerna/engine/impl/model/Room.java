@@ -116,6 +116,9 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
+	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
+
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
 	 * (containing engine metadata and original untruncated function name).
@@ -251,12 +254,10 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// merge in room-option defaults for image model param keys
-		// (per-message values in kwArgMap always win)
 		applyImageModelParams(kwArgMap);
 
-		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
-		// string "false"
+		applyTextModelParams(kwArgMap);
+
 		boolean useHistory = true;
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
@@ -528,10 +529,26 @@ public class Room {
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap, modelEngine);
 
+			// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
+			// message row stores the actual tool output instead of null.
+			StringBuilder toolResultsForLogging = new StringBuilder();
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && tr.getOutput() != null) {
+						if (toolResultsForLogging.length() > 0) {
+							toolResultsForLogging.append("\n");
+						}
+						toolResultsForLogging.append(tr.getOutput());
+					}
+				}
+			}
+
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
@@ -661,22 +678,36 @@ public class Room {
 	 * 
 	 * Param list:
 	 * <ul>
-	 * 	<li>numOfImages: number of images for the model to completely generate 
-	 * 	<li>imageHeight: height of the image in pixels to generate
-	 * 	<li>imageWidth: width of the image in pixels to generate
-	 * 	<li>detailLevel: relative level of detail to pass
-	 * 	<li>seed: number to control randomness of each generation
+	 * <li>imageHeight: height of the image in pixels to generate
+	 * <li>imageWidth: width of the image in pixels to generate
+	 * <li>seed: number to control randomness of each generation
 	 * </ul>
 	 *
 	 * @param kwArgMap mutable model parameter map
 	 */
 	private void applyImageModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
-		if (options == null || options.isEmpty()) {
+		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
+		if (options == null || options.isEmpty() || !isImageModel) {
 			return;
 		}
 
-		for (String key : Constants.IMAGE_MODEL_PARAM_KEYS) {
+		for (String key : IMAGE_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
+	}
+
+	private void applyTextModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
+		if (options == null || options.isEmpty() || !isTextModel) {
+			return;
+		}
+
+		for (String key : TEXT_MODEL_PARAM_KEYS) {
 			Object val = options.get(key);
 			if (val != null) {
 				kwArgMap.putIfAbsent(key, val);

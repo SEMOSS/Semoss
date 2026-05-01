@@ -25,22 +25,32 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.ds.py;
+package prerna.reactor.agent;
 
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-class ThreadStateUnitTests {
-    @Test
-    void valueOf_init() { assertEquals(ThreadState.init, ThreadState.valueOf("init")); }
-    @Test
-    void valueOf_run() { assertEquals(ThreadState.run, ThreadState.valueOf("run")); }
-    @Test
-    void valueOf_wait() { assertEquals(ThreadState.wait, ThreadState.valueOf("wait")); }
-    @Test
-    void valueOf_stop() { assertEquals(ThreadState.stop, ThreadState.valueOf("stop")); }
-    @Test
-    void values_returnsFourElements() { assertEquals(4, ThreadState.values().length); }
-    @Test
-    void valueOf_invalid_throws() { assertThrows(IllegalArgumentException.class, () -> ThreadState.valueOf("invalid")); }
+import prerna.util.Utility;
+
+
+/**
+ * Locates the GitHub Copilot session-state JSONL log for a given room.
+ */
+public class GitHubCopilotTranscriptLocator {
+
+	private GitHubCopilotTranscriptLocator() {
+		// utility class
+	}
+
+	public static Path findJsonlFile(String roomId) {
+		if (roomId == null || roomId.isEmpty()) {
+			return null;
+		}
+
+		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
+		return Files.exists(eventsLog) ? eventsLog : null;
+	}
 }

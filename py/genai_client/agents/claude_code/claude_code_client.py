@@ -68,6 +68,7 @@ class ClaudeCodeClient:
             self.configuration.allowed_tools or [],
             self.configuration.access_key,
             self.configuration.secret_key,
+            self.configuration.room_id,
         )
 
         change_logger = _build_change_logger(self.configuration.cwd_path)
@@ -114,8 +115,8 @@ class ClaudeCodeClient:
             mcp_servers=mcps,
             env={
                 "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
-                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}",
-                "ANTHROPIC_API_KEY": f"room-{self.configuration.room_id}",
+                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
+                "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
                 "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
                 "ENABLE_TOOL_SEARCH": "true",
                 # "ANTHROPIC_LOG": "debug",
@@ -203,14 +204,16 @@ class ClaudeCodeClient:
         allowed_tools: list[str],
         access_key: str,
         secret_key: str,
+        room_id: str,
     ) -> tuple[dict, list[str]]:
         mcp_dict = {}
+        bearer = f"Bearer {access_key}:{secret_key}:room-{room_id}"
         for mcp in mcps:
             safe_name = mcp.name.replace(" ", "_").lower()
             mcp_dict[safe_name] = {
                 "url": mcp.url,
                 "type": "http",
-                "headers": {"Authorization": f"Bearer {access_key}:{secret_key}"},
+                "headers": {"Authorization": bearer},
             }
             allowed_tools.append(f"mcp__{safe_name}__*")
         return (mcp_dict, allowed_tools)

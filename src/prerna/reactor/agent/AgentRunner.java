@@ -34,6 +34,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -143,7 +144,17 @@ public final class AgentRunner {
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-        return harness.execute(ctx);
+        AgentHarnessResult result = harness.execute(ctx);
+
+        if (ClusterUtil.IS_CLUSTER) {
+            try {
+                ClusterUtil.pushRoom(roomId);
+            } catch (Exception e) {
+                logger.warn("AgentRunner: post-agent room push to cloud failed for room='{}'", roomId, e);
+            }
+        }
+
+        return result;
     }
 
     /**

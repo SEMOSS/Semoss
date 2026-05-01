@@ -89,15 +89,33 @@ class AnthropicMessageBuilder:
 
             ## =============== NEW PARTS STRUCTURE ============
             if message.parts:
+                is_assistant = message.io != "INPUT"
+                # Collect media parts that must be moved out of assistant turns
+                assistant_media_parts = []
+
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
                         content_parts.append(self._build_text_content_part(p.text))
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_parts.append(media_content)
+                        if is_assistant:
+                            # Anthropic does not allow image blocks in assistant turns;
+                            # add a text placeholder and queue the image for a synthetic user message.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_parts.append(
+                                self._build_text_content_part(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            assistant_media_parts.append(media_content)
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_parts.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_use_part = AnthropicToolUseContentPart(
@@ -133,6 +151,18 @@ class AnthropicMessageBuilder:
                         content=content_parts,
                     )
                 )
+
+                # Inject a synthetic user message with the images so Claude can see them
+                if assistant_media_parts:
+                    synthetic_content = [
+                        self._build_text_content_part("Here is the generated image:")
+                    ] + assistant_media_parts
+                    anthropic_messages.append(
+                        AnthropicMessage(
+                            role=AnthropicRoles.USER,
+                            content=synthetic_content,
+                        )
+                    )
 
                 # handle parameters update based on last message same as w/o parts
                 if is_last:
