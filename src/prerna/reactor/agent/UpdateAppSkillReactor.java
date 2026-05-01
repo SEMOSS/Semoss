@@ -27,52 +27,34 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import prerna.auth.User;
-import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.GitHubCopilotManager;
-import prerna.engine.impl.model.Room;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * GitHub Copilot SDK-backed agent harness.
+ * Overwrites {@code SKILL.md} for an existing skill (creates the directory if missing).
+ *
+ * <p>Replaces {@code ClaudeCodeUpdateSkillReactor}.
  */
-public class GitHubCopilotAgentHarness extends AppBuildingHarness {
+public class UpdateAppSkillReactor extends AbstractReactor {
 
-	public static final String NAME = "github_copilot";
-
-	@Override
-	public String getName() {
-		return NAME;
+	public UpdateAppSkillReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
-	protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
-		Room                room  = ctx.getRoom();
-		Map<String, Object> params = ctx.getParamMap();
-		String              input = ctx.getInput();
+	public NounMetadata execute() {
+		organizeKeys();
+		String projectId    = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String skillName    = this.keyValue.get("skillName");
+		String skillContent = this.keyValue.get("skillContent");
 
-		String       engineId       = resolveEngineId(room);
-		String       systemPrompt   = resolveSystemPrompt(room);
-		List<String> allowedTools   = resolveAllowedTools(params, Collections.emptyList());
-		String       permissionMode = resolvePermissionMode(params);
-		User         user           = resolveUser(ctx.getInsight());
-
-		IModelEngine modelEngine = ctx.getModelEngine();
-		if (modelEngine == null) {
-			throw new IllegalArgumentException(NAME + ": model engine is required");
-		}
-		int contextWindow = modelEngine.getContextWindow();
-
-		String cwd = resolveClientPath(ctx);
-
-		GitHubCopilotManager manager = new GitHubCopilotManager();
-		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow);
-
-		return new AgentHarnessResult(output, 0, new ArrayList<>());
+		User user = this.insight.getUser();
+		Boolean response = AppBuildingHarness.updateSkill(user, projectId, skillName, skillContent);
+		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 }
