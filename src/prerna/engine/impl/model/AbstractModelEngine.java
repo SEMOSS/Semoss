@@ -122,8 +122,12 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		 */
 
 		// do we have any usage restriction on the user
+		String askRoomProjectId = room.getInsight().getProjectId();
+		if (askRoomProjectId == null) {
+			askRoomProjectId = room.getProjectId();
+		}
 		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(room.getInsight().getUser(), this.engineId);
+				.getModelUsageRestriction(room.getInsight().getUser(), this.engineId, askRoomProjectId);
 
 		if (parameters == null) {
 			parameters = new HashMap<String, Object>();
@@ -307,7 +311,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map<String, Object> parameters) {
 		// do we have any usage restriction on the user
 		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
+				.getModelUsageRestriction(insight.getUser(), this.engineId, insight.getProjectId());
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		EmbeddingsModelEngineResponse embeddingsResponse = embeddingsCall(stringsToEmbed, insight, parameters);
@@ -363,7 +367,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public EmbeddingsModelEngineResponse imageEmbeddings(List<String> imagesToEmbed, Insight insight,
 			Map<String, Object> parameters) {
 		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(insight.getUser(), this.engineId);
+				.getModelUsageRestriction(insight.getUser(), this.engineId, insight.getProjectId());
 
 		ZonedDateTime inputTime = ZonedDateTime.now();
 		EmbeddingsModelEngineResponse embeddingsResponse = imageEmbeddingsCall(imagesToEmbed, insight, parameters);

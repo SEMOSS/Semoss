@@ -141,6 +141,22 @@ public class SecurityOwlCreator {
 			}
 		}
 
+		{
+			// check for latest PROJECTPERMISSION property addition
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECTPERMISSION");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/RESTRICT_PER_MODEL/PROJECTPERMISSION")) {
+				return true;
+			}
+		}
+
+		{
+			// check for latest ENGINEPERMISSION property addition
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/MAX_OUTPUT_TOKENS/ENGINEPERMISSION")) {
+				return true;
+			}
+		}
+
 		List<String[]> allRelationships = securityDb.getPhysicalRelationships();
 		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
 			for (String[] existingRel : allRelationships) {
@@ -218,6 +234,8 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
 		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("ENGINEPERMISSION", "MAX_INPUT_TOKENS", "INT");
+		owler.addProp("ENGINEPERMISSION", "MAX_OUTPUT_TOKENS", "INT");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -253,6 +271,13 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("PROJECTPERMISSION", "USAGERESTRICTION", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "MAXTOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAX_INPUT_TOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAX_OUTPUT_TOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("PROJECTPERMISSION", "RESTRICT_PER_MODEL", "BOOLEAN");
 
 		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
