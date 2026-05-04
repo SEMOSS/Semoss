@@ -71,16 +71,17 @@ public class GetGitHubCopilotTranscriptHistoryReactor extends AbstractReactor {
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Room id is required");
 		}
+		
+		List<Object> events = new ArrayList<>();
 
 		String finalRoomId = roomId.trim();
 		try {
 			RoomUtils.getOrLoadRoom(finalRoomId, this.insight);
 		} catch (Exception e) {
-			classLogger.error("User does not have access to GitHub Copilot room {}", finalRoomId, e);
-			throw new IllegalStateException("User does not have access to this room");
+			return new NounMetadata(events, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 
-		List<Object> events = new ArrayList<>();
+		
 		Set<String> suppressedToolCallIds = new HashSet<>();
 		Path jsonl = GitHubCopilotTranscriptLocator.findJsonlFile(finalRoomId);
 		if (jsonl == null) {
