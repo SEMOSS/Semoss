@@ -43,7 +43,6 @@ import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
 import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
-import prerna.reactor.agent.sandbox.SandboxUnavailableException;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -110,11 +109,6 @@ public class GitHubCopilotPyManager {
 
 		if (sandboxPolicy != null && sandboxPolicy.getEnforcement() != EnforcementMode.DISABLED) {
 			SandboxLauncher launcher = SandboxLauncherRegistry.get();
-			if (!launcher.isAvailable()) {
-				throw new SandboxUnavailableException(
-						"AGENT_SANDBOX_ENABLE=true but no sandbox backend available for platform "
-								+ launcher.getPlatform());
-			}
 			String targetBinary = cliPath != null ? cliPath : "copilot";
 			SandboxLaunchPlan plan = launcher.plan(sandboxPolicy, targetBinary, null);
 			cliPath = plan.getCliPath();

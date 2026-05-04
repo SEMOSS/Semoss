@@ -83,7 +83,6 @@ import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
 import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
-import prerna.reactor.agent.sandbox.SandboxUnavailableException;
 import prerna.util.Utility;
 
 /**
@@ -170,12 +169,6 @@ public class GitHubCopilotManager {
 			return;
 		}
 		SandboxLauncher launcher = SandboxLauncherRegistry.get();
-		if (!launcher.isAvailable()) {
-			throw new SandboxUnavailableException(
-					"AGENT_SANDBOX_ENABLE=true but no sandbox backend is available for platform "
-							+ launcher.getPlatform());
-		}
-
 		String targetBinary = resolveCopilotBinary();
 		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
 		opts.setCliPath(plan.getCliPath());

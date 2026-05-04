@@ -31,21 +31,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Static holder that picks a {@link SandboxLauncher} for the current host once
- * at startup.
+ * Static holder that picks a {@link SandboxLauncher} for the current host.
  *
- * <p>Resolution order:
- * <ol>
- *   <li>If {@link Platform#current()} has a backend and it {@link
- *       SandboxLauncher#isAvailable()} — use it.
- *   <li>Otherwise return a {@link NoopSandboxLauncher}. Callers must still
- *       honor {@link EnforcementMode#ENFORCE} by throwing
- *       {@link SandboxUnavailableException} themselves — this class does not
- *       decide policy.
- * </ol>
- *
- * <p>The resolution is cached in a {@code volatile} and refreshed when
- * {@link #reset()} is called (primarily for tests).
+ * <p>Throws {@link SandboxUnavailableException} from {@link #get()} when no
+ * backend is available so callers fail closed without a separate guard.
+ * Successful resolution is cached; failures are not (re-detected each call,
+ * which is cheap).
  */
 public final class SandboxLauncherRegistry {
 
@@ -90,9 +81,8 @@ public final class SandboxLauncherRegistry {
             logger.info("Sandbox backend resolved: platform={} backend={}", p, backend.getClass().getSimpleName());
             return backend;
         }
-        logger.warn("No sandbox backend available for platform {} — using no-op launcher; "
-                + "runs with AGENT_SANDBOX_ENABLE=true will fail", p);
-        return new NoopSandboxLauncher(p);
+        throw new SandboxUnavailableException(
+                "AGENT_SANDBOX_ENABLE=true but no sandbox backend is available for platform " + p);
     }
 
     private static String resolveJavaExecutable() {

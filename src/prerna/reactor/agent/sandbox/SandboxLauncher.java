@@ -34,10 +34,11 @@ package prerna.reactor.agent.sandbox;
  * <ul>
  *   <li>{@link LandlockLauncher} — Linux, landlock LSM via JNA
  *   <li>{@link SandboxExecLauncher} — macOS, {@code sandbox-exec} + Seatbelt profile
- *   <li>{@link NoopSandboxLauncher} — fallback when no backend is available and the
- *       policy allows unsandboxed execution ({@link EnforcementMode#PERMISSIVE} or
- *       {@link EnforcementMode#DISABLED})
  * </ul>
+ *
+ * <p>If neither backend is available on the host,
+ * {@link SandboxLauncherRegistry#get()} throws {@link SandboxUnavailableException}
+ * — there is no fallback launcher.
  */
 public interface SandboxLauncher {
 
