@@ -678,7 +678,6 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
-		<!-- GitHub Copilot SDK (BYOK harness) -->
 		<dependency>
 			<groupId>com.github</groupId>
 			<artifactId>copilot-sdk-java</artifactId>
