@@ -103,7 +103,6 @@ class StreamUtil:
         chunk = {"content": content}
         return chunk
 
-<<<<<<< HEAD
     def create_media_chunk(media_info: dict, partial_image_index: int = None) -> dict:
         """
         Create a streaming chunk for image/media output.
@@ -120,7 +119,8 @@ class StreamUtil:
         chunk = {"media_info": media_info}
         if partial_image_index is not None:
             chunk["partial_image_index"] = partial_image_index
-=======
+        return chunk
+
     def create_usage_chunk(
         input_tokens: int = None,
         output_tokens: int = None,
@@ -151,7 +151,6 @@ class StreamUtil:
             chunk["cache_creation_input_tokens"] = cache_creation_input_tokens
         if reasoning_tokens is not None:
             chunk["reasoning_tokens"] = reasoning_tokens
->>>>>>> dev
         return chunk
 
     def create_finish_reason_chunk(finish_reason: str = "tool_calls") -> dict:
