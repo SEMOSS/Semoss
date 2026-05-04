@@ -58,7 +58,7 @@ public class ClaudeCodeManager {
 
 	private static final Logger classLogger = LogManager.getLogger(ClaudeCodeManager.class);
 
-	/** DIHelper key for the absolute path of the claude-code CLI binary. */
+	/** DIHelper key for an explicit override of the claude CLI path. */
 	public static final String CFG_CLAUDE_CLI_PATH = "CLAUDE_CODE_CLI_PATH";
 
 	protected String prefix = null;
@@ -73,16 +73,8 @@ public class ClaudeCodeManager {
 	protected Map<String, String> vars = new HashMap<>();
 
 	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
-			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
-			throws Exception {
-		return createInitScript(roomId, filePath, accessKey, secretKey, allowedTools, permissionMode, model, mcps,
-				insightId, null);
-	}
-
-	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
 			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps,
-			String insightId, SandboxPolicy sandboxPolicy)
-			throws Exception {
+			String insightId, SandboxPolicy sandboxPolicy) throws Exception {
 
 		Integer localPort = ThreadStore.getLocalPort();
 		String localProtocol = ThreadStore.getLocalProtocol();
@@ -143,11 +135,23 @@ public class ClaudeCodeManager {
 		return script.toString();
 	}
 
+	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
+		Path projectsDir = Paths.get(roomFolderPath, "projects");
+		boolean exists = Files.exists(projectsDir) && Files.isDirectory(projectsDir);
+		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId, exists ? "found" : "not found", projectsDir);
+		return exists;
+	}
+
+	private String createQueryScript(String prompt, String systemPrompt) {
+		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
+				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
+	}
+
 	/**
-	 * Apply the sandbox on the Java side (writes policy + profile files, picks a
-	 * shell wrapper) and return the {@code , sandbox_cli_path='...', sandbox_env={...}}
-	 * kwargs fragment to append to the Python {@code ClaudeCodeClient(...)} call.
-	 * Returns an empty string when no policy is attached.
+	 * Writes the sandbox policy/profile and returns the {@code ,sandbox_cli_path=...,sandbox_env={...}}
+	 * kwargs fragment. The SDK will launch the wrapper script instead of the bundled binary;
+	 * the wrapper applies sandbox-exec (macOS) or landlock (Linux) before exec'ing the real binary.
+	 * Returns an empty string when sandbox is disabled or no policy is set.
 	 */
 	private String buildSandboxKwargs(SandboxPolicy policy, String filePath, String roomFolderPath) {
 		if (policy == null || policy.getEnforcement() == EnforcementMode.DISABLED) {
@@ -171,22 +175,31 @@ public class ClaudeCodeManager {
 	}
 
 	/**
-	 * Resolve the absolute path to the claude-code CLI, preferring {@link
-	 * #CFG_CLAUDE_CLI_PATH} then common npm global install paths. Returns
-	 * {@code "claude"} if nothing is found — the launcher will surface a
-	 * clear {@code execvp} error.
-	 */
-	/**
-	 * Resolve the absolute path to the claude CLI; same shape as {@link
-	 * GitHubCopilotManager#resolveCopilotBinary()}.  Public + static so the
-	 * harness can pre-compute the path for sandbox policy carve-outs.
+	 * Resolves the Claude CLI binary path. Resolution order:
+	 * <ol>
+	 *   <li>DIHelper override via {@link #CFG_CLAUDE_CLI_PATH}</li>
+	 *   <li>Binary bundled inside the installed {@code claude-agent-sdk} Python package
+	 *       ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) — the same binary
+	 *       the SDK uses when no {@code cli_path} is set</li>
+	 *   <li>Common npm / system install paths</li>
+	 *   <li>{@code "claude"} sentinel — OS PATH lookup at exec time</li>
+	 * </ol>
 	 */
 	public static String resolveClaudeBinary() {
 		String configured = Utility.getDIHelperProperty(CFG_CLAUDE_CLI_PATH);
 		if (configured != null && !configured.trim().isEmpty()) {
 			return configured.trim();
 		}
-		String[] candidates = new String[] {
+		try {
+			String sitePackages = PyUtils.appendSitePackagesPath(PyUtils.getPythonHomeDir());
+			Path bundled = Paths.get(sitePackages, "claude_agent_sdk", "_bundled", "claude");
+			if (Files.isExecutable(bundled)) {
+				return bundled.toString();
+			}
+		} catch (Exception e) {
+			classLogger.debug("claude-agent-sdk bundled binary not found via PY_HOME: {}", e.getMessage());
+		}
+		String[] candidates = {
 				"/usr/local/bin/claude",
 				"/usr/bin/claude",
 				System.getProperty("user.home") + "/.npm-global/bin/claude",
@@ -201,25 +214,6 @@ public class ClaudeCodeManager {
 			}
 		}
 		return "claude";
-	}
-
-	private boolean agentHistoryExists(String roomFolderPath, String roomId) {
-		Path projectsDir = Paths.get(roomFolderPath, "projects");
-		boolean exists = Files.exists(projectsDir) && Files.isDirectory(projectsDir);
-		classLogger.debug("Agent history check for room {}: projects folder {} at {}", roomId, exists ? "found" : "not found", projectsDir);
-		return exists;
-	}
-
-	private String createQueryScript(String prompt, String systemPrompt) {
-		return "claude_code.query_cc(prompt=" + PyUtils.pyQuote(prompt != null ? prompt : "")
-				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
-	}
-
-	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
-			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps) throws Exception {
-		return query(insight, user, engineId, filePath, prompt, systemPrompt, roomId, allowedTools, permissionMode,
-				mcps, null);
 	}
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,

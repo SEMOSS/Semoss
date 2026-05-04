@@ -55,8 +55,8 @@ class CCInitArgs(BaseModel):
     room_folder_path: Optional[str] = None
     # SEMOSS sandbox: when set, the SDK is pointed at a wrapper script that
     # applies landlock (Linux) or sandbox-exec (macOS) before exec'ing the
-    # real claude-code CLI. sandbox_env carries pointers to the policy file
-    # and the real target binary — see prerna.reactor.agent.sandbox.
+    # real claude CLI (the bundled binary resolved via claude-agent-sdk).
+    # sandbox_env carries policy file pointers forwarded to the process env.
     sandbox_cli_path: Optional[str] = None
     sandbox_env: Optional[dict[str, str]] = None
 
@@ -144,7 +144,9 @@ class ClaudeCodeClient:
             ],
             mcp_servers=mcps,
             env=claude_env,
-            cli_path=self.configuration.sandbox_cli_path,
+            # Only override the CLI path when a sandbox wrapper is active.
+            # When None, the SDK uses its own bundled binary automatically.
+            **({"cli_path": self.configuration.sandbox_cli_path} if self.configuration.sandbox_cli_path else {}),
             hooks={
                 "PostToolUse": [
                     HookMatcher(
