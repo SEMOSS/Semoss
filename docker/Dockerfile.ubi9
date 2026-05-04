@@ -45,7 +45,7 @@ COPY --from=tomcat_builder /opt /opt
 COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 
 RUN yum update -y \
-	&& yum install -y git curl unzip lsof procps-ng \
+	&& yum install -y --allowerasing git curl unzip lsof procps-ng \
 	&& mkdir /opt/semosshome \
 	&& cd /opt && git clone https://github.com/SEMOSS/semoss-artifacts \
 	&& chmod 777 /opt/semoss-artifacts/artifacts/scripts/*.sh \
@@ -84,7 +84,7 @@ COPY --from=tomcat_builder /usr/lib/jvm/zulu21 /usr/lib/jvm/zulu21
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
 
 RUN	yum update -y \
-	&& yum install -y git curl unzip lsof vim nano procps-ng \
+	&& yum install -y --allowerasing git curl unzip lsof vim nano procps-ng \
 	&& curl https://rclone.org/install.sh | bash \
 	&& chmod 755 /usr/bin/rclone
 
