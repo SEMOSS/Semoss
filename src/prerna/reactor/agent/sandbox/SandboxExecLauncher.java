@@ -88,9 +88,9 @@ public final class SandboxExecLauncher implements SandboxLauncher {
         Path wrapper = LauncherScriptWriter.write(tmpDir);
 
         Map<String, String> envAdd = new LinkedHashMap<>();
-        envAdd.put(SandboxLauncherMain.ENV_TARGET_CLI, target.toString());
-        envAdd.put(SandboxLauncherMain.ENV_BACKEND,    "sandbox-exec");
-        envAdd.put("SEMOSS_SANDBOX_PROFILE_FILE",      profile.toString());
+        envAdd.put(SandboxLauncherMain.ENV_TARGET_CLI,   target.toString());
+        envAdd.put(SandboxLauncherMain.ENV_BACKEND,      "sandbox-exec");
+        envAdd.put(SandboxLauncherMain.ENV_PROFILE_FILE, profile.toString());
 
         List<String> envRemove = Arrays.asList("DYLD_INSERT_LIBRARIES", "DYLD_LIBRARY_PATH");
 
@@ -107,12 +107,9 @@ public final class SandboxExecLauncher implements SandboxLauncher {
         StringBuilder sb = new StringBuilder();
         sb.append("(version 1)\n");
         sb.append("(deny default)\n");
-        // Pragmatic Node-on-Seatbelt model. A strict read-allowlist fights Node
-        // startup — the CLI silently aborts on file-reads we can't realistically
-        // enumerate (stat of "/", autofs, locale data, etc.). What the policy
-        // actually cares about is preventing writes outside the agent's RW set
-        // and pinning network to loopback; reads of system files are not the
-        // threat model. So: allow reads everywhere, gate writes + network.
+        // Kernel / process / IPC boilerplate required by any Node.js or JVM
+        // subprocess.  file-read-metadata is global so dyld can stat() paths at
+        // startup; /dev/urandom must be readable or OpenSSL aborts during PRNG seed.
         sb.append("(allow process-fork)\n");
         sb.append("(allow process-exec*)\n");
         sb.append("(allow process-info*)\n");
@@ -124,10 +121,14 @@ public final class SandboxExecLauncher implements SandboxLauncher {
         sb.append("(allow sysctl-read)\n");
         sb.append("(allow ipc-posix-shm)\n");
         sb.append("(allow system-fsctl)\n");
-        sb.append("(allow file-read*)\n");
+        sb.append("(allow file-read-metadata)\n");
+        sb.append("(allow file-read-data (literal \"/dev/urandom\"))\n");
+        sb.append("(allow file-read-data (literal \"/dev/random\"))\n");
+        sb.append("(allow file-read-data (literal \"/dev/null\"))\n");
         sb.append("(allow file-write* (literal \"/dev/null\"))\n");
         sb.append("(allow file-write* (literal \"/dev/tty\"))\n");
         sb.append("(allow file-write* (literal \"/dev/dtracehelper\"))\n");
+
         if (policy.isLoopbackNetwork()) {
             sb.append("(allow network* (remote ip \"localhost:*\"))\n");
             sb.append("(allow network* (local ip))\n");
@@ -135,42 +136,54 @@ public final class SandboxExecLauncher implements SandboxLauncher {
             sb.append("(deny network*)\n");
         }
 
-        // RW set — emit each RW path twice: the literal path and the
-        // /private-prefixed form, since macOS resolves /tmp -> /private/tmp
-        // (and similar) before consulting the policy.
+        // Reads are broadly allowed; blocks below override via more-specific deny
+        // rules, and the per-path allow rules in the next loop carve back out any
+        // RW/RO entry that falls inside a blocked ancestor.
+        sb.append("(allow file-read-data)\n");
+
+        for (Path blocked : policy.getBlockedPaths()) {
+            appendSubpathRule(sb, "deny file-read-data", blocked.toString());
+        }
+
         for (AllowedPath ap : policy.getAllowedPaths()) {
-            if (ap.getMode() != AccessMode.RW) {
-                continue;
-            }
             String pathStr = ap.getPath().toString();
-            sb.append("(allow file-write* file-ioctl (subpath \"").append(escape(pathStr)).append("\"))\n");
-            if (pathStr.startsWith("/tmp/") || pathStr.equals("/tmp")
-                    || pathStr.startsWith("/var/folders/")
-                    || pathStr.equals("/var")) {
-                sb.append("(allow file-write* file-ioctl (subpath \"/private")
-                  .append(escape(pathStr)).append("\"))\n");
+            appendSubpathRule(sb, "allow file-read-data", pathStr);
+            if (ap.getMode() == AccessMode.RW) {
+                appendSubpathRule(sb, "allow file-write* file-ioctl", pathStr);
             }
         }
         policy.getTmpDir().ifPresent(p -> {
             String pathStr = p.toString();
-            sb.append("(allow file-write* file-ioctl (subpath \"")
-              .append(escape(pathStr)).append("\"))\n");
-            if (pathStr.startsWith("/tmp/") || pathStr.equals("/tmp")
-                    || pathStr.startsWith("/var/folders/")) {
-                sb.append("(allow file-write* file-ioctl (subpath \"/private")
-                  .append(escape(pathStr)).append("\"))\n");
-            }
+            appendSubpathRule(sb, "allow file-read-data", pathStr);
+            appendSubpathRule(sb, "allow file-write* file-ioctl", pathStr);
         });
 
         try {
             Files.createDirectories(tmpDir);
             Path file = Files.createTempFile(tmpDir, "semoss-sandbox-", ".sb");
+            file.toFile().deleteOnExit();
             Files.writeString(file, sb.toString(),
                     StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             return file.toAbsolutePath();
         } catch (IOException e) {
             throw new UncheckedIOException("failed to write sandbox-exec profile", e);
         }
+    }
+
+    // macOS resolves /tmp -> /private/tmp and /var/... -> /private/var/... before
+    // consulting the policy, so paths under those prefixes need a mirrored rule.
+    // op is the full statement verb+action, e.g. "allow file-read-data" or "deny file-read-data".
+    private static void appendSubpathRule(StringBuilder sb, String op, String pathStr) {
+        sb.append("(").append(op).append(" (subpath \"").append(escape(pathStr)).append("\"))\n");
+        if (needsPrivateMirror(pathStr)) {
+            sb.append("(").append(op).append(" (subpath \"/private")
+              .append(escape(pathStr)).append("\"))\n");
+        }
+    }
+
+    private static boolean needsPrivateMirror(String pathStr) {
+        return pathStr.equals("/tmp") || pathStr.startsWith("/tmp/")
+                || pathStr.equals("/var") || pathStr.startsWith("/var/folders/");
     }
 
     private static String escape(String s) {

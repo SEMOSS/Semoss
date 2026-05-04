@@ -28,9 +28,11 @@
 package prerna.reactor.agent.sandbox;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,38 +46,37 @@ import prerna.util.Utility;
  * <p>Config keys (all read from {@code RDF_Map.prop} via {@link Utility#getDIHelperProperty(String)}):
  * <table>
  * <tr><th>Key</th><th>Meaning</th><th>Default</th></tr>
- * <tr><td>{@code AGENT_SANDBOX_ENFORCE}</td>
- *     <td>One of {@code ENFORCE}, {@code PERMISSIVE}, {@code DISABLED}</td>
- *     <td>{@code ENFORCE}</td></tr>
+ * <tr><td>{@code AGENT_SANDBOX_ENABLE}</td>
+ *     <td>{@code true} to enable sandboxing; {@code false} (default) to skip it entirely</td>
+ *     <td>{@code false}</td></tr>
  * <tr><td>{@code AGENT_SANDBOX_DEFAULT_READS}</td>
  *     <td>Comma-separated baseline RO paths added to every policy</td>
  *     <td>OS-dependent (TLS cert dir, JRE, /usr/lib)</td></tr>
  * <tr><td>{@code AGENT_SANDBOX_LOOPBACK_NETWORK}</td>
  *     <td>{@code true} to allow localhost MCP callbacks</td>
  *     <td>{@code true}</td></tr>
+ * <tr><td>{@code AGENT_SANDBOX_BLOCK_READS}</td>
+ *     <td>Comma-separated additional paths to deny reads for (appended to the built-in blocklist)</td>
+ *     <td>(empty)</td></tr>
  * </table>
  */
 public final class AgentSandboxConfig {
 
     private static final Logger logger = LogManager.getLogger(AgentSandboxConfig.class);
 
-    public static final String CFG_ENFORCE          = "AGENT_SANDBOX_ENFORCE";
+    public static final String CFG_ENABLE           = "AGENT_SANDBOX_ENABLE";
     public static final String CFG_DEFAULT_READS    = "AGENT_SANDBOX_DEFAULT_READS";
     public static final String CFG_LOOPBACK_NETWORK = "AGENT_SANDBOX_LOOPBACK_NETWORK";
+    public static final String CFG_BLOCK_READS      = "AGENT_SANDBOX_BLOCK_READS";
 
     private AgentSandboxConfig() {}
 
     public static EnforcementMode resolveEnforcement() {
-        String raw = Utility.getDIHelperProperty(CFG_ENFORCE);
-        if (raw == null || raw.trim().isEmpty()) {
+        String raw = Utility.getDIHelperProperty(CFG_ENABLE);
+        if (raw != null && raw.trim().equalsIgnoreCase("true")) {
             return EnforcementMode.ENFORCE;
         }
-        try {
-            return EnforcementMode.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid {} value '{}' — defaulting to ENFORCE", CFG_ENFORCE, raw);
-            return EnforcementMode.ENFORCE;
-        }
+        return EnforcementMode.DISABLED;
     }
 
     public static boolean resolveLoopbackNetwork() {
@@ -92,14 +93,9 @@ public final class AgentSandboxConfig {
      * {@link #CFG_DEFAULT_READS} (CSV of absolute paths).
      */
     public static List<String> resolveDefaultReads() {
-        String raw = Utility.getDIHelperProperty(CFG_DEFAULT_READS);
-        if (raw != null && !raw.trim().isEmpty()) {
-            List<String> out = new ArrayList<>();
-            for (String p : raw.split(",")) {
-                String trimmed = p.trim();
-                if (!trimmed.isEmpty()) out.add(trimmed);
-            }
-            return out;
+        List<String> override = parseCsvProperty(CFG_DEFAULT_READS);
+        if (!override.isEmpty()) {
+            return override;
         }
         Platform p = Platform.current();
         if (p == Platform.LINUX) {
@@ -129,7 +125,69 @@ public final class AgentSandboxConfig {
     }
 
     /**
+     * Built-in sensitive paths that should never be readable by agent binaries.
+     * Always applied, not overridable via RDF config (the custom key only adds to this list).
+     *
+     * <p>Covers credential stores and cloud-provider secret directories that no
+     * agent run should ever access regardless of the task:
+     * <ul>
+     *   <li>{@code ~/.ssh} — private SSH keys</li>
+     *   <li>{@code ~/.gnupg} — GPG private key ring</li>
+     *   <li>{@code ~/.aws} — AWS access keys / credentials</li>
+     *   <li>{@code ~/.kube} — Kubernetes cluster credentials</li>
+     *   <li>{@code ~/.config/gcloud} — GCloud auth tokens</li>
+     *   <li>{@code ~/.azure} — Azure service-principal credentials</li>
+     *   <li>{@code ~/.netrc} — Generic host credentials (FTP, HTTP basic auth)</li>
+     *   <li>{@code ~/.npmrc} — npm auth token</li>
+     *   <li>{@code ~/.pypirc} — PyPI upload credentials</li>
+     *   <li>{@code ~/.docker/config.json} — Docker registry auth</li>
+     * </ul>
+     */
+    public static List<String> defaultSensitiveBlockList() {
+        String home = System.getProperty("user.home");
+        return Arrays.asList(
+                home + "/.ssh",
+                home + "/.gnupg",
+                home + "/.aws",
+                home + "/.kube",
+                home + "/.config/gcloud",
+                home + "/.azure",
+                home + "/.netrc",
+                home + "/.npmrc",
+                home + "/.pypirc",
+                home + "/.docker/config.json"
+        );
+    }
+
+    /**
+     * Additional block paths from {@link #CFG_BLOCK_READS} (comma-separated),
+     * appended on top of {@link #defaultSensitiveBlockList()}.
+     */
+    public static List<String> resolveCustomBlockList() {
+        return parseCsvProperty(CFG_BLOCK_READS);
+    }
+
+    /** Parse a DIHelper CSV property into a trimmed, non-empty list. */
+    private static List<String> parseCsvProperty(String key) {
+        String raw = Utility.getDIHelperProperty(key);
+        if (raw == null || raw.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        List<String> out = new ArrayList<>();
+        for (String p : raw.split(",")) {
+            String trimmed = p.trim();
+            if (!trimmed.isEmpty()) out.add(trimmed);
+        }
+        return out;
+    }
+
+    /**
      * Build a baseline {@link SandboxPolicy} appropriate for an agent run.
+     *
+     * <p>Reads are broadly allowed; sensitive credential paths and the SEMOSS
+     * home directory are explicitly blocked.  The room folder, working directory,
+     * and binary parent are carved out as explicit RW/RO entries, which override
+     * any block that covers them as an ancestor.
      *
      * @param roomFolderPath       the per-room scratch/session directory (RW)
      * @param workingDirectory     the filePath/project slice the agent is editing (RW); nullable
@@ -143,6 +201,7 @@ public final class AgentSandboxConfig {
                 .withEnforcement(resolveEnforcement())
                 .withLoopbackNetwork(resolveLoopbackNetwork());
 
+        // Explicit read-write carve-outs
         if (roomFolderPath != null && !roomFolderPath.trim().isEmpty()) {
             b.withReadWrite(roomFolderPath);
         }
@@ -155,15 +214,36 @@ public final class AgentSandboxConfig {
                 b.withRead(parent.getAbsolutePath());
             }
         }
-        for (String ro : resolveDefaultReads()) {
+        addPathsSafely(b, "read", resolveDefaultReads(), CFG_DEFAULT_READS, SandboxPolicyBuilder::withRead);
+
+        // Block the SEMOSS home directory so the agent cannot read configs,
+        // credentials, or other projects.  The room and working dir carve-outs
+        // above override this for paths the agent legitimately needs.
+        addPathsSafely(b, "block", defaultSensitiveBlockList(), "defaultSensitiveBlockList",
+                SandboxPolicyBuilder::withBlock);
+        String semossBase = Utility.getBaseFolder();
+        if (semossBase != null && !semossBase.trim().isEmpty()) {
+            addPathsSafely(b, "block", List.of(semossBase), "Utility.getBaseFolder",
+                    SandboxPolicyBuilder::withBlock);
+        }
+        addPathsSafely(b, "block", resolveCustomBlockList(), CFG_BLOCK_READS,
+                SandboxPolicyBuilder::withBlock);
+
+        return b.build();
+    }
+
+    private static void addPathsSafely(SandboxPolicyBuilder b,
+                                       String kind,
+                                       Iterable<String> paths,
+                                       String source,
+                                       BiConsumer<SandboxPolicyBuilder, String> add) {
+        for (String p : paths) {
             try {
-                b.withRead(ro);
-            } catch (IllegalArgumentException ignored) {
-                // Skip entries that aren't absolute or don't parse; the user's CSV
-                // might have bad rows and we shouldn't break the whole run for one.
+                add.accept(b, p);
+            } catch (IllegalArgumentException e) {
+                logger.warn("skipping invalid sandbox {} path '{}' (from {}): {}", kind, p, source, e.getMessage());
             }
         }
-        return b.build();
     }
 
     /**
@@ -191,20 +271,22 @@ public final class AgentSandboxConfig {
                 .withEnforcement(override.getEnforcement() != null ? override.getEnforcement() : base.getEnforcement())
                 .withLoopbackNetwork(base.isLoopbackNetwork());
         base.getTmpDir().ifPresent(b::withTmpDir);
-        for (AllowedPath ap : base.getAllowedPaths()) {
-            if (ap.getMode() == AccessMode.RW) {
-                b.withReadWrite(ap.getPath());
-            } else {
-                b.withRead(ap.getPath());
-            }
-        }
-        for (AllowedPath ap : override.getAllowedPaths()) {
-            if (ap.getMode() == AccessMode.RW) {
-                b.withReadWrite(ap.getPath());
-            } else {
-                b.withRead(ap.getPath());
-            }
-        }
+        copyInto(b, base);
+        copyInto(b, override);
         return b.build();
+    }
+
+    /** Append every allowed path and blocked path from {@code src} into {@code b}. */
+    private static void copyInto(SandboxPolicyBuilder b, SandboxPolicy src) {
+        for (AllowedPath ap : src.getAllowedPaths()) {
+            if (ap.getMode() == AccessMode.RW) {
+                b.withReadWrite(ap.getPath());
+            } else {
+                b.withRead(ap.getPath());
+            }
+        }
+        for (Path blocked : src.getBlockedPaths()) {
+            b.withBlock(blocked);
+        }
     }
 }

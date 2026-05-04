@@ -29,29 +29,12 @@ package prerna.reactor.agent.sandbox;
 
 /**
  * How strictly to enforce a {@link SandboxPolicy} at spawn time.
- *
- * <p>When the platform backend reports that sandboxing is unavailable
- * (e.g. Linux kernel without landlock support, or no {@code sandbox-exec}
- * on macOS), the chosen mode decides whether the spawn proceeds.
  */
 public enum EnforcementMode {
 
-    /**
-     * Refuse to spawn the agent binary if the sandbox cannot be applied.
-     * Default for production.
-     */
+    /** Apply the sandbox; refuse to spawn if the backend is unavailable. */
     ENFORCE,
 
-    /**
-     * Attempt to sandbox; fall back to an unsandboxed spawn with a warning
-     * if the platform cannot honor the policy. Useful during early rollout
-     * when you want telemetry without blocking users.
-     */
-    PERMISSIVE,
-
-    /**
-     * Skip the sandbox entirely. Only appropriate for debugging or when an
-     * operator has accepted the risk via explicit config.
-     */
+    /** Skip the sandbox entirely (opt-in default). */
     DISABLED
 }

@@ -32,22 +32,25 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Fluent builder for {@link SandboxPolicy}.
  *
- * <p>Normalizes every path to absolute form at {@link #build()} time and
- * collapses duplicates — if the same directory is added as both {@link
- * AccessMode#RO} and {@link AccessMode#RW}, the RW entry wins. Paths that
- * are not absolute or contain {@code ..} after normalization are rejected.
+ * <p>Each path is normalized via {@link Path#toAbsolutePath()} then
+ * {@link Path#normalize()} (which collapses {@code .} and {@code ..} segments)
+ * and deduplicated by the resulting absolute form.  If the same directory is
+ * added as both {@link AccessMode#RO} and {@link AccessMode#RW}, RW wins.
  */
 public final class SandboxPolicyBuilder {
 
     // insertion-order map keeps output stable for tests / debugging
-    private final Map<Path, AccessMode> paths = new LinkedHashMap<>();
+    private final Map<Path, AccessMode> paths        = new LinkedHashMap<>();
+    private final Set<Path>             blockedPaths = new LinkedHashSet<>();
     private Path             tmpDir;
     private boolean          loopbackNetwork = true;
     private EnforcementMode  enforcement     = EnforcementMode.ENFORCE;
@@ -77,6 +80,18 @@ public final class SandboxPolicyBuilder {
         return this;
     }
 
+    public SandboxPolicyBuilder withBlock(Path path) {
+        if (path == null) {
+            throw new IllegalArgumentException("blocked path must not be null");
+        }
+        blockedPaths.add(path.toAbsolutePath().normalize());
+        return this;
+    }
+
+    public SandboxPolicyBuilder withBlock(String path) {
+        return withBlock(toPath(path));
+    }
+
     public SandboxPolicyBuilder withLoopbackNetwork(boolean allow) {
         this.loopbackNetwork = allow;
         return this;
@@ -92,7 +107,8 @@ public final class SandboxPolicyBuilder {
         for (Map.Entry<Path, AccessMode> e : paths.entrySet()) {
             list.add(new AllowedPath(e.getKey(), e.getValue()));
         }
-        return new SandboxPolicy(list, Optional.ofNullable(tmpDir), loopbackNetwork, enforcement);
+        return new SandboxPolicy(list, new ArrayList<>(blockedPaths),
+                Optional.ofNullable(tmpDir), loopbackNetwork, enforcement);
     }
 
     // helpers
@@ -102,12 +118,8 @@ public final class SandboxPolicyBuilder {
             throw new IllegalArgumentException("sandbox path must not be null");
         }
         Path abs = path.toAbsolutePath().normalize();
-        if (!abs.isAbsolute()) {
-            throw new IllegalArgumentException("sandbox path must be absolute: " + path);
-        }
-        // If we already have an RW entry, a later RO request must not downgrade it.
-        AccessMode existing = paths.get(abs);
-        if (existing == AccessMode.RW) {
+        // RW wins over RO — a later RO request must not downgrade an existing RW.
+        if (paths.get(abs) == AccessMode.RW) {
             return;
         }
         paths.put(abs, mode);

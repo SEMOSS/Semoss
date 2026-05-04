@@ -55,9 +55,10 @@ import com.sun.jna.StringArray;
  */
 public final class SandboxLauncherMain {
 
-    public static final String ENV_POLICY_FILE = "SEMOSS_SANDBOX_POLICY_FILE";
-    public static final String ENV_BACKEND     = "SEMOSS_SANDBOX_BACKEND";
-    public static final String ENV_TARGET_CLI  = "SEMOSS_SANDBOX_TARGET_CLI";
+    public static final String ENV_POLICY_FILE  = "SEMOSS_SANDBOX_POLICY_FILE";
+    public static final String ENV_BACKEND      = "SEMOSS_SANDBOX_BACKEND";
+    public static final String ENV_TARGET_CLI   = "SEMOSS_SANDBOX_TARGET_CLI";
+    public static final String ENV_PROFILE_FILE = "SEMOSS_SANDBOX_PROFILE_FILE";
 
     /** Widest set of FS access rights we can safely ask landlock to handle. */
     private static final long HANDLED_FS_ALL =

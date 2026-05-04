@@ -49,23 +49,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * <p>JSON shape:
  * <pre>{@code
  * {
- *   "version": 1,
  *   "enforcement": "ENFORCE",
  *   "loopbackNetwork": true,
  *   "tmpDir": "/tmp/run-xyz",
  *   "paths": [
  *     {"path": "/opt/semosshome/room/abc", "mode": "RW"},
  *     {"path": "/etc/ssl/certs",           "mode": "RO"}
- *   ]
+ *   ],
+ *   "blocked": ["/home/user/.ssh", "/opt/semosshome"]
  * }
  * }</pre>
  */
 public final class PolicyJson {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
-
-    public static final int    CURRENT_VERSION = 1;
-    public static final String VERSION_FIELD   = "version";
 
     private PolicyJson() {}
 
@@ -88,6 +85,7 @@ public final class PolicyJson {
         try {
             Files.createDirectories(targetDir);
             Path file = Files.createTempFile(targetDir, filenamePrefix, ".json");
+            file.toFile().deleteOnExit();
             Files.writeString(file, toJson(policy),
                     StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             try {
@@ -127,7 +125,6 @@ public final class PolicyJson {
 
     private static Map<String, Object> toMap(SandboxPolicy policy) {
         Map<String, Object> root = new LinkedHashMap<>();
-        root.put(VERSION_FIELD,   CURRENT_VERSION);
         root.put("enforcement",   policy.getEnforcement().name());
         root.put("loopbackNetwork", policy.isLoopbackNetwork());
         policy.getTmpDir().ifPresent(p -> root.put("tmpDir", p.toString()));
@@ -140,15 +137,17 @@ public final class PolicyJson {
             paths.add(entry);
         }
         root.put("paths", paths);
+
+        List<String> blocked = new ArrayList<>(policy.getBlockedPaths().size());
+        for (Path p : policy.getBlockedPaths()) {
+            blocked.add(p.toString());
+        }
+        root.put("blocked", blocked);
         return root;
     }
 
     @SuppressWarnings("unchecked")
     private static SandboxPolicy fromMap(Map<String, Object> root) {
-        int version = ((Number) root.getOrDefault(VERSION_FIELD, 0)).intValue();
-        if (version != CURRENT_VERSION) {
-            throw new IllegalArgumentException("unsupported sandbox policy version: " + version);
-        }
         SandboxPolicyBuilder b = SandboxPolicy.builder();
         String enforcement = (String) root.getOrDefault("enforcement", EnforcementMode.ENFORCE.name());
         b.withEnforcement(EnforcementMode.valueOf(enforcement));
@@ -170,6 +169,15 @@ public final class PolicyJson {
                     b.withReadWrite(path);
                 } else {
                     b.withRead(path);
+                }
+            }
+        }
+
+        Object blockedObj = root.get("blocked");
+        if (blockedObj instanceof List) {
+            for (Object p : (List<Object>) blockedObj) {
+                if (p instanceof String) {
+                    b.withBlock((String) p);
                 }
             }
         }

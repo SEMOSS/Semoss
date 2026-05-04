@@ -91,7 +91,7 @@ public final class SandboxLauncherRegistry {
             return backend;
         }
         logger.warn("No sandbox backend available for platform {} — using no-op launcher; "
-                + "enforcing policies will fail unless EnforcementMode is PERMISSIVE or DISABLED", p);
+                + "runs with AGENT_SANDBOX_ENABLE=true will fail", p);
         return new NoopSandboxLauncher(p);
     }
 

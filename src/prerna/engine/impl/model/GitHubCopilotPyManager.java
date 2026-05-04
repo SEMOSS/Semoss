@@ -31,10 +31,19 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
+import prerna.reactor.agent.sandbox.SandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.reactor.agent.sandbox.SandboxUnavailableException;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -79,7 +88,7 @@ public class GitHubCopilotPyManager {
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps, int contextWindow) throws Exception {
+			List<Map<String, String>> mcps, int contextWindow, SandboxPolicy sandboxPolicy) throws Exception {
 
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
@@ -97,9 +106,25 @@ public class GitHubCopilotPyManager {
 		String secretKey = keyPair[1];
 
 		String cliPath = trimToNull(DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH));
+		Map<String, String> sandboxEnv = Collections.emptyMap();
+
+		if (sandboxPolicy != null && sandboxPolicy.getEnforcement() != EnforcementMode.DISABLED) {
+			SandboxLauncher launcher = SandboxLauncherRegistry.get();
+			if (!launcher.isAvailable()) {
+				throw new SandboxUnavailableException(
+						"AGENT_SANDBOX_ENABLE=true but no sandbox backend available for platform "
+								+ launcher.getPlatform());
+			}
+			String targetBinary = cliPath != null ? cliPath : "copilot";
+			SandboxLaunchPlan plan = launcher.plan(sandboxPolicy, targetBinary, null);
+			cliPath = plan.getCliPath();
+			sandboxEnv = plan.getEnvironmentAdditions();
+			classLogger.info("Copilot (py) sandbox applied: backend={} target={} policy-paths={}",
+					plan.getBackend(), targetBinary, sandboxPolicy.getAllowedPaths().size());
+		}
 
 		String initScript = createInitScript(roomId, workingDir, roomFolderPath, accessKey, secretKey, allowedTools,
-				permissionMode, engineId, mcps, insightId, cliPath, sessionExists);
+				permissionMode, engineId, mcps, insightId, cliPath, sessionExists, sandboxEnv);
 		checkSocketStatus(initScript);
 
 		String queryScript = createQueryScript(prompt, systemPrompt);
@@ -111,7 +136,8 @@ public class GitHubCopilotPyManager {
 
 	private String createInitScript(String roomId, String cwdPath, String roomFolderPath, String accessKey,
 			String secretKey, List<String> allowedTools, String permissionMode, String model,
-			List<Map<String, String>> mcps, String insightId, String cliPath, boolean sessionExists) {
+			List<Map<String, String>> mcps, String insightId, String cliPath, boolean sessionExists,
+			Map<String, String> sandboxEnv) {
 
 		Integer localPort = ThreadStore.getLocalPort();
 		String localProtocol = ThreadStore.getLocalProtocol();
@@ -156,6 +182,13 @@ public class GitHubCopilotPyManager {
 		mcpsLiteral.append("]");
 
 		StringBuilder script = new StringBuilder();
+		if (sandboxEnv != null && !sandboxEnv.isEmpty()) {
+			script.append("import os;");
+			for (Map.Entry<String, String> entry : sandboxEnv.entrySet()) {
+				script.append("os.environ[").append(PyUtils.pyQuote(entry.getKey()))
+						.append("]=").append(PyUtils.pyQuote(entry.getValue())).append(";");
+			}
+		}
 		script.append("import genai_client;github_copilot = genai_client.GitHubCopilotClient(")
 				.append("model=").append(PyUtils.pyQuote(model)).append(",")
 				.append("cwd_path=").append(PyUtils.pyQuote(cwdPath)).append(",")

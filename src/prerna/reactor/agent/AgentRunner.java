@@ -64,7 +64,7 @@ public final class AgentRunner {
     public static final String PARAM_SANDBOX_READS   = "sandbox_reads";
     /** List of absolute paths to add as read-write to the sandbox policy. */
     public static final String PARAM_SANDBOX_WRITES  = "sandbox_writes";
-    /** Override enforcement mode: {@code ENFORCE} | {@code PERMISSIVE} | {@code DISABLED}. */
+    /** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
     public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
     private AgentRunner() { /* static utility */ }

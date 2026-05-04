@@ -64,6 +64,7 @@ public final class LauncherScriptWriter {
         try {
             Files.createDirectories(dir);
             Path script = Files.createTempFile(dir, "semoss-sandbox-", ".sh");
+            script.toFile().deleteOnExit();
             Files.writeString(script, SCRIPT_BODY,
                     StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             try {

@@ -109,21 +109,14 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 			cwd = ctx.getFilePath() + "/client";
 		}
 
-		SandboxPolicy policy = resolveSandboxPolicy(ctx, room.getId(), ctx.getFilePath());
+		String targetBinary = Utility.getDIHelperProperty(GitHubCopilotManager.CFG_COPILOT_CLI_PATH);
+		SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
+				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
+
 		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
 				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow, policy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
-	}
-
-	/**
-	 * Prefer the policy built by the caller (reactor inputs or explicit API); fall
-	 * back to the DIHelper-driven baseline for the given room + working directory.
-	 */
-	private SandboxPolicy resolveSandboxPolicy(AgentRunContext ctx, String roomId, String workingDirectory) {
-		String roomFolderPath = Utility.getBaseFolder() + java.io.File.separator + "room" + java.io.File.separator + roomId;
-		String targetBinary = Utility.getDIHelperProperty(GitHubCopilotManager.CFG_COPILOT_CLI_PATH);
-		return AgentSandboxConfig.buildEffectivePolicy(roomFolderPath, workingDirectory, targetBinary, ctx.getSandboxPolicy());
 	}
 
 	@SuppressWarnings("unchecked")

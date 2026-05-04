@@ -156,19 +156,14 @@ public class ClaudeCodeManager {
 	 * Returns an empty string when no policy is attached.
 	 */
 	private String buildSandboxKwargs(SandboxPolicy policy, String filePath, String roomFolderPath) {
-		if (policy == null) {
+		if (policy == null || policy.getEnforcement() == EnforcementMode.DISABLED) {
 			return "";
 		}
 		SandboxLauncher launcher = SandboxLauncherRegistry.get();
 		if (!launcher.isAvailable()) {
-			if (policy.getEnforcement() == EnforcementMode.ENFORCE) {
-				throw new SandboxUnavailableException(
-						"AGENT_SANDBOX_ENFORCE=true but no sandbox backend is available for platform "
-								+ launcher.getPlatform());
-			}
-			classLogger.warn("Claude sandbox requested but backend unavailable; spawning unconstrained (enforcement={})",
-					policy.getEnforcement());
-			return "";
+			throw new SandboxUnavailableException(
+					"AGENT_SANDBOX_ENABLE=true but no sandbox backend is available for platform "
+							+ launcher.getPlatform());
 		}
 		String targetBinary = resolveClaudeBinary();
 		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
