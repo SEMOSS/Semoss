@@ -220,6 +220,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                     )
                     finish_reason = chunk.response.status
 
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=input_tokens,
+                            output_tokens=response_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            reasoning_tokens=thinking_tokens,
+                        ),
+                        stream_type="usage",
+                    )
+
                 # streaming text and schema
                 if "response.output_text.delta" in chunk.type:
                     content = chunk.delta
@@ -420,6 +430,16 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens = chunk.usage.prompt_tokens
                     cache_read_tokens = self._extract_cached_tokens(chunk.usage)
                     thinking_tokens = self._extract_thinking_tokens(chunk.usage)
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=prompt_tokens,
+                            output_tokens=response_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            reasoning_tokens=thinking_tokens,
+                        ),
+                        stream_type="usage",
+                    )
 
                 if chunk.choices and (len(chunk.choices) > 0):
                     # streaming text
