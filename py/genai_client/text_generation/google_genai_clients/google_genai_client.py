@@ -48,6 +48,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         region: Optional[str] = None,
         project: Optional[str] = None,
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         safety_settings: Optional[dict] = None,
         **kwargs,
     ):
@@ -63,6 +64,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             region=region,
             project=project,
             api_key=api_key,
+            base_url=base_url,
         )
         self.client = GoogleClient(config=self.client_config).client
 

@@ -28,15 +28,11 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.io.UncheckedIOException;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -49,14 +45,13 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.project.api.IProject;
+import prerna.reactor.agent.AppBuildingHarness;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
 import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.tcp.PayloadStruct;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ClaudeCodeManager {
@@ -220,35 +215,6 @@ public class ClaudeCodeManager {
 				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
-	private void createClaudeDir(String projectPath) {
-		try {
-			Path claudeDir = Paths.get(projectPath, ".claude");
-			if (!Files.exists(claudeDir)) {
-				Files.createDirectories(claudeDir);
-			}
-
-			Path skillsDir = claudeDir.resolve("skills");
-			if (!Files.exists(skillsDir)) {
-				Files.createDirectories(skillsDir);
-			}
-
-			Path logsDir = claudeDir.resolve("logs");
-			if (!Files.exists(logsDir)) {
-				Files.createDirectories(logsDir);
-				Path changeLogPath = claudeDir.resolve("logs/change_log.txt");
-				Files.createFile(changeLogPath);
-			}
-
-			Path claudeFile = Paths.get(projectPath, "CLAUDE.md");
-			if (!Files.exists(claudeFile)) {
-				Files.createFile(claudeFile);
-			}
-
-		} catch (IOException e) {
-			classLogger.error("Failed to create .claude directory structure at: " + projectPath, e);
-		}
-	}
-
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
 			List<Map<String, String>> mcps) throws Exception {
@@ -268,7 +234,7 @@ public class ClaudeCodeManager {
 				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 		String finalFilePath = base + "/client";
 
-		createClaudeDir(finalFilePath);
+		AppBuildingHarness.ensureClaudeStructure(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
@@ -279,122 +245,6 @@ public class ClaudeCodeManager {
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
-	}
-
-	public Boolean deleteSkill(User user, String projectId, String skillName) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName);
-
-		if (!Files.exists(skillPath)) {
-			return true;
-		}
-
-		try (Stream<Path> walk = Files.walk(skillPath)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(path -> {
-				try {
-					Files.delete(path);
-				} catch (IOException e) {
-					classLogger.error("Failed to delete path: " + path + " - " + e);
-					throw new UncheckedIOException(e);
-				}
-			});
-			return true;
-		} catch (IOException | UncheckedIOException e) {
-			classLogger.error("Failed to delete skills directory: " + e);
-			return false;
-		}
-	}
-
-	public Boolean createSkill(User user, String projectId, String skillName, String skillContent) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		String slugifiedName = skillName.toLowerCase().replace(" ", "-");
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", slugifiedName, "SKILL.md");
-
-		try {
-			Files.createDirectories(skillPath.getParent());
-			Files.createFile(skillPath);
-			Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-			return true;
-		} catch (IOException e) {
-			classLogger.error("Failed to write skill file: " + e);
-			return false;
-		}
-	}
-
-	public Boolean updateSkill(User user, String projectId, String skillName, String skillContent) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName, "SKILL.md");
-
-		try {
-			Files.createDirectories(skillPath.getParent());
-			Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-			return true;
-		} catch (IOException e) {
-			classLogger.error("Failed to write skill file: " + e);
-			return false;
-		}
-
-	}
-
-	public Map<String, String> getSkills(User user, String projectId) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		Map<String, String> skillsMap = new HashMap<>();
-
-		Path claudeMd = Paths.get(projectPath, "client", "CLAUDE.md");
-		if (Files.exists(claudeMd)) {
-			try {
-				String content = new String(Files.readAllBytes(claudeMd));
-				skillsMap.put("CLAUDE.MD", content);
-			} catch (IOException e) {
-				classLogger.error("Failed to read Claude.md file: " + e);
-			}
-		}
-
-		Path skillsDir = Paths.get(projectPath, "client", ".claude", "skills");
-		if (!Files.exists(skillsDir)) {
-			return skillsMap;
-		}
-		try {
-			Files.list(skillsDir).forEach(dir -> {
-				try {
-					String skillName = dir.getFileName().toString();
-					Path skillFilePath = dir.resolve("SKILL.md");
-					String skillContent = new String(Files.readAllBytes(skillFilePath));
-					skillsMap.put(skillName, skillContent);
-				} catch (IOException e) {
-					classLogger.error("Failed to get skill file contents: " + e);
-				}
-			});
-		} catch (IOException e) {
-			classLogger.error("Failed to list skills directory: " + skillsDir, e);
-		}
-		return skillsMap;
 	}
 
 	/**

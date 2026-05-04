@@ -443,6 +443,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         + (cache_creation_tokens or 0)
                     )
 
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=input_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
+                        ),
+                        stream_type="usage",
+                    )
+
                 elif event.type == "content_block_start":
                     this_content_block_type = event.content_block.type
                     this_content_block["type"] = this_content_block_type
@@ -606,6 +615,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         event.delta, "stop_reason", None
                     ):
                         stop_reason = event.delta.stop_reason
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(output_tokens=output_tokens),
+                        stream_type="usage",
+                    )
 
             if stop_reason is None:
                 try:
