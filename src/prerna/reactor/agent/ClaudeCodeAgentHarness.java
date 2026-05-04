@@ -41,7 +41,6 @@ import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
-import prerna.util.Utility;
 
 /**
  * {@link IAgentHarness} implementation that delegates to {@link ClaudeCodeManager}.
@@ -121,7 +120,7 @@ public class ClaudeCodeAgentHarness implements IAgentHarness {
         // Delegate to ClaudeCodeManager
         logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
-        String targetBinary = Utility.getDIHelperProperty(ClaudeCodeManager.CFG_CLAUDE_CLI_PATH);
+        String targetBinary = ClaudeCodeManager.resolveClaudeBinary();
         SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
                 room.getRoomFolderPath(), filePath, targetBinary, ctx.getSandboxPolicy());
         String output = manager.query(

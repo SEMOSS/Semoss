@@ -181,7 +181,12 @@ public class ClaudeCodeManager {
 	 * {@code "claude"} if nothing is found — the launcher will surface a
 	 * clear {@code execvp} error.
 	 */
-	private String resolveClaudeBinary() {
+	/**
+	 * Resolve the absolute path to the claude CLI; same shape as {@link
+	 * GitHubCopilotManager#resolveCopilotBinary()}.  Public + static so the
+	 * harness can pre-compute the path for sandbox policy carve-outs.
+	 */
+	public static String resolveClaudeBinary() {
 		String configured = Utility.getDIHelperProperty(CFG_CLAUDE_CLI_PATH);
 		if (configured != null && !configured.trim().isEmpty()) {
 			return configured.trim();

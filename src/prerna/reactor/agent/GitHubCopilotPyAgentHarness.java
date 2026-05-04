@@ -40,7 +40,6 @@ import prerna.engine.impl.model.GitHubCopilotPyManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
-import prerna.util.Utility;
 
 /**
  * Python-sidecar GitHub Copilot harness. Same behaviour and parameter shape as
@@ -108,7 +107,7 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 			cwd = ctx.getFilePath() + "/client";
 		}
 
-		String targetBinary = Utility.getDIHelperProperty(GitHubCopilotManager.CFG_COPILOT_CLI_PATH);
+		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
 		SandboxPolicy sandboxPolicy = AgentSandboxConfig.buildEffectivePolicy(
 				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
 

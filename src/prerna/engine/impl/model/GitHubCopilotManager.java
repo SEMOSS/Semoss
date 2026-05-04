@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -123,14 +124,19 @@ public class GitHubCopilotManager {
 
 		AtomicBoolean terminalErrorSeen = new AtomicBoolean(false);
 		AtomicBoolean idlePublished = new AtomicBoolean(false);
+		AtomicReference<String> sessionErrorMessage = new AtomicReference<>();
 
 		CopilotClientOptions clientOptions = new CopilotClientOptions();
 		clientOptions.setCliArgs(new String[] { "--config-dir", roomFolderPath });
+		// Always honor the configured (or discovered) Copilot binary; the sandbox
+		// path below will override with a wrapper script when enabled.
+		String resolvedBinary = resolveCopilotBinary();
+		clientOptions.setCliPath(resolvedBinary);
 		if (contextWindow > 0) {
 			clientOptions.setOnListModels(() -> CompletableFuture.completedFuture(List.of(
 					buildModelInfo(engineId, contextWindow))));
 		}
-		applySandbox(clientOptions, sandboxPolicy, roomFolderPath, workingDirectory);
+		applySandbox(clientOptions, sandboxPolicy, resolvedBinary, workingDirectory);
 
 		try (CopilotClient client = new CopilotClient(clientOptions)) {
 			client.start().get();
@@ -144,32 +150,38 @@ public class GitHubCopilotManager {
 
 			SessionConfig sessionConfig = buildSessionConfig(engineId, workingDirectory, roomFolderPath, systemPrompt,
 					bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus, terminalErrorSeen,
-					idlePublished);
+					idlePublished, sessionErrorMessage);
 			ResumeSessionConfig resumeConfig = buildResumeSessionConfig(engineId, workingDirectory, roomFolderPath,
 					systemPrompt, bearerToken, baseUrl, allowedTools, permissionMode, mcps, runId, roomId, eventBus,
-					terminalErrorSeen, idlePublished);
+					terminalErrorSeen, idlePublished, sessionErrorMessage);
 
 			try (CopilotSession session = openSession(client, lastSessionId, roomFolderPath, sessionConfig, resumeConfig)) {
 				AssistantMessageEvent finalMessage = session
 						.sendAndWait(new MessageOptions().setPrompt(prompt), 0)
 						.get();
+				// sendAndWait may complete normally even when the session ended in
+				// an error event (auth, provider, quota); surface it to the caller.
+				String err = sessionErrorMessage.get();
+				if (err != null) {
+					throw new IllegalStateException("Copilot session error: " + err);
+				}
 				return finalMessage != null && finalMessage.getData() != null ? finalMessage.getData().content() : "";
 			}
 		}
 	}
 
 	/**
-	 * If a policy is provided, point the Copilot SDK at our sandbox launcher so
-	 * landlock (Linux) or Seatbelt (macOS) applies before the copilot CLI's
-	 * {@code exec}. No-op when {@code policy == null}.
+	 * If sandbox is enabled, override the SDK's {@code cliPath} with our launcher
+	 * wrapper so landlock (Linux) or Seatbelt (macOS) applies before the copilot
+	 * CLI's {@code exec}.  No-op when sandbox is disabled — the caller's prior
+	 * {@code setCliPath(targetBinary)} stands.
 	 */
 	private void applySandbox(CopilotClientOptions opts, SandboxPolicy policy,
-			String roomFolderPath, String workingDirectory) {
+			String targetBinary, String workingDirectory) {
 		if (policy == null || policy.getEnforcement() == EnforcementMode.DISABLED) {
 			return;
 		}
 		SandboxLauncher launcher = SandboxLauncherRegistry.get();
-		String targetBinary = resolveCopilotBinary();
 		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
 		opts.setCliPath(plan.getCliPath());
 		// Merge inherited env with plan additions; drop plan removals.
@@ -189,9 +201,12 @@ public class GitHubCopilotManager {
 	 * Resolve the absolute path to the copilot CLI, preferring the DIHelper
 	 * config entry {@link #CFG_COPILOT_CLI_PATH} and falling back to common
 	 * install locations. Returns {@code "copilot"} if nothing matches — the
-	 * sandbox launcher will surface a clear {@code execvp} error.
+	 * SDK / sandbox launcher will surface a clear {@code execvp} error.
+	 *
+	 * <p>Public + static so the agent harness can pre-compute the path used
+	 * by sandbox policy carve-outs (the binary's parent dir must be readable).
 	 */
-	private String resolveCopilotBinary() {
+	public static String resolveCopilotBinary() {
 		String configured = Utility.getDIHelperProperty(CFG_COPILOT_CLI_PATH);
 		if (configured != null && !configured.trim().isEmpty()) {
 			return configured.trim();
@@ -238,7 +253,8 @@ public class GitHubCopilotManager {
 			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
 			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
 			AtomicBoolean terminalErrorSeen,
-			AtomicBoolean idlePublished) {
+			AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		SessionConfig config = new SessionConfig();
 		config.setClientName(CLIENT_NAME);
 		config.setModel(engineId);
@@ -254,7 +270,7 @@ public class GitHubCopilotManager {
 		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
 			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
 		}
-		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished, sessionErrorMessage));
 		return config;
 	}
 
@@ -262,7 +278,8 @@ public class GitHubCopilotManager {
 			String systemPrompt, String bearerToken, String baseUrl, List<String> allowedTools, String permissionMode,
 			List<Map<String, String>> mcps, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
 			AtomicBoolean terminalErrorSeen,
-			AtomicBoolean idlePublished) {
+			AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		ResumeSessionConfig config = new ResumeSessionConfig();
 		config.setClientName(CLIENT_NAME);
 		config.setModel(engineId);
@@ -278,7 +295,7 @@ public class GitHubCopilotManager {
 		if (systemPrompt != null && !systemPrompt.trim().isEmpty()) {
 			config.setSystemMessage(new SystemMessageConfig().setMode(SystemMessageMode.APPEND).setContent(systemPrompt));
 		}
-		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished));
+		config.setOnEvent(event -> publishEvent(event, runId, roomId, eventBus, terminalErrorSeen, idlePublished, sessionErrorMessage));
 		return config;
 	}
 
@@ -321,7 +338,8 @@ public class GitHubCopilotManager {
 	}
 
 	private void publishEvent(AbstractSessionEvent event, String runId, String roomId, GitHubCopilotLiveEventBus eventBus,
-			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished) {
+			AtomicBoolean terminalErrorSeen, AtomicBoolean idlePublished,
+			AtomicReference<String> sessionErrorMessage) {
 		if (event == null) {
 			return;
 		}
@@ -458,10 +476,19 @@ public class GitHubCopilotManager {
 
 		if (event instanceof SessionErrorEvent sessionErrorEvent) {
 			terminalErrorSeen.set(true);
+			String message = sessionErrorEvent.getData().message();
+			String errorType = sessionErrorEvent.getData().errorType();
+			Double statusCode = sessionErrorEvent.getData().statusCode();
+			// Capture once — first terminal error wins; later events shouldn't
+			// overwrite the cause shown to the caller.
+			sessionErrorMessage.compareAndSet(null,
+					(errorType != null ? errorType : "error")
+					+ (statusCode != null ? " (" + statusCode + ")" : "")
+					+ (message != null ? ": " + message : ""));
 			Map<String, Object> data = new LinkedHashMap<>();
-			data.put("errorType", sessionErrorEvent.getData().errorType());
-			data.put("message", sessionErrorEvent.getData().message());
-			data.put("statusCode", sessionErrorEvent.getData().statusCode());
+			data.put("errorType", errorType);
+			data.put("message", message);
+			data.put("statusCode", statusCode);
 			eventBus.publish(roomId, runId, "session.error", timestamp, ephemeral, data, true);
 		}
 	}

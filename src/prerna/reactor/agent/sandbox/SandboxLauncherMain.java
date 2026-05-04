@@ -60,8 +60,8 @@ public final class SandboxLauncherMain {
     public static final String ENV_TARGET_CLI   = "SEMOSS_SANDBOX_TARGET_CLI";
     public static final String ENV_PROFILE_FILE = "SEMOSS_SANDBOX_PROFILE_FILE";
 
-    /** Widest set of FS access rights we can safely ask landlock to handle. */
-    private static final long HANDLED_FS_ALL =
+    /** Landlock ABI v1 filesystem rights. Newer rights must be gated by ABI. */
+    private static final long HANDLED_FS_ABI_1 =
               Landlock.LANDLOCK_ACCESS_FS_EXECUTE
             | Landlock.LANDLOCK_ACCESS_FS_WRITE_FILE
             | Landlock.LANDLOCK_ACCESS_FS_READ_FILE
@@ -74,16 +74,12 @@ public final class SandboxLauncherMain {
             | Landlock.LANDLOCK_ACCESS_FS_MAKE_SOCK
             | Landlock.LANDLOCK_ACCESS_FS_MAKE_FIFO
             | Landlock.LANDLOCK_ACCESS_FS_MAKE_BLOCK
-            | Landlock.LANDLOCK_ACCESS_FS_MAKE_SYM
-            | Landlock.LANDLOCK_ACCESS_FS_REFER
-            | Landlock.LANDLOCK_ACCESS_FS_TRUNCATE;
+            | Landlock.LANDLOCK_ACCESS_FS_MAKE_SYM;
 
     private static final long RO_BITS =
               Landlock.LANDLOCK_ACCESS_FS_EXECUTE
             | Landlock.LANDLOCK_ACCESS_FS_READ_FILE
             | Landlock.LANDLOCK_ACCESS_FS_READ_DIR;
-
-    private static final long RW_BITS = HANDLED_FS_ALL; // read + write + create + remove
 
     public interface LibCExec extends Library {
         LibCExec INSTANCE = Native.load("c", LibCExec.class);
@@ -156,19 +152,21 @@ public final class SandboxLauncherMain {
             return -1;
         }
 
-        int rulesetFd = Landlock.createRuleset(HANDLED_FS_ALL);
+        long handledFs = handledFsForAbi(abi);
+        int rulesetFd = Landlock.createRuleset(handledFs);
         if (rulesetFd < 0) {
             return rulesetFd;
         }
         try {
             for (AllowedPath ap : policy.getAllowedPaths()) {
-                if (addPathRule(rulesetFd, ap) != 0) {
+                if (addPathRule(rulesetFd, ap, handledFs) != 0) {
                     return -1;
                 }
             }
-            policy.getTmpDir().ifPresent(p -> {
-                addPathRule(rulesetFd, new AllowedPath(p, AccessMode.RW));
-            });
+            if (policy.getTmpDir().isPresent()
+                    && addPathRule(rulesetFd, new AllowedPath(policy.getTmpDir().get(), AccessMode.RW), handledFs) != 0) {
+                return -1;
+            }
 
             if (Landlock.setNoNewPrivs() != 0) {
                 return -1;
@@ -182,7 +180,18 @@ public final class SandboxLauncherMain {
         }
     }
 
-    private static int addPathRule(int rulesetFd, AllowedPath ap) {
+    private static long handledFsForAbi(int abi) {
+        long bits = HANDLED_FS_ABI_1;
+        if (abi >= 2) {
+            bits |= Landlock.LANDLOCK_ACCESS_FS_REFER;
+        }
+        if (abi >= 3) {
+            bits |= Landlock.LANDLOCK_ACCESS_FS_TRUNCATE;
+        }
+        return bits;
+    }
+
+    private static int addPathRule(int rulesetFd, AllowedPath ap, long handledFs) {
         Path p = ap.getPath();
         int parentFd = Landlock.openPath(p);
         if (parentFd < 0) {
@@ -193,7 +202,7 @@ public final class SandboxLauncherMain {
             return 0;
         }
         try {
-            long access = ap.getMode() == AccessMode.RW ? RW_BITS : RO_BITS;
+            long access = (ap.getMode() == AccessMode.RW ? handledFs : RO_BITS) & handledFs;
             int rc = Landlock.addPathBeneathRule(rulesetFd, access, parentFd);
             if (rc != 0) {
                 System.err.println("SandboxLauncherMain: addPathBeneathRule(" + p + ") rc=" + rc + " "

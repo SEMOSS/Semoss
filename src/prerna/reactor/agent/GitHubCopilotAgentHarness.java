@@ -42,7 +42,6 @@ import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
-import prerna.util.Utility;
 
 /**
  * GitHub Copilot SDK-backed agent harness.
@@ -109,7 +108,7 @@ public class GitHubCopilotAgentHarness implements IAgentHarness {
 			cwd = ctx.getFilePath() + "/client";
 		}
 
-		String targetBinary = Utility.getDIHelperProperty(GitHubCopilotManager.CFG_COPILOT_CLI_PATH);
+		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
 		SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
 				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
 

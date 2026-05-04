@@ -109,7 +109,10 @@ public class GitHubCopilotPyManager {
 
 		if (sandboxPolicy != null && sandboxPolicy.getEnforcement() != EnforcementMode.DISABLED) {
 			SandboxLauncher launcher = SandboxLauncherRegistry.get();
-			String targetBinary = cliPath != null ? cliPath : "copilot";
+			// Sandbox launchers reject non-absolute paths; fall back to the same
+			// discovery logic the Java manager uses so the configured-or-discovered
+			// binary lines up with the policy carve-out built by the harness.
+			String targetBinary = cliPath != null ? cliPath : GitHubCopilotManager.resolveCopilotBinary();
 			SandboxLaunchPlan plan = launcher.plan(sandboxPolicy, targetBinary, null);
 			cliPath = plan.getCliPath();
 			sandboxEnv = plan.getEnvironmentAdditions();
