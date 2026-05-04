@@ -41,6 +41,8 @@ import org.apache.logging.log4j.Logger;
  * <ul>
  *   <li>{@code "room_loop"} → {@link RoomAgentHarness}
  *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
+ *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
@@ -56,10 +58,14 @@ public final class AgentHarnessRegistry {
 
     static {
         Map<String, IAgentHarness> m = new HashMap<>();
-        IAgentHarness roomLoop   = new RoomAgentHarness();
-        IAgentHarness claudeCode = new ClaudeCodeAgentHarness();
-        m.put(roomLoop.getName(),   roomLoop);
-        m.put(claudeCode.getName(), claudeCode);
+        IAgentHarness roomLoop        = new RoomAgentHarness();
+        IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
+        IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
+        IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
+        m.put(roomLoop.getName(),        roomLoop);
+        m.put(claudeCode.getName(),      claudeCode);
+        m.put(githubCopilot.getName(),   githubCopilot);
+        m.put(githubCopilotPy.getName(), githubCopilotPy);
         REGISTRY = Collections.synchronizedMap(m);
     }
 

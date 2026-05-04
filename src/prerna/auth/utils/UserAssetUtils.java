@@ -1,0 +1,264 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.auth.utils;
+
+import java.io.File;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.UUID;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
+import prerna.project.impl.Project;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.AssetUtility;
+import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
+import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+
+public class UserAssetUtils extends AbstractSecurityUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(UserAssetUtils.class);
+
+	public static final String ASSET_APP_NAME = "Asset";
+	public static final String HIDDEN_FILE = ".semoss";
+
+	UserAssetUtils() {
+		super();
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Creating workspace and asset metadata
+	//////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Create the user asset project for the provided user and auth token
+	 * 
+	 * @param user
+	 * @param provider
+	 * @return
+	 * @throws Exception
+	 */
+	public static String createUserAssetProject(User user, AuthProvider provider) throws Exception {
+		String projectId = createEmptyProject(user, provider, ASSET_APP_NAME, true);
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
+		return projectId;
+	}
+
+	/**
+	 * Generate empty project that is for asset/workspace
+	 * 
+	 * @param user
+	 * @param provider
+	 * @param projectName
+	 * @param isAsset
+	 * @return
+	 * @throws Exception
+	 */
+	private static String createEmptyProject(User user, AuthProvider provider, String projectName, boolean isAsset)
+			throws Exception {
+		AccessToken token = user.getAccessToken(provider);
+		// Create a new project id
+		String projectId = UUID.randomUUID().toString();
+
+		String userFolderLocation = AssetUtility.getUserAssetAppRootFolder(projectName, projectId);
+		File userFolder = new File(userFolderLocation);
+		userFolder.mkdirs();
+
+		// Add database into DIHelper so that the web watcher doesn't try to load as
+		// well
+		File tempSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset, null);
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+
+		// Add the project to security db
+		if (!isAsset) {
+			SecurityProjectUtils.addProject(projectId, false, user);
+			SecurityProjectUtils.addProjectOwner(user, projectId, token.getId());
+		}
+
+		// Create the project
+		Project project = new Project();
+
+		// Only at end do we add to DIHelper
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+		projects = projects + ";" + projectId;
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+
+		// Rename .temp to .smss
+		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(tempSmss, smssFile);
+		tempSmss.delete();
+
+		// Update engine smss file location
+		project.open(smssFile.getAbsolutePath());
+
+		if (ClusterUtil.IS_CLUSTER) {
+			ClusterUtil.pushUserAsset(projectId);
+		}
+
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		return projectId;
+	}
+
+	/**
+	 * Register the user asset project for the provided access token and project id
+	 * 
+	 * @param token
+	 * @param projectId
+	 * @throws SQLException
+	 */
+	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, token.getProvider().name());
+			ps.setString(parameterIndex++, token.getId());
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Unable to register user asset project.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Register the user asset project for the provided user, auth provider, and
+	 * project id
+	 * 
+	 * @param user
+	 * @param provider
+	 * @param projectId
+	 * @throws SQLException
+	 */
+	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
+			throws SQLException {
+		registerUserAssetProject(user.getAccessToken(provider), projectId);
+	}
+
+	/**
+	 * Get the user asset project for the provided access token; returns null if
+	 * there is none
+	 * 
+	 * @param user
+	 * @param token
+	 * @return
+	 */
+	public static String getUserAssetProject(AccessToken token) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				Object rs = wrapper.next().getValues()[0];
+				if (rs == null) {
+					return null;
+				}
+				return rs.toString();
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to retrieve user asset project.", e);
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get the user asset project for the provided user and auth provider; returns
+	 * null if there is none
+	 * 
+	 * @param user
+	 * @param provider
+	 * @return
+	 */
+	public static String getUserAssetProject(User user, AuthProvider provider) {
+		return getUserAssetProject(user.getAccessToken(provider));
+	}
+
+	/**
+	 * Is the project an asset
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static boolean isAssetProject(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__PROJECTID", "==", projectId));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Unable to determine whether the project is an asset project.", e);
+		}
+
+		return false;
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Asset folder locations
+	//////////////////////////////////////////////////////////////////////
+	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
+		String assetProjectId = user.getAssetProjectId(provider);
+		if (assetProjectId != null) {
+			IProject assetProject = Utility.getProject(assetProjectId);
+			if (assetProject != null) {
+				String assetProjectName = assetProject.getProjectName();
+				if (assetProjectName != null) {
+					return AssetUtility.getProjectVersionFolder(assetProjectName, assetProjectId);
+				}
+			}
+		}
+		return null;
+	}
+
+}

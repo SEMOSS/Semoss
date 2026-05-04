@@ -79,7 +79,7 @@ public class AssetUtility {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				String projectName = "Asset";
-				assetFolder = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
+				assetFolder = getUserAssetAppRootFolder(projectName, projectId);
 			} else if (INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
 				// default
 				// but need to perform check
@@ -332,9 +332,9 @@ public class AssetUtility {
 	 * @param projectId
 	 * @return
 	 */
-	public static String getUserAssetAndWorkspaceVersionFolder(String projectName, String projectId) {
+	public static String getUserAssetVersionFolder(String projectName, String projectId) {
 		// get the base folder
-		String baseFodler = getUserAssetAndWorkspaceAppRootFolder(projectName, projectId);
+		String baseFodler = getUserAssetAppRootFolder(projectName, projectId);
 		String gitFolder = baseFodler + "/version";
 
 		File file = new File(Utility.normalizePath(gitFolder));
@@ -354,8 +354,8 @@ public class AssetUtility {
 	 * @param projectId
 	 * @return
 	 */
-	public static String getUserAssetAndWorkspaceAssetFolder(String projectName, String projectId) {
-		String projectVersionBaseFolder = getUserAssetAndWorkspaceVersionFolder(projectName, projectId);
+	public static String getUserAssetFolder(String projectName, String projectId) {
+		String projectVersionBaseFolder = getUserAssetVersionFolder(projectName, projectId);
 		String projectFolder = projectVersionBaseFolder + DIR_SEPARATOR + Constants.ASSETS_FOLDER;
 
 		// if this folder does not exist create it
@@ -372,7 +372,7 @@ public class AssetUtility {
 	 * @param projectId
 	 * @return
 	 */
-	public static String getUserAssetAndWorkspaceAppRootFolder(String projectName, String projectId) {
+	public static String getUserAssetAppRootFolder(String projectName, String projectId) {
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
 			baseFolder += DIR_SEPARATOR;
