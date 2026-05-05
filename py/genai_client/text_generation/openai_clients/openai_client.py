@@ -58,6 +58,11 @@ class OpenAiClient(AbstractTextGenerationClient):
         chat_type = kwargs.pop("chat_type", "chat-completion")
         kwargs["chat_type"] = chat_type
         self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
+        stream_kwarg = kwargs.pop("stream", None)
+        if stream_kwarg is not None:
+            override = kwargs.setdefault("global_param_override", {})
+            if isinstance(override, dict):
+                override.setdefault("stream", stream_kwarg)
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 

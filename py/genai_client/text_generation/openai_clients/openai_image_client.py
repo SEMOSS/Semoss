@@ -78,6 +78,9 @@ class OpenAiImageClient:
             # Default stream on to match chat-completion/responses defaults.
             stream = self._resolve_bool(param_map.pop("stream", False), default=False)
             param_map["stream"] = stream
+            if stream:
+                # 
+                param_map.setdefault("partial_images", 3)
 
             if task_type == OpenAIImageTaskType.GENERATE:
                 api_response = self._generate_image(param_map)
