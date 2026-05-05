@@ -43,8 +43,15 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+
 import prerna.auth.User;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
@@ -64,12 +71,12 @@ import prerna.util.Utility;
  *       reactors can use them without instantiating a harness.
  * </ul>
  *
- * <p>{@link #execute(AgentRunContext)} is final; subclasses implement
- * {@link #doExecute(AgentRunContext)} instead.
+ * <p>{@link #executeCall(AgentRunContext)} handles scaffolding; subclasses implement
+ * {@link #build(AgentRunContext)} for their SDK-specific execution.
  */
-public abstract class AppBuildingHarness implements IAgentHarness {
+public abstract class AppBuildingHarness extends AbstractAgentHarness {
 
-    private static final Logger logger = LogManager.getLogger(AppBuildingHarness.class);
+    private static final Logger classLogger = LogManager.getLogger(AppBuildingHarness.class);
 
     protected static final String PARAM_ALLOWED_TOOLS  = "allowed_tools";
     protected static final String PARAM_PERMISSION_MODE = "permission_mode";
@@ -86,21 +93,110 @@ public abstract class AppBuildingHarness implements IAgentHarness {
     // Template method
     // ============================================================
 
+    private static final Gson GSON = new Gson();
+
     @Override
-    public final AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
+    protected final AgentHarnessResult executeCall(AgentRunContext ctx) throws Exception {
         String clientPath = resolveClientPath(ctx);
         if (clientPath != null) {
             ensureClaudeStructure(clientPath);
             AppBuilderHarnessConfiguration.ensureAgentConfig(clientPath);
         }
-        return doExecute(ctx);
+        AgentHarnessResult rawResult = build(ctx);
+
+        // Parse structured response from Python (contains message + toolSteps)
+        return parseAndRecordToolSteps(rawResult, ctx);
     }
 
-    /** Subclass entry point. Wrapped by {@link #execute(AgentRunContext)}. */
-    protected abstract AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception;
+    /**
+     * Parses the structured JSON response from the Python harness and batch-records
+     * tool steps into AGENT_TRACE_STEP. If the output is not structured JSON (legacy
+     * or non-Py harnesses), returns the result unchanged.
+     */
+    private AgentHarnessResult parseAndRecordToolSteps(AgentHarnessResult rawResult, AgentRunContext ctx) {
+        String output = rawResult.getFinalText();
+        if (output == null || output.isEmpty()) {
+            return rawResult;
+        }
+
+        // Try to parse as structured JSON response
+        JsonObject structured;
+        try {
+            structured = GSON.fromJson(output, JsonObject.class);
+        } catch (JsonSyntaxException e) {
+            // Not JSON — legacy plain-text response, return as-is
+            return rawResult;
+        }
+
+        if (structured == null || !structured.has("message")) {
+            return rawResult;
+        }
+
+        String message = structured.has("message") && !structured.get("message").isJsonNull()
+                ? structured.get("message").getAsString() : "";
+
+        // Extract and record tool steps
+        List<AgentHarnessResult.ToolCallRecord> toolRecords = new ArrayList<>();
+        JsonArray toolSteps = structured.has("toolSteps") ? structured.getAsJsonArray("toolSteps") : null;
+
+        if (toolSteps != null && toolSteps.size() > 0) {
+            String traceId = AgentTraceLogsUtils.getActiveTraceId(ctx.getInsight().getInsightId());
+            int stepBase = traceId != null ? AgentTraceLogsUtils.reserveStepIndices(traceId, toolSteps.size()) : 0;
+
+            for (int i = 0; i < toolSteps.size(); i++) {
+                JsonObject step = toolSteps.get(i).getAsJsonObject();
+                String toolCallId = getJsonString(step, "toolCallId");
+                String toolName = getJsonString(step, "toolName");
+                String toolInput = getJsonString(step, "toolInput");
+                String outputText = getJsonString(step, "outputText");
+                String status = getJsonString(step, "status");
+                long startMs = step.has("startMs") ? step.get("startMs").getAsLong() : 0;
+                long endMs = step.has("endMs") ? step.get("endMs").getAsLong() : 0;
+
+                boolean success = "success".equals(status);
+                toolRecords.add(new AgentHarnessResult.ToolCallRecord(
+                        toolName, toolCallId, outputText, endMs - startMs, success));
+
+                // Persist trace step
+                if (traceId != null) {
+                    try {
+                        AgentTraceLogsUtils.recordTraceStep(
+                                traceId,
+                                stepBase + i,
+                                toolCallId,
+                                toolName,
+                                null,   // engineId — subprocess tools don't map to SEMOSS engines
+                                null,   // engineType
+                                false,  // isMcp
+                                startMs,
+                                endMs,
+                                success ? "success" : "error",
+                                toolInput,
+                                outputText,
+                                success ? null : outputText);
+                    } catch (Exception e) {
+                        classLogger.warn("Failed to record trace step {} for tool '{}': {}",
+                                stepBase + i, toolName, e.getMessage());
+                    }
+                }
+            }
+        }
+
+        int iterations = structured.has("iterations") ? structured.get("iterations").getAsInt() : toolRecords.size();
+        return new AgentHarnessResult(message, iterations, toolRecords);
+    }
+
+    private static String getJsonString(JsonObject obj, String key) {
+        JsonElement el = obj.get(key);
+        if (el == null || el.isJsonNull()) return null;
+        return el.getAsString();
+    }
+
+    /** SDK-specific execution. Called after project scaffolding is ensured. */
+    protected abstract AgentHarnessResult build(AgentRunContext ctx) throws Exception;
 
     // ============================================================
-    // Shared resolution helpers (used inside doExecute)
+    // Shared resolution helpers (used inside executeCall)
     // ============================================================
 
     protected String resolveClientPath(AgentRunContext ctx) {
@@ -200,7 +296,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
             if (!Files.exists(claudeMd)) Files.createFile(claudeMd);
 
         } catch (IOException e) {
-            logger.error("Failed to create .claude directory structure at: {}", clientPath, e);
+            classLogger.error("Failed to create .claude directory structure at: {}", clientPath, e);
         }
     }
 
@@ -221,7 +317,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
             Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
-            logger.error("Failed to write skill file: {}", skillPath, e);
+            classLogger.error("Failed to write skill file: {}", skillPath, e);
             return false;
         }
     }
@@ -235,7 +331,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
             Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
             return true;
         } catch (IOException e) {
-            logger.error("Failed to write skill file: {}", skillPath, e);
+            classLogger.error("Failed to write skill file: {}", skillPath, e);
             return false;
         }
     }
@@ -253,13 +349,13 @@ public abstract class AppBuildingHarness implements IAgentHarness {
                 try {
                     Files.delete(path);
                 } catch (IOException e) {
-                    logger.error("Failed to delete path: {}", path, e);
+                    classLogger.error("Failed to delete path: {}", path, e);
                     throw new UncheckedIOException(e);
                 }
             });
             return true;
         } catch (IOException | UncheckedIOException e) {
-            logger.error("Failed to delete skill directory: {}", skillPath, e);
+            classLogger.error("Failed to delete skill directory: {}", skillPath, e);
             return false;
         }
     }
@@ -273,7 +369,7 @@ public abstract class AppBuildingHarness implements IAgentHarness {
             try {
                 skillsMap.put("CLAUDE.MD", new String(Files.readAllBytes(claudeMd), StandardCharsets.UTF_8));
             } catch (IOException e) {
-                logger.error("Failed to read CLAUDE.md", e);
+                classLogger.error("Failed to read CLAUDE.md", e);
             }
         }
 
@@ -291,11 +387,11 @@ public abstract class AppBuildingHarness implements IAgentHarness {
                                 new String(Files.readAllBytes(skillFile), StandardCharsets.UTF_8));
                     }
                 } catch (IOException e) {
-                    logger.error("Failed to read skill file under {}", dir, e);
+                    classLogger.error("Failed to read skill file under {}", dir, e);
                 }
             });
         } catch (IOException e) {
-            logger.error("Failed to list skills directory: {}", skillsDir, e);
+            classLogger.error("Failed to list skills directory: {}", skillsDir, e);
         }
         return skillsMap;
     }

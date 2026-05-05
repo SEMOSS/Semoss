@@ -1,16 +1,20 @@
 from typing import Optional
 from uuid import uuid4
 import asyncio
+import json
 import os
+import time
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
     ClaudeAgentOptions,
     AssistantMessage,
     TextBlock,
+    ToolUseBlock,
     ClaudeSDKClient,
     PermissionMode,
     HookMatcher,
     UserMessage,
+    ToolResultBlock,
 )
 from smss_thread_local import get_smss_stream
 from .claude_code_utils import (
@@ -177,6 +181,13 @@ class ClaudeCodeClient:
         smss_stream = get_smss_stream()
         final_message = ""
 
+        # Accumulate tool steps for trace recording on the Java side
+        tool_steps: list[dict] = []
+        # Track pending tool calls (keyed by tool_use_id) for duration calculation
+        pending_tools: dict[str, dict] = {}
+        # Count agentic iterations (each AssistantMessage = one iteration)
+        iterations: int = 0
+
         if smss_stream:
             smss_stream(
                 make_user_prompt_event(
@@ -190,21 +201,54 @@ class ClaudeCodeClient:
         async with self.sdk_client as client:
             await client.query(prompt)
             async for message in client.receive_response():
-                # logger.info(f"Claude-Code-chunk:: {message}")
                 if isinstance(message, AssistantMessage):
+                    iterations += 1
                     for block in message.content:
                         if isinstance(block, TextBlock):
-                            print(f"Claude: {block.text}")
                             final_message += block.text
+                        elif isinstance(block, ToolUseBlock):
+                            # Record tool invocation start
+                            tool_input = block.input if isinstance(block.input, dict) else {}
+                            pending_tools[block.id] = {
+                                "toolCallId": block.id,
+                                "toolName": block.name,
+                                "toolInput": json.dumps(tool_input) if tool_input else None,
+                                "startMs": int(time.time() * 1000),
+                            }
                     if smss_stream:
                         event = make_assistant_event(message)
                         if event is not None:
                             smss_stream(event, stream_type="content")
                 elif isinstance(message, UserMessage):
+                    # Match tool results to pending invocations
+                    content_blocks = message.content if isinstance(message.content, list) else []
+                    for block in content_blocks:
+                        if isinstance(block, ToolResultBlock) and block.tool_use_id in pending_tools:
+                            step = pending_tools.pop(block.tool_use_id)
+                            step["endMs"] = int(time.time() * 1000)
+                            step["status"] = "error" if block.is_error else "success"
+                            # Extract output text
+                            if isinstance(block.content, str):
+                                step["outputText"] = block.content[:2000]
+                            elif isinstance(block.content, list):
+                                parts = [
+                                    item.get("text", "")
+                                    for item in block.content
+                                    if isinstance(item, dict) and item.get("type") == "text"
+                                ]
+                                step["outputText"] = "\n".join(parts)[:2000]
+                            tool_steps.append(step)
                     if smss_stream:
                         event = make_tool_result_event(message)
                         if event is not None:
                             smss_stream(event, stream_type="content")
+
+        # Flush any pending tools that never got a result (e.g. timeout)
+        end_ms = int(time.time() * 1000)
+        for tool_id, step in pending_tools.items():
+            step["endMs"] = end_ms
+            step["status"] = "unknown"
+            tool_steps.append(step)
 
         if smss_stream:
             smss_stream(
@@ -214,7 +258,13 @@ class ClaudeCodeClient:
             )
         self.agent_options.resume = self.configuration.room_id
         self.agent_options.session_id = None
-        return final_message
+
+        # Return structured response with tool steps for Java-side trace recording
+        return json.dumps({
+            "message": final_message,
+            "iterations": iterations,
+            "toolSteps": tool_steps,
+        })
 
     def _resolve_mcps(
         self,

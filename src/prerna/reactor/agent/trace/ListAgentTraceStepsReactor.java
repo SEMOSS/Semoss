@@ -81,6 +81,25 @@ public class ListAgentTraceStepsReactor extends AbstractReactor {
 		classLogger.info("ListAgentTraceSteps: userId='{}' traceId='{}'", userId, traceId);
 
 		List<Map<String, Object>> steps = AgentTraceLogsUtils.listTraceSteps(traceId, userId);
+
+		// Compute DURATION_MS from timestamps
+		for (Map<String, Object> step : steps) {
+			Object startObj = step.get("START_TIME");
+			Object endObj = step.get("END_TIME");
+			if (startObj != null && endObj != null) {
+				try {
+					// Convert to string representation regardless of actual type
+					String startStr = String.valueOf(startObj).trim();
+					String endStr = String.valueOf(endObj).trim();
+					java.sql.Timestamp s = java.sql.Timestamp.valueOf(startStr);
+					java.sql.Timestamp e = java.sql.Timestamp.valueOf(endStr);
+					step.put("DURATION_MS", Math.max(0L, e.getTime() - s.getTime()));
+				} catch (Exception ignored) {
+					// leave DURATION_MS absent if unparseable
+				}
+			}
+		}
+
 		return new NounMetadata(steps, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 }

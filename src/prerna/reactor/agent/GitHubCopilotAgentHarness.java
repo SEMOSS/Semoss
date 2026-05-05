@@ -47,7 +47,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  */
 public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 
-	private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
+	private static final Logger classLogger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
 
 	public static final String NAME = "github_copilot";
 
@@ -57,7 +57,7 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 	}
 
 	@Override
-	protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
+	protected AgentHarnessResult build(AgentRunContext ctx) throws Exception {
 		Room                room  = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String              input = ctx.getInput();
@@ -75,6 +75,8 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 		int contextWindow = modelEngine.getContextWindow();
 
 		String cwd = resolveClientPath(ctx);
+
+		classLogger.debug("GitHubCopilotAgentHarness: engine={} cwd={}", engineId, cwd);
 
 		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
 		SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(

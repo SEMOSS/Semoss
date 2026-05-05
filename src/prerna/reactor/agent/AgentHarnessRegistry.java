@@ -30,19 +30,25 @@ package prerna.reactor.agent;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Static registry for {@link IAgentHarness} implementations.
+ * Static registry for {@link IAgentHarness} factories.
  *
- * <p>Two built-in harnesses are registered at class-load time:
+ * <p>Each call to {@link #get} or {@link #getOrDefault} returns a <b>new instance</b>
+ * of the requested harness. This ensures thread safety — harness instances are never
+ * shared across concurrent requests.
+ *
+ * <p>Built-in harnesses registered at class-load time:
  * <ul>
  *   <li>{@code "room_loop"} → {@link RoomAgentHarness}
  *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
  *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
  *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
+ *   <li>{@code "orchestrator"} → {@link OrchestratorAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
@@ -54,48 +60,64 @@ public final class AgentHarnessRegistry {
 
     public static final String DEFAULT_HARNESS = "room_loop";
 
-    private static final Map<String, IAgentHarness> REGISTRY;
+    private static final Map<String, Supplier<? extends IAgentHarness>> REGISTRY;
 
     static {
-        Map<String, IAgentHarness> m = new HashMap<>();
-        IAgentHarness roomLoop        = new RoomAgentHarness();
-        IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
-        IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
-        IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
-        IAgentHarness orchestrator    = new OrchestratorAgentHarness();
-        m.put(roomLoop.getName(),        roomLoop);
-        m.put(claudeCode.getName(),      claudeCode);
-        m.put(githubCopilot.getName(),   githubCopilot);
-        m.put(githubCopilotPy.getName(), githubCopilotPy);
-        m.put(orchestrator.getName(),    orchestrator);
+        Map<String, Supplier<? extends IAgentHarness>> m = new HashMap<>();
+        m.put(RoomAgentHarness.NAME,            RoomAgentHarness::new);
+        m.put(ClaudeCodeAgentHarness.NAME,      ClaudeCodeAgentHarness::new);
+        m.put(GitHubCopilotAgentHarness.NAME,   GitHubCopilotAgentHarness::new);
+        m.put(GitHubCopilotPyAgentHarness.NAME, GitHubCopilotPyAgentHarness::new);
+        m.put(OrchestratorAgentHarness.NAME,    OrchestratorAgentHarness::new);
         REGISTRY = Collections.synchronizedMap(m);
     }
 
     private AgentHarnessRegistry() { /* static utility */ }
 
-    // Public API
     /**
-     * Register a custom harness. Overwrites any existing harness with the same name.
+     * Register a custom harness factory. Overwrites any existing factory with the same name.
+     *
+     * @param name    registry key (case-sensitive)
+     * @param factory supplier that creates new harness instances; must not be null
+     */
+    public static void register(String name, Supplier<? extends IAgentHarness> factory) {
+        if (name == null || factory == null) throw new IllegalArgumentException("name and factory must not be null");
+        REGISTRY.put(name, factory);
+        logger.info("AgentHarnessRegistry: registered harness factory '{}'", name);
+    }
+
+    /**
+     * Register a custom harness. Convenience overload — creates a factory from the harness's class.
      *
      * @param harness implementation to register; must not be null
      */
     public static void register(IAgentHarness harness) {
         if (harness == null) throw new IllegalArgumentException("harness must not be null");
-        REGISTRY.put(harness.getName(), harness);
-        logger.info("AgentHarnessRegistry: registered harness '{}'", harness.getName());
+        String name = harness.getName();
+        // Create a factory that instantiates via reflection for backward compatibility
+        Class<? extends IAgentHarness> clazz = harness.getClass();
+        REGISTRY.put(name, () -> {
+            try {
+                return clazz.getDeclaredConstructor().newInstance();
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to instantiate harness: " + clazz.getName(), e);
+            }
+        });
+        logger.info("AgentHarnessRegistry: registered harness '{}'", name);
     }
 
     /**
-     * Returns the harness registered under {@code name}, or {@code null} if not found.
+     * Returns a new instance of the harness registered under {@code name}, or {@code null} if not found.
      *
      * @param name registry key (case-sensitive)
      */
     public static IAgentHarness get(String name) {
-        return REGISTRY.get(name);
+        Supplier<? extends IAgentHarness> factory = REGISTRY.get(name);
+        return factory != null ? factory.get() : null;
     }
 
     /**
-     * Returns the harness registered under {@code name}.
+     * Returns a new instance of the harness registered under {@code name}.
      * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null,
      * blank, or unrecognised.
      *
@@ -103,11 +125,11 @@ public final class AgentHarnessRegistry {
      */
     public static IAgentHarness getOrDefault(String name) {
         if (name != null && !name.trim().isEmpty()) {
-            IAgentHarness h = REGISTRY.get(name.trim());
-            if (h != null) return h;
+            Supplier<? extends IAgentHarness> factory = REGISTRY.get(name.trim());
+            if (factory != null) return factory.get();
             logger.warn("AgentHarnessRegistry: unknown harness '{}' — falling back to '{}'",
                     name, DEFAULT_HARNESS);
         }
-        return REGISTRY.get(DEFAULT_HARNESS);
+        return REGISTRY.get(DEFAULT_HARNESS).get();
     }
 }

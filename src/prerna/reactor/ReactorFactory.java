@@ -1106,6 +1106,10 @@ public class ReactorFactory {
 		reactorHash.put("ListAgentTraces", prerna.reactor.agent.trace.ListAgentTracesReactor.class);
 		reactorHash.put("GetAgentTrace", prerna.reactor.agent.trace.GetAgentTraceReactor.class);
 		reactorHash.put("ListAgentTraceSteps", prerna.reactor.agent.trace.ListAgentTraceStepsReactor.class);
+		// UI-facing aliases
+		reactorHash.put("ListTraces", prerna.reactor.agent.trace.ListAgentTracesReactor.class);
+		reactorHash.put("GetTrace", prerna.reactor.agent.trace.GetAgentTraceReactor.class);
+		reactorHash.put("ListSpans", prerna.reactor.agent.trace.ListSpansReactor.class);
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {

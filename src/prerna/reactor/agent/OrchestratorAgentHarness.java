@@ -83,7 +83,7 @@ import prerna.util.Utility;
  *
  * <p>Registered as {@code "orchestrator"} in {@link AgentHarnessRegistry}.
  */
-public class OrchestratorAgentHarness implements IAgentHarness {
+public class OrchestratorAgentHarness extends AbstractAgentHarness {
 
     private static final Logger classLogger = LogManager.getLogger(OrchestratorAgentHarness.class);
 
@@ -257,6 +257,14 @@ public class OrchestratorAgentHarness implements IAgentHarness {
                     buildMetricsJson(allChildResults),
                     parentTraceId);
         }
+    }
+
+    /**
+     * Not used — OrchestratorAgentHarness overrides execute() with its own trace lifecycle.
+     */
+    @Override
+    protected AgentHarnessResult executeCall(AgentRunContext ctx) throws Exception {
+        throw new UnsupportedOperationException();
     }
 
     /**

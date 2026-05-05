@@ -48,6 +48,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -73,6 +75,7 @@ import prerna.util.Utility;
 public class GitHubCopilotPyManager {
 
 	private static final Logger classLogger = LogManager.getLogger(GitHubCopilotPyManager.class);
+	private static final Gson GSON = new Gson();
 
 	protected String prefix = null;
 	protected String workingDirectory;
@@ -126,6 +129,10 @@ public class GitHubCopilotPyManager {
 
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
+		// TCP layer auto-deserializes JSON strings into Maps; re-serialize for harness parsing
+		if (output instanceof Map || output instanceof List) {
+			return GSON.toJson(output);
+		}
 		return String.valueOf(output);
 	}
 
@@ -272,7 +279,7 @@ public class GitHubCopilotPyManager {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
 						timeout, "INFO");
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to create the python process for GitHub Copilot Py Agent", e);
 				throw new IllegalArgumentException("Unable to connect to server for python GitHub Copilot Py Agent.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -280,8 +287,8 @@ public class GitHubCopilotPyManager {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for GitHub Copilot Py Agent: {}", e);
-				throw new IllegalArgumentException("Failed to start TCP Server for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to reconnect to the python process for GitHub Copilot Py Agent", e);
+				throw new IllegalArgumentException("Failed to start TCP Server for GitHub Copilot Py Agent", e);
 			}
 		}
 
@@ -295,8 +302,7 @@ public class GitHubCopilotPyManager {
 				commands[i] = fillVars(commands[i]);
 			}
 			this.pyTranslator.runEmptyPy(commands);
-			classLogger.info("Initializing GitHub Copilot Py python process with commands >>> "
-					+ String.join("\n", commands));
+			classLogger.info("Initializing GitHub Copilot Py python process with commands >>> {}", String.join("\n", commands));
 			setPrefix(cpwToInit);
 			this.cpw = cpwToInit;
 		} catch (Exception e) {

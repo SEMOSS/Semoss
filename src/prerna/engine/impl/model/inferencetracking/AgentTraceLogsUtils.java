@@ -28,6 +28,7 @@
 package prerna.engine.impl.model.inferencetracking;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -532,6 +533,113 @@ public final class AgentTraceLogsUtils {
 			return QueryExecutionUtility.flushRsToMap(db, qs);
 		} catch (Exception e) {
 			classLogger.error("Failed to list trace steps for traceId '{}'.", traceId, e);
+			return new ArrayList<>();
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Token recovery from MESSAGE table
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Sums INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS
+	 * from the MESSAGE table for the given room since a given time.
+	 *
+	 * <p>Used to recover real token totals after a ClaudeCode/Copilot run.
+	 * These harnesses route through the SEMOSS proxy which logs actual Anthropic
+	 * token counts to MESSAGE, but returns 0 in the SDK response.
+	 *
+	 * @param roomId the model-engine room ID; returns all-zeros when null
+	 * @param since  inclusive lower-bound; scopes query to this run only
+	 * @return int[4] — {inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens}
+	 */
+	public static int[] sumTokensForRoom(String roomId, Instant since) {
+		return sumTokensForRoomBounded(roomId, since, null);
+	}
+
+	/**
+	 * Sums token usage for the given room bounded by [since, until].
+	 * When both bounds are provided, only messages within the time window are counted,
+	 * preventing token duplication when multiple traces share the same room.
+	 *
+	 * @return int[4] — {inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens}
+	 */
+	public static int[] sumTokensForRoomBounded(String roomId, Instant since, Instant until) {
+		int[] zeros = {0, 0, 0, 0};
+		if (roomId == null) return zeros;
+
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			classLogger.warn("ModelInferenceLogs database unavailable; cannot recover tokens for roomId '{}'.", roomId);
+			return zeros;
+		}
+
+		StringBuilder sql = new StringBuilder(
+				"SELECT COALESCE(SUM(INPUT_TOKENS),0), COALESCE(SUM(OUTPUT_TOKENS),0), "
+				+ "COALESCE(SUM(CACHE_READ_TOKENS),0), COALESCE(SUM(CACHE_CREATION_TOKENS),0) "
+				+ "FROM MESSAGE WHERE ROOM_ID = ?");
+		if (since != null) {
+			sql.append(" AND DATE_CREATED >= ?");
+		}
+		if (until != null) {
+			sql.append(" AND DATE_CREATED <= ?");
+		}
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(sql.toString());
+			int index = 1;
+			ps.setString(index++, roomId);
+			if (since != null) {
+				ps.setTimestamp(index++, Timestamp.from(since));
+			}
+			if (until != null) {
+				ps.setTimestamp(index++, Timestamp.from(until));
+			}
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return new int[] { rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4) };
+			}
+		} catch (Exception e) {
+			classLogger.warn("sumTokensForRoomBounded: failed for roomId '{}'.", roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return zeros;
+	}
+
+	// -------------------------------------------------------------------------
+	// Project-scoped trace listing
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Lists traces filtered by PROJECT_ID.
+	 *
+	 * @param projectId project filter
+	 * @param userId    user filter (for access control)
+	 * @param limit     max rows; use 0 for no limit
+	 * @return list of trace maps, newest first
+	 */
+	public static List<Map<String, Object>> listTracesByProject(String projectId, String userId, int limit) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) {
+			classLogger.warn("ModelInferenceLogs database is unavailable; returning empty trace list.");
+			return new ArrayList<>();
+		}
+		SelectQueryStruct qs = buildTraceSelector();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "PROJECT_ID", "==", projectId));
+		if (userId != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "USER_ID", "==", userId));
+		}
+		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_TABLE + "START_TIME", "DESC"));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		try {
+			return QueryExecutionUtility.flushRsToMap(db, qs);
+		} catch (Exception e) {
+			classLogger.error("Failed to list traces for projectId '{}', userId '{}'.", projectId, userId, e);
 			return new ArrayList<>();
 		}
 	}

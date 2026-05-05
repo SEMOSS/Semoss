@@ -10,7 +10,9 @@ the FE contract is identical to the in-Java path.
 from __future__ import annotations
 
 import asyncio
+import json
 import os
+import time
 from typing import Any, Optional
 from uuid import uuid4
 
@@ -213,6 +215,11 @@ class GitHubCopilotClient:
         final_text_parts: list[str] = []
         suppressed_tool_call_ids: set[str] = set()
         error_holder: dict[str, Any] = {}
+        # Accumulate tool steps for Java-side trace recording
+        tool_steps: list[dict] = []
+        pending_tools: dict[str, dict] = {}
+        # Count agentic iterations (each AssistantMessageData = one iteration)
+        iterations_counter: list[int] = [0]
 
         def on_event(ev: Any) -> None:
             try:
@@ -223,6 +230,8 @@ class GitHubCopilotClient:
                     suppressed_tool_call_ids=suppressed_tool_call_ids,
                     idle=idle,
                     error_holder=error_holder,
+                    tool_steps=tool_steps,
+                    pending_tools=pending_tools,
                 )
             except Exception as exc:  # never let a handler raise out of the SDK loop
                 if smss_stream:
@@ -322,7 +331,11 @@ class GitHubCopilotClient:
             # Already streamed the session_error envelope; surface as a string for
             # the Java caller so the harness gets a non-empty return value.
             err = error_holder["raised"]
-            return f"[github_copilot_py error] {err}"
+            return json.dumps({
+                "message": f"[github_copilot_py error] {err}",
+                "iterations": iterations_counter[0],
+                "toolSteps": tool_steps,
+            })
 
         # Session is now persisted; future calls should resume.
         self.cfg.session_exists = True
@@ -334,7 +347,18 @@ class GitHubCopilotClient:
                 interim=False,
             )
 
-        return "".join(final_text_parts)
+        # Flush any pending tools that never completed
+        end_ms = int(time.time() * 1000)
+        for tool_id, step in pending_tools.items():
+            step["endMs"] = end_ms
+            step["status"] = "unknown"
+            tool_steps.append(step)
+
+        return json.dumps({
+            "message": "".join(final_text_parts),
+            "iterations": iterations_counter[0],
+            "toolSteps": tool_steps,
+        })
 
     def _dispatch_event(
         self,
@@ -345,6 +369,8 @@ class GitHubCopilotClient:
         suppressed_tool_call_ids: set[str],
         idle: asyncio.Event,
         error_holder: dict[str, Any],
+        tool_steps: list[dict],
+        pending_tools: dict[str, dict],
     ) -> None:
         data = getattr(ev, "data", None)
         timestamp = iso_now()
@@ -366,6 +392,7 @@ class GitHubCopilotClient:
             return
 
         if isinstance(data, AssistantMessageData):
+            iterations_counter[0] += 1
             content = getattr(data, "content", "") or ""
             if content:
                 final_text_parts.append(content)
@@ -434,6 +461,13 @@ class GitHubCopilotClient:
                 suppressed_tool_call_ids.add(tool_call_id)
                 return
             arguments = getattr(data, "arguments", None)
+            # Record tool start for trace step accumulation
+            pending_tools[tool_call_id] = {
+                "toolCallId": tool_call_id,
+                "toolName": tool_name,
+                "toolInput": json.dumps(arguments) if arguments else None,
+                "startMs": int(time.time() * 1000),
+            }
             envelope = build_tool_invocation_envelope(
                 tool_call_id=tool_call_id,
                 tool_name=tool_name,
@@ -479,6 +513,13 @@ class GitHubCopilotClient:
             content = extract_tool_result_content(result_dict, error_dict)
             if not content and success:
                 content = "(tool completed with no output)"
+            # Complete the pending tool step
+            if tool_call_id in pending_tools:
+                step = pending_tools.pop(tool_call_id)
+                step["endMs"] = int(time.time() * 1000)
+                step["status"] = "success" if success else "error"
+                step["outputText"] = (content or "")[:2000]
+                tool_steps.append(step)
             envelope = build_tool_result_envelope(
                 tool_call_id=tool_call_id,
                 status="completed" if success else "error",

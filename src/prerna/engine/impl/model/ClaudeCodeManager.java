@@ -38,6 +38,8 @@ import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
@@ -57,6 +59,7 @@ import prerna.util.Utility;
 public class ClaudeCodeManager {
 
 	private static final Logger classLogger = LogManager.getLogger(ClaudeCodeManager.class);
+	private static final Gson GSON = new Gson();
 
 	/** DIHelper key for an explicit override of the claude CLI path. */
 	public static final String CFG_CLAUDE_CLI_PATH = "CLAUDE_CODE_CLI_PATH";
@@ -238,6 +241,10 @@ public class ClaudeCodeManager {
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
+		// TCP layer auto-deserializes JSON strings into Maps; re-serialize for harness parsing
+		if (output instanceof Map || output instanceof List) {
+			return GSON.toJson(output);
+		}
 		return String.valueOf(output);
 	}
 
@@ -276,7 +283,7 @@ public class ClaudeCodeManager {
 						port = Integer.parseInt(forcePort);
 						debug = true;
 					} catch (NumberFormatException e) {
-						classLogger.warn("Claude Code" + " has an invalid FORCE_PORT value");
+						classLogger.warn("Claude Code has an invalid FORCE_PORT value");
 					}
 				}
 			}
@@ -287,7 +294,7 @@ public class ClaudeCodeManager {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
 						timeout, "INFO");
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for Claude Code Agent: {}", e);
+				classLogger.error("Failed to create the python process for Claude Code Agent", e);
 				throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -295,8 +302,8 @@ public class ClaudeCodeManager {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for Claude Code Agent: {}", e);
-				throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent: {}", e);
+				classLogger.error("Failed to reconnect to the python process for Claude Code Agent", e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent", e);
 			}
 		}
 
@@ -312,8 +319,7 @@ public class ClaudeCodeManager {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
 			this.pyTranslator.runEmptyPy(commands);
-			classLogger.info(
-					"Initializing Claude Code" + " python process with commands >>> " + String.join("\n", commands));
+			classLogger.info("Initializing Claude Code python process with commands >>> {}", String.join("\n", commands));
 			setPrefix(cpwToInit);
 
 			this.cpw = cpwToInit;

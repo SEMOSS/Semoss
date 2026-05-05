@@ -36,19 +36,17 @@ import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Retrieves a single agent trace by ID.
  *
  * <pre>
- * GetAgentTrace(traceId=["&lt;id&gt;"])
+ * GetTrace(traceId=["&lt;id&gt;"])
  * </pre>
  *
- * Returns: MAP containing TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID,
- * HARNESS_TYPE, START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT,
- * TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID.
- * Returns an error noun if the trace is not found or the user does not own it.
+ * Returns: MAP with UI-compatible field names (same shape as ListTraces items).
  */
 public class GetAgentTraceReactor extends AbstractReactor {
 
@@ -73,7 +71,7 @@ public class GetAgentTraceReactor extends AbstractReactor {
 
 		String traceId = this.keyValue.get(KEY_TRACE_ID);
 		if (traceId == null || traceId.isEmpty()) {
-			throw new IllegalArgumentException("traceId is required for GetAgentTrace");
+			throw new IllegalArgumentException("traceId is required for GetTrace");
 		}
 
 		Map<String, Object> trace;
@@ -95,6 +93,43 @@ public class GetAgentTraceReactor extends AbstractReactor {
 			return NounMetadata.getErrorNounMessage("Access denied: trace not found");
 		}
 
-		return new NounMetadata(trace, PixelDataType.MAP);
+		// Transform to UI field names
+		Map<String, Object> transformed = ListAgentTracesReactor.transformForUI(trace);
+
+		// Enrich with token recovery from MESSAGE table if metrics are empty
+		enrichWithMessageTokens(transformed, trace);
+
+		return new NounMetadata(transformed, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+	}
+
+	/**
+	 * If METRICS_JSON was null (trace logged before async worker finished),
+	 * recover tokens from the MESSAGE table at read-time.
+	 */
+	private void enrichWithMessageTokens(Map<String, Object> transformed, Map<String, Object> rawTrace) {
+		int inputTokens = (Integer) transformed.getOrDefault("TOTAL_INPUT_TOKENS", 0);
+		int outputTokens = (Integer) transformed.getOrDefault("TOTAL_OUTPUT_TOKENS", 0);
+		if (inputTokens > 0 || outputTokens > 0) {
+			return;
+		}
+
+		String roomId = (String) rawTrace.get("ROOM_ID");
+		Object startTimeObj = rawTrace.get("START_TIME");
+		if (roomId == null || startTimeObj == null) {
+			return;
+		}
+
+		try {
+			String startStr = String.valueOf(startTimeObj).replace(" ", "T");
+			if (!startStr.endsWith("Z") && !startStr.contains("+")) startStr += "Z";
+			java.time.Instant since = java.time.Instant.parse(startStr);
+			int[] tokens = AgentTraceLogsUtils.sumTokensForRoom(roomId, since);
+			if (tokens[0] > 0 || tokens[1] > 0) {
+				transformed.put("TOTAL_INPUT_TOKENS", tokens[0]);
+				transformed.put("TOTAL_OUTPUT_TOKENS", tokens[1]);
+			}
+		} catch (Exception e) {
+			classLogger.debug("GetAgentTraceReactor: could not recover tokens from MESSAGE.", e);
+		}
 	}
 }

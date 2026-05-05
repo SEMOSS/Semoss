@@ -60,7 +60,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  */
 public class ClaudeCodeAgentHarness extends AppBuildingHarness {
 
-    private static final Logger logger = LogManager.getLogger(ClaudeCodeAgentHarness.class);
+    private static final Logger classLogger = LogManager.getLogger(ClaudeCodeAgentHarness.class);
 
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "claude_code";
@@ -71,7 +71,7 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
     }
 
     @Override
-    protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
+    protected AgentHarnessResult build(AgentRunContext ctx) throws Exception {
         Room                room   = ctx.getRoom();
         Map<String, Object> params = ctx.getParamMap();
         String              input  = ctx.getInput();
@@ -84,11 +84,14 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
         List<Map<String, String>> mcps = buildMcpList(room);
         User         user           = resolveUser(ctx.getInsight());
 
-        logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
+        classLogger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}",
+                engineId, filePath, mcps.size());
+
         ClaudeCodeManager manager = new ClaudeCodeManager();
         String targetBinary = ClaudeCodeManager.resolveClaudeBinary();
         SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
                 room.getRoomFolderPath(), filePath, targetBinary, ctx.getSandboxPolicy());
+
         String output = manager.query(
                 ctx.getInsight(),
                 user,

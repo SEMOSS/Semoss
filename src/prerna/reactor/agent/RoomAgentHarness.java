@@ -75,7 +75,7 @@ import prerna.util.Utility;
  * triggers the next model call once every tool ID in the batch has reported in, so concurrent
  * submissions are safe.
  */
-public class RoomAgentHarness implements IAgentHarness {
+public class RoomAgentHarness extends AbstractAgentHarness {
 
     private static final Logger logger = LogManager.getLogger(RoomAgentHarness.class);
 
@@ -196,8 +196,19 @@ public class RoomAgentHarness implements IAgentHarness {
             terminationReason = "ERROR: " + e.getClass().getSimpleName();
             throw e;
         } finally {
+            Instant endTime = Instant.now();
             AgentTraceLogsUtils.clearActiveTraceId(ctx.getInsight().getInsightId());
             AgentTraceLogsUtils.clearStepCounter(traceId);
+            // Build metricsJson bounded by this trace's time window to avoid duplication
+            String metricsJson = null;
+            try {
+                int[] tokens = AgentTraceLogsUtils.sumTokensForRoomBounded(room.getId(), startTime, endTime);
+                if (tokens[0] > 0 || tokens[1] > 0) {
+                    metricsJson = "{\"inputTokens\":" + tokens[0] + ",\"outputTokens\":" + tokens[1] + "}";
+                }
+            } catch (Exception ex) {
+                logger.debug("Failed to build metrics JSON for room_loop trace: {}", ex.getMessage());
+            }
             AgentTraceLogsUtils.logTrace(
                     traceId,
                     room.getId(),
@@ -206,13 +217,21 @@ public class RoomAgentHarness implements IAgentHarness {
                     ctx.getModelEngine() != null ? ctx.getModelEngine().getEngineId() : null,
                     getName(),
                     startTime,
-                    Instant.now(),
+                    endTime,
                     iterationsCounter.get(),
                     toolCallRecords.size(),
                     terminationReason,
-                    null,
+                    metricsJson,
                     ctx.getParentTraceId());
         }
+    }
+
+    /**
+     * Not used — RoomAgentHarness overrides execute() with its own trace lifecycle.
+     */
+    @Override
+    protected AgentHarnessResult executeCall(AgentRunContext ctx) throws Exception {
+        throw new UnsupportedOperationException();
     }
 
     /**
