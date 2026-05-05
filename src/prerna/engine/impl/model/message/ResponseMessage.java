@@ -329,6 +329,8 @@ public class ResponseMessage extends AbstractMessage {
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
 
+			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
+
 			// Prefer parts-based responses, fall back to legacy messageType.
 			if (llmResponse.getParts() != null && !llmResponse.getParts().isEmpty()) {
 				for (MessagePart part : llmResponse.getParts()) {

@@ -218,6 +218,9 @@ public final class FileSystemUtil {
 			if (inputFilePath == null || inputFilePath.isEmpty()) {
 				continue;
 			}
+			while (inputFilePath.startsWith("/")) {
+				inputFilePath = inputFilePath.substring(1);
+			}
 
 			String realFilePath = assetFolder + "/" + inputFilePath;
 			realFilePath = realFilePath.replace("\\", "/");
@@ -359,6 +362,9 @@ public final class FileSystemUtil {
 	 * @param filePath    The relative path for the new directory.
 	 */
 	public static void createNewAssetDirectory(String assetFolder, String filePath) {
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		File directory = new File(assetFolder + "/" + filePath);
 
 		if (directory.exists() && directory.isDirectory()) {
@@ -385,6 +391,9 @@ public final class FileSystemUtil {
 	 * @param filePath    The relative path for the new file.
 	 */
 	public static void createNewAssetFile(String assetFolder, String filePath) {
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		File file = new File(assetFolder + "/" + filePath);
 		try {
 			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
@@ -405,6 +414,12 @@ public final class FileSystemUtil {
 	 * @param newFileName     The new relative path for the file/directory.
 	 */
 	public static void renameAsset(String assetFolder, String currentFileName, String newFileName) {
+		while (currentFileName.startsWith("/")) {
+			currentFileName = currentFileName.substring(1);
+		}
+		while (newFileName.startsWith("/")) {
+			newFileName = newFileName.substring(1);
+		}
 		String oldAbs = (assetFolder + "/" + currentFileName).replace("\\", "/");
 		String newAbs = (assetFolder + "/" + newFileName).replace("\\", "/");
 		File oldFile = new File(oldAbs);
@@ -450,6 +465,12 @@ public final class FileSystemUtil {
 	 * @param destFileName    The destination relative path for the copy.
 	 */
 	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		while (sourceFileName.startsWith("/")) {
+			sourceFileName = sourceFileName.substring(1);
+		}
+		while (destFileName.startsWith("/")) {
+			destFileName = destFileName.substring(1);
+		}
 		String sourceAbs = (assetFolder + "/" + sourceFileName).replace("\\", "/");
 		String destAbs = (assetFolder + "/" + destFileName).replace("\\", "/");
 		File sourceFile = new File(sourceAbs);
@@ -518,6 +539,9 @@ public final class FileSystemUtil {
 			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
@@ -554,6 +578,9 @@ public final class FileSystemUtil {
 			String fileName = Utility.normalizePath(rawFileName);
 			if (fileName == null || fileName.isEmpty()) {
 				continue;
+			}
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
 			}
 
 			String filePath = assetFolder + "/" + fileName;

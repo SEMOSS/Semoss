@@ -41,6 +41,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -212,9 +213,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/ inputMessage.getMessageId(), 
-					/*transactionId*/askModelResponse.getMessageId(), 
-					/*messageMethod*/"ask", 
+					/*messageId*/ inputMessage.getMessageId(),
+					/*transactionId*/askModelResponse.getMessageId(),
+					/*messageMethod*/"ask",
 					/*engine*/this,
 					/*insightId*/room.getInsight().getInsightId(),
 					/*projectContextId*/room.getInsight().getContextProjectId(),
@@ -222,14 +223,19 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*user*/room.getInsight().getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
 					/*roomId*/room.getId(),
-					/*context*/context, 
+					/*context*/context,
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
+					/*inputTime*/inputTime,
 					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*inputTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
+					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
+					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
 					));
 			inferenceRecorder.start();
 		}
@@ -264,6 +270,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			// set transaction id for both pieces
 			inputMessage.setTransactionId(response.getMessageId());
 			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+			inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
 			response.setTransactionId(response.getMessageId());
 
 			// Create the assistant's response message and add to history

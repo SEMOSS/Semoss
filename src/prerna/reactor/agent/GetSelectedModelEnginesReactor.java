@@ -25,33 +25,36 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent;
+
+import java.util.List;
+import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class ClaudeCodeDeleteSkillReactor extends AbstractReactor {
+/**
+ * Returns the {@code selected_engines.model_engines} list from a project's
+ * {@code .agents/AGENT_CONFIG.json}. Each entry is shaped
+ * {@code { "name": "...", "id": "..." }}.
+ */
+public class GetSelectedModelEnginesReactor extends AbstractReactor {
 
-	public ClaudeCodeDeleteSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName" };
-		this.keyRequired = new int[] { 1, 1 };
-	}
+    public GetSelectedModelEnginesReactor() {
+        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+        this.keyRequired = new int[] { 1 };
+    }
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 
-		Boolean response = manager.deleteSkill(user, projectId, skillName);
-
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-	}
+        List<Map<String, Object>> response = AppBuilderHarnessConfiguration
+                .getEnginesForProject(projectId, AppBuilderHarnessConfiguration.MODEL_ENGINES);
+        return new NounMetadata(response, PixelDataType.VECTOR, PixelOperationType.OPERATION);
+    }
 }

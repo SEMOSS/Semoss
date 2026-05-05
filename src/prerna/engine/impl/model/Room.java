@@ -114,9 +114,9 @@ public class Room {
 
 	private Insight insight;
 	private String roomFolderPath;
-	
+
 	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
-	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature", "tokenLength");
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
 
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
