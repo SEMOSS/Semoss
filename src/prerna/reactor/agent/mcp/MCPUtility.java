@@ -72,6 +72,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -418,6 +419,14 @@ public final class MCPUtility {
 			} catch (WebApplicationException | IOException e) {
 				classLogger.error("The pixel ran but an error occurred streaming the pixel results", e.getMessage());
 				return "An error occurred streaming the pixel execution output: " + e.getMessage();
+			}
+		} else if (value instanceof ITask) {
+			try (ITask task = (ITask) value) {
+				Map<String, Object> collectedData = task.collect(true);
+				return GSON.toJson(collectedData);
+			} catch (Exception e) {
+				classLogger.error("Error collecting task data for MCP result", e);
+				return "An error occurred collecting the query results: " + e.getMessage();
 			}
 		}
 
