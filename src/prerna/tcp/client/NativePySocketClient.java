@@ -59,8 +59,8 @@ import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelStreamUtility;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.comm.PixelJobStatus;
-import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
@@ -102,7 +102,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 					}
 				}
 
-				classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
+				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 				while (!connected && attempt < 6) {
 					try {
 						clientSocket = new Socket(this.HOST, this.PORT);
@@ -121,7 +121,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						}
 					} catch (Exception ex) {
 						attempt++;
-						classLogger.info("Attempting Number " + attempt);
+						classLogger.info("Attempting connection number {}", attempt);
 						// see if sleeping helps ?
 						try {
 							// sleeping only for 1 second here
@@ -189,7 +189,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									ps.epoc, ps.operation, ps.response, ps.interim);
 
 							PayloadStruct lock = requestMap.get(ps.epoc);
-							classLogger.debug("incoming payload " + ps);
+							classLogger.debug("Incoming payload {}", ps);
 							classLogger.debug("Found lock for epoc {}: {}", ps.epoc, lock != null);
 
 							// cancelled operations
@@ -267,7 +267,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								final String executionInsightId = finalPs.executionInsightId;
 								Map<String, String> parentMDC = finalPs.mdc;
 								// I'm creating a new thread to run the pixel
-								new Thread(() -> {
+								Thread.ofVirtual().start(() -> {
 									try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(parentMDC)) {
 										classLogger.debug("Starting reactor operation for epoc: {}", finalPs.epoc);
 										ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -329,7 +329,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											}
 										}
 									}
-								}).start();
+								});
 							}
 							// this is a request
 							else if (ps.operation == PayloadStruct.OPERATION.ENGINE) {
@@ -570,8 +570,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						} catch (InterruptedException e) {
 							boolean cancelled = cancelledEpocs.contains(ps.epoc);
 							if (!cancelled && ps.jobId != null) {
-								PixelJobThread jt = PixelJobManager.getManager().getJob(ps.jobId);
-								cancelled = jt != null && jt.getPixelJobStatus() == PixelJobStatus.CANCELED;
+								PixelJobRunner jobRunner = PixelJobManager.getManager().getJob(ps.jobId);
+								cancelled = jobRunner != null
+										&& jobRunner.getPixelJobStatus() == PixelJobStatus.CANCELED;
 							}
 
 							if (cancelled) {
@@ -738,7 +739,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
 					ps.ex = "Client is disconnected from the server.";
 					synchronized (ps) {
 						ps.notifyAll();

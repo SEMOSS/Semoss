@@ -129,7 +129,7 @@ public class SocketClient implements Runnable, Closeable {
 			SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 		}
 
-		classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
+		classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 		while (!connected && attempt < 6) // I do an attempt here too hmm..
 		{
 			try {
@@ -156,7 +156,7 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("CLIENT Connection complete !!!!!!!");
+				classLogger.info("Connected to socket server at {}:{}", this.HOST, this.PORT);
 				Thread.sleep(100); // sleep some before executing command
 				// prime it
 				// logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -168,7 +168,7 @@ public class SocketClient implements Runnable, Closeable {
 				}
 			} catch (Exception ex) {
 				attempt++;
-				classLogger.info("Attempting Number " + attempt);
+				classLogger.info("Attempting connection number {}", attempt);
 				// see if sleeping helps ?
 				try {
 					// sleeping only for 1 second here
@@ -181,7 +181,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		if (attempt >= 6) {
-			classLogger.info("CLIENT Connection Failed !!!!!!!");
+			classLogger.error("Failed to connect to socket server at {}:{} after {} attempts", this.HOST, this.PORT, attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
@@ -221,7 +221,7 @@ public class SocketClient implements Runnable, Closeable {
 			if (!ps.response) {
 				requestMap.put(id, ps);
 			}
-			classLogger.info("Outgoing epoc " + ps.epoc);
+			classLogger.info("Outgoing epoc {}", ps.epoc);
 			writePayload(ps);
 			// send the message
 
@@ -249,7 +249,7 @@ public class SocketClient implements Runnable, Closeable {
 					 */
 				}
 				if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
-					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+					classLogger.info("Timed out waiting for epoc {} method {}", ps.epoc, ps.methodName);
 
 				}
 			}
@@ -293,7 +293,7 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 				Callable<Boolean> callableTask = () -> {
 					PayloadStruct ps = new PayloadStruct();
@@ -307,14 +307,14 @@ public class SocketClient implements Runnable, Closeable {
 				try {
 					// wait 1 minute at most
 					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = " + result);
+					classLogger.info("Stop PyServe result = {}", result);
 					return result;
 				} catch (TimeoutException e) {
 					classLogger.warn("Not able to release the payload structs within a timely fashion");
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping server", e);
+					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -340,13 +340,13 @@ public class SocketClient implements Runnable, Closeable {
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 		Callable<String> callableTask = () -> {
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
 					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
 					synchronized (ps) {
 						ps.notifyAll();

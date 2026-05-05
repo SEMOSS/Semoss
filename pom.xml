@@ -120,6 +120,9 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
+										<!-- Exclude any Jackson bundled by shaded artifacts (neo4j, parquet, etc.)
+										     so the declared jackson-core/databind 2.21.1 JARs are the sole source -->
+										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -127,6 +130,12 @@
 									<excludes>
 										<exclude>org/**</exclude>
 										<exclude>javax/**</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.neo4j:neo4j-jdbc-bolt</artifact>
+									<excludes>
+										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -669,6 +678,11 @@
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>com.github</groupId>
+			<artifactId>copilot-sdk-java</artifactId>
+			<version>0.2.2-java.1</version>
+		</dependency>
 		<dependency>
 			<groupId>org.semoss</groupId>
 			<artifactId>semoss-jdbc</artifactId>
