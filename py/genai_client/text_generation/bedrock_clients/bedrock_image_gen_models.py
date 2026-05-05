@@ -25,9 +25,9 @@ class ImageGenerationConfig(BaseModel):
     width: Optional[int] = Field(default=None, alias="imageWidth")
     height: Optional[int] = Field(default=None, alias="imageHeight")
     quality: Optional[str] = None
-    cfgScale: Optional[float] = Field(default=None, alias="detailLevel")
+    cfgScale: Optional[float] = None
     seed: Optional[int] = None
-    numberOfImages: int = Field(default=1, alias="numOfImages")
+    numberOfImages: int = 1
 
 
 class TextToImageParams(BaseModel):
