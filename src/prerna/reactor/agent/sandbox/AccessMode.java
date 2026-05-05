@@ -25,22 +25,18 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.ds.py;
+package prerna.reactor.agent.sandbox;
 
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
+/**
+ * Access level for a path in a {@link SandboxPolicy}.
+ *
+ * <p>When the same path appears with both modes, {@link #RW} wins.
+ */
+public enum AccessMode {
 
-class ThreadStateUnitTests {
-    @Test
-    void valueOf_init() { assertEquals(ThreadState.init, ThreadState.valueOf("init")); }
-    @Test
-    void valueOf_run() { assertEquals(ThreadState.run, ThreadState.valueOf("run")); }
-    @Test
-    void valueOf_wait() { assertEquals(ThreadState.wait, ThreadState.valueOf("wait")); }
-    @Test
-    void valueOf_stop() { assertEquals(ThreadState.stop, ThreadState.valueOf("stop")); }
-    @Test
-    void values_returnsFourElements() { assertEquals(4, ThreadState.values().length); }
-    @Test
-    void valueOf_invalid_throws() { assertThrows(IllegalArgumentException.class, () -> ThreadState.valueOf("invalid")); }
+    /** Read, list, and execute only. */
+    RO,
+
+    /** Read plus write, create, truncate, remove. */
+    RW
 }

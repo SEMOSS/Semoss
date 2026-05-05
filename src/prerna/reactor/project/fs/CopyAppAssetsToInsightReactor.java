@@ -109,6 +109,9 @@ public class CopyAppAssetsToInsightReactor extends AbstractReactor {
 			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 
 			String filePath = assetFolder + "/" + fileName;
 			File file = new File(filePath);

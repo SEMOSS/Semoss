@@ -25,33 +25,28 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.qs;
 
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
-public class ClaudeCodeUpdateSkillReactor extends AbstractReactor {
+/**
+ * Executes a URI-encoded SPARQL SELECT query against an RDF database. The query
+ * should be wrapped in encode/decode blocks for proper encoding.
+ */
+public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
 
-	public ClaudeCodeUpdateSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1 };
+	@Override
+	protected String getDecodedQuery() {
+		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()));
 	}
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
-
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-		Boolean response = manager.updateSkill(user, projectId, skillName, skillContent);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
+			return "The SPARQL SELECT query to execute. The query should be passed within <encode> </encode> blocks for proper encoding";
+		}
+		return super.getDescriptionForKey(key);
 	}
+
 }

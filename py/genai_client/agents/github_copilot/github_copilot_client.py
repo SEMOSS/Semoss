@@ -166,6 +166,12 @@ class GitHubCopilotClient:
             cli_env["COPILOT_PROVIDER_MODEL_ID"] = self.cfg.model
             cli_env["COPILOT_PROVIDER_WIRE_MODEL"] = self.cfg.model
 
+        # Sandbox wrapper reads SEMOSS_SANDBOX_* from its own env, but SubprocessConfig
+        # takes an explicit env dict that does not inherit os.environ — so forward them.
+        for key, val in os.environ.items():
+            if key.startswith("SEMOSS_SANDBOX_"):
+                cli_env[key] = val
+
         subprocess_cfg = SubprocessConfig(
             cli_path=self.cfg.cli_path or os.environ.get("COPILOT_CLI_PATH"),
             cli_args=cli_args,

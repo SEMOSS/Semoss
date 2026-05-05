@@ -373,12 +373,6 @@ public final class MCPUtility {
 			}
 		}
 
-		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
-		}
-
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
 			classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
@@ -386,8 +380,12 @@ public final class MCPUtility {
 		} else {
 			classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
 		}
-		// run pixel
-		PixelRunner pixelReturn = insight.runPixel(runMethod);
+		// run pixel - use scoped context when engine is a project so concurrent tool
+		// calls for different engines on the same insight don't overwrite each other's
+		// contextProjectId
+		PixelRunner pixelReturn = (engine instanceof IProject)
+				? insight.runPixelWithContext(engine.getEngineId(), engine.getEngineName(), runMethod)
+				: insight.runPixel(runMethod);
 		NounMetadata result = pixelReturn.getResults().get(0);
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
