@@ -28,15 +28,11 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.io.UncheckedIOException;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -49,14 +45,21 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.project.api.IProject;
+import prerna.reactor.agent.AppBuildingHarness;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
+import prerna.reactor.agent.sandbox.SandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.tcp.PayloadStruct;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 public class ClaudeCodeManager {
 
 	private static final Logger classLogger = LogManager.getLogger(ClaudeCodeManager.class);
+
+	/** DIHelper key for an explicit override of the claude CLI path. */
+	public static final String CFG_CLAUDE_CLI_PATH = "CLAUDE_CODE_CLI_PATH";
 
 	protected String prefix = null;
 	protected String workingDirectory;
@@ -70,8 +73,8 @@ public class ClaudeCodeManager {
 	protected Map<String, String> vars = new HashMap<>();
 
 	private String createInitScript(String roomId, String filePath, String accessKey, String secretKey,
-			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps, String insightId)
-			throws Exception {
+			List<String> allowedTools, String permissionMode, String model, List<Map<String, String>> mcps,
+			String insightId, SandboxPolicy sandboxPolicy) throws Exception {
 
 		Integer localPort = ThreadStore.getLocalPort();
 		String localProtocol = ThreadStore.getLocalProtocol();
@@ -127,6 +130,7 @@ public class ClaudeCodeManager {
 				.append("insight_id=").append(PyUtils.pyQuote(insightId != null ? insightId : "")).append(",")
 				.append("room_folder_path=").append(PyUtils.pyQuote(roomFolderPath)).append(",")
 				.append("agent_history_exists=").append(agentHistoryExists ? "True" : "False")
+				.append(buildSandboxKwargs(sandboxPolicy, filePath, roomFolderPath))
 				.append(")");
 		return script.toString();
 	}
@@ -143,171 +147,98 @@ public class ClaudeCodeManager {
 				+ ", system_prompt=" + PyUtils.pyQuote(systemPrompt != null ? systemPrompt : "") + ")";
 	}
 
-	private void createClaudeDir(String projectPath) {
-		try {
-			Path claudeDir = Paths.get(projectPath, ".claude");
-			if (!Files.exists(claudeDir)) {
-				Files.createDirectories(claudeDir);
-			}
-
-			Path skillsDir = claudeDir.resolve("skills");
-			if (!Files.exists(skillsDir)) {
-				Files.createDirectories(skillsDir);
-			}
-
-			Path logsDir = claudeDir.resolve("logs");
-			if (!Files.exists(logsDir)) {
-				Files.createDirectories(logsDir);
-				Path changeLogPath = claudeDir.resolve("logs/change_log.txt");
-				Files.createFile(changeLogPath);
-			}
-
-			Path claudeFile = Paths.get(projectPath, "CLAUDE.md");
-			if (!Files.exists(claudeFile)) {
-				Files.createFile(claudeFile);
-			}
-
-		} catch (IOException e) {
-			classLogger.error("Failed to create .claude directory structure at: " + projectPath, e);
+	/**
+	 * Writes the sandbox policy/profile and returns the {@code ,sandbox_cli_path=...,sandbox_env={...}}
+	 * kwargs fragment. The SDK will launch the wrapper script instead of the bundled binary;
+	 * the wrapper applies sandbox-exec (macOS) or landlock (Linux) before exec'ing the real binary.
+	 * Returns an empty string when sandbox is disabled or no policy is set.
+	 */
+	private String buildSandboxKwargs(SandboxPolicy policy, String filePath, String roomFolderPath) {
+		if (policy == null || policy.getEnforcement() == EnforcementMode.DISABLED) {
+			return "";
 		}
+		SandboxLauncher launcher = SandboxLauncherRegistry.get();
+		String targetBinary = resolveClaudeBinary();
+		SandboxLaunchPlan plan = launcher.plan(policy, targetBinary, null);
+		StringBuilder envLiteral = new StringBuilder("{");
+		boolean first = true;
+		for (Map.Entry<String, String> e : plan.getEnvironmentAdditions().entrySet()) {
+			if (!first) envLiteral.append(", ");
+			first = false;
+			envLiteral.append(PyUtils.pyQuote(e.getKey())).append(": ")
+					.append(PyUtils.pyQuote(e.getValue()));
+		}
+		envLiteral.append("}");
+		classLogger.info("Claude sandbox applied: backend={} target={} policy-paths={}",
+				plan.getBackend(), targetBinary, policy.getAllowedPaths().size());
+		return ",sandbox_cli_path=" + PyUtils.pyQuote(plan.getCliPath()) + ",sandbox_env=" + envLiteral;
+	}
+
+	/**
+	 * Resolves the Claude CLI binary path. Resolution order:
+	 * <ol>
+	 *   <li>DIHelper override via {@link #CFG_CLAUDE_CLI_PATH}</li>
+	 *   <li>Binary bundled inside the installed {@code claude-agent-sdk} Python package
+	 *       ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) — the same binary
+	 *       the SDK uses when no {@code cli_path} is set</li>
+	 *   <li>Common npm / system install paths</li>
+	 *   <li>{@code "claude"} sentinel — OS PATH lookup at exec time</li>
+	 * </ol>
+	 */
+	public static String resolveClaudeBinary() {
+		String configured = Utility.getDIHelperProperty(CFG_CLAUDE_CLI_PATH);
+		if (configured != null && !configured.trim().isEmpty()) {
+			return configured.trim();
+		}
+		try {
+			String sitePackages = PyUtils.appendSitePackagesPath(PyUtils.getPythonHomeDir());
+			Path bundled = Paths.get(sitePackages, "claude_agent_sdk", "_bundled", "claude");
+			if (Files.isExecutable(bundled)) {
+				return bundled.toString();
+			}
+		} catch (Exception e) {
+			classLogger.debug("claude-agent-sdk bundled binary not found via PY_HOME: {}", e.getMessage());
+		}
+		String[] candidates = {
+				"/usr/local/bin/claude",
+				"/usr/bin/claude",
+				System.getProperty("user.home") + "/.npm-global/bin/claude",
+				System.getProperty("user.home") + "/.local/bin/claude",
+				System.getProperty("user.home") + "/node_modules/.bin/claude",
+				System.getProperty("user.home") + "/.yarn/bin/claude",
+				System.getProperty("user.home") + "/.claude/local/claude"
+		};
+		for (String c : candidates) {
+			if (Files.isExecutable(Paths.get(c))) {
+				return c;
+			}
+		}
+		return "claude";
 	}
 
 	public String query(Insight insight, User user, String engineId, String filePath, String prompt,
 			String systemPrompt, String roomId, List<String> allowedTools, String permissionMode,
-			List<Map<String, String>> mcps) throws Exception {
-		
+			List<Map<String, String>> mcps, SandboxPolicy sandboxPolicy) throws Exception {
+
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
-		
-		String finalFilePath = filePath + "/client";
-		
-		createClaudeDir(finalFilePath);
+
+		String base = (filePath != null && !filePath.trim().isEmpty())
+				? filePath
+				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String finalFilePath = base + "/client";
+
+		AppBuildingHarness.ensureClaudeStructure(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
 		String initScript = createInitScript(roomId, finalFilePath, accessKey, secretKey, allowedTools, permissionMode,
-				engineId, mcps, insightId);
+				engineId, mcps, insightId, sandboxPolicy);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
 		Object output = pyTranslator.runDirectPy(insight, queryScript);
 		return String.valueOf(output);
-	}
-
-	public Boolean deleteSkill(User user, String projectId, String skillName) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName);
-
-		if (!Files.exists(skillPath)) {
-			return true;
-		}
-
-		try (Stream<Path> walk = Files.walk(skillPath)) {
-			walk.sorted(Comparator.reverseOrder()).forEach(path -> {
-				try {
-					Files.delete(path);
-				} catch (IOException e) {
-					classLogger.error("Failed to delete path: " + path + " - " + e);
-					throw new UncheckedIOException(e);
-				}
-			});
-			return true;
-		} catch (IOException | UncheckedIOException e) {
-			classLogger.error("Failed to delete skills directory: " + e);
-			return false;
-		}
-	}
-
-	public Boolean createSkill(User user, String projectId, String skillName, String skillContent) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		String slugifiedName = skillName.toLowerCase().replace(" ", "-");
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", slugifiedName, "SKILL.md");
-
-		try {
-			Files.createDirectories(skillPath.getParent());
-			Files.createFile(skillPath);
-			Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-			return true;
-		} catch (IOException e) {
-			classLogger.error("Failed to write skill file: " + e);
-			return false;
-		}
-	}
-
-	public Boolean updateSkill(User user, String projectId, String skillName, String skillContent) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-
-		Path skillPath = Paths.get(projectPath, "client", ".claude", "skills", skillName, "SKILL.md");
-
-		try {
-			Files.createDirectories(skillPath.getParent());
-			Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
-			return true;
-		} catch (IOException e) {
-			classLogger.error("Failed to write skill file: " + e);
-			return false;
-		}
-
-	}
-
-	public Map<String, String> getSkills(User user, String projectId) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalArgumentException("Could not find or load project = " + projectId);
-		}
-		String projectName = project.getProjectName();
-		String projectPath = EngineUtility.getSpecificEngineAssetsFolder(project.getCatalogType(), projectId,
-				projectName);
-		Map<String, String> skillsMap = new HashMap<>();
-
-		Path claudeMd = Paths.get(projectPath, "client", "CLAUDE.md");
-		if (Files.exists(claudeMd)) {
-			try {
-				String content = new String(Files.readAllBytes(claudeMd));
-				skillsMap.put("CLAUDE.MD", content);
-			} catch (IOException e) {
-				classLogger.error("Failed to read Claude.md file: " + e);
-			}
-		}
-
-		Path skillsDir = Paths.get(projectPath, "client", ".claude", "skills");
-		if (!Files.exists(skillsDir)) {
-			return skillsMap;
-		}
-		try {
-			Files.list(skillsDir).forEach(dir -> {
-				try {
-					String skillName = dir.getFileName().toString();
-					Path skillFilePath = dir.resolve("SKILL.md");
-					String skillContent = new String(Files.readAllBytes(skillFilePath));
-					skillsMap.put(skillName, skillContent);
-				} catch (IOException e) {
-					classLogger.error("Failed to get skill file contents: " + e);
-				}
-			});
-		} catch (IOException e) {
-			classLogger.error("Failed to list skills directory: " + skillsDir, e);
-		}
-		return skillsMap;
 	}
 
 	/**

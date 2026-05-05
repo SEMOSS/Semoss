@@ -302,6 +302,7 @@ class OpenAIMessageBuilder:
             reasoning = self._resolve_extended_reasoning(param_map)
             if reasoning:
                 param_map["reasoning"] = reasoning
+                param_map.pop("temperature", None)
         except Exception:
             pass
 
