@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import uuid4
 import asyncio
+import os
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
     ClaudeAgentOptions,
@@ -52,6 +53,12 @@ class CCInitArgs(BaseModel):
     mcps: Optional[list[MCP]] = None
     insight_id: Optional[str] = None
     room_folder_path: Optional[str] = None
+    # SEMOSS sandbox: when set, the SDK is pointed at a wrapper script that
+    # applies landlock (Linux) or sandbox-exec (macOS) before exec'ing the
+    # real claude CLI (the bundled binary resolved via claude-agent-sdk).
+    # sandbox_env carries policy file pointers forwarded to the process env.
+    sandbox_cli_path: Optional[str] = None
+    sandbox_env: Optional[dict[str, str]] = None
 
     @field_validator("agent_history_exists", mode="before")
     @classmethod
@@ -72,6 +79,29 @@ class ClaudeCodeClient:
         )
 
         change_logger = _build_change_logger(self.configuration.cwd_path)
+
+        sandbox_env = self.configuration.sandbox_env or {}
+        claude_env = {
+            "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
+            "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
+            "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
+            "ENABLE_TOOL_SEARCH": "true",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
+            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": self.configuration.model,
+            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
+            "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
+            "CLAUDE_CONFIG_DIR": self.configuration.room_folder_path or "",
+            # Pass PATH/HOME through so the sandbox wrapper (and sandbox-exec
+            # on macOS) can locate /bin/sh, /usr/bin/sandbox-exec, etc.
+            "PATH": os.environ.get("PATH", ""),
+            "HOME": os.environ.get("HOME", ""),
+        }
+        # Overlay SEMOSS sandbox pointers last so nothing clobbers them.
+        claude_env.update(sandbox_env)
 
         self.agent_options = ClaudeAgentOptions(
             # stderr=_stderr_handler,
@@ -113,22 +143,10 @@ class ClaudeCodeClient:
                 "Task",
             ],
             mcp_servers=mcps,
-            env={
-                "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
-                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
-                "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
-                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
-                "ENABLE_TOOL_SEARCH": "true",
-                # "ANTHROPIC_LOG": "debug",
-                "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
-                "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_SONNET_MODEL": self.configuration.model,
-                "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
-                "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
-                "CLAUDE_CONFIG_DIR": self.configuration.room_folder_path or "",
-            },
+            env=claude_env,
+            # Only override the CLI path when a sandbox wrapper is active.
+            # When None, the SDK uses its own bundled binary automatically.
+            **({"cli_path": self.configuration.sandbox_cli_path} if self.configuration.sandbox_cli_path else {}),
             hooks={
                 "PostToolUse": [
                     HookMatcher(

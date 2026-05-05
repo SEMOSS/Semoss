@@ -38,6 +38,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
  * {@link IAgentHarness} that delegates to {@link ClaudeCodeManager}.
@@ -84,6 +86,9 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
 
         logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
+        String targetBinary = ClaudeCodeManager.resolveClaudeBinary();
+        SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
+                room.getRoomFolderPath(), filePath, targetBinary, ctx.getSandboxPolicy());
         String output = manager.query(
                 ctx.getInsight(),
                 user,
@@ -94,7 +99,8 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
                 room.getId(),
                 allowedTools,
                 permissionMode,
-                mcps);
+                mcps,
+                policy);
 
         return new AgentHarnessResult(output, 0, new ArrayList<>());
     }
