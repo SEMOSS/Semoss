@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
  * Immutable value object carrying all context needed by an {@link IAgentHarness} implementation.
@@ -56,6 +57,7 @@ public final class AgentRunContext {
     private final Map<String, Object>    paramMap;
     private final int                    maxIterations;
     private final int                    maxReflections;
+    private final SandboxPolicy          sandboxPolicy;
 
     private AgentRunContext(Builder b) {
         this.room           = b.room;
@@ -67,6 +69,7 @@ public final class AgentRunContext {
         this.paramMap       = Collections.unmodifiableMap(b.paramMap);
         this.maxIterations  = b.maxIterations;
         this.maxReflections = b.maxReflections;
+        this.sandboxPolicy  = b.sandboxPolicy;
     }
 
     // Accessors
@@ -119,6 +122,16 @@ public final class AgentRunContext {
         return maxReflections;
     }
 
+    /**
+     * Filesystem allowlist applied to the agent binary (claude-code, copilot, …)
+     * before it {@code execvp}s. {@code null} means the caller did not build
+     * a policy and the harness should either construct a default one or skip
+     * sandboxing — see {@link prerna.reactor.agent.sandbox.AgentSandboxConfig}.
+     */
+    public SandboxPolicy getSandboxPolicy() {
+        return sandboxPolicy;
+    }
+
     // Builder
     public static Builder builder() {
         return new Builder();
@@ -134,6 +147,7 @@ public final class AgentRunContext {
         private Map<String, Object> paramMap       = new HashMap<>();
         private int                 maxIterations  = DEFAULT_MAX_ITERATIONS;
         private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
+        private SandboxPolicy       sandboxPolicy;
 
         public Builder room(Room room)                       { this.room = room;                   return this; }
         public Builder modelEngine(IModelEngine modelEngine) { this.modelEngine = modelEngine;     return this; }
@@ -147,6 +161,7 @@ public final class AgentRunContext {
         }
         public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations;   return this; }
         public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
+        public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;         return this; }
 
         public AgentRunContext build() {
             if (room == null)        throw new IllegalStateException("room is required");
