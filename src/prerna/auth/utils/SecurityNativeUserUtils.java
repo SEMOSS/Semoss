@@ -51,6 +51,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -100,7 +101,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch (NumberFormatException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add native user.", e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
@@ -197,14 +198,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 
 				// need to update any other permissions that were set for this user
@@ -223,14 +219,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add native user.", e);
 						} finally {
-							if (ps != null) {
-								ps.close();
-							}
-							if (ps != null && securityDb.isConnectionPooling()) {
-								ps.getConnection().close();
-							}
+							ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 						}
 					}
 				}
@@ -317,21 +308,16 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 
 				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add native user.", e);
 		}
 
 		return false;
@@ -369,14 +355,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add native user.", e);
 		} finally {
-			if (ps != null) {
-				ps.close();
-			}
-			if (ps != null && securityDb.isConnectionPooling()) {
-				ps.getConnection().close();
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
@@ -404,7 +385,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					deleteIds.add(idToDelete);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add native user.", e);
 			}
 
 			if (!deleteIds.isEmpty()) {
@@ -420,14 +401,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		}
@@ -446,25 +422,25 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			validUsername(newUser.getUsername());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			validEmail(newUser.getEmail(), isNewUser);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			validPassword(newUser.getId(), newUser.getProvider(), password);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			newUser.setPhone(formatPhone(newUser.getPhone()));
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		if (!error.isEmpty()) {
@@ -506,7 +482,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve username by user ID.", e);
 		}
 		return null;
 	}
@@ -534,7 +510,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user ID.", e);
 		}
 		return null;
 
@@ -562,7 +538,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user email.", e);
 		}
 		return null;
 	}
@@ -583,7 +559,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
 		return false;
@@ -612,7 +588,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user name.", e);
 		}
 
 		return null;
@@ -667,7 +643,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				user.put(names[10], (String) values[10]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user details from the native user store.", e);
 		}
 
 		return user;
@@ -697,7 +673,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				salt = (String) values[1];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches the current password.", e);
 		}
 
 		String typedHash = hash(password, salt);
@@ -717,7 +693,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -742,7 +718,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				counter++;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
 
 		return false;
@@ -781,16 +757,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to reset the user password in the native user store.", e);
 		} finally {
-			if (ps != null) {
-				ps.close();
-			}
-			if (securityDb.isConnectionPooling()) {
-				if (ps != null) {
-					ps.getConnection().close();
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return userId;

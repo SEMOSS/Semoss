@@ -74,7 +74,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SparqlInterpreter extends AbstractQueryInterpreter {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(SparqlInterpreter.class);
 
 	// string containing the return variable section of the query
@@ -101,36 +101,36 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	// some things around optimizing the filters
 	private boolean bindingsAdded = false;
-	
+
 	// map to store the selector name to the alisa
 	private Map<String, String> selectorAlias;
-	
+
 	// filtered columns
 	private Set<String> qsFilteredColumns;
 	private Set<String> qsFilteredColumnsToNull;
 	// store the engine
 	private IDatabaseEngine engine;
-	
+
 	public SparqlInterpreter() {
-		
+
 	}
-	
+
 	public SparqlInterpreter(IDatabaseEngine engine) {
 		this.engine = engine;
 	}
-	
+
 	@Override
 	public String composeQuery() {
-		if(this.qs instanceof HardSelectQueryStruct) {
+		if (this.qs instanceof HardSelectQueryStruct) {
 			return ((HardSelectQueryStruct) this.qs).getQuery();
 		}
-		
+
 		String baseUri = "http://semoss.org/ontologies";
-		if(this.engine != null) {
+		if (this.engine != null) {
 			baseUri = this.engine.getNodeBaseUri();
 		}
-		
-		// get the return statement 
+
+		// get the return statement
 		this.selectorAlias = new HashMap<String, String>();
 		this.selectorWhereClause = new StringBuilder();
 		this.addedSelectors = new HashMap<String, String>();
@@ -139,25 +139,25 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		qsFilteredColumnsToNull = getFilteredColumnsToNull(combinedFilters.getFilters());
 		// add the join where clause
 		addJoins(this.qs.getRelations());
-				
+
 		addSelectors(this.qs.getSelectors());
-		
+
 		// add the filters
 		addFilters(combinedFilters, baseUri);
-		
+
 		// add the havings
 		addHavings(this.qs.getHavingFilters(), baseUri);
-		
+
 		// add the group bys
 		addGroupClause(((SelectQueryStruct) this.qs).getGroupBy());
-		
+
 		// add sort bys
 		addOrderByClause(((SelectQueryStruct) this.qs).getCombinedOrderBy());
-		
+
 		// combine the pieces and return
 		StringBuilder query = new StringBuilder();
 		String distinct = "";
-		if(((SelectQueryStruct) this.qs).isDistinct()) {
+		if (((SelectQueryStruct) this.qs).isDistinct()) {
 			distinct = "DISTINCT ";
 		}
 		query.append("SELECT ").append(distinct).append(this.selectors.toString());
@@ -170,68 +170,70 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		query.append(this.groupByClause.toString());
 		query.append(" ");
 		String havingsClauseString = this.havingsClause.toString().trim();
-		if(!havingsClauseString.isEmpty()) {
+		if (!havingsClauseString.isEmpty()) {
 			query.append("HAVING(").append(havingsClauseString).append(") ");
 		}
 		query.append(this.sortByClause);
-		
+
 		long limit = ((SelectQueryStruct) this.qs).getLimit();
 		long offset = ((SelectQueryStruct) this.qs).getOffset();
-		if(limit > 0) {
-			query.append(" LIMIT ").append(limit); 
+		if (limit > 0) {
+			query.append(" LIMIT ").append(limit);
 		}
-		if(offset > 0) {
-			query.append(" OFFSET ").append(offset); 
+		if (offset > 0) {
+			query.append(" OFFSET ").append(offset);
 		}
 		query.append(" ");
 		query.append(this.bindingsWhereClause.toString());
-		
-		if(logger.isDebugEnabled()) {
-			if(query.length() > 500) {
-				logger.debug("SPARQL QUERY....  " + query.substring(0,  500) + "...");
+
+		if (logger.isDebugEnabled()) {
+			if (query.length() > 500) {
+				logger.debug("SPARQL QUERY: {}...", query.substring(0, 500));
 			} else {
-				logger.debug("SPARQL QUERY....  " + query);
+				logger.debug("SPARQL QUERY: {}", query);
 			}
 		}
 		return query.toString();
 	}
-	
+
 	/**
 	 * Add the selector variables
-	 * @param selectors2
+	 * 
+	 * @param selectors
 	 */
 	private void addSelectors(List<IQuerySelector> selectors) {
 		this.selectors = new StringBuilder();
 		int numSelectors = selectors.size();
-		for(int i = 0; i < numSelectors; i++) {
+		for (int i = 0; i < numSelectors; i++) {
 			IQuerySelector selector = selectors.get(i);
 			String alias = selector.getAlias();
-			
+
 			String var = processSelector(selector);
-			if(var.equals("?" + alias)) {
+			if (var.equals("?" + alias)) {
 				this.selectors.append(var).append(" ");
 			} else {
 				this.selectors.append("(").append(var).append(" AS ?").append(alias).append(") ");
 			}
 		}
 	}
-	
+
 	/**
 	 * Method is used to generate the appropriate syntax for each type of selector
-	 * Note, this returns everything without the alias since this is called again from
-	 * the base methods it calls to allow for complex math expressions
+	 * Note, this returns everything without the alias since this is called again
+	 * from the base methods it calls to allow for complex math expressions
+	 * 
 	 * @param selector
 	 * @return
 	 */
 	private String processSelector(IQuerySelector selector) {
 		IQuerySelector.SELECTOR_TYPE selectorType = selector.getSelectorType();
-		if(selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
+		if (selectorType == IQuerySelector.SELECTOR_TYPE.CONSTANT) {
 			return processConstantSelector((QueryConstantSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+		} else if (selectorType == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 			return processColumnSelector((QueryColumnSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
+		} else if (selectorType == IQuerySelector.SELECTOR_TYPE.FUNCTION) {
 			return processFunctionSelector((QueryFunctionSelector) selector);
-		} else if(selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
+		} else if (selectorType == IQuerySelector.SELECTOR_TYPE.ARITHMETIC) {
 			return processArithmeticSelector((QueryArithmeticSelector) selector);
 		}
 		return null;
@@ -239,23 +241,23 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	private String processConstantSelector(QueryConstantSelector selector) {
 		Object constant = selector.getConstant();
-		if(constant instanceof SubQueryExpression) {
+		if (constant instanceof SubQueryExpression) {
 			ITask innerTask = null;
 			try {
 				innerTask = ((SubQueryExpression) constant).generateQsTask();
 				innerTask.setLogger(logger);
-				if(innerTask.hasNext()) {
+				if (innerTask.hasNext()) {
 					Object value = innerTask.next().getValues()[0];
-					if(value instanceof Number) {
+					if (value instanceof Number) {
 						return value.toString();
 					} else {
 						return "\"" + constant + "\"";
 					}
 				}
-			} catch(Exception e) {
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
-				if(innerTask != null) {
+				if (innerTask != null) {
 					try {
 						innerTask.close();
 					} catch (IOException e) {
@@ -263,10 +265,10 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 					}
 				}
 			}
-			
+
 			// if this doesn't return anything...
 			return "\"NULL\"";
-		} else if(constant instanceof Number) {
+		} else if (constant instanceof Number) {
 			return constant.toString();
 		} else {
 			return "\"" + constant + "\"";
@@ -277,10 +279,9 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		String concept = selector.getTable();
 		String property = selector.getColumn();
 		String alias = selector.getAlias();
-		
+
 		/*
-		 * START
-		 * THIS SECTION IS SO WE PROCESS THE COLUMNS THAT ARE NEEDED AND MAKE SURE
+		 * START THIS SECTION IS SO WE PROCESS THE COLUMNS THAT ARE NEEDED AND MAKE SURE
 		 * THEY ARE DEFINED WITHIN THE WHERE CLAUSE
 		 */
 		String conceptCleanVarName = Utility.cleanVariableString(concept);
@@ -288,7 +289,7 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		// add the node to the where statement
 		addNodeSelectorTriple(conceptCleanVarName, concept);
 		// and the property if it is a prop
-		if(!property.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+		if (!property.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 			// make unique based on property
 			cleanVarName += "__" + Utility.cleanVariableString(property);
 			addNodePropertySelectorTriple(cleanVarName, property, concept, conceptCleanVarName);
@@ -296,23 +297,23 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		this.selectorAlias.put(cleanVarName, alias);
 		return "?" + cleanVarName;
 	}
-	
+
 	private String processFunctionSelector(QueryFunctionSelector selector) {
 		List<IQuerySelector> innerSelectors = selector.getInnerSelector();
 		String function = selector.getFunction();
 		String colCast = selector.getColCast();
-		
+
 		StringBuilder expression = new StringBuilder();
 		expression.append(QueryFunctionHelper.convertFunctionToSparqlSyntax(function)).append("(");
-		if(selector.isDistinct()) {
+		if (selector.isDistinct()) {
 			expression.append("DISTINCT ");
 		}
 		int size = innerSelectors.size();
-		for(int i = 0; i< size; i++) {
-			if(i > 0) {
+		for (int i = 0; i < size; i++) {
+			if (i > 0) {
 				expression.append(",");
 			}
-			if(!colCast.isEmpty()) {
+			if (!colCast.isEmpty()) {
 				expression.append(colCast).append("(").append(processSelector(innerSelectors.get(i))).append(")");
 			} else {
 				expression.append(processSelector(innerSelectors.get(i)));
@@ -331,52 +332,58 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 
 	/**
 	 * Adds the node triple
+	 * 
 	 * @param nodeVarName
 	 * @param concept
 	 */
 	private String addNodeSelectorTriple(String nodeVarName, String concept) {
-		if(!this.addedSelectors.containsKey(nodeVarName)) {
+		if (!this.addedSelectors.containsKey(nodeVarName)) {
 			String nodeUri = engine.getPhysicalUriFromPixelSelector(concept);
 			// add the pattern around the concept
-			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(RDF.TYPE).append("> <").append(nodeUri).append(">}");
+			this.selectorWhereClause.append("{?").append(nodeVarName).append(" <").append(RDF.TYPE).append("> <")
+					.append(nodeUri).append(">}");
 			this.addedSelectors.put(nodeVarName, nodeUri);
 		}
 		return this.addedSelectors.get(nodeVarName);
 	}
-	
+
 	/**
 	 * Add a node property triple
+	 * 
 	 * @param propVarName
 	 * @param property
 	 * @param nodeVarName
 	 */
-	private String addNodePropertySelectorTriple(String propVarName, String property, String concept, String conceptVarName) {
-		if(!this.addedSelectors.containsKey(propVarName)) {
+	private String addNodePropertySelectorTriple(String propVarName, String property, String concept,
+			String conceptVarName) {
+		if (!this.addedSelectors.containsKey(propVarName)) {
 			String propUri = engine.getPhysicalUriFromPixelSelector(concept + "__" + property);
 			// add the pattern around the property
 			// if filtered and not to a null
 			// no need for optional
-			if(this.qsFilteredColumns.contains(propVarName) && !this.qsFilteredColumnsToNull.contains(propVarName)) {
-				this.selectorWhereClause.append("{?").append(conceptVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+			if (this.qsFilteredColumns.contains(propVarName) && !this.qsFilteredColumnsToNull.contains(propVarName)) {
+				this.selectorWhereClause.append("{?").append(conceptVarName).append(" <").append(propUri).append("> ?")
+						.append(propVarName).append("}");
 			} else {
-				this.selectorWhereClause.append("OPTIONAL{?").append(conceptVarName).append(" <").append(propUri).append("> ?").append(propVarName).append("}");
+				this.selectorWhereClause.append("OPTIONAL{?").append(conceptVarName).append(" <").append(propUri)
+						.append("> ?").append(propVarName).append("}");
 			}
 			this.addedSelectors.put(propVarName, propUri);
 		}
 		return this.addedSelectors.get(propVarName);
 	}
-	
+
 	private void addJoins(Set<IRelation> relations) {
 		this.relationshipWhereClause = new StringBuilder();
 		for (IRelation relationship : relations) {
-			if(relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
+			if (relationship.getRelationType() == IRelation.RELATION_TYPE.BASIC) {
 				BasicRelationship rel = (BasicRelationship) relationship;
 				String fromNode = rel.getFromConcept();
 				String joinType = rel.getJoinType();
 				String toNode = rel.getToConcept();
 				addJoin(fromNode, joinType, toNode);
 			} else {
-				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+				logger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 			}
 		}
 	}
@@ -386,100 +393,108 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		String fromURI = this.engine.getPhysicalUriFromPixelSelector(fromNode);
 		String toNodeVarName = Utility.cleanVariableString(toNode);
 		String toURI = this.engine.getPhysicalUriFromPixelSelector(toNode);
-		
+
 		// need to figure out what the predicate is from the owl
-		// also need to determine the direction of the relationship -- if it is forward or backward
-		String query = "SELECT ?relationship WHERE { {<" + fromURI + "> ?relationship <" + toURI + "> } filter(?relationship != <http://semoss.org/ontologies/Relation>) } ORDER BY DESC(?relationship)";
+		// also need to determine the direction of the relationship -- if it is forward
+		// or backward
+		String query = "SELECT ?relationship WHERE { {<" + fromURI + "> ?relationship <" + toURI
+				+ "> } filter(?relationship != <http://semoss.org/ontologies/Relation>) } ORDER BY DESC(?relationship)";
 		TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
-		String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
+		String predURI = null;
 		try {
-			if(res.hasNext()){
+			if (res.hasNext()) {
 				predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
 			}
 		} catch (QueryEvaluationException e) {
-			logger.error("ERROR in query for metadata ::: predURI = " + predURI);
+			logger.error("ERROR in query for metadata between {} and {}", fromURI, toURI);
 		}
-		if(predURI == null) {
-			throw new IllegalArgumentException("Unable to add join because we are unable to find the predicate on the owl");
+		if (predURI == null) {
+			throw new IllegalArgumentException(
+					"Unable to add join because we are unable to find the predicate on the owl");
 		}
-		
-		//TODO: how do i do these types of joins? i need to use this information to update the selectors to have coalesce with them
-		//TODO: how do i do these types of joins? i need to use this information to update the selectors to have coalesce with them
-		//TODO: how do i do these types of joins? i need to use this information to update the selectors to have coalesce with them
-		//ignoring for now... old logic doesn't account for it so i will get to this later
-		
+
+		// TODO: how do i do these types of joins? i need to use this information to
+		// update the selectors to have coalesce with them
+		// TODO: how do i do these types of joins? i need to use this information to
+		// update the selectors to have coalesce with them
+		// TODO: how do i do these types of joins? i need to use this information to
+		// update the selectors to have coalesce with them
+		// ignoring for now... old logic doesn't account for it so i will get to this
+		// later
+
 		// create a random variable name that is unique
 //		String randomRelVarName = Utility.getRandomString(6);
-		if(joinType.equals("inner.join")) {
+		if (joinType.equals("inner.join")) {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			addNodeSelectorTriple(toNodeVarName, toNode);
 //			this.relationshipWhereClause.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}");
-			this.relationshipWhereClause.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}");
-		
-		} else if(joinType.equals("left.outer.join")) {
+			this.relationshipWhereClause.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?")
+					.append(toNodeVarName).append("}");
+
+		} else if (joinType.equals("left.outer.join")) {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
 //				.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
-				.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI).append(">} ")
-				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
-				.append("}");
-			
+					.append("{?").append(toNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(toURI)
+					.append(">} ").append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?")
+					.append(toNodeVarName).append("}").append("}");
+
 			this.addedSelectors.put(toNodeVarName, toURI);
 
-		} else if(joinType.equals("right.outer.join")) {
+		} else if (joinType.equals("right.outer.join")) {
 			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
 //			.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
-				.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI).append(">} ")
-				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
-				.append("}");
-			
+					.append("{?").append(fromNodeVarName).append(" <").append(RDF.TYPE).append("> <").append(fromURI)
+					.append(">} ").append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?")
+					.append(toNodeVarName).append("}").append("}");
+
 			this.addedSelectors.put(fromNodeVarName, fromURI);
-			
-		} else if(joinType.equals("outer.join")) {
+
+		} else if (joinType.equals("outer.join")) {
 			addNodeSelectorTriple(fromNodeVarName, fromNode);
 			addNodeSelectorTriple(toNodeVarName, toNode);
 			this.relationshipWhereClause.append("OPTIONAL {")
 //				.append("{?").append(randomRelVarName).append(" <").append(RDFS.SUBPROPERTYOF).append("> <").append(predURI).append(">}")
-				.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?").append(toNodeVarName).append("}")
-				.append("}");
+					.append("{?").append(fromNodeVarName).append(" <").append(predURI).append("> ?")
+					.append(toNodeVarName).append("}").append("}");
 		}
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	//////////////////////// FILTERING //////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 
-	
 	private void addFilters(GenRowFilters grf, String baseUri) {
 		this.filtersWhereClause = new StringBuilder();
 		this.bindWhereClause = new StringBuilder();
 		this.bindingsWhereClause = new StringBuilder();
-		
+
 		List<IQueryFilter> filters = grf.getFilters();
-		for(IQueryFilter filter : filters) {
+		for (IQueryFilter filter : filters) {
 			boolean startSimple = filter.getQueryFilterType() == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE;
 			StringBuilder filterSyntax = processFilter(filter, baseUri, startSimple);
-			if(filterSyntax != null) {
+			if (filterSyntax != null) {
 				// NOTE! we add the filter here and not within the individual methods
 				// so we can correctly do AND/OR filtering
 				this.filtersWhereClause.append(" FILTER( ").append(filterSyntax.toString()).append(")");
 			}
 		}
 	}
-	
+
 	private void addHavings(GenRowFilters grf, String baseUri) {
 		this.havingsClause = new StringBuilder();
-		
+
 		List<IQueryFilter> filters = grf.getFilters();
 		boolean first = true;
-		for(IQueryFilter filter : filters) {
-			// do not want this to go through the simple process which would try to add bind() and bindings()
+		for (IQueryFilter filter : filters) {
+			// do not want this to go through the simple process which would try to add
+			// bind() and bindings()
 			StringBuilder filterSyntax = processFilter(filter, baseUri, false);
-			if(filterSyntax != null) {
-				if(first) {
+			if (filterSyntax != null) {
+				if (first) {
 					this.havingsClause.append(" ( ").append(filterSyntax.toString()).append(") ");
 					first = false;
 				} else {
@@ -488,14 +503,14 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 	}
-	
+
 	private StringBuilder processFilter(IQueryFilter filter, String baseUri, boolean startSimple) {
 		IQueryFilter.QUERY_FILTER_TYPE filterType = filter.getQueryFilterType();
-		if(filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
+		if (filterType == IQueryFilter.QUERY_FILTER_TYPE.SIMPLE) {
 			return processSimpleQueryFilter((SimpleQueryFilter) filter, baseUri, startSimple);
-		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
+		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.AND) {
 			return processAndQueryFilter((AndQueryFilter) filter, baseUri);
-		} else if(filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
+		} else if (filterType == IQueryFilter.QUERY_FILTER_TYPE.OR) {
 			return processOrQueryFilter((OrQueryFilter) filter, baseUri);
 		}
 		return null;
@@ -505,8 +520,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		StringBuilder filterBuilder = new StringBuilder("(");
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
-		for(int i = 0; i < numAnds; i++) {
-			if(i != 0) {
+		for (int i = 0; i < numAnds; i++) {
+			if (i != 0) {
 				filterBuilder.append(" || ");
 			}
 			filterBuilder.append(processFilter(filterList.get(i), baseUri, false));
@@ -519,8 +534,8 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		StringBuilder filterBuilder = new StringBuilder("(");
 		List<IQueryFilter> filterList = filter.getFilterList();
 		int numAnds = filterList.size();
-		for(int i = 0; i < numAnds; i++) {
-			if(i != 0) {
+		for (int i = 0; i < numAnds; i++) {
+			if (i != 0) {
 				filterBuilder.append(" && ");
 			}
 			filterBuilder.append(processFilter(filterList.get(i), baseUri, false));
@@ -535,25 +550,29 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		String thisComparator = filter.getComparator();
 
 		FILTER_TYPE fType = filter.getSimpleFilterType();
-		if(fType == FILTER_TYPE.COL_TO_COL) {
+		if (fType == FILTER_TYPE.COL_TO_COL) {
 			return addSelectorToSelectorFilter(leftComp, rightComp, thisComparator);
-		} else if(fType == FILTER_TYPE.COL_TO_VALUES) {
+		} else if (fType == FILTER_TYPE.COL_TO_VALUES) {
 			return addSelectorToValuesFilter(leftComp, rightComp, thisComparator, baseUri, startSimple);
-		} else if(fType == FILTER_TYPE.VALUES_TO_COL) {
-			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addSelectorToValuesFilter(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
-		} else if(fType == FILTER_TYPE.COL_TO_LAMBDA) {
+		} else if (fType == FILTER_TYPE.VALUES_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it
+			// is numeric
+			return addSelectorToValuesFilter(rightComp, leftComp,
+					IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
+		} else if (fType == FILTER_TYPE.COL_TO_LAMBDA) {
 			return addSelectorToLambda(leftComp, rightComp, thisComparator, baseUri, startSimple);
-		} else if(fType == FILTER_TYPE.LAMBDA_TO_COL) {
-			// same logic as above, just switch the order and reverse the comparator if it is numeric
-			return addSelectorToLambda(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator), baseUri, startSimple);
-		} else if(fType == FILTER_TYPE.VALUE_TO_VALUE) {
+		} else if (fType == FILTER_TYPE.LAMBDA_TO_COL) {
+			// same logic as above, just switch the order and reverse the comparator if it
+			// is numeric
+			return addSelectorToLambda(rightComp, leftComp, IQueryFilter.getReverseNumericalComparator(thisComparator),
+					baseUri, startSimple);
+		} else if (fType == FILTER_TYPE.VALUE_TO_VALUE) {
 			// WHY WOULD YOU DO THIS!!!
 		}
-		
+
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param leftComp
@@ -561,20 +580,22 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	 * @param thisComparator
 	 * @return
 	 */
-	private StringBuilder addSelectorToLambda(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri, boolean startSimple) {
+	private StringBuilder addSelectorToLambda(NounMetadata leftComp, NounMetadata rightComp, String thisComparator,
+			String baseUri, boolean startSimple) {
 		// need to evaluate the lambda on the right
 		IReactor reactor = (IReactor) rightComp.getValue();
 		NounMetadata nounEvaluated = reactor.execute();
 
 		Map<String, Object> mergeMetadata = reactor.mergeIntoQsMetadata();
-		if(mergeMetadata.get(IReactor.MERGE_INTO_QS_FORMAT).equals(IReactor.MERGE_INTO_QS_FORMAT_SCALAR)) {
+		if (mergeMetadata.get(IReactor.MERGE_INTO_QS_FORMAT).equals(IReactor.MERGE_INTO_QS_FORMAT_SCALAR)) {
 			return addSelectorToValuesFilter(leftComp, nounEvaluated, thisComparator, baseUri, startSimple);
 		}
-		
+
 		throw new IllegalArgumentException("Unknown qs format to merge");
 	}
 
-	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator) {
+	private StringBuilder addSelectorToSelectorFilter(NounMetadata leftComp, NounMetadata rightComp,
+			String thisComparator) {
 		// get the left side
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		IQuerySelector rightSelector = (IQuerySelector) rightComp.getValue();
@@ -582,138 +603,150 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 		/*
 		 * Add the filter syntax here once we have the correct physical names
 		 */
-		
-		StringBuilder filterBuilder = new StringBuilder(processSelector(leftSelector))
-			.append(" ").append(thisComparator).append(" ").append(processSelector(rightSelector));
-		
+
+		StringBuilder filterBuilder = new StringBuilder(processSelector(leftSelector)).append(" ")
+				.append(thisComparator).append(" ").append(processSelector(rightSelector));
+
 		return filterBuilder;
 	}
-	
+
 	/**
 	 * Add a filter of one column to a set of values
+	 * 
 	 * @param leftComp
 	 * @param rightComp
 	 * @param thisComparator
 	 */
-	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp, String thisComparator, String baseUri, boolean isSimple) {
+	private StringBuilder addSelectorToValuesFilter(NounMetadata leftComp, NounMetadata rightComp,
+			String thisComparator, String baseUri, boolean isSimple) {
 		IQuerySelector leftSelector = (IQuerySelector) leftComp.getValue();
 		String columnExpression = processSelector(leftSelector);
-		
+
 		List<Object> rightObjects = new Vector<Object>();
 		// ugh... this is gross
-		if(rightComp.getValue() instanceof Collection) {
-			rightObjects.addAll( (Collection) rightComp.getValue());
+		if (rightComp.getValue() instanceof Collection) {
+			rightObjects.addAll((Collection) rightComp.getValue());
 		} else {
 			rightObjects.add(rightComp.getValue());
 		}
-		
-		// if we have a simple column, we can try to do optimizations with bind, bindings, etc.
+
+		// if we have a simple column, we can try to do optimizations with bind,
+		// bindings, etc.
 		// if it is complex, we must do Filter
-		if(leftSelector instanceof QueryColumnSelector) {
+		if (leftSelector instanceof QueryColumnSelector) {
 			// column expression already starts with ?
 			// want to remove it for now
 			columnExpression = columnExpression.substring(1);
 			boolean isProp = false;
-			if(columnExpression.contains("__")) {
+			if (columnExpression.contains("__")) {
 				isProp = true;
 			}
-			return addColToValuesFilter(columnExpression, thisComparator, rightObjects, rightComp.getNounType(), isProp, baseUri, isSimple);
+			return addColToValuesFilter(columnExpression, thisComparator, rightObjects, rightComp.getNounType(), isProp,
+					baseUri, isSimple);
 		} else {
-			return addComplexExpressionToValuesFilter(columnExpression, thisComparator, rightObjects, rightComp.getNounType());
+			return addComplexExpressionToValuesFilter(columnExpression, thisComparator, rightObjects,
+					rightComp.getNounType());
 		}
 	}
-	
-	private StringBuilder addComplexExpressionToValuesFilter(String leftExpression, String thisComparator, List<Object> rightObjects, PixelDataType nounType) {
+
+	private StringBuilder addComplexExpressionToValuesFilter(String leftExpression, String thisComparator,
+			List<Object> rightObjects, PixelDataType nounType) {
 		int numObjects = rightObjects.size();
 		StringBuilder filterBuilder = new StringBuilder();
 		// modify the == comparator to work on sparql
-		if(thisComparator.equals("==")) {
+		if (thisComparator.equals("==")) {
 			thisComparator = "=";
 		}
-		if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-			for(int i = 0; i < numObjects; i++) {
-				if(i != 0) {
+		if (nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+			for (int i = 0; i < numObjects; i++) {
+				if (i != 0) {
 					this.filtersWhereClause.append(" || ");
 				}
 				filterBuilder.append("(").append(leftExpression).append(") ").append(thisComparator).append(" ")
-					.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
+						.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
 			}
 		} else {
-			for(int i = 0; i < numObjects; i++) {
-				if(i != 0) {
+			for (int i = 0; i < numObjects; i++) {
+				if (i != 0) {
 					filterBuilder.append(" || ");
 				}
 				filterBuilder.append("(").append(leftExpression).append(") ").append(thisComparator).append(" ")
-					.append("\"").append(rightObjects.get(i)).append("\"");
+						.append("\"").append(rightObjects.get(i)).append("\"");
 			}
 		}
 		return filterBuilder;
 	}
 
 	/**
-	 * Add a filter of variable name to set of values
-	 * Will figure out the most optimal way to add the filter
+	 * Add a filter of variable name to set of values Will figure out the most
+	 * optimal way to add the filter
+	 * 
 	 * @param leftCleanVarName
 	 * @param thisComparator
 	 * @param rightObjects
 	 * @param nounType
 	 * @param isProp
 	 */
-	private StringBuilder addColToValuesFilter(String leftCleanVarName, String thisComparator, List<Object> rightObjects, 
-			PixelDataType nounType, boolean isProp, String baseUri, boolean isSimple) {
-		
+	private StringBuilder addColToValuesFilter(String leftCleanVarName, String thisComparator,
+			List<Object> rightObjects, PixelDataType nounType, boolean isProp, String baseUri, boolean isSimple) {
+
 		// need to account for null inputs
 		// need to account for null inputs
 		boolean addNullCheck = rightObjects.remove(null);
 		boolean nullCheckWithEquals = true;
-		if(!addNullCheck) {
+		if (!addNullCheck) {
 			// are we searching for null?
-			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator) && 
-					(rightObjects.contains("n") || rightObjects.contains("nu") || rightObjects.contains("nul") || rightObjects.contains("null"));
+			addNullCheck = IQueryInterpreter.getAllSearchComparators().contains(thisComparator)
+					&& (rightObjects.contains("n") || rightObjects.contains("nu") || rightObjects.contains("nul")
+							|| rightObjects.contains("null"));
 		}
 		boolean hasMoreValuesThanNull = !rightObjects.isEmpty();
-		if(addNullCheck) {
+		if (addNullCheck) {
 			// can only work if comparator is == or !=
-			if(thisComparator.equals("!=") || thisComparator.equals("<>")) {
+			if (thisComparator.equals("!=") || thisComparator.equals("<>")) {
 				nullCheckWithEquals = false;
 			}
 		}
-		
+
 		int numObjects = rightObjects.size();
-		if(!addNullCheck && numObjects == 1 && isSimple && thisComparator.equals("==")) {
+		if (!addNullCheck && numObjects == 1 && isSimple && thisComparator.equals("==")) {
 			// can add a bind
-			if(isProp) {
-				if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-					this.bindWhereClause.append("BIND(\"").append(rightObjects.get(0)).append("\"^^<").append(XSD.xdouble).append("> AS ?").append(leftCleanVarName).append(")");
+			if (isProp) {
+				if (nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+					this.bindWhereClause.append("BIND(\"").append(rightObjects.get(0)).append("\"^^<")
+							.append(XSD.xdouble).append("> AS ?").append(leftCleanVarName).append(")");
 				} else {
-					this.bindWhereClause.append("BIND(\"").append(rightObjects.get(0)).append("\" AS ?").append(leftCleanVarName).append(")");
+					this.bindWhereClause.append("BIND(\"").append(rightObjects.get(0)).append("\" AS ?")
+							.append(leftCleanVarName).append(")");
 				}
 			} else {
 				String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
 				this.bindWhereClause.append("BIND(<").append(baseUri).append(concpetType).append("/")
-							.append(rightObjects.get(0)).append("> AS ?").append(leftCleanVarName).append(")");
+						.append(rightObjects.get(0)).append("> AS ?").append(leftCleanVarName).append(")");
 			}
 			// do not return anything
 			// since it is simple and we will append this at the start
 			return null;
-		} else if(!addNullCheck && !bindingsAdded && isSimple && numObjects > 1 && thisComparator.equals("==")){
+		} else if (!addNullCheck && !bindingsAdded && isSimple && numObjects > 1 && thisComparator.equals("==")) {
 			// add bindings at end
 			this.bindingsWhereClause = new StringBuilder();
 			this.bindingsWhereClause.append("BINDINGS ?").append(leftCleanVarName).append("{");
-			if(isProp) {
-				if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-					for(int i = 0; i < numObjects; i++) {
-						this.bindingsWhereClause.append("(\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">)");
+			if (isProp) {
+				if (nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+					for (int i = 0; i < numObjects; i++) {
+						this.bindingsWhereClause.append("(\"").append(rightObjects.get(i)).append("\"^^<")
+								.append(XSD.xdouble).append(">)");
 					}
 				} else {
-					for(int i = 0; i < numObjects; i++) {
+					for (int i = 0; i < numObjects; i++) {
 						this.bindingsWhereClause.append("(\"").append(rightObjects.get(i)).append("\")");
 					}
 				}
 			} else {
 				String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-				for(int i = 0; i < numObjects; i++) {
-					this.bindingsWhereClause.append("(<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">)");
+				for (int i = 0; i < numObjects; i++) {
+					this.bindingsWhereClause.append("(<").append(baseUri).append(concpetType).append("/")
+							.append(rightObjects.get(i)).append(">)");
 				}
 			}
 			this.bindingsWhereClause.append("}");
@@ -726,128 +759,138 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			// start the syntax
 			StringBuilder filterBuilder = new StringBuilder();
 			// modify the == comparator to work on sparql
-			if(thisComparator.equals("==")) {
+			if (thisComparator.equals("==")) {
 				thisComparator = "=";
 			}
-			
-			if(addNullCheck) {
+
+			if (addNullCheck) {
 				// can only work if comparator is == or !=
-				if(thisComparator.equals("==") || IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
+				if (thisComparator.equals("==")
+						|| IQueryInterpreter.getPosSearchComparators().contains(thisComparator)) {
 					filterBuilder.append("!BOUND(?").append(leftCleanVarName).append(")");
-				} else if(thisComparator.equals("!=") || thisComparator.equals("<>") || IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
+				} else if (thisComparator.equals("!=") || thisComparator.equals("<>")
+						|| IQueryInterpreter.getNegSearchComparators().contains(thisComparator)) {
 					filterBuilder.append("BOUND(?").append(leftCleanVarName).append(")");
 				}
 			}
-			
-			if(hasMoreValuesThanNull) {
-				
+
+			if (hasMoreValuesThanNull) {
+
 				// if we added a null check
 				// we need to add and or to the rest of everything
-				if(addNullCheck) {
-					if(nullCheckWithEquals) {
+				if (addNullCheck) {
+					if (nullCheckWithEquals) {
 						filterBuilder.append(" || (");
 					} else {
 						filterBuilder.append(" && (");
 					}
 				}
-				
+
 				// based on the input, set the filter information
 				// if it is a like, we will use a regex filter
 				// otherwise, normal filter
-				if(thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
+				if (thisComparator.equals(SEARCH_COMPARATOR) || thisComparator.equals(NOT_SEARCH_COMPARATOR)) {
 					String notFilter = thisComparator.equals(NOT_SEARCH_COMPARATOR) ? "!" : "";
-					if(isProp) {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+					if (isProp) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"").append(rightObjects.get(i)).append("\", 'i')");
 						}
 					} else {
 						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"").append(baseUri).append(concpetType).append("/.*")
+									.append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
 						}
 					}
-				} else if(thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR)) {
+				} else if (thisComparator.equals(BEGINS_COMPARATOR) || thisComparator.equals(NOT_BEGINS_COMPARATOR)) {
 					String notFilter = thisComparator.equals(NOT_BEGINS_COMPARATOR) ? "!" : "";
-					if(isProp) {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+					if (isProp) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"^").append(rightObjects.get(i)).append("\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"^").append(rightObjects.get(i)).append("\", 'i')");
 						}
 					} else {
 						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-									.append(baseUri).append(concpetType).append("/").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"").append(baseUri).append(concpetType).append("/")
+									.append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("\", 'i')");
 						}
 					}
-				} else if(thisComparator.equals(ENDS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)) {
+				} else if (thisComparator.equals(ENDS_COMPARATOR) || thisComparator.equals(NOT_ENDS_COMPARATOR)) {
 					String notFilter = thisComparator.equals(NOT_ENDS_COMPARATOR) ? "!" : "";
-					if(isProp) {
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+					if (isProp) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"").append(rightObjects.get(i)).append("$\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"").append(rightObjects.get(i)).append("$\", 'i')");
 						}
 					} else {
 						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName).append("), \"")
-									.append(baseUri).append(concpetType).append("/.*").append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("$\", 'i')");
+							filterBuilder.append(notFilter).append("REGEX(STR(?").append(leftCleanVarName)
+									.append("), \"").append(baseUri).append(concpetType).append("/.*")
+									.append(rightObjects.get(i).toString().replace("%", "\\\\%")).append("$\", 'i')");
 						}
 					}
 				} else {
-					if(isProp) {
-						if(nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
-							for(int i = 0; i < numObjects; i++) {
-								if(i != 0) {
-									this.filtersWhereClause.append(" || ");
-								}
-								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-									.append("\"").append(rightObjects.get(i)).append("\"^^<").append(XSD.xdouble).append(">");
-							}
-						} else {
-							for(int i = 0; i < numObjects; i++) {
-								if(i != 0) {
+					if (isProp) {
+						if (nounType == PixelDataType.CONST_DECIMAL || nounType == PixelDataType.CONST_INT) {
+							for (int i = 0; i < numObjects; i++) {
+								if (i != 0) {
 									filterBuilder.append(" || ");
 								}
-								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-									.append("\"").append(rightObjects.get(i)).append("\"");
+								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator)
+										.append(" ").append("\"").append(rightObjects.get(i)).append("\"^^<")
+										.append(XSD.xdouble).append(">");
+							}
+						} else {
+							for (int i = 0; i < numObjects; i++) {
+								if (i != 0) {
+									filterBuilder.append(" || ");
+								}
+								filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator)
+										.append(" ").append("\"").append(rightObjects.get(i)).append("\"");
 							}
 						}
 					} else {
 						String concpetType = Utility.getInstanceName(this.addedSelectors.get(leftCleanVarName));
-						for(int i = 0; i < numObjects; i++) {
-							if(i != 0) {
+						for (int i = 0; i < numObjects; i++) {
+							if (i != 0) {
 								filterBuilder.append(" || ");
 							}
-							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator).append(" ")
-								.append("<").append(baseUri).append(concpetType).append("/").append(rightObjects.get(i)).append(">");
+							filterBuilder.append("?").append(leftCleanVarName).append(" ").append(thisComparator)
+									.append(" ").append("<").append(baseUri).append(concpetType).append("/")
+									.append(rightObjects.get(i)).append(">");
 						}
 					}
 				}
-				
+
 				// close if added null check
-				if(addNullCheck) {
+				if (addNullCheck) {
 					filterBuilder.append(")");
 				}
 			}
-			
+
 			return filterBuilder;
 		}
 	}
@@ -857,29 +900,30 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 	//////////////////////// OTHER PARAMS ///////////////////////////////
 	/////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////
-	
+
 	/**
 	 * Generate the group by clause
+	 * 
 	 * @param groupBy
 	 */
 	private void addGroupClause(List<IQuerySelector> groupBy) {
 		this.groupByClause = new StringBuilder();
 		int numGroups = groupBy.size();
-		if(numGroups == 0) {
+		if (numGroups == 0) {
 			return;
 		}
-		
+
 		this.groupByClause.append(" GROUP BY");
-		for(int i = 0; i < numGroups; i++) {
+		for (int i = 0; i < numGroups; i++) {
 			IQuerySelector groupBySelector = groupBy.get(i);
-			
-			if(groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
+
+			if (groupBySelector.getSelectorType() == IQuerySelector.SELECTOR_TYPE.COLUMN) {
 				QueryColumnSelector gSelect = (QueryColumnSelector) groupBySelector;
 				String tableName = gSelect.getTable();
 				String columnName = gSelect.getColumn();
 
 				String varName = Utility.cleanVariableString(tableName);
-				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				if (!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					varName += "__" + Utility.cleanVariableString(columnName);
 				}
 				this.groupByClause.append(" ?").append(varName);
@@ -890,39 +934,40 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 	}
-	
+
 	/**
 	 * Generate the order by clause
+	 * 
 	 * @param orderBy
 	 */
 	private void addOrderByClause(List<IQuerySort> orderByList) {
 		this.sortByClause = new StringBuilder();
 		int numOrders = orderByList.size();
-		if(numOrders == 0) {
+		if (numOrders == 0) {
 			return;
 		}
 
 		this.sortByClause.append(" ORDER BY");
-		for(int i = 0; i < numOrders; i++) {
+		for (int i = 0; i < numOrders; i++) {
 			IQuerySort orderBy = orderByList.get(i);
-			if(orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
+			if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector gSelect = (QueryColumnOrderBySelector) orderBy;
 				String tableName = gSelect.getTable();
 				String columnName = gSelect.getColumn();
 				ORDER_BY_DIRECTION sortDirection = gSelect.getSortDir();
-				
+
 				String varName = Utility.cleanVariableString(tableName);
-				if(!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
+				if (!columnName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)) {
 					varName += "__" + Utility.cleanVariableString(columnName);
 				}
-	
-				if(sortDirection == ORDER_BY_DIRECTION.ASC) {
+
+				if (sortDirection == ORDER_BY_DIRECTION.ASC) {
 					this.sortByClause.append(" ASC(");
 				} else {
 					this.sortByClause.append(" DESC(");
 				}
-				
-				if(this.selectorAlias.containsKey(varName)) {
+
+				if (this.selectorAlias.containsKey(varName)) {
 					this.sortByClause.append("?").append(this.selectorAlias.get(varName));
 				} else {
 					this.sortByClause.append("?").append(varName);
@@ -932,47 +977,49 @@ public class SparqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 	}
-	
+
 	/**
-	 * Need to determine if a filter is set to equal null 
-	 * Need to make sure this property definition is an optional
+	 * Need to determine if a filter is set to equal null Need to make sure this
+	 * property definition is an optional
+	 * 
 	 * @param combinedFilters
 	 * @return
 	 */
 	private Set<String> getFilteredColumnsToNull(List<IQueryFilter> filters) {
 		Set<String> qsColumnsEqualNull = new HashSet<String>();
-		for(IQueryFilter f : filters) {
-			if(f.getQueryFilterType() == QUERY_FILTER_TYPE.SIMPLE) {
+		for (IQueryFilter f : filters) {
+			if (f.getQueryFilterType() == QUERY_FILTER_TYPE.SIMPLE) {
 				SimpleQueryFilter simpleF = (SimpleQueryFilter) f;
-				
+
 				IQuerySelector selector = null;
 				Object val = null;
-				if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
+				if (simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.COL_TO_VALUES) {
 					selector = (IQuerySelector) simpleF.getLComparison().getValue();
 					val = simpleF.getRComparison().getValue();
-				} else if(simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
+				} else if (simpleF.getSimpleFilterType() == SimpleQueryFilter.FILTER_TYPE.VALUES_TO_COL) {
 					val = simpleF.getLComparison().getValue();
 					selector = (IQuerySelector) simpleF.getRComparison().getValue();
 				} else {
 					// ignore other types
 					continue;
 				}
-				
-				if(val == null) {
-					qsColumnsEqualNull.add(selector.getQueryStructName()); 
+
+				if (val == null) {
+					qsColumnsEqualNull.add(selector.getQueryStructName());
 				} else {
-					if(val instanceof List) {
-						if(((List) val).contains(null)) {
-							qsColumnsEqualNull.add(selector.getQueryStructName()); 
+					if (val instanceof List) {
+						if (((List) val).contains(null)) {
+							qsColumnsEqualNull.add(selector.getQueryStructName());
 						}
 					}
 				}
-			} else if(f.getQueryFilterType() == QUERY_FILTER_TYPE.OR || f.getQueryFilterType() == QUERY_FILTER_TYPE.AND) {
+			} else if (f.getQueryFilterType() == QUERY_FILTER_TYPE.OR
+					|| f.getQueryFilterType() == QUERY_FILTER_TYPE.AND) {
 				AbstractListFilter listF = (AbstractListFilter) f;
 				qsColumnsEqualNull.addAll(getFilteredColumnsToNull(listF.getFilterList()));
 			}
 		}
-		
+
 		return qsColumnsEqualNull;
 	}
 }

@@ -37,7 +37,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -226,8 +225,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
-			MessageFeedback testFeedback = new MessageFeedback("messageId", "feedback",
-					true);
+			MessageFeedback testFeedback = new MessageFeedback("messageId", "feedback", true);
 			SemossPixelException spe = assertThrows(SemossPixelException.class,
 					() -> ModelInferenceLogsUtils.recordFeedback(testFeedback));
 			assertEquals("Error while checking feedbackExists or not .null", spe.getMessage());
@@ -498,20 +496,6 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	}
 
 	@Test
-	void getUserConversations() {
-		List<Map<String, Object>> expected = new ArrayList<>();
-
-		try (MockedStatic<QueryExecutionUtility> queryExecutionUtility = Mockito
-				.mockStatic(QueryExecutionUtility.class)) {
-			queryExecutionUtility
-					.when(() -> QueryExecutionUtility.flushRsToMap(eq(engine), any(SelectQueryStruct.class), anySet()))
-					.thenReturn(expected);
-
-			assertEquals(expected, ModelInferenceLogsUtils.getUserConversations("userId", "projectId"));
-		}
-	}
-
-	@Test
 	void removeFeedback() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class);
 				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class)) {
@@ -750,7 +734,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void getRoomById() throws Exception {
-		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "", "");
+		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "",
+				"");
 
 		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
 				.thenThrow(SQLException.class).thenReturn(ps);

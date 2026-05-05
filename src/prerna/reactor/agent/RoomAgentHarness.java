@@ -116,7 +116,7 @@ public class RoomAgentHarness implements IAgentHarness {
 
     @Override
     @SuppressWarnings({"unchecked"})
-    public AgentHarnessResult execute(GenericAgentContext ctx) throws Exception {
+    public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
         Room                room           = ctx.getRoom();
         int                 maxReflections = ctx.getMaxReflections();
         Map<String, Object> paramMap       = new HashMap<>(ctx.getParamMap());
@@ -190,7 +190,7 @@ public class RoomAgentHarness implements IAgentHarness {
             AtomicInteger iterationsCounter,
             Map<String, Object> paramMap,
             List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
-            GenericAgentContext ctx) throws Exception {
+            AgentRunContext ctx) throws Exception {
 
         Room room          = ctx.getRoom();
         int  maxIterations = ctx.getMaxIterations();
@@ -301,7 +301,7 @@ public class RoomAgentHarness implements IAgentHarness {
      * Called from both the single-tool fast path and each parallel future.
      */
     private ToolExecResult executeOneTool(ParsedToolCall tc, int iter, Map<String, Object> paramMap,
-                                          String parentMessageId, GenericAgentContext ctx) {
+                                          String parentMessageId, AgentRunContext ctx) {
         Room room = ctx.getRoom();
         logger.info("RoomAgentHarness executing tool: name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, iter);
@@ -337,7 +337,7 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
-                                              GenericAgentContext ctx) {
+                                              AgentRunContext ctx) {
         // Built-in interactive tools require frontend interaction — cannot auto-execute
         if (BuiltInTools.isInteractiveBuiltIn(rawToolName)) {
             return new ToolExecOutcome(
@@ -366,7 +366,7 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private String callMcpToolViaReactor(String rawToolName, String engineId,
-                                         Map<String, Object> params, GenericAgentContext ctx) {
+                                         Map<String, Object> params, AgentRunContext ctx) {
         try {
             RunMCPToolReactor reactor = new RunMCPToolReactor();
             reactor.In();
@@ -394,7 +394,7 @@ public class RoomAgentHarness implements IAgentHarness {
     }
 
     private String callMcpToolViaApi(String rawToolName, String engineId,
-                                     Map<String, Object> params, GenericAgentContext ctx) {
+                                     Map<String, Object> params, AgentRunContext ctx) {
         IEngine engine = null;
         try {
             engine = Utility.getEngine(engineId);
