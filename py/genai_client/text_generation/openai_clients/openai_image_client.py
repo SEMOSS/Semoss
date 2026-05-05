@@ -79,7 +79,7 @@ class OpenAiImageClient:
             stream = self._resolve_bool(param_map.pop("stream", False), default=False)
             param_map["stream"] = stream
             if stream:
-                # 
+                # Fewer than 3 partial images may be generated if the full image is generated more quickly
                 param_map.setdefault("partial_images", 3)
 
             if task_type == OpenAIImageTaskType.GENERATE:
