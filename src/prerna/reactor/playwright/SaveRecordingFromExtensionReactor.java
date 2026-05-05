@@ -122,8 +122,23 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 		Path recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 		Path file = recordingsDir.resolve(fileName);
 
-		// Save the JSON file
+		// Check if file exists and auto-increment filename to avoid overwrite
+		if (Files.exists(file)) {
+			String baseName = fileName.substring(0, fileName.length() - 5); // Remove .json
+			int counter = 1;
+			do {
+				fileName = baseName + "_" + counter + ".json";
+				file = recordingsDir.resolve(fileName);
+				counter++;
+			} while (Files.exists(file));
+			classLogger.info("File already exists, using auto-incremented name: " + fileName);
+		}
+
+		// Save the JSON file - extension already formats it correctly with JSON.stringify()
 		try (FileWriter writer = new FileWriter(file.toFile())) {
+			// Validate JSON format but don't reformat (preserve extension's formatting)
+			json.readTree(jsonPayload);
+			// Write original string from extension
 			writer.write(jsonPayload);
 			classLogger.info("Saved recording to: " + file.toAbsolutePath());
 		} catch (Exception e) {
