@@ -120,6 +120,9 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
+										<!-- Exclude any Jackson bundled by shaded artifacts (neo4j, parquet, etc.)
+										     so the declared jackson-core/databind 2.21.1 JARs are the sole source -->
+										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
