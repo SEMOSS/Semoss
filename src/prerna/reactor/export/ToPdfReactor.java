@@ -176,7 +176,7 @@ public class ToPdfReactor extends AbstractReactor {
 	// ==================== UTILITY METHODS ====================
 
 	/**
-	 * Calculate an appropriate font size (in px) for table cells based on the
+	 * Calculate an appropriate font size for table cells based on the
 	 * maximum number of columns in any table row within the provided HTML.
 	 * More columns → smaller font so the table fits within the page width.
 	 */
