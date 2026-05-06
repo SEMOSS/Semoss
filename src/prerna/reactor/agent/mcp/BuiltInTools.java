@@ -151,8 +151,11 @@ public final class BuiltInTools {
 		tool.put("title", "Ask User");
 		tool.put("description",
 				"Ask the user a question and wait for their response. "
-						+ "Use when you need clarification, a choice, confirmation, "
-						+ "or any user input before proceeding.");
+						+ "Use this tool when the user's request is ambiguous "
+						+ "and you need information that was not provided and cannot be reasonably inferred. "
+						+ "Ask only one focused question at a time. If you need multiple pieces of information, ask the most important one first and follow up after. "
+						+ "Do not use this tool to confirm or summarize actions you can already perform. "
+						+ "When the user's intent is clear, prefer acting directly over asking.");
 
 		// inputSchema — kept minimal for token efficiency
 		Map<String, Object> inputSchema = new HashMap<>();
@@ -162,7 +165,7 @@ public final class BuiltInTools {
 
 		Map<String, Object> questionProp = new HashMap<>();
 		questionProp.put("type", "string");
-		questionProp.put("description", "The question to ask the user");
+		questionProp.put("description", "A specific question about missing information the user did not provide");
 		properties.put("question", questionProp);
 
 		Map<String, Object> optionsProp = new HashMap<>();

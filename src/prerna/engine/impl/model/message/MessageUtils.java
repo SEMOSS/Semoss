@@ -461,7 +461,36 @@ public class MessageUtils {
 		}
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
-		return history;
+
+		// 4. Ensure tool_result messages are present after each tool_use response.
+		// The branch walker may skip sibling tool_result messages when a newer message
+		// shares the same parent (e.g. user cancelled and sent a new message).
+		List<AbstractMessage> result = new ArrayList<>(history.size());
+		for (int i = 0; i < history.size(); i++) {
+			AbstractMessage msg = history.get(i);
+			result.add(msg);
+
+			if (msg instanceof ResponseMessage) {
+				ResponseMessage resp = (ResponseMessage) msg;
+				if (resp.getToolResponses() != null && !resp.getToolResponses().isEmpty()) {
+					// Check if the next message already has tool_result parts
+					AbstractMessage next = (i + 1 < history.size()) ? history.get(i + 1) : null;
+					if (next == null || !next.hasToolResultPart()) {
+						// Find the tool_result sibling in the full message list
+						for (AbstractMessage candidate : messages) {
+							if (candidate instanceof InputMessage
+									&& candidate.hasToolResultPart()
+									&& msg.getMessageId().equals(candidate.getParentMessageId())
+									&& !history.contains(candidate)) {
+								result.add(candidate);
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		return result;
 	}
 
 	/**

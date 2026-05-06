@@ -341,7 +341,8 @@ public class RoomAgentHarness implements IAgentHarness {
         // Built-in interactive tools require frontend interaction — cannot auto-execute
         if (BuiltInTools.isInteractiveBuiltIn(rawToolName)) {
             return new ToolExecOutcome(
-                    "This tool requires interactive user input and cannot be executed automatically.", false);
+                    "This tool requires user interaction through the frontend. "
+                            + "Please wait for the user to respond before continuing.", false);
         }
 
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);

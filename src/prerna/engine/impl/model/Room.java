@@ -515,6 +515,25 @@ public class Room {
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
 		} else {
+			// If all tool results were cancelled, persist but skip LLM call
+			boolean allCancelled = true;
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && !"cancelled".equalsIgnoreCase(tr.getToolStatus())) {
+						allCancelled = false;
+						break;
+					}
+				}
+			}
+
+			if (allCancelled) {
+				classLogger.info("All tool results cancelled for room {}; persisting but skipping LLM call", room_id);
+				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
+						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
+				return null;
+			}
+
 			// we have to add the tool results into the message history
 			// so that we can track for multiple tools
 			// so we are calling getting the current message history as the messages array
