@@ -87,23 +87,31 @@ public class GetEngineMethodsReactor extends AbstractReactor {
 	}
 
 	private List<Map<String, Object>> extractMethods(Class<?> iface) {
-	    List<Map<String, Object>> methods = new ArrayList<>();
+		List<Map<String, Object>> methods = new ArrayList<>();
 
-	    for (Method method : iface.getMethods()) {
-	        if (BASE_INTERFACE_METHOD_NAMES.contains(method.getName())) {
-	            continue;
-	        }
+		for (Method method : iface.getMethods()) {
+			if (BASE_INTERFACE_METHOD_NAMES.contains(method.getName())) {
+				continue;
+			}
 
-	        if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
-	            continue;
-	        }
-	        boolean isDeprecated = method.isAnnotationPresent(Deprecated.class);
-	        Map<String, Object> methodInfo = new LinkedHashMap<>();
-	        methodInfo.put("methodName", method.getName());
-	        methodInfo.put("deprecated", isDeprecated);
-	        methods.add(methodInfo);
-	    }
-	    return methods;
+			if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
+				continue;
+			}
+			boolean isDeprecated = method.isAnnotationPresent(Deprecated.class);
+			Map<String, Object> methodInfo = new LinkedHashMap<>();
+			methodInfo.put("methodName", method.getName());
+			methodInfo.put("deprecated", isDeprecated);
+
+			// Simplify parameter details to represent method overloading concisely
+			List<String> parameterTypes = new ArrayList<>();
+			for (Class<?> paramType : method.getParameterTypes()) {
+				parameterTypes.add(paramType.getSimpleName());
+			}
+			methodInfo.put("parameters", parameterTypes);
+
+			methods.add(methodInfo);
+		}
+		return methods;
 	}
 
 	@Override
