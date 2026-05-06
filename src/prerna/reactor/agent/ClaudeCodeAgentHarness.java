@@ -38,6 +38,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.impl.model.ClaudeCodeManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
  * {@link IAgentHarness} that delegates to {@link ClaudeCodeManager}.
@@ -63,9 +65,40 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
     /** Registry name used by {@link AgentHarnessRegistry}. */
     public static final String NAME = "claude_code";
 
+    private static final IMessageHook LOGGING_HOOK = new IMessageHook() {
+        @Override
+        public void beforeMessage(AgentRunContext ctx) {
+            String input = ctx.getInput();
+            logger.debug("[claude_code] pre-message: room={}, inputLen={}",
+                    ctx.getRoom().getId(),
+                    input == null ? 0 : input.length());
+        }
+
+        @Override
+        public void afterMessage(AgentRunContext ctx, AgentHarnessResult result) {
+            String finalText = result.getFinalText();
+            logger.debug("[claude_code] post-message: room={}, iterations={}, finalTextLen={}",
+                    ctx.getRoom().getId(),
+                    result.getIterations(),
+                    finalText == null ? 0 : finalText.length());
+        }
+    };
+
     @Override
     public String getName() {
         return NAME;
+    }
+
+    /**
+     * Common hooks first, then this harness's own hooks. Drop the
+     * {@code super} call to opt out of the common hooks; reorder the
+     * {@code addAll} / {@code add} calls to control execution order.
+     */
+    @Override
+    protected List<IMessageHook> getMessageHooks() {
+        List<IMessageHook> all = new ArrayList<>(super.getMessageHooks());
+        all.add(LOGGING_HOOK);
+        return all;
     }
 
     @Override
@@ -84,6 +117,9 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
 
         logger.debug("ClaudeCodeAgentHarness: engine={} filePath={} mcps={}", engineId, filePath, mcps.size());
         ClaudeCodeManager manager = new ClaudeCodeManager();
+        String targetBinary = ClaudeCodeManager.resolveClaudeBinary();
+        SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
+                room.getRoomFolderPath(), filePath, targetBinary, ctx.getSandboxPolicy());
         String output = manager.query(
                 ctx.getInsight(),
                 user,
@@ -94,7 +130,8 @@ public class ClaudeCodeAgentHarness extends AppBuildingHarness {
                 room.getId(),
                 allowedTools,
                 permissionMode,
-                mcps);
+                mcps,
+                policy);
 
         return new AgentHarnessResult(output, 0, new ArrayList<>());
     }

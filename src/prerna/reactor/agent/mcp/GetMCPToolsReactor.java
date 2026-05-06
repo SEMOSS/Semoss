@@ -71,8 +71,12 @@ public class GetMCPToolsReactor extends AbstractReactor {
 			IMCP mcp = MCPFactory.build(engine);
 			return new NounMetadata(mcp.getMCPTools(), PixelDataType.JSON_OBJECT);
 		} catch (SemossMCPException e) {
+			// mcp not enabled yet - just return no tools
+			if (e.getError() == MCPErrorCode.RESOURCE_NOT_FOUND) {
+				return new NounMetadata(new JSONObject(), PixelDataType.JSON_OBJECT);
+			}
 			classLogger.error(e.getMessage(), e);
-			return new NounMetadata(new JSONObject(), PixelDataType.JSON_OBJECT);
+			throw e;
 		}
 	}
 
