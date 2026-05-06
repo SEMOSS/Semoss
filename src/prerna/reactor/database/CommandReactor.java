@@ -104,6 +104,13 @@ public class CommandReactor extends GitBaseReactor {
 			return getError("No context is set - please use SetContext(<mount point>) to set context");
 		}
 
+		// In room (MCP) context the cmdUtil starts at the chroot root ("/") because no
+		// project context is set.  Seed it to the room folder on first use so commands
+		// run relative to the room rather than the filesystem root.
+		if (this.insight.getRoomId() != null && "/".equals(cmdUtil.getWorkingDir())) {
+			cmdUtil.setWorkingDir(this.insight.getInsightFolder());
+		}
+
 		// uncomment this line to see it in action. We want to test it for .. etc.
 		// before committing into play.
 		// util = null;
@@ -425,6 +432,23 @@ public class CommandReactor extends GitBaseReactor {
 			newOutput = newOutput + "\n" + repos;
 		}
 		return newOutput;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Executes a shell command in the current working directory. Supports navigation (cd, pwd),"
+				+ " file operations, git commands, and arbitrary shell invocations."
+				+ " State (working directory) is preserved across calls within the same session."
+				+ " Requires chroot to be enabled on the instance.";
+	}
+
+	@Override
+	public String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+			return "Shell command to execute. Supports cd, pwd, git, and any other shell command"
+					+ " available in the environment. Working directory persists between calls.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

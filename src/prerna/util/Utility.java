@@ -4608,21 +4608,6 @@ public final class Utility {
 		return Boolean.parseBoolean(schedulerForceDisable);
 	}
 
-	/**
-	 * Determine if Room Tools MCP project initialisation is enabled at boot
-	 * 
-	 * @return
-	 */
-	public static boolean isRoomMCPEnabled() {
-		String roomMcp = Utility.getDIHelperProperty(Constants.ROOM_MCP_ENABLED);
-		if (roomMcp == null) {
-			// default configuration is false
-			return false;
-		}
-
-		return Boolean.parseBoolean(roomMcp);
-	}
-
 	public static boolean isUserTrackingDisabled() {
 		return !isUserTrackingEnabled();
 	}

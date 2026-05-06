@@ -45,7 +45,6 @@ import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
-import prerna.reactor.agent.mcp.tools.RoomMCPUtility;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
@@ -281,14 +280,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			updater.executeRestructure();
 		}
 
-		// initialise the Room Tools MCP system project if enabled
-		if (Utility.isRoomMCPEnabled()) {
-			try {
-				RoomMCPUtility.initAndPublish();
-			} catch (Exception e) {
-				classLogger.error("Failed to initialise Room Tools MCP system project during boot", e);
-			}
-		}
 	}
 
 	/**

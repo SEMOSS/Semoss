@@ -812,9 +812,6 @@ public class Constants {
 	public static final String USER_TRACKING_METHOD = "USER_TRACKING_METHOD";
 	public static final String USER_TRACKING_DB = "UserTrackingDatabase";
 
-	// Room Tools MCP
-	public static final String ROOM_MCP_ENABLED = "ROOM_MCP_ENABLED";
-
 	// Model Inference Logs
 	public static final String MODEL_INFERENCE_LOGS_ENABLED = "MODEL_INFERENCE_LOGS_ENABLED";
 	public static final String MODEL_INFERENCE_LOGS_DB = "ModelInferenceLogsDatabase";
