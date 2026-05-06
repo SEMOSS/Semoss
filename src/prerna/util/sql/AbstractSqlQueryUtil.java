@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -300,9 +301,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * Replace a conneciton url to a file based db (H2, SQLite) with
 	 * "@BaseFolder@/db/@ENGINE@"
 	 * <p>
-	 * In {@link RDBMSNativeEngine#open(Properties) method we call
-	 * {@link #fillFileParameterizedConnectionUrl(String, String, String)} to turn
-	 * back into a useable conneciton url
+	 * In {@link RDBMSNativeEngine#open(Properties) method we call {@link
+	 * #fillFileParameterizedConnectionUrl(String, String, String)} to turn back
+	 * into a useable conneciton url
 	 * </p>
 	 * 
 	 * @param connectionUrl
@@ -543,7 +544,7 @@ public abstract class AbstractSqlQueryUtil {
 		BufferedReader br = null;
 		try {
 			is = blob.getBinaryStream();
-			isr = new InputStreamReader(is);
+			isr = new InputStreamReader(is, StandardCharsets.UTF_8);
 			br = new BufferedReader(isr);
 			boolean firstLine = true;
 			while ((aux = br.readLine()) != null) {
