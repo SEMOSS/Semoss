@@ -34,8 +34,11 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.GitHubCopilotPyManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
  * Python-sidecar GitHub Copilot harness. Same behaviour and parameter shape as
@@ -75,9 +78,13 @@ public class GitHubCopilotPyAgentHarness extends AppBuildingHarness {
 
 		String cwd = resolveClientPath(ctx);
 
+		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
+		SandboxPolicy sandboxPolicy = AgentSandboxConfig.buildEffectivePolicy(
+				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
+
 		GitHubCopilotPyManager manager = new GitHubCopilotPyManager();
-		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow);
+		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt, room.getId(),
+				allowedTools, permissionMode, buildMcpList(room), contextWindow, sandboxPolicy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
 	}
