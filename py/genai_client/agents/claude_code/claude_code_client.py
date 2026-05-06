@@ -15,11 +15,13 @@ from claude_agent_sdk import (
     HookMatcher,
     UserMessage,
     ToolResultBlock,
+    ResultMessage,
 )
 from smss_thread_local import get_smss_stream
 from .claude_code_utils import (
     _build_change_logger,
     make_assistant_event,
+    make_result_event,
     make_tool_result_event,
     make_user_prompt_event,
 )
@@ -57,10 +59,6 @@ class CCInitArgs(BaseModel):
     mcps: Optional[list[MCP]] = None
     insight_id: Optional[str] = None
     room_folder_path: Optional[str] = None
-    # SEMOSS sandbox: when set, the SDK is pointed at a wrapper script that
-    # applies landlock (Linux) or sandbox-exec (macOS) before exec'ing the
-    # real claude CLI (the bundled binary resolved via claude-agent-sdk).
-    # sandbox_env carries policy file pointers forwarded to the process env.
     sandbox_cli_path: Optional[str] = None
     sandbox_env: Optional[dict[str, str]] = None
 
@@ -74,7 +72,7 @@ class ClaudeCodeClient:
     def __init__(self, **kwargs):
         self.configuration = CCInitArgs(**kwargs)
         # logger.debug(self.configuration)
-        (mcps, allowed_tools) = self._resolve_mcps(
+        mcps, allowed_tools = self._resolve_mcps(
             self.configuration.mcps or [],
             self.configuration.allowed_tools or [],
             self.configuration.access_key,
@@ -99,12 +97,9 @@ class ClaudeCodeClient:
             "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
             "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
             "CLAUDE_CONFIG_DIR": self.configuration.room_folder_path or "",
-            # Pass PATH/HOME through so the sandbox wrapper (and sandbox-exec
-            # on macOS) can locate /bin/sh, /usr/bin/sandbox-exec, etc.
             "PATH": os.environ.get("PATH", ""),
             "HOME": os.environ.get("HOME", ""),
         }
-        # Overlay SEMOSS sandbox pointers last so nothing clobbers them.
         claude_env.update(sandbox_env)
 
         self.agent_options = ClaudeAgentOptions(
@@ -148,9 +143,11 @@ class ClaudeCodeClient:
             ],
             mcp_servers=mcps,
             env=claude_env,
-            # Only override the CLI path when a sandbox wrapper is active.
-            # When None, the SDK uses its own bundled binary automatically.
-            **({"cli_path": self.configuration.sandbox_cli_path} if self.configuration.sandbox_cli_path else {}),
+            **(
+                {"cli_path": self.configuration.sandbox_cli_path}
+                if self.configuration.sandbox_cli_path
+                else {}
+            ),
             hooks={
                 "PostToolUse": [
                     HookMatcher(
@@ -242,6 +239,9 @@ class ClaudeCodeClient:
                         event = make_tool_result_event(message)
                         if event is not None:
                             smss_stream(event, stream_type="content")
+                elif isinstance(message, ResultMessage):
+                    if smss_stream:
+                        smss_stream(make_result_event(message), stream_type="content")
 
         # Flush any pending tools that never got a result (e.g. timeout)
         end_ms = int(time.time() * 1000)

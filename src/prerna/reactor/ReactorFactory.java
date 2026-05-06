@@ -608,6 +608,7 @@ public class ReactorFactory {
 		reactorHash.put("DeleteDatabase", DeleteDatabaseReactor.class);
 		reactorHash.put("ImageCapture", ImageCaptureReactor.class);
 		reactorHash.put("Help", HelpReactor.class);
+		reactorHash.put("help", HelpReactor.class);
 		reactorHash.put("DatabaseProfile", DatabaseProfileReactor.class);
 		reactorHash.put("DatabaseColumnUnique", DatabaseColumnUniqueReactor.class);
 		reactorHash.put("ExternalDatabaseProfile", ExternalDatabaseProfileReactor.class);
