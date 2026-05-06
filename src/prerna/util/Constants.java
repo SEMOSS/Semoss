@@ -129,10 +129,11 @@ public class Constants {
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 
-//	public static final String DISPLAY_NAME = "DISPLAY_NAME";
-//	public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
-//	public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
-//	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
+	// public static final String DISPLAY_NAME = "DISPLAY_NAME";
+	// public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
+	// public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
+	// public static String DISPLAY_URI = Constants.BASE_URI +
+	// Constants.DEFAULT_DISPLAY_CLASS + "/";
 
 	public static final String DEFAULT_PHYSICAL_NAME = "PhysicalName";
 
@@ -624,8 +625,9 @@ public class Constants {
 	public static final String PIPELINE_SOURCE_FILTER = "PIPELINE_SOURCE_FILTER";
 	@Deprecated
 	public static final String WIDGET_TAB_SHARE_EXPORT_LIST = "WIDGET_TAB_SHARE_EXPORT_LIST";
-//	@Deprecated
-//	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
+	// @Deprecated
+	// public static final String WIDGET_TAB_EXPORT_DASHBOARD =
+	// "WIDGET_TAB_EXPORT_DASHBOARD";
 
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
@@ -663,13 +665,13 @@ public class Constants {
 
 	// SOLR specific
 	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
-//	public static final String SOLR_RELOAD = "SOLR_RELOAD";
-//	public static final String SOLR_EXPORT = "SOLR_EXPORT";
-//	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-//	public static final String SOLR_HOME_DIR = "Solr";
+	// public static final String SOLR_RELOAD = "SOLR_RELOAD";
+	// public static final String SOLR_EXPORT = "SOLR_EXPORT";
+	// public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
+	// public static final String SOLR_HOME_DIR = "Solr";
 	// this is used for both the index engine and solr enigne
-//	public static final String SOLR_URL = "SOLR_BASE_URL";
-//	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
+	// public static final String SOLR_URL = "SOLR_BASE_URL";
+	// public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
 
 	@Deprecated
 	public static final String VALUE = "VALUE";
