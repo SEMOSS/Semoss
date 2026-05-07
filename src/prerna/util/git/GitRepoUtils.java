@@ -1240,17 +1240,6 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 			Status status = thisGit.status().call();
-			
-			classLogger.info("addAllChangesAndCommit gitFolder={} repoDir={} workTree={}",
-			        gitFolder,
-			        thisGit.getRepository().getDirectory(),
-			        thisGit.getRepository().getWorkTree());
-			classLogger.info("  untracked={}", status.getUntracked());
-			classLogger.info("  untrackedFolders={}", status.getUntrackedFolders());
-			classLogger.info("  modified={}", status.getModified());
-			classLogger.info("  missing={}", status.getMissing());
-			classLogger.info("  ignored={}", status.getIgnoredNotInIndex());
-			classLogger.info("  conflicting={}", status.getConflicting());
 
 			AddCommand ac = thisGit.add();
 			boolean stagedAnyAdd = false;
@@ -1274,7 +1263,6 @@ public class GitRepoUtils {
 				ac.call();
 			}
 
-			// stage deletions: file already gone from working tree, only need to remove from index
 			RmCommand rc = thisGit.rm().setCached(true);
 			boolean stagedAnyRm = false;
 			Iterator<String> delFiles = status.getMissing().iterator();
