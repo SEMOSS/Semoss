@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -359,30 +358,43 @@ public final class MCPUtility {
 	 */
 	public static String runPixelTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap, JSONObject toolMeta) {
-		Map<String, Object> executionParams = buildPixelToolParamMap(functionProperties, paramMap, toolMeta);
-
 		// iterate function properties and find if it is string etc.
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
+		List<String> argNames = new ArrayList<>();
 		while (props.hasNext()) {
 			String propName = props.next();
-			if (executionParams.containsKey(propName)) {
-				appendPixelToolParam(paramString, propName, executionParams.get(propName));
+			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
+			Object propValue = null;
+
+			if (paramMap != null && paramMap.containsKey(propName)) {
+				propValue = paramMap.get(propName);
+			} else if (thisProp.has("default")) {
+				propValue = thisProp.getString("default");
 			}
-		}
-		for (Map.Entry<String, Object> entry : executionParams.entrySet()) {
-			if (!functionProperties.has(entry.getKey())) {
-				appendPixelToolParam(paramString, entry.getKey(), entry.getValue());
+			if (propValue != null) {
+				propValue = applyPixelToolArgTransform(propName, propValue, toolMeta);
+				if (paramString.length() != 0) {
+					paramString.append(", ");
+				}
+
+				paramString.append(propName).append("=");
+				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+					paramString.append(propValue.toString());
+				} else {
+					paramString.append(GSON.toJson(propValue));
+				}
+				argNames.add(propName);
 			}
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
 			classLogger.info("Running pixel tool '{}' with args {} from {} engine '{}'", functionName,
-					executionParams.keySet(), engine.getCatalogType(), engine.getEngineId());
+					argNames, engine.getCatalogType(), engine.getEngineId());
 		} else {
 			classLogger.info("Running pixel tool '{}' with args {} directly without an engine", functionName,
-					executionParams.keySet());
+					argNames);
 		}
 		// run pixel - use scoped context when engine is a project so concurrent tool
 		// calls for different engines on the same insight don't overwrite each other's
@@ -460,87 +472,32 @@ public final class MCPUtility {
 		return stringifyMcpResult(result.getValue());
 	}
 
-	private static Map<String, Object> buildPixelToolParamMap(JSONObject functionProperties, Map<String, Object> paramMap,
-			JSONObject toolMeta) {
-		Map<String, Object> executionParams = new LinkedHashMap<>();
-		Iterator<String> props = functionProperties.keys();
-		while (props.hasNext()) {
-			String propName = props.next();
-			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
-			Object propValue = null;
-
-			if (paramMap != null && paramMap.containsKey(propName)) {
-				propValue = paramMap.get(propName);
-			} else if (thisProp.has("default")) {
-				propValue = thisProp.getString("default");
-			}
-			if (propValue != null) {
-				executionParams.put(propName, propValue);
-			}
-		}
-		applyPixelToolArgTransforms(executionParams, toolMeta);
-		return executionParams;
-	}
-
-	private static void applyPixelToolArgTransforms(Map<String, Object> executionParams, JSONObject toolMeta) {
+	private static Object applyPixelToolArgTransform(String propName, Object propValue, JSONObject toolMeta) {
 		JSONObject transformMeta = toolMeta == null ? null : toolMeta.optJSONObject(SMSS_MCP_ARG_TRANSFORM);
-		if (transformMeta == null || transformMeta.length() == 0) {
-			return;
+		if (transformMeta == null || !transformMeta.has(propName)) {
+			return propValue;
 		}
 
-		Iterator<String> transformKeys = transformMeta.keys();
-		while (transformKeys.hasNext()) {
-			String sourceArg = transformKeys.next();
-			if (!executionParams.containsKey(sourceArg)) {
-				continue;
-			}
+		Object transformObj = transformMeta.opt(propName);
+		if (!(transformObj instanceof JSONObject)) {
+			throw new SemossMCPException(SMSS_MCP_ARG_TRANSFORM + " for '" + propName + "' must be an object",
+					MCPErrorCode.INVALID_PARAMS);
+		}
 
-			Object transformObj = transformMeta.opt(sourceArg);
-			if (!(transformObj instanceof JSONObject)) {
-				throw new SemossMCPException(SMSS_MCP_ARG_TRANSFORM + " for '" + sourceArg + "' must be an object",
+		String encoding = ((JSONObject) transformObj).optString("encoding", "");
+		if (encoding == null || encoding.isBlank()) {
+			return propValue;
+		}
+		if ("base64".equalsIgnoreCase(encoding)) {
+			if (!(propValue instanceof String)) {
+				throw new SemossMCPException("Only string values can use base64 MCP arg transform for '" + propName + "'",
 						MCPErrorCode.INVALID_PARAMS);
 			}
-
-			JSONObject transform = (JSONObject) transformObj;
-			String targetArg = transform.optString("target", sourceArg);
-			if (targetArg == null || targetArg.isBlank()) {
-				targetArg = sourceArg;
-			}
-
-			Object transformedValue = executionParams.get(sourceArg);
-			String encoding = transform.optString("encoding", "");
-			if (encoding != null && !encoding.isBlank()) {
-				if ("base64".equalsIgnoreCase(encoding)) {
-					if (!(transformedValue instanceof String)) {
-						throw new SemossMCPException("Only string values can use base64 MCP arg transform for '"
-								+ sourceArg + "'", MCPErrorCode.INVALID_PARAMS);
-					}
-					transformedValue = Base64.getEncoder()
-							.encodeToString(((String) transformedValue).getBytes(StandardCharsets.UTF_8));
-				} else {
-					throw new SemossMCPException("Unsupported MCP arg transform encoding '" + encoding + "' for '"
-							+ sourceArg + "'", MCPErrorCode.INVALID_PARAMS);
-				}
-			}
-
-			if (!sourceArg.equals(targetArg)) {
-				executionParams.remove(sourceArg);
-			}
-			executionParams.put(targetArg, transformedValue);
-		}
-	}
-
-	private static void appendPixelToolParam(StringBuilder paramString, String propName, Object propValue) {
-		if (paramString.length() != 0) {
-			paramString.append(", ");
+			return Base64.getEncoder().encodeToString(((String) propValue).getBytes(StandardCharsets.UTF_8));
 		}
 
-		paramString.append(propName).append("=");
-		if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
-			paramString.append(propValue.toString());
-		} else {
-			paramString.append(GSON.toJson(propValue));
-		}
+		throw new SemossMCPException("Unsupported MCP arg transform encoding '" + encoding + "' for '" + propName + "'",
+				MCPErrorCode.INVALID_PARAMS);
 	}
 
 	/**
