@@ -42,7 +42,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
@@ -54,6 +56,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 /**
  * Tool dispatch utilities for {@link SemossAgentHarness}.
@@ -85,7 +88,8 @@ final class HarnessToolExecutor {
             ResponseMessage toolResponse,
             AgentLoopState state,
             Map<String, Object> paramMap,
-            AgentRunContext ctx) {
+            AgentRunContext ctx,
+            String traceId) {
 
         Room room = ctx.getRoom();
         String parentMsgId = toolResponse.getMessageId();
@@ -95,7 +99,8 @@ final class HarnessToolExecutor {
 
         if (toolCalls.size() == 1) {
             ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId);
+            int stepIdx = traceId != null ? AgentTraceLogsUtils.nextStepIndex(traceId) : -1;
+            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId, stepIdx, traceId);
             state.addToolCallRecord(r.record);
             nextModelResp = r.modelResponse;
 
@@ -105,11 +110,13 @@ final class HarnessToolExecutor {
 
             ExecutorService pool = Executors.newFixedThreadPool(toolCalls.size());
             try {
+                int baseStep = traceId != null ? AgentTraceLogsUtils.reserveStepIndices(traceId, toolCalls.size()) : -1;
                 CompletableFuture<ToolExecResult>[] futures = new CompletableFuture[toolCalls.size()];
                 for (int i = 0; i < toolCalls.size(); i++) {
                     final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
+                    final int stepIdx = baseStep >= 0 ? baseStep + i : -1;
                     futures[i] = CompletableFuture.supplyAsync(
-                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId),
+                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId, stepIdx, traceId),
                             pool);
                 }
                 // Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
@@ -174,7 +181,9 @@ final class HarnessToolExecutor {
             Map<String, Object> paramMap,
             String parentMsgId,
             AgentRunContext ctx,
-            String jobId) {
+            String jobId,
+            int stepIdx,
+            String traceId) {
 
         logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, currentIter);
@@ -182,12 +191,36 @@ final class HarnessToolExecutor {
 
         long startMs = System.currentTimeMillis();
         ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
-        long durMs = System.currentTimeMillis() - startMs;
+        long endMs = System.currentTimeMillis();
+        long durMs = endMs - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
 
         logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}",
                 tc.rawToolName, durMs, outcome.success);
+
+        // Record trace step if tracing is active
+        if (traceId != null && stepIdx >= 0) {
+            String[] parsed = MCPUtility.parseEngineIdFromFunctionName(tc.rawToolName);
+            String engineId   = parsed != null ? parsed[0] : null;
+            String engineType = null;
+            if (engineId != null) {
+                try {
+                    IEngine eng = Utility.getEngine(engineId);
+                    if (eng == null) eng = (IEngine) Utility.getProject(engineId);
+                    if (eng != null) engineType = eng.getCatalogType().name();
+                } catch (Exception ignored) { /* non-critical */ }
+            }
+            String inputJson = tc.toolParams != null ? tc.toolParams.toString() : null;
+            AgentTraceLogsUtils.recordTraceStep(
+                    traceId, stepIdx, tc.toolCallId, tc.rawToolName,
+                    engineId, engineType, parsed != null,
+                    startMs, endMs,
+                    outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR,
+                    inputJson,
+                    outcome.success ? outcome.content : null,
+                    outcome.success ? null : outcome.content);
+        }
 
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
                 tc.rawToolName, tc.toolCallId, outcome.content, durMs, outcome.success);

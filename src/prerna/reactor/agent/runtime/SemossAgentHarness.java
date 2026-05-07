@@ -34,14 +34,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.reactor.agent.AbstractAgentHarness;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentMaxTurnsException;
 import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.IAgentHarness;
 import prerna.reactor.agent.runtime.AgentBudgetException.BudgetKind;
 
 /**
@@ -77,7 +78,7 @@ import prerna.reactor.agent.runtime.AgentBudgetException.BudgetKind;
  * Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
  * to {@code RunAgent()} or when a workspace has {@code CONFIG_VERSION >= 2}.
  */
-public class SemossAgentHarness implements IAgentHarness {
+public class SemossAgentHarness extends AbstractAgentHarness {
 
 	private static final Logger logger = LogManager.getLogger(SemossAgentHarness.class);
 
@@ -98,7 +99,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	@Override
-	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
+	protected AgentHarnessResult executeCall(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
 		Map<String, Object> paramMap = new HashMap<>(ctx.getParamMap());
 		int maxSeconds = resolveMaxSeconds(paramMap);
@@ -146,6 +147,9 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		try {
 			String systemPrompt = room.getEffectiveSystemPrompt();
+
+			// Retrieve the traceId that AbstractAgentHarness.execute() registered
+			String traceId = AgentTraceLogsUtils.getActiveTraceId(ctx.getInsight().getInsightId());
 
 			// Start the clock BEFORE the first model call so it counts against max_seconds.
 			AgentLoopState state = new AgentLoopState();
@@ -220,7 +224,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				} else if (msgType == MessageType.RESPONSE_TOOL) {
 
 					room.updateToolResponseMeta(response);
-					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx, traceId);
 					state.incrementIterations();
 
 					if (next != null) {
