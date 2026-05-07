@@ -25,33 +25,53 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent.sandbox;
 
-import java.util.Map;
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import java.nio.file.Path;
+import java.util.Objects;
 
-public class ClaudeCodeGetSkillsReactor extends AbstractReactor {
+/**
+ * Immutable (absolute path, access mode) pair in a {@link SandboxPolicy}.
+ *
+ * <p>Produced only by {@link SandboxPolicyBuilder#build()}; paths are
+ * normalized and verified absolute at construction time.
+ */
+public final class AllowedPath {
 
-	public ClaudeCodeGetSkillsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 1 };
-	}
+    private final Path path;
+    private final AccessMode mode;
 
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
+    AllowedPath(Path path, AccessMode mode) {
+        if (path == null || !path.isAbsolute()) {
+            throw new IllegalArgumentException("AllowedPath requires an absolute path: " + path);
+        }
+        this.path = path.normalize();
+        this.mode = Objects.requireNonNull(mode, "mode");
+    }
 
-		Map<String, String> response = manager.getSkills(user, projectId);
+    public Path getPath() {
+        return path;
+    }
 
-		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
+    public AccessMode getMode() {
+        return mode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AllowedPath)) return false;
+        AllowedPath other = (AllowedPath) o;
+        return path.equals(other.path) && mode == other.mode;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(path, mode);
+    }
+
+    @Override
+    public String toString() {
+        return mode + ":" + path;
+    }
 }

@@ -1,6 +1,7 @@
 from typing import Optional
 from uuid import uuid4
 import asyncio
+import os
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
     ClaudeAgentOptions,
@@ -10,11 +11,13 @@ from claude_agent_sdk import (
     PermissionMode,
     HookMatcher,
     UserMessage,
+    ResultMessage,
 )
 from smss_thread_local import get_smss_stream
 from .claude_code_utils import (
     _build_change_logger,
     make_assistant_event,
+    make_result_event,
     make_tool_result_event,
     make_user_prompt_event,
 )
@@ -52,6 +55,8 @@ class CCInitArgs(BaseModel):
     mcps: Optional[list[MCP]] = None
     insight_id: Optional[str] = None
     room_folder_path: Optional[str] = None
+    sandbox_cli_path: Optional[str] = None
+    sandbox_env: Optional[dict[str, str]] = None
 
     @field_validator("agent_history_exists", mode="before")
     @classmethod
@@ -63,7 +68,7 @@ class ClaudeCodeClient:
     def __init__(self, **kwargs):
         self.configuration = CCInitArgs(**kwargs)
         # logger.debug(self.configuration)
-        (mcps, allowed_tools) = self._resolve_mcps(
+        mcps, allowed_tools = self._resolve_mcps(
             self.configuration.mcps or [],
             self.configuration.allowed_tools or [],
             self.configuration.access_key,
@@ -72,6 +77,26 @@ class ClaudeCodeClient:
         )
 
         change_logger = _build_change_logger(self.configuration.cwd_path)
+
+        sandbox_env = self.configuration.sandbox_env or {}
+        claude_env = {
+            "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
+            "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
+            "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
+            "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
+            "ENABLE_TOOL_SEARCH": "true",
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
+            "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_SONNET_MODEL": self.configuration.model,
+            "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": self.configuration.model,
+            "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
+            "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
+            "CLAUDE_CONFIG_DIR": self.configuration.room_folder_path or "",
+            "PATH": os.environ.get("PATH", ""),
+            "HOME": os.environ.get("HOME", ""),
+        }
+        claude_env.update(sandbox_env)
 
         self.agent_options = ClaudeAgentOptions(
             # stderr=_stderr_handler,
@@ -113,22 +138,12 @@ class ClaudeCodeClient:
                 "Task",
             ],
             mcp_servers=mcps,
-            env={
-                "ANTHROPIC_BASE_URL": f"{self.configuration.base_url}",
-                "ANTHROPIC_AUTH_TOKEN": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
-                "ANTHROPIC_API_KEY": f"{self.configuration.access_key}:{self.configuration.secret_key}:room-{self.configuration.room_id}",
-                "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "true",
-                "ENABLE_TOOL_SEARCH": "true",
-                # "ANTHROPIC_LOG": "debug",
-                "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_HAIKU_MODEL": self.configuration.model,
-                "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_SONNET_MODEL": self.configuration.model,
-                "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME": self.configuration.model,
-                "ANTHROPIC_DEFAULT_OPUS_MODEL": self.configuration.model,
-                "CLAUDE_CODE_SUBAGENT_MODEL": self.configuration.model,
-                "CLAUDE_CONFIG_DIR": self.configuration.room_folder_path or "",
-            },
+            env=claude_env,
+            **(
+                {"cli_path": self.configuration.sandbox_cli_path}
+                if self.configuration.sandbox_cli_path
+                else {}
+            ),
             hooks={
                 "PostToolUse": [
                     HookMatcher(
@@ -187,6 +202,9 @@ class ClaudeCodeClient:
                         event = make_tool_result_event(message)
                         if event is not None:
                             smss_stream(event, stream_type="content")
+                elif isinstance(message, ResultMessage):
+                    if smss_stream:
+                        smss_stream(make_result_event(message), stream_type="content")
 
         if smss_stream:
             smss_stream(

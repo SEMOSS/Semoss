@@ -25,36 +25,23 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent;
 
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+/**
+ * Observer-style hook fired around a single agent message — i.e. one
+ * {@link IAgentHarness#execute(AgentRunContext)} call.
+ *
+ * <p>Hooks are returned by {@link AppBuildingHarness#getMessageHooks()} and
+ * invoked in list order. {@link #beforeMessage} fires before
+ * {@code doExecute}; {@link #afterMessage} fires only after a successful
+ * {@code doExecute} return. If any hook throws, subsequent hooks in the
+ * chain are skipped and the exception propagates to the caller.
+ */
+public interface IMessageHook {
 
-public class ClaudeCodeCreateSkillReactor extends AbstractReactor {
+    /** Fires before {@code doExecute}. Throw to abort the message. Default: no-op. */
+    default void beforeMessage(AgentRunContext ctx) throws Exception {}
 
-	public ClaudeCodeCreateSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1, 1 };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
-
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-
-		Boolean response = manager.createSkill(user, projectId, skillName, skillContent);
-
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-	}
-
+    /** Fires after a successful {@code doExecute}, with the produced result. Default: no-op. */
+    default void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
 }

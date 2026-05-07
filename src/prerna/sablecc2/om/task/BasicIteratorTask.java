@@ -285,9 +285,7 @@ public class BasicIteratorTask extends AbstractTask {
 		} else if (qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			iterator = new CsvFileIterator((CsvQueryStruct) this.qs);
 		} else if (qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
-			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs); // new
-																								// ExcelFileIterator((ExcelQueryStruct)
-																								// qs);
+			iterator = ExcelWorkbookFileHelper.buildSheetIterator((ExcelQueryStruct) this.qs);
 		} else {
 			ITableDataFrame frame = this.qs.getFrame();
 			frame.setLogger(classLogger);
