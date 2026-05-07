@@ -258,6 +258,33 @@ public final class AgentTraceLogsUtils {
 	}
 
 	/**
+	 * Updates the END_TIME and TOOL_CALL_COUNT of an existing trace.
+	 * Called when a multi-tool chain completes (AddPlaygroundToolExecution final response).
+	 */
+	public static void updateTraceEndTime(String traceId, Instant endTime, int additionalToolCalls) {
+		if (traceId == null) return;
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) return;
+
+		String sql = "UPDATE AGENT_TRACE SET END_TIME = ?, TOOL_CALL_COUNT = TOOL_CALL_COUNT + ? WHERE TRACE_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement(sql);
+			ps.setTimestamp(1, Timestamp.from(endTime));
+			ps.setInt(2, additionalToolCalls);
+			ps.setString(3, traceId);
+			ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.warn("updateTraceEndTime: failed for traceId '{}'.", traceId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	/**
 	 * Records a single tool-call step for the given trace into the AGENT_TRACE_STEP table.
 	 *
 	 * <p>Call {@link #nextStepIndex(String)} or {@link #reserveStepIndices(String, int)} to
@@ -609,6 +636,59 @@ public final class AgentTraceLogsUtils {
 		return zeros;
 	}
 
+	/**
+	 * Sums tokens from MESSAGE table for a specific trace by joining on the trace's
+	 * stored START_TIME/END_TIME. Accounts for timezone storage mismatch: AGENT_TRACE
+	 * uses Timestamp.from(Instant) (true UTC epoch) while MESSAGE uses
+	 * Timestamp.valueOf(LocalDateTime) which shifts by JVM timezone.
+	 * We compensate by shifting trace bounds by the JVM timezone offset.
+	 *
+	 * @param traceId the trace ID to get tokens for
+	 * @param roomId  the room ID (for MESSAGE filtering)
+	 * @return int[4] — {inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens}
+	 */
+	public static int[] sumTokensForTrace(String traceId, String roomId) {
+		int[] zeros = {0, 0, 0, 0};
+		if (traceId == null || roomId == null) return zeros;
+
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) return zeros;
+
+		// Compute JVM timezone offset to bridge storage mismatch:
+		// AGENT_TRACE uses Timestamp.from(Instant) → correct UTC epoch
+		// MESSAGE uses Timestamp.valueOf(LocalDateTime) → shifted by TZ offset
+		// MESSAGE epochs are (-offset) seconds ahead of AGENT_TRACE epochs
+		int offsetMs = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis());
+		int shiftSeconds = -(offsetMs / 1000); // negate: shift trace forward to match MESSAGE
+
+		// Shift trace START_TIME/END_TIME to align with MESSAGE.DATE_CREATED epoch
+		// Add 5s buffer to END_TIME since ModelEngineInferenceLogsWorker writes asynchronously
+		String sql = "SELECT COALESCE(SUM(m.INPUT_TOKENS),0), COALESCE(SUM(m.OUTPUT_TOKENS),0), "
+				+ "COALESCE(SUM(m.CACHE_READ_TOKENS),0), COALESCE(SUM(m.CACHE_CREATION_TOKENS),0) "
+				+ "FROM MESSAGE m, AGENT_TRACE t "
+				+ "WHERE m.ROOM_ID = ? "
+				+ "AND t.TRACE_ID = ? "
+				+ "AND m.DATE_CREATED >= TIMESTAMPADD(SECOND, " + shiftSeconds + ", t.START_TIME) "
+				+ "AND m.DATE_CREATED <= TIMESTAMPADD(SECOND, " + (shiftSeconds + 5) + ", t.END_TIME)";
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(sql);
+			ps.setString(1, roomId);
+			ps.setString(2, traceId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return new int[] { rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4) };
+			}
+		} catch (Exception e) {
+			classLogger.warn("sumTokensForTrace: failed for traceId '{}'.", traceId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return zeros;
+	}
+
 	// -------------------------------------------------------------------------
 	// Project-scoped trace listing
 	// -------------------------------------------------------------------------
@@ -642,5 +722,87 @@ public final class AgentTraceLogsUtils {
 			classLogger.error("Failed to list traces for projectId '{}', userId '{}'.", projectId, userId, e);
 			return new ArrayList<>();
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// User message retrieval (for prompt correlation)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Fetches the user INPUT message that most closely precedes the given timestamp
+	 * in the specified room. Used to correlate "what the user typed" to an agent trace.
+	 *
+	 * @param roomId         the room to search
+	 * @param traceStartTime timestamp string (format: "yyyy-MM-dd HH:mm:ss" or ISO)
+	 * @return the user prompt text, or null if not found
+	 */
+	public static String fetchUserPromptBeforeTime(String roomId, String traceStartTime) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) return null;
+
+		String sql = "SELECT MESSAGE_DATA FROM MESSAGE "
+				+ "WHERE ROOM_ID = ? AND MESSAGE_TYPE = 'INPUT' AND DATE_CREATED <= ? "
+				+ "ORDER BY DATE_CREATED DESC";
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement(sql);
+			ps.setString(1, roomId);
+			String tsStr = traceStartTime.replace("T", " ");
+			if (tsStr.endsWith("Z")) tsStr = tsStr.substring(0, tsStr.length() - 1);
+			ps.setTimestamp(2, Timestamp.valueOf(tsStr));
+			ps.setMaxRows(1);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				byte[] data = rs.getBytes(1);
+				if (data != null) {
+					return new String(data, "UTF-8");
+				}
+			}
+		} catch (Exception e) {
+			classLogger.debug("fetchUserPromptBeforeTime: could not retrieve prompt for room '{}': {}", roomId, e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return null;
+	}
+
+	/**
+	 * Fetches all user INPUT messages for a room, in chronological order.
+	 *
+	 * @param roomId the room to fetch messages for
+	 * @return list of maps with MESSAGE_ID, MESSAGE_DATA, DATE_CREATED
+	 */
+	public static List<Map<String, Object>> fetchUserMessagesForRoom(String roomId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) return new ArrayList<>();
+
+		String sql = "SELECT MESSAGE_ID, MESSAGE_DATA, DATE_CREATED FROM MESSAGE "
+				+ "WHERE ROOM_ID = ? AND MESSAGE_TYPE = 'INPUT' "
+				+ "ORDER BY DATE_CREATED ASC";
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		List<Map<String, Object>> messages = new ArrayList<>();
+		try {
+			ps = db.getPreparedStatement(sql);
+			ps.setString(1, roomId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> msg = new java.util.LinkedHashMap<>();
+				msg.put("MESSAGE_ID", rs.getString("MESSAGE_ID"));
+				byte[] data = rs.getBytes("MESSAGE_DATA");
+				msg.put("MESSAGE_DATA", data != null ? new String(data, "UTF-8") : null);
+				Timestamp ts = rs.getTimestamp("DATE_CREATED");
+				msg.put("DATE_CREATED", ts != null ? ts.toInstant().toString() : null);
+				messages.add(msg);
+			}
+		} catch (Exception e) {
+			classLogger.debug("fetchUserMessagesForRoom: could not retrieve messages for room '{}': {}", roomId, e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return messages;
 	}
 }

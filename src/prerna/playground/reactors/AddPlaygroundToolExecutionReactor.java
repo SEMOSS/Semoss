@@ -34,12 +34,16 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.Gson;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.MessageType;
@@ -47,6 +51,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -124,9 +129,14 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> pixelReturn = new HashMap<>();
+		long stepStartMs = System.currentTimeMillis();
 		try {
 			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
 					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
+
+			// Record tool step in trace
+			recordToolStep(roomId, toolId, toolName, toolParamterValues, toolResponseRaw, toolStatus, stepStartMs);
+
 			if (response == null) {
 				pixelReturn.put("responseMessage",
 						"Tool output added successfully. Additional tool executions required to continue");
@@ -138,7 +148,18 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+					// Chain complete — update trace end time and clear
+					String traceId = AgentTraceLogsUtils.getActiveTraceId(insight.getInsightId());
+					if (traceId != null) {
+						AgentTraceLogsUtils.updateTraceEndTime(traceId, java.time.Instant.now(), 1);
+					}
+					AgentTraceLogsUtils.clearActiveTraceId(insight.getInsightId());
 				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
+					// Update trace end time to cover this step, but don't clear — more tools coming
+					String traceId = AgentTraceLogsUtils.getActiveTraceId(insight.getInsightId());
+					if (traceId != null) {
+						AgentTraceLogsUtils.updateTraceEndTime(traceId, java.time.Instant.now(), 1);
+					}
 					room.updateToolResponseMeta(lastMessage);
 				}
 				Map<String, Object> inputMap = jsonToMap(MessageUtils.toJson(inputMessage));
@@ -146,6 +167,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				// MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
 				pixelReturn.put("inputMessage", inputMap);
 				pixelReturn.put("responseMessage", responseMap);
+
 				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
 		} finally {
@@ -182,5 +204,52 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			return "Deprecated parameter. Please switch to toolExecutionResponse";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	/**
+	 * Records a tool execution step into the AGENT_TRACE_STEP table.
+	 */
+	private void recordToolStep(String roomId, String toolCallId, String rawToolName,
+			Map<String, Object> toolParams, String toolOutput, String toolStatus, long stepStartMs) {
+		try {
+			String traceId = AgentTraceLogsUtils.getActiveTraceId(this.insight.getInsightId());
+			if (traceId == null) {
+				return;
+			}
+
+			long endMs = System.currentTimeMillis();
+			int stepNum = AgentTraceLogsUtils.nextStepIndex(traceId);
+
+			// Parse engine ID from MCP-style tool name
+			String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
+			String engineId = parsed != null ? parsed[0] : null;
+			String engineType = null;
+			boolean isMcp = parsed != null;
+			if (engineId != null) {
+				try {
+					IEngine eng = Utility.getEngine(engineId);
+					if (eng == null) eng = (IEngine) Utility.getProject(engineId);
+					if (eng != null) engineType = eng.getCatalogType().name();
+				} catch (Exception ignored) { }
+			}
+
+			String inputJson = null;
+			if (toolParams != null && !toolParams.isEmpty()) {
+				inputJson = new Gson().toJson(toolParams);
+			}
+
+			boolean success = toolStatus == null || !"error".equalsIgnoreCase(toolStatus);
+
+			AgentTraceLogsUtils.recordTraceStep(
+					traceId, stepNum, toolCallId, rawToolName,
+					engineId, engineType, isMcp,
+					stepStartMs, endMs,
+					success ? "SUCCESS" : "ERROR",
+					inputJson,
+					success ? toolOutput : null,
+					success ? null : toolOutput);
+		} catch (Exception e) {
+			classLogger.warn("Failed to record tool step for room {}: {}", roomId, e.getMessage());
+		}
 	}
 }

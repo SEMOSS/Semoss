@@ -122,16 +122,24 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// ---- Actually run LLM call
 		ResponseMessage response;
+		int toolCallCount = 0;
 		try {
 			response = room.ask(msg, modelEngine, parentMessageId);
 			if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 				terminationReason = "RESPONSE_TOOL";
+				List<Map<String, Object>> toolCalls = response.getToolResponses();
+				if (toolCalls != null) {
+					toolCallCount = toolCalls.size();
+				}
 			}
 		} catch (Exception e) {
 			terminationReason = "ERROR: " + e.getClass().getSimpleName();
 			throw e;
 		} finally {
-			AgentTraceLogsUtils.clearActiveTraceId(insight.getInsightId());
+			// Keep traceId active if tools need execution (cleared after tool execution completes)
+			if (!"RESPONSE_TOOL".equals(terminationReason)) {
+				AgentTraceLogsUtils.clearActiveTraceId(insight.getInsightId());
+			}
 			AgentTraceLogsUtils.logTrace(
 					traceId,
 					room.getId(),
@@ -142,7 +150,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					startTime,
 					Instant.now(),
 					1,
-					0,
+					toolCallCount,
 					terminationReason,
 					null,
 					null);
