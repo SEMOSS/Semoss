@@ -175,11 +175,11 @@ public class RoomAgentHarness extends AbstractAgentHarness {
                 }
             }
 
-            // 4. Iteration cap check
+            // 4. Turn cap check
             if (response != null && response.getMessageType() == MessageType.RESPONSE_TOOL) {
-                logger.warn("RoomAgentHarness: maxIterations ({}) reached without RESPONSE_TEXT",
-                        ctx.getMaxIterations());
-                throw new AgentMaxIterationsException(ctx.getMaxIterations());
+                logger.warn("RoomAgentHarness: maxTurns ({}) reached without RESPONSE_TEXT",
+                        ctx.getMaxTurns());
+                throw new AgentMaxTurnsException(ctx.getMaxTurns());
             }
 
             // 5. Return result
@@ -251,12 +251,12 @@ public class RoomAgentHarness extends AbstractAgentHarness {
             List<AgentHarnessResult.ToolCallRecord> toolCallRecords,
             AgentRunContext ctx) throws Exception {
 
-        Room room          = ctx.getRoom();
-        int  maxIterations = ctx.getMaxIterations();
+        Room room     = ctx.getRoom();
+        int  maxTurns = ctx.getMaxTurns();
 
         while (response != null
                 && response.getMessageType() == MessageType.RESPONSE_TOOL
-                && iterationsCounter.get() < maxIterations) {
+                && iterationsCounter.get() < maxTurns) {
 
             int iterations = iterationsCounter.incrementAndGet();
 

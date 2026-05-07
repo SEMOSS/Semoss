@@ -43,8 +43,8 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  */
 public final class AgentRunContext {
 
-    /** Default safety cap for tool-call rounds. */
-    public static final int DEFAULT_MAX_ITERATIONS  = 30;
+    /** Default safety cap for tool-call rounds (a.k.a. "turns"). */
+    public static final int DEFAULT_MAX_TURNS       = 30;
     /** Default reflection rounds — 0 means no reflection (backward-compatible). */
     public static final int DEFAULT_MAX_REFLECTIONS = 0;
 
@@ -55,7 +55,7 @@ public final class AgentRunContext {
     private final String                 filePath;
     private final String                 input;
     private final Map<String, Object>    paramMap;
-    private final int                    maxIterations;
+    private final int                    maxTurns;
     private final int                    maxReflections;
     private final SandboxPolicy          sandboxPolicy;
     private final String                 parentTraceId;
@@ -68,7 +68,7 @@ public final class AgentRunContext {
         this.filePath       = b.filePath;
         this.input          = b.input;
         this.paramMap       = Collections.unmodifiableMap(b.paramMap);
-        this.maxIterations  = b.maxIterations;
+        this.maxTurns       = b.maxTurns;
         this.maxReflections = b.maxReflections;
         this.sandboxPolicy  = b.sandboxPolicy;
         this.parentTraceId  = b.parentTraceId;
@@ -115,8 +115,8 @@ public final class AgentRunContext {
     }
 
     /** Maximum tool-call rounds before the harness should throw or abort. */
-    public int getMaxIterations() {
-        return maxIterations;
+    public int getMaxTurns() {
+        return maxTurns;
     }
 
     /** Maximum self-critique rounds after the first RESPONSE_TEXT. 0 disables reflection. */
@@ -134,7 +134,7 @@ public final class AgentRunContext {
         return sandboxPolicy;
     }
 
-    /** Trace ID of the parent agent run, or {@code null} if this is a root agent. */
+    /** Parent trace ID for orchestrator child agents. {@code null} for root-level runs. */
     public String getParentTraceId() {
         return parentTraceId;
     }
@@ -152,7 +152,7 @@ public final class AgentRunContext {
         private String              filePath;
         private String              input;
         private Map<String, Object> paramMap       = new HashMap<>();
-        private int                 maxIterations  = DEFAULT_MAX_ITERATIONS;
+        private int                 maxTurns       = DEFAULT_MAX_TURNS;
         private int                 maxReflections = DEFAULT_MAX_REFLECTIONS;
         private SandboxPolicy       sandboxPolicy;
         private String              parentTraceId;
@@ -167,7 +167,7 @@ public final class AgentRunContext {
             this.paramMap = paramMap != null ? paramMap : new HashMap<>();
             return this;
         }
-        public Builder maxIterations(int maxIterations)      { this.maxIterations = maxIterations;   return this; }
+        public Builder maxTurns(int maxTurns)                { this.maxTurns = maxTurns;             return this; }
         public Builder maxReflections(int maxReflections)    { this.maxReflections = maxReflections; return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;         return this; }
         public Builder parentTraceId(String parentTraceId)   { this.parentTraceId = parentTraceId;   return this; }
@@ -178,8 +178,8 @@ public final class AgentRunContext {
             if (insight == null)     throw new IllegalStateException("insight is required");
             if (input == null || input.trim().isEmpty())
                 throw new IllegalStateException("input is required");
-            if (maxIterations <= 0)
-                throw new IllegalArgumentException("maxIterations must be > 0");
+            if (maxTurns <= 0)
+                throw new IllegalArgumentException("maxTurns must be > 0");
             if (maxReflections < 0)
                 throw new IllegalArgumentException("maxReflections must be >= 0");
             return new AgentRunContext(this);

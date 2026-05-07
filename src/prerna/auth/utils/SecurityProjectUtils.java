@@ -3277,6 +3277,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 
+		// description from project metadata
+		qs1.addSelector(new QueryColumnSelector("PROJECT_DESCRIPTION__DESCRIPTION", "project_description"));
+
 		// this block is for max permissions
 		// If both null - return null
 		// if either not null - return the permission value that is not null
@@ -3391,6 +3394,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "=" });
 			qs1.addRelation(subQuery);
+		}
+
+		// add a join to get the project description from metadata
+		{
+			SelectQueryStruct descQs = new SelectQueryStruct();
+			descQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID", "PROJECTID"));
+			descQs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE", "DESCRIPTION"));
+			descQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "description"));
+			IRelation descSubQuery = new SubqueryRelationship(descQs, "PROJECT_DESCRIPTION", "left.outer.join",
+					new String[] { "PROJECT_DESCRIPTION__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs1.addRelation(descSubQuery);
 		}
 
 		// filters
