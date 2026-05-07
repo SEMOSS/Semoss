@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +57,7 @@ import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.reactor.agent.hooks.GitCommitAgentHook;
 
 /**
  * Abstract base class for harnesses that build inside a project's {@code client/}
@@ -72,7 +74,7 @@ import prerna.util.Utility;
  * </ul>
  *
  * <p>{@link #executeCall(AgentRunContext)} handles scaffolding; subclasses implement
- * {@link #build(AgentRunContext)} for their SDK-specific execution.
+ * {@link #doExecute(AgentRunContext)} for their SDK-specific execution.
  */
 public abstract class AppBuildingHarness extends AbstractAgentHarness {
 
@@ -102,10 +104,15 @@ public abstract class AppBuildingHarness extends AbstractAgentHarness {
             ensureClaudeStructure(clientPath);
             AppBuilderHarnessConfiguration.ensureAgentConfig(clientPath);
         }
-        AgentHarnessResult rawResult = build(ctx);
-
-        // Parse structured response from Python (contains message + toolSteps)
-        return parseAndRecordToolSteps(rawResult, ctx);
+        List<IMessageHook> hooks = getMessageHooks();
+        for (IMessageHook h : hooks) {
+            h.beforeMessage(ctx);
+        }
+        AgentHarnessResult result = doExecute(ctx);
+        for (IMessageHook h : hooks) {
+            h.afterMessage(ctx, result);
+        }
+        return result;
     }
 
     /**
@@ -193,7 +200,28 @@ public abstract class AppBuildingHarness extends AbstractAgentHarness {
     }
 
     /** SDK-specific execution. Called after project scaffolding is ensured. */
-    protected abstract AgentHarnessResult build(AgentRunContext ctx) throws Exception;
+    protected abstract AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception;
+
+    /**
+     * Hooks shared by every {@link AppBuildingHarness} subclass. Populate this
+     * list with hooks that should run for all harnesses by default. The base
+     * {@link #getMessageHooks()} returns this list as-is; subclasses that
+     * override {@code getMessageHooks()} are responsible for calling
+     * {@code super.getMessageHooks()} to include them (or deliberately omitting
+     * the call to opt out).
+     */
+    private static final List<IMessageHook> COMMON_HOOKS =
+            Collections.singletonList(new GitCommitAgentHook());
+
+    /**
+     * Hooks fired around each {@link #execute(AgentRunContext)} call, in list
+     * order. Default: returns {@link #COMMON_HOOKS}. Subclasses may override
+     * to compose, reorder, or replace the common hooks — typically by calling
+     * {@code super.getMessageHooks()} and appending their own.
+     */
+    protected List<IMessageHook> getMessageHooks() {
+        return COMMON_HOOKS;
+    }
 
     // ============================================================
     // Shared resolution helpers (used inside executeCall)

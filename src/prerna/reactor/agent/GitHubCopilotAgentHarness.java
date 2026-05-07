@@ -57,7 +57,7 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 	}
 
 	@Override
-	protected AgentHarnessResult build(AgentRunContext ctx) throws Exception {
+	protected AgentHarnessResult doExecute(AgentRunContext ctx) throws Exception {
 		Room                room  = ctx.getRoom();
 		Map<String, Object> params = ctx.getParamMap();
 		String              input = ctx.getInput();

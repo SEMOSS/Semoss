@@ -142,8 +142,15 @@ public class PixelRunner {
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
 		throwIfCancelRequested();
-		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
-				this.encodedTextToOriginal);
+		try {
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
+					this.encodedTextToOriginal);
+		} catch (SemossPixelException e) {
+			// treat this as a META so that FE doesn't record it
+			addInvalidSyntaxResult(expression, new NounMetadata(e.getMessage(), PixelDataType.INVALID_SYNTAX,
+					PixelOperationType.ERROR, PixelOperationType.INVALID_SYNTAX), false);
+			throw e;
+		}
 		throwIfCancelRequested();
 
 		final boolean USER_CHROOT = insight.getUser() != null
@@ -294,7 +301,7 @@ public class PixelRunner {
 		pixel.setReturnedError(true);
 		pixel.setMeta(true);
 		// also set the time to run
-		if (this.translation.getPixelObj() != null) {
+		if (this.translation != null && this.translation.getPixelObj() != null) {
 			pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
 		}
 		this.returnPixelList.add(pixel);
