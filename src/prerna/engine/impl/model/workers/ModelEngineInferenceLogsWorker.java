@@ -73,6 +73,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	private Integer cacheCreationTokens;
 	// thinking tokens are recorded on the RESPONSE row only (assistant output)
 	private Integer thinkingTokens;
+	// trace correlation — links MESSAGE rows directly to their owning AGENT_TRACE
+	private String traceId;
 
 	// @formatter:off
     public ModelEngineInferenceLogsWorker(
@@ -97,7 +99,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	) {
     	this(messageId, transactionId, messageMethod, engine, insightId, projectContextId, projectId, user,
     			sessionId, roomId, context, prompt, fullPrompt, promptTokens, inputTime, response, responseTokens,
-    			responseTime, null, null, null, null, null);
+    			responseTime, null, null, null, null, null, null);
     }
 
     public ModelEngineInferenceLogsWorker(
@@ -125,6 +127,37 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	   	Integer cacheCreationTokens,
 	   	Integer thinkingTokens
 	) {
+    	this(messageId, transactionId, messageMethod, engine, insightId, projectContextId, projectId, user,
+    			sessionId, roomId, context, prompt, fullPrompt, promptTokens, inputTime, response, responseTokens,
+    			responseTime, inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, thinkingTokens, null);
+    }
+
+    public ModelEngineInferenceLogsWorker(
+		String messageId,
+		String transactionId,
+		String messageMethod,
+		IEngine engine,
+		String insightId,
+	    String projectContextId,
+	    String projectId,
+	    User user,
+		String sessionId,
+		String roomId,
+	   	String context,
+	   	String prompt,
+	   	Object fullPrompt,
+	   	Integer promptTokens,
+	   	ZonedDateTime inputTime,
+	   	String response,
+	   	Integer responseTokens,
+	   	ZonedDateTime responseTime,
+	   	Integer inputTokens,
+	   	Integer outputTokens,
+	   	Integer cacheReadTokens,
+	   	Integer cacheCreationTokens,
+	   	Integer thinkingTokens,
+	   	String traceId
+	) {
     	this.messageId = messageId;
     	this.transactionId = transactionId;
     	this.messageMethod = messageMethod;
@@ -151,6 +184,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
         this.cacheReadTokens = cacheReadTokens;
         this.cacheCreationTokens = cacheCreationTokens;
         this.thinkingTokens = thinkingTokens;
+        this.traceId = traceId;
     }
     // @formatter:on
 
@@ -272,7 +306,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.roomId,
 			userId,
 			userName,
-			userEmail
+			userEmail,
+			this.traceId
 		);
 		ModelInferenceLogsUtils.doRecordMessage(
 			this.transactionId,
@@ -294,7 +329,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.roomId,
 			userId,
 			userName,
-			userEmail
+			userEmail,
+			this.traceId
 		);
 		// @formatter:on
 	}

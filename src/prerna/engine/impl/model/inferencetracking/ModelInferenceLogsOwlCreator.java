@@ -160,7 +160,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("SESSIONID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),
-				Pair.with("USER_EMAIL_ID", "VARCHAR(50)")
+				Pair.with("USER_EMAIL_ID", "VARCHAR(50)"),
+				Pair.with("TRACE_ID", "VARCHAR(255)")
 			);
 		
 		this.feedbackColumns = Arrays.asList(

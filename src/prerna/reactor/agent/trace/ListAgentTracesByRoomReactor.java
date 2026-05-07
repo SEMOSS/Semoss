@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.agent.trace;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -38,9 +36,6 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
@@ -67,7 +62,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ListAgentTracesByRoomReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ListAgentTracesByRoomReactor.class);
-	private static final Gson GSON = new Gson();
 
 	private static final String KEY_LIMIT = "limit";
 	private static final String KEY_PROJECT_ID = "projectId";
@@ -119,7 +113,7 @@ public class ListAgentTracesByRoomReactor extends AbstractReactor {
 		// Group by ROOM_ID
 		Map<String, List<Map<String, Object>>> byRoom = new LinkedHashMap<>();
 		for (Map<String, Object> row : rawTraces) {
-			String roomId = extractString(row, "ROOM_ID");
+			String roomId = AgentTraceViewHelper.extractString(row, "ROOM_ID");
 			if (roomId == null || roomId.isEmpty()) {
 				roomId = "unknown";
 			}
@@ -162,52 +156,43 @@ public class ListAgentTracesByRoomReactor extends AbstractReactor {
 		List<Map<String, Object>> traceSummaries = new ArrayList<>(traces.size());
 
 		for (Map<String, Object> row : traces) {
-			// Collect users
-			String uid = extractString(row, "USER_ID");
+			String uid = AgentTraceViewHelper.extractString(row, "USER_ID");
 			if (uid != null && !uid.isEmpty()) users.add(uid);
 
-			// Collect harness types
-			String harness = extractString(row, "HARNESS_TYPE");
+			String harness = AgentTraceViewHelper.extractString(row, "HARNESS_TYPE");
 			if (harness != null && !harness.isEmpty()) harnessTypes.add(harness);
 
-			// Project ID (take first non-null)
 			if (projectId == null) {
-				projectId = extractString(row, "PROJECT_ID");
+				projectId = AgentTraceViewHelper.extractString(row, "PROJECT_ID");
 			}
 
-			// Tool calls
 			Object toolCountObj = row.get("TOOL_CALL_COUNT");
 			if (toolCountObj != null) {
 				try { totalToolCalls += Integer.parseInt(String.valueOf(toolCountObj)); } catch (NumberFormatException ignored) {}
 			}
 
-			// Tokens from METRICS_JSON
 			Object metricsJsonObj = row.get("METRICS_JSON") != null ? row.get("METRICS_JSON") : row.get("AGENT_TRACE__METRICS_JSON");
-			int[] tokens = extractTokensFromMetrics(metricsJsonObj);
+			int[] tokens = AgentTraceViewHelper.extractTokensFromMetrics(metricsJsonObj);
 			totalInputTokens += tokens[0];
 			totalOutputTokens += tokens[1];
 
-			// Duration
-			long durationMs = computeDurationMs(row.get("START_TIME"), row.get("END_TIME"));
+			long durationMs = AgentTraceViewHelper.computeDurationMs(row.get("START_TIME"), row.get("END_TIME"));
 			totalDurationMs += durationMs;
 
-			// Error check
-			String termReason = extractString(row, "TERMINATION_REASON");
+			String termReason = AgentTraceViewHelper.extractString(row, "TERMINATION_REASON");
 			if (termReason != null && termReason.startsWith("ERROR")) {
 				hasErrors = true;
 			}
 
-			// Last activity (track the latest START_TIME)
-			String startTime = extractString(row, "START_TIME");
+			String startTime = AgentTraceViewHelper.extractString(row, "START_TIME");
 			if (startTime != null && (lastActivity == null || startTime.compareTo(lastActivity) > 0)) {
 				lastActivity = startTime;
 			}
 
-			// Build trace summary
 			Map<String, Object> summary = new LinkedHashMap<>();
-			summary.put("TRACE_ID", extractString(row, "TRACE_ID"));
+			summary.put("TRACE_ID", AgentTraceViewHelper.extractString(row, "TRACE_ID"));
 			summary.put("HARNESS_NAME", harness);
-			summary.put("STATUS", normalizeStatus(termReason));
+			summary.put("STATUS", AgentTraceViewHelper.normalizeStatus(termReason));
 			summary.put("STARTED_AT", startTime);
 			summary.put("DURATION_MS", durationMs);
 			summary.put("TOOL_CALL_COUNT", toolCountObj);
@@ -237,47 +222,15 @@ public class ListAgentTracesByRoomReactor extends AbstractReactor {
 		return group;
 	}
 
-	private static String extractString(Map<String, Object> row, String key) {
-		// Handle both raw column names and prefixed (AGENT_TRACE__) column names
-		Object val = row.get(key);
-		if (val == null) {
-			val = row.get("AGENT_TRACE__" + key);
-		}
-		return val != null ? String.valueOf(val) : null;
+	@Override
+	public String getReactorDescription() {
+		return "Returns agent traces grouped by room with per-room aggregate statistics (token usage, tool calls, duration).";
 	}
 
-	private static String normalizeStatus(String terminationReason) {
-		if (terminationReason == null) return "OK";
-		if ("SUCCESS".equalsIgnoreCase(terminationReason) || "DONE".equalsIgnoreCase(terminationReason)
-				|| "RESPONSE_TEXT".equalsIgnoreCase(terminationReason) || "RESPONSE_TOOL".equalsIgnoreCase(terminationReason)) return "OK";
-		if (terminationReason.startsWith("ERROR")) return "ERROR";
-		return terminationReason;
-	}
-
-	private static long computeDurationMs(Object startTime, Object endTime) {
-		if (startTime == null || endTime == null) return 0;
-		try {
-			String startStr = String.valueOf(startTime).replace(" ", "T");
-			String endStr = String.valueOf(endTime).replace(" ", "T");
-			if (!startStr.endsWith("Z") && !startStr.contains("+")) startStr += "Z";
-			if (!endStr.endsWith("Z") && !endStr.contains("+")) endStr += "Z";
-			Instant s = Instant.parse(startStr);
-			Instant e = Instant.parse(endStr);
-			return Duration.between(s, e).toMillis();
-		} catch (Exception ex) {
-			return 0;
-		}
-	}
-
-	private static int[] extractTokensFromMetrics(Object metricsJson) {
-		if (metricsJson == null) return new int[] {0, 0};
-		try {
-			JsonObject json = GSON.fromJson(String.valueOf(metricsJson), JsonObject.class);
-			int input = json.has("inputTokens") ? json.get("inputTokens").getAsInt() : 0;
-			int output = json.has("outputTokens") ? json.get("outputTokens").getAsInt() : 0;
-			return new int[] {input, output};
-		} catch (Exception e) {
-			return new int[] {0, 0};
-		}
+	@Override
+	public String getDescriptionForKey(String key) {
+		if (KEY_LIMIT.equals(key)) return "Maximum number of traces to retrieve (default 200).";
+		if (KEY_PROJECT_ID.equals(key)) return "Optional project ID to filter traces by.";
+		return super.getDescriptionForKey(key);
 	}
 }

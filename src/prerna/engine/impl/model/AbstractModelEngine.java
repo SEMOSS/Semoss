@@ -42,6 +42,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -212,6 +213,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
+			// Resolve active trace for direct MESSAGE→AGENT_TRACE correlation
+			String activeTraceId = AgentTraceLogsUtils.getActiveTraceId(room.getInsight().getInsightId());
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/ inputMessage.getMessageId(),
 					/*transactionId*/askModelResponse.getMessageId(),
@@ -235,7 +238,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
 					/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
 					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
-					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
+					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens(),
+					/*traceId*/activeTraceId
 					));
 			inferenceRecorder.start();
 		}
@@ -249,7 +253,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 
 		// Grabbing room name from first input message if room name is empty and its full prompt..
-		if (fullPrompt != null && currentRoomName.isEmpty()) {
+		if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
 			String roomName = null;
 			if (!room.getMessages().isEmpty()) {
 				AbstractMessage first = room.getMessages().get(0);

@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.agent.trace;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,9 +34,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import prerna.auth.User;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
@@ -63,7 +58,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetRoomAgentDetailReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetRoomAgentDetailReactor.class);
-	private static final Gson GSON = new Gson();
 
 	private static final String KEY_ROOM_ID = "roomId";
 	private static final String KEY_INCLUDE_MESSAGES = "includeMessages";
@@ -99,8 +93,15 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 		List<Map<String, Object>> rawTraces = AgentTraceLogsUtils.listTraces(roomId, userId, 0);
 		if (rawTraces == null) rawTraces = new ArrayList<>();
 
-		// Fetch all user messages first (for prompt correlation and display)
-		List<Map<String, Object>> allMessages = fetchUserMessages(roomId, userId);
+		// Fetch all conversation messages (INPUT + RESPONSE) for prompt/response correlation
+		List<Map<String, Object>> conversation = AgentTraceLogsUtils.fetchConversationForRoom(roomId);
+		// Also extract just user messages for backward compat
+		List<Map<String, Object>> allMessages = new ArrayList<>();
+		for (Map<String, Object> msg : conversation) {
+			if ("INPUT".equals(msg.get("MESSAGE_TYPE"))) {
+				allMessages.add(msg);
+			}
+		}
 
 		// Build enriched trace list (with steps and per-trace token recovery)
 		List<Map<String, Object>> enrichedTraces = new ArrayList<>(rawTraces.size());
@@ -118,8 +119,8 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 			return aTime.compareTo(bTime);
 		});
 
-		// Assign user prompts to traces by order
-		assignPromptsToTraces(enrichedTraces, allMessages);
+		// Assign user prompts and agent responses to traces by order
+		assignPromptsAndResponsesToTraces(enrichedTraces, conversation);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("ROOM_ID", roomId);
@@ -140,50 +141,43 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 	private Map<String, Object> enrichTrace(Map<String, Object> row, String userId, String roomId, List<Map<String, Object>> allMessages) {
 		Map<String, Object> trace = new LinkedHashMap<>();
 
-		String traceId = extractString(row, "TRACE_ID");
-		String startTime = extractString(row, "START_TIME");
-		String endTime = extractString(row, "END_TIME");
-		String harnessType = extractString(row, "HARNESS_TYPE");
-		String termReason = extractString(row, "TERMINATION_REASON");
+		String traceId = AgentTraceViewHelper.extractString(row, "TRACE_ID");
+		String startTime = AgentTraceViewHelper.extractString(row, "START_TIME");
+		String endTime = AgentTraceViewHelper.extractString(row, "END_TIME");
+		String harnessType = AgentTraceViewHelper.extractString(row, "HARNESS_TYPE");
+		String termReason = AgentTraceViewHelper.extractString(row, "TERMINATION_REASON");
 
 		trace.put("TRACE_ID", traceId);
 		trace.put("ROOM_ID", roomId);
-		trace.put("USER_ID", extractString(row, "USER_ID"));
-		trace.put("PROJECT_ID", extractString(row, "PROJECT_ID"));
+		trace.put("USER_ID", AgentTraceViewHelper.extractString(row, "USER_ID"));
+		trace.put("PROJECT_ID", AgentTraceViewHelper.extractString(row, "PROJECT_ID"));
 		trace.put("HARNESS_NAME", harnessType);
 		trace.put("STARTED_AT", startTime);
 		trace.put("ENDED_AT", endTime);
-		trace.put("DURATION_MS", computeDurationMs(startTime, endTime));
-		trace.put("STATUS", normalizeStatus(termReason));
+		trace.put("DURATION_MS", AgentTraceViewHelper.computeDurationMs(startTime, endTime));
+		trace.put("STATUS", AgentTraceViewHelper.normalizeStatus(termReason));
 		trace.put("ITERATIONS", row.get("ITERATIONS") != null ? row.get("ITERATIONS") : row.get("AGENT_TRACE__ITERATIONS"));
 		trace.put("TOOL_CALL_COUNT", row.get("TOOL_CALL_COUNT") != null ? row.get("TOOL_CALL_COUNT") : row.get("AGENT_TRACE__TOOL_CALL_COUNT"));
 
-		// Tokens — recover from MESSAGE table using trace time window for accuracy
+		// Tokens — recover from MESSAGE table using direct TRACE_ID correlation
 		Object metricsJson = row.get("METRICS_JSON") != null ? row.get("METRICS_JSON") : row.get("AGENT_TRACE__METRICS_JSON");
-		int[] tokens = extractTokensFromMetrics(metricsJson);
+		int[] tokens = AgentTraceViewHelper.extractTokensFromMetrics(metricsJson);
 		if (tokens[0] == 0 && tokens[1] == 0) {
-			// Query MESSAGE table for tokens within this trace's time window (DB-level join, no TZ issues)
 			int[] recovered = AgentTraceLogsUtils.sumTokensForTrace(traceId, roomId);
 			tokens[0] = recovered[0];
 			tokens[1] = recovered[1];
 		}
 		trace.put("TOTAL_INPUT_TOKENS", tokens[0]);
 		trace.put("TOTAL_OUTPUT_TOKENS", tokens[1]);
-		// Also include raw metrics for admin visibility
 		trace.put("METRICS_JSON", metricsJson != null ? String.valueOf(metricsJson) : null);
 
-		// Fetch the user prompt that triggered this trace — assigned after all traces built
-		// (see assignPromptsToTraces)
-
-		// Include raw termination reason for admin visibility
 		trace.put("TERMINATION_REASON", termReason);
-		trace.put("MODEL_ENGINE_ID", extractString(row, "MODEL_ENGINE_ID"));
-		trace.put("PARENT_TRACE_ID", extractString(row, "PARENT_TRACE_ID"));
+		trace.put("MODEL_ENGINE_ID", AgentTraceViewHelper.extractString(row, "MODEL_ENGINE_ID"));
+		trace.put("PARENT_TRACE_ID", AgentTraceViewHelper.extractString(row, "PARENT_TRACE_ID"));
 
 		// Fetch tool steps
 		if (traceId != null) {
 			List<Map<String, Object>> steps = AgentTraceLogsUtils.listTraceSteps(traceId, userId);
-			// Compute DURATION_MS for each step
 			for (Map<String, Object> step : steps) {
 				Object startObj = step.get("START_TIME");
 				Object endObj = step.get("END_TIME");
@@ -202,90 +196,57 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Fetches the user prompt (INPUT message) that most closely precedes the trace start time.
-	 * This correlates what the user typed to the agent run it triggered.
+	 * Correlates user prompts and agent responses from the conversation.
+	 * Strategy: walk through conversation messages in chronological order.
+	 * Each INPUT message is a user prompt; the RESPONSE that follows it is the agent's reply.
+	 * Traces are matched by position (Nth trace = Nth prompt/response pair).
 	 */
-	private String fetchUserPromptForTrace(String roomId, String userId, String traceStartTime) {
-		return AgentTraceLogsUtils.fetchUserPromptBeforeTime(roomId, traceStartTime);
-	}
-
-	/**
-	 * Correlates a user prompt from the pre-fetched messages list.
-	 * Strategy: since trace START_TIME is stored in local time but MESSAGE DATE_CREATED
-	 * is stored in UTC, direct timestamp comparison is unreliable. Instead, we use
-	 * order-based correlation: messages are chronological, traces are chronological,
-	 * so we match them by position — filtering out non-prompt messages first.
-	 */
-	private static List<String> extractUserPrompts(List<Map<String, Object>> messages) {
-		List<String> prompts = new ArrayList<>();
-		for (Map<String, Object> msg : messages) {
+	private void assignPromptsAndResponsesToTraces(List<Map<String, Object>> enrichedTraces, List<Map<String, Object>> conversation) {
+		// Build pairs: each pair is (userPrompt, agentResponse)
+		List<String[]> pairs = new ArrayList<>();
+		for (int i = 0; i < conversation.size(); i++) {
+			Map<String, Object> msg = conversation.get(i);
+			String type = (String) msg.get("MESSAGE_TYPE");
 			String data = (String) msg.get("MESSAGE_DATA");
+			if (!"INPUT".equals(type)) continue;
 			if (data == null || data.isEmpty()) continue;
-			// Skip tool outputs, JSON blobs, error messages — only keep real user prompts
+			// Skip tool outputs, JSON blobs — only keep real user prompts
 			if (data.startsWith("{") || data.startsWith("[") || data.startsWith("This tool execution")) continue;
-			if (data.length() > 500) continue; // unlikely to be a user prompt
-			prompts.add(data);
-		}
-		return prompts;
-	}
+			if (data.length() > 500) continue;
 
-	/**
-	 * Assigns user prompts to traces by order. Each trace corresponds to a user prompt
-	 * in the order they appear. If there are more traces than prompts, later traces get null.
-	 */
-	private void assignPromptsToTraces(List<Map<String, Object>> enrichedTraces, List<Map<String, Object>> messages) {
-		List<String> prompts = extractUserPrompts(messages);
+			// Look ahead for the next RESPONSE message
+			String response = null;
+			for (int j = i + 1; j < conversation.size(); j++) {
+				Map<String, Object> next = conversation.get(j);
+				String nextType = (String) next.get("MESSAGE_TYPE");
+				if ("INPUT".equals(nextType)) break; // hit next user message — no response found
+				if ("RESPONSE".equals(nextType)) {
+					response = (String) next.get("MESSAGE_DATA");
+					break;
+				}
+			}
+			pairs.add(new String[] { data, response });
+		}
+
 		for (int i = 0; i < enrichedTraces.size(); i++) {
-			if (i < prompts.size()) {
-				enrichedTraces.get(i).put("USER_PROMPT", prompts.get(i));
+			if (i < pairs.size()) {
+				enrichedTraces.get(i).put("USER_PROMPT", pairs.get(i)[0]);
+				if (pairs.get(i)[1] != null) {
+					enrichedTraces.get(i).put("AGENT_RESPONSE", pairs.get(i)[1]);
+				}
 			}
 		}
 	}
 
-	/**
-	 * Fetches all user INPUT messages for this room, chronologically.
-	 * Returns MESSAGE_DATA (the prompt text), DATE_CREATED, and MESSAGE_ID.
-	 */
-	private List<Map<String, Object>> fetchUserMessages(String roomId, String userId) {
-		return AgentTraceLogsUtils.fetchUserMessagesForRoom(roomId);
+	@Override
+	public String getReactorDescription() {
+		return "Returns full detail for a specific room's agent activity including traces, steps, tokens, and user prompts.";
 	}
 
-	private static String extractString(Map<String, Object> row, String key) {
-		Object val = row.get(key);
-		if (val == null) val = row.get("AGENT_TRACE__" + key);
-		return val != null ? String.valueOf(val) : null;
-	}
-
-	private static String normalizeStatus(String terminationReason) {
-		if (terminationReason == null) return "OK";
-		if ("SUCCESS".equalsIgnoreCase(terminationReason) || "DONE".equalsIgnoreCase(terminationReason)
-				|| "RESPONSE_TEXT".equalsIgnoreCase(terminationReason) || "RESPONSE_TOOL".equalsIgnoreCase(terminationReason)) return "OK";
-		if (terminationReason.startsWith("ERROR")) return "ERROR";
-		return terminationReason;
-	}
-
-	private static long computeDurationMs(Object startTime, Object endTime) {
-		if (startTime == null || endTime == null) return 0;
-		try {
-			String startStr = String.valueOf(startTime).replace(" ", "T");
-			String endStr = String.valueOf(endTime).replace(" ", "T");
-			if (!startStr.endsWith("Z") && !startStr.contains("+")) startStr += "Z";
-			if (!endStr.endsWith("Z") && !endStr.contains("+")) endStr += "Z";
-			return Duration.between(Instant.parse(startStr), Instant.parse(endStr)).toMillis();
-		} catch (Exception ex) {
-			return 0;
-		}
-	}
-
-	private static int[] extractTokensFromMetrics(Object metricsJson) {
-		if (metricsJson == null) return new int[] {0, 0};
-		try {
-			JsonObject json = GSON.fromJson(String.valueOf(metricsJson), JsonObject.class);
-			int input = json.has("inputTokens") ? json.get("inputTokens").getAsInt() : 0;
-			int output = json.has("outputTokens") ? json.get("outputTokens").getAsInt() : 0;
-			return new int[] {input, output};
-		} catch (Exception e) {
-			return new int[] {0, 0};
-		}
+	@Override
+	public String getDescriptionForKey(String key) {
+		if (KEY_ROOM_ID.equals(key)) return "The room ID to fetch agent detail for.";
+		if (KEY_INCLUDE_MESSAGES.equals(key)) return "Whether to include raw user messages (default true).";
+		return super.getDescriptionForKey(key);
 	}
 }

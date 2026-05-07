@@ -34,7 +34,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -235,7 +234,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
 			String inputJson = null;
 			if (toolParams != null && !toolParams.isEmpty()) {
-				inputJson = new Gson().toJson(toolParams);
+				inputJson = GSON.toJson(toolParams);
 			}
 
 			boolean success = toolStatus == null || !"error".equalsIgnoreCase(toolStatus);
@@ -249,7 +248,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 					success ? toolOutput : null,
 					success ? null : toolOutput);
 		} catch (Exception e) {
-			classLogger.warn("Failed to record tool step for room {}: {}", roomId, e.getMessage());
+			classLogger.warn("Failed to record tool step for room '{}'.", roomId, e);
 		}
 	}
 }

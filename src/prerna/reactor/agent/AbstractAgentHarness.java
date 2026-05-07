@@ -55,7 +55,7 @@ import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
  * harness-specific execution logic. The base class handles all observability concerns.
  *
  * <p>Harnesses that need custom trace lifecycle (e.g. {@link RoomAgentHarness} with per-tool
- * step recording, or {@link OrchestratorAgentHarness} with child metrics) override
+ * step recording) override
  * {@link #execute(AgentRunContext)} directly and manage their own trace calls using
  * the protected helpers provided here.
  *
@@ -71,7 +71,7 @@ public abstract class AbstractAgentHarness implements IAgentHarness {
      * {@link #executeCall(AgentRunContext)}, then closes the trace in a finally block.
      *
      * <p>Subclasses with simple lifecycle (e.g. app-building harnesses) rely on this default.
-     * Subclasses with complex lifecycle (e.g. RoomAgentHarness, OrchestratorAgentHarness)
+     * Subclasses with complex lifecycle (e.g. RoomAgentHarness)
      * override this method entirely and manage their own trace using the protected helpers.
      */
     @Override

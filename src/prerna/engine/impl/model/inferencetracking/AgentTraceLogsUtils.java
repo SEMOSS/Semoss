@@ -30,6 +30,7 @@ package prerna.engine.impl.model.inferencetracking;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -146,48 +147,8 @@ public final class AgentTraceLogsUtils {
 			String terminationReason,
 			String metricsJson,
 			String parentTraceId) {
-
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		if (modelInferenceLogsDb == null) {
-			classLogger.warn("ModelInferenceLogs database is unavailable; skipping agent trace log for traceId '{}'.", traceId);
-			return;
-		}
-
-		String query = "INSERT INTO AGENT_TRACE "
-				+ "(TRACE_ID, ROOM_ID, USER_ID, MODEL_ENGINE_ID, HARNESS_TYPE, "
-				+ "START_TIME, END_TIME, ITERATIONS, TOOL_CALL_COUNT, "
-				+ "TERMINATION_REASON, METRICS_JSON, PARENT_TRACE_ID) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-
-		PreparedStatement ps = null;
-		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, traceId);
-			ps.setString(index++, roomId);
-			ps.setString(index++, userId);
-			ps.setString(index++, modelEngineId);
-			ps.setString(index++, harnessType);
-			ps.setTimestamp(index++, startTime != null ? Timestamp.from(startTime) : null);
-			ps.setTimestamp(index++, endTime != null ? Timestamp.from(endTime) : null);
-			ps.setInt(index++, iterations);
-			ps.setInt(index++, toolCallCount);
-			ps.setString(index++, terminationReason);
-			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, metricsJson, index++, null);
-			if (parentTraceId != null) {
-				ps.setString(index++, parentTraceId);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to insert agent trace for traceId '{}'.", traceId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
-		}
+		logTrace(traceId, roomId, userId, null, modelEngineId, harnessType,
+				startTime, endTime, iterations, toolCallCount, terminationReason, metricsJson, parentTraceId);
 	}
 
 	/**
@@ -528,13 +489,23 @@ public final class AgentTraceLogsUtils {
 			return new ArrayList<>();
 		}
 
-		// Verify ownership: the trace must belong to this user.
-		List<Map<String, Object>> ownerCheck = listTraces(null, userId, 0);
-		boolean owned = ownerCheck.stream()
-				.anyMatch(t -> traceId.equals(t.get("AGENT_TRACE__TRACE_ID"))
-						|| traceId.equals(t.get("TRACE_ID")));
-		if (!owned) {
-			classLogger.warn("User '{}' attempted to list steps for trace '{}' they do not own.", userId, traceId);
+		// Verify ownership: query the single trace and check USER_ID
+		SelectQueryStruct ownerQs = new SelectQueryStruct();
+		ownerQs.addSelector(new QueryColumnSelector(AGENT_TRACE_TABLE + "USER_ID"));
+		ownerQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_TABLE + "TRACE_ID", "==", traceId));
+		try {
+			List<Map<String, Object>> traceRow = QueryExecutionUtility.flushRsToMap(db, ownerQs);
+			if (traceRow.isEmpty()) {
+				return Collections.emptyList();
+			}
+			Object traceUserId = traceRow.get(0).get("AGENT_TRACE__USER_ID");
+			if (traceUserId == null) traceUserId = traceRow.get(0).get("USER_ID");
+			if (!userId.equals(String.valueOf(traceUserId))) {
+				classLogger.warn("User '{}' attempted to list steps for trace '{}' they do not own.", userId, traceId);
+				return Collections.emptyList();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed ownership check for traceId '{}'.", traceId, e);
 			return Collections.emptyList();
 		}
 
@@ -654,35 +625,24 @@ public final class AgentTraceLogsUtils {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (db == null) return zeros;
 
-		// Compute JVM timezone offset to bridge storage mismatch:
-		// AGENT_TRACE uses Timestamp.from(Instant) → correct UTC epoch
-		// MESSAGE uses Timestamp.valueOf(LocalDateTime) → shifted by TZ offset
-		// MESSAGE epochs are (-offset) seconds ahead of AGENT_TRACE epochs
-		int offsetMs = java.util.TimeZone.getDefault().getOffset(System.currentTimeMillis());
-		int shiftSeconds = -(offsetMs / 1000); // negate: shift trace forward to match MESSAGE
-
-		// Shift trace START_TIME/END_TIME to align with MESSAGE.DATE_CREATED epoch
-		// Add 5s buffer to END_TIME since ModelEngineInferenceLogsWorker writes asynchronously
+		// Direct TRACE_ID correlation — no timezone hacks needed
 		String sql = "SELECT COALESCE(SUM(m.INPUT_TOKENS),0), COALESCE(SUM(m.OUTPUT_TOKENS),0), "
 				+ "COALESCE(SUM(m.CACHE_READ_TOKENS),0), COALESCE(SUM(m.CACHE_CREATION_TOKENS),0) "
-				+ "FROM MESSAGE m, AGENT_TRACE t "
-				+ "WHERE m.ROOM_ID = ? "
-				+ "AND t.TRACE_ID = ? "
-				+ "AND m.DATE_CREATED >= TIMESTAMPADD(SECOND, " + shiftSeconds + ", t.START_TIME) "
-				+ "AND m.DATE_CREATED <= TIMESTAMPADD(SECOND, " + (shiftSeconds + 5) + ", t.END_TIME)";
+				+ "FROM MESSAGE m "
+				+ "WHERE m.TRACE_ID = ? AND m.ROOM_ID = ?";
 
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
 			ps = db.getPreparedStatement(sql);
-			ps.setString(1, roomId);
-			ps.setString(2, traceId);
+			ps.setString(1, traceId);
+			ps.setString(2, roomId);
 			rs = ps.executeQuery();
 			if (rs.next()) {
 				return new int[] { rs.getInt(1), rs.getInt(2), rs.getInt(3), rs.getInt(4) };
 			}
 		} catch (Exception e) {
-			classLogger.warn("sumTokensForTrace: failed for traceId '{}'.", traceId, e);
+			classLogger.warn("sumTokensForTrace: query failed for traceId '{}'.", traceId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
@@ -757,7 +717,7 @@ public final class AgentTraceLogsUtils {
 			if (rs.next()) {
 				byte[] data = rs.getBytes(1);
 				if (data != null) {
-					return new String(data, "UTF-8");
+					return new String(data, StandardCharsets.UTF_8);
 				}
 			}
 		} catch (Exception e) {
@@ -793,13 +753,50 @@ public final class AgentTraceLogsUtils {
 				Map<String, Object> msg = new java.util.LinkedHashMap<>();
 				msg.put("MESSAGE_ID", rs.getString("MESSAGE_ID"));
 				byte[] data = rs.getBytes("MESSAGE_DATA");
-				msg.put("MESSAGE_DATA", data != null ? new String(data, "UTF-8") : null);
+				msg.put("MESSAGE_DATA", data != null ? new String(data, StandardCharsets.UTF_8) : null);
 				Timestamp ts = rs.getTimestamp("DATE_CREATED");
 				msg.put("DATE_CREATED", ts != null ? ts.toInstant().toString() : null);
 				messages.add(msg);
 			}
 		} catch (Exception e) {
 			classLogger.debug("fetchUserMessagesForRoom: could not retrieve messages for room '{}': {}", roomId, e.getMessage());
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+		return messages;
+	}
+
+	/**
+	 * Fetches both INPUT and RESPONSE messages for a room, chronologically.
+	 * Each row includes MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, and DATE_CREATED.
+	 */
+	public static List<Map<String, Object>> fetchConversationForRoom(String roomId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (db == null) return new ArrayList<>();
+
+		String sql = "SELECT MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, DATE_CREATED FROM MESSAGE "
+				+ "WHERE ROOM_ID = ? AND MESSAGE_TYPE IN ('INPUT', 'RESPONSE') "
+				+ "ORDER BY DATE_CREATED ASC";
+
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		List<Map<String, Object>> messages = new ArrayList<>();
+		try {
+			ps = db.getPreparedStatement(sql);
+			ps.setString(1, roomId);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> msg = new java.util.LinkedHashMap<>();
+				msg.put("MESSAGE_ID", rs.getString("MESSAGE_ID"));
+				msg.put("MESSAGE_TYPE", rs.getString("MESSAGE_TYPE"));
+				byte[] data = rs.getBytes("MESSAGE_DATA");
+				msg.put("MESSAGE_DATA", data != null ? new String(data, StandardCharsets.UTF_8) : null);
+				Timestamp ts = rs.getTimestamp("DATE_CREATED");
+				msg.put("DATE_CREATED", ts != null ? ts.toInstant().toString() : null);
+				messages.add(msg);
+			}
+		} catch (Exception e) {
+			classLogger.debug("fetchConversationForRoom: could not retrieve messages for room '{}': {}", roomId, e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
