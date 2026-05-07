@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.theme;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +55,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static final Object CACHE_LOCK = new Object();
 	private static volatile String cachedGlobalSystemPrompt = null;
 	private static volatile Map<String, String> cachedSystemPromptVars = null;
+	private static volatile List<String> cachedDefaultTools = null;
 	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
@@ -64,6 +68,25 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	public static String getPlaygroundGlobalSystemPrompt() {
 		ensureCacheLoaded();
 		return cachedGlobalSystemPrompt;
+	}
+
+	/**
+	 * Returns {@code playground.defaultTools} from the currently active theme, or
+	 * an empty list if not defined.
+	 * <p>
+	 * Expected JSON shape:
+	 *
+	 * <pre>
+	 * {
+	 *   "playground": {
+	 *     "defaultTools": ["Command"]
+	 *   }
+	 * }
+	 * </pre>
+	 */
+	public static List<String> getPlaygroundDefaultTools() {
+		ensureCacheLoaded();
+		return cachedDefaultTools == null ? Collections.emptyList() : Collections.unmodifiableList(cachedDefaultTools);
 	}
 
 	/**
@@ -102,6 +125,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		synchronized (CACHE_LOCK) {
 			cachedGlobalSystemPrompt = null;
 			cachedSystemPromptVars = null;
+			cachedDefaultTools = null;
 			cacheInitialized = false;
 		}
 	}
@@ -116,6 +140,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static void parseThemeMap(String themeMapJson) {
 		cachedGlobalSystemPrompt = null;
 		cachedSystemPromptVars = new LinkedHashMap<>();
+		cachedDefaultTools = new ArrayList<>();
 		if (themeMapJson == null) {
 			return;
 		}
@@ -130,6 +155,18 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			JsonElement globalSystemPromptElem = playground.get("globalSystemPrompt");
 			if (globalSystemPromptElem != null && globalSystemPromptElem.isJsonPrimitive()) {
 				cachedGlobalSystemPrompt = StringUtils.trimToNull(globalSystemPromptElem.getAsString());
+			}
+
+			JsonElement defaultToolsElem = playground.get("defaultTools");
+			if (defaultToolsElem != null && defaultToolsElem.isJsonArray()) {
+				for (JsonElement toolElem : defaultToolsElem.getAsJsonArray()) {
+					if (toolElem != null && toolElem.isJsonPrimitive()) {
+						String toolName = StringUtils.trimToNull(toolElem.getAsString());
+						if (toolName != null) {
+							cachedDefaultTools.add(toolName);
+						}
+					}
+				}
 			}
 
 			JsonElement varsElem = playground.get("systemPromptVars");

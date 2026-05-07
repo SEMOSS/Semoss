@@ -76,6 +76,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
@@ -802,6 +803,19 @@ public class Room {
 			} catch (Exception e) {
 				classLogger.error("Unable to add tool map from workspace mcp", e);
 			}
+		}
+
+		// Append platform default tools from the active theme config
+		List<String> defaultToolNames = PlaygroundThemeUtils.getPlaygroundDefaultTools();
+		for (String toolName : defaultToolNames) {
+			PlatformDefaultTools.buildToolSchema(toolName).ifPresent(schema -> {
+				aggregated.add(schema);
+				// Register in reverse-lookup so updateToolResponseMeta can resolve them
+				String llmName = (String) schema.get("name");
+				if (llmName != null) {
+					toolLookupByLLMName.put(llmName, schema);
+				}
+			});
 		}
 
 		return aggregated;

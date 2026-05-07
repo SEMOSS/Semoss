@@ -50,6 +50,7 @@ import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -204,6 +205,19 @@ final class HarnessToolExecutor {
 
     private static ToolExecOutcome executeToolSafely(
             String rawToolName, Map<String, Object> params, AgentRunContext ctx) {
+
+        if (PlatformDefaultTools.isPlatformTool(rawToolName)) {
+            try {
+                String result = PlatformDefaultTools.execute(rawToolName, params, ctx.getInsight());
+                boolean success = result == null || !result.startsWith("Tool execution error:");
+                return new ToolExecOutcome(result, success);
+            } catch (Exception e) {
+                String msg = "Tool execution error: " + e.getMessage();
+                logger.warn("HarnessToolExecutor: uncaught exception from platform tool '{}': {}",
+                        rawToolName, e.getMessage(), e);
+                return new ToolExecOutcome(msg, false);
+            }
+        }
 
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
