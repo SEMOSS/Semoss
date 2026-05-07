@@ -34,10 +34,14 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
+import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
@@ -54,6 +58,14 @@ public final class AgentRunner {
 
     /** Options-map keys checked (in order) when room.getModelId() is not set. */
     private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
+
+    // paramMap keys that let the caller extend the default sandbox policy.
+    /** List of absolute paths to add as read-only to the sandbox policy. */
+    public static final String PARAM_SANDBOX_READS   = "sandbox_reads";
+    /** List of absolute paths to add as read-write to the sandbox policy. */
+    public static final String PARAM_SANDBOX_WRITES  = "sandbox_writes";
+    /** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
+    public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
     private AgentRunner() { /* static utility */ }
 
@@ -108,7 +120,7 @@ public final class AgentRunner {
 
         String filePath = "";
         if (paramMap.containsKey("project")) {
-        	String projectId = paramMap.remove("project").toString();
+        	String projectId = paramMap.get("project").toString();
         	filePath = AssetUtility.getProjectAssetsFolder(projectId);
         	logger.info("Using project ID {} to set agent working directory..", projectId);
         } else if(paramMap.containsKey("filePath")){
@@ -130,6 +142,8 @@ public final class AgentRunner {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
+        SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
+
         AgentRunContext ctx = AgentRunContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
@@ -139,11 +153,63 @@ public final class AgentRunner {
                 .input(input)
                 .paramMap(params)
                 .maxReflections(maxReflections)
+                .sandboxPolicy(sandboxPolicy)
                 .build();
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-        return harness.execute(ctx);
+        AgentHarnessResult result = harness.execute(ctx);
+
+        if (ClusterUtil.IS_CLUSTER) {
+            try {
+                ClusterUtil.pushRoom(roomId);
+            } catch (Exception e) {
+                logger.warn("AgentRunner: post-agent room push to cloud failed for room='{}'", roomId, e);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Build a {@link SandboxPolicy} from pixel-level overrides in {@code paramMap}
+     * when any of {@link #PARAM_SANDBOX_READS}, {@link #PARAM_SANDBOX_WRITES}, or
+     * {@link #PARAM_SANDBOX_ENFORCE} is present. Consumed keys are removed so
+     * they don't bleed into model engine params.
+     *
+     * <p>Returns {@code null} when no overrides are supplied; harnesses will
+     * then build a DIHelper-backed default via
+     * {@code AgentSandboxConfig.defaultPolicy(...)}.
+     */
+    @SuppressWarnings("unchecked")
+    private static SandboxPolicy buildSandboxPolicyFromParams(Map<String, Object> params) {
+        Object readsObj   = params.remove(PARAM_SANDBOX_READS);
+        Object writesObj  = params.remove(PARAM_SANDBOX_WRITES);
+        Object enforceObj = params.remove(PARAM_SANDBOX_ENFORCE);
+
+        if (readsObj == null && writesObj == null && enforceObj == null) {
+            return null;
+        }
+
+        SandboxPolicyBuilder b = SandboxPolicy.builder();
+        if (readsObj instanceof java.util.List) {
+            for (Object p : (java.util.List<Object>) readsObj) {
+                if (p != null) b.withRead(String.valueOf(p));
+            }
+        }
+        if (writesObj instanceof java.util.List) {
+            for (Object p : (java.util.List<Object>) writesObj) {
+                if (p != null) b.withReadWrite(String.valueOf(p));
+            }
+        }
+        if (enforceObj instanceof String) {
+            try {
+                b.withEnforcement(EnforcementMode.valueOf(((String) enforceObj).trim().toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid sandbox_enforce value '{}' — keeping default", enforceObj);
+            }
+        }
+        return b.build();
     }
 
     /**

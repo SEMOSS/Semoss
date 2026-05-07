@@ -11,11 +11,9 @@ import glob
 import re
 
 # CFG/SEMOSS packages
-from genai_client import HuggingfaceTokenizer
 from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
 from ..utils.bm25_client import BM25Searcher
-
 
 class FAISSSearcher:
     """
@@ -34,7 +32,9 @@ class FAISSSearcher:
         enable_hybrid_search: bool = True,
     ):
         self.class_logger = logging.getLogger(__name__)
-        self.init_device()
+        
+        self._device_loaded = False
+        self._device = None
 
         self.ds = None
         self.encoded_vectors = None
@@ -113,6 +113,31 @@ class FAISSSearcher:
             raise TypeError("base_path must be a string")
         self._base_path = value
 
+	# ensure that device is lazy loaded to avoid heavy torch import as long as possible
+    def __getattr__(self, name):
+        """
+        Called only if 'name' is not found in the normal attribute dictionary.
+        We use it to lazy-load a specific attribute.
+        """
+        if name == "device":
+            if not self._device_loaded:
+                self._init_device()
+            return self._device
+        # If it's not the special attribute, raise AttributeError
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+
+    def _init_device(self):
+        """
+        Utility method to determine whether or not the device running the interpreter has a gpu
+        """
+        self.class_logger.info(f"Loading torch in faiss client")
+        import torch
+        self._device = (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
+        self._device_loaded = True
+        self.class_logger.info(f"Done loading torch in faiss client")
+
     def _concatenate_columns(
         self,
         row: Dict[str, Any],
@@ -138,16 +163,6 @@ class FAISSSearcher:
             text += separator
 
         return {target_column: text}
-
-    def init_device(self):
-        """
-        Utility method to determine whether or not the devie running the interpreter has a gpu
-        """
-        import torch
-
-        self.device = (
-            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        )
 
     def nearestNeighbor(
         self,
@@ -225,12 +240,22 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
+        # BM25 index was built on full dataset, so we must use full dataset for lookup
         bm25_results = self.bm25_searcher.search_with_data(
             question,
             top_k=fusion_limit,
             columns_to_return=columns_to_return,
             ds=self.ds,
         )
+
+        # Filter BM25 results to only include documents that match the filter
+        if filter is not None:
+            filter_ids = self._filter_dataset(filter)
+            filter_ids_set = set(filter_ids)
+            bm25_results = [
+                result for result in bm25_results
+                if result["idx"] in filter_ids_set
+            ]
 
         # 3. Combine using reciprocal rank fusion
         if bm25_results:
@@ -279,7 +304,7 @@ class FAISSSearcher:
             query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
-        if isinstance(self.tokenizer, HuggingfaceTokenizer):
+        if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
             faiss.normalize_L2(query_vector)
 
         if not isinstance(limit, int):
@@ -912,7 +937,7 @@ class FAISSSearcher:
                     createDocumentsResponse["createdDocuments"].append(new_file_path)
 
                     # normalize the vectors if using huggingface
-                    if isinstance(self.tokenizer, HuggingfaceTokenizer):
+                    if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
                         faiss.normalize_L2(vectors)
 
                     # write out the vectors with the same file name
