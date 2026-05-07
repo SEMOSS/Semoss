@@ -64,7 +64,7 @@ public final class GitCommitAgentHook implements IMessageHook {
     	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
     	
     	User user = ctx.getInsight().getUser();
-    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "CODING AGENT EDITT", user);
+    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
     	
     }    	
 }
