@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -61,7 +62,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -73,9 +73,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.AbstractTask;
-import prerna.sablecc2.om.task.ConstantDataTask;
-import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -91,6 +88,7 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_MCP_ARG_TRANSFORM = "SMSS_MCP_ARG_TRANSFORM";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
@@ -331,7 +329,7 @@ public final class MCPUtility {
 
 	/**
 	 * Run a pixel mcp tool
-	 * 
+	 *
 	 * @param project
 	 * @param insight
 	 * @param functionName
@@ -341,48 +339,45 @@ public final class MCPUtility {
 	 */
 	public static String runPixelTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap) {
-		// iterate function properties and find if it is string etc.
+		return runPixelTool(engine, insight, functionName, functionProperties, paramMap, null);
+	}
+
+	/**
+	 * Run a pixel mcp tool
+	 *
+	 * @param project
+	 * @param insight
+	 * @param functionName
+	 * @param functionProperties
+	 * @param paramMap
+	 * @param toolMeta
+	 * @return
+	 */
+	public static String runPixelTool(IEngine engine, Insight insight, String functionName,
+			JSONObject functionProperties, Map<String, Object> paramMap, JSONObject toolMeta) {
+		Map<String, Object> executionParams = buildPixelToolParamMap(functionProperties, paramMap, toolMeta);
+
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
 		while (props.hasNext()) {
 			String propName = props.next();
-			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
-			String propType = thisProp.getString("type");
-			Object propValue = null;
-
-			// get the value
-			if (paramMap != null && paramMap.containsKey(propName)) {
-				propValue = paramMap.get(propName);
-			} else if (thisProp.has("default")) {
-				// get the default value
-				propValue = thisProp.getString("default");
+			if (executionParams.containsKey(propName)) {
+				appendPixelToolParam(paramString, propName, executionParams.get(propName));
 			}
-			// if we have a value, add it
-			if (propValue != null) {
-				// we have confirmed we have a new value to add
-				// check if we need to comma separate
-				if (paramString.length() != 0) {
-					paramString.append(", ");
-				}
-
-				paramString.append(propName).append("=");
-
-				// handle json by simple tostring
-				if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
-					paramString.append(propValue.toString());
-				} else {
-					// use GSON
-					paramString.append(GSON.toJson(propValue));
-				}
+		}
+		for (Map.Entry<String, Object> entry : executionParams.entrySet()) {
+			if (!functionProperties.has(entry.getKey())) {
+				appendPixelToolParam(paramString, entry.getKey(), entry.getValue());
 			}
 		}
 
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
-			classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
-					engine.getEngineId());
+			classLogger.info("Running pixel tool '{}' with args {} from {} engine '{}'", functionName,
+					executionParams.keySet(), engine.getCatalogType(), engine.getEngineId());
 		} else {
-			classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
+			classLogger.info("Running pixel tool '{}' with args {} directly without an engine", functionName,
+					executionParams.keySet());
 		}
 		// run pixel - use scoped context when engine is a project so concurrent tool
 		// calls for different engines on the same insight don't overwrite each other's
@@ -397,67 +392,89 @@ public final class MCPUtility {
 		if (result.getNounType() == PixelDataType.PIXEL_RUNNER) {
 			PixelRunner runner = (PixelRunner) ((Map<String, Object>) result.getValue()).get("runner");
 			return stringifyMcpResult(runner);
-		} else if (result.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
-			Object value = result.getValue();
-			if (value instanceof ITask) {
-				// if we have a task
-				// iterate through it to return the data
-				try (ITask task = (ITask) value) {
-					if (task instanceof ConstantDataTask) {
-						return stringifyMcpResult(((ConstantDataTask) task).getOutputData());
-					}
+		}
+		return stringifyMcpResult(result.getValue());
+	}
 
-					classLogger.debug("Start flushing task = {}", task.getId());
-					Map<String, Object> dataMap = new HashMap<>();
-					// first merge the metadata
-					dataMap.putAll(task.getMetaMap());
-
-					int numCollect = task.getNumCollect();
-					boolean collectAll = numCollect == -1;
-					String formatType = task.getFormatter().getFormatType();
-
-					if (formatType.equals("TABLE")) {
-						// right now, only grid will work
-						String[] headers = null;
-						String[] rawHeaders = null;
-						int count = 0;
-
-						// try to at least provide the headers
-						List<Map<String, Object>> headerInfo = task.getHeaderInfo();
-						if (headerInfo != null) {
-							headers = new String[headerInfo.size()];
-							rawHeaders = new String[headerInfo.size()];
-							for (int i = 0; i < headers.length; i++) {
-								headers[i] = headerInfo.get(i).get("alias") + "";
-								rawHeaders[i] = headerInfo.get(i).get("header") + "";
-							}
-						}
-						dataMap.put("headers", headers);
-						dataMap.put("rawHeaders", rawHeaders);
-						List<Object[]> values = new ArrayList<>();
-						while (task.hasNext() && (collectAll || count < numCollect)) {
-							IHeadersDataRow row = task.next();
-							values.add(row.getValues());
-							count++;
-						}
-						dataMap.put("values", values);
-					} else {
-						// just let the formatter handle the output of this data
-						dataMap.put("data", ((AbstractTask) task).getData());
-					}
-					classLogger.debug("Done flushing sending task = {}", task.getId());
-
-					Map<String, Object> retObj = new HashMap<>();
-					retObj.put("output", dataMap);
-					return stringifyMcpResult(retObj);
-				} catch (Exception e) {
-					throw new SemossMCPException(e.getMessage(), MCPErrorCode.TOOL_EXECUTION_FAILED);
-				}
+	private static Map<String, Object> buildPixelToolParamMap(JSONObject functionProperties, Map<String, Object> paramMap,
+			JSONObject toolMeta) {
+		Map<String, Object> executionParams = new LinkedHashMap<>();
+		Iterator<String> props = functionProperties.keys();
+		while (props.hasNext()) {
+			String propName = props.next();
+			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
+			Object propValue = null;
+			if (paramMap != null && paramMap.containsKey(propName)) {
+				propValue = paramMap.get(propName);
+			} else if (thisProp.has("default")) {
+				propValue = thisProp.getString("default");
+			}
+			if (propValue != null) {
+				executionParams.put(propName, propValue);
 			}
 		}
+		applyPixelToolArgTransforms(executionParams, toolMeta);
+		return executionParams;
+	}
 
-		// all other situations, just return the value
-		return stringifyMcpResult(result.getValue());
+	private static void applyPixelToolArgTransforms(Map<String, Object> executionParams, JSONObject toolMeta) {
+		JSONObject transformMeta = toolMeta == null ? null : toolMeta.optJSONObject(SMSS_MCP_ARG_TRANSFORM);
+		if (transformMeta == null || transformMeta.length() == 0) {
+			return;
+		}
+
+		Iterator<String> transformKeys = transformMeta.keys();
+		while (transformKeys.hasNext()) {
+			String sourceArg = transformKeys.next();
+			if (!executionParams.containsKey(sourceArg)) {
+				continue;
+			}
+
+			Object transformObj = transformMeta.opt(sourceArg);
+			if (!(transformObj instanceof JSONObject)) {
+				throw new SemossMCPException(SMSS_MCP_ARG_TRANSFORM + " for '" + sourceArg + "' must be an object",
+						MCPErrorCode.INVALID_PARAMS);
+			}
+
+			JSONObject transform = (JSONObject) transformObj;
+			String targetArg = transform.optString("target", sourceArg);
+			if (targetArg == null || targetArg.isBlank()) {
+				targetArg = sourceArg;
+			}
+
+			Object transformedValue = executionParams.get(sourceArg);
+			String encoding = transform.optString("encoding", "");
+			if (encoding != null && !encoding.isBlank()) {
+				if ("base64".equalsIgnoreCase(encoding)) {
+					if (!(transformedValue instanceof String)) {
+						throw new SemossMCPException("Only string values can use base64 MCP arg transform for '"
+								+ sourceArg + "'", MCPErrorCode.INVALID_PARAMS);
+					}
+					transformedValue = Base64.getEncoder()
+							.encodeToString(((String) transformedValue).getBytes(StandardCharsets.UTF_8));
+				} else {
+					throw new SemossMCPException("Unsupported MCP arg transform encoding '" + encoding + "' for '"
+							+ sourceArg + "'", MCPErrorCode.INVALID_PARAMS);
+				}
+			}
+
+			if (!sourceArg.equals(targetArg)) {
+				executionParams.remove(sourceArg);
+			}
+			executionParams.put(targetArg, transformedValue);
+		}
+	}
+
+	private static void appendPixelToolParam(StringBuilder paramString, String propName, Object propValue) {
+		if (paramString.length() != 0) {
+			paramString.append(", ");
+		}
+		paramString.append(propName).append("=");
+		if (propValue instanceof JSONObject || propValue instanceof JSONArray) {
+			paramString.append(propValue.toString());
+		} else {
+			paramString.append(GSON.toJson(propValue));
+		}
 	}
 
 	/**
