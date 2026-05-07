@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -93,7 +92,6 @@ public class GetEngineMethodsReactor extends AbstractReactor {
 			if (BASE_INTERFACE_METHOD_NAMES.contains(method.getName())) {
 				continue;
 			}
-
 			if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 				continue;
 			}
@@ -101,14 +99,6 @@ public class GetEngineMethodsReactor extends AbstractReactor {
 			Map<String, Object> methodInfo = new LinkedHashMap<>();
 			methodInfo.put("methodName", method.getName());
 			methodInfo.put("deprecated", isDeprecated);
-
-			// Simplify parameter details to represent method overloading concisely
-			List<String> parameterTypes = new ArrayList<>();
-			for (Class<?> paramType : method.getParameterTypes()) {
-				parameterTypes.add(paramType.getSimpleName());
-			}
-			methodInfo.put("parameters", parameterTypes);
-
 			methods.add(methodInfo);
 		}
 		return methods;
