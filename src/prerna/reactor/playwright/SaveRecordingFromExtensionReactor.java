@@ -44,6 +44,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityUserAccessKeyUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -82,11 +83,36 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		User user = this.insight.getUser();
-		
-		// Check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
+		User user = null;
+
+		// Try API key authentication first (for extension usage without session)
+		String clientKey = getRequestParameter("clientKey");
+		String secretKey = getRequestParameter("secretKey");
+
+		if (clientKey != null && secretKey != null && !clientKey.isEmpty() && !secretKey.isEmpty()) {
+			// Authenticate using API keys
+			try {
+				user = SecurityUserAccessKeyUtils.validateKeysAndReturnUser(clientKey, secretKey);
+				String userId = (user != null && user.getPrimaryLoginToken() != null) 
+					? user.getPrimaryLoginToken().getId() 
+					: "unknown";
+				classLogger.info("User authenticated via API keys: " + userId);
+			} catch (IllegalAccessException e) {
+				classLogger.error("API key authentication failed", e);
+				throw new IllegalArgumentException("Invalid API credentials: " + e.getMessage());
+			}
+
+			if (user == null) {
+				throw new IllegalArgumentException("Invalid API credentials");
+			}
+		} else {
+			// Fall back to session-based authentication
+			user = this.insight.getUser();
+			
+			// Check if user is logged in
+			if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+				throwAnonymousUserError();
+			}
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
@@ -216,5 +242,20 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			return "The intention or purpose of the recording";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	/**
+	 * Gets a parameter from the request (supports both form data and query parameters)
+	 * 
+	 * @param paramName the parameter name
+	 * @return the parameter value or null if not found
+	 */
+	private String getRequestParameter(String paramName) {
+		// Try to get from keyValue first (URL encoded form data)
+		if (this.keyValue.containsKey(paramName)) {
+			return this.keyValue.get(paramName);
+		}
+		
+		return null;
 	}
 }
