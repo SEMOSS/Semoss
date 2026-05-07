@@ -45,6 +45,7 @@ import com.google.gson.Gson;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -75,8 +76,8 @@ final class HarnessToolExecutor {
     private HarnessToolExecutor() {}
 
     /**
-     * Executes all tool calls in {@code toolResponse} — single-threaded when there is one,
-     * parallel otherwise — records results on {@code state}, and returns the next
+     * Executes all tool calls in {@code toolResponse} - single-threaded when there is one,
+     * parallel otherwise - records results on {@code state}, and returns the next
      * {@link ResponseMessage} from the model, or {@code null} if the Room produced no follow-up.
      */
     @SuppressWarnings("unchecked")
@@ -89,11 +90,12 @@ final class HarnessToolExecutor {
         Room room = ctx.getRoom();
         String parentMsgId = toolResponse.getMessageId();
         List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
+        String jobId = ThreadStore.getJobId();
         AskModelEngineResponse<?> nextModelResp = null;
 
         if (toolCalls.size() == 1) {
             ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx);
+            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId);
             state.addToolCallRecord(r.record);
             nextModelResp = r.modelResponse;
 
@@ -107,7 +109,7 @@ final class HarnessToolExecutor {
                 for (int i = 0; i < toolCalls.size(); i++) {
                     final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
                     futures[i] = CompletableFuture.supplyAsync(
-                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx),
+                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId),
                             pool);
                 }
                 // Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
@@ -164,23 +166,25 @@ final class HarnessToolExecutor {
 
     /**
      * Executes one tool call and submits the result to the Room.
-     * Safe to call concurrently — Room.addToolExecutionResult() is synchronized.
+     * Safe to call concurrently - Room.addToolExecutionResult() is synchronized.
      */
     private static ToolExecResult executeOneTool(
             ParsedToolCall tc,
             int currentIter,
             Map<String, Object> paramMap,
             String parentMsgId,
-            AgentRunContext ctx) {
+            AgentRunContext ctx,
+            String jobId) {
 
         logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, currentIter);
-        SemossAgentStream.toolInvocation(tc.toolCallId, tc.rawToolName, tc.toolParams.toString());
+        SemossAgentStream.toolInvocation(jobId, tc.toolCallId, tc.rawToolName, tc.toolParams, tc.toolCall);
 
         long startMs = System.currentTimeMillis();
         ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
         long durMs = System.currentTimeMillis() - startMs;
-        SemossAgentStream.toolResult(tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content);
+        SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
+                tc.toolParams, tc.toolCall);
 
         logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}",
                 tc.rawToolName, durMs, outcome.success);
@@ -188,7 +192,7 @@ final class HarnessToolExecutor {
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(
                 tc.rawToolName, tc.toolCallId, outcome.content, durMs, outcome.success);
 
-        // Pass a fresh copy — Room.appendToolsToParams() mutates the map.
+        // Pass a fresh copy - Room.appendToolsToParams() mutates the map.
         AskModelEngineResponse<?> modelResp = ctx.getRoom().addToolExecutionResult(
                 tc.toolCallId, tc.rawToolName, outcome.content, tc.toolParams,
                 new HashMap<>(paramMap), parentMsgId,
@@ -255,8 +259,10 @@ final class HarnessToolExecutor {
         final String              toolCallId;
         final String              rawToolName;
         final Map<String, Object> toolParams;
+        final Map<String, Object> toolCall;
 
         ParsedToolCall(Map<String, Object> toolCall) {
+            this.toolCall = toolCall != null ? new HashMap<>(toolCall) : new HashMap<>();
             this.toolCallId  = String.valueOf(toolCall.get("id"));
             this.rawToolName = String.valueOf(toolCall.get("name"));
             // Providers vary: Anthropic uses "input" (Map), OpenAI/Responses-style uses "arguments"

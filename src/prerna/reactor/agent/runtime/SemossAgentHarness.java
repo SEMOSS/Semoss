@@ -92,12 +92,6 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_PERMISSION_MODE = "permissionMode";
 	private static final String PARAM_PERMISSION_MODE_SNAKE = "permission_mode";
 
-	private static final String REFLECTION_PROMPT = "Review the analysis you just produced. Are there important aspects you have not yet "
-			+ "examined, or tool calls that would meaningfully improve the completeness or accuracy "
-			+ "of your answer? If yes, make those tool calls now and incorporate the new findings "
-			+ "into your answer. If the analysis is already thorough and complete, respond with "
-			+ "your final consolidated answer.";
-
 	@Override
 	public String getName() {
 		return NAME;
@@ -112,29 +106,43 @@ public class SemossAgentHarness implements IAgentHarness {
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
-		// Overlay AGENTS.md / CLAUDE.md onto room.options.instructions for the duration
-		// of this run. Putting it on the room (rather than just on the first InputMessage)
-		// makes it visible to every Room.getEffectiveSystemPrompt() call — including the
-		// synthetic tool-result InputMessage built inside Room.addToolExecutionResult,
-		// which would otherwise drop AGENTS.md after the first tool call.
+		// Compose the system prompt for this run by overlaying onto room.options.instructions:
+		//   1. Built-in SEMOSS harness system prompt (always — defines baseline agent behavior)
+		//   2. Project-level AGENTS.md / CLAUDE.md if discovered
+		//   3. The room's existing options.instructions (most-specific layer, preserved)
+		// Putting the result on the room (rather than just on the first InputMessage) makes it
+		// visible to every Room.getEffectiveSystemPrompt() call — including the synthetic
+		// tool-result InputMessage built inside Room.addToolExecutionResult, which would
+		// otherwise drop the harness prompt and AGENTS.md after the first tool call.
 		// Restored in the finally block below. In-memory mutation only — no DB write.
+		// Three layers, most-general to most-specific:
+		//   1. Built-in SEMOSS harness prompt (baseline agent behavior)
+		//   2. Project-level AGENTS.md / CLAUDE.md (filesystem)
+		//   3. Authored prompt — room.options.instructions OR workspace.system_prompt
+		//      (resolved by Room.getRoomOrWorkspaceSystemPrompt(); without that lookup
+		//      the workspace prompt would be silently shadowed by our overlay below).
 		String agentsMd = AgentsMdLoader.discover(ctx.getFilePath());
+		String authoredPrompt = room.getRoomOrWorkspaceSystemPrompt();
+
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
-		boolean optionsMutated = false;
-		if (agentsMd != null) {
-			String origStr = originalInstructions instanceof String ? (String) originalInstructions : null;
-			String augmented = (origStr != null && !origStr.isEmpty())
-					? agentsMd + "\n\n" + origStr
-					: agentsMd;
-			opts.put("instructions", augmented);
-			room.setOptionsMap(opts);
-			optionsMutated = true;
-			logger.info(
-					"SemossAgentHarness: overlaid {} chars of AGENTS.md onto room.options.instructions room={}",
-					agentsMd.length(), room.getId());
+
+		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
+		if (agentsMd != null && !agentsMd.isEmpty()) {
+			composed.append("\n\n").append(agentsMd);
 		}
+		if (authoredPrompt != null && !authoredPrompt.isEmpty()) {
+			composed.append("\n\n").append(authoredPrompt);
+		}
+		opts.put("instructions", composed.toString());
+		room.setOptionsMap(opts);
+
+		logger.info(
+				"SemossAgentHarness: composed system prompt room={} harnessChars={} agentsMdChars={} authoredPromptChars={}",
+				room.getId(), SemossHarnessPrompts.SYSTEM_PROMPT.length(),
+				agentsMd != null ? agentsMd.length() : 0,
+				authoredPrompt != null ? authoredPrompt.length() : 0);
 
 		try {
 			String systemPrompt = room.getEffectiveSystemPrompt();
@@ -198,7 +206,7 @@ public class SemossAgentHarness implements IAgentHarness {
 								ctx.getMaxReflections(), room.getId());
 
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-								.withText(REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
+								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
 								.withParamMap(new HashMap<>(paramMap)).build();
 						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
 
@@ -211,6 +219,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 				} else if (msgType == MessageType.RESPONSE_TOOL) {
 
+					room.updateToolResponseMeta(response);
 					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
 					state.incrementIterations();
 
@@ -241,14 +250,13 @@ public class SemossAgentHarness implements IAgentHarness {
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
 					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed());
 		} finally {
-			if (optionsMutated) {
-				if (hadInstructions) {
-					opts.put("instructions", originalInstructions);
-				} else {
-					opts.remove("instructions");
-				}
-				room.setOptionsMap(opts);
+			// Always restore — we always mutated options.instructions above.
+			if (hadInstructions) {
+				opts.put("instructions", originalInstructions);
+			} else {
+				opts.remove("instructions");
 			}
+			room.setOptionsMap(opts);
 		}
 	}
 

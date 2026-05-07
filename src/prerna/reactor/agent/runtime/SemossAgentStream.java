@@ -37,6 +37,7 @@ import prerna.sablecc2.comm.PixelJobManager;
 final class SemossAgentStream {
 
 	private static final String STREAM_TYPE_CONTENT = "content";
+	private static final String STREAM_TYPE_TOOL = "tool";
 	static final String ASSISTANT_CONTENT_EVENT_ID = "semoss-stream-content";
 	private static final String STATUS_SUCCESS = "success";
 	private static final String STATUS_ERROR = "error";
@@ -62,18 +63,37 @@ final class SemossAgentStream {
 		emit(data);
 	}
 
-	static void toolInvocation(String toolCallId, String toolName, String description) {
+	static void toolInvocation(String toolCallId, String toolName, Map<String, Object> arguments,
+			Map<String, Object> toolCall) {
+		toolInvocation(ThreadStore.getJobId(), toolCallId, toolName, arguments, toolCall);
+	}
+
+	static void toolInvocation(String jobId, String toolCallId, String toolName, Map<String, Object> arguments,
+			Map<String, Object> toolCall) {
 		Map<String, Object> data = base("tool-invocation");
 		data.put("toolUseId", valueOrEmpty(toolCallId));
 		data.put("eventId", "semoss-tool-invocation-" + valueOrEmpty(toolCallId));
 		data.put("toolName", valueOrEmpty(toolName));
-		if (description != null && !description.isBlank()) {
-			data.put("description", description);
+		if (arguments != null && !arguments.isEmpty()) {
+			data.put("arguments", arguments);
 		}
-		emit(data);
+		if (toolCall != null && !toolCall.isEmpty()) {
+			data.put("toolCall", toolCall);
+			copyIfPresent(toolCall, data, "title");
+			copyIfPresent(toolCall, data, "description");
+			copyIfPresent(toolCall, data, "_meta");
+			copyIfPresent(toolCall, data, "original_name");
+		}
+		emit(jobId, STREAM_TYPE_TOOL, data);
 	}
 
-	static void toolResult(String toolCallId, String toolName, boolean success, long durationMs, String content) {
+	static void toolResult(String toolCallId, String toolName, boolean success, long durationMs, String content,
+			Map<String, Object> arguments, Map<String, Object> toolCall) {
+		toolResult(ThreadStore.getJobId(), toolCallId, toolName, success, durationMs, content, arguments, toolCall);
+	}
+
+	static void toolResult(String jobId, String toolCallId, String toolName, boolean success, long durationMs,
+			String content, Map<String, Object> arguments, Map<String, Object> toolCall) {
 		Map<String, Object> data = base("tool-result");
 		data.put("toolUseId", valueOrEmpty(toolCallId));
 		data.put("eventId", "semoss-tool-result-" + valueOrEmpty(toolCallId));
@@ -82,8 +102,19 @@ final class SemossAgentStream {
 		data.put("durationMs", durationMs);
 		if (content != null && !content.isBlank()) {
 			data.put("content", content);
+			data.put("output", content);
 		}
-		emit(data);
+		if (arguments != null && !arguments.isEmpty()) {
+			data.put("toolParameterValues", arguments);
+		}
+		if (toolCall != null && !toolCall.isEmpty()) {
+			data.put("toolCall", toolCall);
+			copyIfPresent(toolCall, data, "title");
+			copyIfPresent(toolCall, data, "description");
+			copyIfPresent(toolCall, data, "_meta");
+			copyIfPresent(toolCall, data, "original_name");
+		}
+		emit(jobId, STREAM_TYPE_TOOL, data);
 	}
 
 	static void agentResult(String roomId, int iterations, int reflectionsUsed, int toolCount) {
@@ -104,15 +135,29 @@ final class SemossAgentStream {
 	}
 
 	private static void emit(Map<String, Object> data) {
-		String jobId = ThreadStore.getJobId();
+		emit(ThreadStore.getJobId(), STREAM_TYPE_CONTENT, data);
+	}
+
+	private static void emit(String streamType, Map<String, Object> data) {
+		emit(ThreadStore.getJobId(), streamType, data);
+	}
+
+	private static void emit(String jobId, String streamType, Map<String, Object> data) {
 		if (jobId == null || jobId.isBlank()) {
 			return;
 		}
 
 		Map<String, Object> envelope = new LinkedHashMap<>();
-		envelope.put("stream_type", STREAM_TYPE_CONTENT);
+		envelope.put("stream_type", streamType);
 		envelope.put("data", data);
 		PixelJobManager.getManager().addStreamOut(jobId, envelope);
+	}
+
+	private static void copyIfPresent(Map<String, Object> source, Map<String, Object> target, String key) {
+		Object value = source.get(key);
+		if (value != null) {
+			target.put(key, value);
+		}
 	}
 
 	private static String valueOrEmpty(String value) {
