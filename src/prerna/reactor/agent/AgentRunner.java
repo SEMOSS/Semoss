@@ -122,7 +122,7 @@ public final class AgentRunner {
 
         String filePath = "";
         if (paramMap.containsKey("project")) {
-        	String projectId = paramMap.remove("project").toString();
+        	String projectId = paramMap.get("project").toString();
         	filePath = AssetUtility.getProjectAssetsFolder(projectId);
         	logger.info("Using project ID {} to set agent working directory..", projectId);
         } else if(paramMap.containsKey("filePath")){
