@@ -210,14 +210,13 @@ public class InternalMCP implements IMCP {
 		if (toolDefinition != null) {
 			// this is a pixel mcp tool
 			JSONObject toolProperties = ((JSONObject) toolDefinition.get("inputSchema")).getJSONObject("properties");
-			JSONObject toolMeta = toolDefinition.optJSONObject("_meta");
 			// check if we have an aliased name pointing to a function
 			// this is so we can have the same tool/function exposed more than once with
 			// different parameters exposed as multiple tools
-			String functionName = toolMeta == null ? null : toolMeta.optString(MCPUtility.SMSS_FUNCTION_NAME);
+			String functionName = ((JSONObject) toolDefinition.get("_meta")).optString(MCPUtility.SMSS_FUNCTION_NAME);
 			functionName = (functionName != null && !functionName.isBlank()) ? functionName : toolName;
 
-			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params, toolMeta);
+			output = MCPUtility.runPixelTool(this.engine, insight, functionName, toolProperties, params);
 			return output;
 		}
 
