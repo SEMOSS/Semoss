@@ -27,11 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
- * Executes a URI-encoded SPARQL SELECT query against an RDF database. The query
- * should be wrapped in encode/decode blocks for proper encoding.
+ * Executes a SPARQL SELECT query against an RDF database.
  */
 public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
 
@@ -50,6 +51,14 @@ public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
 					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description",
+				"The SPARQL SELECT query to execute.");
+		return properties;
 	}
 
 }
