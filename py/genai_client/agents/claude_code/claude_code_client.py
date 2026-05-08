@@ -1,7 +1,6 @@
 from typing import Optional
 from uuid import uuid4
-import asyncio
-import os
+import asyncio, os
 from pydantic import BaseModel, field_validator
 from claude_agent_sdk import (
     ClaudeAgentOptions,
@@ -9,13 +8,11 @@ from claude_agent_sdk import (
     TextBlock,
     ClaudeSDKClient,
     PermissionMode,
-    HookMatcher,
     UserMessage,
     ResultMessage,
 )
 from smss_thread_local import get_smss_stream
 from .claude_code_utils import (
-    _build_change_logger,
     make_assistant_event,
     make_result_event,
     make_tool_result_event,
@@ -75,8 +72,6 @@ class ClaudeCodeClient:
             self.configuration.secret_key,
             self.configuration.room_id,
         )
-
-        change_logger = _build_change_logger(self.configuration.cwd_path)
 
         sandbox_env = self.configuration.sandbox_env or {}
         claude_env = {
@@ -144,14 +139,6 @@ class ClaudeCodeClient:
                 if self.configuration.sandbox_cli_path
                 else {}
             ),
-            hooks={
-                "PostToolUse": [
-                    HookMatcher(
-                        matcher="Write|Edit|MultiEdit|NotebookEdit|Bash",
-                        hooks=[change_logger],
-                    )
-                ],
-            },
         )
 
         self.sdk_client = ClaudeSDKClient(self.agent_options)
