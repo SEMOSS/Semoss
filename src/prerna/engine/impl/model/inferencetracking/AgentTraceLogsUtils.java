@@ -277,8 +277,7 @@ public final class AgentTraceLogsUtils {
 			try (Git git = Git.open(new java.io.File(versionFolder))) {
 				ObjectId head = git.getRepository().resolve("HEAD");
 				if (head == null) return null;
-				String full = head.getName();
-				return full.length() >= 7 ? full.substring(0, 7) : full;
+				return head.getName();
 			}
 		} catch (Exception e) {
 			classLogger.debug("getHeadCommitHash: could not resolve HEAD for engine '{}': {}", engineId, e.getMessage(), e);
