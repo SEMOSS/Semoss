@@ -125,8 +125,6 @@ public class SaveAssetReactor extends AbstractReactor {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
-
 			File file = new File(filePath);
 			try {
 				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));

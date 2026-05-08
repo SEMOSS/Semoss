@@ -43,7 +43,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class RemoteEngineRunReactor extends AbstractReactor {
 
@@ -59,7 +58,7 @@ public class RemoteEngineRunReactor extends AbstractReactor {
 		this.organizeKeys();
 		
 		// get the PayloadStruct string
-		String message = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.PAYLOAD.getKey()));
+		String message = keyValue.get(ReactorKeysEnum.PAYLOAD.getKey());
 		PayloadStruct ps = new Gson().fromJson(message, PayloadStruct.class);
 		ps = convertPayloadClasses(ps);
 		
