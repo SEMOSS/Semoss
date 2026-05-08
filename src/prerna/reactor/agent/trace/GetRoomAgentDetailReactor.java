@@ -28,6 +28,7 @@
 package prerna.reactor.agent.trace;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +93,15 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 		// Get all traces for this room
 		List<Map<String, Object>> rawTraces = AgentTraceLogsUtils.listTraces(roomId, userId, 0);
 		if (rawTraces == null) rawTraces = new ArrayList<>();
+
+		// Guard: if user has no traces in this room, they have no access to room data
+		if (rawTraces.isEmpty()) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			result.put("ROOM_ID", roomId);
+			result.put("TRACES", Collections.emptyList());
+			result.put("TOTAL_RUNS", 0);
+			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
+		}
 
 		// Fetch all conversation messages (INPUT + RESPONSE) for prompt/response correlation
 		List<Map<String, Object>> conversation = AgentTraceLogsUtils.fetchConversationForRoom(roomId);
@@ -197,42 +207,85 @@ public class GetRoomAgentDetailReactor extends AbstractReactor {
 
 	/**
 	 * Correlates user prompts and agent responses from the conversation.
-	 * Strategy: walk through conversation messages in chronological order.
-	 * Each INPUT message is a user prompt; the RESPONSE that follows it is the agent's reply.
-	 * Traces are matched by position (Nth trace = Nth prompt/response pair).
+	 * Strategy: use TRACE_ID on MESSAGE rows to directly match messages to traces.
+	 * Falls back to position-based pairing for legacy messages without TRACE_ID.
 	 */
 	private void assignPromptsAndResponsesToTraces(List<Map<String, Object>> enrichedTraces, List<Map<String, Object>> conversation) {
-		// Build pairs: each pair is (userPrompt, agentResponse)
-		List<String[]> pairs = new ArrayList<>();
-		for (int i = 0; i < conversation.size(); i++) {
-			Map<String, Object> msg = conversation.get(i);
+		// Group messages by TRACE_ID for direct correlation
+		Map<String, String> traceToPrompt = new LinkedHashMap<>();
+		Map<String, String> traceToResponse = new LinkedHashMap<>();
+
+		for (Map<String, Object> msg : conversation) {
 			String type = (String) msg.get("MESSAGE_TYPE");
 			String data = (String) msg.get("MESSAGE_DATA");
-			if (!"INPUT".equals(type)) continue;
-			if (data == null || data.isEmpty()) continue;
-			// Skip tool outputs, JSON blobs — only keep real user prompts
-			if (data.startsWith("{") || data.startsWith("[") || data.startsWith("This tool execution")) continue;
-			if (data.length() > 500) continue;
+			String msgTraceId = (String) msg.get("TRACE_ID");
 
-			// Look ahead for the next RESPONSE message
-			String response = null;
-			for (int j = i + 1; j < conversation.size(); j++) {
-				Map<String, Object> next = conversation.get(j);
-				String nextType = (String) next.get("MESSAGE_TYPE");
-				if ("INPUT".equals(nextType)) break; // hit next user message — no response found
-				if ("RESPONSE".equals(nextType)) {
-					response = (String) next.get("MESSAGE_DATA");
-					break;
+			if (data == null || data.isEmpty()) continue;
+
+			if (msgTraceId != null && !msgTraceId.isEmpty()) {
+				if ("INPUT".equals(type)) {
+					// Skip tool outputs / JSON blobs — only keep real user prompts
+					if (!data.startsWith("{") && !data.startsWith("[") && !data.startsWith("This tool execution") && data.length() <= 500) {
+						traceToPrompt.putIfAbsent(msgTraceId, data);
+					}
+				} else if ("RESPONSE".equals(type)) {
+					// Keep the LAST response for each trace (final synthesized answer)
+					traceToResponse.put(msgTraceId, data);
 				}
 			}
-			pairs.add(new String[] { data, response });
 		}
 
-		for (int i = 0; i < enrichedTraces.size(); i++) {
-			if (i < pairs.size()) {
-				enrichedTraces.get(i).put("USER_PROMPT", pairs.get(i)[0]);
+		// First pass: assign by TRACE_ID (direct correlation)
+		// Also assign AGENT_RESPONSE independently for traces that have a response but filtered prompt
+		List<Map<String, Object>> unmatched = new ArrayList<>();
+		for (Map<String, Object> trace : enrichedTraces) {
+			String traceId = (String) trace.get("TRACE_ID");
+			if (traceId != null && !traceId.isEmpty()) {
+				// New trace with TRACE_ID — use direct correlation only
+				if (traceToPrompt.containsKey(traceId)) {
+					trace.put("USER_PROMPT", traceToPrompt.get(traceId));
+				}
+				if (traceToResponse.containsKey(traceId)) {
+					trace.put("AGENT_RESPONSE", traceToResponse.get(traceId));
+				}
+				// Never fall back to position-based for traces that have a TRACE_ID
+			} else {
+				// Legacy trace (no TRACE_ID) — use position-based fallback
+				unmatched.add(trace);
+			}
+		}
+
+		// Fallback: position-based pairing for legacy messages without TRACE_ID
+		if (!unmatched.isEmpty()) {
+			List<String[]> pairs = new ArrayList<>();
+			for (int i = 0; i < conversation.size(); i++) {
+				Map<String, Object> msg = conversation.get(i);
+				String type = (String) msg.get("MESSAGE_TYPE");
+				String data = (String) msg.get("MESSAGE_DATA");
+				String msgTraceId = (String) msg.get("TRACE_ID");
+				// Only use position-based for messages without TRACE_ID
+				if (msgTraceId != null && !msgTraceId.isEmpty()) continue;
+				if (!"INPUT".equals(type)) continue;
+				if (data == null || data.isEmpty()) continue;
+				if (data.startsWith("{") || data.startsWith("[") || data.startsWith("This tool execution")) continue;
+				if (data.length() > 500) continue;
+
+				String response = null;
+				for (int j = i + 1; j < conversation.size(); j++) {
+					Map<String, Object> next = conversation.get(j);
+					String nextType = (String) next.get("MESSAGE_TYPE");
+					if ("INPUT".equals(nextType)) break;
+					if ("RESPONSE".equals(nextType)) {
+						response = (String) next.get("MESSAGE_DATA");
+						break;
+					}
+				}
+				pairs.add(new String[] { data, response });
+			}
+			for (int i = 0; i < unmatched.size() && i < pairs.size(); i++) {
+				unmatched.get(i).put("USER_PROMPT", pairs.get(i)[0]);
 				if (pairs.get(i)[1] != null) {
-					enrichedTraces.get(i).put("AGENT_RESPONSE", pairs.get(i)[1]);
+					unmatched.get(i).put("AGENT_RESPONSE", pairs.get(i)[1]);
 				}
 			}
 		}

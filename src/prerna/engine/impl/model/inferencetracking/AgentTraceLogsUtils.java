@@ -849,13 +849,14 @@ public final class AgentTraceLogsUtils {
 
 	/**
 	 * Fetches both INPUT and RESPONSE messages for a room, chronologically.
-	 * Each row includes MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, and DATE_CREATED.
+	 * Each row includes MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, DATE_CREATED, and TRACE_ID.
+	 * TRACE_ID enables direct correlation to AGENT_TRACE rows instead of position-based pairing.
 	 */
 	public static List<Map<String, Object>> fetchConversationForRoom(String roomId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (db == null) return new ArrayList<>();
 
-		String sql = "SELECT MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, DATE_CREATED FROM MESSAGE "
+		String sql = "SELECT MESSAGE_ID, MESSAGE_TYPE, MESSAGE_DATA, DATE_CREATED, TRACE_ID FROM MESSAGE "
 				+ "WHERE ROOM_ID = ? AND MESSAGE_TYPE IN ('INPUT', 'RESPONSE') "
 				+ "ORDER BY DATE_CREATED ASC";
 
@@ -874,10 +875,11 @@ public final class AgentTraceLogsUtils {
 				msg.put("MESSAGE_DATA", data != null ? new String(data, StandardCharsets.UTF_8) : null);
 				Timestamp ts = rs.getTimestamp("DATE_CREATED");
 				msg.put("DATE_CREATED", ts != null ? ts.toInstant().toString() : null);
+				msg.put("TRACE_ID", rs.getString("TRACE_ID"));
 				messages.add(msg);
 			}
 		} catch (Exception e) {
-			classLogger.debug("fetchConversationForRoom: could not retrieve messages for room '{}': {}", roomId, e.getMessage());
+			classLogger.debug("fetchConversationForRoom: could not retrieve messages for room '{}': {}", roomId, e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
