@@ -86,7 +86,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
 
-		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {

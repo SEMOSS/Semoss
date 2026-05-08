@@ -33,7 +33,6 @@ import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IEngine;
@@ -64,14 +63,8 @@ public final class GitCommitAgentHook implements IMessageHook {
     	
     	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
     	
-    	GitRepoUtils.addAllFiles(gitFolder, true);
-    	
     	User user = ctx.getInsight().getUser();
-    	
-    	AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-		String author = accessToken.getUsername();
-		String email = accessToken.getEmail();
-		GitRepoUtils.commitAddedFiles(gitFolder, "CODING AGENT EDIT", author, email);
+    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
     	
     }    	
 }

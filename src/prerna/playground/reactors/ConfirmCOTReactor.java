@@ -52,7 +52,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class ConfirmCOTReactor extends AbstractReactor {
-	private static final Logger logger = LogManager.getLogger(ConfirmCOTReactor.class);
+
+	private static final Logger classLogger = LogManager.getLogger(ConfirmCOTReactor.class);
 
 	public ConfirmCOTReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), // 0, required
@@ -70,7 +71,7 @@ public class ConfirmCOTReactor extends AbstractReactor {
 		String modelId = this.keyValue.get(this.keysToGet[index++]);
 		String roomId = this.keyValue.get(this.keysToGet[index++]);
 		// User query is not vital here, included for completeness
-		String cotPlanStr = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[index++])); // JSON string
+		String cotPlanStr = this.keyValue.get(this.keysToGet[index++]); // JSON string
 
 		User user = this.insight.getUser();
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
