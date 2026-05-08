@@ -81,6 +81,7 @@ import prerna.util.Utility;
 public class ToDocxReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ToDocxReactor.class);
+
 	private static final String CLASS_NAME = ToDocxReactor.class.getName();
 
 	public ToDocxReactor() {
@@ -122,7 +123,6 @@ public class ToDocxReactor extends AbstractReactor {
 		}
 
 		if (hasMarkdown) {
-			markdownToParse = Utility.decodeURIComponent(markdownToParse);
 			logger.info("Converting markdown to HTML");
 			htmlToParse = convertMarkdownToHtml(markdownToParse);
 		} else if (!hasHtml) {
@@ -139,7 +139,6 @@ public class ToDocxReactor extends AbstractReactor {
 			}
 		} else {
 			htmlToParse = htmlToParse.replace("\\\"", "\"");
-			htmlToParse = Utility.decodeURIComponent(htmlToParse);
 		}
 
 		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
