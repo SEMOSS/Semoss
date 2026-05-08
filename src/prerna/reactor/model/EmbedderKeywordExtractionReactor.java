@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -124,8 +125,11 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.INPUT.getKey())) {
-			return "The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. "
-					+ "Each element in input should be encoded using <encode></encode> for special character escaping";
+			return """
+					The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					each element within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		} else if (key.equals(PERCENTILE)) {
 			return "The percentile (integer) cutoff for the words within the text to be considered a keyword. Values must be between 0 and 100 inclusive.";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
@@ -133,4 +137,13 @@ public class EmbedderKeywordExtractionReactor extends AbstractReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.INPUT.getKey()).put("description",
+				"The input array of string values to extract keywords from. Each string input will result in a space delimited list of keywords.");
+		return properties;
+	}
+
 }

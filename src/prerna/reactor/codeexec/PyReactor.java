@@ -27,14 +27,15 @@
  *******************************************************************************/
 package prerna.reactor.codeexec;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
  * Executes Python code within the user's dedicated Python process. This reactor
  * takes a string of Python code, executes it, and returns the output. It
  * supports a "smart sync" feature to synchronize the state of the Python frame
- * with the backend. The code to be executed is expected to be wrapped in
- * <encode> </encode> blocks.
+ * with the backend.
  */
 public class PyReactor extends AbstractPyCodeReactor {
 
@@ -53,5 +54,12 @@ public class PyReactor extends AbstractPyCodeReactor {
 					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description", "The python code to execute.");
+		return properties;
 	}
 }

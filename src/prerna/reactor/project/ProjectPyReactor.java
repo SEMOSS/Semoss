@@ -27,13 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
  * Executes Python code within a project's dedicated Python process. This
  * reactor takes a project ID and a string of Python code. It runs the code
- * within the context of the specified project. The code to be executed is
- * expected to be wrapped in <encode> </encode> blocks.
+ * within the context of the specified project.
  */
 public class ProjectPyReactor extends AbstractProjectPyReactor {
 
@@ -55,4 +56,12 @@ public class ProjectPyReactor extends AbstractProjectPyReactor {
 		}
 		return super.getDescriptionForKey(key);
 	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description", "The python code to execute.");
+		return properties;
+	}
+
 }
