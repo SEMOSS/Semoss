@@ -25,46 +25,28 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.hooks;
+package prerna.reactor.agent.runtime;
 
-import java.util.Map;
-import java.util.Objects;
+/**
+ * Thrown when a run-level budget (wall-clock time, token count, cost) is exceeded.
+ *
+ * <p>Distinct from {@link AgentMaxTurnsException} (which guards the tool-call iteration cap)
+ * so callers can apply different handling per budget type. The {@link #getBudgetKind()} field
+ * identifies which limit was crossed.
+ */
+public class AgentBudgetException extends RuntimeException {
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+    public enum BudgetKind { RUN_TIME, INPUT_TOKENS, TOTAL_TOKENS }
 
-import prerna.auth.User;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
-import prerna.engine.api.IEngine;
-import prerna.reactor.agent.AgentHarnessResult;
-import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.IMessageHook;
-import prerna.util.EngineUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
+    private final BudgetKind budgetKind;
 
+    public AgentBudgetException(BudgetKind kind, String message) {
+        super(message);
+        this.budgetKind = kind;
+    }
 
-public final class GitCommitAgentHook implements IMessageHook {
-	
-	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
-	
-    @Override
-    public void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
-    	Map<String, Object> paramMap = ctx.getParamMap();
-    	String projectId = Objects.toString(paramMap.get("project"), null);
-    	if (projectId == null) {
-    		classLogger.error("POST MESSAGE GIT COMMIT HOOK IS MISSING PROJECT ID");
-    		return;
-    	}
-    	
-    	IEngine projectEngine = Utility.getProject(projectId);
-    	
-    	String projectName = projectEngine.getEngineName();
-    	
-    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
-    	
-    	User user = ctx.getInsight().getUser();
-    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-    	
-    }    	
+    /** Which budget limit was exceeded. */
+    public BudgetKind getBudgetKind() {
+        return budgetKind;
+    }
 }
