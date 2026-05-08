@@ -28,7 +28,6 @@
 package prerna.reactor.project;
 
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
  * Executes Python code within a project's dedicated Python process. This
@@ -40,13 +39,17 @@ public class ProjectPyReactor extends AbstractProjectPyReactor {
 
 	@Override
 	protected String getDecodedCode() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		return this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return """
+					The python code to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The project id";
 		}

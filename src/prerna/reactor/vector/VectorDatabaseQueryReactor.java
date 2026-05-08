@@ -82,7 +82,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 					+ " does not exist or user does not have access to this model");
 		}
 
-		String searchStatement = Utility.decodeURIComponent(getString(ReactorKeysEnum.COMMAND.getKey()));
+		String searchStatement = getString(ReactorKeysEnum.COMMAND.getKey());
 		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), 5);
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
