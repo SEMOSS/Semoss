@@ -393,6 +393,7 @@ public class RoomAgentHarness extends AbstractAgentHarness {
                 } catch (Exception ignored) { /* non-critical — leave engineType null */ }
             }
             String inputJson = tc.toolParams != null ? tc.toolParams.toString() : null;
+            String gitCommit = AgentTraceLogsUtils.resolveToolGitCommit(engineId, engineType, parsed != null, null);
             AgentTraceLogsUtils.recordTraceStep(
                     traceId, stepIdx, tc.toolCallId, tc.rawToolName,
                     engineId, engineType, parsed != null,
@@ -400,7 +401,8 @@ public class RoomAgentHarness extends AbstractAgentHarness {
                     outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR,
                     inputJson,
                     outcome.success ? outcome.content : null,
-                    outcome.success ? null : outcome.content);
+                    outcome.success ? null : outcome.content,
+                    gitCommit);
         }
 
         AgentHarnessResult.ToolCallRecord record = new AgentHarnessResult.ToolCallRecord(

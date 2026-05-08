@@ -239,6 +239,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 
 			boolean success = toolStatus == null || !"error".equalsIgnoreCase(toolStatus);
 
+			String gitCommit = AgentTraceLogsUtils.resolveToolGitCommit(engineId, engineType, isMcp, null);
 			AgentTraceLogsUtils.recordTraceStep(
 					traceId, stepNum, toolCallId, rawToolName,
 					engineId, engineType, isMcp,
@@ -246,7 +247,8 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 					success ? "SUCCESS" : "ERROR",
 					inputJson,
 					success ? toolOutput : null,
-					success ? null : toolOutput);
+					success ? null : toolOutput,
+					gitCommit);
 		} catch (Exception e) {
 			classLogger.warn("Failed to record tool step for room '{}'.", roomId, e);
 		}

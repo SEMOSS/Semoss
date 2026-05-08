@@ -225,7 +225,8 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("ENGINE_ID", "VARCHAR(255)"),
 				Pair.with("ENGINE_TYPE", "VARCHAR(50)"),
 				Pair.with("IS_MCP", BOOLEAN_DATATYPE_NAME),
-				Pair.with("STATUS", "VARCHAR(20)")
+				Pair.with("STATUS", "VARCHAR(20)"),
+				Pair.with("TOOL_GIT_COMMIT", "VARCHAR(255)")
 			);
 
 		this.allSchemas = Arrays.asList(

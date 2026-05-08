@@ -180,7 +180,8 @@ public abstract class AppBuildingHarness extends AbstractAgentHarness {
                                 success ? "success" : "error",
                                 toolInput,
                                 outputText,
-                                success ? null : outputText);
+                                success ? null : outputText,
+                                AgentTraceLogsUtils.resolveToolGitCommit(null, null, false, getName()));
                     } catch (Exception e) {
                         classLogger.warn("Failed to record trace step {} for tool '{}': {}",
                                 stepBase + i, toolName, e.getMessage());

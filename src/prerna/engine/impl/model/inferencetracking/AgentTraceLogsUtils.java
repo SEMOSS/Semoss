@@ -42,8 +42,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -246,6 +251,74 @@ public final class AgentTraceLogsUtils {
 	}
 
 	/**
+	 * Returns the short (7-char) HEAD commit hash for a project or engine's git repo.
+	 * Uses EngineUtility to resolve the version folder, then JGit to read HEAD.
+	 *
+	 * <p>No caching for now — resolve("HEAD") is a single file read and is fast enough.
+	 * If profiling shows this is a bottleneck, consider adding a ConcurrentHashMap cache
+	 * keyed by engineId with invalidation on deploy/commit.
+	 *
+	 * <p>Security note: this is only called after the tool has already been executed
+	 * within an authorized room context — the engineId was resolved by MCPUtility
+	 * within the user's session. No additional access check is needed here.
+	 */
+	private static String getHeadCommitHash(String engineId, IEngine.CATALOG_TYPE type) {
+		if (engineId == null || type == null) return null;
+		try {
+			IEngine eng = Utility.getEngine(engineId);
+			if (eng == null) eng = (IEngine) Utility.getProject(engineId);
+			if (eng == null) return null;
+
+			String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
+					type, engineId, eng.getEngineName());
+			java.io.File gitDir = new java.io.File(versionFolder, ".git");
+			if (!gitDir.exists()) return null;
+
+			try (Git git = Git.open(new java.io.File(versionFolder))) {
+				ObjectId head = git.getRepository().resolve("HEAD");
+				if (head == null) return null;
+				String full = head.getName();
+				return full.length() >= 7 ? full.substring(0, 7) : full;
+			}
+		} catch (Exception e) {
+			classLogger.debug("getHeadCommitHash: could not resolve HEAD for engine '{}': {}", engineId, e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/**
+	 * Resolves the TOOL_GIT_COMMIT value for a tool step based on its source classification.
+	 *
+	 * @param engineId   resolved engine UUID (null for internal/SDK tools)
+	 * @param engineType CATALOG_TYPE name (null for internal/SDK tools)
+	 * @param isMcp      whether this is an MCP tool
+	 * @param harnessType harness type string (e.g., "claude_code", "github_copilot"), or null
+	 * @return commit hash, "INTERNAL", "SDK:{harness}", or null
+	 */
+	public static String resolveToolGitCommit(String engineId, String engineType, boolean isMcp, String harnessType) {
+		// SDK tools — only AppBuildingHarness subclasses pass a non-null harnessType
+		if (harnessType != null) {
+			return "SDK:" + harnessType;
+		}
+		// MCP/engine tools with a known engine — try to read git HEAD
+		if (engineId != null && engineType != null) {
+			try {
+				IEngine.CATALOG_TYPE catType = IEngine.CATALOG_TYPE.valueOf(engineType);
+				String hash = getHeadCommitHash(engineId, catType);
+				if (hash != null) return hash;
+			} catch (IllegalArgumentException e) {
+				classLogger.debug("resolveToolGitCommit: engineType '{}' is not a valid CATALOG_TYPE", engineType, e);
+			}
+			return null; // engine exists but no .git
+		}
+		// Internal tools — no engine, not SDK
+		if (!isMcp && engineId == null) {
+			return "INTERNAL";
+		}
+		return null;
+	}
+
+	/**
 	 * Records a single tool-call step for the given trace into the AGENT_TRACE_STEP table.
 	 *
 	 * <p>Call {@link #nextStepIndex(String)} or {@link #reserveStepIndices(String, int)} to
@@ -265,6 +338,7 @@ public final class AgentTraceLogsUtils {
 	 * @param toolInputJson JSON-serialised input params, stored as TOOL_INPUT_JSON (may be null)
 	 * @param outputText   tool result string, stored as OUTPUT_TEXT
 	 * @param errorMsg     error detail when status is "error", stored as ERROR_MESSAGE (may be null)
+	 * @param toolGitCommit git HEAD hash of the tool's project/engine, "INTERNAL", "SDK:{harness}", or null
 	 *
 	 * <p>TODO: TOOL_OUTPUT_JSON can be populated here once tool results are returned as structured
 	 * objects rather than rendered strings. For now we only store OUTPUT_TEXT.
@@ -282,7 +356,8 @@ public final class AgentTraceLogsUtils {
 			String status,
 			String toolInputJson,
 			String outputText,
-			String errorMsg) {
+			String errorMsg,
+			String toolGitCommit) {
 
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (db == null) {
@@ -293,8 +368,8 @@ public final class AgentTraceLogsUtils {
 		String query = "INSERT INTO AGENT_TRACE_STEP "
 				+ "(STEP_ID, TRACE_ID, STEP_NUMBER, STEP_TYPE, OUTPUT_TEXT, TOOL_NAME, "
 				+ "TOOL_INPUT_JSON, START_TIME, END_TIME, ERROR_MESSAGE, "
-				+ "TOOL_CALL_ID, ENGINE_ID, ENGINE_TYPE, IS_MCP, STATUS) "
-				+ "VALUES (?, ?, ?, 'TOOL_CALL', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "TOOL_CALL_ID, ENGINE_ID, ENGINE_TYPE, IS_MCP, STATUS, TOOL_GIT_COMMIT) "
+				+ "VALUES (?, ?, ?, 'TOOL_CALL', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -326,6 +401,11 @@ public final class AgentTraceLogsUtils {
 			}
 			ps.setBoolean(index++, isMcp);
 			ps.setString(index++, status);
+			if (toolGitCommit != null) {
+				ps.setString(index++, toolGitCommit);
+			} else {
+				ps.setNull(index++, java.sql.Types.VARCHAR);
+			}
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -525,6 +605,7 @@ public final class AgentTraceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "ENGINE_TYPE"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "IS_MCP"));
 		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "STATUS"));
+		qs.addSelector(new QueryColumnSelector(AGENT_TRACE_STEP_TABLE + "TOOL_GIT_COMMIT"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(AGENT_TRACE_STEP_TABLE + "TRACE_ID", "==", traceId));
 		qs.addOrderBy(new QueryColumnOrderBySelector(AGENT_TRACE_STEP_TABLE + "STEP_NUMBER", "ASC"));
 		try {
