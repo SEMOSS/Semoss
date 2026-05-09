@@ -666,7 +666,7 @@ public final class RoomUtils {
 	 * @param value input string
 	 * @return {@code true} for supported image/pdf data URIs
 	 */
-	private static boolean isBase64MediaDataUri(String value) {
+	public static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
