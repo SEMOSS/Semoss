@@ -48,7 +48,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
@@ -68,8 +67,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String workspaceName = this.keyValue.get(NAME);
-		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
-		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
+		String workspaceDescription = this.keyValue.get(DESCRIPTION);
+		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
 
 		Map<String, Object> current = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);

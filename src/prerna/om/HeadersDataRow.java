@@ -27,10 +27,11 @@
  *******************************************************************************/
 package prerna.om;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import com.google.gson.Gson;
 
@@ -38,7 +39,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.util.gson.GsonUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-public class HeadersDataRow implements IHeadersDataRow{
+public class HeadersDataRow implements IHeadersDataRow {
 
 	/**
 	 * Base components corresponding to a header row
@@ -48,15 +49,17 @@ public class HeadersDataRow implements IHeadersDataRow{
 	private Object[] values;
 	private Object[] rawValues;
 	private int recordLength;
-	
-	private Vector <Object> vecValues = null;
-	private Vector <String> vecHeaders = null;
+
+	private boolean raw = false;
+
+	private List<Object> vecValues = null;
+	private List<String> vecHeaders = null;
 	private String query;
-	
+
 	public HeadersDataRow(String[] headers, Object[] values) {
 		this(headers, headers, values, values);
 	}
-	
+
 	public HeadersDataRow(String[] headers, String[] rawHeaders, Object[] values) {
 		this(headers, rawHeaders, values, values);
 	}
@@ -66,18 +69,18 @@ public class HeadersDataRow implements IHeadersDataRow{
 	}
 
 	public HeadersDataRow(String[] headers, String[] rawHeaders, Object[] values, Object[] rawValues) {
-		if(headers.length != values.length && values.length != rawValues.length) {
+		if (headers.length != values.length && values.length != rawValues.length) {
 			throw new IllegalArgumentException("Length of parameters not equal");
 		}
-		
+
 		this.headers = headers;
 		this.rawHeaders = rawHeaders;
-		if(this.rawHeaders == null) {
+		if (this.rawHeaders == null) {
 			this.rawHeaders = this.headers;
 		}
 		this.values = values;
 		this.rawValues = rawValues;
-		
+
 		this.recordLength = headers.length;
 	}
 
@@ -92,26 +95,38 @@ public class HeadersDataRow implements IHeadersDataRow{
 	}
 
 	@Override
+	public void setRaw(boolean raw) {
+		this.raw = raw;
+	}
+
+	@Override
 	public Object[] getValues() {
-		return values;
+		if (this.raw) {
+			Object[] stringified = new Object[this.rawValues.length];
+			for (int i = 0; i < this.rawValues.length; i++) {
+				stringified[i] = this.rawValues[i] != null ? this.rawValues[i].toString() : null;
+			}
+			return stringified;
+		}
+		return this.values;
 	}
 
 	@Override
 	public Object[] getRawValues() {
 		return rawValues;
 	}
-	
+
 	@Override
 	public String toString() {
 		StringBuilder ret = new StringBuilder();
 		int size = headers.length;
 		int index = 0;
 		ret.append("START ROW\n");
-		for(; index < size; index++) {
+		for (; index < size; index++) {
 			ret.append("\tHEADER=").append(headers[index]).append("\tVALUE=").append(values[index]).append("\n");
 		}
 		ret.append("END ROW\n");
-		
+
 		return ret.toString();
 	}
 
@@ -121,37 +136,37 @@ public class HeadersDataRow implements IHeadersDataRow{
 		int size = headers.length;
 		int index = 0;
 		ret.append("START ROW\n");
-		for(; index < size; index++) {
+		for (; index < size; index++) {
 			ret.append("\tHEADER=").append(headers[index]).append("\tVALUE=").append(rawValues[index]).append("\n");
 		}
 		ret.append("END ROW\n");
-		
+
 		return ret.toString();
 	}
-	
+
 	@Override
 	public void addFields(String[] addHeaders, Object[] addValues) {
 		int newValuesLength = addHeaders.length;
-		if(newValuesLength != addValues.length) {
+		if (newValuesLength != addValues.length) {
 			throw new IllegalArgumentException("Length of parameters not equal");
 		}
-		
+
 		// we will make new arrays and copy over the values
 		int totalLength = this.recordLength + newValuesLength;
 		String[] newHeaders = new String[totalLength];
 		Object[] newValues = new Object[totalLength];
-		
+
 		System.arraycopy(this.headers, 0, newHeaders, 0, this.recordLength);
 		System.arraycopy(this.values, 0, newValues, 0, this.recordLength);
-		
+
 		// add the new values into the new headers / values
 		int counter = 0;
-		for(int i = 0; i < newValuesLength; i++) {
+		for (int i = 0; i < newValuesLength; i++) {
 			newHeaders[this.recordLength + i] = addHeaders[counter];
 			newValues[this.recordLength + i] = addValues[counter];
 			counter++;
 		}
-		
+
 		// adjust references
 		this.headers = newHeaders;
 		this.values = newValues;
@@ -159,21 +174,21 @@ public class HeadersDataRow implements IHeadersDataRow{
 		this.rawHeaders = this.headers;
 		this.rawValues = this.values;
 	}
-	
+
 	@Override
 	public void addFields(String addHeader, Object addValues) {
 		// we will make new arrays and copy over the values
 		int totalLength = this.recordLength + 1;
 		String[] newHeaders = new String[totalLength];
 		Object[] newValues = new Object[totalLength];
-		
+
 		System.arraycopy(this.headers, 0, newHeaders, 0, this.recordLength);
 		System.arraycopy(this.values, 0, newValues, 0, this.recordLength);
-		
+
 		// add the new values into the new headers / values
 		newHeaders[this.recordLength] = addHeader;
 		newValues[this.recordLength] = addValues;
-		
+
 		// adjust references
 		this.headers = newHeaders;
 		this.values = newValues;
@@ -181,7 +196,7 @@ public class HeadersDataRow implements IHeadersDataRow{
 		this.rawHeaders = this.headers;
 		this.rawValues = this.values;
 	}
-	
+
 	@Override
 	public IHeadersDataRow copy() {
 		// convert the main portions and return new
@@ -190,15 +205,15 @@ public class HeadersDataRow implements IHeadersDataRow{
 		String[] cRawHeaders = gson.fromJson(gson.toJson(this.rawHeaders), String[].class);
 		Object[] cValues = gson.fromJson(gson.toJson(this.values), Object[].class);
 		Object[] cRawValues = gson.fromJson(gson.toJson(this.rawValues), Object[].class);
-		
+
 		return new HeadersDataRow(cHeaders, cRawHeaders, cValues, cRawValues);
 	}
-	
+
 	@Override
 	public Map<String, Object> flushRowToMap() {
 		Map<String, Object> map = new HashMap<String, Object>();
-		for(int i = 0; i < headers.length; i++) {
-			if(values[i] instanceof java.sql.Clob) {
+		for (int i = 0; i < headers.length; i++) {
+			if (values[i] instanceof java.sql.Clob) {
 				String value = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]);
 				map.put(headers[i], value);
 			} else {
@@ -207,9 +222,8 @@ public class HeadersDataRow implements IHeadersDataRow{
 		}
 		return map;
 	}
-	
-	/////////////////////////////////////////////
 
+	/////////////////////////////////////////////
 
 	@Override
 	public String toJson() {
@@ -218,8 +232,8 @@ public class HeadersDataRow implements IHeadersDataRow{
 
 	@Override
 	public void open() {
-		vecHeaders = new Vector<String>();
-		vecValues = new Vector<Object>();
+		vecHeaders = new ArrayList<String>();
+		vecValues = new ArrayList<Object>();
 		vecHeaders.addAll(Arrays.asList(headers));
 		vecValues.addAll(Arrays.asList(values));
 	}
@@ -229,7 +243,7 @@ public class HeadersDataRow implements IHeadersDataRow{
 		vecHeaders.add(fieldName);
 		vecValues.add(value);
 	}
-	
+
 	public boolean isValue(String fieldName) {
 		return vecHeaders.indexOf(fieldName) >= 0;
 	}
@@ -237,8 +251,8 @@ public class HeadersDataRow implements IHeadersDataRow{
 	@Override
 	public Object getField(String fieldName) {
 		int fieldIndex = vecHeaders.indexOf(fieldName);
-		if(fieldIndex >= 0) {
-			return vecValues.elementAt(fieldIndex);
+		if (fieldIndex >= 0) {
+			return vecValues.get(fieldIndex);
 		}
 		return null;
 	}

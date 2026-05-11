@@ -93,7 +93,7 @@ public class PyTranslator {
 	 */
 	public String getCurEncoding() {
 		if (curEncoding == null) {
-			curEncoding = (String) transportScript(null, "sys.stdout.encoding");
+			curEncoding = (String) transportScript(null, "sys.stdout.encoding", false);
 		}
 		return curEncoding;
 	}
@@ -105,7 +105,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<Object> getList(String script) {
-		return (List<Object>) transportScript(null, script);
+		return (List<Object>) transportScript(null, script, false);
 	}
 
 	/**
@@ -115,7 +115,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public List<String> getStringList(String script) {
-		List<String> val = (List<String>) transportScript(null, script);
+		List<String> val = (List<String>) transportScript(null, script, false);
 		return val;
 	}
 
@@ -139,7 +139,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public boolean getBoolean(String script) {
-		Boolean x = (Boolean) transportScript(null, script);
+		Boolean x = (Boolean) transportScript(null, script, false);
 		return x.booleanValue();
 	}
 
@@ -150,7 +150,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public int getInt(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.intValue();
 	}
 
@@ -161,7 +161,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Long getLong(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.longValue();
 	}
 
@@ -172,7 +172,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public double getDouble(String script) {
-		Number x = (Number) transportScript(null, script);
+		Number x = (Number) transportScript(null, script, false);
 		return x.doubleValue();
 	}
 
@@ -183,7 +183,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public String getString(String script) {
-		return (String) transportScript(null, script);
+		return (String) transportScript(null, script, false);
 	}
 
 	/*
@@ -193,7 +193,7 @@ public class PyTranslator {
 	 */
 	public String[] getColumns(String frameName) {
 		String script = "list(" + frameName + ".columns)";
-		List<String> colNames = (List<String>) transportScript(null, script);
+		List<String> colNames = (List<String>) transportScript(null, script, false);
 		String[] colNamesArray = new String[colNames.size()];
 		colNamesArray = colNames.toArray(colNamesArray);
 		return colNamesArray;
@@ -206,7 +206,7 @@ public class PyTranslator {
 	 * @param script
 	 */
 	public void runEmptyPy(String... script) {
-		this.transportScript(null, convertArrayToString(script));
+		this.transportScript(null, convertArrayToString(script), false);
 	}
 
 	/**
@@ -216,7 +216,7 @@ public class PyTranslator {
 	 * @param script
 	 */
 	public Object runDirectPy(String... script) {
-		return this.transportScript(null, convertArrayToString(script));
+		return this.transportScript(null, convertArrayToString(script), false);
 	}
 
 	/**
@@ -234,7 +234,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runDirectPy(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script));
+		return this.transportScript(executionInsight, convertArrayToString(script), false);
 	}
 
 	/**
@@ -244,7 +244,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScript(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script));
+		return this.transportScript(null, convertArrayToString(script), true);
 	}
 
 	/**
@@ -261,183 +261,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScript(Insight executionInsight, String... script) {
-		return this.executePyWithDefualtVars(executionInsight, convertArrayToString(script));
-	}
-
-	/**
-	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
-	 * execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
-	 *             instead.
-	 * @param script
-	 * @param this.globalStoreInsight
-	 * @return
-	 */
-	@Deprecated
-	public Object runSmssWrapperEval(String script) {
-		return this.transportScript(null, script);
-	}
-
-	/**
-	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
-	 *             instead.
-	 * @param script
-	 * @return
-	 */
-	@Deprecated
-	public String runPyAndReturnOutput(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
-	}
-
-	/**
-	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
-	 * 
-	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
-	 *             instead.
-	 * @param script
-	 * @return
-	 */
-	@Deprecated
-	public String runSingle(String... script) {
-		return this.executePyWithDefualtVars(null, convertArrayToString(script)) + "";
-	}
-
-	/**
-	 * Prepends ROOT / APP_ROOT / USER_ROOT variable assignments derived from the
-	 * global-store insight, executes {@code script}, then replaces any raw
-	 * file-system paths in the returned string with safe placeholder tokens.
-	 *
-	 * @param executionInsight the security-context insight; may be null
-	 * @param script           the Python code to execute
-	 * @return the Python result with internal paths replaced by safe placeholders
-	 */
-	private Object executePyWithDefualtVars(Insight executionInsight, String script) {
-		String[] paths = getDefaultPaths(this.globalStoreInsight);
-		StringBuilder pathVars = generateDefaultVars(paths);
-		transportScript(executionInsight, pathVars.toString());
-
-		Object output = transportScript(executionInsight, script);
-		if (output instanceof String) {
-			String strOutput = (String) output;
-			// clean up the output
-			if (paths[0] != null && strOutput.contains(paths[0])) {
-				strOutput = strOutput.replace(paths[0], "$IF");
-			}
-			if (paths[1] != null && strOutput.contains(paths[1])) {
-				strOutput = strOutput.replace(paths[1], "$APP_IF");
-			}
-			if (paths[2] != null && strOutput.contains(paths[2])) {
-				strOutput = strOutput.replace(paths[2], "$USER_IF");
-			}
-			return strOutput;
-		}
-		return output;
-	}
-
-	/**
-	 * Builds the Python preamble that assigns ROOT, APP_ROOT, and USER_ROOT.
-	 * Entries that are null or blank are omitted.
-	 *
-	 * @param defaultPaths [0] insight folder (ROOT), [1] app assets folder
-	 *                     (APP_ROOT), [2] user assets folder (USER_ROOT)
-	 * @return a {@code StringBuilder} containing the Python assignment statements
-	 */
-	private StringBuilder generateDefaultVars(String[] defaultPaths) {
-		StringBuilder script = new StringBuilder();
-		String[] pathVars = new String[] { "ROOT", "APP_ROOT", "USER_ROOT" };
-		for (int i = 0; i < pathVars.length; i++) {
-			if (defaultPaths[i] != null && !(defaultPaths[i] = defaultPaths[i].trim()).isEmpty()) {
-				script.append(pathVars[i]).append(" = '").append(defaultPaths[i]).append("'\n");
-			}
-		}
-
-		return script;
-	}
-
-	/**
-	 * Resolves the three standard Python path variables for the given insight.
-	 * Context project takes precedence over the saved-insight app folder for
-	 * APP_ROOT.
-	 *
-	 * @param insight the insight to resolve paths for
-	 * @return [0] insight folder (ROOT), [1] app/project assets folder (APP_ROOT,
-	 *         may be null), [2] user assets folder (USER_ROOT, may be null)
-	 */
-	private String[] getDefaultPaths(Insight insight) {
-		String insightPath = insight.getInsightFolder().replace('\\', '/');
-		String appPath = null;
-		String userPath = null;
-
-		// context project takes precedence
-		if (insight.getContextProjectId() != null) {
-			appPath = AssetUtility.getProjectAssetsFolder(insight.getContextProjectName(),
-					insight.getContextProjectId());
-			appPath = appPath.replace('\\', '/');
-		} else if (insight.isSavedInsight()) {
-			appPath = insight.getAppFolder();
-			appPath = appPath.replace('\\', '/');
-		}
-		try {
-			userPath = AssetUtility.getRootFolderPath(insight, AssetUtility.USER_SPACE_KEY, false);
-			userPath = userPath.replace('\\', '/');
-		} catch (Exception ignore) {
-			// ignore
-		}
-
-		return new String[] { insightPath, appPath, userPath };
-	}
-
-	/**
-	 * Sends a Python script to the socket process and returns the result. Infers
-	 * {@code asset_paths} from the global-store insight's current context project
-	 * when one is set.
-	 *
-	 * @param executionInsight the security-context insight; may be null
-	 * @param script           the Python code to execute
-	 * @return the deserialized result from the Python process
-	 */
-	private Object transportScript(Insight executionInsight, String script) {
-		String methodName = new Object() {
-		}.getClass().getEnclosingMethod().getName();
-
-		PayloadStruct ps = new PayloadStruct();
-		ps.operation = PayloadStruct.OPERATION.PYTHON;
-		ps.methodName = methodName;
-		ps.payload = new Object[] { script };
-		ps.payloadClasses = new Class[] { String.class };
-		ps.longRunning = true;
-		// we always need an insight
-		ps.insightId = this.globalStoreInsight.getInsightId();
-		// so we have a context project id that we need to set?
-		if (this.globalStoreInsight.getContextProjectId() != null) {
-			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
-					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
-			String assetsPyDir = assetsDir + "/py";
-			ps.asset_paths = new String[] { assetsDir, assetsPyDir };
-		}
-		ps.jobId = ThreadStore.getJobId();
-		ps.sessionId = ThreadStore.getSessionId();
-		ps.mdc = ThreadContext.getImmutableContext();
-		if (executionInsight != null) {
-			ps.executionInsightId = executionInsight.getInsightId();
-		}
-
-		if (sc.isConnected()) {
-			ps = (PayloadStruct) sc.executeCommand(ps);
-			if (ps == null) {
-				throw new SemossPixelException("Received a null PayloadStruct response");
-			}
-			if (ps.ex != null) {
-				throw new SemossPixelException(ps.ex);
-			}
-			return ps.payload[0];
-		} else {
-			throw new SemossPixelException(
-					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
-		}
+		return this.transportScript(executionInsight, convertArrayToString(script), false);
 	}
 
 	/**
@@ -497,8 +321,76 @@ public class PyTranslator {
 		}
 
 		// execute
-		Object output = transportScriptWithExplicitPaths(executionInsight, script, finalAssetsDir, runtimeVars);
+		Object output = transportScriptWithExplicitPaths(executionInsight, script, finalAssetsDir, runtimeVars, false);
+		// try to perform some cleanup
+		if (output instanceof String) {
+			String strOutput = (String) output;
+			if (ROOT != null && strOutput.contains(ROOT)) {
+				strOutput = strOutput.replace(ROOT, "$IF");
+			}
+			if (APP_ROOT != null && strOutput.contains(APP_ROOT)) {
+				strOutput = strOutput.replace(APP_ROOT, "$APP_IF");
+			}
+			if (USER_ROOT != null && strOutput.contains(USER_ROOT)) {
+				strOutput = strOutput.replace(USER_ROOT, "$USER_IF");
+			}
+			return strOutput;
+		}
+		return output;
+	}
 
+	/**
+	 * Sends a Python script to the socket process and returns the result. Infers
+	 * {@code asset_paths} from the global-store insight's current context project
+	 * when one is set.
+	 *
+	 * @param executionInsight  the security-context insight; may be null
+	 * @param script            the Python code to execute
+	 * @param supportLegacyVars if we should support legacy usage to access ROOT,
+	 *                          APP_ROOT, USER_ROOT varaibles instead of new
+	 *                          <p>
+	 *                          from smssutil import smss_get_runtime_var
+	 *                          smss_get_runtime_var("ROOT")
+	 *                          </p>
+	 *                          ;
+	 * @return the deserialized result from the Python process
+	 */
+	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars) {
+		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
+		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
+				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+						this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName())
+				.replace('\\', '/') : null;
+		String userRootTmp = null;
+		try {
+			if (this.globalStoreInsight.getUser() != null) {
+				userRootTmp = AssetUtility
+						.getRootFolderPath(this.globalStoreInsight, AssetUtility.USER_SPACE_KEY, false)
+						.replace('\\', '/');
+			}
+		} catch (Exception e) {
+			// best effort; keep null
+		}
+		final String USER_ROOT = userRootTmp;
+
+		// get runtime vars
+		Map<String, Object> runtimeVars = new HashMap<>();
+		runtimeVars.put("ROOT", ROOT);
+		runtimeVars.put("APP_ROOT", APP_ROOT);
+		if (USER_ROOT != null) {
+			runtimeVars.put("USER_ROOT", USER_ROOT);
+		}
+
+		String[] asset_paths = null;
+		if (this.globalStoreInsight.getContextProjectId() != null) {
+			String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+					this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName());
+			String assetsPyDir = assetsDir + "/py";
+			asset_paths = new String[] { assetsDir, assetsPyDir };
+		}
+
+		Object output = transportScriptWithExplicitPaths(executionInsight, script, asset_paths, runtimeVars,
+				supportLegacyVars);
 		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
@@ -531,10 +423,11 @@ public class PyTranslator {
 	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
-			String[] explicitAssetPaths, Map<String, Object> runtimeVars) {
+			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars) {
 		PayloadStruct ps = new PayloadStruct();
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
-		ps.methodName = "transportScript";
+		ps.methodName = new Object() {
+		}.getClass().getEnclosingMethod().getName();
 		ps.payload = new Object[] { script };
 		ps.payloadClasses = new Class[] { String.class };
 		ps.longRunning = true;
@@ -544,6 +437,9 @@ public class PyTranslator {
 		}
 		if (runtimeVars != null) {
 			ps.runtime_vars = runtimeVars;
+		}
+		if (supportLegacyVars) {
+			ps.append_vars = runtimeVars;
 		}
 		ps.jobId = ThreadStore.getJobId();
 		ps.sessionId = ThreadStore.getSessionId();
@@ -713,6 +609,49 @@ public class PyTranslator {
 		}
 
 		return pyResponse;
+	}
+
+	// DEPRECATED METHODS
+
+	/**
+	 * This does not append any variables (ROOT, APP_ROOT, USER_ROOT) with the
+	 * execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runDirectPy(String...)}
+	 *             instead.
+	 * @param script
+	 * @param this.globalStoreInsight
+	 * @return
+	 */
+	@Deprecated
+	public Object runSmssWrapperEval(String script) {
+		return this.transportScript(null, script, false);
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runPyAndReturnOutput(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true) + "";
+	}
+
+	/**
+	 * This will append ROOT, APP_ROOT, USER_ROOT variables to the execution
+	 * 
+	 * @deprecated This method is deprecated. Use {@link #runScript(String...)}
+	 *             instead.
+	 * @param script
+	 * @return
+	 */
+	@Deprecated
+	public String runSingle(String... script) {
+		return this.transportScript(null, convertArrayToString(script), true) + "";
 	}
 
 }

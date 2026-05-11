@@ -307,8 +307,8 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
 		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ALIAS", "alias"));
 		OrQueryFilter or = new OrQueryFilter();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__CLIENTID", "==", clientId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ALIAS", "==", alias));
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__CLIENTID", "==", clientId));
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ALIAS", "==", alias));
 		qs.addExplicitFilter(or);
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {

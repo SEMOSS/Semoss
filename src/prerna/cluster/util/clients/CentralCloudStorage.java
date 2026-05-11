@@ -644,11 +644,12 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine not found...");
 		}
+
 		if (storageRelativePath != null) {
 			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if (storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
+			if (storageRelativePath.startsWith("/")) {
+				storageRelativePath = storageRelativePath.substring(1);
+			}
 		}
 
 		IEngine.CATALOG_TYPE engineType = engine.getCatalogType();
@@ -666,22 +667,22 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 			ClusterUtil.validateFolder(localEngineFolder);
 		}
-		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
-		String cloudEngineFolder = cloudContainerPrefix + engineId;
+
+		String storageEngineFolderPath = getCloudPrefixForEngine(engineType) + engineId;
 		if (storageRelativePath != null) {
-			cloudEngineFolder = cloudEngineFolder + "/" + storageRelativePath;
+			storageEngineFolderPath = storageEngineFolderPath + "/" + storageRelativePath;
 		}
 
 		// TODO: we might not need the lock - these are only assets
-
 		classLogger.info("Applying lock for engine {} to push engine relative folder {}", aliasAndEngineId,
 				storageRelativePath);
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
 		classLogger.info("Engine {} is locked", aliasAndEngineId);
 		try {
-			classLogger.info("Pushing folder from local={} to remote={}", localAbsoluteFilePath, storageRelativePath);
-			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageRelativePath, null);
+			classLogger.info("Pushing folder from local={} to remote={}", localAbsoluteFilePath,
+					storageEngineFolderPath);
+			centralStorageEngine.syncLocalToStorage(localAbsoluteFilePath, storageEngineFolderPath, null);
 		} finally {
 			// always unlock regardless of errors
 			lock.unlock();
@@ -1487,11 +1488,12 @@ public final class CentralCloudStorage implements ICloudClient {
 		if (project == null) {
 			throw new IllegalArgumentException("Project not found...");
 		}
+
 		if (storageRelativePath != null) {
 			storageRelativePath = storageRelativePath.replace("\\", "/");
-		}
-		if (storageRelativePath.startsWith("/")) {
-			storageRelativePath = storageRelativePath.substring(1);
+			if (storageRelativePath.startsWith("/")) {
+				storageRelativePath = storageRelativePath.substring(1);
+			}
 		}
 
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -1824,7 +1826,9 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
 		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
 				+ roomId;
-		centralStorageEngine.syncStorageToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
+		// Use rclone copy (not sync) — sync deletes local files missing on cloud,
+		// which wipes in-flight session-state mid-turn when cloud is empty.
+		centralStorageEngine.copyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
 	}
 
 	/**
