@@ -768,8 +768,16 @@ public class Room {
 
 		if (o.containsKey("mcp")) {
 			try {
-				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
-				for (Map<String, Object> mcpMap : mapMapList) {
+				List<?> rawMcpList = (List<?>) o.get("mcp");
+				for (Object entry : rawMcpList) {
+					if (!(entry instanceof Map)) {
+						// Strings from legacy theme defaultTools config end up here — skip them;
+						// platform default tools are resolved separately below via PlaygroundThemeUtils.
+						classLogger.warn("Skipping non-map entry in room mcp options: {}", entry);
+						continue;
+					}
+					@SuppressWarnings("unchecked")
+					Map<String, Object> mcpMap = (Map<String, Object>) entry;
 					if (mcpMap.containsKey("id")) {
 						String id = (String) mcpMap.get("id");
 						if (!ensureUnique.contains(id)) {

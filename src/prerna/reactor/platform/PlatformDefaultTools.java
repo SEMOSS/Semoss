@@ -22,7 +22,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * the LLM in every Room-based call. The list of tools actually injected is
  * controlled by the active theme ({@code playground.defaultTools}).
  *
- * <p>LLM-facing tool names carry a {@value #PLATFORM_PREFIX} prefix so they
+ * <p>
+ * LLM-facing tool names carry a {@value #PLATFORM_PREFIX} prefix so they
  * are unambiguously distinguishable from MCP engine tools.
  */
 public final class PlatformDefaultTools {
@@ -74,13 +75,13 @@ public final class PlatformDefaultTools {
             // Override the name with the platform prefix
             schema.put("name", PLATFORM_PREFIX + name);
 
-            // Build _meta: auto-execute, hidden UI, reactor class for traceability
+            // Build _meta: auto-execute, sidebar UI, reactor class for traceability
             JSONObject meta = new JSONObject();
             meta.put(MCPUtility.SMSS_MCP_EXECUTION, "auto");
             meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
             meta.put(SMSS_REACTOR_CLASS, clazz.getName());
             JSONObject uiJson = new JSONObject();
-            uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, "hidden");
+            uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, "inline");
             meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
             schema.put("_meta", meta);
 
