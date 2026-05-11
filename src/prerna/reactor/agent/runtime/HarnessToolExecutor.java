@@ -208,9 +208,10 @@ final class HarnessToolExecutor {
 
         if (PlatformDefaultTools.isPlatformTool(rawToolName)) {
             try {
-                String result = PlatformDefaultTools.execute(rawToolName, params, ctx.getInsight());
-                boolean success = result == null || !result.startsWith("Tool execution error:");
-                return new ToolExecOutcome(result, success);
+                NounMetadata noun = PlatformDefaultTools.execute(rawToolName, params, ctx.getInsight());
+                String content = noun != null && noun.getValue() != null ? noun.getValue().toString() : "";
+                boolean success = noun == null || noun.getNounType() != PixelDataType.ERROR;
+                return new ToolExecOutcome(content, success);
             } catch (Exception e) {
                 String msg = "Tool execution error: " + e.getMessage();
                 logger.warn("HarnessToolExecutor: uncaught exception from platform tool '{}': {}",
