@@ -27,26 +27,38 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
- * Executes a URI-encoded SPARQL SELECT query against an RDF database. The query
- * should be wrapped in encode/decode blocks for proper encoding.
+ * Executes a SPARQL SELECT query against an RDF database.
  */
 public class SparqlQueryReactor extends AbstractSparqlQueryReactor {
 
 	@Override
 	protected String getDecodedQuery() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()));
+		return this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey());
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return "The SPARQL SELECT query to execute. The query should be passed within <encode> </encode> blocks for proper encoding";
+			return """
+					The SPARQL SELECT query to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description",
+				"The SPARQL SELECT query to execute.");
+		return properties;
 	}
 
 }

@@ -38,10 +38,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
@@ -59,14 +56,10 @@ import prerna.util.Utility;
 
 public class TextToSQLReactor extends AbstractReactor {
 
-	private static Logger logger = LogManager.getLogger(TextToSQLReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(TextToSQLReactor.class);
+
 	private static final String ERROR = "error";
 
-	private static final Gson GSON = new GsonBuilder()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping()
-			.create();
-	
 	public TextToSQLReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.MODEL.getKey(),
 				ReactorKeysEnum.COMMAND.getKey(), ERROR, ReactorKeysEnum.SQL.getKey(),
@@ -93,7 +86,7 @@ public class TextToSQLReactor extends AbstractReactor {
 					"Model " + engine + " does not exist or user does not have access to this model");
 		}
 		IDatabaseEngine dbEngine = Utility.getDatabase(databaseId);
-		if(!(dbEngine instanceof IRDBMSEngine)) {
+		if (!(dbEngine instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("Database must be a RDBMS engine");
 		}
 		IRDBMSEngine database = (IRDBMSEngine) dbEngine;
@@ -118,7 +111,7 @@ public class TextToSQLReactor extends AbstractReactor {
 					relInfo.put("target_table_column", splitRel[3]);
 					edgeInfo.add(relInfo);
 				} else {
-					logger.warn("Could not determine relation for " + e.get("rel"));
+					classLogger.warn("Could not determine relation for " + e.get("rel"));
 				}
 			}
 		}
@@ -135,10 +128,10 @@ public class TextToSQLReactor extends AbstractReactor {
 				String dataType = database.getDataTypes(physicalUri);
 				Set<String> logicalNames = database.getLogicalNames(physicalUri);
 				Map<String, Object> dataMap = new HashMap<>();
-				if(dataType != null && !(dataType=dataType.trim()).isEmpty()) {
+				if (dataType != null && !(dataType = dataType.trim()).isEmpty()) {
 					dataMap.put("dataType", dataType);
 				}
-				if (desc != null && !(desc=desc.trim()).isEmpty()) {
+				if (desc != null && !(desc = desc.trim()).isEmpty()) {
 					dataMap.put("description", desc);
 				}
 				if (!logicalNames.isEmpty()) {
@@ -194,9 +187,9 @@ public class TextToSQLReactor extends AbstractReactor {
 				""";
 
 		String context = String.format(sqlContext, database.getDbType(), GSON.toJson(conceptInfo));
-		String prompt = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
-		String error = Utility.decodeURIComponent(this.keyValue.get(ERROR));
-		String oldSQL = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.SQL.getKey()));
+		String prompt = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
+		String error = this.keyValue.get(ERROR);
+		String oldSQL = this.keyValue.get(ReactorKeysEnum.SQL.getKey());
 		if (error != null && !error.trim().isEmpty() && oldSQL != null) {
 			String appendError = """
 					The previous SQL you generated was the following:
@@ -253,7 +246,7 @@ public class TextToSQLReactor extends AbstractReactor {
 		try {
 			map = GSON.fromJson(jsonString, type);
 		} catch (JsonSyntaxException e) {
-			logger.error("Failed to parse JSON response");
+			classLogger.error("Failed to parse JSON response");
 			throw new SemossPixelException("Failed to parse JSON response: " + jsonString, e);
 		}
 		return map;
@@ -307,11 +300,9 @@ public class TextToSQLReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
 			return "The user text to be turned into the SQL query based on the database schema";
 		} else if (key.equals(ERROR)) {
-			return "This is an optional parameter to pass the previous SQL query that was generated that resulted in an error";
-		} else if (key.equals(ERROR)) {
 			return "This is an optional parameter to pass in the error associated with a previous SQL query prediction";
 		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 }

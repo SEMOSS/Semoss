@@ -52,7 +52,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
@@ -113,7 +112,6 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		qs.setConfig(connectionDetails);
 		qs.setEngine(temporalEngine);
 		if (query != null && !query.isEmpty()) {
-			query = Utility.decodeURIComponent(query);
 			qs.setQuery(query);
 		}
 		this.qs = qs;
@@ -151,7 +149,6 @@ public class DirectJdbcConnectionReactor extends AbstractQueryStructReactor {
 		qs.setConfig(connectionDetails);
 		qs.setEngineId("FAKE_ENGINE");
 		if (query != null && !query.isEmpty()) {
-			query = Utility.decodeURIComponent(query);
 			qs.setQuery(query);
 		}
 		this.qs = qs;

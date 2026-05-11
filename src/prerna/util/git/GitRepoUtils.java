@@ -57,6 +57,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
@@ -1217,6 +1218,93 @@ public class GitRepoUtils {
 			classLogger.error("Failed to commit in {}", gitFolder, e);
 		} finally {
 			thisGit.close();
+		}
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, null, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message, User user) {
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getUsername(), accessToken.getEmail());
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles,
+			String message, String author, String email) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+			Status status = thisGit.status().call();
+
+			AddCommand ac = thisGit.add();
+			boolean stagedAnyAdd = false;
+			Iterator<String> upFiles = status.getUntracked().iterator();
+			while (upFiles.hasNext()) {
+				String daFile = upFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			Iterator<String> modFiles = status.getModified().iterator();
+			while (modFiles.hasNext()) {
+				String daFile = modFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			if (stagedAnyAdd) {
+				ac.call();
+			}
+
+			RmCommand rc = thisGit.rm().setCached(true);
+			boolean stagedAnyRm = false;
+			Iterator<String> delFiles = status.getMissing().iterator();
+			while (delFiles.hasNext()) {
+				String daFile = delFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					rc.addFilepattern(daFile);
+					stagedAnyRm = true;
+				}
+			}
+			if (stagedAnyRm) {
+				rc.call();
+			}
+
+			Status post = thisGit.status().call();
+			boolean hasStagedChanges = !post.getAdded().isEmpty()
+					|| !post.getChanged().isEmpty()
+					|| !post.getRemoved().isEmpty();
+			if (!hasStagedChanges) {
+				classLogger.warn("Skipping commit in {} no staged changes to commit", gitFolder);
+				return;
+			}
+
+			if (message == null || message.isEmpty()) {
+				message = GitUtils.getDateMessage("Commited on.. ");
+			}
+			if (author == null || author.isEmpty()) {
+				author = "SEMOSS";
+			}
+			if (email == null || email.isEmpty()) {
+				email = "semoss@semoss.org";
+			}
+
+			thisGit.commit().setMessage(message).setAuthor(author, email).call();
+			classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
+		} catch (IOException | GitAPIException e) {
+			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
+			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
 		}
 	}
 

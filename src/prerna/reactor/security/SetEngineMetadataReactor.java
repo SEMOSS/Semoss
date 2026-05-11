@@ -39,8 +39,7 @@ import prerna.util.UploadInputUtility;
 public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 
 	public SetEngineMetadataReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), META, ReactorKeysEnum.ENCODED.getKey(),
-				ReactorKeysEnum.JSON_CLEANUP.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), META, ReactorKeysEnum.JSON_CLEANUP.getKey() };
 	}
 
 	@Override
