@@ -43,8 +43,8 @@ public class AdminSetUserMetadataReactor extends AbstractSetMetadataReactor {
 
 	public AdminSetUserMetadataReactor() {
 		this.keysToGet = new String[] { "userId", ReactorKeysEnum.PROVIDER.getKey(), META,
-				ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.JSON_CLEANUP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
+				ReactorKeysEnum.JSON_CLEANUP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override

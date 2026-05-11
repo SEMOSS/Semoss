@@ -2370,7 +2370,6 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("SMSS_USER", new String[] { "TYPE" });
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] { "TYPE" });
 		allValues.put("USERINSIGHTPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
-		allValues.put("WORKSPACEENGINE", new String[] { "TYPE" });
 
 		// grab the new fixed names to the old names
 		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();

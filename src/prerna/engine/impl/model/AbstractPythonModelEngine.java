@@ -263,20 +263,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		final String TRIPLE_QUOTE = "\"\"\"";
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
 
-		// TODO fullPrompt should be removed
-		if (fullPrompt != null) {
-			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
-			if (context != null) {
-				if (context.startsWith("\"")) {
-					context = " " + context;
-				}
-				if (context.endsWith("\"")) {
-					context = context + " ";
-				}
-				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-			}
-		}
+//		// TODO fullPrompt should be removed
+//		if (fullPrompt != null) {
+//			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
+//			if (context != null) {
+//				if (context.startsWith("\"")) {
+//					context = " " + context;
+//				}
+//				if (context.endsWith("\"")) {
+//					context = context + " ";
+//				}
+//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
+//			}
+//		}
 //		else {
 //			if (question.startsWith("\"")) {
 //				question = " " + question;
