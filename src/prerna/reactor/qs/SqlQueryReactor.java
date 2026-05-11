@@ -27,11 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
- * Executes query against a database. The query to be executed is expected to be
- * wrapped in <encode> </encode> blocks.
+ * Executes a SQL query against a database.
  */
 public class SqlQueryReactor extends AbstractSqlQueryReactor {
 
@@ -50,6 +51,13 @@ public class SqlQueryReactor extends AbstractSqlQueryReactor {
 					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description", "The sql query to execute.");
+		return properties;
 	}
 
 }

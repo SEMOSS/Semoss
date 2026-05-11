@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.codeexec;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class PixelReactor extends AbstractPixelReactor {
@@ -46,5 +48,12 @@ public class PixelReactor extends AbstractPixelReactor {
 					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description", "The pixel code to execute.");
+		return properties;
 	}
 }
