@@ -25,46 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.hooks;
+package prerna.reactor.agent;
 
-import java.util.Map;
-import java.util.Objects;
+/**
+ * Thrown when the SEMOSS agent loop reaches the maximum turn cap without
+ * the model producing a {@code RESPONSE_TEXT}.
+ *
+ * <p>Callers are responsible for recording the failure and surfacing a clear error message.
+ */
+public class AgentMaxTurnsException extends RuntimeException {
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+    private final int maxTurns;
 
-import prerna.auth.User;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
-import prerna.engine.api.IEngine;
-import prerna.reactor.agent.AgentHarnessResult;
-import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.IMessageHook;
-import prerna.util.EngineUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
+    public AgentMaxTurnsException(int maxTurns) {
+        super("Agent loop exceeded max turns (" + maxTurns
+                + ") without producing a final RESPONSE_TEXT");
+        this.maxTurns = maxTurns;
+    }
 
-
-public final class GitCommitAgentHook implements IMessageHook {
-	
-	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
-	
-    @Override
-    public void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
-    	Map<String, Object> paramMap = ctx.getParamMap();
-    	String projectId = Objects.toString(paramMap.get("project"), null);
-    	if (projectId == null) {
-    		classLogger.error("POST MESSAGE GIT COMMIT HOOK IS MISSING PROJECT ID");
-    		return;
-    	}
-    	
-    	IEngine projectEngine = Utility.getProject(projectId);
-    	
-    	String projectName = projectEngine.getEngineName();
-    	
-    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
-    	
-    	User user = ctx.getInsight().getUser();
-    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-    	
-    }    	
+    /** The turn cap that was reached. */
+    public int getMaxTurns() {
+        return maxTurns;
+    }
 }

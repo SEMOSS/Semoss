@@ -25,46 +25,22 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.hooks;
+package prerna.reactor.agent.runtime;
 
-import java.util.Map;
-import java.util.Objects;
+/**
+ * Thrown when a cooperative cancellation signal is detected during the agent loop.
+ *
+ * <p>The harness polls {@code Thread.currentThread().isInterrupted()} at the top of every
+ * iteration. The interrupt is set by {@code PixelJobManager.interruptJob()} when the user
+ * cancels a running job via the UI or API.
+ */
+public class AgentCancelledException extends RuntimeException {
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+    public AgentCancelledException() {
+        super("Agent run was cancelled");
+    }
 
-import prerna.auth.User;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
-import prerna.engine.api.IEngine;
-import prerna.reactor.agent.AgentHarnessResult;
-import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.IMessageHook;
-import prerna.util.EngineUtility;
-import prerna.util.Utility;
-import prerna.util.git.GitRepoUtils;
-
-
-public final class GitCommitAgentHook implements IMessageHook {
-	
-	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
-	
-    @Override
-    public void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
-    	Map<String, Object> paramMap = ctx.getParamMap();
-    	String projectId = Objects.toString(paramMap.get("project"), null);
-    	if (projectId == null) {
-    		classLogger.error("POST MESSAGE GIT COMMIT HOOK IS MISSING PROJECT ID");
-    		return;
-    	}
-    	
-    	IEngine projectEngine = Utility.getProject(projectId);
-    	
-    	String projectName = projectEngine.getEngineName();
-    	
-    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
-    	
-    	User user = ctx.getInsight().getUser();
-    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-    	
-    }    	
+    public AgentCancelledException(String message) {
+        super(message);
+    }
 }

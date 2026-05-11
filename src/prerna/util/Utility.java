@@ -3621,9 +3621,20 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		return decodeURIComponent(s, true);
+	}
+
+	public static String decodeURIComponent(String s, boolean performCheck) {
 		if (s == null) {
 			return null;
 		}
+		if (performCheck) {
+			final Pattern PERCENT_ENCODED = Pattern.compile("%[0-9A-Fa-f]{2}");
+			if (!PERCENT_ENCODED.matcher(s).find()) {
+				return s; // can't be percent-encoded, return as-is
+			}
+		}
+
 		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
 				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
 		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);
