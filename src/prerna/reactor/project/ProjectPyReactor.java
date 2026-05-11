@@ -27,29 +27,41 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
  * Executes Python code within a project's dedicated Python process. This
  * reactor takes a project ID and a string of Python code. It runs the code
- * within the context of the specified project. The code to be executed is
- * expected to be wrapped in <encode> </encode> blocks.
+ * within the context of the specified project.
  */
 public class ProjectPyReactor extends AbstractProjectPyReactor {
 
 	@Override
 	protected String getDecodedCode() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		return this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The python code to execute. The python code should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return """
+					The python code to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "The project id";
 		}
 		return super.getDescriptionForKey(key);
 	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description", "The python code to execute.");
+		return properties;
+	}
+
 }

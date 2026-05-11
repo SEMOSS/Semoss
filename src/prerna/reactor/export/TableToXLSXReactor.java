@@ -107,6 +107,7 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class TableToXLSXReactor extends AbstractReactor {
+
 	protected static final Logger classLogger = LogManager.getLogger(TableToXLSXReactor.class);
 
 	List<Integer> autoWrappedColumns = new Vector<Integer>();
@@ -188,7 +189,7 @@ public class TableToXLSXReactor extends AbstractReactor {
 	public void processPayload() {
 		String fileName = null;
 		if (keyValue.containsKey(ReactorKeysEnum.HTML.getKey())) {
-			html = Utility.decodeURIComponent(keyValue.get(ReactorKeysEnum.HTML.getKey()));
+			html = keyValue.get(ReactorKeysEnum.HTML.getKey());
 		}
 		if (keyValue.containsKey(ReactorKeysEnum.SHEET.getKey())) {
 			sheetName = keyValue.get(ReactorKeysEnum.SHEET.getKey());

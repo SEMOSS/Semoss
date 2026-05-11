@@ -141,10 +141,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		// TODO: need to see when we should be updating the database metadata
-//		if(engineExists) {
-//			// update database properties anyway ... in case global was shifted for example
-//			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
-//		}
+		// if(engineExists) {
+		// // update database properties anyway ... in case global was shifted for
+		// example
+		// updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1],
+		// global);
+		// }
 
 		classLogger.info("Finished adding engine = {}", Utility.cleanLogString(engineId));
 	}
@@ -346,8 +348,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static String getEngineAliasForId(String id) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -468,8 +471,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getAllEngineIds(List<String> engineTypes) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -809,8 +813,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean engineIsGlobal(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + databaseId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='"
+		// + databaseId + "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -2551,6 +2557,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "database_favorite"));
 
+		// description from engine metadata
+		qs1.addSelector(new QueryColumnSelector("ENGINE_DESCRIPTION__DESCRIPTION", "engine_description"));
+
 		// this block is for max permissions
 		// If both null - return null
 		// if either not null - return the permission value that is not null
@@ -2663,6 +2672,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "=" });
 			qs1.addRelation(subQuery);
+		}
+
+		// add a join to get the engine description from metadata
+		{
+			SelectQueryStruct descQs = new SelectQueryStruct();
+			descQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
+			descQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "DESCRIPTION"));
+			descQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "description"));
+			IRelation descSubQuery = new SubqueryRelationship(descQs, "ENGINE_DESCRIPTION", "left.outer.join",
+					new String[] { "ENGINE_DESCRIPTION__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs1.addRelation(descSubQuery);
 		}
 
 		// filters
@@ -2944,98 +2964,119 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return databaseMap;
 	}
 
-//	/**
-//	 * Get the database information
-//	 * @param databaseFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
-//		List<String> filters = null;
-//		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-//			filters = new ArrayList<>();
-//			filters.add(databaseFilter);
-//		}
-//		return getAllDatabaseList(filters);
-//	}
+	// /**
+	// * Get the database information
+	// * @param databaseFilter
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllDatabaseList(String
+	// databaseFilter) {
+	// List<String> filters = null;
+	// if(databaseFilter != null && !databaseFilter.isEmpty()) {
+	// filters = new ArrayList<>();
+	// filters.add(databaseFilter);
+	// }
+	// return getAllDatabaseList(filters);
+	// }
 
-//	/**
-//	 * Get the database information
-//	 * @param databaseFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
-//		List<String> engineTypes = new ArrayList<>();
-//		engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
-//		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
-//	}
+	// /**
+	// * Get the database information
+	// * @param databaseFilter
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllDatabaseList(List<String>
+	// databaseFilters) {
+	// List<String> engineTypes = new ArrayList<>();
+	// engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
+	// return getAllEngineList(engineTypes, databaseFilters, null, null, null,
+	// null);
+	// }
 
-//	/**
-//	 * Get database information
-//	 * @param databaseFilters
-//	 * @param engineMetadataFilter
-//	 * @param searchTerm
-//	 * @param limit
-//	 * @param offset
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllEngineList(List<String> engineType, List<String> engineIdFilters, Map<String, Object> engineMetadataFilter,
-//			String searchTerm, String limit, String offset) {
-//		
-//		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
-//		
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
-//
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
-//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-//		if(engineType != null && !engineType.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineType));
-//		}
-//		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
-//		}
-//		// optional word filter on the engine name
-//		if(hasSearchTerm) {
-//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
-//		}
-//		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
-//		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
-//			for (String k : engineMetadataFilter.keySet()) {
-//				SelectQueryStruct subQs = new SelectQueryStruct();
-//				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
-//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
-//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
-//			}
-//		}
-//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-//		// add the sort
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-//		
-//		Long long_limit = -1L;
-//		Long long_offset = -1L;
-//		if(limit != null && !limit.trim().isEmpty()) {
-//			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-//		}
-//		if(offset != null && !offset.trim().isEmpty()) {
-//			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-//		}
-//		qs.setLimit(long_limit);
-//		qs.setOffSet(long_offset);
-//		
-//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//	}
+	// /**
+	// * Get database information
+	// * @param databaseFilters
+	// * @param engineMetadataFilter
+	// * @param searchTerm
+	// * @param limit
+	// * @param offset
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllEngineList(List<String>
+	// engineType, List<String> engineIdFilters, Map<String, Object>
+	// engineMetadataFilter,
+	// String searchTerm, String limit, String offset) {
+	//
+	// boolean hasSearchTerm = searchTerm != null &&
+	// !(searchTerm=searchTerm.trim()).isEmpty();
+	//
+	// SelectQueryStruct qs = new SelectQueryStruct();
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE",
+	// "app_subtype"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+	//
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME",
+	// "database_name"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE",
+	// "database_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE",
+	// "database_subtype"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY",
+	// "database_created_by"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE",
+	// "database_created_by_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED",
+	// "database_date_created"));
+	// qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+	// "ENGINE__ENGINENAME", "low_database_name"));
+	// if(engineType != null && !engineType.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE",
+	// "==", engineType));
+	// }
+	// if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID",
+	// "==", engineIdFilters));
+	// }
+	// // optional word filter on the engine name
+	// if(hasSearchTerm) {
+	// securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME",
+	// searchTerm);
+	// }
+	// // filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
+	// add in-filter against engineids from subquery
+	// if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+	// for (String k : engineMetadataFilter.keySet()) {
+	// SelectQueryStruct subQs = new SelectQueryStruct();
+	// subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+	// subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY",
+	// "==", k));
+	// subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE",
+	// "==", engineMetadataFilter.get(k)));
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID",
+	// "==", subQs));
+	// }
+	// }
+	// qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+	// // add the sort
+	// qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+	//
+	// Long long_limit = -1L;
+	// Long long_offset = -1L;
+	// if(limit != null && !limit.trim().isEmpty()) {
+	// long_limit = ((Number) Double.parseDouble(limit)).longValue();
+	// }
+	// if(offset != null && !offset.trim().isEmpty()) {
+	// long_offset = ((Number) Double.parseDouble(offset)).longValue();
+	// }
+	// qs.setLimit(long_limit);
+	// qs.setOffSet(long_offset);
+	//
+	// return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	// }
 
 	/**
 	 * Get the list of the engine information that the user has access to
@@ -3342,9 +3383,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getFullUserEngineIds(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID
+		// IN " + userFilters;
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));

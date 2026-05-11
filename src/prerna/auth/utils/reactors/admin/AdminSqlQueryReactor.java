@@ -87,7 +87,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sqlQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
+		String sqlQuery = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
 		String commitStr = this.keyValue.get(this.keysToGet[3]);

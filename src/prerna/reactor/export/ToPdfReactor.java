@@ -213,7 +213,6 @@ public class ToPdfReactor extends AbstractReactor {
 		}
 
 		if (hasMarkdown) {
-			markdownContent = Utility.decodeURIComponent(markdownContent);
 			logger.info("Converting markdown to HTML");
 			return convertMarkdownToHtml(markdownContent);
 		}
@@ -228,8 +227,6 @@ public class ToPdfReactor extends AbstractReactor {
 
 			htmlContent = Files.readString(htmlFile, StandardCharsets.UTF_8);
 			logger.info("Loaded HTML from file: {}", htmlFileLocation);
-		} else {
-			htmlContent = Utility.decodeURIComponent(htmlContent);
 		}
 		return htmlContent;
 	}

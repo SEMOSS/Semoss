@@ -30,15 +30,12 @@ package prerna.reactor.algorithms;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 /**
  * Evaluates JSON Logic rules against provided data using the base Semoss Python
@@ -52,8 +49,7 @@ import prerna.util.Utility;
  */
 public class JsonLogicReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(JsonLogicReactor.class);
-	private static final Gson gson = new Gson();
+	private static final Logger classLogger = LogManager.getLogger(JsonLogicReactor.class);
 
 	public JsonLogicReactor() {
 		this.keysToGet = new String[] { "rule", "data" };
@@ -64,29 +60,24 @@ public class JsonLogicReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String ruleJson = Utility.decodeURIComponent(this.keyValue.get("rule"));
+		String ruleJson = this.keyValue.get("rule");
 		if (ruleJson == null || ruleJson.trim().isEmpty()) {
 			throw new SemossPixelException("Rule parameter is required and cannot be empty");
 		}
 
-		String dataJson = Utility.decodeURIComponent(this.keyValue.get("data"));
+		String dataJson = this.keyValue.get("data");
 
 		try {
-			logger.info("Evaluating JSON Logic rule");
-
+			classLogger.info("Evaluating JSON Logic rule");
 			Object result = evaluateWithPython(ruleJson, dataJson);
-
-			logger.info("JSON Logic evaluation completed successfully");
-
+			classLogger.info("JSON Logic evaluation completed successfully");
 			PixelDataType returnType = determineReturnType(result);
-
 			return new NounMetadata(result, returnType);
-
 		} catch (com.google.gson.JsonSyntaxException e) {
-			logger.error("Invalid JSON syntax in rule or data: {}", e.getMessage());
+			classLogger.error("Invalid JSON syntax in rule or data: {}", e.getMessage());
 			throw new SemossPixelException("Invalid JSON syntax: " + e.getMessage(), e);
 		} catch (Exception e) {
-			logger.error("Error evaluating JSON Logic rule", e);
+			classLogger.error("Error evaluating JSON Logic rule", e);
 			throw new SemossPixelException("Failed to evaluate JSON Logic rule: " + e.getMessage(), e);
 		}
 	}
@@ -119,13 +110,13 @@ public class JsonLogicReactor extends AbstractReactor {
 			if (pyResponse instanceof String) {
 				String resultJson = (String) pyResponse;
 				// Parse the result JSON back to a Java object
-				return gson.fromJson(resultJson, Object.class);
+				return GSON.fromJson(resultJson, Object.class);
 			}
 
 			return pyResponse;
 
 		} catch (Exception e) {
-			logger.error("Error calling Python JSON Logic evaluator", e);
+			classLogger.error("Error calling Python JSON Logic evaluator", e);
 			throw new SemossPixelException("Python evaluation failed: " + e.getMessage(), e);
 		}
 	}
