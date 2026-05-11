@@ -1,13 +1,8 @@
-import base64
-import io
-import logging
-import uuid
+import base64, io, uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from smss_thread_local import get_smss_stream
-
-logger = logging.getLogger("SocketServer")
 
 from .openai_image_models import (
     _TASK_PARAMS,
@@ -16,6 +11,9 @@ from .openai_image_models import (
     OpenAIImageTaskType,
 )
 from ...constants import AskModelEngineResponse2
+from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
+from ...utils import string_to_bool
+from ..model_engine_exception import ErrorDetails, ModelEngineException
 
 if TYPE_CHECKING:
     from .openai_client import OpenAiClient
@@ -24,29 +22,16 @@ from ...message_builders.semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessagePartType,
 )
-from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from ...utils import string_to_bool
-from ..model_engine_exception import ErrorDetails, ModelEngineException
 
 
 class OpenAiImageClient:
-    """OpenAI image generation client (gpt-image-1, gpt-image-2, dall-e-*).
-
-    Mirrors the structure of `BedrockImageClient`: dispatches by task type,
-    builds a typed request via pydantic, and returns an
-    `AskModelEngineResponse2` whose `parts` carry the generated MEDIA so
-    Java can persist the file.
-
-    Conversation history: unlike Bedrock (which only forwards the last
-    INPUT text), this client concatenates the text of every prior INPUT
-    turn into a single prompt, and forwards any base64 images attached to
-    the conversation as edit inputs when present.
     """
+    OpenAI image generation client (gpt-image-1.5, gpt-image-2, dall-e-*)
+    """
+
     client: "OpenAiClient"
 
     def __init__(self, client):
-        # `client` is the parent OpenAiClient; we reach through it for
-        # `client.client` (the openai SDK) and `client.model_settings`.
         self.client = client
 
     def ask_call(
@@ -75,11 +60,9 @@ class OpenAiImageClient:
 
             param_map.setdefault("model", model_settings.model_name)
 
-            # Default stream on to match chat-completion/responses defaults.
             stream = self._resolve_bool(param_map.pop("stream", False), default=False)
             param_map["stream"] = stream
             if stream:
-                # Fewer than 3 partial images may be generated if the full image is generated more quickly
                 param_map.setdefault("partial_images", 3)
 
             if task_type == OpenAIImageTaskType.GENERATE:
@@ -112,7 +95,9 @@ class OpenAiImageClient:
 
     def _edit_image(self, param_map: Dict[str, Any], input_images: List[bytes]):
         if not input_images:
-            raise ValueError("Edit requires at least one input image in the conversation.")
+            raise ValueError(
+                "Edit requires at least one input image in the conversation."
+            )
 
         _, config_cls = _TASK_PARAMS[OpenAIImageTaskType.EDIT]
         config: ImageEditConfig = config_cls.model_validate(
@@ -138,9 +123,6 @@ class OpenAiImageClient:
         if isinstance(raw_action, OpenAIImageTaskType):
             return raw_action
         normalized = str(raw_action).strip().upper()
-        # Backwards compat: prior callers passed image_action="create".
-        if normalized == "CREATE":
-            normalized = OpenAIImageTaskType.GENERATE.value
         try:
             return OpenAIImageTaskType(normalized)
         except ValueError as e:
@@ -231,7 +213,6 @@ class OpenAiImageClient:
                 )
                 if smss_stream is not None:
                     smss_stream(data, stream_type="media")
-                logger.info("%spartial_image_index=%s", prefix, partial_idx)
 
             elif event_type.endswith(".completed"):
                 media_info = self._create_media_info(
@@ -240,15 +221,12 @@ class OpenAiImageClient:
                 data = StreamUtil.create_media_chunk(media_info=media_info)
                 if smss_stream is not None:
                     smss_stream(data, stream_type="media", interim=False)
-                logger.info("%simage_completed", prefix)
 
                 parts.append({"type": "MEDIA", "media_info": media_info})
                 prompt_tokens, response_tokens = self._extract_usage(event)
                 final_emitted = True
 
         if not final_emitted:
-            # Stream closed without a completed event; still signal finish so
-            # downstream consumers don't hang.
             if smss_stream is not None:
                 finish = StreamUtil.create_finish_reason_chunk("stop")
                 smss_stream(finish, stream_type="media", interim=False)
@@ -294,54 +272,67 @@ class OpenAiImageClient:
 
     @staticmethod
     def _build_prompt(semoss_messages: List[SEMOSSMessage]) -> Optional[str]:
-        """Concatenate text from every INPUT turn so the model gets the
-        full conversation context, not just the latest user message."""
-        chunks: List[str] = []
-        for msg in semoss_messages:
+        """Return the text of the most recent INPUT turn only."""
+        for msg in reversed(semoss_messages):
             if getattr(msg, "io", None) != "INPUT":
                 continue
             parts = getattr(msg, "parts", None)
             if parts:
-                for part in parts:
-                    if getattr(part, "type", None) == SEMOSSMessagePartType.TEXT:
-                        if part.text:
-                            chunks.append(part.text)
+                chunks = [
+                    part.text
+                    for part in parts
+                    if getattr(part, "type", None) == SEMOSSMessagePartType.TEXT
+                    and part.text
+                ]
+                if chunks:
+                    return "\n".join(chunks)
             else:
                 content = getattr(msg, "content", None)
                 if content:
-                    chunks.append(content)
-        if not chunks:
-            return None
-        return "\n".join(chunks)
+                    return content
+        return None
 
     @staticmethod
     def _extract_input_images(semoss_messages: List[SEMOSSMessage]) -> List[bytes]:
-        """Decode every base64 image attached to the conversation."""
-        images: List[bytes] = []
-        for msg in semoss_messages:
+        """Decode base64 images attached to the most recent INPUT turn.
+
+        Single-shot semantics: images from earlier turns are ignored, since
+        the user's "edit this" intent refers to what they just attached.
+        """
+        for msg in reversed(semoss_messages):
+            if getattr(msg, "io", None) != "INPUT":
+                continue
             parts = getattr(msg, "parts", None)
             if not parts:
                 continue
-            for part in parts:
-                if getattr(part, "type", None) != SEMOSSMessagePartType.MEDIA:
-                    continue
-                media = part.media_info
-                if media.type != SEMOSSMediaInputType.BASE64 or not media.data:
-                    continue
-                if media.mime_type and not media.mime_type.startswith("image"):
-                    continue
+            media_parts = [
+                part
+                for part in parts
+                if getattr(part, "type", None) == SEMOSSMessagePartType.MEDIA
+                and part.media_info.type == SEMOSSMediaInputType.BASE64
+                and part.media_info.data
+                and part.media_info.mime_type
+                and part.media_info.mime_type.startswith("image")
+            ]
+            if not media_parts:
+                continue
+            images: List[bytes] = []
+            for part in media_parts:
                 try:
-                    images.append(base64.b64decode(media.data))
+                    images.append(base64.b64decode(part.media_info.data))
                 except Exception:
                     continue
-        return images
+            return images
+        return []
 
     # --------------------------- helpers ---------------------------
 
     @staticmethod
     def _to_file_objects(image_bytes):
         if isinstance(image_bytes, list):
-            return [OpenAiImageClient._wrap_bytes(b, i) for i, b in enumerate(image_bytes)]
+            return [
+                OpenAiImageClient._wrap_bytes(b, i) for i, b in enumerate(image_bytes)
+            ]
         return OpenAiImageClient._wrap_bytes(image_bytes, 0)
 
     @staticmethod
