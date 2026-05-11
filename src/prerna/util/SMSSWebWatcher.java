@@ -91,9 +91,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-			// OwlPrettyPrintFixer.fixOwl(prop);
+//			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-			// OwlSeparatePixelFromConceptual.fixOwl(prop);
+//			OwlSeparatePixelFromConceptual.fixOwl(prop);
 
 			engineId = prop.getProperty(Constants.ENGINE);
 			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
@@ -129,9 +129,9 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 
 			// TO FIX ERRORS WITH PRETTY PRINT METHOD
-			// OwlPrettyPrintFixer.fixOwl(prop);
+//			OwlPrettyPrintFixer.fixOwl(prop);
 			// Update OWL
-			// OwlSeparatePixelFromConceptual.fixOwl(prop);
+//			OwlSeparatePixelFromConceptual.fixOwl(prop);
 
 			engineId = prop.getProperty(Constants.ENGINE);
 
@@ -279,7 +279,6 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			LegacyToProjectRestructurerHelper updater = new LegacyToProjectRestructurerHelper();
 			updater.executeRestructure();
 		}
-
 	}
 
 	/**
