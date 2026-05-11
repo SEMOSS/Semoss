@@ -13,10 +13,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Pixel endpoint for executing a platform default tool by name.
  *
- * <p>Used by the frontend when the LLM returns a tool call for a
+ * <p>
+ * Used by the frontend when the LLM returns a tool call for a
  * {@code platform__*} tool (as opposed to an MCP engine tool).
  *
- * <p>Example Pixel:
+ * <p>
+ * Example Pixel:
+ * 
  * <pre>
  *   RunDefaultTool(function=["platform__Command"], paramValues=[{"command": "ls -la"}]);
  * </pre>
@@ -25,8 +28,8 @@ public class RunDefaultToolReactor extends AbstractReactor {
 
     public RunDefaultToolReactor() {
         this.keysToGet = new String[] {
-            ReactorKeysEnum.FUNCTION.getKey(),
-            ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+                ReactorKeysEnum.FUNCTION.getKey(),
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
         this.keyRequired = new int[] { 1, 0 };
     }
@@ -42,7 +45,7 @@ public class RunDefaultToolReactor extends AbstractReactor {
 
         Map<String, Object> paramMap = getParamMap();
         String result = PlatformDefaultTools.execute(toolName, paramMap, this.insight);
-        return new NounMetadata(result, PixelDataType.CONST_STRING, PixelOperationType.LITERAL);
+        return new NounMetadata(result, PixelDataType.CONST_STRING);
     }
 
     private Map<String, Object> getParamMap() {
