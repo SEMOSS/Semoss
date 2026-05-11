@@ -52,7 +52,6 @@ public class AccessToken implements Serializable {
 	String id = null;
 	String username = null;
 	String access_token = null;
-	String refresh_token = null;
 	String instance_url = null;
 	int expires_in = 0; // this is in seconds
 	String token_type = "Bearer";
@@ -112,14 +111,6 @@ public class AccessToken implements Serializable {
 	 */
 	public String getAccess_token() {
 		return this.access_token;
-	}
-	
-	public void setRefresh_token(String refreshToken) {
-		this.refresh_token = refreshToken;
-	}
-	
-	public String getRefresh_token() {
-		return this.refresh_token;
 	}
 
 	public void setInstance_url(String instanceUrl) {
@@ -723,7 +714,6 @@ public class AccessToken implements Serializable {
 		newToken.id = token.id;
 		newToken.username = token.username;
 		newToken.access_token = token.access_token;
-		newToken.refresh_token = token.refresh_token;
 		newToken.expires_in = token.expires_in;
 		newToken.token_type = token.token_type;
 		newToken.startTime = token.startTime;

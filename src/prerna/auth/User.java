@@ -76,7 +76,7 @@ public class User implements Serializable {
 
 	// main object storing the users access tokens
 	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
-  private Map<AuthProvider, AccessToken> resourceAccessTokens = new ConcurrentHashMap<>();
+    private Map<AuthProvider, AccessToken> resourceAccessTokens = new ConcurrentHashMap<>();
 	private List<AuthProvider> loggedInProfiles = Collections.synchronizedList(new ArrayList<>());
 	// storing the timezone the user is in
 	private ZoneId zoneId;
@@ -278,26 +278,6 @@ public class User implements Serializable {
 			return false;
 		}
 		return true;
-	}
-	
-	/**
-	 * Drop the all access token when user logoutAll
-	 * 
-	 */
-	public void dropAllAccessToken() {
-		if (accessTokens != null && !accessTokens.isEmpty()) {
-			accessTokens.clear();
-		}
-	}
-	
-	/**
-	 * Drop the all resource access token when user log out
-	 * 
-	 */
-	public void dropAllResourceAccessToken() {
-		if (resourceAccessTokens != null && !resourceAccessTokens.isEmpty()) {
-			resourceAccessTokens.clear();
-		}
 	}
 
 	/**
@@ -523,7 +503,6 @@ public class User implements Serializable {
 	/*
 	 * Static utility methods
 	 */
-
 	public static Map<String, String> getConnectionsNames(User semossUser) {
 		Map<String, String> retMap = new HashMap<>();
 		if (semossUser == null) {
@@ -544,7 +523,6 @@ public class User implements Serializable {
 	/*
 	 * Static utility methods
 	 */
-
 	public static Map<String, String> getLoginNames(User semossUser) {
 		Map<String, String> retMap = new HashMap<>();
 		if (semossUser == null) {
@@ -581,7 +559,6 @@ public class User implements Serializable {
 		} else {
 			for (AuthProvider p : semossUser.loggedInProfiles) {
 				AccessToken token = semossUser.getAccessToken(p);
-				Boolean isLoginTokenExpired = semossUser.isLoginTokenExpired(semossUser);
 				String id = token.getId();
 				String name = token.getName();
 				if (name == null) {
@@ -592,7 +569,6 @@ public class User implements Serializable {
 				Map<String, Object> innerMap = new HashMap<>();
 				innerMap.put("id", id);
 				innerMap.put("name", name);
-				innerMap.put("tokenExpired", isLoginTokenExpired);
 				Map<String, String> sans = token.getSAN();
 				if (sans != null && sans.size() > 0) {
 					innerMap.put("san", sans);
@@ -612,7 +588,6 @@ public class User implements Serializable {
 		for (Entry<AuthProvider, AccessToken> resourceToken : semossUser.resourceAccessTokens.entrySet()) {
 			AuthProvider p = resourceToken.getKey();
 			AccessToken token = semossUser.getResourceAccessToken(p);
-			Boolean isTokenExpired = semossUser.isTokenExpired(token);
 			String connectionId = token.getId();
 			String connectionName = token.getName();
 			if (connectionName == null) {
@@ -622,7 +597,6 @@ public class User implements Serializable {
 			Map<String, Object> innerMap = new HashMap<>();
 			innerMap.put("id", connectionId);
 			innerMap.put("name", connectionName);
-			innerMap.put("tokenExpired", isTokenExpired);
 			Map<String, String> sans = token.getSAN();
 			if (sans != null && sans.size() > 0) {
 				innerMap.put("san", sans);
@@ -643,7 +617,7 @@ public class User implements Serializable {
 		}
 
 		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		return token == null ? "" : token.getId();
+		return token.getId();
 	}
 
 	public static List<Pair<String, String>> getUserIdAndType(User user) {
@@ -1026,44 +1000,6 @@ public class User implements Serializable {
 		return userEmail;
 	}
 	
-	public boolean isLoginTokenExpired(User user) {
-		if (user == null) {
-			return true;
-		}
-		for (AuthProvider provider : user.loggedInProfiles) {
-			AccessToken token = user.getAccessToken(provider);
-			if (isExpirableToken(token)) {
-				if (token != null && isTokenExpired(token)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	public boolean isTokenExpired(AccessToken token) {
-		if (token == null) {
-			throw new IllegalArgumentException("Token cannot be null.");
-		}
-		boolean isExpired = false;
-		if (isExpirableToken(token)) {
-			isExpired = isExpired(token);
-		}
-		return isExpired;
-	}
-
-	public boolean isExpired(AccessToken token) {
-		long expiresInMillis = token.getExpires_in() * 1000L;
-		long expiryTime = token.getStartTime() + expiresInMillis;
-		long currentTime = System.currentTimeMillis();
-
-		return currentTime > expiryTime;
-	}
-
-	public boolean isExpirableToken(AccessToken token) {
-		return token.getExpires_in() > 0 && token.getStartTime() > 0;
-	}
-
 	public PlaywrightSession getPlaywrightSession(String id) {
 		PlaywrightSession session = getPlaywrightSessionStore().get(id);
 		if (session == null) {
