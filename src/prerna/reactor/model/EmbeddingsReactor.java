@@ -42,43 +42,39 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class EmbeddingsReactor extends AbstractReactor {
-	
+
 	public EmbeddingsReactor() {
-		this.keysToGet = new String[] {
-			ReactorKeysEnum.ENGINE.getKey(), 
-			ReactorKeysEnum.VALUES.getKey(), 
-			ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-			ReactorKeysEnum.ENCODED.getKey()
-		};
-		this.keyRequired = new int[] {1, 1, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.VALUES.getKey(),
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Model " + engineId + " does not exist or user does not have access to this model");
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+			throw new IllegalArgumentException(
+					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
-		
-		boolean isEncoded = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3])+"");
-		List<String> stringsToEmbed = getInputStrings(isEncoded);
+
+		List<String> stringsToEmbed = getInputStrings();
 		Map<String, Object> paramMap = getMap();
-		if(paramMap == null) {
+		if (paramMap == null) {
 			paramMap = new HashMap<String, Object>();
 		}
-		
+
 		IModelEngine engine = Utility.getModel(engineId);
 		Object output = engine.embeddings(stringsToEmbed, this.insight, paramMap);
 		return new NounMetadata(output, PixelDataType.MAP);
 	}
-	
+
 	/**
 	 * Get input strings to embed
-	 * @param isEncoded			true if the strings are encoded
+	 * 
 	 * @return list of engines to delete
 	 */
-	public List<String> getInputStrings(boolean isEncoded) {
+	public List<String> getInputStrings() {
 		List<String> inputStrings = new ArrayList<>();
 
 		// see if added as key
@@ -86,11 +82,7 @@ public class EmbeddingsReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				if(isEncoded) {
-					inputStrings.add(Utility.decodeURIComponent(grs.get(i).toString()));
-				} else {
-					inputStrings.add(grs.get(i).toString());
-				}
+				inputStrings.add(grs.get(i).toString());
 			}
 			return inputStrings;
 		}
@@ -98,47 +90,41 @@ public class EmbeddingsReactor extends AbstractReactor {
 		// no key is added, grab all inputs
 		int size = this.curRow.size();
 		for (int i = 0; i < size; i++) {
-			if(isEncoded) {
-				inputStrings.add(Utility.decodeURIComponent(this.curRow.get(i).toString()));
-			} else {
-				inputStrings.add(this.curRow.get(i).toString());
-			}
+			inputStrings.add(this.curRow.get(i).toString());
 		}
-		
+
 		return inputStrings;
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[2]);
-        if(mapGrs != null && !mapGrs.isEmpty()) {
-            List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-            if(mapInputs != null && !mapInputs.isEmpty()) {
-                return (Map<String, Object>) mapInputs.get(0).getValue();
-            }
-        }
-        List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-        if(mapInputs != null && !mapInputs.isEmpty()) {
-            return (Map<String, Object>) mapInputs.get(0).getValue();
-        }
-        return null;
-    }
-	
+		GenRowStruct mapGrs = this.store.getGenRowStruct(this.keysToGet[2]);
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
+		}
+		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs != null && !mapInputs.isEmpty()) {
+			return (Map<String, Object>) mapInputs.get(0).getValue();
+		}
+		return null;
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "This reactor is used to interact with Embedding Model Engines. If the model does not support embeddings " +
-				"it will return \"This model does not support embeddings.\"";
+		return "This reactor is used to interact with Embedding Model Engines. If the model does not support embeddings "
+				+ "it will return \"This model does not support embeddings.\"";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.VALUES.getKey())) {
+		if (key.equals(ReactorKeysEnum.VALUES.getKey())) {
 			return "Specify the string value(s) serving as input text, from which you aim to generate embeddings vector(s).";
-		}  else if(key.equals(ReactorKeysEnum.ENCODED.getKey())) {
-			return "True if the string values are encoded via <encode></encode> blocks";
 		}
 		return super.getDescriptionForKey(key);
 	}

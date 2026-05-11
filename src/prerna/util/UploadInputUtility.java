@@ -100,41 +100,39 @@ public final class UploadInputUtility {
 	// only applies for "csv" uploading - doesn't need to be ","
 	public static final String DELIMITER = ReactorKeysEnum.DELIMITER.getKey();
 
-	public static String getEngineNameOrId(NounStore store) {
-		GenRowStruct grs = store.getGenRowStruct(ENGINE);
-		if (grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new engine id or name using key " + ENGINE);
-		}
-
-		NounMetadata noun = grs.getNoun(0);
-		if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
-			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
-			if (uploadMap.get("engine_id") != null) {
-				return uploadMap.get("engine_id").toString();
+	/**
+	 * 
+	 * @param store
+	 * @param defaultValue
+	 * @return
+	 */
+	public static String getEngineNameOrId(NounStore store, String defaultValue) {
+		String[] keysToTest = new String[] { ENGINE, DATABASE };
+		for (String key : keysToTest) {
+			GenRowStruct grs = store.getGenRowStruct(key);
+			if (grs != null && !grs.isEmpty()) {
+				NounMetadata noun = grs.getNoun(0);
+				if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
+					Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
+					if (uploadMap.get("engine_id") != null) {
+						return uploadMap.get("engine_id").toString();
+					}
+					// support legacy
+					else if (uploadMap.get("database_id") != null) {
+						return uploadMap.get("database_id").toString();
+					}
+				}
+				return noun.getValue().toString();
 			}
-			// support legacy
-			else if (uploadMap.get("database_id") != null) {
-				return uploadMap.get("database_id").toString();
-			}
 		}
-		return noun.getValue().toString();
+		return defaultValue;
 	}
 
-	@Deprecated
-	public static String getDatabaseNameOrId(NounStore store) {
-		GenRowStruct grs = store.getGenRowStruct(DATABASE);
-		if (grs == null || grs.isEmpty()) {
-			throw new IllegalArgumentException("Must define the new database id or name using key " + DATABASE);
-		}
-
-		NounMetadata noun = grs.getNoun(0);
-		if (noun.getNounType() == PixelDataType.UPLOAD_RETURN_MAP) {
-			Map<String, Object> uploadMap = (Map<String, Object>) noun.getValue();
-			return uploadMap.get("database_id").toString();
-		}
-		return noun.getValue().toString();
-	}
-
+	/**
+	 * 
+	 * @param store
+	 * @return
+	 */
 	public static String getProjectNameOrId(NounStore store) {
 		GenRowStruct grs = store.getGenRowStruct(PROJECT);
 		if (grs == null || grs.isEmpty()) {

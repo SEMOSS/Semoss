@@ -131,8 +131,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if (engineExists) {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
 			updateEngineTypeAndSubType(engineId, (IEngine.CATALOG_TYPE) typeAndCost[0], (String) typeAndCost[1]);
-			classLogger.info("Security database already contains engine of type " + typeAndCost[0]
-					+ " with unique id = " + Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
+					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else {
 			Object[] typeAndCost = getEngineTypeAndSubTypeAndCost(prop);
@@ -141,12 +141,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		// TODO: need to see when we should be updating the database metadata
-//		if(engineExists) {
-//			// update database properties anyway ... in case global was shifted for example
-//			updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1], global);
-//		}
+		// if(engineExists) {
+		// // update database properties anyway ... in case global was shifted for
+		// example
+		// updateDatabase(databaseId, databaseName, typeAndCost[0], typeAndCost[1],
+		// global);
+		// }
 
-		classLogger.info("Finished adding engine = " + Utility.cleanLogString(engineId));
+		classLogger.info("Finished adding engine = {}", Utility.cleanLogString(engineId));
 	}
 
 	/**
@@ -164,11 +166,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
 		try {
-			IEngine emptyClass = (IEngine) Class.forName(rawType).newInstance();
+			IEngine emptyClass = (IEngine) Class.forName(rawType).getConstructor().newInstance();
 			engineType = emptyClass.getCatalogType();
 			engineSubType = emptyClass.getCatalogSubType(smssProp);
 		} catch (Exception e) {
-			classLogger.warn("Unknown class name = " + rawType);
+			classLogger.warn("Unknown class name = {}", rawType);
 		}
 
 		return new Object[] { engineType, engineSubType, engineCost };
@@ -280,7 +282,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the engine record in the security database", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -303,7 +305,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine type and subtype", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -333,7 +335,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add engine owner", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -346,8 +348,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static String getEngineAliasForId(String id) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT ENGINENAME FROM ENGINE WHERE ENGINEID='" + id + "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -431,7 +434,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine display name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine display name");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -468,8 +471,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getAllEngineIds(List<String> engineTypes) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT DISTINCT ENGINEID FROM ENGINE";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -594,7 +598,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		} finally {
@@ -625,7 +629,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -670,7 +674,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to approve engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -742,7 +746,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to deny engine user access requests", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -797,7 +801,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check whether engine exists", e);
 		}
 		return false;
 	}
@@ -809,8 +813,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean engineIsGlobal(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='" + databaseId + "'";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String query = "SELECT ENGINEID FROM ENGINE WHERE GLOBAL=TRUE and ENGINEID='"
+		// + databaseId + "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
@@ -821,7 +827,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether engine is global", e);
 		}
 		return false;
 	}
@@ -1038,7 +1044,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add engine user", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1156,7 +1162,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add engine user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1270,7 +1276,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						existingPermission, newPermission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permission", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1405,7 +1411,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
@@ -1437,7 +1443,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to delete engine", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1492,7 +1498,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1553,7 +1559,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove engine users", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1573,7 +1579,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove expired engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1607,7 +1613,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine global visibility setting", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1634,7 +1640,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to set engine visibility to globally accessible", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1669,7 +1675,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine discoverability setting", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1720,7 +1726,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update engine visibility", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1751,7 +1757,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update engine visibility", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1759,7 +1765,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine visibility", e);
 		}
 	}
 
@@ -1807,7 +1813,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update engine favorite", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1838,14 +1844,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to update engine favorite", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine favorite", e);
 		}
 	}
 
@@ -1879,7 +1885,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine name");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1933,7 +1939,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 		}
@@ -1971,7 +1977,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine metadata", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -2050,7 +2056,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to aggregate engine metadata values", e);
 		}
 
 		return retMap;
@@ -2138,7 +2144,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertTargetEnginePermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy engine permissions to the target engine", e);
 			throw e;
 		}
 
@@ -2159,7 +2165,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertTargetEnginePermissionStatement.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to copy engine permissions to the target engine", e);
 			throw new IllegalArgumentException("An error occurred transferring the engine permissions");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2278,13 +2284,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to determine whether engine is discoverable", e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to determine whether engine is discoverable", e);
 				}
 			}
 		}
@@ -2319,7 +2325,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update the user access request record", e);
 			throw new IllegalArgumentException(
 					"An error occurred while marking old user access request with detailed message = "
 							+ e.getMessage());
@@ -2355,7 +2361,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update the user access request record", e);
 			throw new IllegalArgumentException(
 					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {
@@ -2395,13 +2401,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve pending user access requests", e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to retrieve pending user access requests", e);
 				}
 			}
 		}
@@ -2507,18 +2513,36 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
 
 		SelectQueryStruct qs1 = new SelectQueryStruct();
-		// selectors
+		// preferred selectors
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
+				"low_engine_name"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "engine_user_permission"));
+		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "engine_group_permission"));
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "engine_favorite"));
+
+		// legacy aliases (app_*): kept for backwards compatibility
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
-
+		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "app_favorite"));
+		// legacy aliases (database_*/non-prefixed): kept for backwards compatibility
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
@@ -2532,7 +2556,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "database_favorite"));
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "app_favorite"));
+
+		// description from engine metadata
+		qs1.addSelector(new QueryColumnSelector("ENGINE_DESCRIPTION__DESCRIPTION", "engine_description"));
 
 		// this block is for max permissions
 		// If both null - return null
@@ -2648,6 +2674,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs1.addRelation(subQuery);
 		}
 
+		// add a join to get the engine description from metadata
+		{
+			SelectQueryStruct descQs = new SelectQueryStruct();
+			descQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID", "ENGINEID"));
+			descQs.addSelector(new QueryColumnSelector("ENGINEMETA__METAVALUE", "DESCRIPTION"));
+			descQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", "description"));
+			IRelation descSubQuery = new SubqueryRelationship(descQs, "ENGINE_DESCRIPTION", "left.outer.join",
+					new String[] { "ENGINE_DESCRIPTION__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs1.addRelation(descSubQuery);
+		}
+
 		// filters
 		if (engineIdFilters != null && !engineIdFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
@@ -2758,7 +2795,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						"Invalid Sort Parameters passed: Only \"ENGINENAME\" and \"DATECREATED\" are supported");
 			}
 			for (String s : sortKeys) {
-				qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+				if ("ENGINENAME".equals(s)) {
+					qs1.addOrderBy("low_database_name", sortFields.getOrDefault(s, "ASC"));
+				} else {
+					qs1.addOrderBy("ENGINE__" + s, sortFields.getOrDefault(s, "ASC"));
+				}
 			}
 		}
 
@@ -2859,32 +2900,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get the latest updated author for the engine
-	 * 
-	 * @param engineId
-	 * @return a map with the author and date added
-	 */
-	public static Map<String, Object> getLatestUpdatedAuthor(String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBY"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addOrderBy(new QueryColumnOrderBySelector("ENGINEPERMISSION__DATEADDED", "DESC"));
-		qs.setLimit(1);
-
-		List<Map<String, Object>> list = QueryExecutionUtility.flushRsToMap(securityDb, qs);
-		if (list.isEmpty()) {
-			Map<String, Object> map = new HashMap<>();
-			map.put("PERMISSIONGRANTEDBY", null);
-			map.put("DATEADDED", null);
-			return map;
-		}
-
-		return list.get(0);
-	}
-
-	/**
 	 * Get all the available engine metadata and their counts for given keys
 	 * 
 	 * @param engineFilters
@@ -2949,98 +2964,119 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		return databaseMap;
 	}
 
-//	/**
-//	 * Get the database information
-//	 * @param databaseFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllDatabaseList(String databaseFilter) {
-//		List<String> filters = null;
-//		if(databaseFilter != null && !databaseFilter.isEmpty()) {
-//			filters = new ArrayList<>();
-//			filters.add(databaseFilter);
-//		}
-//		return getAllDatabaseList(filters);
-//	}
+	// /**
+	// * Get the database information
+	// * @param databaseFilter
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllDatabaseList(String
+	// databaseFilter) {
+	// List<String> filters = null;
+	// if(databaseFilter != null && !databaseFilter.isEmpty()) {
+	// filters = new ArrayList<>();
+	// filters.add(databaseFilter);
+	// }
+	// return getAllDatabaseList(filters);
+	// }
 
-//	/**
-//	 * Get the database information
-//	 * @param databaseFilter
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllDatabaseList(List<String> databaseFilters) {
-//		List<String> engineTypes = new ArrayList<>();
-//		engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
-//		return getAllEngineList(engineTypes, databaseFilters, null, null, null, null);
-//	}
+	// /**
+	// * Get the database information
+	// * @param databaseFilter
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllDatabaseList(List<String>
+	// databaseFilters) {
+	// List<String> engineTypes = new ArrayList<>();
+	// engineTypes.add(IEngine.CATALOG_TYPE.DATABASE.toString());
+	// return getAllEngineList(engineTypes, databaseFilters, null, null, null,
+	// null);
+	// }
 
-//	/**
-//	 * Get database information
-//	 * @param databaseFilters
-//	 * @param engineMetadataFilter
-//	 * @param searchTerm
-//	 * @param limit
-//	 * @param offset
-//	 * @return
-//	 */
-//	public static List<Map<String, Object>> getAllEngineList(List<String> engineType, List<String> engineIdFilters, Map<String, Object> engineMetadataFilter,
-//			String searchTerm, String limit, String offset) {
-//		
-//		boolean hasSearchTerm = searchTerm != null && !(searchTerm=searchTerm.trim()).isEmpty();
-//		
-//		SelectQueryStruct qs = new SelectQueryStruct();
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "app_subtype"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
-//
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
-//		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
-//		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME", "low_database_name"));
-//		if(engineType != null && !engineType.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineType));
-//		}
-//		if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
-//			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineIdFilters));
-//		}
-//		// optional word filter on the engine name
-//		if(hasSearchTerm) {
-//			securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME", searchTerm);
-//		}
-//		// filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair, add in-filter against engineids from subquery
-//		if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
-//			for (String k : engineMetadataFilter.keySet()) {
-//				SelectQueryStruct subQs = new SelectQueryStruct();
-//				subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
-//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY", "==", k));
-//				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==", engineMetadataFilter.get(k)));
-//				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
-//			}
-//		}
-//		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-//		// add the sort
-//		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
-//		
-//		Long long_limit = -1L;
-//		Long long_offset = -1L;
-//		if(limit != null && !limit.trim().isEmpty()) {
-//			long_limit = ((Number) Double.parseDouble(limit)).longValue();
-//		}
-//		if(offset != null && !offset.trim().isEmpty()) {
-//			long_offset = ((Number) Double.parseDouble(offset)).longValue();
-//		}
-//		qs.setLimit(long_limit);
-//		qs.setOffSet(long_offset);
-//		
-//		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-//	}
+	// /**
+	// * Get database information
+	// * @param databaseFilters
+	// * @param engineMetadataFilter
+	// * @param searchTerm
+	// * @param limit
+	// * @param offset
+	// * @return
+	// */
+	// public static List<Map<String, Object>> getAllEngineList(List<String>
+	// engineType, List<String> engineIdFilters, Map<String, Object>
+	// engineMetadataFilter,
+	// String searchTerm, String limit, String offset) {
+	//
+	// boolean hasSearchTerm = searchTerm != null &&
+	// !(searchTerm=searchTerm.trim()).isEmpty();
+	//
+	// SelectQueryStruct qs = new SelectQueryStruct();
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "app_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE",
+	// "app_subtype"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__COST", "app_cost"));
+	//
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME",
+	// "database_name"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE",
+	// "database_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE",
+	// "database_subtype"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY",
+	// "database_created_by"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE",
+	// "database_created_by_type"));
+	// qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED",
+	// "database_date_created"));
+	// qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER,
+	// "ENGINE__ENGINENAME", "low_database_name"));
+	// if(engineType != null && !engineType.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE",
+	// "==", engineType));
+	// }
+	// if(engineIdFilters != null && !engineIdFilters.isEmpty()) {
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID",
+	// "==", engineIdFilters));
+	// }
+	// // optional word filter on the engine name
+	// if(hasSearchTerm) {
+	// securityDb.getQueryUtil().appendSearchRegexFilter(qs, "ENGINE__ENGINENAME",
+	// searchTerm);
+	// }
+	// // filtering by enginemeta key-value pairs (i.e. <tag>:value): for each pair,
+	// add in-filter against engineids from subquery
+	// if (engineMetadataFilter!=null && !engineMetadataFilter.isEmpty()) {
+	// for (String k : engineMetadataFilter.keySet()) {
+	// SelectQueryStruct subQs = new SelectQueryStruct();
+	// subQs.addSelector(new QueryColumnSelector("ENGINEMETA__ENGINEID"));
+	// subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAKEY",
+	// "==", k));
+	// subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE",
+	// "==", engineMetadataFilter.get(k)));
+	// qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID",
+	// "==", subQs));
+	// }
+	// }
+	// qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
+	// // add the sort
+	// qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+	//
+	// Long long_limit = -1L;
+	// Long long_offset = -1L;
+	// if(limit != null && !limit.trim().isEmpty()) {
+	// long_limit = ((Number) Double.parseDouble(limit)).longValue();
+	// }
+	// if(offset != null && !offset.trim().isEmpty()) {
+	// long_offset = ((Number) Double.parseDouble(offset)).longValue();
+	// }
+	// qs.setLimit(long_limit);
+	// qs.setOffSet(long_offset);
+	//
+	// return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	// }
 
 	/**
 	 * Get the list of the engine information that the user has access to
@@ -3051,26 +3087,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getUserEngineList(User user, String engineFilter,
 			List<String> engineTypeFilter) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String userFilters = getUserFilters(user);
-//		String filter = createFilter(engineFilter); 
-//		String query = "SELECT DISTINCT "
-//				+ "ENGINE.ENGINEID as \"app_id\", "
-//				+ "ENGINE.ENGINENAME as \"app_name\", "
-//				+ "ENGINE.TYPE as \"app_type\", "
-//				+ "ENGINE.COST as \"app_cost\", "
-//				+ "LOWER(ENGINE.ENGINENAME) as \"low_app_name\" "
-//				+ "FROM ENGINE "
-//				+ "LEFT JOIN ENGINEPERMISSION ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
-//				+ "WHERE "
-//				+ (!filter.isEmpty() ? ("ENGINE.ENGINEID " + filter + " AND ") : "")
-//				+ "(ENGINEPERMISSION.USERID IN " + userFilters + " OR ENGINE.GLOBAL=TRUE) "
-//				+ "ORDER BY LOWER(ENGINE.ENGINENAME)";
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
-
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		// legacy aliases (database_*): kept for backwards compatibility
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
@@ -3083,7 +3115,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
+		fun.setAlias("low_engine_name");
 		qs.addSelector(fun);
 		if (engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
@@ -3111,7 +3143,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if (addGroupProjectPermissionJoin) {
 			qs.addRelation("ENGINE", "GROUPENGINEPERMISSION", "left.outer.join");
 		}
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
@@ -3190,9 +3222,18 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<String> engineTypeFilter) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
+		// legacy aliases (database_*): kept for backwards compatibility
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
@@ -3202,7 +3243,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
 		fun.addInnerSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
-		fun.setAlias("low_database_name");
+		fun.setAlias("low_engine_name");
 		qs.addSelector(fun);
 		if (engineFilter != null && !engineFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineFilter));
@@ -3212,7 +3253,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
-		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -3239,19 +3280,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		SelectQueryStruct qs1 = new SelectQueryStruct();
 		// selectors
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "engine_id"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "database_type"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "database_subtype"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "database_cost"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "database_discoverable"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "database_created_by"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "database_created_by_type"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "database_date_created"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
+		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
-				"low_database_name"));
+				"low_engine_name"));
 		// only care about discoverable engines
 		qs1.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
@@ -3318,7 +3359,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		// add the sort
-		qs1.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
+		qs1.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -3342,9 +3383,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<String> getFullUserEngineIds(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String userFilters = getUserFilters(user);
-//		String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID IN " + userFilters;
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT ENGINEID FROM ENGINEPERMISSION WHERE USERID
+		// IN " + userFilters;
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
@@ -3439,7 +3482,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update metadata key options", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3577,7 +3620,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 			return newEngines;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException("An error occurred while updating the user engine permissions in db ");
 		} finally {
 			ConnectionUtils.closeAllDbConnectionsIfPooling(securityDb, deletePs, insertPs);
@@ -3598,7 +3641,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to update engine tool_app", e);
+			classLogger.error("Failed to update engine legacy tool_app alias", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

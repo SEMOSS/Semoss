@@ -76,7 +76,7 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 		try {
 			eng.removeDocument(fileNames, paramMap);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error removing documents from vector database {}", engineId, e);
 			throw new IllegalArgumentException(
 					"Error occurred attempting to delete the files. Detailed message = " + e.getMessage());
 		}
@@ -145,8 +145,12 @@ public class RemoveDocumentFromVectorDatabaseReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals("fileNames")) {
-			return "The list of file names (source identifiers) to remove from the vector database";
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to remove documents from.";
+		} else if (key.equals("fileNames")) {
+			return "The list of source identifiers to remove from the vector database (typically document file names).";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return "Optional engine-specific parameters (for example index/collection selectors when supported).";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -67,8 +67,11 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AuthProvider;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.prompt.AbstractPromptUtils;
+import prerna.notifications.NotificationDbUtils;
+import prerna.prompt.PromptUtils;
 import prerna.reactor.database.upload.rdbms.csv.RdbmsUploadTableDataReactor;
 import prerna.reactor.database.upload.rdbms.excel.RdbmsUploadExcelDataReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -107,6 +110,10 @@ public class ApiSemossTestEngineUtils {
 		assertTrue(SystemEngineRegistry.isSchedulerDbLoaded(), "SchedulerDb should be loaded");
 		assertTrue(SystemEngineRegistry.isThemesDbLoaded(), "ThemesDb should be loaded");
 		assertTrue(SystemEngineRegistry.isUserTrackingDbLoaded(), "UserTrackingDb should be loaded");
+		assertTrue(SystemEngineRegistry.isPromptDbLoaded(), "PromptDB should be loaded");
+		assertTrue(SystemEngineRegistry.isNotificationDbLoaded(), "NotificationDB should be loaded");
+		assertTrue(SystemEngineRegistry.isAuditLogsDbLoaded(), "AuditLogDb should be loaded");
+		assertTrue(SystemEngineRegistry.isModelInferenceLogsDbLoaded(), "ModelInferenceLogsDb should be loaded");
 	}
 
 	static void unloadDatabases() {
@@ -120,6 +127,27 @@ public class ApiSemossTestEngineUtils {
 		tasks.add(() -> initializeThemes());
 		tasks.add(() -> initializeUserTracking());
 		tasks.add(() -> initializePrompt());
+		tasks.add(() -> initializeNotification());
+		tasks.add(() -> initializeAuditLogs());
+		tasks.add(() -> initializeModelInferenceLogs());
+	}
+
+	private static Void initializeModelInferenceLogs() throws Exception {
+		doInitializeSemossDB(Constants.MODEL_INFERENCE_LOGS_DB, "database.mv.db");
+		ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeAuditLogs() throws Exception {
+		doInitializeSemossDB(Constants.AUDIT_LOGS_DB, "database.mv.db");
+		AuditLogsDbUtils.loadAuditLogsDatabase();
+		return null;
+	}
+
+	private static Void initializeNotification() throws Exception {
+		doInitializeSemossDB(Constants.NOTIFICATION_DB, "database.mv.db");
+		NotificationDbUtils.loadNotificationDatabase();
+		return null;
 	}
 
 	private static Void initializeLocalMaster() throws IOException, Exception {
@@ -158,11 +186,11 @@ public class ApiSemossTestEngineUtils {
 	public static Void initializePrompt() throws Exception {
 		try {
 			doInitializeSemossDB(Constants.PROMPT_DB, "database.mv.db");
-			AbstractPromptUtils.loadPromptDatabase();
+			PromptUtils.loadPromptDatabase();
 		} catch (Exception e) {
 			// Weird behavior, but NPE on first try, successful load on second
 			// Can't debug because it works first try when debugging
-			AbstractPromptUtils.loadPromptDatabase();
+			PromptUtils.loadPromptDatabase();
 		}
 		return null;
 	}
@@ -222,7 +250,8 @@ public class ApiSemossTestEngineUtils {
 		connectAndClearThemeDb(themeConnDetails);
 
 		try {
-			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL, AuthProvider.NATIVE.toString(), true);
+			createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
+					AuthProvider.NATIVE.toString(), true);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Could not add Default Native Admin user");

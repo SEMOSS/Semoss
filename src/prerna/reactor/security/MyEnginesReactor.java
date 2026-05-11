@@ -35,6 +35,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -45,7 +47,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserCatalogVoteUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class MyEnginesReactor extends AbstractReactor {
@@ -123,13 +124,13 @@ public class MyEnginesReactor extends AbstractReactor {
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error retrieving engine metadata in MyEnginesReactor", e);
 				} finally {
 					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Error closing engine metadata wrapper in MyEnginesReactor", e);
 						}
 					}
 				}
@@ -146,7 +147,7 @@ public class MyEnginesReactor extends AbstractReactor {
 						res.put("upvotes", upvotes);
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error retrieving engine vote totals in MyEnginesReactor", e);
 				}
 
 				Map<String, Boolean> voted = UserCatalogVoteUtils
@@ -167,13 +168,116 @@ public class MyEnginesReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns a list of engines that the user has access to.";
+		return """
+				Returns a list of engines that the user has access to.
+
+				Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
+				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite).
+				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				""";
+	}
+
+	@Override
+	public JSONObject getResponseSchema() {
+		JSONObject schema = new JSONObject();
+		schema.put("type", "array");
+		schema.put("description", "List of engine objects the user has access to");
+
+		JSONObject itemProperties = new JSONObject();
+		itemProperties.put("engine_id",
+				new JSONObject().put("type", "string").put("description", "Unique engine identifier (UUID)"));
+		itemProperties.put("engine_name", new JSONObject().put("type", "string").put("description", "Engine name"));
+		itemProperties.put("engine_display_name",
+				new JSONObject().put("type", "string").put("description", "Friendly display name for the engine"));
+		itemProperties.put("engine_type",
+				new JSONObject().put("type", "string").put("description", "Catalog type for the engine"));
+		itemProperties.put("engine_subtype",
+				new JSONObject().put("type", "string").put("description", "Catalog subtype for the engine"));
+		itemProperties.put("engine_cost", new JSONObject().put("type", "string").put("description", "Cost metadata"));
+		itemProperties.put("engine_discoverable",
+				new JSONObject().put("type", "boolean").put("description", "Whether the engine is discoverable"));
+		itemProperties.put("engine_global", new JSONObject().put("type", "boolean").put("description",
+				"Whether the engine is globally accessible"));
+		itemProperties.put("engine_tool_app",
+				new JSONObject().put("type", "string").put("description", "Linked tool app project id (if set)"));
+		itemProperties.put("engine_created_by",
+				new JSONObject().put("type", "string").put("description", "Creator user id"));
+		itemProperties.put("engine_created_by_type",
+				new JSONObject().put("type", "string").put("description", "Creator auth type"));
+		itemProperties.put("engine_date_created", new JSONObject().put("type", "string").put("format", "datetime")
+				.put("description", "UTC timestamp when the engine was created"));
+		itemProperties.put("low_engine_name",
+				new JSONObject().put("type", "string").put("description", "Lowercase engine name used for sorting"));
+		itemProperties.put("engine_user_permission", new JSONObject().put("type", "integer").put("description",
+				"Direct user permission level for this engine"));
+		itemProperties.put("engine_group_permission", new JSONObject().put("type", "integer").put("description",
+				"Group-derived permission level for this engine"));
+		itemProperties.put("engine_favorite", new JSONObject().put("type", "integer")
+				.put("enum", new JSONArray().put(0).put(1)).put("description", "1 if favorited, otherwise 0"));
+		itemProperties.put("permission", new JSONObject().put("type", "integer").put("description",
+				"Effective permission level for this engine"));
+		itemProperties.put("upvotes",
+				new JSONObject().put("type", "integer").put("description", "Catalog upvote count when requested"));
+		itemProperties.put("hasUpvoted", new JSONObject().put("type", "boolean").put("description",
+				"Whether the current user has upvoted when requested"));
+
+		// legacy aliases
+		itemProperties.put("app_id",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
+		itemProperties.put("app_name",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
+		itemProperties.put("app_display_name",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_display_name"));
+		itemProperties.put("app_type",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
+		itemProperties.put("app_subtype",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
+		itemProperties.put("app_cost",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
+		itemProperties.put("app_favorite",
+				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
+		itemProperties.put("database_id",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
+		itemProperties.put("database_name",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
+		itemProperties.put("database_type",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
+		itemProperties.put("database_subtype",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
+		itemProperties.put("database_cost",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
+		itemProperties.put("database_discoverable",
+				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_discoverable"));
+		itemProperties.put("database_global",
+				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_global"));
+		itemProperties.put("database_created_by",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by"));
+		itemProperties.put("database_created_by_type",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by_type"));
+		itemProperties.put("database_date_created",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_date_created"));
+		itemProperties.put("low_database_name",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of low_engine_name"));
+		itemProperties.put("database_favorite",
+				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
+		itemProperties.put("user_permission",
+				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_user_permission"));
+		itemProperties.put("group_permission",
+				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_group_permission"));
+		itemProperties.put("tool_app",
+				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_tool_app"));
+
+		JSONObject items = new JSONObject();
+		items.put("type", "object");
+		items.put("properties", itemProperties);
+		schema.put("items", items);
+		return schema;
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+			return "The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.";
 		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "This is an optional engine filter";
 		}

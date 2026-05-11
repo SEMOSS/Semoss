@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -72,7 +73,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 	private static String routeId = "routeId";
 	
 	@BeforeEach
-	void setUp() throws SQLException {
+	void setUp() throws Exception {
 		user = new User();
 		user.setPrimaryLogin(prerna.auth.AuthProvider.GOOGLE);
 		AccessToken accessToken = new AccessToken();
@@ -80,7 +81,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		accessToken.setId(id);
 		user.setGlobalAccessToken(accessToken);
 
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		// clear the session share table before each test
 		securityDb.removeData("DELETE FROM " + SESSION_SHARE_TABLE_NAME);
 
@@ -255,7 +256,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 	// used to get a wrapper on the table to validate tests
 	// this wrapper needs to be closed after use
 	private IRawSelectWrapper getSessionSharedTableWrapper(String shareToken) throws Exception {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SHARE_VAL));
 		qs.addSelector(new QueryColumnSelector(SESSION_SHARE_TABLE_NAME + "__" + SESSION_VAL));

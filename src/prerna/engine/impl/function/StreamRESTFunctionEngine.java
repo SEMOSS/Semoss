@@ -33,12 +33,12 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.hc.client5.http.ClientProtocolException;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpHead;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
@@ -46,11 +46,12 @@ import org.apache.hc.client5.http.classic.methods.HttpPut;
 import org.apache.hc.client5.http.classic.methods.HttpUriRequestBase;
 import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
@@ -61,9 +62,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.sablecc2.comm.PixelJobManager;
-import prerna.sablecc2.comm.PixelJobThread;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.security.HttpHelperUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
@@ -106,18 +106,16 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public void close() throws IOException {
-		// i dont have anything to do here...
-
+		// nothing to close
 	}
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
-		String jobId = (String) parameterValues.remove(PixelJobThread.JOB_KEY);
+		String jobId = (String) parameterValues.remove(PixelJobRunner.JOB_KEY);
 		if (jobId == null) {
 			throw new IllegalArgumentException("Must provide the job id for streaming output");
 		}
 
-		// validate all the required keys are set
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
 			for (String requiredP : this.requiredParameters) {
@@ -130,85 +128,54 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 			}
 		}
 
-		// store the responses combined
-		StringBuilder responseAssimilator = new StringBuilder();
-		String responseData = null;
-
-		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
-		try {
-			httpClient = HttpHelperUtility.getCustomClient(null, null, null, null);
-			response = getResponse(httpClient, parameterValues);
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				// Handle streaming response
-				if (entity != null) {
-					try (BufferedReader reader = new BufferedReader(
-							new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
-						String line;
-
-						while ((line = reader.readLine()) != null) {
-//                        	System.out.println("My line is = " + line);
-							responseAssimilator.append(line);
-							PixelJobManager.getManager().addPartialOut(jobId, line);
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, null, null, null)) {
+			return httpClient.execute(buildRequest(parameterValues), new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						if (entity == null) {
+							return null;
 						}
-
-						// return the combined outputs
-						responseData = responseAssimilator.toString();
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						throw new IllegalArgumentException("There was an error processing the response from " + url);
+						StringBuilder responseAssimilator = new StringBuilder();
+						try (BufferedReader reader = new BufferedReader(
+								new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8))) {
+							String line;
+							while ((line = reader.readLine()) != null) {
+								responseAssimilator.append(line);
+								Map<String, Object> chunk = new LinkedHashMap<>();
+								chunk.put("stream_type", "content");
+								chunk.put("data", line);
+								PixelJobManager.getManager().addStreamOut(jobId, chunk);
+							}
+						} catch (Exception e) {
+							classLogger.error("Error reading streaming response from '{}'", url, e);
+							throw new IllegalArgumentException(
+									"There was an error processing the response from " + url);
+						}
+						return responseAssimilator.toString();
 					}
+					String responseData = "";
+					if (entity != null) {
+						try {
+							responseData = EntityUtils.toString(entity, StandardCharsets.UTF_8);
+						} catch (ParseException e) {
+							throw new IOException("Failed to parse error response body from '" + url + "'", e);
+						}
+					}
+					throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
 				}
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : "";
-				throw new IllegalArgumentException("Connected to " + url + " but received error = " + responseData);
-			}
-
-			return responseData;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute {} request to '{}'", this.httpMethod, this.url, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + url);
-		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (httpClient != null) {
-				try {
-					httpClient.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 	}
 
-	/**
-	 * 
-	 * @param httpClient
-	 * @param parameterValues
-	 * @return
-	 * @throws ClientProtocolException
-	 * @throws IOException
-	 */
-	private CloseableHttpResponse getResponse(CloseableHttpClient httpClient, Map<String, Object> parameterValues)
-			throws ClientProtocolException, IOException {
-		CloseableHttpResponse response = null;
-		if (httpMethod.equalsIgnoreCase("GET")) {
-			StringBuffer queryString = new StringBuffer();
+	private HttpUriRequestBase buildRequest(Map<String, Object> parameterValues) {
+		if (httpMethod.equalsIgnoreCase("GET") || httpMethod.equalsIgnoreCase("HEAD")) {
+			StringBuilder queryString = new StringBuilder();
 			boolean first = true;
 			for (String k : parameterValues.keySet()) {
 				if (!first) {
@@ -218,69 +185,50 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 				first = false;
 			}
 			String runTimeUrl = url + "?" + queryString;
-
-			HttpGet httpGet = new HttpGet(runTimeUrl);
-			addHeaders(httpGet);
-			response = httpClient.execute(httpGet);
-		} else if (httpMethod.equalsIgnoreCase("HEAD")) {
-			StringBuffer queryString = new StringBuffer();
-			boolean first = true;
-			for (String k : parameterValues.keySet()) {
-				if (!first) {
-					queryString.append("&");
-				}
-				queryString.append(k).append("=").append(parameterValues.get(k));
-				first = false;
+			if (httpMethod.equalsIgnoreCase("GET")) {
+				HttpGet httpGet = new HttpGet(runTimeUrl);
+				addHeaders(httpGet);
+				return httpGet;
+			} else {
+				HttpHead httpHead = new HttpHead(runTimeUrl);
+				addHeaders(httpHead);
+				return httpHead;
 			}
-			String runTimeUrl = url + "?" + queryString;
-
-			HttpHead httpHead = new HttpHead(runTimeUrl);
-			addHeaders(httpHead);
-			response = httpClient.execute(httpHead);
 		} else if (httpMethod.equalsIgnoreCase("PUT")) {
 			HttpPut httpPut = new HttpPut(url);
 			addHeaders(httpPut);
-
 			if (parameterValues != null && !parameterValues.isEmpty()) {
 				if (this.contentType.equalsIgnoreCase("JSON")) {
 					httpPut.setEntity(
 							new StringEntity(new Gson().toJson(parameterValues), ContentType.APPLICATION_JSON));
 				} else {
-					List<NameValuePair> params = new ArrayList<NameValuePair>();
+					List<NameValuePair> params = new ArrayList<>();
 					for (String key : parameterValues.keySet()) {
 						params.add(new BasicNameValuePair(key, parameterValues.get(key) + ""));
 					}
 					httpPut.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 				}
 			}
-			response = httpClient.execute(httpPut);
+			return httpPut;
 		} else {
 			HttpPost httpPost = new HttpPost(url);
 			addHeaders(httpPost);
-
 			if (parameterValues != null && !parameterValues.isEmpty()) {
 				if (this.contentType.equalsIgnoreCase("JSON")) {
 					httpPost.setEntity(
 							new StringEntity(new Gson().toJson(parameterValues), ContentType.APPLICATION_JSON));
 				} else {
-					List<NameValuePair> params = new ArrayList<NameValuePair>();
+					List<NameValuePair> params = new ArrayList<>();
 					for (String key : parameterValues.keySet()) {
 						params.add(new BasicNameValuePair(key, parameterValues.get(key) + ""));
 					}
 					httpPost.setEntity(new UrlEncodedFormEntity(params, StandardCharsets.UTF_8));
 				}
 			}
-			response = httpClient.execute(httpPost);
+			return httpPost;
 		}
-
-		return response;
 	}
 
-	/**
-	 * Add headers to a request
-	 * 
-	 * @param requestMethod
-	 */
 	private void addHeaders(HttpUriRequestBase requestMethod) {
 		if (this.headers != null && !this.headers.isEmpty()) {
 			for (String key : this.headers.keySet()) {

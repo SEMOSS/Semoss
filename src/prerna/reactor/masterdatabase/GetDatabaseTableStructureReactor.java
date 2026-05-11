@@ -88,11 +88,10 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 				Each result row contains:
 				  - PARENTSEMOSSNAME   : Logical table name (RDBMS) or vertex name (Graph)
 				  - SEMOSSNAME         : Logical column name (RDBMS) or property name (Graph)
+				  - PROPERTY_TYPE      : Data type of the column or property
+				  - PK                 : Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)
 				  - PARENTPHYSICALNAME : Physical table/vertex name as stored in the database
 				  - PHYSICALNAME       : Physical column/property name as stored in the database
-				  - PROPERTY_TYPE      : Data type of the column or property
-				  - PK                 : Whether this row represents the concept (table/vertex) itself, \
-				rather than a column or property on it
 
 				Notes:
 				  - Logical names (PARENTSEMOSSNAME, SEMOSSNAME) reflect the schema as modeled in SEMOSS
