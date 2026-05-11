@@ -27,13 +27,15 @@
  *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,8 +47,11 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.ObjectId;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.AssetUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -262,25 +267,49 @@ public final class AgentTraceLogsUtils {
 	 * within an authorized room context — the engineId was resolved by MCPUtility
 	 * within the user's session. No additional access check is needed here.
 	 */
-	private static String getHeadCommitHash(String engineId, IEngine.CATALOG_TYPE type) {
-		if (engineId == null || type == null) return null;
+	/**
+	 * Resolves the git HEAD commit hash for an engine by its ID and catalog type.
+	 */
+	private static String getEngineCommitHash(String engineId) {
 		try {
-			IEngine eng = Utility.getEngine(engineId);
-			if (eng == null) eng = (IEngine) Utility.getProject(engineId);
-			if (eng == null) return null;
-
-			String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-					type, engineId, eng.getEngineName());
-			java.io.File gitDir = new java.io.File(versionFolder, ".git");
-			if (!gitDir.exists()) return null;
-
-			try (Git git = Git.open(new java.io.File(versionFolder))) {
-				ObjectId head = git.getRepository().resolve("HEAD");
-				if (head == null) return null;
-				return head.getName();
-			}
+			IEngine.CATALOG_TYPE catType = SecurityEngineUtils.getEngineType(engineId);
+			String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
+			String versionFolder = EngineUtility.getSpecificEngineVersionFolder(catType, engineId, engineName);
+			return readGitHead(versionFolder);
 		} catch (Exception e) {
-			classLogger.debug("getHeadCommitHash: could not resolve HEAD for engine '{}': {}", engineId, e.getMessage(), e);
+			classLogger.debug("getEngineCommitHash: failed for '{}': {}", engineId, e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/**
+	 * Resolves the git HEAD commit hash for a project by its ID.
+	 */
+	private static String getProjectCommitHash(String projectId) {
+		try {
+			String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
+			if (projectName == null) return null;
+			String versionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
+			return readGitHead(versionFolder);
+		} catch (Exception e) {
+			classLogger.debug("getProjectCommitHash: failed for '{}': {}", projectId, e.getMessage(), e);
+			return null;
+		}
+	}
+
+	/**
+	 * Reads the full 40-char git HEAD hash from a version folder, or null if
+	 * no .git directory exists or no commits have been made.
+	 */
+	private static String readGitHead(String versionFolder) {
+		if (versionFolder == null) return null;
+		File gitDir = new File(versionFolder, ".git");
+		if (!gitDir.exists()) return null;
+		try (Git git = Git.open(new File(versionFolder))) {
+			ObjectId head = git.getRepository().resolve("HEAD");
+			return head != null ? head.getName() : null;
+		} catch (Exception e) {
+			classLogger.debug("readGitHead: could not resolve HEAD in '{}': {}", versionFolder, e.getMessage(), e);
 			return null;
 		}
 	}
@@ -299,16 +328,19 @@ public final class AgentTraceLogsUtils {
 		if (harnessType != null) {
 			return "SDK:" + harnessType;
 		}
-		// MCP/engine tools with a known engine — try to read git HEAD
+		// Engine or project tools — use the type to pick the right path
 		if (engineId != null && engineType != null) {
+			IEngine.CATALOG_TYPE catType;
 			try {
-				IEngine.CATALOG_TYPE catType = IEngine.CATALOG_TYPE.valueOf(engineType);
-				String hash = getHeadCommitHash(engineId, catType);
-				if (hash != null) return hash;
+				catType = IEngine.CATALOG_TYPE.valueOf(engineType);
 			} catch (IllegalArgumentException e) {
-				classLogger.debug("resolveToolGitCommit: engineType '{}' is not a valid CATALOG_TYPE", engineType, e);
+				return null;
 			}
-			return null; // engine exists but no .git
+			if (catType == IEngine.CATALOG_TYPE.PROJECT) {
+				return getProjectCommitHash(engineId);
+			} else {
+				return getEngineCommitHash(engineId);
+			}
 		}
 		// Internal tools — no engine, not SDK
 		if (!isMcp && engineId == null) {
@@ -830,7 +862,7 @@ public final class AgentTraceLogsUtils {
 			ps.setString(1, roomId);
 			rs = ps.executeQuery();
 			while (rs.next()) {
-				Map<String, Object> msg = new java.util.LinkedHashMap<>();
+				Map<String, Object> msg = new LinkedHashMap<>();
 				msg.put("MESSAGE_ID", rs.getString("MESSAGE_ID"));
 				byte[] data = rs.getBytes("MESSAGE_DATA");
 				msg.put("MESSAGE_DATA", data != null ? new String(data, StandardCharsets.UTF_8) : null);
@@ -867,7 +899,7 @@ public final class AgentTraceLogsUtils {
 			ps.setString(1, roomId);
 			rs = ps.executeQuery();
 			while (rs.next()) {
-				Map<String, Object> msg = new java.util.LinkedHashMap<>();
+				Map<String, Object> msg = new LinkedHashMap<>();
 				msg.put("MESSAGE_ID", rs.getString("MESSAGE_ID"));
 				msg.put("MESSAGE_TYPE", rs.getString("MESSAGE_TYPE"));
 				byte[] data = rs.getBytes("MESSAGE_DATA");

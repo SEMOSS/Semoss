@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
@@ -205,11 +206,13 @@ final class HarnessToolExecutor {
             String engineId   = parsed != null ? parsed[0] : null;
             String engineType = null;
             if (engineId != null) {
-                try {
-                    IEngine eng = Utility.getEngine(engineId);
-                    if (eng == null) eng = (IEngine) Utility.getProject(engineId);
-                    if (eng != null) engineType = eng.getCatalogType().name();
-                } catch (Exception ignored) { /* non-critical */ }
+                if (Utility.isProject(engineId)) {
+                    engineType = IEngine.CATALOG_TYPE.PROJECT.name();
+                } else if (Utility.isEngine(engineId)) {
+                    try {
+                        engineType = SecurityEngineUtils.getEngineType(engineId).name();
+                    } catch (Exception ignored) { }
+                }
             }
             String inputJson = tc.toolParams != null ? tc.toolParams.toString() : null;
             String gitCommit = AgentTraceLogsUtils.resolveToolGitCommit(engineId, engineType, parsed != null, null);

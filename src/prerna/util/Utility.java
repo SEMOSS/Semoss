@@ -2920,6 +2920,20 @@ public final class Utility {
 	}
 
 	/**
+	 * Check if the given ID belongs to a project in the security database.
+	 */
+	public static boolean isProject(String id) {
+		return id != null && SecurityProjectUtils.projectExists(id);
+	}
+
+	/**
+	 * Check if the given ID belongs to an engine in the security database.
+	 */
+	public static boolean isEngine(String id) {
+		return id != null && SecurityEngineUtils.engineExists(id);
+	}
+
+	/**
 	 * 
 	 * @param engineId
 	 * @return

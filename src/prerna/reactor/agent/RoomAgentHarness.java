@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.inferencetracking.AgentTraceLogsUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
@@ -386,11 +387,13 @@ public class RoomAgentHarness extends AbstractAgentHarness {
             String engineId   = parsed != null ? parsed[0] : null;
             String engineType = null;
             if (engineId != null) {
-                try {
-                    IEngine eng = Utility.getEngine(engineId);
-                    if (eng == null) eng = (IEngine) Utility.getProject(engineId);
-                    if (eng != null) engineType = eng.getCatalogType().name();
-                } catch (Exception ignored) { /* non-critical — leave engineType null */ }
+                if (Utility.isProject(engineId)) {
+                    engineType = IEngine.CATALOG_TYPE.PROJECT.name();
+                } else if (Utility.isEngine(engineId)) {
+                    try {
+                        engineType = SecurityEngineUtils.getEngineType(engineId).name();
+                    } catch (Exception ignored) { }
+                }
             }
             String inputJson = tc.toolParams != null ? tc.toolParams.toString() : null;
             String gitCommit = AgentTraceLogsUtils.resolveToolGitCommit(engineId, engineType, parsed != null, null);
