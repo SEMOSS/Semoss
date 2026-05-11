@@ -32,15 +32,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
  * GitHub Copilot SDK-backed agent harness.
  */
 public class GitHubCopilotAgentHarness extends AppBuildingHarness {
+
+	private static final Logger logger = LogManager.getLogger(GitHubCopilotAgentHarness.class);
 
 	public static final String NAME = "github_copilot";
 
@@ -69,9 +76,13 @@ public class GitHubCopilotAgentHarness extends AppBuildingHarness {
 
 		String cwd = resolveClientPath(ctx);
 
+		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
+		SandboxPolicy policy = AgentSandboxConfig.buildEffectivePolicy(
+				room.getRoomFolderPath(), ctx.getFilePath(), targetBinary, ctx.getSandboxPolicy());
+
 		GitHubCopilotManager manager = new GitHubCopilotManager();
 		String output = manager.query(ctx.getInsight(), user, engineId, cwd, input, systemPrompt,
-				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow);
+				room.getId(), allowedTools, permissionMode, buildMcpList(room), contextWindow, policy);
 
 		return new AgentHarnessResult(output, 0, new ArrayList<>());
 	}
