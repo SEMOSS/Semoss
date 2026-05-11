@@ -180,6 +180,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					}
 				}
 			}
+			
+			fullPrompt=MessageUtils.toJsonArray(room.getMessages());
+			question=MessageUtils.toJsonArray(room.getMessages());
 
 		}
 
@@ -253,7 +256,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 
 		// Grabbing room name from first input message if room name is empty and its full prompt..
-		if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
+			if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
 			String roomName = null;
 			if (!room.getMessages().isEmpty()) {
 				AbstractMessage first = room.getMessages().get(0);
@@ -286,7 +289,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
 					room.getInsight().getUser().getPrimaryLoginToken().getId(),
-					MessageUtils.toJsonArrayWithImageData(room.getMessages()));
+					MessageUtils.toJsonArray(room.getMessages()));
 		}
 
 		return askModelResponse;

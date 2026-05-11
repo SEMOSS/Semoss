@@ -3147,10 +3147,12 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
 
 		// Room columns for project context
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "WORKSPACE_ID"));
 
 		// Join FEEDBACK -> MESSAGE on MESSAGE_ID
 		qs.addRelation(FEEDBACK_TABLE_NAME + "MESSAGE_ID", MESSAGE_TABLE_NAME + "MESSAGE_ID", "inner.join");
@@ -3175,7 +3177,65 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "DESC");
 
 		addLimitAndOffSet(qs, limit, offset);
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		List<Map<String, Object>> feedbackList = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+
+		// Ensure WORKSPACE_ID is always present in the payload (serializer drops nulls)
+		for (Map<String, Object> row : feedbackList) {
+			if (row.get("WORKSPACE_ID") == null) {
+				row.put("WORKSPACE_ID", "");
+			}
+		}
+
+		attachInputPromptsByTransactionId(modelInferenceLogsDb, feedbackList);
+		return feedbackList;
+	}
+
+	/**
+	 * For each feedback row in {@code feedbackList}, looks up the paired INPUT
+	 * message (same TRANSACTION_ID) and stamps its MESSAGE_DATA onto the row under
+	 * the {@code PROMPT} key. Rows without a matching INPUT row get a null PROMPT.
+	 */
+	private static void attachInputPromptsByTransactionId(IRDBMSEngine modelInferenceLogsDb,
+			List<Map<String, Object>> feedbackList) {
+		if (feedbackList == null || feedbackList.isEmpty()) {
+			return;
+		}
+
+		Set<String> transactionIds = new HashSet<>();
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			if (txId != null) {
+				transactionIds.add(txId.toString());
+			}
+		}
+		if (transactionIds.isEmpty()) {
+			for (Map<String, Object> row : feedbackList) {
+				row.put("PROMPT", null);
+			}
+			return;
+		}
+
+		SelectQueryStruct inputQs = new SelectQueryStruct();
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		inputQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "TRANSACTION_ID", "==",
+				new ArrayList<>(transactionIds)));
+		inputQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"));
+
+		List<Map<String, Object>> inputRows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, inputQs);
+		Map<String, Object> txIdToInputData = new HashMap<>();
+		for (Map<String, Object> inputRow : inputRows) {
+			Object txId = inputRow.get("TRANSACTION_ID");
+			if (txId != null) {
+				txIdToInputData.put(txId.toString(), inputRow.get("MESSAGE_DATA"));
+			}
+		}
+
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			row.put("PROMPT", txId == null ? null : txIdToInputData.get(txId.toString()));
+		}
 	}
 
 	/**

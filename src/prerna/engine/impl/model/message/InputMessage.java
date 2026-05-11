@@ -339,7 +339,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public void addMediaUrl(String url) {
-		addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+		addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, room)));
 	}
 
 	public List<MessageInputMedia> getMediaInfos() {
@@ -562,7 +562,7 @@ public class InputMessage extends AbstractMessage {
 		public Builder withMediaUrls(List<String> mediaUrls) {
 			if (mediaUrls != null) {
 				for (String url : mediaUrls) {
-					message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+					message.addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, message.room)));
 				}
 			}
 			return this;
@@ -571,7 +571,7 @@ public class InputMessage extends AbstractMessage {
 		/** Single URL convenience */
 		public Builder withMediaUrl(String url) {
 			if (url != null) {
-				message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+				message.addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, message.room)));
 			}
 			return this;
 		}
