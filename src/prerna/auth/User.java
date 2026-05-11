@@ -499,7 +499,6 @@ public class User implements Serializable {
 
 	/////////////////////////////////////////////////////
 	
-	
 	/*
 	 * Static utility methods
 	 */
