@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 from smss_thread_local import get_smss_stream
 
 from .openai_image_models import (
-    _TASK_PARAMS,
+    TASK_PARAMS,
     ImageEditConfig,
     ImageGenerationConfig,
     OpenAIImageTaskType,
@@ -87,7 +87,7 @@ class OpenAiImageClient:
     # --------------------------- task dispatch ---------------------------
 
     def _generate_image(self, param_map: Dict[str, Any]):
-        _, config_cls = _TASK_PARAMS[OpenAIImageTaskType.GENERATE]
+        _, config_cls = TASK_PARAMS[OpenAIImageTaskType.GENERATE]
         config: ImageGenerationConfig = config_cls.model_validate(param_map)
         return self.client.client.images.generate(
             **config.model_dump(exclude_none=True)
@@ -99,7 +99,7 @@ class OpenAiImageClient:
                 "Edit requires at least one input image in the conversation."
             )
 
-        _, config_cls = _TASK_PARAMS[OpenAIImageTaskType.EDIT]
+        _, config_cls = TASK_PARAMS[OpenAIImageTaskType.EDIT]
         config: ImageEditConfig = config_cls.model_validate(
             {"image": input_images, **param_map}
         )

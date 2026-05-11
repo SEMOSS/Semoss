@@ -5,11 +5,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class OpenAIImageTaskType(str, Enum):
-    """
-    Task types for OpenAI image generation models (gpt-image-1, gpt-image-2,
-    dall-e-* legacy). See
-    https://developers.openai.com/api/docs/guides/image-generation?api=image
-    """
+    """Task types for OpenAI image generation models"""
 
     GENERATE = "GENERATE"
     EDIT = "EDIT"
@@ -33,7 +29,6 @@ class _BaseImageConfig(BaseModel):
     partial_images: Optional[int] = None
 
     # `model` is a real OpenAI parameter; opt out of pydantic's `model_` namespace warning
-    # and drop unknown keys instead of raising on forward-compat params.
     model_config = ConfigDict(protected_namespaces=(), extra="ignore")
 
 
@@ -49,7 +44,7 @@ class ImageEditConfig(_BaseImageConfig):
     input_fidelity: Optional[str] = None
 
 
-_TASK_PARAMS: Dict[OpenAIImageTaskType, Tuple[str, Type[BaseModel]]] = {
+TASK_PARAMS: Dict[OpenAIImageTaskType, Tuple[str, Type[BaseModel]]] = {
     OpenAIImageTaskType.GENERATE: ("generate", ImageGenerationConfig),
     OpenAIImageTaskType.EDIT: ("edit", ImageEditConfig),
 }
