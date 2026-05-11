@@ -53,6 +53,16 @@ class AskModelEngineResponse2(BaseModel):
     response_tokens: int = Field(
         default=0, serialization_alias="numberOfTokensInResponse"
     )
+    cache_read_tokens: Optional[int] = Field(
+        default=None, serialization_alias="numberOfCacheReadTokens"
+    )
+    cache_creation_tokens: Optional[int] = Field(
+        default=None, serialization_alias="numberOfCacheCreationTokens"
+    )
+    # Observational only; already included in response_tokens. Do not add to billing math.
+    thinking_tokens: Optional[int] = Field(
+        default=None, serialization_alias="numberOfThinkingTokens"
+    )
     schemaVersion: Optional[int] = None
     io: Optional[str] = None
     parts: Optional[List[Dict[str, Any]]] = None

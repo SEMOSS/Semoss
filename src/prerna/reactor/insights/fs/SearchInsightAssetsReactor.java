@@ -41,6 +41,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
+import prerna.util.Utility;
 
 public class SearchInsightAssetsReactor extends AbstractReactor {
 
@@ -64,7 +65,7 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 
 		// Normalize relative path
 		if (relativeFilePath != null) {
-			relativeFilePath = relativeFilePath.trim().replace('\\', '/');
+			relativeFilePath = Utility.normalizePath(relativeFilePath.trim());
 			if (!relativeFilePath.isEmpty() && !relativeFilePath.startsWith("/")) {
 				relativeFilePath = "/" + relativeFilePath;
 			}
@@ -118,9 +119,9 @@ public class SearchInsightAssetsReactor extends AbstractReactor {
 			return """
 						A list of zero or more search flags to modify matching behavior.
 					       Valid values are:
-					          "case"  � perform a case-sensitive match
-					          "word"  � match only whole words
-					          "regex" � treat the search term as a full Java regular expression
+					          "case"  - perform a case-sensitive match
+					          "word"  - match only whole words
+					          "regex" - treat the search term as a full Java regular expression
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}

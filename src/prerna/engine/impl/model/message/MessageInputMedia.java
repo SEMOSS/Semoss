@@ -42,7 +42,10 @@ import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 
 import com.google.gson.annotations.SerializedName;
+
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 
 public class MessageInputMedia {
 
@@ -52,6 +55,9 @@ public class MessageInputMedia {
 		FILE, URL
 	}
 
+	// this is a relative file location from the room
+	@SerializedName(value = "fileLocation", alternate = { "file_location" })
+	private String fileLocation;
 	@SerializedName(value = "fileName", alternate = { "file_name" })
 	private String fileName;
 	private String base64Data;
@@ -64,10 +70,11 @@ public class MessageInputMedia {
 	private transient String roomFolder;
 
 	/** Factory method for file-based image */
-	public static MessageInputMedia fromFile(String filePath, String roomId, String messageId, String roomFolder) {
+	public static MessageInputMedia fromFile(String fileLocation, String roomId, String messageId, String roomFolder) {
 		MessageInputMedia info = new MessageInputMedia();
 		info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
-		String fullFilePath = roomFolder + "/" + filePath;
+		info.fileLocation = fileLocation;
+		String fullFilePath = roomFolder + "/" + fileLocation;
 		info.fileName = extractFileName(fullFilePath);
 		info.fileFormat = extractFormat(info.fileName);
 		info.mimeType = guessMimeType(fullFilePath, info.fileFormat);
@@ -85,6 +92,25 @@ public class MessageInputMedia {
 		info.sourceUrl = url;
 		info.mediaInputType = MEDIA_INPUT_TYPE.URL;
 		return info;
+	}
+
+	public static MessageInputMedia fromUrlOrFile(String url, Room room) {
+		if (url != null && RoomUtils.isBase64MediaDataUri(url) && room != null
+				&& room.getRoomFolderPath() != null) {
+			try {
+				Path roomDir = Paths.get(room.getRoomFolderPath());
+				String fileName = RoomUtils.writeBase64ImageDataUriToDir(url, roomDir);
+				if (fileName != null) {
+					return fromFile(fileName, room.getId(), null, room.getRoomFolderPath());
+				}
+				classLogger.warn("Failed to flush data URI media to room {}; falling back to URL storage",
+						room.getId());
+			} catch (Exception e) {
+				classLogger.warn("Error flushing data URI media to room {}; falling back to URL storage",
+						room.getId(), e);
+			}
+		}
+		return fromUrl(url);
 	}
 
 	// Setters and getters
@@ -132,6 +158,10 @@ public class MessageInputMedia {
 
 	public void setBase64Data(String base64Data) {
 		this.base64Data = base64Data;
+	}
+
+	public void setFileLocation(String fileLocation) {
+		this.fileLocation = fileLocation;
 	}
 
 	// Extraction & utilities
@@ -217,6 +247,7 @@ public class MessageInputMedia {
 		Map<String, Object> m = new HashMap<>();
 		m.put("mediaInputType", mediaInputType != null ? mediaInputType.name().toLowerCase() : null);
 		if (mediaInputType == MEDIA_INPUT_TYPE.FILE) {
+			m.put("fileLocation", fileLocation);
 			m.put("fileName", fileName);
 			m.put("fileFormat", fileFormat);
 			m.put("mimeType", mimeType);

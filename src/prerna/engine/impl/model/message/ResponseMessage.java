@@ -68,6 +68,16 @@ public class ResponseMessage extends AbstractMessage {
 		super.normalizeAfterLoad(room);
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
+
+		for (MessagePart part : getParts()) {
+			if (MessagePartType.MEDIA == part.type) {
+				MediaMessagePart mediaMessagePart = (MediaMessagePart) part;
+				if (room != null) {
+					mediaMessagePart.getMediaInfo().setRoomFolder(room.getRoomFolderPath());
+				}
+				mediaMessagePart.getMediaInfo().getBase64Data();
+			}
+		}
 	}
 
 	@Override
@@ -318,6 +328,8 @@ public class ResponseMessage extends AbstractMessage {
 
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
+
+			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
 
 			// Prefer parts-based responses, fall back to legacy messageType.
 			if (llmResponse.getParts() != null && !llmResponse.getParts().isEmpty()) {

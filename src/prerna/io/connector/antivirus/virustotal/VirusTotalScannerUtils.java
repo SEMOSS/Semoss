@@ -29,6 +29,7 @@ package prerna.io.connector.antivirus.virustotal;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -41,10 +42,11 @@ import org.apache.hc.client5.http.classic.methods.HttpPost;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpEntity;
 import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,7 +64,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 	public static final String VIRUSTOTAL_API_KEY = "VIRUSTOTAL_API_KEY";
 	public static final String VIRUSTOTAL_USE_CERT = "VIRUSTOTAL_USE_CERT";
 
-	private static VirusTotalScannerUtils instance;
+	private static volatile VirusTotalScannerUtils instance;
 	private String apiKey = null;
 	private boolean useServerCert = false;
 
@@ -82,7 +84,9 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 					try {
 						instance = new VirusTotalScannerUtils();
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to initialize VirusTotalScannerUtils singleton. Verify VirusTotal API and certificate configuration.",
+								e);
 					}
 				}
 			}
@@ -122,8 +126,6 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 
 		String responseData = null;
 		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try {
 			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpPost httpPost = new HttpPost(VIRUS_TOTAL_URL);
@@ -138,16 +140,28 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			HttpEntity multipart = builder.build();
 			httpPost.setEntity(multipart);
 
-			response = httpClient.execute(httpPost);
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity) : "";
-				throw new IllegalArgumentException(
-						"Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
-			}
+			responseData = httpClient.execute(httpPost, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						try {
+							return entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+						} catch (ParseException | IOException e) {
+							throw new IOException("Failed to parse HTTP response body", e);
+						}
+					}
+					String responseData;
+					try {
+						responseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+					} catch (ParseException | IOException e) {
+						throw new IOException("Failed to parse HTTP error response", e);
+					}
+					throw new IllegalArgumentException(
+							"Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
+				}
+			});
 
 			// @formatter:off
 			/*
@@ -167,30 +181,15 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			JSONObject jsonResponse = new JSONObject(responseData);
 			String analysisFileId = jsonResponse.getJSONObject("data").getString("id");
 			return analysisFileId;
-
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error("Failed to upload file '{}' to VirusTotal endpoint '{}'.", name, VIRUS_TOTAL_URL, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 			if (httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close VirusTotal upload HTTP client for file '{}'.", name, e);
 				}
 			}
 		}
@@ -211,24 +210,35 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 
 		String responseData = null;
 		CloseableHttpClient httpClient = null;
-		CloseableHttpResponse response = null;
-		HttpEntity entity = null;
 		try {
 			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
 			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL + analysisFileId);
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");
 
-			response = httpClient.execute(httpGet);
-			int statusCode = response.getCode();
-			entity = response.getEntity();
-			if (statusCode >= 200 && statusCode < 300) {
-				responseData = entity != null ? EntityUtils.toString(entity) : null;
-			} else {
-				responseData = entity != null ? EntityUtils.toString(entity) : "";
-				throw new IllegalArgumentException(
-						"Connected to " + VIRUS_TOTAL_URL + " but received error = " + responseData);
-			}
+			responseData = httpClient.execute(httpGet, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						try {
+							return entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8) : null;
+						} catch (ParseException | IOException e) {
+							throw new IOException("Failed to parse HTTP response body", e);
+						}
+					}
+					String errorResponseData;
+					try {
+						errorResponseData = entity != null ? EntityUtils.toString(entity, StandardCharsets.UTF_8)
+								: null;
+					} catch (ParseException | IOException e) {
+						throw new IOException("Failed to parse HTTP error response", e);
+					}
+					throw new IllegalArgumentException(
+							"Connected to " + VIRUS_TOTAL_URL + " but received error = " + errorResponseData);
+				}
+			});
 
 			JSONObject jsonResponse = new JSONObject(responseData);
 			JSONObject dataAttributesJson = jsonResponse.getJSONObject("data").getJSONObject("attributes");
@@ -252,29 +262,17 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 			}
 
 			return retMap;
-		} catch (IOException | ParseException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error("Failed to retrieve VirusTotal analysis '{}' for file '{}' from endpoint '{}'.",
+					analysisFileId, name, VIRUS_TOTAL_URL, e);
 			throw new IllegalArgumentException("Could not connect to URL at " + VIRUS_TOTAL_URL);
 		} finally {
-			if (entity != null) {
-				try {
-					EntityUtils.consume(entity);
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (response != null) {
-				try {
-					response.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 			if (httpClient != null) {
 				try {
 					httpClient.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close VirusTotal analysis HTTP client for analysis id '{}'.",
+							analysisFileId, e);
 				}
 			}
 		}

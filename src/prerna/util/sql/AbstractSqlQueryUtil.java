@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -68,6 +69,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -81,6 +83,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public abstract class AbstractSqlQueryUtil {
+
+	public static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	// special key when not required
 	public static final String NO_KEY_REQUIRED = "NO_KEY_REQUIRED";
@@ -250,7 +254,7 @@ public abstract class AbstractSqlQueryUtil {
 		try {
 			Class.forName(type.getDriver());
 		} catch (ClassNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load JDBC driver class {}: {}", type.getDriver(), e.getMessage(), e);
 			throw new SQLException("Unable to find class: " + type.getDriver());
 		}
 
@@ -263,7 +267,7 @@ public abstract class AbstractSqlQueryUtil {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to establish database connection to {}: {}", connectionUrl, e.getMessage(), e);
 			throw new SQLException("Could not get connection.");
 		}
 
@@ -284,6 +288,32 @@ public abstract class AbstractSqlQueryUtil {
 	 * names
 	 */
 	public abstract void initTypeConverstionMap();
+
+	/**
+	 * 
+	 * @param connectionUrl
+	 * @param engineId
+	 * @param engineName
+	 */
+	public abstract String fillFileParameterizedConnectionUrl(String connectionUrl, String engineId, String engineName);
+
+	/**
+	 * Replace a conneciton url to a file based db (H2, SQLite) with
+	 * "@BaseFolder@/db/@ENGINE@"
+	 * <p>
+	 * In {@link RDBMSNativeEngine#open(Properties) method we call {@link
+	 * #fillFileParameterizedConnectionUrl(String, String, String)} to turn back
+	 * into a useable conneciton url
+	 * </p>
+	 * 
+	 * @param connectionUrl
+	 * @param dbFileParentFolder
+	 * @return
+	 */
+	public static String parameterizeFileBasedConnectionUrl(String connectionUrl, String dbFileParentFolder) {
+		return connectionUrl.replace(dbFileParentFolder,
+				"@BaseFolder@" + DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@ENGINE@");
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -491,8 +521,7 @@ public abstract class AbstractSqlQueryUtil {
 			blob = connection.createBlob();
 			blob.setBytes(1, blobInput.getBytes());
 		} catch (SQLException se) {
-			classLogger.error("Failed to convert string to blob...");
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to convert string to blob: {}", se.getMessage(), se);
 		}
 
 		return blob;
@@ -515,7 +544,7 @@ public abstract class AbstractSqlQueryUtil {
 		BufferedReader br = null;
 		try {
 			is = blob.getBinaryStream();
-			isr = new InputStreamReader(is);
+			isr = new InputStreamReader(is, StandardCharsets.UTF_8);
 			br = new BufferedReader(isr);
 			boolean firstLine = true;
 			while ((aux = br.readLine()) != null) {
@@ -531,21 +560,21 @@ public abstract class AbstractSqlQueryUtil {
 				try {
 					is.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close blob InputStream: {}", e.getMessage(), e);
 				}
 			}
 			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close blob InputStreamReader: {}", e.getMessage(), e);
 				}
 			}
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close blob BufferedReader: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -565,9 +594,9 @@ public abstract class AbstractSqlQueryUtil {
 				inputstream = inputClob.getCharacterStream();
 				return IOUtils.toString(inputstream);
 			} catch (SQLException sqe) {
-				classLogger.error(Constants.STACKTRACE, sqe);
+				classLogger.error("Failed to read clob character stream: {}", sqe.getMessage(), sqe);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to read clob character stream: {}", e.getMessage(), e);
 			}
 		}
 		return null;
@@ -1603,13 +1632,13 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error checking if table {} exists: {}", tableName, e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close wrapper after table existence check: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1637,13 +1666,14 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error checking if index {} exists on table {}: {}", indexName, tableName, e.getMessage(),
+					e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close wrapper after index existence check: {}", e.getMessage(), e);
 				}
 			}
 		}
@@ -1653,7 +1683,7 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Test on the connection if a constraint exists
-	 * 
+	 *
 	 * @param conn
 	 * @param constraintName
 	 * @param tableName
@@ -1698,13 +1728,15 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error checking if constraint {} exists on table {}: {}", constraintName, tableName,
+					e.getMessage(), e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close wrapper after table constraint existence check: {}",
+							e.getMessage(), e);
 				}
 			}
 		}
@@ -1714,7 +1746,7 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Test on the connection if a constraint exists
-	 * 
+	 *
 	 * @param conn
 	 * @param constraintName
 	 * @param database
@@ -1756,13 +1788,15 @@ public abstract class AbstractSqlQueryUtil {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error checking if referential constraint {} exists: {}", constraintName, e.getMessage(),
+					e);
 		} finally {
 			if (wrapper != null) {
 				try {
 					wrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close wrapper after referential constraint existence check: {}",
+							e.getMessage(), e);
 				}
 			}
 		}
@@ -1791,7 +1825,7 @@ public abstract class AbstractSqlQueryUtil {
 				tableColumns.add(rs.getString(1).toUpperCase());
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve columns for table {}: {}", tableName, e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
@@ -1835,7 +1869,7 @@ public abstract class AbstractSqlQueryUtil {
 				tableColumns.put(rs.getString(1), columnDetails);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve column type details for table {}: {}", tableName, e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
@@ -1902,7 +1936,8 @@ public abstract class AbstractSqlQueryUtil {
 				return new String[] { rs.getString(1).toUpperCase(), rs.getString(2) };
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve column details for column {} in table {}: {}", columnName, tableName,
+					e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnections(null, stmt, rs);
 		}
@@ -1926,9 +1961,9 @@ public abstract class AbstractSqlQueryUtil {
 
 			// first run a validation on the input
 			for (String tableName : updates.keySet()) {
-				logger.info("Validating table " + tableName);
+				logger.info("Validating table {}", tableName);
 				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
-					logger.info("Validating columns for " + tableName);
+					logger.info("Validating columns for {}", tableName);
 					// we are altering - make sure everything is valid
 
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
@@ -1949,7 +1984,7 @@ public abstract class AbstractSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to validate database additions input: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
 		}
 
@@ -1976,17 +2011,17 @@ public abstract class AbstractSqlQueryUtil {
 
 			String query = null;
 			if (tableExists.contains(tableName)) {
-				logger.info("Altering table " + tableName);
+				logger.info("Altering table {}", tableName);
 				query = queryUtil.alterTableAddColumns(tableName, finalColumnUpdates);
 			} else {
-				logger.info("Creating table " + tableName);
+				logger.info("Creating table {}", tableName);
 				query = queryUtil.createTable(tableName, finalColumnUpdates);
 			}
 			try {
 				rdbmsDb.insertData(query);
 
 				// add to the owl
-				logger.info("Updating metadata for table " + tableName);
+				logger.info("Updating metadata for table {}", tableName);
 				owlEngine.addConcept(tableName, null, null);
 				for (String column : finalColumnUpdates.keySet()) {
 					String columnType = finalColumnUpdates.get(column);
@@ -1996,7 +2031,7 @@ public abstract class AbstractSqlQueryUtil {
 				// store the metadata
 				meta.addSuccessfulUpdate(tableName);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute database addition for table {}: {}", tableName, e.getMessage(), e);
 				errorMessages.append(
 						"Error executing query = '" + query + "' with detailed error = " + e.getMessage() + ". ");
 				meta.addFailedUpdates(tableName);
@@ -2022,9 +2057,9 @@ public abstract class AbstractSqlQueryUtil {
 			String schema = rdbmsDb.getSchema();
 
 			for (String tableName : updates.keySet()) {
-				logger.info("Validating table " + tableName);
+				logger.info("Validating table {}", tableName);
 				if (queryUtil.tableExists(rdbmsDb, tableName, database, schema)) {
-					logger.info("Validating columns for " + tableName);
+					logger.info("Validating columns for {}", tableName);
 
 					List<String> currentColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
 					Set<String> currentColumnsLower = currentColumns.stream().map(s -> s.toLowerCase())
@@ -2051,7 +2086,7 @@ public abstract class AbstractSqlQueryUtil {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to validate database deletions input: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error validating the input. Detailed message = " + e.getMessage());
 		}
 
@@ -2066,11 +2101,11 @@ public abstract class AbstractSqlQueryUtil {
 			String query = null;
 			try {
 				if (deleteTable) {
-					logger.info("Dropping table " + tableName);
+					logger.info("Dropping table {}", tableName);
 					query = queryUtil.dropTable(tableName);
 					rdbmsDb.insertData(query);
 				} else {
-					logger.info("Removing columns from table " + tableName);
+					logger.info("Removing columns from table {}", tableName);
 					// prefer using multi-drop if supported
 					if (queryUtil.allowMultiDropColumn()) {
 						query = queryUtil.alterTableDropColumns(tableName, updates.get(tableName));
@@ -2084,7 +2119,7 @@ public abstract class AbstractSqlQueryUtil {
 				}
 
 				// update the owl
-				logger.info("Updating metadata for table " + tableName);
+				logger.info("Updating metadata for table {}", tableName);
 				if (deleteTable) {
 					owlEngine.removeConcept(tableName);
 				} else {
@@ -2095,7 +2130,7 @@ public abstract class AbstractSqlQueryUtil {
 				// store the metadata
 				meta.addSuccessfulUpdate(tableName);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute database deletion for table {}: {}", tableName, e.getMessage(), e);
 				errorMessages.append(
 						"Error executing query = '" + query + "' with detailed error = " + e.getMessage() + ". ");
 				meta.addFailedUpdates(tableName);
