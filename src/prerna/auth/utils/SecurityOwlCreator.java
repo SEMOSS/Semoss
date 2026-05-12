@@ -84,6 +84,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("JIRA_CONNECTIONS");
 		conceptsRequired.add("SALESFORCE_CONNECTIONS");
 		conceptsRequired.add("SERVICENOW_CONNECTIONS");
+
+		// room token limits
+		conceptsRequired.add("ROOMTOKENLIMIT");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -625,6 +628,19 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
 			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
 		}
+
+		// ROOMTOKENLIMIT — per-room token limits configured at the platform level
+		owler.addConcept("ROOMTOKENLIMIT", null, null);
+		owler.addProp("ROOMTOKENLIMIT", "USERID", "VARCHAR(255)");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_INPUT_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_OUTPUT_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "IS_ACTIVE", "BOOLEAN");
+		owler.addProp("ROOMTOKENLIMIT", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("ROOMTOKENLIMIT", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("ROOMTOKENLIMIT", "DATE_MODIFIED", "TIMESTAMP");
+
+		owler.addRelation("SMSS_USER", "ROOMTOKENLIMIT", "SMSS_USER.ID.ROOMTOKENLIMIT.USERID");
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
 		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");

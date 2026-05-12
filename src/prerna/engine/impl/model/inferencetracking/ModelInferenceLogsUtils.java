@@ -3365,4 +3365,52 @@ public class ModelInferenceLogsUtils {
 		}
 	}
 
+	/**
+	 * Get total token usage for a specific room, optionally filtered by message type.
+	 * This is used for per-room token limit enforcement.
+	 *
+	 * @param roomId      the room id
+	 * @param messageType optional: "INPUT" or "RESPONSE"; null for combined
+	 * @return total tokens used in this room
+	 */
+	public static Number getTotalTokensForRoom(String roomId, String messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (roomId == null || roomId.trim().isEmpty()) {
+			return 0;
+		}
+
+		String messageTypeFilter = "";
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			messageTypeFilter = " AND MESSAGE_TYPE=?";
+		}
+
+		String query = "SELECT SUM(MESSAGE_TOKENS) AS \"current_usage\" FROM MESSAGE WHERE ROOM_ID=?" + messageTypeFilter;
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, roomId);
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				if (retNum == null) {
+					return 0;
+				}
+				return retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate room token usage for roomId '" + roomId + "'.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return 0;
+	}
+
 }

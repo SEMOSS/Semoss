@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityRoomTokenUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.util.Constants;
@@ -63,24 +64,42 @@ public final class ModelUsageRestrictionUtility {
 	public static final String PROJECT_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Output token limit exceeded for project level: You have used %d output tokens, but the limit is %d";
 	public static final String PROJECT_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for project level : You have reached %.2f seconds, but the limit is %.2f seconds.";
 
+	// Room-level token limit messages
+	public static final String ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for room level: This room has used %d tokens, but the limit is %d";
+	public static final String ROOM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Input token limit exceeded for room level: This room has used %d input tokens, but the limit is %d";
+	public static final String ROOM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Output token limit exceeded for room level: This room has used %d output tokens, but the limit is %d";
+
 	/**
-	 * Backward-compatible overload — delegates to the three-parameter version with null projectId.
+	 * Backward-compatible overload — delegates to the four-parameter version with null projectId and roomId.
 	 */
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId) {
-		return getModelUsageRestriction(user, engineId, null);
+		return getModelUsageRestriction(user, engineId, null, null);
+	}
+
+	/**
+	 * Three-parameter overload — delegates to the four-parameter version with null roomId.
+	 */
+	public static Map<String, Object> getModelUsageRestriction(User user, String engineId, String projectId) {
+		return getModelUsageRestriction(user, engineId, projectId, null);
 	}
 
 	/**
 	 * Check all applicable usage restrictions for a user on a model engine.
-	 * Priority: engine-level → project-level → user-level. First exceeded limit throws.
+	 * Priority: room-level → engine-level → project-level → user-level. First exceeded limit throws.
 	 *
 	 * @param user      the requesting user
 	 * @param engineId  the model engine id
 	 * @param projectId optional project id for project-level checks
+	 * @param roomId    optional room id for room-level token limit checks
 	 * @return map with restriction mode and current/max values for the response payload
 	 */
-	public static Map<String, Object> getModelUsageRestriction(User user, String engineId, String projectId) {
+	public static Map<String, Object> getModelUsageRestriction(User user, String engineId, String projectId, String roomId) {
 		Map<String, Object> userRestrictionMap = new HashMap<>();
+
+		// Priority 0: Room-level token limit check
+		if (roomId != null && !roomId.trim().isEmpty()) {
+			checkRoomLevelRestriction(user, roomId, userRestrictionMap);
+		}
 
 		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user,
 				engineId);
@@ -319,6 +338,73 @@ public final class ModelUsageRestrictionUtility {
 							outputUsage.intValue(), projMaxOutputTokens.intValue()));
 				}
 			}
+		}
+	}
+
+	/**
+	 * Check room-level token limits.
+	 * Retrieves the effective limit for the user (user-specific or default) from ROOMTOKENLIMIT,
+	 * then checks combined, input, and output token counts for this room.
+	 */
+	private static void checkRoomLevelRestriction(User user, String roomId,
+			Map<String, Object> userRestrictionMap) {
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		Map<String, Object> roomLimit = SecurityRoomTokenUtils.getEffectiveRoomTokenLimit(userId);
+		if (roomLimit == null) {
+			return;
+		}
+		Object isActiveObj = roomLimit.get("isActive");
+		if (isActiveObj != null && !Boolean.TRUE.equals(isActiveObj)) {
+			return;
+		}
+
+		Number maxTokens = (Number) roomLimit.get("maxTokens");
+		Number maxInputTokens = (Number) roomLimit.get("maxInputTokens");
+		Number maxOutputTokens = (Number) roomLimit.get("maxOutputTokens");
+
+		boolean hasAnyLimit = (maxTokens != null && maxTokens.longValue() > 0)
+				|| (maxInputTokens != null && maxInputTokens.longValue() > 0)
+				|| (maxOutputTokens != null && maxOutputTokens.longValue() > 0);
+		if (!hasAnyLimit) {
+			return;
+		}
+
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			throw new IllegalArgumentException(
+					"Room token restrictions have been enabled but inference logs are not configured on the platform. Please reach out to a system administrator");
+		}
+
+		// 1. Combined token limit
+		if (maxTokens != null && maxTokens.longValue() > 0) {
+			Number combinedUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, null);
+			if (combinedUsage.longValue() > maxTokens.longValue()) {
+				throw new IllegalArgumentException(String.format(ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+						combinedUsage.longValue(), maxTokens.longValue()));
+			}
+			userRestrictionMap.put("roomTokensCurrent", combinedUsage.longValue());
+			userRestrictionMap.put("roomTokensMax", maxTokens.longValue());
+		}
+
+		// 2. Input token limit
+		if (maxInputTokens != null && maxInputTokens.longValue() > 0) {
+			Number inputUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, "INPUT");
+			if (inputUsage.longValue() > maxInputTokens.longValue()) {
+				throw new IllegalArgumentException(String.format(ROOM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+						inputUsage.longValue(), maxInputTokens.longValue()));
+			}
+			userRestrictionMap.put("roomInputTokensCurrent", inputUsage.longValue());
+			userRestrictionMap.put("roomInputTokensMax", maxInputTokens.longValue());
+		}
+
+		// 3. Output token limit
+		if (maxOutputTokens != null && maxOutputTokens.longValue() > 0) {
+			Number outputUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, "RESPONSE");
+			if (outputUsage.longValue() > maxOutputTokens.longValue()) {
+				throw new IllegalArgumentException(String.format(ROOM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+						outputUsage.longValue(), maxOutputTokens.longValue()));
+			}
+			userRestrictionMap.put("roomOutputTokensCurrent", outputUsage.longValue());
+			userRestrictionMap.put("roomOutputTokensMax", maxOutputTokens.longValue());
 		}
 	}
 

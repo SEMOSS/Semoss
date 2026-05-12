@@ -127,7 +127,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			askRoomProjectId = room.getProjectId();
 		}
 		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility
-				.getModelUsageRestriction(room.getInsight().getUser(), this.engineId, askRoomProjectId);
+				.getModelUsageRestriction(room.getInsight().getUser(), this.engineId, askRoomProjectId, room.getId());
 
 		if (parameters == null) {
 			parameters = new HashMap<String, Object>();

@@ -2342,6 +2342,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// ROOMTOKENLIMIT
+			colNames = new String[] { "USERID", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS",
+					"IS_ACTIVE", "CREATED_BY", "DATE_CREATED", "DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT",
+					"BOOLEAN", "VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ROOMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ROOMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ROOMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ROOMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ROOMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
