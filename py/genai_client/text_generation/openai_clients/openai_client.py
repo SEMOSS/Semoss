@@ -58,6 +58,11 @@ class OpenAiClient(AbstractTextGenerationClient):
         chat_type = kwargs.pop("chat_type", "chat-completion")
         kwargs["chat_type"] = chat_type
         self.deployment_type = kwargs.pop("deployment_type", "openai").lower()
+        stream_kwarg = kwargs.pop("stream", None)
+        if stream_kwarg is not None:
+            override = kwargs.setdefault("global_param_override", {})
+            if isinstance(override, dict):
+                override.setdefault("stream", stream_kwarg)
         parent_kwargs = {k: v for k, v in kwargs.items() if k in self.PARENT_PARAMS}
         client_kwargs = {k: v for k, v in kwargs.items() if k not in self.PARENT_PARAMS}
 
@@ -130,13 +135,13 @@ class OpenAiClient(AbstractTextGenerationClient):
             if self.model_settings.model_type == "audio":
                 return self.audio_client.ask(semoss_messages, **kwargs)
 
+            if self.model_settings.model_type == "image":
+                return self.image_client.ask_call(semoss_messages, **kwargs)
+
             try:
                 openai_messages = self.message_builder.build_request(semoss_messages)
             except Exception as e:
                 raise ValueError(f"Error building OpenAI messages: {e}") from e
-
-            if self.model_settings.model_type == "image":
-                return self.image_client.ask(openai_messages, **kwargs)
             if self.chat_type == "chat-completion":
                 return self.handle_chat_completion_response(
                     openai_messages, prefix=prefix

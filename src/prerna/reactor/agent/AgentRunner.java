@@ -76,7 +76,8 @@ public final class AgentRunner {
      * @param input           Required. Initial user message.
      * @param engineIdFallback Optional. Engine/model ID to use if the room has no MODEL_ID set.
      * @param harnessType     Optional. Registry key for the harness; defaults to {@code "room_loop"}.
-     * @param filePath        Optional. Working directory or project ID for file-system tools.
+     * @param maxTurns        Optional. Maximum SEMOSS harness tool-call rounds.
+     * @param maxReflections  Optional. Maximum SEMOSS harness self-critique rounds.
      * @param paramMap        Optional. Extra model parameters (temperature, max_tokens, etc.).
      * @param insight         Required. Current insight context (user, project, etc.).
      * @return Rich result containing final text, iteration count, and tool-call trace.
@@ -87,6 +88,7 @@ public final class AgentRunner {
             String input,
             String engineIdFallback,
             String harnessType,
+            int maxTurns,
             int maxReflections,
             Map<String, Object> paramMap,
             Insight insight
@@ -120,7 +122,7 @@ public final class AgentRunner {
 
         String filePath = "";
         if (paramMap.containsKey("project")) {
-        	String projectId = paramMap.remove("project").toString();
+        	String projectId = paramMap.get("project").toString();
         	filePath = AssetUtility.getProjectAssetsFolder(projectId);
         	logger.info("Using project ID {} to set agent working directory..", projectId);
         } else if(paramMap.containsKey("filePath")){
@@ -152,6 +154,7 @@ public final class AgentRunner {
                 .filePath(filePath)
                 .input(input)
                 .paramMap(params)
+                .maxTurns(maxTurns)
                 .maxReflections(maxReflections)
                 .sandboxPolicy(sandboxPolicy)
                 .build();
