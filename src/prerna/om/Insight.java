@@ -1905,18 +1905,6 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Builds and returns the shareable URL for this saved insight, including its
-	 * project and rdbms ID as query parameters.
-	 *
-	 * @return the insight URL string
-	 */
-	public String getInsightURL() {
-		StringBuilder retURL = new StringBuilder(this.baseURL);
-		retURL.append("insight?engine=").append(projectId).append("&").append("id=").append(rdbmsId);
-		return retURL.toString();
-	}
-
-	/**
 	 * Builds and returns a live URL for this insight using its runtime insight ID.
 	 *
 	 * @return the live insight URL string
