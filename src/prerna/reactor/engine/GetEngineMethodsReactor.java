@@ -2,12 +2,15 @@ package prerna.reactor.engine;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -43,46 +46,34 @@ public class GetEngineMethodsReactor extends AbstractReactor {
 	}
 
 	public GetEngineMethodsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		
+		User user = this.insight.getUser();
+		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		if(engineId == null || engineId.isEmpty()) {
+			throw new IllegalArgumentException("Must input an engine id");
+		}
+		
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 
-		IEngine.CATALOG_TYPE engineType = resolveRequestedType();
+		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+
+			throw new IllegalArgumentException(
+					"Engine '" + engineId + "' does not exist or the user does not have edit access.");
+		}
+
+		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
+		
 		Class<?> iface = ENGINE_INTERFACE_MAP.get(engineType);
 		List<Map<String, Object>> methods = extractMethods(iface);
 
 		return new NounMetadata(methods, PixelDataType.CUSTOM_DATA_STRUCTURE);
-	}
-
-	/**
-	 * Resolves the required engine type from the engineTypes key.
-	 * Throws if the key is missing or the value is not a supported engine.
-	 */
-	private IEngine.CATALOG_TYPE resolveRequestedType() {
-		String engineType = this.keyValue.get(ReactorKeysEnum.ENGINE_TYPE.getKey());
-		if (engineType == null || engineType.isBlank()) {
-			throw new IllegalArgumentException(
-					"Please provide a engine type using the engineTypes key. "
-							+ "Valid values are: " + Arrays.toString(ENGINE_INTERFACE_MAP.keySet().toArray()));
-		}
-		engineType = engineType.trim().toUpperCase();
-		try {
-			IEngine.CATALOG_TYPE type = IEngine.CATALOG_TYPE.valueOf(engineType);
-			if (!ENGINE_INTERFACE_MAP.containsKey(type)) {
-				throw new IllegalArgumentException(
-						"Engine type '" + engineType + "' is not supported. Supported types: "
-								+ Arrays.toString(ENGINE_INTERFACE_MAP.keySet().toArray()));
-			}
-			return type;
-		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException(
-					"Unknown engine type '" + engineType + "'. Valid values are: "
-							+ Arrays.toString(ENGINE_INTERFACE_MAP.keySet().toArray()));
-		}
 	}
 
 	private List<Map<String, Object>> extractMethods(Class<?> iface) {
