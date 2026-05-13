@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 from claude_agent_sdk import (
     AssistantMessage,
+    ResultMessage,
     TextBlock,
     ToolResultBlock,
     ToolUseBlock,
@@ -210,6 +211,29 @@ def make_tool_result_event(msg: UserMessage) -> Optional[dict]:
         data["stats"] = stats
 
     return _envelope("tool_result", data, uuid_val=msg.uuid)
+
+
+def make_result_event(msg: ResultMessage) -> dict:
+    """Envelope for a ResultMessage — emitted once at the end of a session.
+    Surfaces subtype, error state, turn count, cost, and any error strings."""
+    data: dict = {
+        "subtype": msg.subtype,
+        "isError": msg.is_error,
+        "numTurns": msg.num_turns,
+        "stopReason": msg.stop_reason,
+        "totalCostUsd": msg.total_cost_usd,
+        "durationMs": msg.duration_ms,
+        "errors": msg.errors or [],
+        "timestamp": _iso_now(),
+    }
+    if msg.usage:
+        data["usage"] = msg.usage
+    return _envelope(
+        "result",
+        data,
+        uuid_val=msg.uuid,
+        session_id=msg.session_id or "",
+    )
 
 
 def _build_change_logger(cwd: str):

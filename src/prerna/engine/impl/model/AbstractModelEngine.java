@@ -41,6 +41,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.AbstractEngine;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -216,9 +217,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-					/*messageId*/ inputMessage.getMessageId(), 
-					/*transactionId*/askModelResponse.getMessageId(), 
-					/*messageMethod*/"ask", 
+					/*messageId*/ inputMessage.getMessageId(),
+					/*transactionId*/askModelResponse.getMessageId(),
+					/*messageMethod*/"ask",
 					/*engine*/this,
 					/*insightId*/room.getInsight().getInsightId(),
 					/*projectContextId*/room.getInsight().getContextProjectId(),
@@ -226,14 +227,19 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*user*/room.getInsight().getUser(),
 					/*sessionId*/ThreadStore.getSessionId(),
 					/*roomId*/room.getId(),
-					/*context*/context, 
+					/*context*/context,
 					/*prompt*/question,
 					/*fullPrompt*/fullPrompt,
 					/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
+					/*inputTime*/inputTime,
 					/*response*/askModelResponse.getStringResponse(),
 					/*responseTokens*/askModelResponse.getNumberOfTokensInResponse(),
-					/*outputTime*/outputTime
+					/*outputTime*/outputTime,
+					/*inputTokens*/askModelResponse.getNumberOfTokensInPrompt(),
+					/*outputTokens*/askModelResponse.getNumberOfTokensInResponse(),
+					/*cacheReadTokens*/askModelResponse.getNumberOfCacheReadTokens(),
+					/*cacheCreationTokens*/askModelResponse.getNumberOfCacheCreationTokens(),
+					/*thinkingTokens*/askModelResponse.getNumberOfThinkingTokens()
 					));
 			inferenceRecorder.start();
 		}
@@ -242,11 +248,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// update current usage based on this new request
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
 				outputTime);
+		
+		String currentRoomName = room.getRoomName();
 
-		// save the output if its full prompt since it short circuits the room object.
-		if (fullPrompt != null) {
+
+		// Grabbing room name from first input message if room name is empty and its full prompt..
+		if (fullPrompt != null && currentRoomName.isEmpty()) {
 			String roomName = null;
-			// Check if first message is input and has a prompt, use it as room name
 			if (!room.getMessages().isEmpty()) {
 				AbstractMessage first = room.getMessages().get(0);
 				if (first instanceof InputMessage) {
@@ -268,6 +276,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			// set transaction id for both pieces
 			inputMessage.setTransactionId(response.getMessageId());
 			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+			inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
 			response.setTransactionId(response.getMessageId());
 
 			// Create the assistant's response message and add to history

@@ -275,6 +275,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response,
                     prompt_tokens=response.usage.input_tokens + _cache_read + _cache_creation,
                     response_tokens=response.usage.output_tokens,
+                    cache_read_tokens=tool_cache_read,
+                    cache_creation_tokens=tool_cache_creation,
                 )
 
             thinking_text = ""
@@ -297,6 +299,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             cache_creation_tokens = (
                 getattr(response.usage, "cache_creation_input_tokens", None) or None
+            )
+            # Normalize Anthropic input_tokens (new-only) to total billed, matching OpenAI/Gemini
+            total_input_tokens = (
+                usage.input_tokens
+                + (cache_read_tokens or 0)
+                + (cache_creation_tokens or 0)
             )
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
@@ -330,7 +338,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = 0, response_tokens: int = 0
+        self,
+        response,
+        prompt_tokens: int = 0,
+        response_tokens: int = 0,
+        cache_read_tokens: Optional[int] = None,
+        cache_creation_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
         for content in response.content:
@@ -351,6 +364,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response=json_str,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=parts,
@@ -361,6 +376,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response=tools_result,
             response_tokens=response_tokens,
             prompt_tokens=prompt_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
@@ -418,6 +435,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             event.message.usage, "cache_creation_input_tokens", None
                         )
                         or None
+                    )
+                    # Normalize to total input billed (see non-streaming path).
+                    input_tokens = (
+                        input_tokens
+                        + (cache_read_tokens or 0)
+                        + (cache_creation_tokens or 0)
+                    )
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=input_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
+                        ),
+                        stream_type="usage",
                     )
 
                 elif event.type == "content_block_start":
@@ -583,6 +615,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         event.delta, "stop_reason", None
                     ):
                         stop_reason = event.delta.stop_reason
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(output_tokens=output_tokens),
+                        stream_type="usage",
+                    )
 
             if stop_reason is None:
                 try:

@@ -25,33 +25,18 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.reactor.agent.sandbox;
 
-import prerna.auth.User;
-import prerna.engine.impl.model.ClaudeCodeManager;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+/**
+ * Access level for a path in a {@link SandboxPolicy}.
+ *
+ * <p>When the same path appears with both modes, {@link #RW} wins.
+ */
+public enum AccessMode {
 
-public class ClaudeCodeUpdateSkillReactor extends AbstractReactor {
+    /** Read, list, and execute only. */
+    RO,
 
-	public ClaudeCodeUpdateSkillReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "skillName", "skillContent" };
-		this.keyRequired = new int[] { 1, 1 };
-	}
-
-	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		String skillName = this.keyValue.get("skillName");
-		String skillContent = this.keyValue.get("skillContent");
-
-		User user = this.insight.getUser();
-		ClaudeCodeManager manager = new ClaudeCodeManager();
-		Boolean response = manager.updateSkill(user, projectId, skillName, skillContent);
-		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
-	}
+    /** Read plus write, create, truncate, remove. */
+    RW
 }
