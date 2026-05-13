@@ -389,7 +389,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	        }
 	 
 	    } catch (Exception e) {
-	        classLogger.error(Constants.STACKTRACE, e);
+	        classLogger.error("Failed to create metadata CSV for Faiss: ", e);
 	        throw new IllegalArgumentException("Failed to create metadata CSV for Faiss: "+ e.getMessage());
 	    }
 	 
