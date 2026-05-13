@@ -37,8 +37,8 @@ import prerna.engine.impl.function.GoogleOCRFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
 import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
-import prerna.engine.impl.function.RESTFunctionEngine;
 import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
+import prerna.engine.impl.function.RESTFunctionEngine;
 
 public enum FunctionTypeEnum {
 
@@ -48,7 +48,7 @@ public enum FunctionTypeEnum {
 
 	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
-	AWS_TRANSCRIBE("AWS_Transcribe", AWSTranscribeFunctionEngine.class.getName()),
+	AWS_TRANSCRIBE("AWS_TRANSCRIBE", AWSTranscribeFunctionEngine.class.getName()),
 	GOOGLE_OCR("GOOGLE_OCR", GoogleOCRFunctionEngine.class.getName()),
 
 	// special function engines for custom embeddings w/ vector databases

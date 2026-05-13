@@ -256,7 +256,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 
 		// Grabbing room name from first input message if room name is empty and its full prompt..
-			if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
+		if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
 			String roomName = null;
 			if (!room.getMessages().isEmpty()) {
 				AbstractMessage first = room.getMessages().get(0);
