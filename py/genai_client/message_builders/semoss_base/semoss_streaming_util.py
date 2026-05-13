@@ -103,6 +103,24 @@ class StreamUtil:
         chunk = {"content": content}
         return chunk
 
+    def create_media_chunk(media_info: dict, partial_image_index: int = None) -> dict:
+        """
+        Create a streaming chunk for image/media output.
+
+        Args:
+            media_info: The media descriptor (fileName, base64Data, fileFormat,
+                mimeType, mediaInputType) for a partial or final image.
+            partial_image_index: 0-based index for streaming partials; omit or
+                pass None for the final (completed) image.
+
+        Returns:
+            A dictionary representing the streaming chunk
+        """
+        chunk = {"media_info": media_info}
+        if partial_image_index is not None:
+            chunk["partial_image_index"] = partial_image_index
+        return chunk
+
     def create_usage_chunk(
         input_tokens: int = None,
         output_tokens: int = None,
