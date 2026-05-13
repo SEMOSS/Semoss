@@ -78,9 +78,12 @@ public class NewAppAssetsFileReactor extends AbstractReactor {
 		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Must provide a valid filePath");
 		}
+		while (filePath.startsWith("/")) {
+			filePath = filePath.substring(1);
+		}
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "add: creating new file";
+			comment = "add: created file " + filePath;
 		}
 
 		FileSystemUtil.createNewAssetFile(assetFolder, filePath);

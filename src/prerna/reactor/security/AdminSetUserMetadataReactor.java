@@ -43,8 +43,8 @@ public class AdminSetUserMetadataReactor extends AbstractSetMetadataReactor {
 
 	public AdminSetUserMetadataReactor() {
 		this.keysToGet = new String[] { "userId", ReactorKeysEnum.PROVIDER.getKey(), META,
-				ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.JSON_CLEANUP.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
+				ReactorKeysEnum.JSON_CLEANUP.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
@@ -86,6 +86,8 @@ public class AdminSetUserMetadataReactor extends AbstractSetMetadataReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(META)) {
 			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the user. The list of values will determine the order that is defined for field";
+		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
+			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}
 		return super.getDescriptionForKey(key);
 	}

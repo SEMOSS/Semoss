@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -45,6 +46,8 @@ import javax.xml.stream.XMLInputFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.commonmark.Extension;
+import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -78,31 +81,23 @@ import prerna.util.Utility;
 public class ToDocxReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ToDocxReactor.class);
+
 	private static final String CLASS_NAME = ToDocxReactor.class.getName();
 
 	public ToDocxReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.HTML.getKey(),
-				ReactorKeysEnum.MARKDOWN.getKey(),
-				ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(),
-				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(),
-				ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.MUSTACHE.getKey(),
-				ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
-				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey()
-		};
-
+		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.MARKDOWN.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.URL.getKey(),
+				ReactorKeysEnum.MUSTACHE.getKey(), ReactorKeysEnum.MUSTACHE_VARMAP.getKey(),
+				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
 		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
-	 * Executes the HTML to DOCX conversion process.
-	 * Reads HTML content from input or file, processes Mustache templates if
-	 * enabled,
-	 * converts semoss tags to images via headless Chrome, downloads external
-	 * images,
-	 * and generates the final DOCX file using Docx4j.
+	 * Executes the HTML to DOCX conversion process. Reads HTML content from input
+	 * or file, processes Mustache templates if enabled, converts semoss tags to
+	 * images via headless Chrome, downloads external images, and generates the
+	 * final DOCX file using Docx4j.
 	 * 
 	 * @return NounMetadata containing the download key for the generated DOCX file
 	 */
@@ -128,7 +123,6 @@ public class ToDocxReactor extends AbstractReactor {
 		}
 
 		if (hasMarkdown) {
-			markdownToParse = Utility.decodeURIComponent(markdownToParse);
 			logger.info("Converting markdown to HTML");
 			htmlToParse = convertMarkdownToHtml(markdownToParse);
 		} else if (!hasHtml) {
@@ -145,7 +139,6 @@ public class ToDocxReactor extends AbstractReactor {
 			}
 		} else {
 			htmlToParse = htmlToParse.replace("\\\"", "\"");
-			htmlToParse = Utility.decodeURIComponent(htmlToParse);
 		}
 
 		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
@@ -292,18 +285,22 @@ public class ToDocxReactor extends AbstractReactor {
 	 * @return A full HTML document string
 	 */
 	private String convertMarkdownToHtml(String markdown) {
-		Parser parser = Parser.builder().build();
-		HtmlRenderer renderer = HtmlRenderer.builder().build();
+		List<Extension> extensions = Arrays.asList(TablesExtension.create());
+		Parser parser = Parser.builder().extensions(extensions).build();
+		HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
 		Node document = parser.parse(markdown);
 		String body = renderer.render(document);
-		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"></head><body>" + body + "</body></html>";
+		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+				+ "<style>table { border-collapse: collapse; width: 100%; } "
+				+ "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } "
+				+ "th { background-color: #f2f2f2; font-weight: bold; }</style>" + "</head><body>" + body
+				+ "</body></html>";
 	}
 
 	/**
-	 * Converts HTML to DOCX format using Docx4j library.
-	 * Creates a Word package, configures styles and numbering, imports HTML
-	 * content,
-	 * and saves the result to the specified output path.
+	 * Converts HTML to DOCX format using Docx4j library. Creates a Word package,
+	 * configures styles and numbering, imports HTML content, and saves the result
+	 * to the specified output path.
 	 * 
 	 * @param html           The HTML content to convert
 	 * @param outputPath     The file path where the DOCX will be saved
@@ -351,8 +348,8 @@ public class ToDocxReactor extends AbstractReactor {
 	/**
 	 * Configures secure XML parsers to prevent XXE (XML External Entity) attacks.
 	 * Disables external entity processing and DTD loading for
-	 * DocumentBuilderFactory
-	 * and XMLInputFactory to enhance security during HTML/XML parsing.
+	 * DocumentBuilderFactory and XMLInputFactory to enhance security during
+	 * HTML/XML parsing.
 	 * 
 	 * @param importer The XHTML importer to configure with secure settings
 	 */
@@ -396,26 +393,23 @@ public class ToDocxReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Sanitizes HTML to ensure XHTML compliance.
-	 * Converts HTML to XHTML format with properly self-closing tags (br, img, meta,
-	 * etc.)
-	 * required by Docx4j's XML parser.
+	 * Sanitizes HTML to ensure XHTML compliance. Converts HTML to XHTML format with
+	 * properly self-closing tags (br, img, meta, etc.) required by Docx4j's XML
+	 * parser.
 	 * 
 	 * @param html The HTML content to sanitize
 	 * @return XHTML-compliant HTML string
 	 */
 	private String sanitizeHtmlForXhtml(String html) {
 		org.jsoup.nodes.Document doc = Jsoup.parse(html);
-		doc.outputSettings()
-				.syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml)
-				.prettyPrint(false);
+		doc.outputSettings().syntax(org.jsoup.nodes.Document.OutputSettings.Syntax.xml).prettyPrint(false);
 		return doc.html();
 	}
 
 	/**
-	 * Downloads an external image from a URL and converts it to PNG format.
-	 * All images are converted to PNG to ensure compatibility with Docx4j.
-	 * Handles format conversion for unsupported formats like WebP.
+	 * Downloads an external image from a URL and converts it to PNG format. All
+	 * images are converted to PNG to ensure compatibility with Docx4j. Handles
+	 * format conversion for unsupported formats like WebP.
 	 * 
 	 * @param imageUrl      The URL of the image to download
 	 * @param insightFolder The folder where the temporary image file will be stored
@@ -454,8 +448,8 @@ public class ToDocxReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Retrieves Mustache template variables from reactor input.
-	 * Parses the JSON-encoded variable map provided via MUSTACHE_VARMAP key.
+	 * Retrieves Mustache template variables from reactor input. Parses the
+	 * JSON-encoded variable map provided via MUSTACHE_VARMAP key.
 	 * 
 	 * @return Map of variable names to values for Mustache template substitution,
 	 *         or null if not provided
@@ -467,7 +461,7 @@ public class ToDocxReactor extends AbstractReactor {
 		String varMapStr = this.keyValue.get(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
 		if (varMapStr != null && !varMapStr.trim().isEmpty()) {
 			try {
-				variables = (Map<String, Object>) GSON.fromJson(varMapStr, Map.class);
+				variables = GSON.fromJson(varMapStr, Map.class);
 			} catch (Exception e) {
 				classLogger.error("Invalid mustache variable map", e);
 				throw new IllegalArgumentException("Invalid mustache variable map. See logs for details");

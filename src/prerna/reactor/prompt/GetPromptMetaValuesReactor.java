@@ -30,8 +30,6 @@ package prerna.reactor.prompt;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -43,18 +41,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Returns distinct metadata values with usage counts for the specified
  * metakeys.
  *
- * Pixel usage:
- * GetPromptMetaValues(metaKeys=["department", "region"]);
+ * Pixel usage: GetPromptMetaValues(metaKeys=["department", "region"]);
  *
- * Parameters:
- * metaKeys (List of String, required) - List of metakeys to retrieve values for
+ * Parameters: metaKeys (List of String, required) - List of metakeys to
+ * retrieve values for
  *
  * Returns: CUSTOM_DATA_STRUCTURE - a list of maps, each containing:
  *
- * Per-entry fields:
- * metakey (String) - The metadata key name
- * metavalue (String) - A distinct value for that key
- * count (int) - Number of prompts with this key-value pair
+ * Per-entry fields: metakey (String) - The metadata key name metavalue (String)
+ * - A distinct value for that key count (int) - Number of prompts with this
+ * key-value pair
  */
 public class GetPromptMetaValuesReactor extends AbstractReactor {
 
@@ -64,12 +60,12 @@ public class GetPromptMetaValuesReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		organizeKeys();
-
 		String userId = this.insight.getUserId();
 		if (userId == null || userId.isEmpty()) {
 			throw new IllegalArgumentException("User is not properly logged in.");
 		}
+
+		organizeKeys();
 		List<Map<String, Object>> ret = PromptUtils
 				.getAvailableMetaValues(getListValues(ReactorKeysEnum.META_KEYS.getKey()));
 		return new NounMetadata(ret, PixelDataType.CUSTOM_DATA_STRUCTURE);

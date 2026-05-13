@@ -126,10 +126,13 @@ public class InputMessage extends AbstractMessage {
 		ensurePartsFromLegacy();
 		ensureLegacyFromParts();
 
-		if (hasMediaInputs() && room != null) {
-			for (MessageInputMedia mediaInput : getMediaInfos()) {
-				mediaInput.setRoomFolder(room.getRoomFolderPath());
-				mediaInput.getBase64Data();
+		for (MessagePart part : getParts()) {
+			if (MessagePartType.MEDIA == part.type) {
+				MediaMessagePart mediaMessagePart = (MediaMessagePart) part;
+				if (room != null) {
+					mediaMessagePart.getMediaInfo().setRoomFolder(room.getRoomFolderPath());
+				}
+				mediaMessagePart.getMediaInfo().getBase64Data();
 			}
 		}
 	}
@@ -336,7 +339,7 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public void addMediaUrl(String url) {
-		addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+		addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, room)));
 	}
 
 	public List<MessageInputMedia> getMediaInfos() {
@@ -559,7 +562,7 @@ public class InputMessage extends AbstractMessage {
 		public Builder withMediaUrls(List<String> mediaUrls) {
 			if (mediaUrls != null) {
 				for (String url : mediaUrls) {
-					message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+					message.addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, message.room)));
 				}
 			}
 			return this;
@@ -568,7 +571,7 @@ public class InputMessage extends AbstractMessage {
 		/** Single URL convenience */
 		public Builder withMediaUrl(String url) {
 			if (url != null) {
-				message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl(url)));
+				message.addPart(new MediaMessagePart(MessageInputMedia.fromUrlOrFile(url, message.room)));
 			}
 			return this;
 		}

@@ -53,10 +53,9 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.secrets.AbstractSecrets;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.security.HttpHelperUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class HashiCorpVaultUtil extends AbstractSecrets {
+public final class HashiCorpVaultUtil extends AbstractSecrets {
 
 	private static final Logger classLogger = LogManager.getLogger(HashiCorpVaultUtil.class);
 
@@ -64,7 +63,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 	private static final String VAULT_TOKEN = "VAULT_TOKEN";
 	private static final String VAULT_TOKEN_HEADER_KEY = "X-Vault-Token";
 
-	private static HashiCorpVaultUtil instance;
+	private static volatile HashiCorpVaultUtil instance;
 
 	private Vault vault;
 	private VaultConfig config;
@@ -93,7 +92,9 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 					try {
 						instance = new HashiCorpVaultUtil();
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to initialize HashiCorpVaultUtil singleton. Verify secrets inputs {} and {} are configured correctly.",
+								VAULT_ADDR, VAULT_TOKEN, e);
 					}
 				}
 			}
@@ -135,7 +136,9 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			return new HashMap<String, Object>(
 					this.vault.logical().read(getPathForEngine(eType, secretPath)).getData());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to read engine secrets from Vault for engineId={}, engineName={}, catalogType={}, path={}.",
+					engineId, engineName, eType, getPathForEngine(eType, secretPath), e);
 		}
 
 		return null;
@@ -149,7 +152,9 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			return new HashMap<String, Object>(
 					this.vault.logical().read(getInsightPath(secretPath, insightId)).getData());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to read insight secrets from Vault for projectId={}, projectName={}, insightId={}, path={}.",
+					projectId, projectName, insightId, getInsightPath(secretPath, insightId), e);
 		}
 
 		return null;
@@ -176,7 +181,10 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			cacheData.put(ISecrets.IV, Bytes.toArray(iv));
 			return cacheData;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to read insight encryption secrets from Vault for projectId={}, projectName={}, insightId={}, path={}.",
+					projectId, projectName, insightId,
+					getInsightPath(secretPath, String.format("%s/%s", insightId, ISecrets.INSIGHT_ENCRYPTION_NAME)), e);
 		}
 
 		return null;
@@ -205,7 +213,9 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			this.vault.logical().write(getPathForEngine(eType, secretPath), nameValuePairs);
 			return true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to write engine secrets to Vault for engineId={}, engineName={}, catalogType={}, path={}, keys={}.",
+					engineId, engineName, eType, getPathForEngine(eType, secretPath), nameValuePairs.keySet(), e);
 			return false;
 		}
 	}
@@ -218,7 +228,9 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			this.vault.logical().delete(getPathForEngine(eType, secretPath));
 			return true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to delete engine secrets from Vault for engineId={}, engineName={}, catalogType={}, path={}.",
+					engineId, engineName, eType, getPathForEngine(eType, secretPath), e);
 			return false;
 		}
 	}
@@ -241,7 +253,10 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 			this.vault.logical().write(getInsightPath(secretPath, insightId), nameValuePairs);
 			return true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to write insight secrets to Vault for projectId={}, projectName={}, insightId={}, path={}, keys={}.",
+					projectId, projectName, insightId, getInsightPath(secretPath, insightId), nameValuePairs.keySet(),
+					e);
 			return false;
 		}
 	}
@@ -262,7 +277,11 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 					nameValuePairs);
 			return true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to write insight encryption secrets to Vault for projectId={}, projectName={}, insightId={}, path={}, keys={}.",
+					projectId, projectName, insightId,
+					getInsightPath(secretPath, String.format("%s/%s", insightId, ISecrets.INSIGHT_ENCRYPTION_NAME)),
+					nameValuePairs.keySet(), e);
 			return false;
 		}
 	}
@@ -290,7 +309,7 @@ public class HashiCorpVaultUtil extends AbstractSecrets {
 		String response = HttpHelperUtility.postRequestStringBody(getInput(VAULT_ADDR) + "/v1/sys/mounts/" + name,
 				headerMap, json.toString(), ContentType.APPLICATION_JSON, null, null, null);
 
-		classLogger.info("Response for creating " + eType + " = " + response);
+		classLogger.info("Response for creating {} = {}", eType, response);
 	}
 
 	///////////////////////////////////////////////////////////////////////////

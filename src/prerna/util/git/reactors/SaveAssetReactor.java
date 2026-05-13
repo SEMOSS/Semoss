@@ -77,10 +77,10 @@ public class SaveAssetReactor extends AbstractReactor {
 		List<String> fileNames = getNounAsStringList(this.keysToGet[0]);
 		List<String> contents = getNounAsStringList(this.keysToGet[1]);
 
-		if(fileNames == null || fileNames.isEmpty() || contents == null || contents.isEmpty()) {
+		if (fileNames == null || fileNames.isEmpty() || contents == null || contents.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in at least one file name and content to save");
 		}
-		if(fileNames.size() != contents.size()) {
+		if (fileNames.size() != contents.size()) {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
 
@@ -88,9 +88,9 @@ public class SaveAssetReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String relativePath = AssetUtility.getAssetRelativePath(this.insight, space);
 		String comment = this.keyValue.get(this.keysToGet[3]);
-		if(comment == null) {
-        	comment = "add: SaveAsset executed";
-        }
+		if (comment == null) {
+			comment = "add: SaveAsset executed";
+		}
 
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		// we will iterate here so that we dont have partial asset changes
@@ -98,17 +98,20 @@ public class SaveAssetReactor extends AbstractReactor {
 			String rawFileName = fileNames.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
 
-			// limit saving R/Py Files in prod - no new files can be created but they can be sourced
-			if(strictScriptSource) {
+			// limit saving R/Py Files in prod - no new files can be created but they can be
+			// sourced
+			if (strictScriptSource) {
 				String extension = FilenameUtils.getExtension(fileName);
-				if("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
+				if ("py".equalsIgnoreCase(extension) || "R".equalsIgnoreCase(extension)) {
 					throw new IllegalArgumentException("User is not allowed to create or save R or Py scripts");
 				}
 			}
 
 			// you cannot save at root level if you are in user/project space
-			if(space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY) && !fileName.contains("/")) {
-				return NounMetadata.getErrorNounMessage("You cannot create directory / files at this level for space = " + space);
+			if (space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY)
+					&& !fileName.contains("/")) {
+				return NounMetadata
+						.getErrorNounMessage("You cannot create directory / files at this level for space = " + space);
 			}
 		}
 
@@ -116,14 +119,12 @@ public class SaveAssetReactor extends AbstractReactor {
 		for (int i = 0; i < fileNames.size(); i++) {
 			String rawFileName = fileNames.get(i).trim();
 			String fileName = Utility.normalizePath(rawFileName);
-			if(fileName == null || fileName.isEmpty()) {
+			if (fileName == null || fileName.isEmpty()) {
 				continue;
 			}
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
-
 			File file = new File(filePath);
 			try {
 				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));
@@ -137,69 +138,70 @@ public class SaveAssetReactor extends AbstractReactor {
 		}
 
 		// if we do not want this reactor to push to git/cloud
-		// all the below logic can be removed 
-		
+		// all the below logic can be removed
+
 		NounMetadata warning = null;
 		// add to git / push to cloud
 		// we only do this if this is a saved insight or project/user space
-		if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+		if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 			// if we are in the insight space
 			// it must be a saved insight
-			if(!this.insight.isSavedInsight()) {
-				warning = NounMetadata.getWarningNounMessage("Unable to commit file. All files will be commited once the insight is saved.");
+			if (!this.insight.isSavedInsight()) {
+				warning = NounMetadata.getWarningNounMessage(
+						"Unable to commit file. All files will be commited once the insight is saved.");
 			}
 		}
-		
-		if(warning == null) {
+
+		if (warning == null) {
 			// add file to git
 			List<String> gitRelativeFilePaths = new ArrayList<>();
 			for (int i = 0; i < fileNames.size(); i++) {
 				String rawFileName = fileNames.get(i).trim();
 				String fileName = Utility.normalizePath(rawFileName);
-				if(fileName == null || fileName.isEmpty()) {
+				if (fileName == null || fileName.isEmpty()) {
 					continue;
 				}
-				
+
 				// check the file to see if it is version/
 				// if not add it here
 				// make the asset folder to be the first piece of the file path
 				// need to get the first piece of fileName
 				// add it to the asset
 				// and pass that as asset folder
-				String [] fileTokens = fileName.split("/");
+				String[] fileTokens = fileName.split("/");
 				String baseDir = fileTokens[0];
 				assetFolder = assetFolder + "/" + baseDir;
 				fileName = fileName.replace(baseDir, "");
 				// we dont want to start with a "/"
-				if(relativePath.isEmpty()) {
-					if(fileName.startsWith(DIR_SEPARATOR)) {
-						gitRelativeFilePaths.add(fileName.substring(1));		
+				if (relativePath.isEmpty()) {
+					if (fileName.startsWith(DIR_SEPARATOR)) {
+						gitRelativeFilePaths.add(fileName.substring(1));
 					} else {
 						gitRelativeFilePaths.add(fileName);
 					}
 				} else {
-					gitRelativeFilePaths.add(relativePath + DIR_SEPARATOR + fileName);		
+					gitRelativeFilePaths.add(relativePath + DIR_SEPARATOR + fileName);
 				}
 			}
-			
+
 			GitRepoUtils.addSpecificFiles(assetFolder, gitRelativeFilePaths);
 			// Get the user's email
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			String email = accessToken.getEmail();
 			String author = accessToken.getUsername();
-			
+
 			// commit it
 			GitRepoUtils.commitAddedFiles(assetFolder, comment, author, email);
 			// handle synchronization to the cloud
 			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
-				if(projectId!=null && !(projectId.isEmpty())) {
-					ClusterUtil.pushUserWorkspace(projectId, true);
+				if (projectId != null && !(projectId.isEmpty())) {
+					ClusterUtil.pushUserAsset(projectId);
 				}
 			} else {
 				// if space is null or it is in the insight, push using insight id to get engine
-				if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+				if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
 					IProject project = Utility.getProject(this.insight.getProjectId());
 					ClusterUtil.pushProjectFolder(project, assetFolder);
 				} else {
@@ -211,7 +213,7 @@ public class SaveAssetReactor extends AbstractReactor {
 		}
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		if(warning != null) {
+		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}
 		return retNoun;
@@ -224,15 +226,15 @@ public class SaveAssetReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+		if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
 			return "Names of the file(s) to save";
-		} else if(key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
 			return "Contents of the file(s) to save";
-		} else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
 			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if(key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository associated with the space";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 
