@@ -40,63 +40,47 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
-import prerna.util.Utility;
 
 public class WriteObjectToFileReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(WriteObjectToFileReactor.class);
-	
+
 	public WriteObjectToFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.SPACE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		Object value = getObject();
-		if(isEncoded()) {
-			value = Utility.decodeURIComponent(value+"");
-		}
+
 		File f = new File(filePath);
 		try {
 			FileUtils.writeStringToFile(f, value.toString(), "UTF-8");
 			return new NounMetadata(f.getName(), PixelDataType.CONST_STRING);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("An error occurred wrting the object to the file", e);
 			throw new SemossPixelException("Unable to write object to file");
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Object getObject() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VALUE.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0);
 		}
-		
-		if(!this.curRow.isEmpty()) {
+
+		if (!this.curRow.isEmpty()) {
 			return this.curRow.get(0);
 		}
-		
+
 		throw new NullPointerException("Must define the object to write to file");
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
-	private boolean isEncoded() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.ENCODED.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return (Boolean) grs.get(0);
-		}
-		
-		return false;
-	}
-	
 }

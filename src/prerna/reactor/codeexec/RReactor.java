@@ -102,7 +102,7 @@ public final class RReactor extends AbstractRFrameReactor {
 //		System.setSecurityManager(tempManager);
 
 		// set the code variable for the ICodeExecution interface
-		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		String code = this.curRow.get(0).toString();
 		logger.info("Execution r script: " + code);
 		this.addExecutedCode(code);
 

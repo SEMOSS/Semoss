@@ -27,21 +27,33 @@
  *******************************************************************************/
 package prerna.reactor.codeexec;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 public class PixelReactor extends AbstractPixelReactor {
 
 	@Override
 	protected String getDecodedCode() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.CODE.getKey()));
+		return this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
-			return "The pixel code to execute. The pixel code should be passed within <encode> </encode> blocks for proper encoding";
+			return """
+					The pixel code to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description", "The pixel code to execute.");
+		return properties;
 	}
 }

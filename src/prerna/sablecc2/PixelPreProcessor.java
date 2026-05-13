@@ -71,7 +71,7 @@ public class PixelPreProcessor {
 		Map<String, String> encodeChanges = new HashMap<String, String>();
 
 		// we need to be able to save insights
-		// which have an embedded encode wtihin the recipe step
+		// which have an embedded encode within the recipe step
 		// so to do this, i have added another encode operator
 		// which is the master one
 		Pattern p = Pattern.compile(S_ENCODE_START + ".+?" + S_ENCODE_END, Pattern.DOTALL);
@@ -81,9 +81,7 @@ public class PixelPreProcessor {
 			String encodedText = originalText.replace(S_ENCODE_START, "").replace(S_ENCODE_END, "");
 			encodedText = Utility.encodeURIComponent(encodedText);
 			encodeChanges.put(originalText, encodedText);
-			// DO NOT DO BELOW BECAUSE IT UPDATES THE MATCHER
-			// AND THEN CAN LEAD TO STACK OVERFLOW
-//			expression = expression.replace(originalText, encodedText);
+			encodedTextToOriginal.put(encodedText, originalText);
 		}
 
 		// if there are sEncode blocks
