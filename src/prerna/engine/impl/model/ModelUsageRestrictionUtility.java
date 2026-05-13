@@ -29,8 +29,6 @@ package prerna.engine.impl.model;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
-import java.time.LocalTime;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -349,6 +347,7 @@ public final class ModelUsageRestrictionUtility {
 	private static void checkRoomLevelRestriction(User user, String roomId,
 			Map<String, Object> userRestrictionMap) {
 		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+
 		Map<String, Object> roomLimit = SecurityRoomTokenUtils.getEffectiveRoomTokenLimit(userId);
 		if (roomLimit == null) {
 			return;
@@ -378,7 +377,8 @@ public final class ModelUsageRestrictionUtility {
 		if (maxTokens != null && maxTokens.longValue() > 0) {
 			Number combinedUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, null);
 			if (combinedUsage.longValue() > maxTokens.longValue()) {
-				throw new IllegalArgumentException(String.format(ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+				throw new IllegalArgumentException(String.format(
+						ROOM_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 						combinedUsage.longValue(), maxTokens.longValue()));
 			}
 			userRestrictionMap.put("roomTokensCurrent", combinedUsage.longValue());
@@ -389,7 +389,8 @@ public final class ModelUsageRestrictionUtility {
 		if (maxInputTokens != null && maxInputTokens.longValue() > 0) {
 			Number inputUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, "INPUT");
 			if (inputUsage.longValue() > maxInputTokens.longValue()) {
-				throw new IllegalArgumentException(String.format(ROOM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+				throw new IllegalArgumentException(String.format(
+						ROOM_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 						inputUsage.longValue(), maxInputTokens.longValue()));
 			}
 			userRestrictionMap.put("roomInputTokensCurrent", inputUsage.longValue());
@@ -400,7 +401,8 @@ public final class ModelUsageRestrictionUtility {
 		if (maxOutputTokens != null && maxOutputTokens.longValue() > 0) {
 			Number outputUsage = ModelInferenceLogsUtils.getTotalTokensForRoom(roomId, "RESPONSE");
 			if (outputUsage.longValue() > maxOutputTokens.longValue()) {
-				throw new IllegalArgumentException(String.format(ROOM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+				throw new IllegalArgumentException(String.format(
+						ROOM_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 						outputUsage.longValue(), maxOutputTokens.longValue()));
 			}
 			userRestrictionMap.put("roomOutputTokensCurrent", outputUsage.longValue());

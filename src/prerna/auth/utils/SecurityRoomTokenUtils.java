@@ -16,7 +16,7 @@ import prerna.util.SystemEngineRegistry;
 
 /**
  * Utility class for managing room-level token limits stored in the security database.
- * The ROOMTOKENLIMIT table holds a default row (USERID IS NULL) and optional per-user overrides.
+ * The ROOMTOKENLIMIT table holds a single default row (USERID IS NULL) and optional per-user overrides.
  */
 public class SecurityRoomTokenUtils {
 
@@ -28,24 +28,21 @@ public class SecurityRoomTokenUtils {
 
 	/**
 	 * Get the effective room token limit for a user.
-	 * Returns the user-specific override if one exists, otherwise returns the default.
-	 *
-	 * @param userId the user id (access token id)
-	 * @return map with limit fields, or null if no limits are configured
+	 * Returns the user-specific override if one exists and is active,
+	 * otherwise returns the default.
 	 */
 	public static Map<String, Object> getEffectiveRoomTokenLimit(String userId) {
-		// First try user-specific
 		Map<String, Object> userLimit = getRoomTokenLimitForUser(userId);
 		if (userLimit != null) {
-			return userLimit;
+			Object isActive = userLimit.get("isActive");
+			if (isActive == null || Boolean.TRUE.equals(isActive)) {
+				return userLimit;
+			}
+			// User override is inactive — fall through to default
 		}
-		// Fall back to default
 		return getDefaultRoomTokenLimit();
 	}
 
-	/**
-	 * Get the default room token limit (USERID IS NULL).
-	 */
 	public static Map<String, Object> getDefaultRoomTokenLimit() {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "SELECT MAX_TOKENS, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, IS_ACTIVE, CREATED_BY, DATE_CREATED, DATE_MODIFIED "
@@ -56,16 +53,7 @@ public class SecurityRoomTokenUtils {
 			ps = securityDb.getPreparedStatement(query);
 			rs = ps.executeQuery();
 			if (rs.next()) {
-				Map<String, Object> result = new HashMap<>();
-				result.put("userId", null);
-				result.put("maxTokens", rs.getObject("MAX_TOKENS"));
-				result.put("maxInputTokens", rs.getObject("MAX_INPUT_TOKENS"));
-				result.put("maxOutputTokens", rs.getObject("MAX_OUTPUT_TOKENS"));
-				result.put("isActive", rs.getObject("IS_ACTIVE"));
-				result.put("createdBy", rs.getString("CREATED_BY"));
-				result.put("dateCreated", rs.getObject("DATE_CREATED"));
-				result.put("dateModified", rs.getObject("DATE_MODIFIED"));
-				return result;
+				return buildResultMap(rs, null);
 			}
 		} catch (Exception e) {
 			classLogger.error("Error getting default room token limit", e);
@@ -75,9 +63,6 @@ public class SecurityRoomTokenUtils {
 		return null;
 	}
 
-	/**
-	 * Get a user-specific room token limit override.
-	 */
 	public static Map<String, Object> getRoomTokenLimitForUser(String userId) {
 		if (userId == null || userId.trim().isEmpty()) {
 			return null;
@@ -92,16 +77,7 @@ public class SecurityRoomTokenUtils {
 			ps.setString(1, userId);
 			rs = ps.executeQuery();
 			if (rs.next()) {
-				Map<String, Object> result = new HashMap<>();
-				result.put("userId", userId);
-				result.put("maxTokens", rs.getObject("MAX_TOKENS"));
-				result.put("maxInputTokens", rs.getObject("MAX_INPUT_TOKENS"));
-				result.put("maxOutputTokens", rs.getObject("MAX_OUTPUT_TOKENS"));
-				result.put("isActive", rs.getObject("IS_ACTIVE"));
-				result.put("createdBy", rs.getString("CREATED_BY"));
-				result.put("dateCreated", rs.getObject("DATE_CREATED"));
-				result.put("dateModified", rs.getObject("DATE_MODIFIED"));
-				return result;
+				return buildResultMap(rs, userId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Error getting room token limit for user " + userId, e);
@@ -111,17 +87,11 @@ public class SecurityRoomTokenUtils {
 		return null;
 	}
 
-	/**
-	 * Set or update the default room token limit (applies to all users without a specific override).
-	 */
-	public static void setDefaultRoomTokenLimit(long maxTokens, long maxInputTokens, long maxOutputTokens,
-			boolean isActive, String createdBy) {
+	public static void setDefaultRoomTokenLimit(long maxTokens, long maxInputTokens,
+			long maxOutputTokens, boolean isActive, String createdBy) {
 		setRoomTokenLimit(null, maxTokens, maxInputTokens, maxOutputTokens, isActive, createdBy);
 	}
 
-	/**
-	 * Set or update a user-specific room token limit override.
-	 */
 	public static void setUserRoomTokenLimit(String userId, long maxTokens, long maxInputTokens,
 			long maxOutputTokens, boolean isActive, String createdBy) {
 		if (userId == null || userId.trim().isEmpty()) {
@@ -130,14 +100,10 @@ public class SecurityRoomTokenUtils {
 		setRoomTokenLimit(userId, maxTokens, maxInputTokens, maxOutputTokens, isActive, createdBy);
 	}
 
-	/**
-	 * Internal method to upsert a room token limit row.
-	 */
 	private static void setRoomTokenLimit(String userId, long maxTokens, long maxInputTokens,
 			long maxOutputTokens, boolean isActive, String createdBy) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
-		// Check if row already exists
 		boolean exists;
 		if (userId == null) {
 			exists = getDefaultRoomTokenLimit() != null;
@@ -148,7 +114,6 @@ public class SecurityRoomTokenUtils {
 		PreparedStatement ps = null;
 		try {
 			if (exists) {
-				// UPDATE
 				String updateSql;
 				if (userId == null) {
 					updateSql = "UPDATE ROOMTOKENLIMIT SET MAX_TOKENS=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=?, "
@@ -168,7 +133,6 @@ public class SecurityRoomTokenUtils {
 				}
 				ps.execute();
 			} else {
-				// INSERT
 				String insertSql = "INSERT INTO ROOMTOKENLIMIT (USERID, MAX_TOKENS, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, "
 						+ "IS_ACTIVE, CREATED_BY, DATE_CREATED, DATE_MODIFIED) "
 						+ "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)";
@@ -198,9 +162,6 @@ public class SecurityRoomTokenUtils {
 		}
 	}
 
-	/**
-	 * Remove a user-specific room token limit override (reverts to default).
-	 */
 	public static void removeUserRoomTokenLimit(String userId) {
 		if (userId == null || userId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must provide a userId to remove");
@@ -223,9 +184,6 @@ public class SecurityRoomTokenUtils {
 		}
 	}
 
-	/**
-	 * List all room token limits (default + all user overrides).
-	 */
 	public static List<Map<String, Object>> getAllRoomTokenLimits() {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "SELECT r.USERID, r.MAX_TOKENS, r.MAX_INPUT_TOKENS, r.MAX_OUTPUT_TOKENS, "
@@ -259,5 +217,18 @@ public class SecurityRoomTokenUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, rs);
 		}
 		return results;
+	}
+
+	private static Map<String, Object> buildResultMap(ResultSet rs, String userId) throws java.sql.SQLException {
+		Map<String, Object> result = new HashMap<>();
+		result.put("userId", userId);
+		result.put("maxTokens", rs.getObject("MAX_TOKENS"));
+		result.put("maxInputTokens", rs.getObject("MAX_INPUT_TOKENS"));
+		result.put("maxOutputTokens", rs.getObject("MAX_OUTPUT_TOKENS"));
+		result.put("isActive", rs.getObject("IS_ACTIVE"));
+		result.put("createdBy", rs.getString("CREATED_BY"));
+		result.put("dateCreated", rs.getObject("DATE_CREATED"));
+		result.put("dateModified", rs.getObject("DATE_MODIFIED"));
+		return result;
 	}
 }
