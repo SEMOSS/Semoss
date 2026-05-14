@@ -746,13 +746,13 @@ public abstract class AbstractSecurityUtils {
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",
-					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY" };
+					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS" };
 			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,
-					"VARCHAR(255)" };
+					"VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME };
 			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null, null, null, null,
-					null };
+					null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types,
 						defaultValues);
@@ -998,11 +998,16 @@ public abstract class AbstractSecurityUtils {
 			// PROJECTPERMISSION
 			boolean projectPermissionExists = queryUtil.tableExists(conn, "PROJECTPERMISSION", database, schema);
 			colNames = new String[] { "USERID", "PERMISSION", "PROJECTID", "VISIBILITY", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE",
+					"USAGERESTRICTION", "USAGEFREQUENCY", "MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS",
+					"MAXRESPONSETIME", "RESTRICT_PER_MODEL" };
 			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null };
+					TIMESTAMP_DATATYPE_NAME,
+					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
+					DOBLE_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null,
+					null, null, null, null, null, null, false };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("PROJECTPERMISSION", colNames, types,
 						defaultValues);
@@ -2332,6 +2337,31 @@ public abstract class AbstractSecurityUtils {
 					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ROOMTOKENLIMIT
+			colNames = new String[] { "USERID", "MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS",
+					"IS_ACTIVE", "CREATED_BY", "DATE_CREATED", "DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT",
+					"BOOLEAN", "VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ROOMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ROOMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ROOMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ROOMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ROOMTOKENLIMIT", col, types[i]);
 						securityDb.insertData(addColumnSql);
 					}
 				}

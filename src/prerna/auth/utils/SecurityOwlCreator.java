@@ -84,6 +84,9 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("JIRA_CONNECTIONS");
 		conceptsRequired.add("SALESFORCE_CONNECTIONS");
 		conceptsRequired.add("SERVICENOW_CONNECTIONS");
+
+		// room token limits
+		conceptsRequired.add("ROOMTOKENLIMIT");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -137,6 +140,22 @@ public class SecurityOwlCreator {
 			// just need the latest change ...
 			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINE");
 			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/ENGINE/ENGINEDISPLAYNAME")) {
+				return true;
+			}
+		}
+
+		{
+			// check for latest PROJECTPERMISSION property addition
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/PROJECTPERMISSION");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/RESTRICT_PER_MODEL/PROJECTPERMISSION")) {
+				return true;
+			}
+		}
+
+		{
+			// check for latest ENGINEPERMISSION property addition
+			List<String> props = securityDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/ENGINEPERMISSION");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/MAX_OUTPUT_TOKENS/ENGINEPERMISSION")) {
 				return true;
 			}
 		}
@@ -218,6 +237,8 @@ public class SecurityOwlCreator {
 		owler.addProp("ENGINEPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
 		owler.addProp("ENGINEPERMISSION", "MAXTOKENS", "INT");
 		owler.addProp("ENGINEPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("ENGINEPERMISSION", "MAX_INPUT_TOKENS", "INT");
+		owler.addProp("ENGINEPERMISSION", "MAX_OUTPUT_TOKENS", "INT");
 
 		// PROJECT
 		owler.addConcept("PROJECT", null, null);
@@ -253,6 +274,13 @@ public class SecurityOwlCreator {
 		owler.addProp("PROJECTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 		owler.addProp("PROJECTPERMISSION", "DATEADDED", "TIMESTAMP");
 		owler.addProp("PROJECTPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("PROJECTPERMISSION", "USAGERESTRICTION", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "USAGEFREQUENCY", "VARCHAR(255)");
+		owler.addProp("PROJECTPERMISSION", "MAXTOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAX_INPUT_TOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAX_OUTPUT_TOKENS", "INT");
+		owler.addProp("PROJECTPERMISSION", "MAXRESPONSETIME", "DOUBLE");
+		owler.addProp("PROJECTPERMISSION", "RESTRICT_PER_MODEL", "BOOLEAN");
 
 		// PROJECTMETA
 		owler.addConcept("PROJECTMETA", null, null);
@@ -600,6 +628,19 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DISPLAYOPTIONS", "VARCHAR(255)");
 			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
 		}
+
+		// ROOMTOKENLIMIT — per-room token limits configured at the platform level
+		owler.addConcept("ROOMTOKENLIMIT", null, null);
+		owler.addProp("ROOMTOKENLIMIT", "USERID", "VARCHAR(255)");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_INPUT_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "MAX_OUTPUT_TOKENS", "BIGINT");
+		owler.addProp("ROOMTOKENLIMIT", "IS_ACTIVE", "BOOLEAN");
+		owler.addProp("ROOMTOKENLIMIT", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("ROOMTOKENLIMIT", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("ROOMTOKENLIMIT", "DATE_MODIFIED", "TIMESTAMP");
+
+		owler.addRelation("SMSS_USER", "ROOMTOKENLIMIT", "SMSS_USER.ID.ROOMTOKENLIMIT.USERID");
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
 		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");
