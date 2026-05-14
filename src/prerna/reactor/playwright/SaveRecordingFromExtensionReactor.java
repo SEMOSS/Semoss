@@ -37,9 +37,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -57,23 +54,52 @@ import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 /**
- * Reactor that saves a recording from Chrome Extension directly to project
- * recordings folder and auto-updates MCP. Does not require sessionId since
- * extension recordings are independent of Playwright sessions.
+ * Saves a recording from Chrome Extension to project recordings folder and auto-updates MCP.
+ * Supports dual authentication: API keys (for extension) or session-based (for UI).
+ * 
+ * <p>Pixel Syntax:</p>
+ * <pre>SaveRecordingFromExtension(project=[string], name=[string], jsonPayload=[string], 
+ *                             title=[string], description=[string], intent=[string])</pre>
+ * 
+ * <p>Parameters:</p>
+ * <ul>
+ *   <li><b>project</b> - Project ID where recording will be saved (required)</li>
+ *   <li><b>name</b> - Recording filename (auto-generated if not provided, required)</li>
+ *   <li><b>jsonPayload</b> - Complete recording JSON as string (required)</li>
+ *   <li><b>title</b> - Recording title (optional)</li>
+ *   <li><b>description</b> - Recording description (optional)</li>
+ *   <li><b>intent</b> - Purpose of the recording (optional)</li>
+ *   <li><b>clientKey</b> - API client key for extension authentication (optional, via request params)</li>
+ *   <li><b>secretKey</b> - API secret key for extension authentication (optional, via request params)</li>
+ * </ul>
+ * 
+ * <p>Returns:</p>
+ * <pre>
+ * {
+ *   "success": true,
+ *   "fileName": "recording.json",
+ *   "filePath": "/path/to/recording.json",
+ *   "message": "Recording saved successfully"
+ * }
+ * </pre>
+ * 
+ * <p>Note: Uses string literals for "name", "jsonPayload", "title", "intent" as these keys
+ * are specific to Playwright recordings and don't exist in ReactorKeysEnum. Uses
+ * ReactorKeysEnum.DESCRIPTION for description parameter.</p>
  */
 public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(SaveRecordingFromExtensionReactor.class);
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-
 	public SaveRecordingFromExtensionReactor() {
+		// Note: String literals used for name, jsonPayload, title, intent as they are 
+		// Playwright-specific and don't exist in ReactorKeysEnum
 		this.keysToGet = new String[] { 
 			ReactorKeysEnum.PROJECT.getKey(), 
 			"name", 
 			"jsonPayload",
 			"title",
-			"description", 
+			ReactorKeysEnum.DESCRIPTION.getKey(), 
 			"intent"
 		};
 		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0 };
@@ -96,9 +122,9 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 				String userId = (user != null && user.getPrimaryLoginToken() != null) 
 					? user.getPrimaryLoginToken().getId() 
 					: "unknown";
-				classLogger.info("User authenticated via API keys: " + userId);
+				classLogger.info("User authenticated via API keys: {}", userId);
 			} catch (IllegalAccessException e) {
-				classLogger.error("API key authentication failed", e);
+				classLogger.error("API key authentication failed: {}", e.getMessage(), e);
 				throw new IllegalArgumentException("Invalid API credentials: " + e.getMessage());
 			}
 
@@ -116,6 +142,7 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 		}
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+		// Note: name, title, intent may need URL decoding if coming from form data
 		String name = this.keyValue.get(this.keysToGet[1]);
 		String jsonPayload = this.keyValue.get(this.keysToGet[2]);
 		String title = this.keyValue.get(this.keysToGet[3]);
@@ -129,13 +156,12 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
 		// Validate JSON payload
 		try {
-			json.readTree(jsonPayload);
+			GSON.fromJson(jsonPayload, Object.class);
 		} catch (Exception e) {
-			classLogger.error("Invalid JSON payload", e);
+			classLogger.error("Invalid JSON payload: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid JSON payload: " + e.getMessage());
 		}
 
@@ -157,18 +183,18 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 				file = recordingsDir.resolve(fileName);
 				counter++;
 			} while (Files.exists(file));
-			classLogger.info("File already exists, using auto-incremented name: " + fileName);
+			classLogger.info("File already exists, using auto-incremented name: {}", fileName);
 		}
 
 		// Save the JSON file - extension already formats it correctly with JSON.stringify()
 		try (FileWriter writer = new FileWriter(file.toFile())) {
 			// Validate JSON format but don't reformat (preserve extension's formatting)
-			json.readTree(jsonPayload);
+			GSON.fromJson(jsonPayload, Object.class);
 			// Write original string from extension
 			writer.write(jsonPayload);
-			classLogger.info("Saved recording to: " + file.toAbsolutePath());
+			classLogger.info("Saved recording to: {}", file.toAbsolutePath());
 		} catch (Exception e) {
-			classLogger.error("Failed to save recording", e);
+			classLogger.error("Failed to save recording to: {}", file, e);
 			throw new RuntimeException("Failed to save recording to: " + file, e);
 		}
 
@@ -184,7 +210,7 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			mcpReactor.execute();
 			classLogger.info("MCP updated successfully");
 		} catch (Exception e) {
-			classLogger.error("Failed to update MCP", e);
+			classLogger.error("Failed to update MCP: {}", e.getMessage(), e);
 			// Don't fail the whole operation, just log the error
 		}
 
@@ -209,7 +235,7 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			ClusterUtil.pushProjectFolder(project, assetFolder);
 			classLogger.info("Recording committed to git");
 		} catch (Exception e) {
-			classLogger.error("Git operations failed", e);
+			classLogger.error("Git operations failed: {}", e.getMessage(), e);
 			// Don't fail the whole operation
 		}
 
@@ -234,7 +260,7 @@ public class SaveRecordingFromExtensionReactor extends AbstractReactor {
 			return "The name of the recording file";
 		} else if (key.equals("jsonPayload")) {
 			return "The complete recording JSON as a string";
-		} else if (key.equals("description")) {
+		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
 			return "The description of the recording";
 		} else if (key.equals("title")) {
 			return "The title of the recording";

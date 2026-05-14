@@ -44,14 +44,44 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Authenticates Chrome Extension user using API keys and returns user info
- * with accessible projects.
+ * Authenticates Chrome Extension users via API keys and returns accessible projects.
+ * 
+ * <p>Pixel Syntax:</p>
+ * <pre>AuthenticateExtensionUser(clientKey=[string], secretKey=[string])</pre>
+ * 
+ * <p>Parameters:</p>
+ * <ul>
+ *   <li><b>clientKey</b> - The client/access key from Semoss user settings (required)</li>
+ *   <li><b>secretKey</b> - The secret key from Semoss user settings (required)</li>
+ * </ul>
+ * 
+ * <p>Returns:</p>
+ * <pre>
+ * {
+ *   "success": true,
+ *   "userId": "user123",
+ *   "userName": "John Doe",
+ *   "userEmail": "john@example.com",
+ *   "projects": [
+ *     {
+ *       "id": "project-uuid",
+ *       "name": "ProjectAlias",
+ *       "displayName": "Project Display Name",
+ *       "canEdit": true
+ *     }
+ *   ]
+ * }
+ * </pre>
+ * 
+ * <p>Note: Uses string literals "clientKey" and "secretKey" as ReactorKeysEnum 
+ * does not contain CLIENT_KEY or SECRET_KEY constants.</p>
  */
 public class AuthenticateExtensionUserReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AuthenticateExtensionUserReactor.class);
 
 	public AuthenticateExtensionUserReactor() {
+		// Note: String literals used as CLIENT_KEY and SECRET_KEY don't exist in ReactorKeysEnum
 		this.keysToGet = new String[] { 
 			"clientKey", 
 			"secretKey" 
@@ -73,7 +103,7 @@ public class AuthenticateExtensionUserReactor extends AbstractReactor {
 		try {
 			user = SecurityUserAccessKeyUtils.validateKeysAndReturnUser(clientKey, secretKey);
 		} catch (IllegalAccessException e) {
-			classLogger.error("Authentication failed for client key: " + clientKey, e);
+			classLogger.error("Authentication failed for client key: {}", clientKey, e);
 			throw new IllegalArgumentException("Invalid credentials: " + e.getMessage());
 		}
 
@@ -114,12 +144,12 @@ public class AuthenticateExtensionUserReactor extends AbstractReactor {
 				
 				projects.put(project);
 			} catch (Exception e) {
-				classLogger.warn("Could not load details for project: " + projectId, e);
+				classLogger.warn("Could not load details for project: {}", projectId, e);
 			}
 		}
 		response.put("projects", projects);
 
-		classLogger.info("Successfully authenticated user: " + user.getPrimaryLogin() + " with " + projectIds.size() + " accessible projects");
+		classLogger.info("Successfully authenticated user: {} with {} accessible projects", user.getPrimaryLogin(), projectIds.size());
 
 		return new NounMetadata(response, PixelDataType.JSON_OBJECT);
 	}
