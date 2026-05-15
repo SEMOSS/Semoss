@@ -63,6 +63,9 @@ public final class PlatformDefaultTools {
     /** _meta key recording the reactor class for traceability. */
     public static final String SMSS_REACTOR_CLASS = "SMSS_REACTOR_CLASS";
 
+    /** _meta key flagging this as a platform tool (for frontend routing). */
+    public static final String SMSS_IS_PLATFORM_TOOL = "SMSS_IS_PLATFORM_TOOL";
+
     /** Static registry: bare tool name → reactor class. */
     private static final Map<String, Class<? extends AbstractReactor>> REGISTRY;
 
@@ -107,6 +110,7 @@ public final class PlatformDefaultTools {
             meta.put(MCPUtility.SMSS_MCP_EXECUTION, "auto");
             meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
             meta.put(SMSS_REACTOR_CLASS, clazz.getName());
+            meta.put(SMSS_IS_PLATFORM_TOOL, true);
             JSONObject uiJson = new JSONObject();
             uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, "inline");
             meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
