@@ -1883,7 +1883,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
         // Call propagate with no project dependencies - should return empty result maps
-        Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id", "user", "READ_ONLY", null, null, null, 0, 0.0);
+        Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id", "user", "READ_ONLY", null, null, null, 0, 0.0, 0, 0);
         assertNotNull(result);
     }
 

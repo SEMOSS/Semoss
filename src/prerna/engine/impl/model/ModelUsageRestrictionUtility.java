@@ -28,6 +28,7 @@
 package prerna.engine.impl.model;
 
 import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
