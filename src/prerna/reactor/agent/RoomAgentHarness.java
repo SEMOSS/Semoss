@@ -124,7 +124,7 @@ public class RoomAgentHarness implements IAgentHarness {
         AtomicInteger iterationsCounter = new AtomicInteger(0);
 
         // 1. Initial ask
-        String systemPrompt = room.getEffectiveSystemPrompt();
+        String systemPrompt = room.getRoomOrWorkspaceSystemPrompt();
         InputMessage firstMsg = InputMessage.builder(room)
                 .withSystemPrompt(systemPrompt)
                 .withText(ctx.getInput())
