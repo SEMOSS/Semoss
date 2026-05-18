@@ -39,7 +39,6 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
-import prerna.util.Constants;
 
 public class PGVectorQueryUtil extends PostgresQueryUtil {
 	
@@ -58,8 +57,7 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 		try (Statement stmt = con.createStatement()) {
 			stmt.execute(addVectorExtension());
 		} catch(SQLException e) {
-			classLogger.warn("Unable to create the vector extension");
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to ensure pgvector extension exists using SQL '{}'", addVectorExtension(), e);
 		}
 	}
 
@@ -125,11 +123,16 @@ public class PGVectorQueryUtil extends PostgresQueryUtil {
 			writer.commit();
 			writer.export();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to create or export OWL metadata for embeddings table '{}' and metadata table '{}' due to an I/O error",
+					embeddingsTable, metadataTable, e);
 		} catch (InterruptedException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted while creating OWL metadata for embeddings table '{}' and metadata table '{}'",
+					embeddingsTable, metadataTable, e);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected error creating OWL metadata for embeddings table '{}' and metadata table '{}'",
+					embeddingsTable, metadataTable, e);
 		}
 	}
 
