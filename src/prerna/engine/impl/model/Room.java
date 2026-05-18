@@ -763,7 +763,7 @@ public class Room {
 	 * {@code github_copilot_py}) take a sibling path:
 	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
 	 * the same two sources, but returning engine refs ({@code id}/{@code name})
-	 * rather than resolved tool defs — the external CLI does its own MCP
+	 * rather than resolved tool defs - the external CLI does its own MCP
 	 * handshake to discover tools.
 	 *
 	 * <p>Both paths honor {@code room.options.workspace.workspace_id}, so the
@@ -809,7 +809,7 @@ public class Room {
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 
-					// LEGACY source — WORKSPACE_RESOURCE rows (kept untouched for back-compat;
+					// LEGACY source - WORKSPACE_RESOURCE rows (kept untouched for back-compat;
 					// removing this read would break any workspace that hasn't migrated to
 					// CONFIG_JSON.mcps yet).
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
@@ -822,7 +822,7 @@ public class Room {
 						}
 					}
 
-					// NEW source — CONFIG_JSON.mcps entries (additive, layered on top).
+					// NEW source - CONFIG_JSON.mcps entries (additive, layered on top).
 					// ensureUnique dedupes by raw id-string against the legacy entries above;
 					// any workspace dual-writing both sources still resolves each engine once.
 					// When CONFIG_JSON is absent / unparseable / has no mcps key, this block
@@ -990,7 +990,7 @@ public class Room {
 	// --- System Prompt Handling ----
 
 	/**
-	 * Resolves the user-authored system prompt — the room/workspace layer, before
+	 * Resolves the user-authored system prompt - the room/workspace layer, before
 	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
 	 * <ol>
 	 *   <li>{@code options.instructions}</li>
