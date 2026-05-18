@@ -92,6 +92,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
 	private static final String PARAM_PERMISSION_MODE = "permissionMode";
 	private static final String PARAM_PERMISSION_MODE_SNAKE = "permission_mode";
+	private static final String PARAM_PROJECT = "project";
+	private static final String PARAM_SUBDIR = "subdir";
 
 	@Override
 	public String getName() {
@@ -267,11 +269,18 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
 		// These values steer the agent runner/tool harness, not the provider model API.
+		// TODO(harness-params-refactor): this strip-list is the Java half of the same
+		// concern handled in genai_client/message_builders/<provider>/SEMOSS_RUNTIME_PARAM_KEYS.
+		// Both lists have to be kept in sync by hand today. See AGENTS_TASKS/harness-build-progress.md
+		// "Agent-runtime paramMap key handling" for the design discussion (prefix
+		// convention vs. moving runtime info onto AgentRunContext as typed fields).
 		paramMap.remove(PARAM_MAX_SECONDS);
 		paramMap.remove(PARAM_FILE_PATH);
 		paramMap.remove(PARAM_FILE_PATH_CAMEL);
 		paramMap.remove(PARAM_PERMISSION_MODE);
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
+		paramMap.remove(PARAM_PROJECT);
+		paramMap.remove(PARAM_SUBDIR);
 	}
 
 	private static int lengthOrZero(String s) {

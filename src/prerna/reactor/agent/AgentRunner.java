@@ -154,17 +154,23 @@ public final class AgentRunner {
         insight.setRoomForInsight(room);
 
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
-        String filePath = resolveWorkingDir(room, params);
+
+        // Explicit workspace_id override (from the RunAgent `workspaceId` named arg
+        // or paramMap key). Wins over room.options.workspace.workspace_id when set.
+        // Stripped here so it doesn't leak into the model engine call.
+        // Resolved BEFORE resolveWorkingDir so the working-dir code can fall back to
+        // CONFIG_JSON.subdir for the per-workspace runtime convention.
+        String explicitWorkspaceId = extractExplicitWorkspaceId(params);
+        String effectiveWorkspaceId = explicitWorkspaceId != null
+                ? explicitWorkspaceId
+                : extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
+
+        String filePath = resolveWorkingDir(room, params, effectiveWorkspaceId);
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
         SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
-
-        // Explicit workspace_id override (from the RunAgent `workspaceId` named arg
-        // or paramMap key). Wins over room.options.workspace.workspace_id when set.
-        // Stripped here so it doesn't leak into the model engine call.
-        String explicitWorkspaceId = extractExplicitWorkspaceId(params);
 
         // Resolve the agent config once. Every harness reads from ctx.getAgentConfig()
         // - no harness re-implements room/workspace prompt resolution. All "what is this
@@ -346,20 +352,28 @@ public final class AgentRunner {
      * <ol>
      *   <li><b>Container</b>: {@code project=<uuid>} resolves to that project's assets
      *       folder. Otherwise the current room's folder (created if missing) is used.</li>
-     *   <li><b>Subdir</b>: {@code subdir=<relative-path>} joins under the container.
-     *       Must be relative, must not escape via {@code ..}; checked by canonical-path
-     *       containment.</li>
+     *   <li><b>Subdir</b>: {@code subdir=<relative-path>} on paramMap joins under the
+     *       container. When absent, falls back to {@code CONFIG_JSON.subdir} on the
+     *       effective workspace (per-workspace runtime convention — e.g. app-builder
+     *       workspaces pin {@code "client"}). Must be relative, must not escape via
+     *       {@code ..}; checked by canonical-path containment.</li>
      *   <li><b>Legacy {@code filePath}</b>: deprecated. Logged at WARN and ignored -
      *       callers must use {@code project} + {@code subdir}.</li>
      * </ol>
      *
-     * <p>Consumed keys ({@code project}, {@code subdir}, {@code filePath}) are removed
-     * from {@code params} so they do not bleed into the model engine call.
+     * <p>Consumed keys: {@code subdir}, legacy {@code filePath} are removed from
+     * {@code params} (runner-internal only). {@code project} is read but NOT
+     * removed — downstream hooks (notably {@code GitCommitAgentHook}) consume
+     * it from the same paramMap to resolve the project's git folder.
      *
+     * @param effectiveWorkspaceId resolved workspace id (explicit override or
+     *                             {@code room.options.workspace.workspace_id});
+     *                             {@code null} when the room has no workspace binding.
+     *                             Used only for the {@code CONFIG_JSON.subdir} fallback.
      * @throws IllegalArgumentException for unresolvable project, illegal subdir, or
      *                                  containment failure
      */
-    private static String resolveWorkingDir(Room room, Map<String, Object> params) {
+    private static String resolveWorkingDir(Room room, Map<String, Object> params, String effectiveWorkspaceId) {
         // Legacy filePath - strip + warn, never honor.
         Object legacyFilePath = params.remove(PARAM_FILE_PATH_LEGACY);
         if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
@@ -368,9 +382,14 @@ public final class AgentRunner {
         }
 
         // 1. Container.
+        //    Peek at PARAM_PROJECT (don't remove) — downstream consumers including
+        //    GitCommitAgentHook.afterMessage rely on params["project"] to know
+        //    which project's git folder to commit against. The model engine
+        //    treats unknown keys as no-ops, so leaving the project id in the
+        //    map is safe.
         String container;
         String containerLabel;
-        Object projectObj = params.remove(PARAM_PROJECT);
+        Object projectObj = params.get(PARAM_PROJECT);
         if (projectObj != null && !String.valueOf(projectObj).trim().isEmpty()) {
             String projectId = String.valueOf(projectObj).trim();
             container = AssetUtility.getProjectAssetsFolder(projectId);
@@ -391,13 +410,47 @@ public final class AgentRunner {
                     container, room.getId());
         }
 
-        // 2. Subdir.
+        // 2. Subdir: paramMap override first, then CONFIG_JSON.subdir for the workspace.
         Object subdirObj = params.remove(PARAM_SUBDIR);
-        if (subdirObj == null || String.valueOf(subdirObj).trim().isEmpty()) {
+        String subdir = subdirObj == null ? null : String.valueOf(subdirObj).trim();
+        if (subdir == null || subdir.isEmpty()) {
+            subdir = resolveSubdirFromConfigJson(effectiveWorkspaceId);
+            if (subdir != null) {
+                logger.info("AgentRunner: subdir='{}' resolved from CONFIG_JSON for workspaceId='{}'",
+                        subdir, effectiveWorkspaceId);
+            }
+        }
+        if (subdir == null || subdir.isEmpty()) {
             return container;
         }
-        String subdir = String.valueOf(subdirObj).trim();
         return joinSubdir(container, subdir, containerLabel);
+    }
+
+    /**
+     * Pull {@code CONFIG_JSON.subdir} for the given workspace, or {@code null} when
+     * the workspace has no row / no CONFIG_JSON / no {@code subdir} key. Errors
+     * are logged warn and treated as null so a CONFIG_JSON outage never blocks a run.
+     */
+    private static String resolveSubdirFromConfigJson(String workspaceId) {
+        if (workspaceId == null || workspaceId.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            org.json.JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+            if (cfg == null) {
+                return null;
+            }
+            String v = cfg.optString("subdir", null);
+            if (v == null) {
+                return null;
+            }
+            v = v.trim();
+            return v.isEmpty() ? null : v;
+        } catch (Exception e) {
+            logger.warn("AgentRunner: CONFIG_JSON.subdir read failed for workspaceId='{}': {}",
+                    workspaceId, e.getMessage());
+            return null;
+        }
     }
 
     /**
