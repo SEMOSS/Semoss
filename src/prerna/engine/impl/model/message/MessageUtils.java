@@ -458,6 +458,7 @@ public class MessageUtils {
 				shouldPruneTools = true;
 			}
 			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
 				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
@@ -502,6 +503,7 @@ public class MessageUtils {
 				shouldPruneTools = true;
 			}
 			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
 				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
@@ -514,6 +516,11 @@ public class MessageUtils {
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
 		return history;
+	}
+
+	private static AbstractMessage deepCopyForPruning(AbstractMessage m) {
+		String json = GSON_FOR_DB.toJson(m);
+		return GSON_FOR_DB.fromJson(json, m.getClass());
 	}
 
 	private static void pruneToolsPartFromMessage(AbstractMessage m) {
