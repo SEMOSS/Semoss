@@ -87,7 +87,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sqlQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
+		String sqlQuery = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
 		String commitStr = this.keyValue.get(this.keysToGet[3]);
@@ -192,7 +192,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
-			this.insight.addQueriedDatabasesese(databaseId);
+			this.insight.addQueriedDatabases(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
 			classLogger.error("Unable to execute the admin SELECT query.", e);

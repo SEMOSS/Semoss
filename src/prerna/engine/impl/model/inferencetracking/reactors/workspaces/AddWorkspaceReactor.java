@@ -78,8 +78,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		String workspaceDescription = Utility.decodeURIComponent(this.keyValue.get(DESCRIPTION));
-		String workspaceSystemPrompt = Utility.decodeURIComponent(this.keyValue.get(SYSTEM_PROMPT));
+		String workspaceDescription = this.keyValue.get(DESCRIPTION);
+		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 
 		List<Map<String, Object>> mcpMapList = getMcpMapList();
 		Set<String> engines = new HashSet<>();

@@ -1,0 +1,77 @@
+name: Semoss UBI 9 Builder
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches: [ "dev", "main" ]
+    paths:
+      - 'docker/Dockerfile.ubi9'
+      - '.github/workflows/docker-build-ubi9.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * *'  # Runs every day at 7 AM UTC, which is 2 AM EST
+
+jobs:
+  build:
+
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind
+    #runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Quay
+        uses: docker/login-action@v2
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_ROBOT_USERNAME }}
+          password: ${{ secrets.QUAY_ROBOT_PASSWORD }}
+
+      - name: Determine Image Tag and Repository
+        id: vars
+        run: |
+          if [ "${{ vars.RELEASE }}" = "TRUE" ]; then
+            echo "IMAGE_REPO=semoss/semoss" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-ubi9" >> $GITHUB_ENV
+          else
+            DATE=$(date +'%Y-%m-%d')
+            echo "IMAGE_REPO=semoss/semoss-dev" >> $GITHUB_ENV
+            echo "IMAGE_TAG=${{ vars.VERSION }}-SNAPSHOT-ubi9-$DATE" >> $GITHUB_ENV
+            echo "IMAGE_TAG_LATEST=${{ vars.VERSION }}-SNAPSHOT-ubi9-latest" >> $GITHUB_ENV
+          fi
+
+      - name: Build and push UBI 9 Docker image - Release Build
+        if: ${{ vars.RELEASE == 'TRUE' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.ubi9
+          push: true
+          pull: true
+          tags: quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+          no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}
+
+      - name: Build and push UBI 9 Docker image - Non-Release Build
+        if: ${{ vars.RELEASE == 'FALSE' }}
+        uses: docker/build-push-action@v2
+        with:
+          context: ./docker
+          file: ./docker/Dockerfile.ubi9
+          push: true
+          pull: true
+          tags: |
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
+          no-cache: true
+          build-args: |
+            SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT

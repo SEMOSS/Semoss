@@ -35,6 +35,8 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -59,6 +61,15 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String fileName = this.keyValue.get(this.keysToGet[1]);
+		User user = this.insight.getUser();
+
+		if (projectId == null || projectId.isEmpty()) {
+			throw new IllegalArgumentException("project is required");
+		}
+
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+		}
 
 		if (fileName == null || fileName.isEmpty()) {
 			throw new IllegalArgumentException("fileName is required");

@@ -66,4 +66,8 @@ public class ClaudeCodeTranscriptModels {
 			int linesRemoved) {
 	}
 
+	// Emitted when Claude Code halts because the SDK-configured max turns was hit
+	public record MaxTurnsReached(int maxTurns, int turnCount, String timestamp) {
+	}
+
 }
