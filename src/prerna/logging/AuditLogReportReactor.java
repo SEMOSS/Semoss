@@ -118,7 +118,11 @@ public class AuditLogReportReactor extends AbstractReactor {
 		if (projectId != null && !projectId.isEmpty()) {
 			Integer userPermissionLvl = SecurityProjectUtils
 					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
-			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			if (userPermissionLvl == null && !SecurityProjectUtils.projectIsGlobal(projectId)) {
+				throw new IllegalArgumentException(
+						"Project id '" + projectId + "' does not exist or user does not have access");
+			}
+			if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
 				userIsOwner = true;
 			}
 		}
@@ -127,7 +131,11 @@ public class AuditLogReportReactor extends AbstractReactor {
 			if (engineId != null && !engineId.isEmpty()) {
 				Integer userPermissionLvl = SecurityEngineUtils
 						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
-				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+				if (userPermissionLvl == null && !SecurityEngineUtils.engineIsGlobal(engineId)) {
+					throw new IllegalArgumentException(
+							"Engine id '" + engineId + "' does not exist or user does not have access");
+				}
+				if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
 					userIsOwner = true;
 				}
 			}
@@ -169,10 +177,9 @@ public class AuditLogReportReactor extends AbstractReactor {
 			searchMap = (Map<String, Object>) map.get("search");
 		}
 
-		List<String> methodNames = getListFromSearch(searchMap, "methodName");
-		List<String> args = getListFromSearch(searchMap, "requestMessage");
-		List<String> engineTypes = getListFromSearch(searchMap, "engineType");
-
+		List<String> methodNames = getListFromSearchParam(searchMap, SemossLogUtils.METHOD_NAME);
+		List<String> args = getListFromSearchParam(searchMap, "requestMessage");
+		List<String> engineTypes = getListFromSearchParam(searchMap, SemossLogUtils.ENGINE_TYPE);
 		String others = getString(map, "others");
 
 		List<LogActivityRecord> result = Collections.emptyList();
@@ -304,7 +311,7 @@ public class AuditLogReportReactor extends AbstractReactor {
 		return val == null || val.trim().isEmpty();
 	}
 
-	private List<String> getListFromSearch(Map<String, Object> searchMap, String key) {
+	private List<String> getListFromSearchParam(Map<String, Object> searchMap, String key) {
 		if (searchMap == null || !searchMap.containsKey(key)) {
 			return Collections.emptyList();
 		}

@@ -65,6 +65,8 @@ package prerna.logging;
  * @param methodName   Invoked engine method name ({@code methodName}).
  * @param userId       User identifier ({@code userId}) associated with the
  *                     event.
+ * @param userName     User name ({@code userName}) associated with the
+ *                     event.
  * @param sessionId    Session identifier ({@code sessionId}) associated with
  *                     the event.
  * @param spanId       Span identifier ({@code spanId}) for one proxied engine
@@ -76,6 +78,6 @@ package prerna.logging;
  */
 public record LogActivityRecord(String requestId, java.sql.Timestamp startTime, java.sql.Timestamp endTime,
 		String request, String response, int tokens, long latency, boolean status, String engineName, String engineType,
-		String methodName, String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
+		String methodName, String userName, String userId, String sessionId, String spanId, java.sql.Timestamp logTimestamp) {
 
 }

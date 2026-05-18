@@ -258,6 +258,7 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_PROMPT"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_TOKENS_IN_RESPONSE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__IS_SUCCESS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_NAME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SESSION_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__SPAN_ID"));
@@ -328,13 +329,14 @@ public class AuditLogsDbUtils {
 			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
 					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
 			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
+			String userNameFromRow = getOrDefault(map.get("USER_NAME"), null);
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			Timestamp logTimestamp = extractTimestamp(map.get("LOG_TIMESTAMP"));
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
-					status, engineName, engineType, methodName, userIdFromRow, sessionIdFromRow, spanIdFromRow,
+					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow, spanIdFromRow,
 					logTimestamp));
 
 		}
@@ -536,7 +538,7 @@ public class AuditLogsDbUtils {
 	 * @param offset
 	 * @return
 	 */
-	public static List<String[]> getAuditLogMethodnameAndRequest(String userId, String projectId, String engineId,
+	public static List<String[]> getAuditLogMethodNameAndRequest(String userId, String projectId, String engineId,
 			String engineType, String filterName, String methodName, String requestMessage, int limit, int offset) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 

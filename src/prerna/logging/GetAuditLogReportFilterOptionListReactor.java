@@ -47,8 +47,9 @@ public class GetAuditLogReportFilterOptionListReactor extends AbstractReactor {
 		int limit = parseIntWithDefault(limitStr, -1);
 		int offset = parseIntWithDefault(offsetStr, 0);
 
-		List<String[]> resultList = AuditLogsDbUtils.getAuditLogMethodnameAndRequest(filterUserId, projectId, engineId,
-				engineType, filterName, methodName, request, limit, offset);
+
+		List<String[]> resultList = AuditLogsDbUtils.getAuditLogMethodNameAndRequest(filterUserId, projectId, engineId,
+			 engineType, filterName, methodName, request, limit, offset);
 
 		return new NounMetadata(resultList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.LOGGING_DATA);
 	}

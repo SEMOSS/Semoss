@@ -72,7 +72,7 @@ public class GetAuditLogReportUsersReactor extends AbstractReactor {
 			auditLogsReportUsers = AuditLogsDbUtils.getAuditLogsReportUsers(null, engineId);
 		}
 
-		// only userId & userType from existingUsers
+		// only userId, userType & userName from existingUsers
 		List<Map<String, Object>> filteredExistingUsers = existingUsers.stream().map(member -> {
 			Map<String, Object> filtered = new LinkedHashMap<>();
 			filtered.put("id", member.get("id"));
