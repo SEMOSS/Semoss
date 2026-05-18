@@ -30,6 +30,7 @@ package prerna.reactor.agent;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,6 +40,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
@@ -165,7 +167,7 @@ public final class AgentRunner {
         String explicitWorkspaceId = extractExplicitWorkspaceId(params);
 
         // Resolve the agent config once. Every harness reads from ctx.getAgentConfig()
-        // — no harness re-implements room/workspace prompt resolution. All "what is this
+        // - no harness re-implements room/workspace prompt resolution. All "what is this
         // agent" fields (working_dir, model_id, model_params, budgets, prompt layers) live
         // on AgentConfig; AgentRunContext just carries the per-call live state.
         AgentConfig agentConfig = AgentConfigLoader.load(
@@ -183,7 +185,31 @@ public final class AgentRunner {
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-        AgentHarnessResult result = harness.execute(ctx);
+
+        // Overlay room.options.workspace.workspace_id with the explicit override
+        // for the duration of the run. This ensures every code path that reads
+        // workspace_id (Room.getRoomOrWorkspaceSystemPrompt, Room.getAllToolsJsonForRoom,
+        // any harness reading room.options directly) sees the same value as AgentConfig.
+        // Restored in finally below - in-memory only, no DB write.
+        //
+        // Hook chain runs INSIDE the overlay (beforeMessage -> harness.execute ->
+        // afterMessage), so hooks see the per-call workspace_id too. If any hook
+        // throws, the chain short-circuits and the exception propagates; the
+        // overlay restore still runs in the finally.
+        List<IMessageHook> hooks = ctx.getAgentConfig().getHooks();
+        WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
+        AgentHarnessResult result;
+        try {
+            for (IMessageHook h : hooks) {
+                h.beforeMessage(ctx);
+            }
+            result = harness.execute(ctx);
+            for (IMessageHook h : hooks) {
+                h.afterMessage(ctx, result);
+            }
+        } finally {
+            restoreWorkspaceOverlay(room, wsOverlay);
+        }
 
         if (ClusterUtil.IS_CLUSTER) {
             try {
@@ -194,6 +220,111 @@ public final class AgentRunner {
         }
 
         return result;
+    }
+
+    // ============================================================
+    // workspace_id overlay - keeps Room and AgentConfig in agreement
+    // for the duration of one harness run
+    // ============================================================
+
+    /**
+     * Captured state needed to restore {@code room.options.workspace} to its
+     * pre-overlay shape. Returned from {@link #applyWorkspaceOverlay} and
+     * consumed by {@link #restoreWorkspaceOverlay}. Immutable.
+     */
+    private static final class WorkspaceOverlay {
+        private final Room    room;
+        private final boolean hadField;
+        private final Object  originalWorkspace;
+
+        WorkspaceOverlay(Room room, boolean hadField, Object originalWorkspace) {
+            this.room              = room;
+            this.hadField          = hadField;
+            this.originalWorkspace = originalWorkspace;
+        }
+    }
+
+    /**
+     * If {@code explicitWorkspaceId} is set and differs from the room's current
+     * {@code options.workspace.workspace_id}, overlay it for the run. Returns
+     * {@code null} when no overlay is needed (no override, or already matching).
+     *
+     * <p>In-memory mutation only - no DB write. Always pair with
+     * {@link #restoreWorkspaceOverlay} in a {@code finally} block.
+     */
+    private static WorkspaceOverlay applyWorkspaceOverlay(Room room, String explicitWorkspaceId) {
+        if (explicitWorkspaceId == null || explicitWorkspaceId.trim().isEmpty()) {
+            return null;
+        }
+        Map<String, Object> opts = room.getOptionsMap();
+        boolean hadField = opts.containsKey("workspace");
+        Object originalWorkspace = opts.get("workspace");
+
+        // No-op when the room already points at this workspace_id (avoids
+        // touching state we don't need to).
+        String currentId = extractWorkspaceIdFromOptionField(originalWorkspace);
+        if (explicitWorkspaceId.equals(currentId)) {
+            return null;
+        }
+
+        Map<String, Object> newWorkspace = new HashMap<>();
+        newWorkspace.put("workspace_id", explicitWorkspaceId);
+        // Best-effort name lookup - not load-bearing for downstream reads (which only
+        // care about workspace_id), but keeps the field's shape consistent with how
+        // callers usually populate it.
+        try {
+            Map<String, Object> ws = ModelInferenceLogsUtils.getWorkspaceEntry(explicitWorkspaceId);
+            if (ws != null && ws.get("name") != null) {
+                newWorkspace.put("name", String.valueOf(ws.get("name")));
+            }
+        } catch (Exception ignore) {
+            // best-effort; absence of name doesn't affect resolution
+        }
+        opts.put("workspace", newWorkspace);
+        room.setOptionsMap(opts);
+
+        logger.info("AgentRunner: workspace overlay applied (explicit='{}' for run; original={})",
+                explicitWorkspaceId, currentId == null ? "<unset>" : currentId);
+        return new WorkspaceOverlay(room, hadField, originalWorkspace);
+    }
+
+    /**
+     * Restore the room's {@code options.workspace} field to the value captured
+     * before the overlay was applied. No-op when {@code overlay} is null.
+     */
+    private static void restoreWorkspaceOverlay(Room room, WorkspaceOverlay overlay) {
+        if (overlay == null) {
+            return;
+        }
+        Map<String, Object> opts = overlay.room.getOptionsMap();
+        if (overlay.hadField) {
+            opts.put("workspace", overlay.originalWorkspace);
+        } else {
+            opts.remove("workspace");
+        }
+        overlay.room.setOptionsMap(opts);
+        logger.debug("AgentRunner: workspace overlay restored");
+    }
+
+    /**
+     * Extract the {@code workspace_id} from an {@code options.workspace} field
+     * which may be (a) absent, (b) a primitive id string, or
+     * (c) a {@code {workspace_id, name}} map.
+     */
+    @SuppressWarnings("unchecked")
+    private static String extractWorkspaceIdFromOptionField(Object workspaceField) {
+        if (workspaceField == null) return null;
+        if (workspaceField instanceof String) {
+            String s = ((String) workspaceField).trim();
+            return s.isEmpty() ? null : s;
+        }
+        if (workspaceField instanceof Map) {
+            Object id = ((Map<String, Object>) workspaceField).get("workspace_id");
+            if (id == null) return null;
+            String s = String.valueOf(id).trim();
+            return s.isEmpty() ? null : s;
+        }
+        return null;
     }
 
     /**
@@ -218,7 +349,7 @@ public final class AgentRunner {
      *   <li><b>Subdir</b>: {@code subdir=<relative-path>} joins under the container.
      *       Must be relative, must not escape via {@code ..}; checked by canonical-path
      *       containment.</li>
-     *   <li><b>Legacy {@code filePath}</b>: deprecated. Logged at WARN and ignored —
+     *   <li><b>Legacy {@code filePath}</b>: deprecated. Logged at WARN and ignored -
      *       callers must use {@code project} + {@code subdir}.</li>
      * </ol>
      *
@@ -229,10 +360,10 @@ public final class AgentRunner {
      *                                  containment failure
      */
     private static String resolveWorkingDir(Room room, Map<String, Object> params) {
-        // Legacy filePath — strip + warn, never honor.
+        // Legacy filePath - strip + warn, never honor.
         Object legacyFilePath = params.remove(PARAM_FILE_PATH_LEGACY);
         if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
-            logger.warn("AgentRunner: '{}' is deprecated and ignored — use '{}' + '{}' instead. value='{}'",
+            logger.warn("AgentRunner: '{}' is deprecated and ignored - use '{}' + '{}' instead. value='{}'",
                     PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
         }
 
@@ -342,7 +473,7 @@ public final class AgentRunner {
             try {
                 b.withEnforcement(EnforcementMode.valueOf(((String) enforceObj).trim().toUpperCase()));
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid sandbox_enforce value '{}' — keeping default", enforceObj);
+                logger.warn("Invalid sandbox_enforce value '{}' - keeping default", enforceObj);
             }
         }
         return b.build();

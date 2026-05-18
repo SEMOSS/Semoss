@@ -45,7 +45,6 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.reactor.agent.AppBuildingHarness;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
@@ -223,12 +222,9 @@ public class ClaudeCodeManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 
-		String base = (filePath != null && !filePath.trim().isEmpty())
+		String finalFilePath = (filePath != null && !filePath.trim().isEmpty())
 				? filePath
 				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		String finalFilePath = base + "/client";
-
-		AppBuildingHarness.ensureClaudeStructure(finalFilePath);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];

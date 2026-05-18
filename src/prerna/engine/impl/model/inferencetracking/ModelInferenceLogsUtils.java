@@ -47,6 +47,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
@@ -2412,6 +2413,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DESCRIPTION", "description"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__SYSTEM_PROMPT", "system_prompt"));
+		qs.addSelector(new QueryColumnSelector("WORKSPACE__CONFIG_JSON", "config_json"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__OWNER", "owner"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__IS_ACTIVE", "is_active"));
 		qs.addSelector(new QueryColumnSelector("WORKSPACE__DATE_CREATED", "date_created"));
@@ -2447,6 +2449,81 @@ public class ModelInferenceLogsUtils {
 			classLogger.error("Failed to fetch workspace entry for workspaceId '" + workspaceId + "'.", e);
 		}
 		return result;
+	}
+
+	/**
+	 * Returns the parsed {@code WORKSPACE.CONFIG_JSON} for a workspace, or
+	 * {@code null} when the column is missing / empty / unparseable.
+	 *
+	 * <p>{@code CONFIG_JSON} carries the per-workspace agent config — system
+	 * prompt mirror, MCPs, budgets, hooks. Consumers (AgentConfigLoader,
+	 * Room.getAllToolsJsonForRoom) layer this on top of the legacy column /
+	 * WORKSPACE_RESOURCE reads.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @return parsed JSON object, or {@code null}
+	 */
+	public static JSONObject getWorkspaceConfigJson(String workspaceId) {
+		if (workspaceId == null) {
+			return null;
+		}
+		Map<String, Object> row = getWorkspaceEntry(workspaceId);
+		if (row == null) {
+			return null;
+		}
+		Object raw = row.get("config_json");
+		if (raw == null) {
+			return null;
+		}
+		String text = String.valueOf(raw).trim();
+		if (text.isEmpty()) {
+			return null;
+		}
+		try {
+			return new JSONObject(text);
+		} catch (Exception e) {
+			classLogger.warn("Failed to parse WORKSPACE.CONFIG_JSON for workspaceId '{}': {}",
+					workspaceId, e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * Writes {@code WORKSPACE.CONFIG_JSON} for a workspace. Pass {@code null}
+	 * to clear the column.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param configJson  parsed JSON to persist, or {@code null} to clear
+	 * @throws SQLException if the update fails
+	 */
+	public static void updateWorkspaceConfigJson(String workspaceId, JSONObject configJson) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		String serialized = configJson == null ? null : configJson.toString();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+				int index = 1;
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, serialized, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update CONFIG_JSON for workspaceId '" + workspaceId + "'.", e);
+			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
 	}
 
 	/**

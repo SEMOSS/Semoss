@@ -33,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.reactor.agent.IMessageHook;
+
 /**
  * Resolved, immutable view of an agent for one run.
  *
@@ -91,6 +93,9 @@ public final class AgentConfig {
     // Budgets (nested)
     private final Budgets budgets;
 
+    // Message hooks (resolved instances; never null, empty when none configured)
+    private final List<IMessageHook> hooks;
+
     AgentConfig(Builder b) {
         this.workspaceId     = b.workspaceId;
         this.name            = b.name;
@@ -107,9 +112,12 @@ public final class AgentConfig {
                 ? Collections.unmodifiableList(new ArrayList<>(b.mcps))
                 : Collections.emptyList();
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
+        this.hooks           = b.hooks != null
+                ? Collections.unmodifiableList(new ArrayList<>(b.hooks))
+                : Collections.emptyList();
     }
 
-    // ── Identity ─────────────────────────────────────────────────────────────
+    // -- Identity -------------------------------------------------------------
 
     /** Workspace id ({@code workspace.workspace_id}); {@code null} for ad-hoc rooms with no workspace binding. */
     public String getWorkspaceId() {
@@ -126,7 +134,7 @@ public final class AgentConfig {
         return description;
     }
 
-    // ── Prompt layers ────────────────────────────────────────────────────────
+    // -- Prompt layers --------------------------------------------------------
 
     /**
      * The authored system prompt: {@code room.options.instructions} when set,
@@ -174,7 +182,7 @@ public final class AgentConfig {
         sb.append(layer);
     }
 
-    // ── Model ────────────────────────────────────────────────────────────────
+    // -- Model ----------------------------------------------------------------
 
     /** Model engine id the agent should run against; {@code null} when not yet resolved. */
     public String getModelId() {
@@ -193,7 +201,7 @@ public final class AgentConfig {
         return modelParams;
     }
 
-    // ── Filesystem ───────────────────────────────────────────────────────────
+    // -- Filesystem -----------------------------------------------------------
 
     /**
      * Working directory the agent operates in (the project being worked on).
@@ -204,7 +212,7 @@ public final class AgentConfig {
         return workingDir;
     }
 
-    // ── MCP tool projects ────────────────────────────────────────────────────
+    // -- MCP tool projects ----------------------------------------------------
 
     /**
      * Resolved MCP tool projects for this run — union of
@@ -213,19 +221,47 @@ public final class AgentConfig {
      *
      * <p>Each entry is a map with at least {@code id} (project UUID) and
      * {@code name}. Never {@code null}; empty when neither source contributes.
+     *
+     * <p><b>Two parallel resolution paths exist by design, both reading the same
+     * underlying sources:</b>
+     * <ul>
+     *   <li><b>CLI harnesses</b> ({@code claude_code}, {@code github_copilot},
+     *       {@code github_copilot_py}) consume this method — they need the engine
+     *       <i>refs</i> ({@code id} + {@code name}) to write into the external
+     *       CLI's MCP config file. The CLI itself does the JSON-RPC handshake to
+     *       discover tool defs.</li>
+     *   <li><b>{@code semoss} harness</b> consumes
+     *       {@link prerna.engine.impl.model.Room#getAllToolsJsonForRoom(int)}
+     *       indirectly via {@code Room.appendToolsToParams} — that path returns
+     *       <i>resolved tool definitions</i> ({@code name}/{@code description}/
+     *       {@code inputSchema} maps) because the in-process LLM call needs the
+     *       full tool schema, not just engine refs.</li>
+     * </ul>
+     * The two shapes (refs vs. resolved defs) reflect the different consumers;
+     * collapsing them would force one consumer to do extra work. Both paths read
+     * {@code room.options.mcp[]} and the {@code WORKSPACE_RESOURCE} rows for
+     * {@code room.options.workspace.workspace_id}, so a {@code workspaceId}
+     * passed on {@code RunAgent} (applied via {@code AgentRunner}'s workspace
+     * overlay) is honored uniformly across harnesses.
      */
     public List<Map<String, String>> getMcps() {
         return mcps;
     }
 
-    // ── Budgets ──────────────────────────────────────────────────────────────
+    // -- Budgets --------------------------------------------------------------
 
     /** Run-time budgets (turn cap, reflection cap, wall-clock). Never {@code null}. */
     public Budgets getBudgets() {
         return budgets;
     }
 
-    // ── Builder ──────────────────────────────────────────────────────────────
+    // -- Hooks ----------------------------------------------------------------
+
+    public List<IMessageHook> getHooks() {
+        return hooks;
+    }
+
+    // -- Builder --------------------------------------------------------------
 
     public static Builder builder() {
         return new Builder();
@@ -243,6 +279,7 @@ public final class AgentConfig {
         private String workingDir;
         private List<Map<String, String>> mcps;
         private Budgets budgets;
+        private List<IMessageHook> hooks;
 
         public Builder workspaceId(String v)         { this.workspaceId = v;         return this; }
         public Builder name(String v)                { this.name = v;                return this; }
@@ -255,13 +292,14 @@ public final class AgentConfig {
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder budgets(Budgets v)            { this.budgets = v;             return this; }
+        public Builder hooks(List<IMessageHook> v)   { this.hooks = v;               return this; }
 
         public AgentConfig build() {
             return new AgentConfig(this);
         }
     }
 
-    // ── Nested: Budgets ──────────────────────────────────────────────────────
+    // -- Nested: Budgets ------------------------------------------------------
 
     /**
      * Run-time budgets. Immutable; built via {@link #builder()} or

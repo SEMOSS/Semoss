@@ -752,6 +752,25 @@ public class Room {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
 	 * back to their original engine IDs and function names.
 	 *
+	 * <p><b>In-process LLM path.</b> This is the resolution used by the
+	 * {@code semoss} harness (and the playground COT reactors). It reads
+	 * {@code room.options.mcp[]} plus the {@code WORKSPACE_RESOURCE} rows for
+	 * {@code room.options.workspace.workspace_id}, resolves each engine through
+	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and
+	 * returns full tool definition maps for the LLM call.
+	 *
+	 * <p>External-CLI harnesses ({@code claude_code}, {@code github_copilot},
+	 * {@code github_copilot_py}) take a sibling path:
+	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
+	 * the same two sources, but returning engine refs ({@code id}/{@code name})
+	 * rather than resolved tool defs — the external CLI does its own MCP
+	 * handshake to discover tools.
+	 *
+	 * <p>Both paths honor {@code room.options.workspace.workspace_id}, so the
+	 * {@code workspaceId} arg on {@code RunAgent} (applied via
+	 * {@code AgentRunner}'s workspace overlay) yields the same MCP set in either
+	 * harness style.
+	 *
 	 * @param maxLength maximum allowed tool name length (use
 	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
 	 * @return list of tool definition maps ready to pass to the LLM
@@ -789,6 +808,10 @@ public class Room {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
+
+					// LEGACY source — WORKSPACE_RESOURCE rows (kept untouched for back-compat;
+					// removing this read would break any workspace that hasn't migrated to
+					// CONFIG_JSON.mcps yet).
 					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
 							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
 					for (Map<String, Object> tool : tools) {
@@ -797,6 +820,32 @@ public class Room {
 							aggregated.addAll(getToolJson(toolId, maxLength));
 							ensureUnique.add(toolId);
 						}
+					}
+
+					// NEW source — CONFIG_JSON.mcps entries (additive, layered on top).
+					// ensureUnique dedupes by raw id-string against the legacy entries above;
+					// any workspace dual-writing both sources still resolves each engine once.
+					// When CONFIG_JSON is absent / unparseable / has no mcps key, this block
+					// is a no-op and behavior is byte-identical to pre-CONFIG_JSON.
+					try {
+						JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+						if (cfg != null && cfg.has("mcps")) {
+							JSONArray arr = cfg.optJSONArray("mcps");
+							if (arr != null) {
+								for (int i = 0; i < arr.length(); i++) {
+									JSONObject mcp = arr.optJSONObject(i);
+									if (mcp == null) continue;
+									String toolId = mcp.optString("id", null);
+									if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
+										aggregated.addAll(getToolJson(toolId, maxLength));
+										ensureUnique.add(toolId);
+									}
+								}
+							}
+						}
+					} catch (Exception e) {
+						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}",
+								workspaceId, e.getMessage());
 					}
 				}
 			} catch (Exception e) {

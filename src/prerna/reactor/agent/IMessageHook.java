@@ -31,17 +31,30 @@ package prerna.reactor.agent;
  * Observer-style hook fired around a single agent message — i.e. one
  * {@link IAgentHarness#execute(AgentRunContext)} call.
  *
- * <p>Hooks are returned by {@link AppBuildingHarness#getMessageHooks()} and
- * invoked in list order. {@link #beforeMessage} fires before
- * {@code doExecute}; {@link #afterMessage} fires only after a successful
- * {@code doExecute} return. If any hook throws, subsequent hooks in the
- * chain are skipped and the exception propagates to the caller.
+ * <p>Hooks live on the immutable {@link prerna.reactor.agent.config.AgentConfig}
+ * (see {@code AgentConfig.getHooks()}) and are populated by
+ * {@code AgentConfigLoader} from {@code WORKSPACE.CONFIG_JSON.hooks[]}. The
+ * runtime invocation site is {@code AgentRunner}, which calls
+ * {@link #beforeMessage(AgentRunContext)} on each hook before the harness runs
+ * and {@link #afterMessage(AgentRunContext, AgentHarnessResult)} on each hook
+ * after a successful return — all inside the workspace-overlay try-block so
+ * hooks see the per-call {@code workspace_id}.
+ *
+ * <p>If any hook throws, subsequent hooks in the chain are skipped and the
+ * exception propagates to the caller. The workspace overlay still restores in
+ * a {@code finally} regardless.
+ *
+ * <p>To add a new hook: implement this interface and register it via
+ * {@link prerna.reactor.agent.hooks.AgentHookRegistry#register(String, java.util.function.Supplier)}.
+ * The registry is the single source of truth shared by
+ * {@code AgentConfigLoader.resolveHook} (read path) and
+ * {@code SetWorkspaceHooksReactor} (write-time validation).
  */
 public interface IMessageHook {
 
-    /** Fires before {@code doExecute}. Throw to abort the message. Default: no-op. */
+    /** Fires before {@link IAgentHarness#execute(AgentRunContext)}. Throw to abort the message. Default: no-op. */
     default void beforeMessage(AgentRunContext ctx) throws Exception {}
 
-    /** Fires after a successful {@code doExecute}, with the produced result. Default: no-op. */
+    /** Fires after a successful {@link IAgentHarness#execute(AgentRunContext)}, with the produced result. Default: no-op. */
     default void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
 }

@@ -48,14 +48,16 @@ import prerna.util.git.GitRepoUtils;
  * Hook that runs {@code git add . && git commit} on the project's git folder
  * after every agent message.
  *
- * @deprecated No longer wired in any harness chain as of the
- *             AppBuildingHarness-removal refactor. The hook class is preserved
- *             so it can be re-attached once the proper hooks SPI (per-AgentConfig
- *             hook list) lands. Until then, callers that want auto-commit must
- *             either invoke git via {@code BashCommand} from the agent itself or
- *             wait for the Hooks PR.
+ * <p>Opt in by adding {@code {"kind": "git_commit"}} to a workspace's
+ * {@code WORKSPACE.CONFIG_JSON.hooks[]} (e.g. via {@code SetWorkspaceHooks}).
+ * The hook reads {@code ctx.getParamMap().get("project")} for the project to
+ * commit against — if the project id is missing, the hook logs an error and
+ * returns without committing.
+ *
+ * <p>Authored as a clean component (no inheritance, no statics) — see
+ * {@link prerna.reactor.agent.hooks.AgentHookRegistry#GIT_COMMIT} for the
+ * registered kind string.
  */
-@Deprecated
 public final class GitCommitAgentHook implements IMessageHook {
 	
 	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);

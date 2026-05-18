@@ -167,12 +167,17 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
+		// CONFIG_JSON holds the full AgentConfig serialization for this workspace —
+		// system_prompt mirror, mcps, budgets, hooks. See AgentConfigLoader for the
+		// read order (CONFIG_JSON-first with legacy column/WORKSPACE_RESOURCE fallback)
+		// and the workspace setter reactors (SetWorkspaceHooks etc.) for the write path.
 		this.workspaceColumns = Arrays.asList(
 				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
 				Pair.with("OWNER", "VARCHAR(255)"),
 				Pair.with("NAME", "VARCHAR(255)"),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
