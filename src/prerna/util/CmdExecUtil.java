@@ -43,6 +43,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.reactor.agent.sandbox.CmdSandboxLauncher;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 public class CmdExecUtil {
 
@@ -53,6 +55,12 @@ public class CmdExecUtil {
 	private String workingDir = null;
 	private String contextDir = null;
 	private String commandAppender = "cmd";
+
+	/** When set, cd navigation cannot leave this directory tree (Layer 1). */
+	private String confinementRoot = null;
+
+	/** When set, non-builtin commands are executed inside this sandbox (Layer 2). */
+	private SandboxPolicy sandboxPolicy = null;
 
 	/**
 	 * Constructor
@@ -137,7 +145,8 @@ public class CmdExecUtil {
 		String output = null;
 		try {
 			if (command.equalsIgnoreCase("reset")) {
-				this.workingDir = this.contextDir;
+				// Clamp to confinement root when in a room session, not the raw context dir
+				this.workingDir = (this.confinementRoot != null) ? this.confinementRoot : this.contextDir;
 				output = this.workingDir;
 			} else if (command.startsWith("cd")) {
 				// remove the cd and then add to working dir
@@ -227,6 +236,18 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
+		// Layer 2: if a sandbox policy is active, execute via the platform-specific
+		// sandbox (Landlock on Linux, sandbox-exec on macOS). Falls back to direct
+		// execution if no backend is available on this platform.
+		if (this.sandboxPolicy != null) {
+			String[] sandboxed = CmdSandboxLauncher.execute(
+					this.sandboxPolicy, this.workingDir, command, this.chrootFolderPath);
+			if (sandboxed != null) {
+				return sandboxed;
+			}
+			classLogger.warn("Sandbox backend unavailable; executing without Layer-2 confinement");
+		}
+
 		Map<String, String> environment = null;
 		String[] foutput = new String[2];
 		boolean success = true;
@@ -366,6 +387,12 @@ public class CmdExecUtil {
 
 		// Handle absolute paths
 		if (command.startsWith("/")) {
+			// Layer 1: block navigation outside the confinement root
+			if (this.confinementRoot != null
+					&& !Utility.normalizePath(command).startsWith(Utility.normalizePath(this.confinementRoot))) {
+				this.workingDir = currentWorkingDir;
+				return "Access denied: path is outside the session root: " + this.confinementRoot;
+			}
 			// For chroot, we need to check if the path exists within the chroot
 			if (directoryExists(command)) {
 				this.workingDir = command;
@@ -401,6 +428,14 @@ public class CmdExecUtil {
 						newDir = "/";
 					} else {
 						newDir = Utility.normalizePath(workingDir.substring(0, lastIndex));
+					}
+
+					// Layer 1: block navigation above the confinement root
+					if (this.confinementRoot != null
+							&& !Utility.normalizePath(newDir).startsWith(
+									Utility.normalizePath(this.confinementRoot))) {
+						classLogger.debug("cd .. blocked by confinement root: " + this.confinementRoot);
+						return "Cannot navigate above the session root: " + this.confinementRoot;
 					}
 
 					if (directoryExists(newDir)) {
@@ -448,6 +483,18 @@ public class CmdExecUtil {
 
 	public void setWorkingDir(String workingDir) {
 		this.workingDir = workingDir;
+	}
+
+	public void setConfinementRoot(String confinementRoot) {
+		this.confinementRoot = confinementRoot;
+	}
+
+	public String getConfinementRoot() {
+		return this.confinementRoot;
+	}
+
+	public void setSandboxPolicy(SandboxPolicy policy) {
+		this.sandboxPolicy = policy;
 	}
 
 	/**

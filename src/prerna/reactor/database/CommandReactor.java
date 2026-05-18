@@ -44,6 +44,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
+import prerna.reactor.agent.sandbox.AgentSandboxConfig;
+import prerna.reactor.agent.sandbox.CmdSandboxLauncher;
+import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -110,7 +114,18 @@ public class CommandReactor extends GitBaseReactor {
 		// project context is set.  Seed it to the room folder on first use so commands
 		// run relative to the room rather than the filesystem root.
 		if (this.insight.getRoomId() != null && "/".equals(cmdUtil.getWorkingDir())) {
-			cmdUtil.setWorkingDir(this.insight.getInsightFolder());
+			String roomFolder = this.insight.getInsightFolder();
+			cmdUtil.setWorkingDir(roomFolder);
+
+			// Layer 1: navigation confinement — cd cannot escape the room folder
+			cmdUtil.setConfinementRoot(roomFolder);
+
+			// Layer 2: kernel-level file I/O confinement when AGENT_SANDBOX_ENABLE=true
+			if (AgentSandboxConfig.resolveEnforcement() == EnforcementMode.ENFORCE) {
+				SandboxPolicy policy = CmdSandboxLauncher.buildRoomCommandPolicy(
+						roomFolder, cmdUtil.getChrootPath());
+				cmdUtil.setSandboxPolicy(policy);
+			}
 		}
 
 		// uncomment this line to see it in action. We want to test it for .. etc.
