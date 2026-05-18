@@ -43,13 +43,13 @@ import prerna.util.Utility;
  *
  * <p>Used by {@link SemossAgentHarness} to inject workspace context into the system prompt.
  */
-class AgentsMdLoader {
+public class AgentsMdLoader {
 
     private static final Logger logger = LogManager.getLogger(AgentsMdLoader.class);
 
-    static final String[] NAMES = { "AGENTS.md", "CLAUDE.md" };
-    static final int MAX_WALK_DEPTH = 10;
-    static final int MAX_BYTES = 100 * 1024;
+    public static final String[] NAMES = { "AGENTS.md", "CLAUDE.md" };
+    public static final int MAX_WALK_DEPTH = 10;
+    public static final int MAX_BYTES = 100 * 1024;
 
     private AgentsMdLoader() {}
 
@@ -60,7 +60,7 @@ class AgentsMdLoader {
      * <p>Stops at the SEMOSS base folder, the filesystem root, or after {@value #MAX_WALK_DEPTH}
      * levels — whichever comes first.
      */
-    static String discover(String startPath) {
+    public static String discover(String startPath) {
         if (startPath == null || startPath.isBlank()) {
             return null;
         }

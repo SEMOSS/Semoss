@@ -54,7 +54,7 @@ public class GetAppSkillsReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 
 		User user = this.insight.getUser();
-		Map<String, String> response = AppBuildingHarness.getSkills(user, projectId);
+		Map<String, String> response = AppBuilderHarnessConfiguration.getSkills(user, projectId);
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 }

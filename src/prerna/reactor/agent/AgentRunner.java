@@ -28,6 +28,7 @@
 package prerna.reactor.agent;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +40,8 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
+import prerna.reactor.agent.config.AgentConfig;
+import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
@@ -53,8 +56,36 @@ public final class AgentRunner {
 
     private static final Logger logger = LogManager.getLogger(AgentRunner.class);
 
-    /** Key under which {@code filePath} is injected into {@code paramMap}. */
+    /** Key under which the resolved working directory is injected into {@code paramMap}. */
     public static final String FILE_PATH_PARAM_KEY = "file_path";
+
+    /**
+     * paramMap key for an explicit workspace id (agent identity) that overrides
+     * whatever {@code room.options.workspace.workspace_id} carries. Stripped from
+     * paramMap by {@link #extractExplicitWorkspaceId(Map)} before the model engine call.
+     */
+    public static final String PARAM_WORKSPACE_ID = "workspace_id";
+
+    /**
+     * paramMap key: target SEMOSS project (workspace) the agent should operate inside.
+     * Resolves to that project's {@code assets/} folder. Mutually preferred over the
+     * default (current room's folder).
+     */
+    public static final String PARAM_PROJECT = "project";
+
+    /**
+     * paramMap key: relative subfolder inside the resolved container (room or project).
+     * Must be relative (no leading {@code /}, {@code \}, or {@code ~}) and must not
+     * contain {@code ..} segments. The resolved path is canonical-checked to stay
+     * under the container.
+     */
+    public static final String PARAM_SUBDIR = "subdir";
+
+    /**
+     * paramMap key: legacy absolute working-dir path. <b>Deprecated.</b> Callers
+     * should use {@link #PARAM_PROJECT} + {@link #PARAM_SUBDIR}. Logged + ignored.
+     */
+    public static final String PARAM_FILE_PATH_LEGACY = "filePath";
 
     /** Options-map keys checked (in order) when room.getModelId() is not set. */
     private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
@@ -120,43 +151,34 @@ public final class AgentRunner {
 
         insight.setRoomForInsight(room);
 
-        String filePath = "";
-        if (paramMap.containsKey("project")) {
-        	String projectId = paramMap.get("project").toString();
-        	filePath = AssetUtility.getProjectAssetsFolder(projectId);
-        	logger.info("Using project ID {} to set agent working directory..", projectId);
-        } else if(paramMap.containsKey("filePath")){
-        	filePath = paramMap.remove("filePath").toString();
-        	insight.setInsightFolder(filePath.trim());
-        } else {
-            String roomFolderPath = room.getRoomFolderPath();
-            File roomFolder = new File(roomFolderPath);
-            if (!roomFolder.exists()) {
-                roomFolder.mkdirs();
-            }
-            logger.info("AgentRunner: agentInsight folder set to room folder={}", roomFolderPath);
-        }
-        
-
-        
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+        String filePath = resolveWorkingDir(room, params);
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
         SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
 
+        // Explicit workspace_id override (from the RunAgent `workspaceId` named arg
+        // or paramMap key). Wins over room.options.workspace.workspace_id when set.
+        // Stripped here so it doesn't leak into the model engine call.
+        String explicitWorkspaceId = extractExplicitWorkspaceId(params);
+
+        // Resolve the agent config once. Every harness reads from ctx.getAgentConfig()
+        // — no harness re-implements room/workspace prompt resolution. All "what is this
+        // agent" fields (working_dir, model_id, model_params, budgets, prompt layers) live
+        // on AgentConfig; AgentRunContext just carries the per-call live state.
+        AgentConfig agentConfig = AgentConfigLoader.load(
+                room, filePath, modelId, params, maxTurns, maxReflections, explicitWorkspaceId);
+
         AgentRunContext ctx = AgentRunContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
                 .insight(insight)
                 .userId(room.getUserId())
-                .filePath(filePath)
                 .input(input)
-                .paramMap(params)
-                .maxTurns(maxTurns)
-                .maxReflections(maxReflections)
                 .sandboxPolicy(sandboxPolicy)
+                .agentConfig(agentConfig)
                 .build();
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
@@ -172,6 +194,117 @@ public final class AgentRunner {
         }
 
         return result;
+    }
+
+    /**
+     * Extract and strip the {@link #PARAM_WORKSPACE_ID} key from {@code params}.
+     * Returns {@code null} when absent or blank.
+     */
+    private static String extractExplicitWorkspaceId(Map<String, Object> params) {
+        Object raw = params.remove(PARAM_WORKSPACE_ID);
+        if (raw == null) {
+            return null;
+        }
+        String s = String.valueOf(raw).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /**
+     * Resolve the agent's working directory from paramMap, in this priority:
+     *
+     * <ol>
+     *   <li><b>Container</b>: {@code project=<uuid>} resolves to that project's assets
+     *       folder. Otherwise the current room's folder (created if missing) is used.</li>
+     *   <li><b>Subdir</b>: {@code subdir=<relative-path>} joins under the container.
+     *       Must be relative, must not escape via {@code ..}; checked by canonical-path
+     *       containment.</li>
+     *   <li><b>Legacy {@code filePath}</b>: deprecated. Logged at WARN and ignored —
+     *       callers must use {@code project} + {@code subdir}.</li>
+     * </ol>
+     *
+     * <p>Consumed keys ({@code project}, {@code subdir}, {@code filePath}) are removed
+     * from {@code params} so they do not bleed into the model engine call.
+     *
+     * @throws IllegalArgumentException for unresolvable project, illegal subdir, or
+     *                                  containment failure
+     */
+    private static String resolveWorkingDir(Room room, Map<String, Object> params) {
+        // Legacy filePath — strip + warn, never honor.
+        Object legacyFilePath = params.remove(PARAM_FILE_PATH_LEGACY);
+        if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
+            logger.warn("AgentRunner: '{}' is deprecated and ignored — use '{}' + '{}' instead. value='{}'",
+                    PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
+        }
+
+        // 1. Container.
+        String container;
+        String containerLabel;
+        Object projectObj = params.remove(PARAM_PROJECT);
+        if (projectObj != null && !String.valueOf(projectObj).trim().isEmpty()) {
+            String projectId = String.valueOf(projectObj).trim();
+            container = AssetUtility.getProjectAssetsFolder(projectId);
+            if (container == null || container.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "AgentRunner: could not resolve assets folder for project='" + projectId + "'");
+            }
+            containerLabel = "project=" + projectId;
+            logger.info("AgentRunner: container resolved from project='{}' -> '{}'", projectId, container);
+        } else {
+            container = room.getRoomFolderPath();
+            File roomFolder = new File(container);
+            if (!roomFolder.exists()) {
+                roomFolder.mkdirs();
+            }
+            containerLabel = "room=" + room.getId();
+            logger.info("AgentRunner: container defaulted to room folder='{}' (room={})",
+                    container, room.getId());
+        }
+
+        // 2. Subdir.
+        Object subdirObj = params.remove(PARAM_SUBDIR);
+        if (subdirObj == null || String.valueOf(subdirObj).trim().isEmpty()) {
+            return container;
+        }
+        String subdir = String.valueOf(subdirObj).trim();
+        return joinSubdir(container, subdir, containerLabel);
+    }
+
+    /**
+     * Join {@code subdir} under {@code container}, validating that the result stays
+     * inside the container after canonicalisation. Rejects absolute paths and
+     * {@code ..} escape.
+     */
+    private static String joinSubdir(String container, String subdir, String containerLabel) {
+        if (subdir.startsWith("/") || subdir.startsWith("\\") || subdir.startsWith("~")) {
+            throw new IllegalArgumentException(
+                    "subdir must be relative (no leading '/', '\\', or '~'); got '" + subdir
+                    + "' under " + containerLabel);
+        }
+        if (subdir.contains("..")) {
+            throw new IllegalArgumentException(
+                    "subdir must not contain '..' segments; got '" + subdir + "' under " + containerLabel);
+        }
+        File containerFile = new File(container);
+        File joined = new File(containerFile, subdir);
+        String containerCanonical;
+        String joinedCanonical;
+        try {
+            containerCanonical = containerFile.getCanonicalPath();
+            joinedCanonical    = joined.getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    "Could not canonicalize working dir for " + containerLabel + " + '" + subdir + "': "
+                    + e.getMessage(), e);
+        }
+        // Allow equality (subdir resolves to container itself) or strict-subdir relationship.
+        if (!joinedCanonical.equals(containerCanonical)
+                && !joinedCanonical.startsWith(containerCanonical + File.separator)) {
+            throw new IllegalArgumentException(
+                    "subdir '" + subdir + "' escapes container (" + containerLabel + "): "
+                    + joinedCanonical + " is outside " + containerCanonical);
+        }
+        logger.info("AgentRunner: subdir='{}' joined to container -> '{}'", subdir, joinedCanonical);
+        return joinedCanonical;
     }
 
     /**

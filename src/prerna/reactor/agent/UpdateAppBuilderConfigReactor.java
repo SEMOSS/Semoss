@@ -69,7 +69,7 @@ public class UpdateAppBuilderConfigReactor extends AbstractReactor {
         addIfPresent(updates, AppBuilderHarnessConfiguration.STORAGE_ENGINES);
         addIfPresent(updates, AppBuilderHarnessConfiguration.DATABASE_ENGINES);
 
-        String clientPath = AppBuildingHarness.resolveProjectClientPath(projectId);
+        String clientPath = AppBuilderHarnessConfiguration.resolveProjectClientPath(projectId);
         Boolean response = AppBuilderHarnessConfiguration.setSelectedEngines(clientPath, updates);
         return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
     }

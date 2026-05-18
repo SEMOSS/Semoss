@@ -28,45 +28,74 @@
 package prerna.reactor.agent;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.User;
+import prerna.project.api.IProject;
+import prerna.util.EngineUtility;
+import prerna.util.Utility;
+
 /**
- * Manages the {@code .agents/AGENT_CONFIG.json} file that lives alongside the
- * {@code .claude/} directory inside a project's {@code client/} folder.
+ * App-builder helpers + the {@code .agents/AGENT_CONFIG.json} engine-selection store.
  *
- * <p>The config tracks engines selected for use by the agent, grouped by type:
- * <pre>
- * {
- *   "selected_engines": {
- *     "model_engines":    [ { "name": "...", "id": "..." }, ... ],
- *     "vector_engines":   [ ... ],
- *     "storage_engines":  [ ... ],
- *     "database_engines": [ ... ]
- *   }
- * }
- * </pre>
+ * <p>Two responsibilities, both specific to the SemossWeb app-builder flow:
+ * <ul>
+ *   <li><b>Engine selection</b> ({@code .agents/AGENT_CONFIG.json}) — tracks the model,
+ *       vector, storage, and database engines selected for the project's agent:
+ *       <pre>
+ *       {
+ *         "selected_engines": {
+ *           "model_engines":    [ { "name": "...", "id": "..." }, ... ],
+ *           "vector_engines":   [ ... ],
+ *           "storage_engines":  [ ... ],
+ *           "database_engines": [ ... ]
+ *         }
+ *       }
+ *       </pre></li>
+ *   <li><b>Skill CRUD</b> ({@code client/.claude/skills/<name>/SKILL.md}) — the static
+ *       methods called by {@code CreateAppSkillReactor}, {@code UpdateAppSkillReactor},
+ *       {@code DeleteAppSkillReactor}, {@code GetAppSkillsReactor}. The skill files
+ *       are the SemossWeb FE's "agent skill editor" backing store.</li>
+ * </ul>
  *
- * <p>Scaffolding is invoked from {@link AppBuildingHarness#execute} so the file
- * is guaranteed to exist before any harness {@code doExecute} runs.
+ * <p>All methods are static — this class is a stateless utility, not a runtime helper
+ * for the harness loop. Both groups self-create any missing directories on demand;
+ * no separate scaffolding step is required.
  */
 public class AppBuilderHarnessConfiguration {
 
     private static final Logger logger = LogManager.getLogger(AppBuilderHarnessConfiguration.class);
+
+    // ── Path constants ───────────────────────────────────────────────────────
+
+    /** Subdirectory of a project's assets folder where the agent operates. */
+    public static final String CLIENT_DIR = "client";
+    /** {@code .claude/} directory under {@link #CLIENT_DIR}. */
+    public static final String CLAUDE_DIR = ".claude";
+    /** {@code skills/} subdirectory under {@link #CLAUDE_DIR}. */
+    public static final String SKILLS_DIR = "skills";
+    /** Filename inside each skill folder. */
+    public static final String SKILL_FILE = "SKILL.md";
+
+    // ── AGENT_CONFIG.json constants ──────────────────────────────────────────
 
     public static final String AGENTS_DIR        = ".agents";
     public static final String AGENT_CONFIG_FILE = "AGENT_CONFIG.json";
@@ -155,7 +184,7 @@ public class AppBuilderHarnessConfiguration {
 
     /** Convenience accessor by {@code projectId}. */
     public static JSONObject getConfigForProject(String projectId) {
-        return getConfig(AppBuildingHarness.resolveProjectClientPath(projectId));
+        return getConfig(resolveProjectClientPath(projectId));
     }
 
     /** Returns the engines list for one type as a {@link JSONArray} (never null). */
@@ -191,7 +220,7 @@ public class AppBuilderHarnessConfiguration {
 
     /** Convenience: add an engine resolving {@code clientPath} from {@code projectId}. */
     public static boolean addEngineForProject(String projectId, String engineType, String name, String id) {
-        return addEngine(AppBuildingHarness.resolveProjectClientPath(projectId), engineType, name, id);
+        return addEngine(resolveProjectClientPath(projectId), engineType, name, id);
     }
 
     /**
@@ -205,7 +234,7 @@ public class AppBuilderHarnessConfiguration {
 
     /** Convenience: remove an engine resolving {@code clientPath} from {@code projectId}. */
     public static boolean removeEngineForProject(String projectId, String engineType, String id) {
-        return removeEngine(AppBuildingHarness.resolveProjectClientPath(projectId), engineType, id);
+        return removeEngine(resolveProjectClientPath(projectId), engineType, id);
     }
 
     /**
@@ -231,7 +260,7 @@ public class AppBuilderHarnessConfiguration {
 
     /** Convenience: set engines resolving {@code clientPath} from {@code projectId}. */
     public static boolean setEnginesForProject(String projectId, String engineType, List<Map<String, String>> entries) {
-        return setEngines(AppBuildingHarness.resolveProjectClientPath(projectId), engineType, entries);
+        return setEngines(resolveProjectClientPath(projectId), engineType, entries);
     }
 
     /**
@@ -259,7 +288,7 @@ public class AppBuilderHarnessConfiguration {
                                                       List<Map<String, String>> storageEngines,
                                                       List<Map<String, String>> databaseEngines) {
         return setSelectedEngines(
-                AppBuildingHarness.resolveProjectClientPath(projectId),
+                resolveProjectClientPath(projectId),
                 modelEngines, vectorEngines, storageEngines, databaseEngines);
     }
 
@@ -314,7 +343,7 @@ public class AppBuilderHarnessConfiguration {
 
     /** Convenience: get one engine list resolving {@code clientPath} from {@code projectId}. */
     public static List<Map<String, Object>> getEnginesForProject(String projectId, String engineType) {
-        return getEnginesAsList(AppBuildingHarness.resolveProjectClientPath(projectId), engineType);
+        return getEnginesAsList(resolveProjectClientPath(projectId), engineType);
     }
 
     // ============================================================
@@ -362,10 +391,10 @@ public class AppBuilderHarnessConfiguration {
      */
     private static void writeSelectedEnginesSkill(Path clientPath, JSONObject config) {
         Path skillDir = clientPath
-                .resolve(AppBuildingHarness.CLAUDE_DIR)
-                .resolve(AppBuildingHarness.SKILLS_DIR)
+                .resolve(CLAUDE_DIR)
+                .resolve(SKILLS_DIR)
                 .resolve(SELECTED_ENGINES_SKILL_NAME);
-        Path skillFile = skillDir.resolve(AppBuildingHarness.SKILL_FILE);
+        Path skillFile = skillDir.resolve(SKILL_FILE);
         try {
             Files.createDirectories(skillDir);
             String content = buildSelectedEnginesSkill(config);
@@ -446,5 +475,129 @@ public class AppBuilderHarnessConfiguration {
             throw new IllegalArgumentException(
                     "Unknown engine type '" + engineType + "'. Expected one of: " + ENGINE_TYPES);
         }
+    }
+
+    // ============================================================
+    // Path resolution
+    // ============================================================
+
+    /**
+     * Returns {@code <project-assets>/client} for the given project id.
+     *
+     * @throws IllegalArgumentException if the project cannot be loaded
+     */
+    public static String resolveProjectClientPath(String projectId) {
+        IProject project = Utility.getProject(projectId);
+        if (project == null) {
+            throw new IllegalArgumentException("Could not find or load project = " + projectId);
+        }
+        String projectName = project.getProjectName();
+        String projectPath = EngineUtility.getSpecificEngineAssetsFolder(
+                project.getCatalogType(), projectId, projectName);
+        return Paths.get(projectPath, CLIENT_DIR).toString();
+    }
+
+    // ============================================================
+    // Skill CRUD
+    //
+    // The SemossWeb FE's "agent skill editor" calls these via the
+    // CreateAppSkill / UpdateAppSkill / DeleteAppSkill / GetAppSkills reactors.
+    // Skill files live at:   <project>/client/.claude/skills/<slug>/SKILL.md
+    // ============================================================
+
+    public static Boolean createSkill(User user, String projectId, String skillName, String skillContent) {
+        String clientPath = resolveProjectClientPath(projectId);
+        String slugifiedName = slugify(skillName);
+        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, slugifiedName, SKILL_FILE);
+
+        try {
+            Files.createDirectories(skillPath.getParent());
+            if (!Files.exists(skillPath)) {
+                Files.createFile(skillPath);
+            }
+            Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException e) {
+            logger.error("Failed to write skill file: {}", skillPath, e);
+            return false;
+        }
+    }
+
+    public static Boolean updateSkill(User user, String projectId, String skillName, String skillContent) {
+        String clientPath = resolveProjectClientPath(projectId);
+        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, skillName, SKILL_FILE);
+
+        try {
+            Files.createDirectories(skillPath.getParent());
+            Files.write(skillPath, skillContent.getBytes(StandardCharsets.UTF_8));
+            return true;
+        } catch (IOException e) {
+            logger.error("Failed to write skill file: {}", skillPath, e);
+            return false;
+        }
+    }
+
+    public static Boolean deleteSkill(User user, String projectId, String skillName) {
+        String clientPath = resolveProjectClientPath(projectId);
+        Path skillPath = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR, skillName);
+
+        if (!Files.exists(skillPath)) {
+            return true;
+        }
+
+        try (Stream<Path> walk = Files.walk(skillPath)) {
+            walk.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.delete(path);
+                } catch (IOException e) {
+                    logger.error("Failed to delete path: {}", path, e);
+                    throw new UncheckedIOException(e);
+                }
+            });
+            return true;
+        } catch (IOException | UncheckedIOException e) {
+            logger.error("Failed to delete skill directory: {}", skillPath, e);
+            return false;
+        }
+    }
+
+    public static Map<String, String> getSkills(User user, String projectId) {
+        String clientPath = resolveProjectClientPath(projectId);
+        Map<String, String> skillsMap = new HashMap<>();
+
+        Path claudeMd = Paths.get(clientPath, "CLAUDE.md");
+        if (Files.exists(claudeMd)) {
+            try {
+                skillsMap.put("CLAUDE.MD", new String(Files.readAllBytes(claudeMd), StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                logger.error("Failed to read CLAUDE.md", e);
+            }
+        }
+
+        Path skillsDir = Paths.get(clientPath, CLAUDE_DIR, SKILLS_DIR);
+        if (!Files.exists(skillsDir)) {
+            return skillsMap;
+        }
+        try (Stream<Path> dirs = Files.list(skillsDir)) {
+            dirs.forEach(dir -> {
+                try {
+                    Path skillFile = dir.resolve(SKILL_FILE);
+                    if (Files.exists(skillFile)) {
+                        skillsMap.put(
+                                dir.getFileName().toString(),
+                                new String(Files.readAllBytes(skillFile), StandardCharsets.UTF_8));
+                    }
+                } catch (IOException e) {
+                    logger.error("Failed to read skill file under {}", dir, e);
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Failed to list skills directory: {}", skillsDir, e);
+        }
+        return skillsMap;
+    }
+
+    private static String slugify(String name) {
+        return name.toLowerCase().replace(" ", "-");
     }
 }

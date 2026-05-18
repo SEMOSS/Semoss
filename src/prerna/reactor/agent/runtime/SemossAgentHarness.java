@@ -42,6 +42,7 @@ import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentMaxTurnsException;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.IAgentHarness;
+import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.runtime.AgentBudgetException.BudgetKind;
 
 /**
@@ -106,43 +107,40 @@ public class SemossAgentHarness implements IAgentHarness {
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
-		// Compose the system prompt for this run by overlaying onto room.options.instructions:
-		//   1. Built-in SEMOSS harness system prompt (always — defines baseline agent behavior)
-		//   2. Project-level AGENTS.md / CLAUDE.md if discovered
-		//   3. The room's existing options.instructions (most-specific layer, preserved)
-		// Putting the result on the room (rather than just on the first InputMessage) makes it
-		// visible to every Room.getEffectiveSystemPrompt() call — including the synthetic
-		// tool-result InputMessage built inside Room.addToolExecutionResult, which would
-		// otherwise drop the harness prompt and AGENTS.md after the first tool call.
-		// Restored in the finally block below. In-memory mutation only — no DB write.
-		// Three layers, most-general to most-specific:
-		//   1. Built-in SEMOSS harness prompt (baseline agent behavior)
-		//   2. Project-level AGENTS.md / CLAUDE.md (filesystem)
-		//   3. Authored prompt — room.options.instructions OR workspace.system_prompt
-		//      (resolved by Room.getRoomOrWorkspaceSystemPrompt(); without that lookup
-		//      the workspace prompt would be silently shadowed by our overlay below).
-		String agentsMd = AgentsMdLoader.discover(ctx.getFilePath());
-		String authoredPrompt = room.getRoomOrWorkspaceSystemPrompt();
+		// Compose the final prompt as:
+		//   <harness baseline>            -- SemossHarnessPrompts.SYSTEM_PROMPT (harness-specific)
+		//   <agent-side composed layers>  -- AgentConfig.getComposedAgentPrompt()
+		//                                     = agent AGENTS.md + workdir AGENTS.md + authored prompt
+		// AgentConfig is resolved once by AgentConfigLoader at the top of AgentRunner.run() —
+		// no harness re-implements room/workspace resolution.
+		//
+		// We still overlay the composed text onto room.options.instructions for the duration
+		// of this run because the synthetic tool-result InputMessage built inside
+		// Room.addToolExecutionResult re-reads getEffectiveSystemPrompt() and would otherwise
+		// drop the harness baseline + AGENTS.md after the first tool call. Restored in finally.
+		// In-memory mutation only — no DB write.
+		AgentConfig agentConfig = ctx.getAgentConfig();
+		String agentSidePrompt = agentConfig.getComposedAgentPrompt();
 
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
-		if (agentsMd != null && !agentsMd.isEmpty()) {
-			composed.append("\n\n").append(agentsMd);
-		}
-		if (authoredPrompt != null && !authoredPrompt.isEmpty()) {
-			composed.append("\n\n").append(authoredPrompt);
+		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
+			composed.append("\n\n").append(agentSidePrompt);
 		}
 		opts.put("instructions", composed.toString());
 		room.setOptionsMap(opts);
 
 		logger.info(
-				"SemossAgentHarness: composed system prompt room={} harnessChars={} agentsMdChars={} authoredPromptChars={}",
-				room.getId(), SemossHarnessPrompts.SYSTEM_PROMPT.length(),
-				agentsMd != null ? agentsMd.length() : 0,
-				authoredPrompt != null ? authoredPrompt.length() : 0);
+				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={})",
+				room.getId(), agentConfig.getWorkspaceId(),
+				SemossHarnessPrompts.SYSTEM_PROMPT.length(),
+				agentSidePrompt != null ? agentSidePrompt.length() : 0,
+				lengthOrZero(agentConfig.getAgentAgentsMd()),
+				lengthOrZero(agentConfig.getWorkdirAgentsMd()),
+				lengthOrZero(agentConfig.getAuthoredPrompt()));
 
 		try {
 			String systemPrompt = room.getEffectiveSystemPrompt();
@@ -274,6 +272,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_FILE_PATH_CAMEL);
 		paramMap.remove(PARAM_PERMISSION_MODE);
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
+	}
+
+	private static int lengthOrZero(String s) {
+		return s == null ? 0 : s.length();
 	}
 
 	private static int resolveMaxSeconds(Map<String, Object> paramMap) {

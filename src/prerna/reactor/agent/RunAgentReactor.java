@@ -68,23 +68,25 @@ public class RunAgentReactor extends AbstractReactor {
 
     private static final String HARNESS_TYPE_KEY    = "harnessType";
     private static final String AGENT_ID_KEY        = "agentId";
+    private static final String WORKSPACE_ID_KEY    = "workspaceId";
     private static final String MAX_TURNS_KEY       = "maxTurns";
     private static final String MAX_ITERATIONS_KEY  = "maxIterations";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
 
     public RunAgentReactor() {
         this.keysToGet = new String[] {
-                ReactorKeysEnum.ROOM_ID.getKey(),             
-                ReactorKeysEnum.COMMAND.getKey(),             
-                ReactorKeysEnum.ENGINE.getKey(),              
-                HARNESS_TYPE_KEY,                             
-                AGENT_ID_KEY,                                 
+                ReactorKeysEnum.ROOM_ID.getKey(),
+                ReactorKeysEnum.COMMAND.getKey(),
+                ReactorKeysEnum.ENGINE.getKey(),
+                HARNESS_TYPE_KEY,
+                AGENT_ID_KEY,
+                WORKSPACE_ID_KEY,
                 MAX_TURNS_KEY,
                 MAX_ITERATIONS_KEY,
-                MAX_REFLECTIONS_KEY,                          
+                MAX_REFLECTIONS_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -106,8 +108,15 @@ public class RunAgentReactor extends AbstractReactor {
             }
         }
         
-        // agentId reserved for future agent-config lookup
+        // agentId reserved for future agent-config lookup (named alias for an AgentConfig
+        // entry; currently unused).
         // String agentId       = this.keyValue.get(AGENT_ID_KEY);
+        //
+        // workspaceId — explicit override for the agent's workspace. Wins over
+        // room.options.workspace.workspace_id. Stuffed into paramMap so AgentRunner picks
+        // it up; AgentConfigLoader reads it from paramMap and prefers it over room.options.
+        String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
+
         int maxTurns = parseIntAtLeast(
                 StringUtils.firstNonBlank(
                         this.keyValue.get(MAX_TURNS_KEY),
@@ -117,6 +126,9 @@ public class RunAgentReactor extends AbstractReactor {
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
         Map<String, Object> paramMap = getMap();
+        if (explicitWorkspaceId != null) {
+            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
+        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -125,8 +137,8 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} maxTurns={} maxReflections={}",
-                roomId, engineIdFallback, harnessType, maxTurns, maxReflections);
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
 
         try {
             AgentHarnessResult result = AgentRunner.run(
