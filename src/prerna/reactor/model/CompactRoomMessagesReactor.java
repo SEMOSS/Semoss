@@ -241,14 +241,19 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage toolPruneResponse = ResponseMessage.builder()
-                .withText("Successfully set prune flag on message")
+                .withText("This conversation was compacted at the user's request — " +
+                        "intermediate tool call results have been pruned from the context " +
+                        "to free up space. If asked whether the conversation was compacted, " +
+                        "confirm that it was. Use the term \"compacted\" by default (matching " +
+                        "what the user sees in the UI), but feel free to explain that tool " +
+                        "results were pruned if the user asks for specifics.")
                 .build();
         toolPruneResponse.setParentMessageId(toolPruneMessage.getMessageId());
         toolPruneResponse.setVisibile(false);
 
         // summary response tokens + last n messages tokens - original tokens in that
         // span (to avoid double counting)
-        toolPruneResponse.setTokensInMessage(10);
+        toolPruneResponse.setTokensInMessage(65);
 
         messages.add(toolPruneMessage);
         messages.add(toolPruneResponse);
@@ -314,14 +319,17 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 - Decisions made and the reasoning behind them
                 - User preferences, constraints, or requirements stated
                 - Any unresolved questions or open threads
-                - Critical specifics (names, values, code, file names, etc.)
+                - Critical specifics (names, values, code, file paths, etc.) — quote these verbatim
                 - Outcomes of any tool calls or actions taken (search results used, files
                 read, APIs called, etc.)
+                - Overall communication style (tone, formality, verbosity)
 
                 Be concise but do not omit anything that would be needed to seamlessly
                 continue the conversation. Write in present tense as if briefing someone
                 taking over the conversation. Only summarize up to the point the conversation
-                ends - do not speculate about what comes next.
+                ends — do not speculate about what comes next.
+
+                Begin your response with the literal line "[SUMMARY]" before any other text.
 
                 """ + summaryTranscript.toString().trim();
 
@@ -349,19 +357,25 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         int lastMessagesTokenCount = getLastMessageTokens(toKeep); // need this to determine tokens used by verbatim
                                                                    // messages
         String compactedTextMessage = """
-                You are continuing an ongoing conversation. The earlier portion of this
-                conversation has been summarized below. Treat the summary as accurate and
-                continue naturally from where it left off.
+                You are continuing an ongoing conversation. The user compacted this
+                conversation — earlier messages have been condensed and replaced with a
+                summary below to free up context space.
 
-                Be transparent about the summarization when relevant. If the user asks
-                whether something specific was mentioned earlier, only confirm it if it
-                is explicitly present in the summary. If it is not, be honest that the
-                conversation was summarized and you cannot confirm that specific detail
-                either way.
+                If asked whether this conversation was compacted, always confirm that it
+                was, since the user initiated it. When describing what happened, use the
+                term "compacted" by default (matching what the user sees in the UI), but
+                feel free to elaborate — that earlier messages were summarized — if the
+                user asks for more detail.
 
-                Match the tone and communication style established in the conversation.
+                For questions about specific details from before the compaction: only
+                confirm them if they appear explicitly in the summary. If a detail is
+                absent, be honest that you cannot verify it since those earlier messages
+                are no longer available to you.
 
-                Summary of earlier conversation:
+                Continue in the tone and style described in the summary and demonstrated
+                by the verbatim messages below.
+
+                [SUMMARY]
                 """ + summaryText.trim() + """
 
 
@@ -385,7 +399,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // UI needs a non-zero token count
         // Can't pull token count for this message without sending to llm
         // Token count will get updated regardless in the next ask call
-        compactedMessage.setTokensInMessage(125);
+        compactedMessage.setTokensInMessage(175);
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage compactedResponse = ResponseMessage.builder()
