@@ -43,11 +43,11 @@ public class WorkflowService {
 		this.workflowClient = new WorkflowClient(client);
 	}
 
-	public String startWorkflow(String filePath) {
+	public String startWorkflow(String filePath, WorkflowMapping workflowMapping) {
 		Map<String, Object> input = new HashMap<>();
 		input.put("filePath", filePath);
 		StartWorkflowRequest req = new StartWorkflowRequest();
-		req.setName("file_import_workflow");
+		req.setName(workflowMapping.getWorkflowName());
 		req.setVersion(1);
 		req.setInput(input);
 

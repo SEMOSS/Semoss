@@ -32,6 +32,15 @@ public class WorkflowMapping {
 	public String directory;
 	public String workflowName;
 	public int version;
+	public String createdBy;
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
 
 	public Long getId() {
 		return id;

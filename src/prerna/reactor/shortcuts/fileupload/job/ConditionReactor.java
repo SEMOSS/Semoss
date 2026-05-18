@@ -46,7 +46,7 @@ public class ConditionReactor extends AbstractReactor {
 
 	public ConditionReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.INPUT.getKey(), ReactorKeysEnum.CONFIG.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONFIG.getKey() };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
@@ -55,19 +55,36 @@ public class ConditionReactor extends AbstractReactor {
 		// TODO Auto-generated method stub
 
 		Map<String, Object> config = getConfigMap();
-		Map<String, Object> input = getInputMap();
+		// Map<String, Object> input = getInputMap();
 
-		Map<String, Object> resultMap = (Map<String, Object>) input.get("result");
-		Map<String, Object> output = new HashMap<String, Object>();
-		for (String key : resultMap.keySet()) {
-			System.out.println("Key: " + key);
-			Map<String, Object> actionOutput = (Map<String, Object>) resultMap.get(key);
-			// NounMetadata result = planner.getVariable(key);
-			// Map<String, Object> actionOutput = (Map<String, Object>) result.getValue();
-			output = ConditionEngine.execute(actionOutput, config);
-		}
+		/*
+		 * Map<String, Object> resultMap = (Map<String, Object>) input.get("result");
+		 * Map<String, Object> output = new HashMap<String, Object>(); for (String key :
+		 * resultMap.keySet()) { System.out.println("Key: " + key); Map<String, Object>
+		 * actionOutput = (Map<String, Object>) resultMap.get(key); // NounMetadata
+		 * result = planner.getVariable(key); // Map<String, Object> actionOutput =
+		 * (Map<String, Object>) result.getValue(); output =
+		 * ConditionEngine.execute(actionOutput, config); }
+		 */
 
 		// return Map.of("route", config.get("default"));
+		String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+		System.out.println(filePath);
+		Map<String, Object> output = new HashMap<String, Object>();
+		List<String> inputs = (List<String>) config.get("inputs");
+		for (String key : inputs) {
+			NounMetadata result = planner.getVariable(key);
+			Map<String, Object> inputMap = (Map<String, Object>) result.getValue();
+			System.out.println(inputMap);
+			output = ConditionEngine.execute(inputMap, config);
+
+		}
+
+		/*
+		 * for (String key : inputs) { NounMetadata result = planner.getVariable(key);
+		 * Map<String, Object> map = (Map<String, Object>) result.getValue(); Object
+		 * object = map.get(resultFrom); }
+		 */
 
 		/*
 		 * List<String> inputs = (List<String>) config.get("inputs");

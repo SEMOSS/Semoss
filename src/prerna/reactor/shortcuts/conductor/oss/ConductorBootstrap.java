@@ -32,7 +32,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.conductor.client.http.ConductorClient;
@@ -41,12 +40,11 @@ import com.netflix.conductor.client.worker.Worker;
 import com.netflix.conductor.common.metadata.workflow.WorkflowDef;
 
 import prerna.om.Insight;
-import prerna.om.ThreadStore;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.shortcuts.conductor.oss.workers.PixelWorker;
 
 public class ConductorBootstrap {
-	public static void init(String workflowDefinitionName, int version) throws Exception {
+	public static void init(String workflowDefinitionName, int version, Insight insight) throws Exception {
 
 		WorkflowDefinition workflowDefinition = SchedulerDatabaseUtility
 				.findWorkflowDefinitionByName(workflowDefinitionName, version);
@@ -79,11 +77,12 @@ public class ConductorBootstrap {
 		// 5. Create workers dynamically
 		List<Worker> workers = new ArrayList<>();
 
-		Insight insight = new Insight();
-
-		String insightId = "TempWorkflowInsight_" + UUID.randomUUID().toString();
-		ThreadStore.setInsightId(insightId);
-		insight.setInsightId(insightId);
+		/*
+		 * Insight insight = new Insight();
+		 * 
+		 * String insightId = "TempWorkflowInsight_" + UUID.randomUUID().toString();
+		 * ThreadStore.setInsightId(insightId); insight.setInsightId(insightId);
+		 */
 
 		for (String taskName : uniqueTaskNames) {
 			workers.add(new PixelWorker(taskName, insight, workflowDefinition));

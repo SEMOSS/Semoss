@@ -27,9 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.shortcuts.fileupload.job;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
@@ -54,7 +57,7 @@ public class NotificationReactor extends AbstractReactor {
 
 	public NotificationReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey() };
+		this.keysToGet = new String[] {ReactorKeysEnum.CONFIG.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -63,19 +66,25 @@ public class NotificationReactor extends AbstractReactor {
 
 		organizeKeys();
 		NounMetadata nounMetadata = null;
-		Object output = null;
+		// Object output = null;
 		// Map<String, Object> inputMap = getResultMap();
-		Map<String, Object> result = new HashMap<String, Object>();
 
 		// WorkflowActionResult workflowActionResult = new WorkflowActionResult();
 		Map<String, Object> config = getConfigMap();
+		Map<String, Object> result = new HashMap<String, Object>();
+		Map<String, Object> output = new HashMap<String, Object>();
+		List<String> inputs = (List<String>) config.get("inputs");
+		for (String key : inputs) {
+			NounMetadata inputNounMetadata = planner.getVariable(key);
+			Map<String, Object> input = (Map<String, Object>) inputNounMetadata.getValue();
+			System.out.println(input);
+			output = processInput(output, config, input);
 
-		this.channel = (String) config.get("channel");
-		this.to = (String) config.get("to");
-		this.subject = (String) config.get("subject");
-		this.template = (String) config.get("template");
+		}
 
-		String message = "Sample Message";// buildMessage(ctx);
+		// List<Map<String, Object>> listInputMap = getInputMap();
+
+		// String message = "Sample Message";// buildMessage(ctx);
 
 		/*
 		 * Map<String, Object> varStore = (Map<String, Object>) config.get("varStore");
@@ -84,39 +93,65 @@ public class NotificationReactor extends AbstractReactor {
 		 * 
 		 * System.out.println("Action  : " + actionName);
 		 */
-		nounMetadata = processVarStoreInput(nounMetadata, result, config, output);
 
+		nounMetadata = processOutput(nounMetadata, result, config, output);
 		System.out.println(" NOTIFY completed via " + channel);
 		return nounMetadata;
 	}
 
-	private Object nofify(FileExtractionResult fileExtractionResult) {
+	private Map<String, Object> notify(Map<String, Object> inputMap) {
 		return switch (channel) {
-		case "EMAIL" -> sendEmail(fileExtractionResult, this.insight);
+		case "EMAIL" -> sendEmail(inputMap, this.insight);
 
-		case "SLACK" -> sendSlack(fileExtractionResult, this.insight);
+		case "SLACK" -> sendSlack(inputMap, this.insight);
 
-		case "WEBHOOK" -> sendWebhook(fileExtractionResult, this.insight);
+		case "WEBHOOK" -> sendWebhook(inputMap, this.insight);
 
 		default -> throw new IllegalArgumentException("Unsupported notification channel: " + channel);
 		};
 	}
 
-	private NounMetadata processVarStoreInput(NounMetadata nounMetadata, Map<String, Object> result,
-			Map<String, Object> config, Object output) {
+	private Map<String, Object> processInput(Map<String, Object> result, Map<String, Object> config,
+			Map<String, Object> inputMap) {
 		// Map<String, String> input = (Map<String, String>) varStore.get("input");
 
-		List<String> inputs = (List<String>) config.get("inputs");
-
-		for (String key : inputs) {
-			nounMetadata = planner.getVariable(key);
-			Map<String, Object> inputMap = (Map<String, Object>) nounMetadata.getValue();
-			FileExtractionResult fileExtractionResult = (FileExtractionResult) inputMap.get(key);
-
-			output = nofify(fileExtractionResult);
-			System.out.println("Input Key   : " + key);
-		}
-
+		/*
+		 * Map<String, Object> inputMap = new HashMap<>();
+		 * 
+		 * for (Map<String, Object> map : listInputMap) {
+		 * 
+		 * if (map == null) { continue; }
+		 * 
+		 * Object resultObj = map.get("result");
+		 * 
+		 * if (!(resultObj instanceof Map)) { continue; }
+		 * 
+		 * Map<String, Object> resultMap = (Map<String, Object>) resultObj;
+		 * 
+		 * for (Map.Entry<String, Object> entry : resultMap.entrySet()) {
+		 * 
+		 * String key = entry.getKey(); Object value = entry.getValue();
+		 * 
+		 * System.out.println("Key: " + key);
+		 * 
+		 * if (value instanceof Map) { inputMap.put(key, value); } } }
+		 */
+		this.channel = (String) config.get("channel");
+		this.to = (String) config.get("to");
+		this.subject = (String) config.get("subject");
+		this.template = (String) config.get("template");
+		Map<String, Object> output = notify(inputMap);
+		/*
+		 * List<String> inputs = (List<String>) config.get("inputs");
+		 * 
+		 * for (String key : inputs) { nounMetadata = planner.getVariable(key);
+		 * Map<String, Object> inputMap = (Map<String, Object>) nounMetadata.getValue();
+		 * FileExtractionResult fileExtractionResult = (FileExtractionResult)
+		 * inputMap.get(key);
+		 * 
+		 * output = nofify(fileExtractionResult); System.out.println("Input Key   : " +
+		 * key); }
+		 */
 		/*
 		 * if (input != null) { for (Map.Entry<String, String> entry : input.entrySet())
 		 * {
@@ -135,11 +170,11 @@ public class NotificationReactor extends AbstractReactor {
 		 * 
 		 * } }
 		 */
-		nounMetadata = processVarStoreOutput(nounMetadata, result, config, output);
-		return nounMetadata;
+
+		return output;
 	}
 
-	private NounMetadata processVarStoreOutput(NounMetadata nounMetadata, Map<String, Object> result,
+	private NounMetadata processOutput(NounMetadata nounMetadata, Map<String, Object> result,
 			Map<String, Object> config, Object output) {
 
 		String resultKey = (String) config.get("resultKey");
@@ -235,7 +270,7 @@ public class NotificationReactor extends AbstractReactor {
 
 	/* ---------- Channel Implementations ---------- */
 
-	private Map<String, Object> sendEmail(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> sendEmail(Map<String, Object> inputMap, Insight insight) {
 		// Integrate JavaMailSender / SES here
 		// String extractedText = (String) inputMap.get("extractedText");
 		System.out.println(" EMAIL");
@@ -243,41 +278,41 @@ public class NotificationReactor extends AbstractReactor {
 		System.out.println("Subject : " + this.subject);
 		// System.out.println(this.body);
 
-		System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
-		System.out.println(fileExtractionResult.extractedText);
+		System.out.println(" [INSIGHT] key=" + inputMap);
+		System.out.println(inputMap);
 
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("result", inputMap);
 		output.put("To", to);
 		output.put("Subject", subject);
-		output.put("body", fileExtractionResult.extractedText);
+		output.put("body", inputMap);
 		output.put("message", "sendEmail successfully");
 
 		return output;
 	}
 
-	private Map<String, Object> sendSlack(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> sendSlack(Map<String, Object> inputMap, Insight insight) {
 		// Slack webhook integration
 		System.out.println(" SLACK");
 		// System.out.println("Webhook : " + webhookUrl);
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("result", inputMap);
 		// output.put("To", to);
 		// output.put("Subject", subject);
-		output.put("body", fileExtractionResult.extractedText);
+		output.put("body", inputMap);
 		output.put("message", "sendSlack successfully");
 
 		return output;
 	}
 
-	private Map<String, Object> sendWebhook(FileExtractionResult fileExtractionResult, Insight insight) {
+	private Map<String, Object> sendWebhook(Map<String, Object> inputMap, Insight insight) {
 		// HTTP POST integration
 		System.out.println(" WEBHOOK");
 		Map<String, Object> output = new HashMap<>();
-		output.put("FileExtractionResult", fileExtractionResult);
+		output.put("FileExtractionResult", inputMap);
 		// output.put("To", to);
 		// output.put("Subject", subject);
-		output.put("body", fileExtractionResult.extractedText);
+		output.put("body", inputMap);
 		output.put("message", "sendWebhook successfully");
 
 		return output;
@@ -321,5 +356,73 @@ public class NotificationReactor extends AbstractReactor {
 			return (Map<String, Object>) mapInputs.get(0).getValue();
 		}
 		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getInputMap() {
+		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.INPUT.getKey());
+		if (mapGrs != null && !mapGrs.isEmpty()) {
+			ObjectMapper mapper = new ObjectMapper();
+
+			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+
+			List<Map<String, Object>> results = new ArrayList<>();
+
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+
+				for (int i = 0; i < mapInputs.size(); i++) {
+
+					NounMetadata noun = mapInputs.get(i);
+
+					// Skip null object
+					if (noun == null) {
+						continue;
+					}
+
+					Object value = noun.getValue();
+
+					// Skip null value
+					if (value == null) {
+						continue;
+					}
+
+					try {
+
+						Map<String, Object> parsedMap = null;
+
+						// Case 1: Already a Map (BEST CASE)
+						if (value instanceof Map) {
+							parsedMap = (Map<String, Object>) value;
+						}
+
+						// Case 2: String - convert to JSON - Map
+						else if (value instanceof String) {
+
+							String result = (String) value;
+
+							String json = result.replaceAll("([\\{,]\\s*)([A-Za-z0-9_]+)=", "$1\"$2\":")
+									.replaceAll(":([^\",\\{\\}\\[\\]]+)", ":\"$1\"");
+
+							System.out.println("Converted JSON: " + json);
+
+							parsedMap = mapper.readValue(json, Map.class);
+						}
+
+						// Add only valid parsed map
+						if (parsedMap != null && !parsedMap.isEmpty()) {
+							results.add(parsedMap);
+						}
+
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}
+
+			return results;
+
+		}
+		return null;
+
 	}
 }

@@ -51,6 +51,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.conductor.client.http.MetadataClient;
 import com.netflix.conductor.client.http.WorkflowClient;
 
+import prerna.reactor.scheduler.SchedulerDatabaseUtility;
+import prerna.reactor.shortcuts.conductor.oss.WorkflowMapping;
 import prerna.reactor.shortcuts.conductor.oss.WorkflowService;
 import prerna.util.Utility;
 
@@ -242,8 +244,16 @@ public class FileUploadWatcher implements Runnable {
 						 * // Start workers WorkerInitializer.startWorkers(workers);
 						 */
 						// ===== 1. Find workflow =====
-						WorkflowService workflowService = new WorkflowService();
-						workflowService.startWorkflow(Utility.normalizePath(fullPath));
+						try {
+							WorkflowMapping workflowMapping = SchedulerDatabaseUtility
+									.findByWorkflowMappingDirectory(Utility.normalizePath(parentDir.toString()));
+							WorkflowService workflowService = new WorkflowService();
+							workflowService.startWorkflow(Utility.normalizePath(fullPath), workflowMapping);
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+
 						/*
 						 * String workflowName = SchedulerDatabaseUtility
 						 * .getWorkflowJsonByDirectory(Utility.normalizePath(parentDir.toString()));

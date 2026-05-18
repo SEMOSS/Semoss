@@ -185,9 +185,11 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
+		if (this.curRow != null) {
+			List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
+			if (mapInputs != null && !mapInputs.isEmpty()) {
+				return (Map<String, Object>) mapInputs.get(0).getValue();
+			}
 		}
 
 		return null;

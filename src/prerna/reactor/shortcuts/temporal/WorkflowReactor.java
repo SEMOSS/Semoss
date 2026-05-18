@@ -175,7 +175,8 @@ public class WorkflowReactor extends AbstractReactor {
 
 				// save and get workflow_id
 				Long workflowId = SchedulerDatabaseUtility.saveWorkflowDefinition(workflowDefinition.name,
-						workflowDefinition.version, workflowDefinition.json, workflowDefinition.status);
+						workflowDefinition.version, workflowDefinition.json, workflowDefinition.status,
+						user.getPrimaryLoginToken().getId());
 
 				// ===== 2. PARSE TASKS FROM JSON =====
 				List<Map<String, Object>> tasks = (List<Map<String, Object>>) map.get("tasks");
@@ -188,9 +189,10 @@ public class WorkflowReactor extends AbstractReactor {
 				mapping.workflowName = workflowDefinition.name;
 				mapping.version = workflowDefinition.version;
 
-				SchedulerDatabaseUtility.saveWorkflowMapping(mapping.directory, mapping.workflowName, mapping.version);
+				SchedulerDatabaseUtility.saveWorkflowMapping(mapping.directory, mapping.workflowName, mapping.version,
+						user.getPrimaryLoginToken().getId());
 
-				ConductorBootstrap.init(workflowDefinition.name, workflowDefinition.version);
+				ConductorBootstrap.init(workflowDefinition.name, workflowDefinition.version, this.insight);
 				// SchedulerDatabaseUtility.createWorkflowTriggerMapping(watchDir, "*.txt",
 				// "file_import_workflow");
 

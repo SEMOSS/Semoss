@@ -116,9 +116,9 @@ public class PixelWorker implements Worker {
 			}
 
 			// Important: expose fields for DECISION task
-			output.put("result", resultMap);
+			// output.put("result", resultMap);
 
-			result.setOutputData(output);
+			result.setOutputData(resultMap);
 			result.setStatus(TaskResult.Status.COMPLETED);
 
 			SchedulerDatabaseUtility.insertTaskExecutionLog(workflowInstanceId, workflowDefinition.getName(),

@@ -30,14 +30,10 @@ package prerna.reactor.shortcuts.fileupload.job;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,11 +48,9 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.tika.Tika;
-import org.w3c.dom.Document;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.shortcuts.conductor.oss.filesextractor.FileExtractorEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -68,19 +62,19 @@ public class FileExtractReactor extends AbstractReactor {
 	private static final Tika tika = new Tika();
 
 	/*
-	 * private final boolean storeRawText; private final boolean
-	 * storeStructuredData; private final ObjectMapper mapper = new ObjectMapper();
+	 * private final boolean storeRawText; private final boolean storeextractedText;
+	 * private final ObjectMapper mapper = new ObjectMapper();
 	 */
 
 	/*
 	 * public FileExtractReactor(Map<String, Object> config) { this.storeRawText =
-	 * Boolean.TRUE.equals(config.get("storeRawText")); this.storeStructuredData =
-	 * Boolean.TRUE.equals(config.get("storeStructuredData")); }
+	 * Boolean.TRUE.equals(config.get("storeRawText")); this.storeextractedText =
+	 * Boolean.TRUE.equals(config.get("storeextractedText")); }
 	 */
 
 	public FileExtractReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey(), ReactorKeysEnum.INPUT.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CONFIG.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.RESULT.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -92,91 +86,77 @@ public class FileExtractReactor extends AbstractReactor {
 			Map<String, Object> config = getConfigMap();
 
 			NounMetadata nounMetadata = null;
-			String keyPath = null;
+			// String keyPath = null;
 
 			Map<String, Object> result = new HashMap<String, Object>();
-			// Map<String, Object> inputMap = getResultMap();
+			// Map<String, Object> extractResult = new HashMap<String, Object>();
 
-			// ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
+			String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 
-			String filePath = this.keyValue.get(ReactorKeysEnum.INPUT.getKey());
-			/*
-			 * URI uri = URI.create(filePath); Path path = Paths.get(uri);
-			 */
-			// String mimeType = tika.detect(path.toFile());
-			Path path = Path.of(filePath);
+			// Path path = Path.of(filePath);
 			File file = new File(filePath);
-			// Map<String, Object> param = helper.getConfigParameter("config", Map.class);
+			Map<String, Object> extracted = FileExtractorEngine.process(file);
 
-			// File file = (File) ctx.input.get("file");
-			String name = file.getName().toLowerCase();
-			// WorkflowActionResult workflowActionResult = new WorkflowActionResult();
-			FileExtractionResult r = new FileExtractionResult();
-			r.fileName = file.getName();
-			r.mimeType = tika.detect(file);
-
-			if (name.endsWith(".pdf")) {
-				r.fileType = "PDF";
-				if (Boolean.TRUE.equals(config.get("storeRawText"))) {
-					r.extractedText = extractPdf(file);
-				}
-			} else if (name.endsWith(".docx") || name.endsWith(".doc")) {
-				r.fileType = "DOCX";
-				if (Boolean.TRUE.equals(config.get("storeRawText"))) {
-					r.extractedText = extractDoc(file);
-				}
-
-			} else if (name.endsWith(".xls") || name.endsWith(".xlsx")) {
-				r.fileType = "XLSX";
-				if (Boolean.TRUE.equals(config.get("storeStructuredData"))) {
-					r.structuredData = extractExcel(file);
-				}
-			} else if (name.endsWith(".csv")) {
-				r.fileType = "CSV";
-				if (Boolean.TRUE.equals(config.get("storeStructuredData"))) {
-					r.structuredData = extractCsv(file);
-				}
-
-			} else if (name.endsWith(".json")) {
-				r.fileType = "JSON";
-				ObjectMapper mapper = new ObjectMapper();
-				if (Boolean.TRUE.equals(config.get("storeStructuredData"))) {
-					r.structuredData = mapper.readTree(file);
-				}
-				if (Boolean.TRUE.equals(config.get("storeRawText"))) {
-					r.extractedText = r.structuredData.toString();
-				}
-
-			} else if (name.endsWith(".xml")) {
-				r.fileType = "XML";
-				Document doc = null;
-				if (Boolean.TRUE.equals(config.get("storeStructuredData"))) {
-					DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-					doc = builder.parse(file);
-					r.structuredData = doc;
-				}
-				if (Boolean.TRUE.equals(config.get("storeRawText"))) {
-					r.extractedText = doc.getDocumentElement().getTextContent();
-				}
-			} else if (r.mimeType.startsWith("image/")) {
-				/*
-				 * r.fileType = "IMAGE"; Tesseract tesseract = new Tesseract(); r.extractedText
-				 * = tesseract.doOCR(file);
-				 */
-
-			} else {
-				r.fileType = "TXT";
-				if (Boolean.TRUE.equals(config.get("storeRawText"))) {
-					r.extractedText = Files.readString(path);
-				}
-			}
-			// workflowActionResult.result.put("FileExtractionResult", r);
-
-			System.out.println("Extracted fileType=" + r.fileType);
+			/*
+			 * String name = file.getName().toLowerCase(); String mimeType =
+			 * tika.detect(file); String fileType = ""; String extractedText = "";
+			 * 
+			 * if (name.endsWith(".pdf")) { fileType = "PDF"; // if
+			 * (Boolean.TRUE.equals(config.get("storeRawText"))) { extractedText =
+			 * extractPdf(file); extractResult.put("extractedText", extractedText); // } }
+			 * else if (name.endsWith(".docx") || name.endsWith(".doc")) { fileType =
+			 * "DOCX"; // if (Boolean.TRUE.equals(config.get("storeRawText"))) {
+			 * extractedText = extractDoc(file); extractResult.put("extractedText",
+			 * extractedText); // }
+			 * 
+			 * } else if (name.endsWith(".xls") || name.endsWith(".xlsx")) { fileType =
+			 * "XLSX"; // if (Boolean.TRUE.equals(config.get("storeextractedText"))) {
+			 * extractedText = extractExcel(file).toString();
+			 * extractResult.put("extractedText", extractedText); // } } else if
+			 * (name.endsWith(".csv")) { fileType = "CSV"; // if
+			 * (Boolean.TRUE.equals(config.get("storeextractedText"))) { extractedText =
+			 * extractCsv(file).toString(); extractResult.put("extractedText",
+			 * extractedText); // }
+			 * 
+			 * } else if (name.endsWith(".json")) { fileType = "JSON"; ObjectMapper mapper =
+			 * new ObjectMapper(); // if
+			 * (Boolean.TRUE.equals(config.get("storeextractedText"))) { extractedText =
+			 * mapper.readTree(file).toString(); Map<String, Object> extractedMap =
+			 * mapper.readValue(extractedText, Map.class);
+			 * extractResult.put("extractedText", extractedMap);
+			 * 
+			 * 
+			 * } if (Boolean.TRUE.equals(config.get("storeRawText"))) { extractedText =
+			 * extractedText.toString(); }
+			 * 
+			 * 
+			 * } else if (name.endsWith(".xml")) { fileType = "XML"; Document doc = null; if
+			 * (Boolean.TRUE.equals(config.get("storeextractedText"))) { DocumentBuilder
+			 * builder = DocumentBuilderFactory.newInstance().newDocumentBuilder(); doc =
+			 * builder.parse(file); extractedText = doc.toString();
+			 * extractResult.put("extractedText", extractedText); } // if
+			 * (Boolean.TRUE.equals(config.get("storeRawText"))) { // extractedText =
+			 * doc.getDocumentElement().getTextContent(); // } } else if
+			 * (mimeType.startsWith("image/")) {
+			 * 
+			 * fileType = "IMAGE"; Tesseract tesseract = new Tesseract(); extractedText =
+			 * tesseract.doOCR(file);
+			 * 
+			 * 
+			 * } else { fileType = "TXT"; // if
+			 * (Boolean.TRUE.equals(config.get("storeRawText"))) { extractedText =
+			 * Files.readString(path); extractResult.put("extractedText", extractedText); //
+			 * } }
+			 * 
+			 * extractResult.put("fileName", file.getName()); extractResult.put("mimeType",
+			 * mimeType); extractResult.put("fileType", fileType);
+			 * 
+			 * System.out.println("Extracted fileType=" + fileType);
+			 */
 
 			String resultKey = (String) config.get("resultKey");
-
-			result.put(resultKey, r);
+			// String pixelInput = PixelBuilder.toPixel(extracted);
+			result.put(resultKey, extracted);
 
 			/*
 			 * Map<String, Object> variable = (Map<String, Object>) config.get("varStore");

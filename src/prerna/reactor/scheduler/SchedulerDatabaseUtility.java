@@ -158,6 +158,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.reactor.shortcuts.conductor.oss.TaskConfig;
 import prerna.reactor.shortcuts.conductor.oss.WorkflowDefinition;
+import prerna.reactor.shortcuts.conductor.oss.WorkflowMapping;
 import prerna.reactor.shortcuts.temporal.WorkflowEntity;
 import prerna.reactor.shortcuts.temporal.WorkflowTemplate;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -2469,14 +2470,16 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
-	public static long saveWorkflowDefinition(String name, int version, String json, String status) throws Exception {
-		String sql = "INSERT INTO workflow_definition(name,version,json,status) VALUES(?,?,?,?)";
+	public static long saveWorkflowDefinition(String name, int version, String json, String status, String createdBy)
+			throws Exception {
+		String sql = "INSERT INTO workflow_definition(name,version,json,status,created_by) VALUES(?,?,?,?,?)";
 		try (Connection con = connectToScheduler();
 				PreparedStatement ps = con.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 			ps.setString(1, name);
 			ps.setInt(2, version);
 			ps.setString(3, json);
 			ps.setString(4, status);
+			ps.setString(5, createdBy);
 			ps.executeUpdate();
 			ResultSet rs = ps.getGeneratedKeys();
 			rs.next();
@@ -2662,22 +2665,32 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
-	public static void saveWorkflowMapping(String dir, String wfName, int version) throws Exception {
-		String sql = "INSERT INTO workflow_mapping(directory,workflow_name,version) VALUES(?,?,?)";
+	public static void saveWorkflowMapping(String dir, String wfName, int version, String createdBy) throws Exception {
+
+		String sql = "INSERT INTO workflow_mapping(directory,workflow_name,version,created_by) VALUES(?,?,?,?)";
 		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
 			ps.setString(1, dir);
 			ps.setString(2, wfName);
 			ps.setInt(3, version);
+			ps.setString(4, createdBy);
 			ps.executeUpdate();
 		}
 	}
 
-	public ResultSet findByWorkflowMappingDirectory(String dir) throws Exception {
+	public static WorkflowMapping findByWorkflowMappingDirectory(String dir) throws Exception {
 		String sql = "SELECT * FROM workflow_mapping WHERE directory=?";
+		WorkflowMapping workflowMapping = new WorkflowMapping();
 		Connection con = connectToScheduler();
 		PreparedStatement ps = con.prepareStatement(sql);
 		ps.setString(1, dir);
-		return ps.executeQuery();
+		ResultSet rs = ps.executeQuery();
+		while (rs.next()) {
+			workflowMapping.directory = rs.getString("directory");
+			workflowMapping.workflowName = rs.getString("workflow_name");
+			workflowMapping.createdBy = rs.getString("created_by");
+		}
+		return workflowMapping;
+
 	}
 
 	public void updateWorkflowMapping(String dir, String wfName, int version) throws Exception {
