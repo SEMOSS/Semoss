@@ -515,11 +515,24 @@ public class ToPdfReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Build launch options, pointing to a pre-installed browser when
+	 * PLAYWRIGHT_CHROMIUM_PATH is set so Playwright never attempts a download.
+	 */
+	private BrowserType.LaunchOptions buildLaunchOptions() {
+		BrowserType.LaunchOptions opts = new BrowserType.LaunchOptions().setHeadless(true);
+		String chromiumPath = Utility.getDIHelperProperty(Constants.PLAYWRIGHT_CHROMIUM_PATH);
+		if (chromiumPath != null && !chromiumPath.trim().isEmpty()) {
+			opts.setExecutablePath(Paths.get(chromiumPath.trim()));
+		}
+		return opts;
+	}
+
+	/**
 	 * Capture screenshot using Playwright
 	 */
 	private void captureScreenshot(String url, String outputPath, Integer waitTime) {
 		try (Playwright pw = Playwright.create()) {
-			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+			Browser browser = pw.chromium().launch(buildLaunchOptions());
 			Page page = browser.newPage();
 
 			page.navigate(url);
@@ -594,7 +607,7 @@ public class ToPdfReactor extends AbstractReactor {
 		String pdfPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".pdf";
 
 		try (Playwright pw = Playwright.create()) {
-			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+			Browser browser = pw.chromium().launch(buildLaunchOptions());
 			Page page = browser.newPage();
 
 			// Navigate to HTML file
