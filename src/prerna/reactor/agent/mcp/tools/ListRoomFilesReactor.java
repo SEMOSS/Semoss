@@ -25,51 +25,40 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.frame.gaas.processors;
+package prerna.reactor.agent.mcp.tools;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
+public class ListRoomFilesReactor extends AbstractReactor {
 
-public abstract class AbstractFileProcessor implements IFileProcessor {
+  @Override
+  public NounMetadata execute() {
+    Path roomPath = new File(insight.getInsightFolder()).toPath();
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractFileProcessor.class);
+    List<String> fileList;
+    try {
+      fileList = RoomFileUtils.collectVisibleFiles(roomPath).stream()
+          .map(p -> roomPath.relativize(p).toString())
+          .collect(Collectors.toList());
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Unable to list room files: " + e.getMessage());
+    }
 
-	protected String filePath = null;
-	protected VectorDatabaseCSVWriter writer = null;
+    return new NounMetadata(fileList, PixelDataType.MAP);
+  }
 
-	public AbstractFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
-		this.filePath = filePath;
-		this.writer = writer;
-	}
-
-	/**
-	 * 
-	 * @param filePath
-	 * @return
-	 */
-	protected String getSource(String filePath) {
-		File file = new File(filePath);
-		return file.getName();
-	}
-
-	/**
-	 * 
-	 * @param file
-	 * @param writer
-	 * @return
-	 */
-	public static IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
-		// pick up the files and convert them to CSV
-		classLogger.info("Processing file : " + file.getName());
-
-		FileHandlerChain handlerChain = FileHandlerChain.getCoreHandlerChain();
-
-		return handlerChain.getFileProcessor(file, writer);
-
-	}
-
+  @Override
+  public String getReactorDescription() {
+    return "Lists all files in the room recursively, including files in subdirectories. "
+        + "Paths are relative to the room folder. Hidden directories and files (starting with '.') "
+        + "are always excluded.";
+  }
 }
