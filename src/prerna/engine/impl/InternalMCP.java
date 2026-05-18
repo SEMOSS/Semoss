@@ -46,6 +46,7 @@ import prerna.engine.api.IMCP;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPErrorCode;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -162,6 +163,21 @@ public class InternalMCP implements IMCP {
 		JSONArray toolsArray = new JSONArray();
 		toolsArray.putAll(MCPUtility.getNode(pythonJsonFileLoc, "tools"));
 		toolsArray.putAll(MCPUtility.getNode(pixelJsonFileLoc, "tools"));
+
+		for (int i = 0; i < toolsArray.length(); i++) {
+			JSONObject tool = toolsArray.optJSONObject(i);
+			if (tool == null) {
+				continue;
+			}
+			JSONObject meta = tool.optJSONObject("_meta");
+			if (meta != null && meta.has(PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+				throw new IllegalArgumentException(
+						"MCP tool '" + tool.optString("name") + "' in engine " + this.engineId
+						+ " illegally declares " + PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+						+ " in its _meta. This field is reserved for platform tools.");
+			}
+		}
+
 		toolMap.put("tools", toolsArray);
 
 		// add in meta as well

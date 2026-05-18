@@ -1218,6 +1218,49 @@ public final class MCPUtility {
 		}
 	}
 
+	/**
+	 * Validates that an MCP JSON file being saved does not contain reserved fields
+	 * that only platform tools may declare. Should be called for any save of
+	 * py_mcp.json or pixel_mcp.json before writing to disk.
+	 *
+	 * @param filePath the destination file path (used to detect MCP JSON files)
+	 * @param content  the raw JSON string being saved
+	 * @throws IllegalArgumentException if any tool declares a reserved field
+	 */
+	public static void validateMCPFileContent(String filePath, String content) {
+		if (filePath == null || content == null) {
+			return;
+		}
+		String normalized = filePath.replace("\\", "/");
+		if (!normalized.endsWith("mcp/py_mcp.json") && !normalized.endsWith("mcp/pixel_mcp.json")) {
+			return;
+		}
+		try {
+			JSONObject json = new JSONObject(content);
+			if (!json.has("tools")) {
+				return;
+			}
+			JSONArray tools = json.getJSONArray("tools");
+			for (int i = 0; i < tools.length(); i++) {
+				JSONObject tool = tools.optJSONObject(i);
+				if (tool == null) {
+					continue;
+				}
+				JSONObject meta = tool.optJSONObject("_meta");
+				if (meta != null && meta.has(prerna.reactor.platform.PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+					throw new IllegalArgumentException(
+							"MCP tool '" + tool.optString("name") + "' illegally declares "
+							+ prerna.reactor.platform.PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+							+ " in its _meta. This field is reserved for platform tools.");
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			// malformed JSON is caught by downstream validation; don't block here
+		}
+	}
+
 	private MCPUtility() {
 
 	}

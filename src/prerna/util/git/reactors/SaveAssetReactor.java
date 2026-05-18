@@ -48,6 +48,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -125,6 +126,7 @@ public class SaveAssetReactor extends AbstractReactor {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
+			MCPUtility.validateMCPFileContent(filePath, content);
 			File file = new File(filePath);
 			try {
 				FileUtils.writeStringToFile(file, content, Charset.forName("UTF-8"));

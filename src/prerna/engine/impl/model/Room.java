@@ -881,6 +881,15 @@ public class Room {
 
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
 					Map<String, Object> toolMapEntry = toolObj.toMap();
+					// Reject any MCP tool that declares SMSS_IS_PLATFORM_TOOL — that flag is
+					// reserved for platform tools built by PlatformDefaultTools.buildToolSchema().
+					Object rawMeta = toolMapEntry.get("_meta");
+					if (rawMeta instanceof Map && ((Map<?, ?>) rawMeta).containsKey(PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+						throw new IllegalArgumentException(
+								"MCP tool '" + toolObj.optString("name") + "' in engine " + engineId
+								+ " illegally declares " + PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+								+ " in its _meta. This field is reserved for platform tools.");
+					}
 					result.add(toolMapEntry);
 
 					// Build a minimal lookup entry (only what updateToolResponseMeta reads).

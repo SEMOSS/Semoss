@@ -40,6 +40,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -88,6 +89,9 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
+		for (int i = 0; i < filePaths.size(); i++) {
+			MCPUtility.validateMCPFileContent(filePaths.get(i), contents.get(i));
+		}
 		saveAssetFiles(assetFolder, filePaths, contents);
 
 		// add file to git
