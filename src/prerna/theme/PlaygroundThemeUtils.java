@@ -71,7 +71,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Returns {@code playground.defaultTools} from the currently active theme, or
+	 * Returns {@code playground.platformTools} from the currently active theme, or
 	 * an empty list if not defined.
 	 * <p>
 	 * Expected JSON shape:
@@ -79,7 +79,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	 * <pre>
 	 * {
 	 *   "playground": {
-	 *     "defaultTools": ["Command"]
+	 *     "platformTools": ["Command"]
 	 *   }
 	 * }
 	 * </pre>
@@ -157,9 +157,9 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 				cachedGlobalSystemPrompt = StringUtils.trimToNull(globalSystemPromptElem.getAsString());
 			}
 
-			JsonElement defaultToolsElem = playground.get("defaultTools");
-			if (defaultToolsElem != null && defaultToolsElem.isJsonArray()) {
-				for (JsonElement toolElem : defaultToolsElem.getAsJsonArray()) {
+			JsonElement platformToolsElem = playground.get("platformTools");
+			if (platformToolsElem != null && platformToolsElem.isJsonArray()) {
+				for (JsonElement toolElem : platformToolsElem.getAsJsonArray()) {
 					if (toolElem != null && toolElem.isJsonPrimitive()) {
 						String toolName = StringUtils.trimToNull(toolElem.getAsString());
 						if (toolName != null) {
