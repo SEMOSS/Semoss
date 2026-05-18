@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 public class FetchNotificationsReactor extends AbstractReactor {
 
@@ -49,6 +50,9 @@ public class FetchNotificationsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		if (!Utility.isNotificationDatabaseEnabled()) {
+			throw new IllegalArgumentException("Notifications are not enabled on this instance");
+		}
 		organizeKeys();
 		User user = this.insight.getUser();
 		String limit = this.keyValue.get(ReactorKeysEnum.LIMIT.getKey());

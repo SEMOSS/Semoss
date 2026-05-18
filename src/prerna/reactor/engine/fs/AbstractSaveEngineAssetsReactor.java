@@ -74,6 +74,7 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 		if (filePaths.size() != contents.size()) {
 			throw new IllegalArgumentException("Number of file names and contents must match");
 		}
+		filePaths = Utility.normalizeFilePaths(filePaths);
 
 		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
@@ -81,7 +82,7 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 				engine.getEngineName());
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
-			comment = "add: SaveAppAssets executed";
+			comment = "add: save engine assets executed";
 		}
 
 		// Check strict script source settings once
@@ -91,13 +92,10 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		for (int i = 0; i < filePaths.size(); i++) {
-			String rawFileName = filePaths.get(i).trim();
-			String fileName = Utility.normalizePath(rawFileName);
-			if (fileName == null || fileName.isEmpty()) {
-				continue;
+		for (String fileName : filePaths) {
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
 			}
-
 			// for git, we need to add the assets folder which is assumed in the path
 			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
 		}

@@ -41,6 +41,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -51,8 +52,8 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 class SecurityUserInsightUtils extends AbstractSecurityUtils {
 
@@ -67,6 +68,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserInsightPermission(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner
@@ -93,7 +95,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's effective insight permission.", e);
 		}
 
 		if (SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
@@ -113,6 +115,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// Check to see if permission has expired
 		try {
 			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
@@ -121,7 +124,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view insight.", e);
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -142,7 +145,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view insight.", e);
 		}
 
 		return false;
@@ -158,6 +161,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// Check to see if permission has expired
@@ -168,7 +172,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
 		// else query the database
 //		String query = "SELECT DISTINCT USERINSIGHTPERMISSION.PERMISSION FROM USERINSIGHTPERMISSION "
@@ -193,7 +197,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit insight.", e);
 		}
 		return false;
 	}
@@ -208,6 +212,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsInsightOwner(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// Check to see if permission has expired
 		try {
 			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
@@ -216,7 +221,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user owns the insight.", e);
 		}
 
 		Collection<String> userIds = getUserFiltersQs(user);
@@ -243,7 +248,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user owns the insight.", e);
 		}
 		return false;
 	}
@@ -258,6 +263,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserInsightPermission(User user, String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		// if user is owner of the app
@@ -289,7 +295,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -306,6 +312,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite)
 			throws SQLException, IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// must have ability to edit the project
 		if (!SecurityProjectUtils.projectIsGlobal(projectId)
 				&& !SecurityUserProjectUtils.userCanEditProject(user, projectId)
@@ -344,7 +351,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -373,14 +380,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					// commit the insertion
 					ps.getConnection().commit();
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 					throw e;
 				} finally {
 					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		}
 	}
 
@@ -403,6 +410,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getInsightUsers(User user, String projectId, String insightId,
 			String searchTerm, String permission, long limit, long offset) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
@@ -452,6 +460,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static long getInsightUsersCount(User user, String projectId, String insightId, String userId,
 			String permission) throws IllegalAccessException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, insightId)) {
 			throw new IllegalAccessException("The user does not have access to view this insight");
 		}
@@ -484,6 +493,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void deleteInsight(String projectId, String insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String[] deleteQueries = new String[] { "DELETE FROM INSIGHT WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM INSIGHTMETA WHERE INSIGHTID =? AND PROJECTID=?",
@@ -501,13 +511,13 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to delete insight.", e);
 			} finally {
 				if (ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to delete insight.", e);
 					}
 				}
 				if (securityDb.isConnectionPooling()) {
@@ -516,7 +526,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 							ps.getConnection().close();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to delete insight.", e);
 					}
 				}
 			}
@@ -530,13 +540,14 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId
 	 */
 	public static void deleteInsight(String projectId, String... insightId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insightFilter = createFilter(insightId);
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId + "'";
 		try {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 		}
 		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
 				+ "'";
@@ -544,7 +555,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 			securityDb.insertData(query);
 			securityDb.commit();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 		}
 	}
 
@@ -556,6 +567,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean insightPermissionIsExpired(String userId, String projectId, String insightId)
 			throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		LocalDateTime currentTime = LocalDateTime.now();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENDDATE"));
@@ -575,7 +587,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				return false;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete insight.", e);
 			throw e;
 		}
 	}

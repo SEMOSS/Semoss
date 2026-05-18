@@ -63,15 +63,14 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PipelineTranslation extends LazyTranslation {
 
 	private static final Logger classLogger = LogManager.getLogger(PipelineTranslation.class);
-	
+
 	private static Map<String, String> reactorToId = null;
-	
+
 	private static Map<AbstractQueryStruct.QUERY_STRUCT_TYPE, String> qsToWidget = new HashMap<>();
 	private static List<String> qsReactors = new ArrayList<>();
 	private static List<String> fileReactors = new ArrayList<>();
@@ -90,104 +89,104 @@ public class PipelineTranslation extends LazyTranslation {
 		qsReactors.add("Merge");
 		qsReactors.add("FuzzyMerge");
 		qsReactors.add("Union");
-		
+
 		// file + database importing
 		fileReactors.add("ToCsv");
 		fileReactors.add("ToTsv");
 		fileReactors.add("ToTxt");
 		fileReactors.add("ToExcel");
 		fileReactors.add("ToDatabase");
-		
+
 		codeBlocks.add("R");
 		codeBlocks.add("Py");
 		codeBlocks.add("Java");
 	}
-	
+
 	private List<List<PipelineOperation>> allRoutines = new ArrayList<>();
 	private List<PipelineOperation> curRoutine;
 	private List<Map<String, Object>> pixelIdToOperation = new ArrayList<>();
-	
+
 	public PipelineTranslation(Insight insight) {
 		super();
 		this.insight = insight;
-		if(this.insight != null) {
+		if (this.insight != null) {
 			// we will copy the var store
 			VarStore copy = new VarStore();
 			copy.putAll(insight.getVarStore());
 			this.planner.setVarStore(copy);
 		}
-		if(reactorToId == null) {
+		if (reactorToId == null) {
 			init();
 		}
 	}
-	
+
 	@Override
 	public void caseARoutineConfiguration(ARoutineConfiguration node) {
-        List<PRoutine> copy = new ArrayList<>(node.getRoutine());
-        int size = copy.size();
-        for(int pixelstep = 0; pixelstep < size; pixelstep++)
-        {
-    		long start = System.currentTimeMillis();
-        	PRoutine e = copy.get(pixelstep);
-        	try {
-        		this.resultKey = "$RESULT_" + e.hashCode();
-        		this.pixelObj = new Pixel("tempStorage", e.toString());
-        		this.pixelObj.startTime();
-        		
-            	this.curRoutine = new ArrayList<>();
-        		// add the routine
-            	this.allRoutines.add(this.curRoutine);
-            	
-        		e.apply(this);
-        		// reset the state of the frame
-        		this.currentFrame = null;
-        	} catch(SemossPixelException ex) {
-        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		classLogger.error(Constants.STACKTRACE, ex);
-        		// if we want to continue the thread of execution
-        		// nothing special
-        		// just add the error to the return
-        		if(ex.isContinueThreadOfExecution()) {
-        			planner.addVariable("$RESULT", ex.getNoun());
-            		postProcess(e.toString().trim());
-        		} else {
-        			// if we do want to stop
-        			// propagate the error up and the PixelRunner
-        			// will handle grabbing the meta and returning it to the FE
-        			postRuntimeErrorProcess(e.toString(), ex.getNoun(), 
-        					copy.subList(pixelstep+1, size).stream().map(p -> p.toString()).collect(Collectors.toList()));
-        			throw ex;
-        		}
-        	} catch(Exception ex) {
-        		trackError(e.toString(), this.pixelObj.isMeta(), ex);
-        		classLogger.error(Constants.STACKTRACE, ex);
-        		planner.addVariable("$RESULT", new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
-        		postProcess(e.toString().trim());
-        	}
-        	long end = System.currentTimeMillis();
-            classLogger.debug("Time to process = " + (end-start) + " for " + e.toString());
-        }
+		List<PRoutine> copy = new ArrayList<>(node.getRoutine());
+		int size = copy.size();
+		for (int pixelstep = 0; pixelstep < size; pixelstep++) {
+			long start = System.currentTimeMillis();
+			PRoutine e = copy.get(pixelstep);
+			try {
+				this.resultKey = "$RESULT_" + e.hashCode();
+				this.pixelObj = new Pixel("tempStorage", e.toString());
+				this.pixelObj.startTime();
+
+				this.curRoutine = new ArrayList<>();
+				// add the routine
+				this.allRoutines.add(this.curRoutine);
+
+				e.apply(this);
+				// reset the state of the frame
+				this.currentFrame = null;
+			} catch (SemossPixelException ex) {
+				trackError(e.toString(), this.pixelObj.isMeta(), ex);
+				classLogger.error(Constants.STACKTRACE, ex);
+				// if we want to continue the thread of execution
+				// nothing special
+				// just add the error to the return
+				if (ex.isContinueThreadOfExecution()) {
+					planner.addVariable("$RESULT", ex.getNoun());
+					postProcess(e.toString().trim());
+				} else {
+					// if we do want to stop
+					// propagate the error up and the PixelRunner
+					// will handle grabbing the meta and returning it to the FE
+					postRuntimeErrorProcess(e.toString(), ex.getNoun(), copy.subList(pixelstep + 1, size).stream()
+							.map(p -> p.toString()).collect(Collectors.toList()));
+					throw ex;
+				}
+			} catch (Exception ex) {
+				trackError(e.toString(), this.pixelObj.isMeta(), ex);
+				classLogger.error(Constants.STACKTRACE, ex);
+				planner.addVariable("$RESULT",
+						new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
+				postProcess(e.toString().trim());
+			}
+			long end = System.currentTimeMillis();
+			classLogger.debug("Time to process = " + (end - start) + " for " + e.toString());
+		}
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Scalar values
 	 */
-	
+
 	@Override
 	public void inAIdWordOrId(AIdWordOrId node) {
 		super.inAIdWordOrId(node);
-		if(this.curReactor == null) {
+		if (this.curReactor == null) {
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
 
-	    	String idInput = node.getId().getText().trim();
+			String idInput = node.getId().getText().trim();
 
 			Map<String, Object> obj = new HashMap<>();
-			if(this.planner.hasVariable(idInput)) {
+			if (this.planner.hasVariable(idInput)) {
 				NounMetadata noun = this.planner.getVariable(idInput);
-				if(noun.getNounType() != PixelDataType.LAMBDA) {
-					if(noun.getNounType() == PixelDataType.FRAME) {
+				if (noun.getNounType() != PixelDataType.LAMBDA) {
+					if (noun.getNounType() == PixelDataType.FRAME) {
 						op = new ConstantPipelineOperation(idInput, idInput);
 						obj.putAll(processFrameNounMap(noun));
 					} else {
@@ -195,92 +194,92 @@ public class PipelineTranslation extends LazyTranslation {
 						obj.putAll(processBasicNounMap(noun));
 					}
 				}
-	    	}
+			}
 			// if we haven't filled it
 			// just set to default
-			if(obj.isEmpty()) {
+			if (obj.isEmpty()) {
 				op = new ConstantPipelineOperation("direct value", idInput);
 				obj.put("type", "COLUMN_OR_VAR");
 				obj.put("value", idInput);
-	    	}
-	    	
+			}
+
 			op.setScalarMap(obj);
 			this.curRoutine.add(op);
 		}
 	}
-	
+
 	@Override
 	public void inAWordWordOrId(AWordWordOrId node) {
 		super.inAWordWordOrId(node);
-		if(this.curReactor == null) {
+		if (this.curReactor == null) {
 			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "STRING");
-			obj.put("value", PixelUtility.removeSurroundingQuotes(node.getWord().getText().toString()));
-			
+			obj.put("value", PixelUtility.decodePixelStringLiteral(node.getWord().getText()));
+
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
 			op.setScalarMap(obj);
 			this.curRoutine.add(op);
 		}
 	}
-	
+
 	@Override
 	public void inAFractionDecimal(AFractionDecimal node) {
 		super.inAFractionDecimal(node);
-		if(this.curReactor == null) {
+		if (this.curReactor == null) {
 			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "NUMBER");
-			String fraction = (node.getFraction()+"").trim();
+			String fraction = (node.getFraction() + "").trim();
 			Number retNum = new BigDecimal("0." + fraction);
 			obj.put("value", retNum);
-			
+
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
 			op.setScalarMap(obj);
 			this.curRoutine.add(op);
 		}
 	}
-	
+
 	@Override
 	public void inAWholeDecimal(AWholeDecimal node) {
 		super.inAWholeDecimal(node);
-		if(this.curReactor == null) {
+		if (this.curReactor == null) {
 			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "NUMBER");
 
 			boolean isDouble = false;
-	    	String whole = "";
-	    	String fraction = "";
-	    	// get the whole portion
-	    	if(node.getWhole() != null) {
-	    		whole = node.getWhole().toString().trim();
-	    	}
-	    	// get the fraction portion
-	    	if(node.getFraction() != null) {
-	    		isDouble = true;
-	    		fraction = (node.getFraction()+"").trim();
-	    	} else {
-	    		fraction = "0";
-	    	}
+			String whole = "";
+			String fraction = "";
+			// get the whole portion
+			if (node.getWhole() != null) {
+				whole = node.getWhole().toString().trim();
+			}
+			// get the fraction portion
+			if (node.getFraction() != null) {
+				isDouble = true;
+				fraction = (node.getFraction() + "").trim();
+			} else {
+				fraction = "0";
+			}
 			Number retNum = new BigDecimal(whole + "." + fraction);
-			
-			if(isDouble) {
+
+			if (isDouble) {
 				obj.put("value", retNum.doubleValue());
-	    	} else {
+			} else {
 				obj.put("value", retNum.intValue());
-	    	}
-			
+			}
+
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
 			op.setScalarMap(obj);
 			this.curRoutine.add(op);
 		}
 	}
-	
+
 	@Override
 	public void inABooleanScalar(ABooleanScalar node) {
 		super.inABooleanScalar(node);
-		if(this.curReactor == null) {
+		if (this.curReactor == null) {
 			String booleanStr = node.getBoolean().toString().trim();
-	    	Boolean bool = Boolean.parseBoolean(booleanStr);
-	    	Map<String, Object> obj = new HashMap<>();
+			Boolean bool = Boolean.parseBoolean(booleanStr);
+			Map<String, Object> obj = new HashMap<>();
 			obj.put("type", "BOOLEAN");
 			obj.put("value", bool);
 			ConstantPipelineOperation op = new ConstantPipelineOperation("direct value", node.toString());
@@ -288,79 +287,78 @@ public class PipelineTranslation extends LazyTranslation {
 			this.curRoutine.add(op);
 		}
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////////////
 
-	
 	/**
 	 * Same method as in lazy with addition of addRoutine method
 	 */
 	@Override
-    protected void deInitReactor() {
-    	if(curReactor != null) {
-    		// merge up and update the plan
-    		try {
-    			curReactor.mergeUp();
-    			curReactor.updatePlan();
-    			addRoutine();
-    		} catch(Exception e) {
-    			classLogger.error(Constants.STACKTRACE, e);
-    			throw new IllegalArgumentException(e.getMessage());
-    		}
-    		
-    		// get the parent
-    		Object parent = curReactor.Out();
-    		// set the parent as the curReactor if it is present
-    		prevReactor = curReactor;
-    		if(parent instanceof IReactor) {
-    			curReactor = (IReactor) parent;
-    		} else {
-    			curReactor = null;
-    		}
+	protected void deInitReactor() {
+		if (curReactor != null) {
+			// merge up and update the plan
+			try {
+				curReactor.mergeUp();
+				curReactor.updatePlan();
+				addRoutine();
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+				throw new IllegalArgumentException(e.getMessage());
+			}
 
-    		// account for moving qs
-    		if(curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
-    			AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
-	    		this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
-    		}
-    		
-    	}
-    }
-    
-    private void addRoutine() {
-    	if(this.curReactor.getParentReactor() == null) {
-    		// we have a reactor with no parent
-    		// let us go and process the operation
-    		// this method is recursive to handle embedded reactors
-    		// which would be children for this root reactor
-    		PipelineOperation op = generatePipelineOperation(this.curReactor);
-    		
-    		// add the op to the routine
-    		this.curRoutine.add(op);
-    	}
-    }
-    
+			// get the parent
+			Object parent = curReactor.Out();
+			// set the parent as the curReactor if it is present
+			prevReactor = curReactor;
+			if (parent instanceof IReactor) {
+				curReactor = (IReactor) parent;
+			} else {
+				curReactor = null;
+			}
+
+			// account for moving qs
+			if (curReactor == null && prevReactor instanceof AbstractQueryStructReactor) {
+				AbstractQueryStruct qs = ((AbstractQueryStructReactor) prevReactor).getQs();
+				this.planner.addVariable(this.resultKey, new NounMetadata(qs, PixelDataType.QUERY_STRUCT));
+			}
+
+		}
+	}
+
+	private void addRoutine() {
+		if (this.curReactor.getParentReactor() == null) {
+			// we have a reactor with no parent
+			// let us go and process the operation
+			// this method is recursive to handle embedded reactors
+			// which would be children for this root reactor
+			PipelineOperation op = generatePipelineOperation(this.curReactor);
+
+			// add the op to the routine
+			this.curRoutine.add(op);
+		}
+	}
+
 	////////////////////////////////////////////////////////////////////////////////
 
-    private PipelineOperation generatePipelineOperation(IReactor reactor) {
-    	String[] reactorInputs = reactor.getPixel();
-    	String reactorId = reactorInputs[0];
+	private PipelineOperation generatePipelineOperation(IReactor reactor) {
+		String[] reactorInputs = reactor.getPixel();
+		String reactorId = reactorInputs[0];
 		PipelineOperation op = new PipelineOperation(reactorId, reactorInputs[1]);
-		
-		// the file reactors do not set the widget id directly since 
+
+		// the file reactors do not set the widget id directly since
 		// the structure doesn't care about the qs source at the moment...
 		// so will set it here if reactor to id has the stuff
 		// the import/merge are not defined here
-		if(PipelineTranslation.reactorToId != null && PipelineTranslation.reactorToId.containsKey(reactorId)) {
+		if (PipelineTranslation.reactorToId != null && PipelineTranslation.reactorToId.containsKey(reactorId)) {
 			op.setWidgetId(PipelineTranslation.reactorToId.get(reactorId));
 		}
-		
-		if(PipelineTranslation.codeBlocks.contains(reactorId)) {
+
+		if (PipelineTranslation.codeBlocks.contains(reactorId)) {
 			// we need to process codeblock a bit different
 			// we want to decode what we input
 			NounStore store = reactor.getNounStore();
 			GenRowStruct struct = store.getGenRowStruct("all");
-			if(struct != null && !struct.isEmpty()) {
+			if (struct != null && !struct.isEmpty()) {
 				String value = struct.get(0).toString();
 				value = Utility.decodeURIComponent(value);
 				NounMetadata noun = new NounMetadata(value, PixelDataType.CONST_STRING);
@@ -371,117 +369,117 @@ public class PipelineTranslation extends LazyTranslation {
 			Map<String, List<Map>> storeMap = reactor.getStoreMap();
 			op.setNounInputs(storeMap);
 		}
-		
-		return op;
-    }
-    
-	////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
 
-    /*
-     * Process noun metadata based on the type + allow for gson
-     */
-    
-    private Map<String, Object> processNounMetadata(NounMetadata noun) {
+		return op;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Process noun metadata based on the type + allow for gson
+	 */
+
+	private Map<String, Object> processNounMetadata(NounMetadata noun) {
 		PixelDataType type = noun.getNounType();
-		if(type == PixelDataType.LAMBDA) {
+		if (type == PixelDataType.LAMBDA) {
 			return processLambdaNounMap(noun);
-		} else if(type == PixelDataType.FRAME) {
+		} else if (type == PixelDataType.FRAME) {
 			return processFrameNounMap(noun);
 		} else {
 			return processBasicNounMap(noun);
 		}
-    }
-    
-    private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
-    	Map<String, Object> lambdaMap = new HashMap<>();
-    	lambdaMap.put("type", noun.getNounType().getKey());
-    	// the value is another PixelOperation
-    	lambdaMap.put("value", generatePipelineOperation(  (IReactor) noun.getValue()));
-    	return lambdaMap;
-    }
-    
-    private Map<String, Object> processBasicNounMap(NounMetadata noun) {
-    	Map<String, Object> basicInput = new HashMap<>();
+	}
+
+	private Map<String, Object> processLambdaNounMap(NounMetadata noun) {
+		Map<String, Object> lambdaMap = new HashMap<>();
+		lambdaMap.put("type", noun.getNounType().getKey());
+		// the value is another PixelOperation
+		lambdaMap.put("value", generatePipelineOperation((IReactor) noun.getValue()));
+		return lambdaMap;
+	}
+
+	private Map<String, Object> processBasicNounMap(NounMetadata noun) {
+		Map<String, Object> basicInput = new HashMap<>();
 		basicInput.put("type", noun.getNounType().getKey());
 		basicInput.put("value", noun.getValue());
 		return basicInput;
-    }
-    
-    private Map<String, Object> processFrameNounMap(NounMetadata noun) {
-    	if(noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
-    		return processBasicNounMap(noun);
-    	}
-    	Map<String, Object> frameMap = new HashMap<>();
+	}
+
+	private Map<String, Object> processFrameNounMap(NounMetadata noun) {
+		if (noun.getOpType().contains(PixelOperationType.FRAME_MAP)) {
+			return processBasicNounMap(noun);
+		}
+		Map<String, Object> frameMap = new HashMap<>();
 		ITableDataFrame frame = (ITableDataFrame) noun.getValue();
 		frameMap.put(ReactorKeysEnum.FRAME_TYPE.getKey(), frame.getFrameType().getTypeAsString());
 		String name = frame.getOriginalName();
-		if(name != null) {
+		if (name != null) {
 			frameMap.put(PixelDataType.ALIAS.getKey(), name);
-			if(!name.equals(frame.getName())) {
+			if (!name.equals(frame.getName())) {
 				frameMap.put("queryName", frame.getName());
 			}
 		}
-		
+
 		Map<String, Object> nounStructure = new HashMap<>();
 		nounStructure.put("type", PixelDataType.FRAME_MAP.getKey());
 		nounStructure.put("value", frameMap);
 		return nounStructure;
-    }
-    
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////
+	}
 
-    
-    /**
-     * Return the reactor based on the reactorId
-     * @param reactorId - reactor id or operation
-     * @param nodeString - full operation
-     * @return	IReactor		A new instance of the reactor
-     */
-    @Override
-    protected IReactor getReactor(String reactorId, String nodeString) {
-    	try {
-    		return super.getReactor(reactorId, nodeString);
-    	} catch(Exception e) {
-    		// error finding reactor
-    		// just return a generic reactor placeholder
-    		classLogger.error("Error finding reactor " + reactorId, e);
-    	}
-    	
-    	UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
-    	reactor.setPixel(reactorId, nodeString);
-    	return reactor;
-    }
-    
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * Return the reactor based on the reactorId
+	 * 
+	 * @param reactorId  - reactor id or operation
+	 * @param nodeString - full operation
+	 * @return IReactor A new instance of the reactor
+	 */
+	@Override
+	protected IReactor getReactor(String reactorId, String nodeString) {
+		try {
+			return super.getReactor(reactorId, nodeString);
+		} catch (Exception e) {
+			// error finding reactor
+			// just return a generic reactor placeholder
+			classLogger.error("Error finding reactor " + reactorId, e);
+		}
+
+		UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();
+		reactor.setPixel(reactorId, nodeString);
+		return reactor;
+	}
+
 	private static synchronized void init() {
-		if(PipelineTranslation.reactorToId == null) {
-			String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		if (PipelineTranslation.reactorToId == null) {
+			String baseFolder = Utility.getBaseFolder();
 			File reactorWidgetFile = new File(baseFolder + "/reactorToWidget.csv");
-			if(reactorWidgetFile.exists()) {
+			if (reactorWidgetFile.exists()) {
 				CSVFileHelper helper = new CSVFileHelper();
 				helper.parse(reactorWidgetFile.getAbsolutePath());
-				
+
 				PipelineTranslation.reactorToId = new HashMap<>();
-				
+
 				String[] row = null;
-				while( (row = helper.getNextRow()) != null ) {
+				while ((row = helper.getNextRow()) != null) {
 					PipelineTranslation.reactorToId.put(row[0], row[1]);
 				}
 			}
 		}
 	}
-	
+
 	public List<List<PipelineOperation>> getAllRoutines() {
 		return this.allRoutines;
 	}
-	
+
 	public List<Map<String, Object>> getPixelIdToOperation() {
 		return pixelIdToOperation;
 	}
-	
+
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////////////
@@ -491,7 +489,7 @@ public class PipelineTranslation extends LazyTranslation {
 	/*
 	 * Testing
 	 */
-	
+
 //	public static void main(String[] args) throws Exception {
 ////		TestUtilityMethods.loadAll("C:\\workspace2\\Semoss_Dev\\RDF_Map.prop");
 ////		IEngine coreEngine = new RDBMSNativeEngine();
@@ -786,4 +784,3 @@ public class PipelineTranslation extends LazyTranslation {
 //		}
 //	}
 }
-

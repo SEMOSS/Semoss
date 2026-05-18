@@ -48,7 +48,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class AdminExecQueryReactor extends AbstractReactor {
 
@@ -62,32 +61,28 @@ public class AdminExecQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+
 		if (qStruct == null) {
 			qStruct = getQueryStruct();
 		}
 
 		IDatabaseEngine engine = null;
 		AbstractQueryStruct qs = null;
-		
-		User user = this.insight.getUser();
-		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-		if(adminUtils == null) {
-			throw new IllegalArgumentException("User must be an admin to perform this function");
-		}
-		
-		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
 
 		if (qStruct.getValue() instanceof AbstractQueryStruct) {
 			qs = ((AbstractQueryStruct) qStruct.getValue());
 			if (qs.getQsType() == QUERY_STRUCT_TYPE.ENGINE || qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY) {
 				engine = qs.retrieveQueryStructEngine();
-				if(engine == null) {
+				if (engine == null) {
 					throw new NullPointerException("No engine passed in to execute the query");
 				}
 				if (!(engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS
-						|| IRDFDatabase.isRDFDbType(engine.getDatabaseType())
-						)
-						) {
+						|| IRDFDatabase.isRDFDbType(engine.getDatabaseType()))) {
 					throw new IllegalArgumentException("Query update/deletes only works for rdbms/rdf databases");
 				}
 			} else {
@@ -100,7 +95,7 @@ public class AdminExecQueryReactor extends AbstractReactor {
 		// used for audit but we dont use this for admin databases
 		boolean update = false;
 		boolean custom = false;
-		
+
 		String query = null;
 		// grab query && determine how to store in audit db
 		if (qs instanceof HardSelectQueryStruct) {
@@ -116,18 +111,18 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 
-		logger.info("EXEC QUERY.... " + query);
+		logger.info("EXEC QUERY.... {}", query);
 		try {
 			engine.insertData(query);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Unable to execute the admin database query.", e);
 			String errorMessage = "An error occurred trying to execute the query in the database";
-			if(e.getMessage() != null && !e.getMessage().isEmpty()) {
+			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				errorMessage += ": " + e.getMessage();
 			}
 			throw new SemossPixelException(NounMetadata.getErrorNounMessage(errorMessage));
 		}
-		
+
 //		// store query in audit db
 //		try {
 //			AuditDatabase audit = engine.generateAudit();

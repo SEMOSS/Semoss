@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
@@ -55,8 +54,8 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String engineId = UploadInputUtility.getEngineNameOrId(this.store);
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		String engineId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.ENGINE.getKey()));
 		if (!SecurityEngineUtils.userIsOwner(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Engine " + engineId
 					+ " does not exist or user does not have permissions to set the display name. User must be the owner to perform this function.");

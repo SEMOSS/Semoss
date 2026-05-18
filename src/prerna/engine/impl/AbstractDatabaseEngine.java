@@ -70,7 +70,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.SemossDefaultEngines;
+import prerna.util.SystemDefaultDatabases;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -208,7 +208,8 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		// service
 		boolean externalDatabaseMetadata = Boolean
 				.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED) + "");
-		if (externalDatabaseMetadata && !SemossDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+		if (externalDatabaseMetadata
+				&& !SystemDefaultDatabases.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
 			try {
 				// store in the OWL
 				// so that the local master can pick up the OWL

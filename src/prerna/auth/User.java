@@ -52,7 +52,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
@@ -80,7 +80,7 @@ public class User implements Serializable {
 	private ZoneId zoneId;
 
 	// store model conversation rooms
-	private Map<String, Object> roomHash = new HashMap<>();
+	private Map<String, Object> roomHash = new ConcurrentHashMap<>();
 
 	// store the users insights
 	private transient Map<String, List<String>> openInsights = null;
@@ -98,13 +98,12 @@ public class User implements Serializable {
 	private transient Process rProcess = null;
 
 	private String chrootPath = null;
-	private transient SymlinkHelper symlinkHelper = null;
+	private transient volatile SymlinkHelper symlinkHelper = null;
 
 	// playwright
 	private transient volatile Map<String, PlaywrightSession> playwrightSession = null;
 	private transient volatile BrowserContext sharedPlaywrightContext;
 
-	private Map<AuthProvider, String> workspaceProjectMap = new HashMap<>();
 	private Map<AuthProvider, String> assetProjectMap = new HashMap<>();
 	private AuthProvider primaryLogin;
 
@@ -265,52 +264,20 @@ public class User implements Serializable {
 		this.primaryLogin = primaryLogin;
 	}
 
-	public String getWorkspaceProjectId(AuthProvider token) {
-		if (this.workspaceProjectMap.get(token) != null) {
-			return this.workspaceProjectMap.get(token);
-		}
-
-		String projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
-
-		if (projectId != null) {
-			this.workspaceProjectMap.put(token, projectId);
-		} else {
-			try {
-				synchronized (workspaceSyncObject) {
-					projectId = WorkspaceAssetUtils.getUserWorkspaceProject(this, token);
-					if (projectId == null) {
-						projectId = WorkspaceAssetUtils.createUserWorkspaceProject(this, token);
-					}
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-
-			this.workspaceProjectMap.put(token, projectId);
-		}
-
-		// TODO actually sync the pull, not sure pull it
-		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pullUserWorkspace(projectId, false, false);
-		}
-
-		return this.workspaceProjectMap.get(token);
-	}
-
 	public String getAssetProjectId(AuthProvider token) {
 		if (this.assetProjectMap.get(token) != null) {
 			return this.assetProjectMap.get(token);
 		}
-		String projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+		String projectId = UserAssetUtils.getUserAssetProject(this, token);
 
 		if (projectId != null) {
 			this.assetProjectMap.put(token, projectId);
 		} else {
 			try {
 				synchronized (assetSyncObject) {
-					projectId = WorkspaceAssetUtils.getUserAssetProject(this, token);
+					projectId = UserAssetUtils.getUserAssetProject(this, token);
 					if (projectId == null) {
-						projectId = WorkspaceAssetUtils.createUserAssetProject(this, token);
+						projectId = UserAssetUtils.createUserAssetProject(this, token);
 					}
 				}
 			} catch (Exception e) {
@@ -322,14 +289,10 @@ public class User implements Serializable {
 
 		// TODO actually sync the pull, not sure pull it
 		if (ClusterUtil.IS_CLUSTER) {
-			ClusterUtil.pullUserWorkspace(projectId, true, false);
+			ClusterUtil.pullUserAsset(projectId, false);
 		}
 
 		return this.assetProjectMap.get(token);
-	}
-
-	public Map<AuthProvider, String> getWorkspaceEngineMap() {
-		return this.workspaceProjectMap;
 	}
 
 	public Map<AuthProvider, String> getAssetEngineMap() {
@@ -681,13 +644,25 @@ public class User implements Serializable {
 	 */
 	public SymlinkHelper getUserSymlinkHelper() {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			if (symlinkHelper == null) {
-				String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
-				String chrootDir = Utility.getDIHelperProperty("CHROOT_DIR");
-				chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-				// unique user is just for testing so when i ls on R, I can see it is me and not
-				// someone else
-				symlinkHelper = new SymlinkHelper(chrootPath);
+			if (symlinkHelper != null) {
+				return symlinkHelper;
+			}
+
+			synchronized (this) {
+				if (symlinkHelper == null) {
+					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
+					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
+					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
+					symlinkHelper = new SymlinkHelper(chrootPath);
+
+					// symlink the user asset folder into the chroot on boot
+					try {
+						symlinkHelper.symlinkUserAsset(this);
+					} catch (Exception e) {
+						classLogger.warn("Unable to symlink user asset folder into chroot", e);
+					}
+
+				}
 			}
 			return symlinkHelper;
 		}

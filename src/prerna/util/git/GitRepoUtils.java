@@ -57,6 +57,7 @@ import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LogCommand;
 import org.eclipse.jgit.api.RemoteRemoveCommand;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.CheckoutConflictException;
 import org.eclipse.jgit.api.errors.ConcurrentRefUpdateException;
@@ -1083,21 +1084,24 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(Utility.normalizePath(localRepository)));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", localRepository, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
 		AddCommand ac = thisGit.add();
+		List<String> normalizedPatterns = new ArrayList<>();
 		for (String daFile : files) {
 			if (daFile.contains("version")) {
 				daFile = daFile.substring(daFile.indexOf("version") + 8);
 			}
-			daFile = daFile.replace("\\", "/");
+			daFile = normalizeGitFilePattern(daFile);
 			ac.addFilepattern(daFile);
+			normalizedPatterns.add(daFile);
 		}
+		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
 		try {
 			ac.call();
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
 		}
 		thisGit.close();
 	}
@@ -1116,25 +1120,27 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(localRepository));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", localRepository, e);
+			throw new IllegalArgumentException("Unable to connect to Git directory at " + localRepository);
 		}
-		if (thisGit != null) {
-			AddCommand ac = thisGit.add();
-			for (File f : files) {
-				String daFile = f.getAbsolutePath();
-				if (daFile.contains("version")) {
-					daFile = daFile.substring(daFile.indexOf("version") + 8);
-				}
-				daFile = daFile.replace("\\", "/");
-				ac.addFilepattern(daFile);
+		AddCommand ac = thisGit.add();
+		List<String> normalizedPatterns = new ArrayList<>();
+		for (File f : files) {
+			String daFile = f.getAbsolutePath();
+			if (daFile.contains("version")) {
+				daFile = daFile.substring(daFile.indexOf("version") + 8);
 			}
-			try {
-				ac.call();
-			} catch (GitAPIException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			thisGit.close();
+			daFile = normalizeGitFilePattern(daFile);
+			ac.addFilepattern(daFile);
+			normalizedPatterns.add(daFile);
 		}
+		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
+		try {
+			ac.call();
+		} catch (GitAPIException e) {
+			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
+		}
+		thisGit.close();
 	}
 
 	/**
@@ -1179,12 +1185,22 @@ public class GitRepoUtils {
 		try {
 			thisGit = Git.open(new File(gitFolder));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to connect to Git directory at {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
 
-		CommitCommand cc = thisGit.commit();
 		try {
+			// Check if there are actually staged changes before committing
+			Status status = thisGit.status().call();
+			boolean hasStagedChanges = !status.getAdded().isEmpty()
+					|| !status.getChanged().isEmpty()
+					|| !status.getRemoved().isEmpty();
+
+			if (!hasStagedChanges) {
+				classLogger.warn("Skipping commit in {} — no staged changes to commit", gitFolder);
+				return;
+			}
+
 			if (message == null || message.isEmpty()) {
 				message = GitUtils.getDateMessage("Commited on.. ");
 			}
@@ -1194,11 +1210,102 @@ public class GitRepoUtils {
 			if (email == null || email.isEmpty()) {
 				email = "semoss@semoss.org";
 			}
+
+			CommitCommand cc = thisGit.commit();
 			cc.setMessage(message).setAuthor(author, email).call();
+			classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
 		} catch (GitAPIException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to commit in {}", gitFolder, e);
+		} finally {
+			thisGit.close();
 		}
-		thisGit.close();
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, null, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message) {
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, null, null);
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles, String message, User user) {
+		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+		addAllChangesAndCommit(gitFolder, ignoreTheIgnoreFiles, message, accessToken.getUsername(), accessToken.getEmail());
+	}
+
+	public static void addAllChangesAndCommit(String gitFolder, boolean ignoreTheIgnoreFiles,
+			String message, String author, String email) {
+		Git thisGit = null;
+		try {
+			thisGit = Git.open(new File(gitFolder));
+			Status status = thisGit.status().call();
+
+			AddCommand ac = thisGit.add();
+			boolean stagedAnyAdd = false;
+			Iterator<String> upFiles = status.getUntracked().iterator();
+			while (upFiles.hasNext()) {
+				String daFile = upFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			Iterator<String> modFiles = status.getModified().iterator();
+			while (modFiles.hasNext()) {
+				String daFile = modFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					ac.addFilepattern(daFile);
+					stagedAnyAdd = true;
+				}
+			}
+			if (stagedAnyAdd) {
+				ac.call();
+			}
+
+			RmCommand rc = thisGit.rm().setCached(true);
+			boolean stagedAnyRm = false;
+			Iterator<String> delFiles = status.getMissing().iterator();
+			while (delFiles.hasNext()) {
+				String daFile = delFiles.next();
+				if (ignoreTheIgnoreFiles || !GitUtils.isIgnore(daFile)) {
+					rc.addFilepattern(daFile);
+					stagedAnyRm = true;
+				}
+			}
+			if (stagedAnyRm) {
+				rc.call();
+			}
+
+			Status post = thisGit.status().call();
+			boolean hasStagedChanges = !post.getAdded().isEmpty()
+					|| !post.getChanged().isEmpty()
+					|| !post.getRemoved().isEmpty();
+			if (!hasStagedChanges) {
+				classLogger.warn("Skipping commit in {} no staged changes to commit", gitFolder);
+				return;
+			}
+
+			if (message == null || message.isEmpty()) {
+				message = GitUtils.getDateMessage("Commited on.. ");
+			}
+			if (author == null || author.isEmpty()) {
+				author = "SEMOSS";
+			}
+			if (email == null || email.isEmpty()) {
+				email = "semoss@semoss.org";
+			}
+
+			thisGit.commit().setMessage(message).setAuthor(author, email).call();
+			classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
+		} catch (IOException | GitAPIException e) {
+			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
+			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
+		} finally {
+			if (thisGit != null) {
+				thisGit.close();
+			}
+		}
 	}
 
 	public static void revertCommit(String gitFolder, String comm1) {
@@ -1434,6 +1541,24 @@ public class GitRepoUtils {
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}
+	}
+
+	/**
+	 * Normalizes a git file pattern to be repo-relative with forward slashes,
+	 * no leading slash, and no repeated slashes.
+	 * 
+	 * @param pattern the raw file pattern
+	 * @return the normalized pattern suitable for JGit AddCommand/RmCommand
+	 */
+	private static String normalizeGitFilePattern(String pattern) {
+		pattern = pattern.replace("\\", "/");
+		while (pattern.contains("//")) {
+			pattern = pattern.replace("//", "/");
+		}
+		if (pattern.startsWith("/")) {
+			pattern = pattern.substring(1);
+		}
+		return pattern;
 	}
 
 }

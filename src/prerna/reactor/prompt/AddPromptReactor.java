@@ -44,17 +44,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Creates a new prompt with metadata, tags, and optional global visibility.
  *
- * Pixel usage:
- * AddPrompt(map=[{"title": "...", "context": "...", ...}]);
+ * Pixel usage: AddPrompt(map=[{"title": "...", "context": "...", ...}]);
  *
- * Map parameters:
- * title (String, required) - Prompt name
- * context (String, required) - The prompt text/template
- * intent (String, optional) - Description of the prompt's purpose
- * global (Boolean, optional, default: false) - Whether visible to all users
- * tags (List of String, optional) - Tags for categorization
- * metaMap (Map of String to Collection of String, optional) - Arbitrary
- * metadata key-value pairs
+ * Map parameters: title (String, required) - Prompt name context (String,
+ * required) - The prompt text/template intent (String, optional) - Description
+ * of the prompt's purpose global (Boolean, optional, default: false) - Whether
+ * visible to all users tags (List of String, optional) - Tags for
+ * categorization metaMap (Map of String to Collection of String, optional) -
+ * Arbitrary metadata key-value pairs
  *
  * Returns: CONST_STRING - the UUID of the newly created prompt.
  */
@@ -69,9 +66,8 @@ public class AddPromptReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String userId = this.insight.getUserId();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a prompt", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a prompt",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;

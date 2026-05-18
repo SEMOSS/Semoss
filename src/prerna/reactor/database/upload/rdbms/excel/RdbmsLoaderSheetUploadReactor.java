@@ -32,12 +32,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -64,8 +62,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -77,14 +73,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 	private static final Logger classLogger = LogManager.getLogger(RdbmsLoaderSheetUploadReactor.class);
 
-	private Map<String, String> sqlHash = new Hashtable<String, String>();
-	private Hashtable<String, Hashtable<String, String>> concepts = new Hashtable<String, Hashtable<String, String>>();
-	private Hashtable<String, Vector<String>> relations = new Hashtable<String, Vector<String>>();
-	private Hashtable<String, String> sheets = new Hashtable<String, String>();
+	private Map<String, String> sqlHash = new HashMap<>();
+	private Map<String, Map<String, String>> concepts = new HashMap<>();
+	private Map<String, List<String>> relations = new HashMap<>();
+	private Map<String, String> sheets = new HashMap<>();
 
 	private int indexUniqueId = 1;
-	private List<String> tempIndexAddedList = new Vector<String>();
-	private List<String> tempIndexDropList = new Vector<String>();
+	private List<String> tempIndexAddedList = new ArrayList<>();
+	private List<String> tempIndexDropList = new ArrayList<>();
 
 	public RdbmsLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH };
@@ -106,10 +102,9 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -231,43 +226,39 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			synchronizeRelations();
 
 			// now I need to create the tables
-			Enumeration<String> conceptKeys = concepts.keys();
-			while (conceptKeys.hasMoreElements()) {
-				String thisConcept = conceptKeys.nextElement();
+			for (String thisConcept : concepts.keySet()) {
 				createTable(database, owlEngine, thisConcept);
 				processTable(database, thisConcept, workbook);
 			}
 			// I need to first create all the concepts
 			// then all the relationships
-			Enumeration<String> relationConcepts = relations.keys();
-			while (relationConcepts.hasMoreElements()) {
-				String thisConcept = relationConcepts.nextElement();
-				Vector<String> allRels = relations.get(thisConcept);
+			for (String thisConcept : relations.keySet()) {
+				List<String> allRels = relations.get(thisConcept);
 				if (!allRels.isEmpty()) {
 					createRelations(database, owlEngine, thisConcept, allRels, workbook);
 				}
 
 				// for(int toIndex = 0;toIndex < allRels.size();toIndex++)
 				// // now process each one of these things
-				// createRelations(thisConcept, allRels.elementAt(toIndex), workbook);
+				// createRelations(thisConcept, allRels.get(toIndex), workbook);
 			}
 		} catch (FileNotFoundException e) {
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				classLogger.error(e.getMessage());
 			}
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not find Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new FileNotFoundException("Could not find Excel file located at " + fileName);
 		} catch (IOException e) {
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				classLogger.error(e.getMessage());
 			}
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error reading Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new IOException("Could not read Excel file located at " + fileName);
 		} catch (Exception e) {
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				classLogger.error(e.getMessage());
 			}
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Invalid or unreadable Excel file at path '{}': {}", fileName, e.getMessage(), e);
 			throw new IOException("File: " + fileName + " is not a valid Microsoft Excel (.xlsx, .xlsm) file");
 		} finally {
 			owlEngine.close();
@@ -276,7 +267,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				try {
 					poiReader.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing Excel file input stream for '{}': {}", fileName, e.getMessage(),
+							e);
 					throw new IOException("Could not close Excel file stream");
 				}
 			}
@@ -284,7 +276,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				try {
 					workbook.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing Excel workbook for '{}': {}", fileName, e.getMessage(), e);
 					// throw new IOException("Could not close Excel workbook");
 				}
 			}
@@ -347,17 +339,17 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					String toName = header.getCell(2).getStringCellValue();
 					toName = Utility.cleanString(toName, true);
 
-					Vector<String> relatedTo = new Vector<String>();
+					List<String> relatedTo = new ArrayList<>();
 					if (relations.containsKey(fromName)) {
 						relatedTo = relations.get(fromName);
 					}
 
-					relatedTo.addElement(toName);
+					relatedTo.add(toName);
 					relations.put(fromName, relatedTo);
 
 					// if the concepts dont have relation key
 					if (!concepts.containsKey(fromName)) {
-						Hashtable<String, String> props = new Hashtable<String, String>();
+						Map<String, String> props = new HashMap<>();
 						// props.put(fromName, initTypes[1]);
 						props.put(fromName, sqlDataTypes[1]);
 						concepts.put(fromName, props);
@@ -365,7 +357,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 					// if the concepts dont have relation key
 					if (!concepts.containsKey(toName)) {
-						Hashtable<String, String> props = new Hashtable<String, String>();
+						Map<String, String> props = new HashMap<>();
 						// props.put(toName, initTypes[2]);
 						props.put(toName, sqlDataTypes[2]);
 						concepts.put(toName, props);
@@ -394,15 +386,14 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					conceptName = Utility.cleanString(conceptName, true);
 
 					sheets.put(conceptName, sheetName);
-					Hashtable<String, String> nodeProps = new Hashtable<String, String>();
+					Map<String, String> nodeProps = new HashMap<>();
 
 					if (concepts.containsKey(conceptName)) {
 						nodeProps = concepts.get(conceptName);
 					}
 
 					/*
-					 * else { nodeProps = new Hashtable<String, String>();
-					 * nodeProps.put(conceptName, types[1]); }
+					 * else { nodeProps = new HashMap<>(); nodeProps.put(conceptName, types[1]); }
 					 */
 					// process it as a concept
 					for (int colIndex = 0; colIndex < types.length; colIndex++) {
@@ -420,21 +411,18 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	}
 
 	private void synchronizeRelations() {
-		Enumeration<String> relationKeys = relations.keys();
+		for (String relKey : relations.keySet()) {
+			List<String> theseRelations = relations.get(relKey);
 
-		while (relationKeys.hasMoreElements()) {
-			String relKey = relationKeys.nextElement();
-			Vector<String> theseRelations = relations.get(relKey);
-
-			Hashtable<String, String> prop1 = concepts.get(relKey);
+			Map<String, String> prop1 = concepts.get(relKey);
 			// if(prop1 == null)
-			// prop1 = new Hashtable<String, String>();
+			// prop1 = new HashMap<>();
 
 			for (int relIndex = 0; relIndex < theseRelations.size(); relIndex++) {
-				String thisConcept = theseRelations.elementAt(relIndex);
-				Hashtable<String, String> prop2 = concepts.get(thisConcept);
+				String thisConcept = theseRelations.get(relIndex);
+				Map<String, String> prop2 = concepts.get(thisConcept);
 				// if(prop2 == null)
-				// prop2 = new Hashtable<String, String>();
+				// prop2 = new HashMap<>();
 
 				// affinity is used to which table to get when I get to this
 				// relation
@@ -469,7 +457,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 	}
 
 	private void createTable(IRDBMSEngine database, WriteOWLEngine owlEngine, String thisConcept) {
-		Hashtable<String, String> props = concepts.get(thisConcept);
+		Map<String, String> props = concepts.get(thisConcept);
 
 		String conceptType = props.get(thisConcept);
 
@@ -486,10 +474,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 
 		// while for create it is fine
 		// I have to somehow figure out a way to get rid of most of the other stuff
-		Enumeration<String> fields = props.keys();
-
-		while (fields.hasMoreElements()) {
-			String fieldName = fields.nextElement();
+		for (String fieldName : props.keySet()) {
 			String fieldType = props.get(fieldName);
 			createString = createString + " , " + fieldName + " " + fieldType;
 
@@ -507,7 +492,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 		try {
 			database.insertData(createString);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing CREATE TABLE statement for concept '{}': {}", thisConcept,
+					e.getMessage(), e);
 		}
 		// now I say process this table ?
 
@@ -590,7 +576,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				try {
 					database.insertData(inserter + values);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error inserting row {} into table '{}': {}", rowIndex, conceptName,
+							e.getMessage(), e);
 				}
 			}
 		}
@@ -677,13 +664,15 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error executing row count query on table '{}' for relation processing: {}",
+							tableToSet, e.getMessage(), e);
 				} finally {
 					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
-							logger.error(Constants.STACKTRACE, e);
+							logger.error("Error closing query wrapper for table '{}': {}", tableToSet, e.getMessage(),
+									e);
 						}
 					}
 				}
@@ -692,7 +681,7 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 					// we want to pull all concept values from query
 					String colsToSelect = "";
 					List<String> cols = new ArrayList<String>();
-					Hashtable<String, String> propsToSelect = concepts.get(tableToSet);
+					Map<String, String> propsToSelect = concepts.get(tableToSet);
 					for (String prop : propsToSelect.keySet()) {
 						if (prop.equalsIgnoreCase(tableToSet) || prop.endsWith("_FK")) {
 							continue;
@@ -843,7 +832,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 			try {
 				database.insertData(createIndex);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Error creating index '{}' on table '{}': {}", indexName, cleanTableKey, e.getMessage(),
+						e);
 			}
 			tempIndexAddedList.add(indexOnTable);
 			tempIndexDropList.add(dropIndex);
@@ -863,7 +853,8 @@ public class RdbmsLoaderSheetUploadReactor extends AbstractDatabaseUploadFileRea
 				try {
 					database.insertData(createIndex);
 				} catch (Exception e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Error creating index '{}' on table '{}': {}", indexName, cleanTableKey,
+							e.getMessage(), e);
 				}
 				tempIndexDropList.add(dropIndex);
 				tempIndexAddedList.add(indexOnTable);

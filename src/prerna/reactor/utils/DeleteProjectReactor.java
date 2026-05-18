@@ -38,7 +38,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
 import prerna.project.api.IProject;
@@ -49,7 +48,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -65,22 +63,20 @@ public class DeleteProjectReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<String> projectIds = getProjectIds();
 		for (String projectId : projectIds) {
-			if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(projectId)) {
-				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset app.");
-			}
 			User user = this.insight.getUser();
-			
+
 			// we may have the alias
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if(!isAdmin) {
-				if(AbstractSecurityUtils.adminOnlyProjectDelete()) {
+			if (!isAdmin) {
+				if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
-				
+
 				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have permissions to delete the project. "
+				if (!isOwner) {
+					throw new IllegalArgumentException("Project " + projectId
+							+ " does not exist or user does not have permissions to delete the project. "
 							+ "User must be the owner to perform this function.");
 				}
 			}
@@ -90,11 +86,10 @@ public class DeleteProjectReactor extends AbstractReactor {
 
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
-				Thread deleteThread = new Thread(new DeleteProjectRunner(projectId));
-				deleteThread.start();
+				Thread.ofVirtual().start(new DeleteProjectRunner(projectId));
 			}
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.DELETE_PROJECT);
 	}
 
@@ -111,12 +106,12 @@ public class DeleteProjectReactor extends AbstractReactor {
 		SecurityProjectUtils.deleteProject(projectId);
 		// remove from user tracking
 		UserTrackingUtils.deleteProject(projectId);
-		
+
 		// now try to actually remove from disk
 		try {
 			project.delete();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete project files for project '{}'.", projectId, e);
 		}
 
 		return true;
@@ -124,6 +119,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 
 	/**
 	 * Get inputs
+	 * 
 	 * @return list of projects to delete
 	 */
 	public List<String> getProjectIds() {

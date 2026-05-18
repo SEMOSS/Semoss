@@ -43,7 +43,7 @@ import prerna.testing.AbstractBaseSemossApiTests;
 import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUtils;
 
-public class AdminGetAllEngineUsageReactorApiTests extends AbstractBaseSemossApiTests{
+public class AdminGetAllEngineUsageReactorApiTests extends AbstractBaseSemossApiTests {
 	
 	@Test
 	public void test() {

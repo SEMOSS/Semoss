@@ -30,6 +30,10 @@ package prerna.reactor.util;
 import java.io.File;
 import java.io.IOException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -45,8 +49,11 @@ import prerna.util.AssetUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
+import prerna.util.git.GitRepoUtils;
 
 public class UnzipFileReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(UnzipFileReactor.class);
 
 	public UnzipFileReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
@@ -109,13 +116,28 @@ public class UnzipFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
 
+		// track unzipped files in git when space is a project
+		if (engine != null && engineType == CATALOG_TYPE.PROJECT) {
+			try {
+				String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT,
+						engine.getEngineId(), engine.getEngineName());
+				GitRepoUtils.addAllFiles(gitFolder, false);
+				AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
+				String author = accessToken.getUsername();
+				String email = accessToken.getEmail();
+				GitRepoUtils.commitAddedFiles(gitFolder, "add: unzipped " + fileRelativePath, author, email);
+			} catch (Exception e) {
+				classLogger.error("Error committing unzipped files to git for project {}", space, e);
+			}
+		}
+
 		if (ClusterUtil.IS_CLUSTER) {
 			// is it in the user space?
 			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				if (projectId != null && !(projectId.isEmpty())) {
-					ClusterUtil.pushUserWorkspace(projectId, true);
+					ClusterUtil.pushUserAsset(projectId);
 				}
 				// is it in the insight space of a saved insight?
 			} else if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
