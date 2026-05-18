@@ -230,8 +230,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         toolPruneMessage.setPruneToolsAbove(true);
         // Set the prune flag on the message itself for the FE to render the UI
 
+        List<AbstractMessage> messages = room.getMessages();
         String branchLeafMessageId = branch.getLast().getMessageId();
-        for (AbstractMessage m : room.getMessages()) {
+        for (AbstractMessage m : messages) {
             if (m.getMessageId().equals(branchLeafMessageId)) {
                 m.setPruneToolsAbove(true);
                 break;
@@ -249,8 +250,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // span (to avoid double counting)
         toolPruneResponse.setTokensInMessage(10);
 
-        room.getMessages().add(toolPruneMessage);
-        room.getMessages().add(toolPruneResponse);
+        messages.add(toolPruneMessage);
+        messages.add(toolPruneResponse);
 
         ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room.getId(),
@@ -398,8 +399,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         compactedResponse.setTokensInMessage(
                 summaryResponse.getTokensInMessage() + lastMessagesTokenCount - beforeSummaryTokenCount);
 
-        room.getMessages().add(compactedMessage);
-        room.getMessages().add(compactedResponse);
+        List<AbstractMessage> messages = room.getMessages();
+        messages.add(compactedMessage);
+        messages.add(compactedResponse);
 
         ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room.getId(),
