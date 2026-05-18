@@ -99,6 +99,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             throw new IllegalArgumentException("Parent Message ID is required");
         }
 
+        // consider validating the parentMessageId is a leaf node - FE blocks for now
+
         Set<String> requestedTypes = getCompactionTypes();
         for (String type : requestedTypes) {
             if (!VALID_COMPACTION_TYPES.contains(type)) {
@@ -138,12 +140,14 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         List<Map<String, Object>> typeResults = new ArrayList<>();
 
+        List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
+
         if (autoDetect) {
             if (!roomHasViewableModel) {
                 classLogger.warn("No model id attached to room - attempting to clear out tool calls and responses");
-                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId, room, 0));
+                typeResults.add(addToolPruneKeyToMessage(branch, parentMessageId, room, 0));
             } else {
-                List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
+
                 Map<String, Object> detectResult = detectAndCompact(room, parentMessageId, modelEngine, branch);
                 if (detectResult != null) {
                     typeResults.add(detectResult);
@@ -151,10 +155,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             }
         } else {
             if (requestedTypes.contains("TOOL_PRUNE")) {
-                typeResults.add(addToolPruneKeyToMessage(messages, parentMessageId, room, 0));
+                typeResults.add(addToolPruneKeyToMessage(branch, parentMessageId, room, 0));
             }
             if (requestedTypes.contains("SUMMARY")) {
-                List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
                 int txCount = countTransactions(branch);
                 typeResults.add(
                         summarizeMessages(room, parentMessageId, branch, txCount, KEEP_N_TRANSACTIONS, modelEngine));
@@ -177,7 +180,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
      */
     private Map<String, Object> detectAndCompact(Room room, String messageId, IModelEngine modelEngine,
             List<AbstractMessage> branch) {
-        List<AbstractMessage> messages = room.getMessages();
 
         int toolTokens = computeToolTokens(branch);
         int currTokenCount = getLastMessageTokens(branch);
@@ -186,7 +188,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
                 && (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
 
         if (useToolPruning) {
-            return addToolPruneKeyToMessage(messages, messageId, room, toolTokens);
+            return addToolPruneKeyToMessage(branch, messageId, room, toolTokens);
         } else {
             int txCount = countTransactions(branch);
             if (txCount > KEEP_N_TRANSACTIONS) {
@@ -197,29 +199,29 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         }
     }
 
-    private Map<String, Object> addToolPruneKeyToMessage(List<AbstractMessage> messages, String parentMessageId,
+    private Map<String, Object> addToolPruneKeyToMessage(List<AbstractMessage> branch, String parentMessageId,
             Room room, int toolTokens) {
         Map<String, Object> result = new HashMap<>();
         result.put("type", "TOOL_PRUNE");
 
-        if (messages.size() < 2) {
+        if (branch.size() < 2) {
             result.put("success", false);
             result.put("error", "Not enough messages in room to apply tool pruning");
             return result;
         }
 
         if (toolTokens == 0) {
-            toolTokens = computeToolTokens(messages);
+            toolTokens = computeToolTokens(branch);
         }
 
-        int branchTokens = getLastMessageTokens(messages);
+        int branchTokens = getLastMessageTokens(branch);
 
         InputMessage toolPruneMessage = InputMessage.builder(room)
                 .withText("Pruning Tools For Future Messages")
                 .build();
 
         // Inherit the parent of the oldest pruned message so other branches stay intact
-        toolPruneMessage.setParentMessageId(messages.getLast().getMessageId());
+        toolPruneMessage.setParentMessageId(branch.getLast().getMessageId());
         toolPruneMessage.setVisibile(false);
 
         // Set token count to last input + response - expected tokens pruned
@@ -227,7 +229,14 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         toolPruneMessage.setTokensInMessage(branchTokens - toolTokens);
         toolPruneMessage.setPruneToolsAbove(true);
         // Set the prune flag on the message itself for the FE to render the UI
-        messages.getLast().setPruneToolsAbove(true);
+
+        String branchLeafMessageId = branch.getLast().getMessageId();
+        for (AbstractMessage m : room.getMessages()) {
+            if (m.getMessageId().equals(branchLeafMessageId)) {
+                m.setPruneToolsAbove(true);
+                break;
+            }
+        }
 
         // Pair the compacted input with a response message so the branch is complete
         ResponseMessage toolPruneResponse = ResponseMessage.builder()
@@ -240,8 +249,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         // span (to avoid double counting)
         toolPruneResponse.setTokensInMessage(10);
 
-        messages.add(toolPruneMessage);
-        messages.add(toolPruneResponse);
+        room.getMessages().add(toolPruneMessage);
+        room.getMessages().add(toolPruneResponse);
 
         ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room.getId(),
@@ -264,8 +273,6 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
             result.put("error", "No model engine found for room");
             return result;
         }
-
-        List<AbstractMessage> messages = room.getMessages();
 
         if (transactionCount <= keepNTransactions) {
             result.put("success", false);
@@ -391,8 +398,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         compactedResponse.setTokensInMessage(
                 summaryResponse.getTokensInMessage() + lastMessagesTokenCount - beforeSummaryTokenCount);
 
-        messages.add(compactedMessage);
-        messages.add(compactedResponse);
+        room.getMessages().add(compactedMessage);
+        room.getMessages().add(compactedResponse);
 
         ModelInferenceLogsUtils.llm2_updateRoomMessages(
                 room.getId(),
