@@ -34,89 +34,125 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
+/**
+ * Base reactor for metadata update operations.
+ * <p>
+ * The {@code jsonCleanup} input is a legacy compatibility path intended for
+ * older clients that previously sent double-escaped metadata strings. Modern
+ * clients should rely on parser-level decoding and avoid enabling this flag.
+ */
 public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 
 	protected static final String META = "meta";
 
 	/**
-	 * Get the meta map and account for encoded input or not
+	 * Get the metadata map while handling encoded input paths.
+	 * <p>
+	 * Note: {@code jsonCleanup} is legacy compatibility for older escaped payloads
+	 * and should not be used by modern clients.
 	 * 
-	 * @return
+	 * @return parsed metadata map
 	 */
 	protected Map<String, Object> getMetaMap() {
-		Boolean encoded = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ENCODED.getKey()) + "");
+		Boolean jsonCleanup = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.JSON_CLEANUP.getKey()) + "");
 		GenRowStruct metaGrs = this.store.getGenRowStruct(META);
-		if (encoded) {
-			if (metaGrs != null && !metaGrs.isEmpty()) {
-				List<NounMetadata> encodedStrInputs = metaGrs.getNounsOfType(PixelDataType.CONST_STRING);
-				if (encodedStrInputs != null && !encodedStrInputs.isEmpty()) {
-					String encodedStr = (String) encodedStrInputs.get(0).getValue();
-					String decodedStr = Utility.decodeURIComponent(encodedStr);
-					return GSON.fromJson(decodedStr, Map.class);
-				}
-			}
+		return parseMetaMap(metaGrs, this.curRow, jsonCleanup);
+	}
 
-			List<NounMetadata> encodedStrInputs = this.curRow.getNounsOfType(PixelDataType.CONST_STRING);
-			if (encodedStrInputs != null && !encodedStrInputs.isEmpty()) {
-				String encodedStr = (String) encodedStrInputs.get(0).getValue();
-				String decodedStr = Utility.decodeURIComponent(encodedStr);
-				return GSON.fromJson(decodedStr, Map.class);
+	/**
+	 * Shared metadata-map parsing logic for metadata reactors.
+	 * <p>
+	 * This exists so reactors that cannot extend this class (because they already
+	 * extend another abstract base) can still use a single implementation.
+	 *
+	 * @param metaGrs     metadata noun row from the noun store
+	 * @param curRow      fallback current row
+	 * @param jsonCleanup legacy cleanup compatibility flag
+	 * @return parsed metadata map
+	 */
+	protected static Map<String, Object> parseMetaMap(GenRowStruct metaGrs, GenRowStruct curRow, boolean jsonCleanup) {
+		Map<String, Object> mapValue = parseMapValue(metaGrs);
+		if (mapValue != null) {
+			if (jsonCleanup) {
+				applyLegacyJsonCleanup(mapValue);
 			}
-		} else {
-			Boolean jsonCleanup = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.JSON_CLEANUP.getKey()) + "");
-			if (metaGrs != null && !metaGrs.isEmpty()) {
-				List<NounMetadata> mapInputs = metaGrs.getNounsOfType(PixelDataType.MAP);
-				if (mapInputs != null && !mapInputs.isEmpty()) {
-					Map<String, Object> retMap = (Map<String, Object>) mapInputs.get(0).getValue();
-					if (jsonCleanup) {
-						cleanupMap(retMap);
-					}
-					return retMap;
-				}
+			return mapValue;
+		}
+		mapValue = parseMapValue(curRow);
+		if (mapValue != null) {
+			if (jsonCleanup) {
+				applyLegacyJsonCleanup(mapValue);
 			}
-
-			List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				Map<String, Object> retMap = (Map<String, Object>) mapInputs.get(0).getValue();
-				if (jsonCleanup) {
-					cleanupMap(retMap);
-				}
-				return retMap;
-			}
+			return mapValue;
 		}
 
 		throw new IllegalArgumentException("Must define a metadata map");
 	}
 
-	protected void cleanupMap(Map<String, Object> map) {
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> parseMapValue(GenRowStruct grs) {
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		List<NounMetadata> mapInputs = grs.getNounsOfType(PixelDataType.MAP);
+		if (mapInputs == null || mapInputs.isEmpty()) {
+			return null;
+		}
+		return (Map<String, Object>) mapInputs.get(0).getValue();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> parseEncodedMetaMap(GenRowStruct grs) {
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		List<NounMetadata> encodedStrInputs = grs.getNounsOfType(PixelDataType.CONST_STRING);
+		if (encodedStrInputs == null || encodedStrInputs.isEmpty()) {
+			return null;
+		}
+		String str = (String) encodedStrInputs.get(0).getValue();
+		return GSON.fromJson(str, Map.class);
+	}
+
+	/**
+	 * Recursively applies legacy escaped-string cleanup to map values.
+	 * <p>
+	 * This method exists only for {@code jsonCleanup} compatibility mode.
+	 */
+	private static void applyLegacyJsonCleanup(Map<String, Object> map) {
 		Map<String, Object> replacements = new HashMap<>();
 		for (String key : map.keySet()) {
-			Object value = map.get(key);
-			if (value instanceof Map) {
-				cleanupMap((Map<String, Object>) value);
-			}
-			if (value instanceof Collection) {
-				List<Object> newList = new ArrayList<>();
-				for (Object o : (Collection) value) {
-					if (o instanceof String) {
-						newList.add(((String) o).replaceAll("\\\\n", "\n").replaceAll("\\\\t", "\t"));
-					} else {
-						newList.add(o);
-					}
-				}
-				replacements.put(key, value);
-			} else if (value instanceof String) {
-				value = ((String) value).replaceAll("\\\\n", "\n").replaceAll("\\\\t", "\t");
-				replacements.put(key, value);
-			}
+			replacements.put(key, cleanupValue(map.get(key)));
 		}
 
 		map.putAll(replacements);
+	}
+
+	/**
+	 * Normalizes nested values during legacy {@code jsonCleanup} processing.
+	 */
+	@SuppressWarnings("unchecked")
+	private static Object cleanupValue(Object value) {
+		if (value instanceof Map) {
+			applyLegacyJsonCleanup((Map<String, Object>) value);
+			return value;
+		}
+		if (value instanceof Collection) {
+			List<Object> newList = new ArrayList<>();
+			for (Object o : (Collection<?>) value) {
+				newList.add(cleanupValue(o));
+			}
+			return newList;
+		}
+		if (value instanceof String) {
+			return PixelUtility.decodeEscapedString((String) value);
+		}
+		return value;
 	}
 }

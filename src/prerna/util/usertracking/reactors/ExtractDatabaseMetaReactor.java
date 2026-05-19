@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.engine.impl.owl.WriteOWLEngine;
@@ -65,9 +64,8 @@ public class ExtractDatabaseMetaReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		// get inputs - engine
-		String engineId = UploadInputUtility.getDatabaseNameOrId(this.store);
-		// we may have the alias
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		String engineId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException(
 					"Database " + engineId + " does not exist or user does not have access to database");

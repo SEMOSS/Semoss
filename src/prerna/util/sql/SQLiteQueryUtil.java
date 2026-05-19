@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -49,14 +50,19 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SQLiteSqlInterpreter;
 import prerna.sablecc2.om.Join;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(SQLiteQueryUtil.class);
+
+	public static final String BASE_SQLITE_FILE_CONNECTION = "jdbc:sqlite:@BaseFolder@" + File.separator
+			+ Constants.DATABASE_FOLDER + File.separator + "@ENGINE@" + File.separator + "database.sqlite";
 
 	SQLiteQueryUtil() {
 		super();
@@ -199,11 +205,30 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 					}
 				});
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error registering REGEXP function on SQLite connection: {}", e.getMessage(), e);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error enhancing SQLite connection: {}", e.getMessage(), e);
 		}
+	}
+
+	@Override
+	public String fillFileParameterizedConnectionUrl(String connectionUrl, String engineId, String engineName) {
+		if (engineId == null && engineName == null) {
+			return connectionUrl;
+		}
+
+		if (connectionUrl == null || (connectionUrl = connectionUrl.trim()).isEmpty()) {
+			connectionUrl = BASE_SQLITE_FILE_CONNECTION;
+		}
+
+		String baseFolder = Utility.getBaseFolder().replace('\\', '/');
+		if (baseFolder.endsWith("/")) {
+			baseFolder = baseFolder.substring(0, baseFolder.length() - 1);
+		}
+
+		return connectionUrl.replace("@" + Constants.BASE_FOLDER + "@", baseFolder)
+				.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
 	}
 
 	@Override

@@ -77,7 +77,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractVectorDatabaseEngine.class);
 
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+	protected static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
 	protected static final String TOKENIZER_INIT_SCRIPT = "from genai_client import get_tokenizer;"
@@ -302,8 +302,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					}
 					FileUtils.copyFileToDirectory(fileInInsightFolder, documentDir, true);
 				} catch (IOException e) {
-					classLogger.error("Failed to copy document '" + fileInInsightFolder.getAbsolutePath()
-							+ "' to vector documents directory '" + documentDir.getAbsolutePath() + "'", e);
+					classLogger.error("Failed to copy document '{}' to vector documents directory '{}'",
+							fileInInsightFolder.getAbsolutePath(), documentDir.getAbsolutePath(), e);
 					throw new IllegalArgumentException("Unable to remove previously created file for "
 							+ destinationFile.getName() + " or move it to the document directory");
 				}
@@ -321,15 +321,16 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					String docLower = destinationFile.getName().toLowerCase();
 
 					if (docLower.endsWith(".csv")) {
-						classLogger.info("You are attempting to load in a structured table for " + documentName
-								+ ". Hopefully the structure is the right format we expect...");
+						classLogger.info(
+								"You are attempting to load in a structured table for '{}'. Hopefully the structure is the right format we expect...",
+								documentName);
 						// validate the file is a proper csv
 						boolean validCsv = true;
 						try {
 							validCsv = VectorDatabaseCSVTable.validateCSVTable(destinationFile);
 						} catch (Exception e) {
-							classLogger.error(
-									"Failed to validate CSV format for document: " + destinationFile.getName(), e);
+							classLogger.error("Failed to validate CSV format for document: '{}'",
+									destinationFile.getName(), e);
 							validCsv = false;
 						}
 
@@ -348,7 +349,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 						}
 						FileUtils.copyFileToDirectory(destinationFile, indexFilesDir);
 					} else {
-						classLogger.info("Extracting text from document " + documentName);
+						classLogger.info("Extracting text from document '{}'", documentName);
 						boolean processed = false;
 						int rowsCreated = -1;
 						if (extractionMethod.equals("fitz")
@@ -401,7 +402,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							continue;
 						}
 						setVectorFolderPermissions();
-						classLogger.info("Creating chunks from extracted text for " + documentName);
+						classLogger.info("Creating chunks from extracted text for '{}'", documentName);
 
 						StringBuilder splitTextCommand = new StringBuilder();
 						splitTextCommand.append("vector_database.split_text(csv_file_location = '")
@@ -417,7 +418,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					extractedFiles.add(extractedFile);
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
-					classLogger.error("Failed to process document: " + destinationFile.getName(), e);
+					classLogger.error("Failed to process document: '{}'", destinationFile.getName(), e);
 					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
 							0, 0);
 					failedStatus.setError(buildEmbeddingError(errorMessage, e));
@@ -444,12 +445,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
-				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId,
-						this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-				copyFilesToCloudThread.start();
+				Thread.ofVirtual().start(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(),
+						filesToCopyToCloud.stream().toArray(String[]::new)));
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to add documents to vector database for index class: " + indexClass, e);
+			classLogger.error("Failed to add documents to vector database for index class: '{}'", indexClass, e);
 			// delete files moved into vector db documents folder
 			for (File document : movedDocuments) {
 				document.delete();
@@ -469,7 +469,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		try {
 			FileUtils.forceDelete(file);
 		} catch (IOException e) {
-			classLogger.error("Failed to clean up temporary add-document file/folder: " + file.getAbsolutePath(), e);
+			classLogger.error("Failed to clean up temporary add-document file/folder: '{}'", file.getAbsolutePath(), e);
 		}
 	}
 
@@ -550,7 +550,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				}
 				fileStatusList.addAll(resultList);
 			} catch (Exception e) {
-				classLogger.error("Failed to add embeddings from CSV file: " + vectorCsvFile.getAbsolutePath(), e);
+				classLogger.error("Failed to add embeddings from CSV file: '{}'", vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
 				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
@@ -815,7 +815,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 					debug = true;
 				} catch (NumberFormatException e) {
 					// ignore
-					classLogger.warn("Vector Database " + this.engineName + " has an invalid FORCE_PORT value");
+					classLogger.warn("Vector Database '{}' has an invalid FORCE_PORT value", this.engineName);
 				}
 			}
 		}
@@ -852,8 +852,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			}
 
 			// for debugging...
-			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
-					+ " python process with commands >>> " + String.join("\n", commands));
+			classLogger.info("Initializing '{}' python process with commands >>> {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
 
 			this.pyTranslator.runEmptyPy(commands);
 
@@ -863,12 +863,12 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			// set the model props to false
 			// incase those values were incorrect
 			modelPropsLoaded = false;
-			classLogger.error("Failed to initialize python start commands for vector database: "
-					+ SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error("Failed to initialize python start commands for vector database: '{}'",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 			if (cpwToInit != null) {
-				classLogger.warn("Able to start the python process for the vector database "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId)
-						+ " but the start script failed.");
+				classLogger.warn(
+						"Able to start the python process for the vector database '{}' but the start script failed.",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				cpwToInit.shutdown(false);
 			}
 			throw e;
@@ -959,11 +959,11 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 			try {
 				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
-				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
-						+ this.schemaFolder.getAbsolutePath(), e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: '{}'",
+						this.schemaFolder.getAbsolutePath(), e);
 			} catch (InterruptedException e) {
-				classLogger.error("Failed to set owner/group permissions on vector schema folder: "
-						+ this.schemaFolder.getAbsolutePath(), e);
+				classLogger.error("Failed to set owner/group permissions on vector schema folder: '{}'",
+						this.schemaFolder.getAbsolutePath(), e);
 			}
 		}
 	}

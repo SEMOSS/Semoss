@@ -33,6 +33,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -94,25 +96,26 @@ public final class RoomUtils {
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, null);
 	}
 
 	/**
 	 * Ensures a Room exists: creates it if necessary, then loads it for the given
 	 * user/insight.
 	 *
-	 * @param roomId      requested room id; when null/blank the insight id is used
-	 * @param insight     active insight context
-	 * @param modelEngine model engine associated with the room (optional)
-	 * @param question    initial user question used for default room naming
-	 * @param workspaceId optional workspace id to associate with the room
-	 * @param options     optional room options payload
-	 * @param context     optional room context/system prompt
-	 * @param projectId   optional project id override
+	 * @param roomId       requested room id; when null/blank the insight id is used
+	 * @param insight      active insight context
+	 * @param modelEngine  model engine associated with the room (optional)
+	 * @param question     initial user question used for default room naming
+	 * @param workspaceId  optional workspace id to associate with the room
+	 * @param options      optional room options payload
+	 * @param context      optional room context/system prompt
+	 * @param projectId    optional project id override
+	 * @param parentRoomId optional parent room id for sub-conversations
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context, String projectId) {
+			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
@@ -145,9 +148,9 @@ public final class RoomUtils {
 			String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
 			// @formatter:off
             ModelInferenceLogsUtils.doCreateNewConversation(
-            		insight.getInsightId(), 
+            		insight.getInsightId(),
                     roomId,
-                    roomName, 
+                    roomName,
                     context,
                     userToken.getId(),
                     userName,
@@ -158,7 +161,8 @@ public final class RoomUtils {
                     projectId,
                     projectName,
                     workspaceId,
-                    options
+                    options,
+                    parentRoomId
             );
     		// @formatter:on
 
@@ -551,6 +555,8 @@ public final class RoomUtils {
 				try {
 					byte[] bytes = Base64.getDecoder().decode(base64Data);
 					Files.write(target, bytes);
+					// this is meant to be relative to the room
+					media.setFileLocation(fileName);
 					pushToCloud = true;
 				} catch (Exception e) {
 					classLogger.warn("Unable to persist media part to " + target, e);
@@ -662,7 +668,7 @@ public final class RoomUtils {
 	 * @param value input string
 	 * @return {@code true} for supported image/pdf data URIs
 	 */
-	private static boolean isBase64MediaDataUri(String value) {
+	public static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
@@ -713,11 +719,14 @@ public final class RoomUtils {
 			}
 
 			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
 			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
+
+			// Content-addressed name -- identical bytes dedup to the same file.
+			String fileName = "media_" + sha256Hex(decoded).substring(0, 16) + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+			if (!Files.exists(destination)) {
+				Files.write(destination, decoded);
+			}
 			return fileName;
 		} catch (IllegalArgumentException e) {
 			// base64 decoder throws IllegalArgumentException on bad input
@@ -726,6 +735,21 @@ public final class RoomUtils {
 		} catch (IOException e) {
 			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
 			return null;
+		}
+	}
+
+	private static String sha256Hex(byte[] data) {
+		try {
+			byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+			StringBuilder sb = new StringBuilder(hash.length * 2);
+			for (byte b : hash) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			// SHA-256 is required by the JRE spec; fall back to a UUID if it ever fails.
+			classLogger.warn("SHA-256 unavailable; falling back to random media filename", e);
+			return UUID.randomUUID().toString().replace("-", "");
 		}
 	}
 

@@ -54,7 +54,7 @@ public final class SalesforceHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(SalesforceHelper.class);
 
-	private static final Gson gson = new GsonBuilder().setPrettyPrinting().create();
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	private static final String BEARER = "Bearer ";
 	private static final String CONTENT_TYPE_JSON = "application/json";
@@ -102,7 +102,7 @@ public final class SalesforceHelper {
 			classLogger.info("Fetching Salesforce object metadata from URL: {}", objectsUrl);
 
 			String objectsResponse = HttpHelperUtility.getRequest(objectsUrl, headers, null, null, null);
-			Map<String, Object> objectsList = gson.fromJson(objectsResponse, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> objectsList = GSON.fromJson(objectsResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			if (sObjectName == null || sObjectName.trim().isEmpty()) {
@@ -127,7 +127,7 @@ public final class SalesforceHelper {
 					describeUrl);
 
 			String fieldsResponse = HttpHelperUtility.getRequest(describeUrl, headers, null, null, null);
-			Map<String, Object> fieldsMetadata = gson.fromJson(fieldsResponse, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> fieldsMetadata = GSON.fromJson(fieldsResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			List<String> fieldNames = new ArrayList<>();
@@ -170,7 +170,7 @@ public final class SalesforceHelper {
 			classLogger.info("Running SOQL query via URL: {}", fullUrl);
 
 			String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(response, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			result.put(TOTAL_SIZE_KEY, responseMap.get(TOTAL_SIZE_KEY));
@@ -207,7 +207,7 @@ public final class SalesforceHelper {
 					fullUrl);
 
 			String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(response, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			result.put(FIELDS_KEY, responseMap);
@@ -239,7 +239,7 @@ public final class SalesforceHelper {
 			classLogger.info("Running SOSL query via URL: {}", fullUrl);
 
 			String response = HttpHelperUtility.getRequest(fullUrl, headers, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(response, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			result.put(SEARCH_RECORDS_KEY, responseMap.get(SEARCH_RECORDS_KEY));
@@ -273,12 +273,12 @@ public final class SalesforceHelper {
 			Map<String, String> headers = getBearerHeader(accessToken);
 
 			String fullUrl = instanceUrl + SOBJECTS_ENDPOINT_SUFFIX + sObjectName;
-			String jsonBody = gson.toJson(fieldValues);
+			String jsonBody = GSON.toJson(fieldValues);
 			classLogger.info("Creating Salesforce record for object '{}' via URL: {}", sObjectName, fullUrl);
 
 			String response = HttpHelperUtility.postRequestStringBody(fullUrl, headers, jsonBody,
 					ContentType.APPLICATION_JSON, null, null, null);
-			Map<String, Object> responseMap = gson.fromJson(response, new TypeToken<Map<String, Object>>() {
+			Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 
 			String recordId = (String) responseMap.get(ID_KEY);
@@ -356,7 +356,7 @@ public final class SalesforceHelper {
 			Map<String, String> headers = getBearerHeader(accessToken);
 
 			String fullUrl = instanceUrl + SOBJECTS_ENDPOINT_SUFFIX + sObjectName + "/" + recordId;
-			String jsonBody = gson.toJson(fieldValues);
+			String jsonBody = GSON.toJson(fieldValues);
 			classLogger.info("Updating Salesforce record '{}' for object '{}' via URL: {}", recordId, sObjectName,
 					fullUrl);
 

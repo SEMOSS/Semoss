@@ -105,6 +105,73 @@ public abstract class AbstractStorageEngine extends AbstractEngine implements IS
 		return result;
 	}
 
+	/**
+	 * Normalizes a requested storage path for prefix matching.
+	 *
+	 * @param storagePath path provided by caller
+	 * @return normalized path with no leading/trailing slash
+	 */
+	protected String normalizeStoragePrefixPath(String storagePath) {
+		if (storagePath == null) {
+			return "";
+		}
+
+		String normalized = Utility.normalizePath(storagePath).trim().replace("\\", "/");
+		while (normalized.startsWith("/")) {
+			normalized = normalized.substring(1);
+		}
+		while (!normalized.isEmpty() && normalized.endsWith("/")) {
+			normalized = normalized.substring(0, normalized.length() - 1);
+		}
+		return normalized;
+	}
+
+	/**
+	 * Resolves a storage object key to a path relative to the requested storage
+	 * path.
+	 *
+	 * @param storageObjectKey full object key from cloud provider
+	 * @param requestedPath    user-requested path (file or folder)
+	 * @return relative path, or null when key does not belong to the requested
+	 *         scope
+	 */
+	protected String resolveRelativeStoragePath(String storageObjectKey, String requestedPath) {
+		if (storageObjectKey == null || storageObjectKey.trim().isEmpty()) {
+			return null;
+		}
+
+		String normalizedObjectKey = storageObjectKey.trim().replace("\\", "/");
+		while (normalizedObjectKey.startsWith("/")) {
+			normalizedObjectKey = normalizedObjectKey.substring(1);
+		}
+		if (normalizedObjectKey.isEmpty()) {
+			return null;
+		}
+
+		String normalizedRequestedPath = normalizeStoragePrefixPath(requestedPath);
+		String relativePath;
+		if (normalizedRequestedPath.isEmpty()) {
+			relativePath = normalizedObjectKey;
+		} else if (normalizedObjectKey.equals(normalizedRequestedPath)) {
+			int slashIdx = normalizedObjectKey.lastIndexOf('/');
+			relativePath = slashIdx >= 0 ? normalizedObjectKey.substring(slashIdx + 1) : normalizedObjectKey;
+		} else {
+			String folderPrefix = normalizedRequestedPath + "/";
+			if (!normalizedObjectKey.startsWith(folderPrefix)) {
+				return null;
+			}
+			relativePath = normalizedObjectKey.substring(folderPrefix.length());
+		}
+
+		while (relativePath.startsWith("/")) {
+			relativePath = relativePath.substring(1);
+		}
+		if (relativePath.isEmpty() || relativePath.endsWith("/")) {
+			return null;
+		}
+		return relativePath;
+	}
+
 	@Override
 	public IEngine.CATALOG_TYPE getCatalogType() {
 		return IEngine.CATALOG_TYPE.STORAGE;

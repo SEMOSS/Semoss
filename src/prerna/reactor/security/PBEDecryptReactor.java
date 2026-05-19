@@ -39,11 +39,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class PBEDecryptReactor extends AbstractReactor {
+public final class PBEDecryptReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(PBEDecryptReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(PBEDecryptReactor.class);
 
-	private static String password = null;
+	private static volatile String password = null;
 
 	public PBEDecryptReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey() };
@@ -63,7 +63,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 
 			return new NounMetadata(query, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred decrypting with message {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error occurred decrypting with message = " + e.getMessage());
 		}
 	}
@@ -79,7 +79,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			if (size == 1) {
-				String stringValue = Utility.decodeURIComponent(grs.get(0) + "");
+				String stringValue = grs.get(0) + "";
 				return stringValue.getBytes();
 			} else {
 				byte[] arr = new byte[size];
@@ -93,7 +93,7 @@ public class PBEDecryptReactor extends AbstractReactor {
 
 		int size = this.curRow.size();
 		if (size == 1) {
-			String stringValue = Utility.decodeURIComponent(this.curRow.get(0) + "");
+			String stringValue = this.curRow.get(0) + "";
 			return stringValue.getBytes();
 		} else {
 			byte[] arr = new byte[size];
@@ -128,21 +128,5 @@ public class PBEDecryptReactor extends AbstractReactor {
 //		logger.debug("Decrypting with password >> " + Utility.cleanLogString(PBEDecryptReactor.password));
 		return PBEDecryptReactor.password;
 	}
-
-//	
-//	public static void main(String[] args) {
-//		String value = "SELECT * FROM MOVIE_DATA";
-//		
-//		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
-//		encryptor.setPassword("password123");
-//		byte[] queryBytes = encryptor.encrypt(value.getBytes());
-//		String encoded = new String(queryBytes);
-//		System.out.println("Encode array > " + Arrays.toString(queryBytes));
-//		System.out.println("Encoded >> " + encoded);
-//		
-////		byte[] decodedBytes = encryptor.decrypt(queryBytes);
-////		String decoded = new String(decodedBytes);
-////		System.out.println("Decoded >> " + decoded);
-//	}
 
 }

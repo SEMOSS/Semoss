@@ -149,8 +149,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		String[] typeAndCost = new String[] { prop.getOrDefault(Constants.PROJECT_ENUM_TYPE, "") + "", "" };
 		boolean projectExists = containsProjectId(projectId);
 		if (projectExists && !reloadInsights) {
-			classLogger.info("Security database already contains project with unique id = "
-					+ Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
+			classLogger.info("Security database already contains project with unique id = {}",
+					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if (!projectExists) {
 			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], hasPortal, portalName,
@@ -162,7 +162,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global);
 		}
 
-		classLogger.info("Security database going to add project with alias = " + Utility.cleanLogString(projectName));
+		classLogger.info("Security database going to add project with alias = {}", Utility.cleanLogString(projectName));
 
 		// load just the insights database
 		// first see if engine is already loaded
@@ -311,7 +311,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						classLogger.info("Executing batch .... row num = " + count);
+						classLogger.info("Executing batch .... row num = {}", count);
 						ps.executeBatch();
 					}
 
@@ -327,7 +327,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// well, we are done looping through now
-		classLogger.info("Executing final batch .... row num = " + count);
+		classLogger.info("Executing final batch .... row num = {}", count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
@@ -392,7 +392,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					ps.addBatch();
 					// batch commit based on size
 					if (++count % batchSize == 0) {
-						classLogger.info("Executing batch .... row num = " + count);
+						classLogger.info("Executing batch .... row num = {}", count);
 						ps.executeBatch();
 					}
 				} catch (SQLException e) {
@@ -404,7 +404,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// well, we are done looping through now
-		classLogger.info("Executing final batch .... row num = " + count);
+		classLogger.info("Executing final batch .... row num = {}", count);
 		try {
 			ps.executeBatch();
 		} catch (SQLException e) {
@@ -449,7 +449,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		classLogger.info("Finished adding project = " + Utility.cleanLogString(projectId));
+		classLogger.info("Finished adding project = {}", Utility.cleanLogString(projectId));
 	}
 
 	/**
@@ -574,7 +574,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	// For updating Last Edited Date for Block Apps
+	/**
+	 * For updating Last Edited Date for Apps
+	 * 
+	 * @param projectID
+	 */
 	public static void updateProjectLastEditedDate(String projectID) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
@@ -702,7 +706,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							}
 						}
 					} else {
-						classLogger.warn("Cannot write insight id '" + insightId + "' with no pixel recipe");
+						classLogger.warn("Cannot write insight id '{}' with no pixel recipe", insightId);
 						continue;
 					}
 
@@ -2785,14 +2789,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// action
 			if (currentNewUserPermission == requestedPermissionNumeric) {
 				alreadyHaveAccess.add(dependentEngineId);
-				classLogger.info("User already has " + requestedPermission + " access to " + dependentEngineId);
+				classLogger.info("User already has {} access to {}", requestedPermission, dependentEngineId);
 				// if newUser has already requested this access and it is still pending, take no
 				// action
 			} else if (currentPendingUserPermission != null
 					&& requestedPermissionNumeric == currentPendingUserPermission) {
 				requestAlreadyExists.add(dependentEngineId);
-				classLogger.info("user has already requested " + requestedPermission + "access to " + dependentEngineId
-						+ " and the request is pending.");
+				classLogger.info("user has already requested {} access to {} and the request is pending.",
+						requestedPermission, dependentEngineId);
 				// if requester has insufficient privileges on the engine so forward request to
 				// engine owner
 			} else if (requesterEnginePermission == null || requesterEnginePermission == 3) {
@@ -2805,8 +2809,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 								"No Comment at this time", requestedPermissionNumeric, requester);
 					}
 					newRequestAdded.add(dependentEngineId);
-					classLogger.info("User has forwarded " + newUserId + "'s request to the owner of engine "
-							+ dependentEngineId);
+					classLogger.info("User has forwarded {}'s request to the owner of engine {}", newUserId,
+							dependentEngineId);
 				} catch (Exception e) {
 					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error("Failed to propagate project permissions to related artifacts", e);
@@ -2826,7 +2830,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					accessGranted.add(dependentEngineId);
-					classLogger.info("User has updated permission for " + newUserId + " to " + dependentEngineId);
+					classLogger.info("User has updated permission for {} to {}", newUserId, dependentEngineId);
 				} catch (IllegalAccessException e) {
 					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error("Failed to propagate project permissions to related artifacts", e);
@@ -2844,15 +2848,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					}
 
 					accessGranted.add(dependentEngineId);
-					classLogger.info("User has added " + newUserId + " to " + dependentEngineId);
+					classLogger.info("User has added {} to {}", newUserId, dependentEngineId);
 				} catch (IllegalAccessException | IllegalArgumentException e) {
 					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
 			} else {
 				couldNotAddRequest.add(dependentEngineId);
-				classLogger.info(
-						"User could not add or forward " + newUserId + "'s request for engine " + dependentEngineId);
+				classLogger.info("User could not add or forward {}'s request for engine {}", newUserId,
+						dependentEngineId);
 			}
 		}
 
@@ -3273,6 +3277,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 
+		// description from project metadata
+		qs1.addSelector(new QueryColumnSelector("PROJECT_DESCRIPTION__DESCRIPTION", "project_description"));
+
 		// this block is for max permissions
 		// If both null - return null
 		// if either not null - return the permission value that is not null
@@ -3387,6 +3394,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "=" });
 			qs1.addRelation(subQuery);
+		}
+
+		// add a join to get the project description from metadata
+		{
+			SelectQueryStruct descQs = new SelectQueryStruct();
+			descQs.addSelector(new QueryColumnSelector("PROJECTMETA__PROJECTID", "PROJECTID"));
+			descQs.addSelector(new QueryColumnSelector("PROJECTMETA__METAVALUE", "DESCRIPTION"));
+			descQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAKEY", "==", "description"));
+			IRelation descSubQuery = new SubqueryRelationship(descQs, "PROJECT_DESCRIPTION", "left.outer.join",
+					new String[] { "PROJECT_DESCRIPTION__PROJECTID", "PROJECT__PROJECTID", "=" });
+			qs1.addRelation(descSubQuery);
 		}
 
 		// filters
