@@ -36,7 +36,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 public class GetUserConversationRoomsReactor extends AbstractReactor {
 
@@ -70,9 +69,6 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		}
 
 		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
-		if (search != null) {
-			search = Utility.decodeURIComponent(search);
-		}
 
 		// Optional pinned filter: true/false to filter, null/absent to ignore
 		Boolean pinned = null;
@@ -84,7 +80,7 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 		// Optional free-text search against the OPTIONS JSON column.
 		String roomOptionsSearch = this.keyValue.get("roomOptionsSearch");
 		if (roomOptionsSearch != null) {
-			roomOptionsSearch = Utility.decodeURIComponent(roomOptionsSearch.trim());
+			roomOptionsSearch = roomOptionsSearch.trim();
 			if (roomOptionsSearch.isEmpty()) {
 				roomOptionsSearch = null;
 			}
@@ -92,7 +88,8 @@ public class GetUserConversationRoomsReactor extends AbstractReactor {
 
 		// Call new overload of getUserConversations
 		List<Map<String, Object>> output = ModelInferenceLogsUtils.getUserConversations(
-				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch);
+				user.getPrimaryLoginToken().getId(), projectId, limit, offset, sortDir, search, pinned,
+				roomOptionsSearch);
 
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}

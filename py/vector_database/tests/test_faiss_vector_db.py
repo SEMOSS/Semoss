@@ -71,9 +71,11 @@ class FaissVectorDatabaseTests(unittest.TestCase):
         )
 
         aGnETVb.create_searcher(searcher_name="default", base_path=path_to_index_class)
-        aGnETVb.searchers["default"].load_dataset(path_to_index_class + "/dataset.pkl")
+        aGnETVb.searchers["default"].load_dataset(
+            path_to_index_class + "/dataset.parquet"
+        )
         aGnETVb.searchers["default"].load_encoded_vectors(
-            path_to_index_class + "/vectors.pkl"
+            path_to_index_class + "/vectors.npy"
         )
         search_results = aGnETVb.searchers["default"].nearestNeighbor(
             question="how is the president chosen?"
@@ -115,9 +117,11 @@ class FaissVectorDatabaseTests(unittest.TestCase):
         )
 
         aGnETVb.create_searcher(searcher_name="default", base_path=path_to_index_class)
-        aGnETVb.searchers["default"].load_dataset(path_to_index_class + "/dataset.pkl")
+        aGnETVb.searchers["default"].load_dataset(
+            path_to_index_class + "/dataset.parquet"
+        )
         aGnETVb.searchers["default"].load_encoded_vectors(
-            path_to_index_class + "/vectors.pkl"
+            path_to_index_class + "/vectors.npy"
         )
         search_results = aGnETVb.searchers["default"].nearestNeighbor(
             question="how is the president chosen?"

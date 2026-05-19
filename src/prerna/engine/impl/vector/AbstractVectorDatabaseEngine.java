@@ -445,9 +445,8 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
-				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId,
-						this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-				copyFilesToCloudThread.start();
+				Thread.ofVirtual().start(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(),
+						filesToCopyToCloud.stream().toArray(String[]::new)));
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to add documents to vector database for index class: '{}'", indexClass, e);
