@@ -37,18 +37,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Pixel endpoint for executing a platform default tool by name.
+ * Pixel entrypoint used by the frontend to invoke a {@code platform__*} tool
+ * after the LLM returns a tool call. Delegates to
+ * {@link PlatformDefaultTools#execute}.
  *
- * <p>
- * Used by the frontend when the LLM returns a tool call for a
- * {@code platform__*} tool (as opposed to an MCP engine tool).
- *
- * <p>
- * Example Pixel:
- * 
- * <pre>
- *   RunDefaultTool(function=["platform__Command"], paramValues=[{"command": "ls -la"}]);
- * </pre>
+ * <pre>RunDefaultTool(function=["platform__Command"], paramValues=[{"command": "ls -la"}]);</pre>
  */
 public class RunDefaultToolReactor extends AbstractReactor {
 

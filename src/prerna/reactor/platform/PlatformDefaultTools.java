@@ -45,28 +45,19 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Registry of platform-level reactors that can be exposed as default tools to
- * the LLM in every Room-based call. The list of tools actually injected is
- * controlled by the active theme ({@code playground.defaultTools}).
- *
- * <p>
- * LLM-facing tool names carry a {@value #PLATFORM_PREFIX} prefix so they
- * are unambiguously distinguishable from MCP engine tools.
+ * Registry of platform-level reactors exposed as default tools to the LLM. The
+ * active set is controlled by the admin theme ({@code playground.platformTools}).
+ * LLM-facing names are prefixed with {@value #PLATFORM_PREFIX} to distinguish
+ * them from MCP engine tools.
  */
 public final class PlatformDefaultTools {
 
     private static final Logger classLogger = LogManager.getLogger(PlatformDefaultTools.class);
 
-    /** Prefix applied to all platform tool names sent to the LLM. */
     public static final String PLATFORM_PREFIX = "platform__";
-
-    /** _meta key recording the reactor class for traceability. */
     public static final String SMSS_REACTOR_CLASS = "SMSS_REACTOR_CLASS";
-
-    /** _meta key flagging this as a platform tool (for frontend routing). */
     public static final String SMSS_IS_PLATFORM_TOOL = "SMSS_IS_PLATFORM_TOOL";
 
-    /** Static registry: bare tool name → reactor class. */
     private static final Map<String, Class<? extends AbstractReactor>> REGISTRY;
 
     static {
@@ -78,20 +69,12 @@ public final class PlatformDefaultTools {
     private PlatformDefaultTools() {
     }
 
-    /**
-     * Returns {@code true} if the LLM-facing tool name belongs to a platform
-     * default tool (i.e. starts with {@value #PLATFORM_PREFIX}).
-     */
+    /** True if {@code llmFacingName} is a platform tool (carries the {@value #PLATFORM_PREFIX} prefix). */
     public static boolean isPlatformTool(String llmFacingName) {
         return llmFacingName != null && llmFacingName.startsWith(PLATFORM_PREFIX);
     }
 
-    /**
-     * Builds the LLM-ready tool schema for the named platform tool.
-     *
-     * @param name bare reactor name as registered (e.g. {@code "Command"})
-     * @return tool definition map, or empty if the name is not in the registry
-     */
+    /** Builds the LLM-ready tool schema for a registered tool; empty if unknown. */
     public static Optional<Map<String, Object>> buildToolSchema(String name) {
         Class<? extends AbstractReactor> clazz = REGISTRY.get(name);
         if (clazz == null) {
@@ -101,11 +84,8 @@ public final class PlatformDefaultTools {
         try {
             AbstractReactor reactor = clazz.getDeclaredConstructor().newInstance();
             JSONObject schema = reactor.asMcpTool();
-
-            // Override the name with the platform prefix
             schema.put("name", PLATFORM_PREFIX + name);
 
-            // Build _meta: auto-execute, sidebar UI, reactor class for traceability
             JSONObject meta = new JSONObject();
             meta.put(MCPUtility.SMSS_MCP_EXECUTION, "auto");
             meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
@@ -124,15 +104,9 @@ public final class PlatformDefaultTools {
     }
 
     /**
-     * Executes a platform tool by instantiating its reactor and calling
-     * {@link AbstractReactor#execute()}.
-     *
-     * @param llmFacingName the prefixed tool name returned by the LLM (e.g.
-     *                      {@code "platform__Command"})
-     * @param params        parameter map from the LLM tool call
-     * @param insight       the current insight (provides user, session, cmdUtil)
-     * @return NounMetadata result, preserving ERROR type from the inner reactor
-     * @throws IllegalArgumentException if the tool name is not registered
+     * Instantiates the platform tool's reactor with {@code params} and runs it.
+     * Preserves ERROR type from the inner reactor; throws if {@code llmFacingName}
+     * is not in the registry.
      */
     public static NounMetadata execute(String llmFacingName, Map<String, Object> params, Insight insight) {
         String bareName = stripPrefix(llmFacingName);
@@ -162,9 +136,6 @@ public final class PlatformDefaultTools {
         }
     }
 
-    /**
-     * Strips the {@value #PLATFORM_PREFIX} prefix from a tool name.
-     */
     private static String stripPrefix(String llmFacingName) {
         if (llmFacingName != null && llmFacingName.startsWith(PLATFORM_PREFIX)) {
             return llmFacingName.substring(PLATFORM_PREFIX.length());
