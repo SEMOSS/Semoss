@@ -33,7 +33,7 @@ import prerna.util.Utility;
 
 public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GenerateGuardrailEnginePipelineConfigsReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GenerateGuardrailEnginePipelineConfigReactor.class);
 
 	private static final String PIPELINE_FILE_NAME = "pipeline.json";
 	private static final String DEFAULT_REACTOR_CLASS = "prerna.reactor.interceptor.GenericGuardrailInputOutputReactor";
