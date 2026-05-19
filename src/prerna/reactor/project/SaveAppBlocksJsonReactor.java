@@ -105,9 +105,6 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		}
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		if (comment != null && !comment.isEmpty()) {
-			comment = Utility.decodeURIComponent(comment);
-		}
 
 		IProject project = Utility.getProject(projectId);
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
@@ -156,10 +153,9 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 
-			List<NounMetadata> encodedStrGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
-			if (encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
-				String encodedStr = (String) encodedStrGrs.get(0).getValue();
-				String jsonStr = Utility.decodeURIComponent(encodedStr);
+			List<NounMetadata> strGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if (strGrs != null && !strGrs.isEmpty()) {
+				String jsonStr = (String) strGrs.get(0).getValue();
 
 				// validate this is actually JSON
 				GsonUtility.validateJsonString(jsonStr);

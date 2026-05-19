@@ -44,6 +44,8 @@ import org.apache.tika.mime.MediaType;
 import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 
 public class MessageInputMedia {
 
@@ -90,6 +92,25 @@ public class MessageInputMedia {
 		info.sourceUrl = url;
 		info.mediaInputType = MEDIA_INPUT_TYPE.URL;
 		return info;
+	}
+
+	public static MessageInputMedia fromUrlOrFile(String url, Room room) {
+		if (url != null && RoomUtils.isBase64MediaDataUri(url) && room != null
+				&& room.getRoomFolderPath() != null) {
+			try {
+				Path roomDir = Paths.get(room.getRoomFolderPath());
+				String fileName = RoomUtils.writeBase64ImageDataUriToDir(url, roomDir);
+				if (fileName != null) {
+					return fromFile(fileName, room.getId(), null, room.getRoomFolderPath());
+				}
+				classLogger.warn("Failed to flush data URI media to room {}; falling back to URL storage",
+						room.getId());
+			} catch (Exception e) {
+				classLogger.warn("Error flushing data URI media to room {}; falling back to URL storage",
+						room.getId(), e);
+			}
+		}
+		return fromUrl(url);
 	}
 
 	// Setters and getters

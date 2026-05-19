@@ -911,7 +911,7 @@ public class Room {
 	 * @param response the response message to enrich
 	 */
 	public void updateToolResponseMeta(ResponseMessage response) {
-		MCPUtility.updateToolResponseWithProjectMeta(response, null, toolLookupByLLMName);
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, getToolLookupByLLMName());
 	}
 
 	/**
@@ -933,24 +933,31 @@ public class Room {
 	 * @return {@code true} when a matching assistant output message exists
 	 */
 	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream()
-				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----
 
 	/**
-	 * Returns the effective system prompt by checking options.instructions, then
-	 * workspace.system_prompt, then optionally applying an enterprise-level
-	 * template from the active admin theme.
+	 * Resolves the user-authored system prompt — the room/workspace layer, before
+	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
+	 * <ol>
+	 * <li>{@code options.instructions}</li>
+	 * <li>{@code workspace.system_prompt} (looked up via
+	 * {@code options.workspace.workspace_id})</li>
+	 * </ol>
 	 *
-	 * @return resolved system prompt, or {@code null} when no prompt is configured
-	 * @throws IllegalArgumentException when workspace prompt resolution fails
-	 *                                  access or active-state checks
+	 * <p>
+	 * Use this when you need the raw user prompt as a composable layer (e.g., a
+	 * harness combining it with built-in agent instructions). Use
+	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
+	 *
+	 * @return authored prompt, or {@code null} if neither layer is set
+	 * @throws IllegalArgumentException when workspace lookup fails access or
+	 *                                  active-state checks
 	 */
-	public String getEffectiveSystemPrompt() {
-		// 1. Try options.instructions
+	public String getRoomOrWorkspaceSystemPrompt() {
 		String opts = getOptions();
 		JsonObject optionsObj = null;
 		if (opts != null && !opts.trim().isEmpty()) {
@@ -959,45 +966,62 @@ public class Room {
 			} catch (Exception ignore) {
 			}
 		}
-		String systemPrompt = null;
-		if (optionsObj != null) {
-			JsonElement instructionsElem = optionsObj.get("instructions");
-			if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-				systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
+		if (optionsObj == null) {
+			return null;
+		}
+
+		// 1. options.instructions
+		JsonElement instructionsElem = optionsObj.get("instructions");
+		if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
+			String fromInstructions = StringUtils.trimToNull(instructionsElem.getAsString());
+			if (fromInstructions != null) {
+				return fromInstructions;
 			}
 		}
 
-		// 2. Try workspace.system_prompt (by workspace_id in options)
-		if (systemPrompt == null && optionsObj != null) {
-			JsonElement workspaceElem = optionsObj.get("workspace");
-			String workspaceId = null;
-			if (workspaceElem != null) {
-				if (workspaceElem.isJsonPrimitive()) {
-					workspaceId = workspaceElem.getAsString();
-				} else if (workspaceElem.isJsonObject()) {
-					JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
-					if (idElem != null && idElem.isJsonPrimitive()) {
-						workspaceId = idElem.getAsString();
-					}
-				}
-			}
-			if (workspaceId != null) {
-				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-				if (workspace != null) {
-					User user = this.insight.getUser();
-					if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-						throw new IllegalArgumentException("Workspace " + workspaceId
-								+ " does not exist or user does not have access to the workspace");
-					}
-					// Check active or other validation if needed
-					Object isActive = workspace.get("is_active");
-					if (Boolean.FALSE.equals(isActive)) {
-						throw new IllegalArgumentException("Workspace is disabled by the owner");
-					}
-					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+		// 2. workspace.system_prompt (by workspace_id in options)
+		JsonElement workspaceElem = optionsObj.get("workspace");
+		String workspaceId = null;
+		if (workspaceElem != null) {
+			if (workspaceElem.isJsonPrimitive()) {
+				workspaceId = workspaceElem.getAsString();
+			} else if (workspaceElem.isJsonObject()) {
+				JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
+				if (idElem != null && idElem.isJsonPrimitive()) {
+					workspaceId = idElem.getAsString();
 				}
 			}
 		}
+		if (workspaceId == null) {
+			return null;
+		}
+		Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (workspace == null) {
+			return null;
+		}
+		User user = this.insight.getUser();
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
+		Object isActive = workspace.get("is_active");
+		if (Boolean.FALSE.equals(isActive)) {
+			throw new IllegalArgumentException("Workspace is disabled by the owner");
+		}
+		return StringUtils.trimToNull((String) workspace.get("system_prompt"));
+	}
+
+	/**
+	 * Returns the effective system prompt seen by the model: the user-authored
+	 * layer (room or workspace) wrapped by the enterprise template from the active
+	 * admin theme and with {@code {{VAR}}} placeholders expanded.
+	 *
+	 * @return resolved system prompt, or {@code null} when no prompt is configured
+	 * @throws IllegalArgumentException when workspace prompt resolution fails
+	 *                                  access or active-state checks
+	 */
+	public String getEffectiveSystemPrompt() {
+		String systemPrompt = getRoomOrWorkspaceSystemPrompt();
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
 		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
 		return expandSystemPromptVariables(merged);
