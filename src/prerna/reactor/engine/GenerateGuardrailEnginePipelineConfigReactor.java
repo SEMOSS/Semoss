@@ -4,9 +4,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,10 +33,14 @@ import prerna.util.Utility;
 
 public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GenerateGuardrailEnginePipelineConfigReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GenerateGuardrailEnginePipelineConfigsReactor.class);
 
 	private static final String PIPELINE_FILE_NAME = "pipeline.json";
 	private static final String DEFAULT_REACTOR_CLASS = "prerna.reactor.interceptor.GenericGuardrailInputOutputReactor";
+
+	// structural keys that are NOT direct parameters for the guardrail engine
+	private static final Set<String> STRUCTURAL_KEYS = new HashSet<>(
+			Arrays.asList("methodName", "input", "output"));
 
 	public GenerateGuardrailEnginePipelineConfigReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey() };
@@ -122,13 +129,12 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			}
 			String methodName = String.valueOf(methodNameObj);
 
-			// extract labels and threshold from pipeline map level
-			List<String> labels = extractLabels(pipelineMap);
-			Double threshold = extractThreshold(pipelineMap);
+			// extract all non-structural keys as direct parameters
+			Map<String, Object> directParams = extractDirectParameters(pipelineMap);
 
 			Map<String, Object> pipelineConfig = new LinkedHashMap<>();
-			pipelineConfig.put("input", buildGuardrailList((List<?>) pipelineMap.get("input"), labels, threshold));
-			pipelineConfig.put("output", buildGuardrailList((List<?>) pipelineMap.get("output"), labels, threshold));
+			pipelineConfig.put("input", buildGuardrailList((List<?>) pipelineMap.get("input"), directParams));
+			pipelineConfig.put("output", buildGuardrailList((List<?>) pipelineMap.get("output"), directParams));
 			pipelines.put(methodName, pipelineConfig);
 		}
 
@@ -136,7 +142,8 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 		return finalSchema;
 	}
 
-	private List<Map<String, Object>> buildGuardrailList(List<?> guardrailList, List<String> pipelineLabels, Double pipelineThreshold) {
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> buildGuardrailList(List<?> guardrailList, Map<String, Object> pipelineDirectParams) {
 		List<Map<String, Object>> interceptorList = new ArrayList<>();
 		if (guardrailList == null || guardrailList.isEmpty()) {
 			return interceptorList;
@@ -148,10 +155,28 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			}
 
 			String guardrailEngineId;
-			List<String> entryLabels = pipelineLabels;
-			Double entryThreshold = pipelineThreshold;
+			Map<String, Object> entryDirectParams = new LinkedHashMap<>(pipelineDirectParams);
 
-			guardrailEngineId = String.valueOf(guardrailObj);
+			if (guardrailObj instanceof Map) {
+				// map entry: {guardrailEngineId, ...any direct params as overrides}
+				Map<String, Object> guardrailMap = (Map<String, Object>) guardrailObj;
+				Object guardrailIdObj = guardrailMap.get("guardrailEngineId");
+				if (guardrailIdObj == null) {
+					throw new SemossPixelException("Guardrail map is missing the 'guardrailEngineId' key.");
+				}
+				guardrailEngineId = String.valueOf(guardrailIdObj);
+
+				// entry-level key overrides take priority over pipeline-level
+				for (Map.Entry<String, Object> entry : guardrailMap.entrySet()) {
+					String key = entry.getKey();
+					if (!key.equals("guardrailEngineId")) {
+						entryDirectParams.put(key, parseDirectParamValue(entry.getValue()));
+					}
+				}
+			} else {
+				// string entry: just a guardrail engine id
+				guardrailEngineId = String.valueOf(guardrailObj);
+			}
 
 			Map<String, Object> interceptor = new LinkedHashMap<>();
 			interceptor.put("reactorClass", DEFAULT_REACTOR_CLASS);
@@ -159,15 +184,7 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			Map<String, Object> params = new LinkedHashMap<>();
 			params.put("blockOnGuardrailFailure", true);
 			params.put("guardrailEngineId", guardrailEngineId);
-
-			Map<String, Object> directParameters = new LinkedHashMap<>();
-			if (entryThreshold != null) {
-				directParameters.put("threshold", entryThreshold);
-			}
-			if (entryLabels != null && !entryLabels.isEmpty()) {
-				directParameters.put("labels", entryLabels);
-			}
-			params.put("directParameters", directParameters);
+			params.put("directParameters", entryDirectParams);
 
 			Map<String, Object> inputMapping = new LinkedHashMap<>();
 			inputMapping.put("prompt", "arg0");
@@ -181,30 +198,40 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 	}
 
 	@SuppressWarnings("unchecked")
-	private List<String> extractLabels(Map<String, Object> pipelineMap) {
-		Object labelsObj = pipelineMap.get("labels");
-		if (labelsObj instanceof List) {
-			List<String> labels = new ArrayList<>();
-			for (Object label : (List<?>) labelsObj) {
-				if (label != null) {
-					labels.add(String.valueOf(label));
+	private Object parseDirectParamValue(Object value) {
+		if (value instanceof List) {
+			List<String> parsed = new ArrayList<>();
+			for (Object item : (List<?>) value) {
+				if (item != null) {
+					parsed.add(String.valueOf(item));
 				}
 			}
-			return labels;
+			return parsed;
 		}
-		return null;
+		if (value instanceof Number) {
+			return value;
+		}
+		String strVal = String.valueOf(value).trim();
+		// try to parse as number
+		try {
+			return Double.parseDouble(strVal);
+		} catch (NumberFormatException e) {
+			// not a number, return as string
+		}
+		return strVal;
 	}
 
-	private Double extractThreshold(Map<String, Object> pipelineMap) {
-		Object thresholdObj = pipelineMap.get("threshold");
-		if (thresholdObj != null) {
-			try {
-				return Double.parseDouble(String.valueOf(thresholdObj));
-			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid threshold value: {}", thresholdObj);
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> extractDirectParameters(Map<String, Object> pipelineMap) {
+		Map<String, Object> directParams = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : pipelineMap.entrySet()) {
+			String key = entry.getKey();
+			if (STRUCTURAL_KEYS.contains(key)) {
+				continue;
 			}
+			directParams.put(key, parseDirectParamValue(entry.getValue()));
 		}
-		return null;
+		return directParams;
 	}
 
 	private void writePipelineFile(File file, Map<?, ?> pipelineMap) {

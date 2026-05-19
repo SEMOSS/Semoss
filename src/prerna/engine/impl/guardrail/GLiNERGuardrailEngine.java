@@ -31,6 +31,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -73,7 +74,13 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	private Double defaultThreshold = .7;
 
 	public GLiNERGuardrailEngine() {
-		this.keysToGet = new String[] { "prompt", "labels", "threshold" };
+		// Dynamically initialize keysToGet based on a predefined list or configuration
+		List<String> dynamicKeys = new ArrayList<>(Arrays.asList("prompt", "labels", "threshold"));
+		String additionalKeys = this.smssProp.getProperty("ADDITIONAL_KEYS", ""); // Fetch additional keys dynamically
+		if (!additionalKeys.isEmpty()) {
+			dynamicKeys.addAll(Arrays.asList(additionalKeys.split(",")));
+		}
+		this.keysToGet = dynamicKeys.toArray(new String[0]);
 	}
 
 	@Override
@@ -268,4 +275,39 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_GLINER;
 	}
+	
+
+	@Override
+	public Map<String, String> getKeysAndValuesToGet() {
+
+		Map<String, String> keyValues = new LinkedHashMap<>();
+
+		for (String key : this.keysToGet) {
+
+			// Exclude runtime prompt key
+			if ("prompt".equalsIgnoreCase(key)) {
+				continue;
+			}
+			String realKey = resolveRealKey(key);
+			// Return empty string if value not found
+			String value = this.smssProp.getProperty(realKey, "");
+
+			keyValues.put(key, value);
+		}
+
+		return keyValues;
+	}
+
+	private String resolveRealKey(String key) {
+		switch (key) {
+			case "threshold":
+				return DEFAULT_THRESHOLD_KEY;
+			case "labels":
+				return NER_LABELS;
+			// Add more mappings as needed
+			default:
+				return key;
+		}
+	}
+
 }

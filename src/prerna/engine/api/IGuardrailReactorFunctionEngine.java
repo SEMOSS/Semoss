@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Map;
+
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -51,4 +53,10 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return
 	 */
 	GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow);
+
+	/**
+	 * 
+	 * @return
+	 */
+	 Map<String, String> getKeysAndValuesToGet();
 }
