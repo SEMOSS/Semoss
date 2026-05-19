@@ -56,26 +56,17 @@ public final class SandboxPolicy {
     private final Optional<Path>     tmpDir;
     private final boolean            loopbackNetwork;
     private final EnforcementMode    enforcement;
-    /**
-     * When {@code true}, the policy intends allowlist-only reads: macOS
-     * {@code sandbox-exec} profiles omit the broad {@code (allow file-read-data)}
-     * rule and rely solely on explicit per-path allows. Landlock (Linux) is
-     * inherently allowlist-only, so this flag has no effect there.
-     */
-    private final boolean            strictReads;
 
     SandboxPolicy(List<AllowedPath> allowedPaths,
                   List<Path> blockedPaths,
                   Optional<Path> tmpDir,
                   boolean loopbackNetwork,
-                  EnforcementMode enforcement,
-                  boolean strictReads) {
+                  EnforcementMode enforcement) {
         this.allowedPaths    = Collections.unmodifiableList(allowedPaths);
         this.blockedPaths    = Collections.unmodifiableList(blockedPaths);
         this.tmpDir          = tmpDir;
         this.loopbackNetwork = loopbackNetwork;
         this.enforcement     = enforcement;
-        this.strictReads     = strictReads;
     }
 
     /** Paths explicitly allowed (RO or RW). Also act as carve-outs from any blocked ancestor. */
@@ -109,10 +100,6 @@ public final class SandboxPolicy {
 
     public EnforcementMode getEnforcement() {
         return enforcement;
-    }
-
-    public boolean isStrictReads() {
-        return strictReads;
     }
 
     /**

@@ -136,13 +136,10 @@ public final class SandboxExecLauncher implements SandboxLauncher {
             sb.append("(deny network*)\n");
         }
 
-        // When strictReads=false (agent harnesses): broad read allow, blocks override via
-        // more-specific deny, and per-path allows carve back out RW/RO entries inside a
-        // blocked ancestor.
-        // When strictReads=true (Command reactor): omit the broad allow; reads are allowlist-only.
-        if (!policy.isStrictReads()) {
-            sb.append("(allow file-read-data)\n");
-        }
+        // Reads are broadly allowed; blocks below override via more-specific deny
+        // rules, and the per-path allow rules in the next loop carve back out any
+        // RW/RO entry that falls inside a blocked ancestor.
+        sb.append("(allow file-read-data)\n");
 
         for (Path blocked : policy.getBlockedPaths()) {
             appendSubpathRule(sb, "deny file-read-data", blocked.toString());

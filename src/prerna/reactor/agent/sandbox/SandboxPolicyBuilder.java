@@ -54,7 +54,6 @@ public final class SandboxPolicyBuilder {
     private Path             tmpDir;
     private boolean          loopbackNetwork = true;
     private EnforcementMode  enforcement     = EnforcementMode.ENFORCE;
-    private boolean          strictReads     = false;
 
     SandboxPolicyBuilder() {}
 
@@ -103,18 +102,13 @@ public final class SandboxPolicyBuilder {
         return this;
     }
 
-    public SandboxPolicyBuilder withStrictReads(boolean strict) {
-        this.strictReads = strict;
-        return this;
-    }
-
     public SandboxPolicy build() {
         List<AllowedPath> list = new ArrayList<>(paths.size());
         for (Map.Entry<Path, AccessMode> e : paths.entrySet()) {
             list.add(new AllowedPath(e.getKey(), e.getValue()));
         }
         return new SandboxPolicy(list, new ArrayList<>(blockedPaths),
-                Optional.ofNullable(tmpDir), loopbackNetwork, enforcement, strictReads);
+                Optional.ofNullable(tmpDir), loopbackNetwork, enforcement);
     }
 
     // helpers

@@ -143,7 +143,6 @@ public final class PolicyJson {
             blocked.add(p.toString());
         }
         root.put("blocked", blocked);
-        root.put("strictReads", policy.isStrictReads());
         return root;
     }
 
@@ -153,7 +152,6 @@ public final class PolicyJson {
         String enforcement = (String) root.getOrDefault("enforcement", EnforcementMode.ENFORCE.name());
         b.withEnforcement(EnforcementMode.valueOf(enforcement));
         b.withLoopbackNetwork((Boolean) root.getOrDefault("loopbackNetwork", Boolean.TRUE));
-        b.withStrictReads((Boolean) root.getOrDefault("strictReads", Boolean.FALSE));
 
         Object tmpDir = root.get("tmpDir");
         if (tmpDir instanceof String) {
