@@ -127,7 +127,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Invalid storage type " + storageTypeStr);
 		}
 
-		if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM) {
+		if (storageType == StorageTypeEnum.LOCAL_FILE_SYSTEM
+				|| storageType == StorageTypeEnum.DEVELOPER_LOCAL_FILE_SYSTEM) {
 			// only admin can create a local file system storage engine
 			if (!SecurityAdminUtils.userIsAdmin(user)) {
 				throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
