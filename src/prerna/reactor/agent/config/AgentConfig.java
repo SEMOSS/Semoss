@@ -90,6 +90,9 @@ public final class AgentConfig {
     // MCP tool projects (union of WORKSPACE_RESOURCE + room.options.mcp[])
     private final List<Map<String, String>> mcps;
 
+    // Skill refs (union of WORKSPACE_RESOURCE['SKILL'] + CONFIG_JSON.skills[] + room.options.skills[])
+    private final List<Map<String, String>> skills;
+
     // Budgets (nested)
     private final Budgets budgets;
 
@@ -114,6 +117,9 @@ public final class AgentConfig {
         this.workingDir      = b.workingDir;
         this.mcps            = b.mcps != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.mcps))
+                : Collections.emptyList();
+        this.skills          = b.skills != null
+                ? Collections.unmodifiableList(new ArrayList<>(b.skills))
                 : Collections.emptyList();
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
         this.hooks           = b.hooks != null
@@ -255,6 +261,30 @@ public final class AgentConfig {
         return mcps;
     }
 
+    // -- Skills ---------------------------------------------------------------
+
+    /**
+     * Resolved skill refs for this run — union of {@code WORKSPACE_RESOURCE__}
+     * rows with {@code RESOURCE_TYPE='SKILL'}, {@code CONFIG_JSON.skills[]}
+     * entries, and {@code room.options.skills[]} entries, deduped by
+     * {@code skill_id}.
+     *
+     * <p>Each entry has:
+     * <ul>
+     *   <li>{@code skill_id} — required, points at {@code SKILL__.SKILL_ID}</li>
+     *   <li>{@code pinned_version} — optional; when null/empty the stager
+     *       tracks {@code SKILL__.CURRENT_VERSION}</li>
+     * </ul>
+     *
+     * <p>{@link prerna.reactor.agent.skill.SkillStager} consumes this list to
+     * materialize {@code SKILL.md} (and any sibling files) into the run's
+     * working directory under {@code .claude/skills/<slug>/}. Never
+     * {@code null}; empty when no source contributes.
+     */
+    public List<Map<String, String>> getSkills() {
+        return skills;
+    }
+
     // -- Budgets --------------------------------------------------------------
 
     /** Run-time budgets (turn cap, reflection cap, wall-clock). Never {@code null}. */
@@ -301,6 +331,7 @@ public final class AgentConfig {
         private Map<String, Object> modelParams;
         private String workingDir;
         private List<Map<String, String>> mcps;
+        private List<Map<String, String>> skills;
         private Budgets budgets;
         private List<IMessageHook> hooks;
         private List<SubAgentSpec> subagents;
@@ -315,6 +346,7 @@ public final class AgentConfig {
         public Builder modelParams(Map<String, Object> v) { this.modelParams = v;    return this; }
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
+        public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }
         public Builder budgets(Budgets v)            { this.budgets = v;             return this; }
         public Builder hooks(List<IMessageHook> v)   { this.hooks = v;               return this; }
         public Builder subagents(List<SubAgentSpec> v) { this.subagents = v;         return this; }

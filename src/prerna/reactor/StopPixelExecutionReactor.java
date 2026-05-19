@@ -28,6 +28,8 @@
 package prerna.reactor;
 
 import prerna.auth.User;
+import prerna.reactor.agent.AgentCancelHook;
+import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobManager.InterruptResult;
 import prerna.sablecc2.comm.PixelJobRunner;
@@ -56,6 +58,9 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 			insightId = jobRunner.getInsight().getInsightId();
 		}
 
+		// generic terminal envelope so any subscriber sees cancel without waiting on status polling
+		JobStreamEnvelopes.jobCancelled(jobId, "user-requested");
+
 		InterruptResult interruptResult = jobManager.interruptThread(jobId);
 
 		User user = this.insight.getUser();
@@ -63,6 +68,9 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		if (pySocketClient != null && (insightId != null || jobId != null)) {
 			pySocketClient.interruptInsightJob(insightId, jobId);
 		}
+
+		// agent-aware extras (subagent cascade + CLI sidecar interrupt); no-op for non-agent jobs
+		AgentCancelHook.onStop(jobId);
 
 		if (jobRunner == null) {
 			jobManager.clearJob(jobId);

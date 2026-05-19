@@ -39,6 +39,7 @@ import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.config.SubAgentSpec;
+import prerna.reactor.agent.runtime.AgentCancelledException;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobStatus;
@@ -225,10 +226,9 @@ public final class SubAgentDispatcher {
             try {
                 Thread.sleep(WAIT_POLL_MS);
             } catch (InterruptedException ie) {
+                // propagate as cancel rather than returning a phantom tool-result string
                 Thread.currentThread().interrupt();
-                Map<String, Object> interrupted = error("wait_subagent interrupted");
-                interrupted.put("jobId", jobId);
-                return GSON.toJson(interrupted);
+                throw new AgentCancelledException("wait_subagent interrupted while polling jobId=" + jobId);
             }
         }
     }

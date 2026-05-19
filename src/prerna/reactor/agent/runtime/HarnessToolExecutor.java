@@ -151,7 +151,8 @@ final class HarnessToolExecutor {
                     }
                 }
             } finally {
-                pool.shutdown();
+                // shutdownNow so cancel interrupts still-running tool workers (f.cancel(true) doesn't always reach the Runnable)
+                pool.shutdownNow();
             }
         }
 

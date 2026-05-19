@@ -278,6 +278,31 @@ public final class AgentSubAgentRegistry {
         }
     }
 
+    /** Cooperatively cancel every subagent (recursively) spawned by {@code parentJobId}. Returns the count signaled. */
+    public int cascadeCancel(String parentJobId) {
+        if (parentJobId == null || parentJobId.isBlank()) return 0;
+        List<String> kids = childrenOf(parentJobId);
+        if (kids.isEmpty()) return 0;
+        int count = 0;
+        for (String childJobId : kids) {
+            // depth-first so grandchildren get signaled before their parent finishes
+            count += cascadeCancel(childJobId);
+            try {
+                prerna.sablecc2.comm.JobStreamEnvelopes.jobCancelled(childJobId, "parent-cancelled");
+            } catch (Exception streamErr) {
+                logger.warn("cascadeCancel: stream emit failed childJobId={}: {}", childJobId, streamErr.toString());
+            }
+            try {
+                PixelJobManager.InterruptResult ir = PixelJobManager.getManager().interruptThread(childJobId);
+                logger.info("cascadeCancel: interruptThread(childJobId={}) -> {}", childJobId, ir);
+                count++;
+            } catch (Exception interruptErr) {
+                logger.warn("cascadeCancel: interrupt failed childJobId={}: {}", childJobId, interruptErr.toString());
+            }
+        }
+        return count;
+    }
+
     private static String escapeSingle(String s) {
         return s == null ? "" : s.replace("'", "\\'");
     }

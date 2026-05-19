@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import prerna.reactor.agent.AgentCliSocketRegistry;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
@@ -125,8 +126,15 @@ public class GitHubCopilotPyManager {
 		checkSocketStatus(initScript);
 
 		String queryScript = createQueryScript(prompt, systemPrompt);
-		Object output = pyTranslator.runDirectPy(insight, queryScript);
-		return String.valueOf(output);
+		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can route the interrupt opcode here
+		String jobId = ThreadStore.getJobId();
+		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
+		try {
+			Object output = pyTranslator.runDirectPy(insight, queryScript);
+			return String.valueOf(output);
+		} finally {
+			AgentCliSocketRegistry.unregister(jobId);
+		}
 	}
 
 	// Script builders

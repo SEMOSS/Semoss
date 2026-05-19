@@ -45,6 +45,7 @@ import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentCliSocketRegistry;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxLaunchPlan;
 import prerna.reactor.agent.sandbox.SandboxLauncher;
@@ -233,8 +234,15 @@ public class ClaudeCodeManager {
 				engineId, mcps, insightId, sandboxPolicy);
 		checkSocketStatus(initScript);
 		String queryScript = createQueryScript(prompt, systemPrompt);
-		Object output = pyTranslator.runDirectPy(insight, queryScript);
-		return String.valueOf(output);
+		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can route the interrupt opcode here
+		String jobId = ThreadStore.getJobId();
+		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
+		try {
+			Object output = pyTranslator.runDirectPy(insight, queryScript);
+			return String.valueOf(output);
+		} finally {
+			AgentCliSocketRegistry.unregister(jobId);
+		}
 	}
 
 	/**

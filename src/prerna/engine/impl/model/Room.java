@@ -283,6 +283,14 @@ public class Room {
 			messages.clear();
 		}
 
+		// drop orphan tool_use (cancel mid-tool, crash) before building the outbound branch
+		// — providers reject unpaired tool_use, and the cached in-memory list may have one
+		// even though sanitize on rehydration covers cold loads
+		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(this.messages, this);
+		if (sanitized != this.messages) {
+			setMessages(sanitized);
+		}
+
 		// Set model type and add message to history
 		msg.setModel(modelEngine);
 

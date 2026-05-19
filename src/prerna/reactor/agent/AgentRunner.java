@@ -47,6 +47,7 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
+import prerna.reactor.agent.skill.SkillStager;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
@@ -196,6 +197,15 @@ public final class AgentRunner {
         // on AgentConfig; AgentRunContext just carries the per-call live state.
         AgentConfig agentConfig = AgentConfigLoader.load(
                 room, filePath, modelId, params, maxTurns, maxReflections, explicitWorkspaceId);
+
+        // Materialize attached skills into <workingDir>/.claude/skills/<slug>/ so Claude
+        // Code's skill discovery picks them up. Best-effort — individual failures are
+        // logged inside the stager and do not abort the run.
+        try {
+            SkillStager.stage(filePath, agentConfig.getSkills());
+        } catch (Exception e) {
+            logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+        }
 
         AgentRunContext ctx = AgentRunContext.builder()
                 .room(room)

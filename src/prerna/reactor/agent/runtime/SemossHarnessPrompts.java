@@ -150,22 +150,33 @@ public final class SemossHarnessPrompts {
 			+ "your final consolidated answer.";
 
 	// ------------------------------------------------------------------------
-	// Past versions (preserved for reference; not wired)
+	// Alternative prompts (opt-in via workspace CONFIG_JSON / room overrides)
 	// ------------------------------------------------------------------------
 
 	/**
-	 * Previous baseline used during the app-builder era. Preserved here so we
-	 * can diff future iterations against it and easily restore if needed. This
-	 * version made SEMOSS-specific assumptions (e.g. the {@code ReportToUser}
-	 * fallback tool) which biased the agent toward the {@code Agent_Tools}
-	 * project's tool surface. We moved away from that in the current
-	 * {@link #SYSTEM_PROMPT} to keep the baseline domain-neutral.
+	 * Alternative baseline tuned for SEMOSS app-builder rooms. Differs from
+	 * {@link #SYSTEM_PROMPT} in two ways:
+	 * <ul>
+	 *   <li>Frames the agent as "a SEMOSS agent operating inside a SEMOSS
+	 *       workspace" rather than a generic autonomous agent. Helps when the
+	 *       room's MCP tool surface is SEMOSS-flavored (e.g. {@code Agent_Tools}).</li>
+	 *   <li>Includes the {@code ReportToUser} fallback instruction for engines /
+	 *       UIs where natural text alongside tool calls does not surface
+	 *       reliably in the user's view.</li>
+	 * </ul>
 	 *
-	 * @deprecated kept for historical reference only -- do not reference from
-	 *             {@code SemossAgentHarness}.
+	 * <p>Not wired by default. To use, set a workspace's
+	 * {@code CONFIG_JSON.system_prompt} (or {@code room.options.instructions})
+	 * to this string -- it will then override the {@link #SYSTEM_PROMPT}
+	 * baseline for that workspace/room only. Other workspaces keep the
+	 * domain-neutral default.
+	 *
+	 * <p>This was the harness baseline up through commit {@code 88d64d1f} (see
+	 * {@code origin/dev}) before we extracted the domain-neutral baseline.
+	 * Preserved here so app-builder workflows can opt back in without
+	 * recompiling.
 	 */
-	@Deprecated
-	public static final String SYSTEM_PROMPT_V1_APP_BUILDER_ERA = ""
+	public static final String APP_BUILDER_SYSTEM_PROMPT = ""
 			+ "You are a SEMOSS agent operating inside a SEMOSS workspace.\n"
 			+ "\n"
 			+ "Tool use:\n"

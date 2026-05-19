@@ -50,6 +50,9 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	/** Resource type identifier used when a workspace resource points to a prompt. */
 	public static final String PROMPT_RESOURCE_TYPE = "PROMPT";
 
+	/** Resource type identifier used when a workspace resource points to a skill in the skill registry. */
+	public static final String SKILL_RESOURCE_TYPE = "SKILL";
+
 	/** Request key for workspace name. */
 	static final String NAME = "name";
 	/** Request key for workspace description. */
