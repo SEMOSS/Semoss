@@ -89,6 +89,24 @@ public final class AgentRunner {
      */
     public static final String PARAM_FILE_PATH_LEGACY = "filePath";
 
+    /**
+     * {@code room.options} key: absolute working-dir override that wins over
+     * {@link #PARAM_PROJECT} and the default room-folder container. Set on the
+     * child room by {@code SpawnSubAgent} when {@code inherit_parent_workdir=true}
+     * so the child agent operates inside the parent's room folder (shared filesystem)
+     * while still keeping its own roomId for stream + history isolation.
+     *
+     * <p>Lives on the room itself (not on {@code RunAgent}'s public surface) so the
+     * working dir is part of room state, like any other room option, rather than
+     * tunneled through every {@code RunAgent} invocation. Set once at spawn time;
+     * resolved on every run.
+     *
+     * <p>Containment is enforced: the resolved canonical path must sit under
+     * {@code Utility.getBaseFolder()} or the call is rejected — so a malicious
+     * caller can't redirect an agent at {@code /etc/...} via this key.
+     */
+    public static final String ROOM_OPTION_WORKING_DIR = "working_dir";
+
     /** Options-map keys checked (in order) when room.getModelId() is not set. */
     private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
 
@@ -379,6 +397,49 @@ public final class AgentRunner {
         if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
             logger.warn("AgentRunner: '{}' is deprecated and ignored - use '{}' + '{}' instead. value='{}'",
                     PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
+        }
+
+        // 0. room.options-level working-dir override.
+        //    Set by spawn_subagent when inherit_parent_workdir=true so the child
+        //    operates on the parent's room folder. Wins over project / room-folder
+        //    defaults. Containment: canonical path must live under SEMOSS base folder.
+        Object roomLevelOverride = room.getOptionsMap() == null ? null
+                : room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR);
+        if (roomLevelOverride != null) {
+            String raw = String.valueOf(roomLevelOverride).trim();
+            if (!raw.isEmpty()) {
+                String canonical;
+                try {
+                    canonical = new File(raw).getCanonicalPath();
+                } catch (IOException ioe) {
+                    throw new IllegalArgumentException(
+                            "AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+                                    + " could not be canonicalized: " + raw);
+                }
+                String baseCanonical;
+                try {
+                    baseCanonical = new File(Utility.getBaseFolder()).getCanonicalPath();
+                } catch (IOException ioe) {
+                    throw new IllegalStateException(
+                            "AgentRunner: could not canonicalize SEMOSS base folder", ioe);
+                }
+                if (!canonical.equals(baseCanonical) && !canonical.startsWith(baseCanonical + File.separator)) {
+                    throw new IllegalArgumentException(
+                            "AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+                                    + " must be under SEMOSS base folder. value='" + raw
+                                    + "' resolvedTo='" + canonical + "' baseFolder='" + baseCanonical + "'");
+                }
+                File f = new File(canonical);
+                if (!f.exists()) {
+                    f.mkdirs();
+                }
+                logger.info("AgentRunner: working dir overridden by room.options.{}='{}' (room={})",
+                        ROOM_OPTION_WORKING_DIR, canonical, room.getId());
+                // Subdir is intentionally ignored when an absolute override is supplied —
+                // the room option already names the final path.
+                params.remove(PARAM_SUBDIR);
+                return canonical;
+            }
         }
 
         // 1. Container.

@@ -48,8 +48,11 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.subagent.SubAgentDispatcher;
+import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -181,7 +184,10 @@ final class HarnessToolExecutor {
         SemossAgentStream.toolInvocation(jobId, tc.toolCallId, tc.rawToolName, tc.toolParams, tc.toolCall);
 
         long startMs = System.currentTimeMillis();
-        ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
+        // jobId is captured on the caller's thread (where ThreadStore is valid) and
+        // forwarded so subagent dispatch can address the parent's stream queue even
+        // when this method runs on a worker thread from the parallel-tool pool.
+        ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx, jobId);
         long durMs = System.currentTimeMillis() - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
@@ -203,8 +209,25 @@ final class HarnessToolExecutor {
     }
 
     private static ToolExecOutcome executeToolSafely(
-            String rawToolName, Map<String, Object> params, AgentRunContext ctx) {
+            String rawToolName, Map<String, Object> params, AgentRunContext ctx, String parentJobId) {
 
+        // 1. Subagent tools — named alias OR built-in spawn/check/wait — short-circuit
+        //    the MCP pipeline. The dispatcher returns a JSON string suitable for handing
+        //    straight back to the model.
+        java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+        if (SubAgentToolSynthesizer.isSubAgentTool(rawToolName, specs)) {
+            try {
+                String result = dispatchSubAgentTool(rawToolName, params, ctx, specs, parentJobId);
+                return new ToolExecOutcome(result, true);
+            } catch (Exception e) {
+                String msg = "Tool execution error: " + e.getMessage();
+                logger.warn("HarnessToolExecutor: subagent tool '{}' failed: {}",
+                        rawToolName, e.getMessage(), e);
+                return new ToolExecOutcome(msg, false);
+            }
+        }
+
+        // 2. Normal MCP tool path — name format is "<engineId>__<functionName>".
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
@@ -222,6 +245,40 @@ final class HarnessToolExecutor {
                     rawToolName, e.getMessage(), e);
             return new ToolExecOutcome(msg, false);
         }
+    }
+
+    /**
+     * Route a synthesized subagent tool call to {@link SubAgentDispatcher}. Built-in tools
+     * are matched by name; named subagent tools resolve to the matching {@link SubAgentSpec}.
+     */
+    private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params,
+            AgentRunContext ctx, java.util.List<SubAgentSpec> specs, String parentJobId) {
+        Room parentRoom = ctx.getRoom();
+        if (SubAgentToolSynthesizer.TOOL_SPAWN_SUBAGENT.equals(rawToolName)) {
+            return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId);
+        }
+        if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            return SubAgentDispatcher.check(jobIdObj == null ? null : String.valueOf(jobIdObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_WAIT_SUBAGENT.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            Object timeoutObj = params == null ? null : params.get("timeoutSec");
+            int timeoutSec = SubAgentDispatcher.DEFAULT_WAIT_TIMEOUT_SEC;
+            if (timeoutObj instanceof Number) {
+                timeoutSec = ((Number) timeoutObj).intValue();
+            } else if (timeoutObj instanceof String) {
+                try { timeoutSec = Integer.parseInt(((String) timeoutObj).trim()); }
+                catch (NumberFormatException ignored) { /* keep default */ }
+            }
+            return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), timeoutSec);
+        }
+        // Named subagent tool — look up the spec and spawn.
+        SubAgentSpec spec = SubAgentToolSynthesizer.findSpec(specs, rawToolName);
+        if (spec == null) {
+            throw new IllegalStateException("Tool '" + rawToolName + "' classified as subagent but no matching spec");
+        }
+        return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId);
     }
 
     private static String callMcpToolViaReactor(

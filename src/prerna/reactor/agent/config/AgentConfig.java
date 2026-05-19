@@ -96,6 +96,10 @@ public final class AgentConfig {
     // Message hooks (resolved instances; never null, empty when none configured)
     private final List<IMessageHook> hooks;
 
+    // Named subagent specs (resolved from CONFIG_JSON.subagents[]; never null, empty when none configured).
+    // Semoss harness synthesizes one MCP tool per spec; CLI harnesses ignore this field.
+    private final List<SubAgentSpec> subagents;
+
     AgentConfig(Builder b) {
         this.workspaceId     = b.workspaceId;
         this.name            = b.name;
@@ -114,6 +118,9 @@ public final class AgentConfig {
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
         this.hooks           = b.hooks != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.hooks))
+                : Collections.emptyList();
+        this.subagents       = b.subagents != null
+                ? Collections.unmodifiableList(new ArrayList<>(b.subagents))
                 : Collections.emptyList();
     }
 
@@ -261,6 +268,22 @@ public final class AgentConfig {
         return hooks;
     }
 
+    // -- Subagents ------------------------------------------------------------
+
+    /**
+     * Named subagent slots declared in {@code CONFIG_JSON.subagents[]} for this agent.
+     *
+     * <p>Each entry surfaces to the LLM (semoss harness only) as a synthesized MCP tool
+     * whose name is the spec's {@link SubAgentSpec#getAlias() alias}. CLI harnesses
+     * ({@code claude_code}, {@code github_copilot}, {@code github_copilot_py}) read but
+     * ignore this list — they spawn subagents through their own external CLI loop.
+     *
+     * <p>Never {@code null}; empty when no slots are configured.
+     */
+    public List<SubAgentSpec> getSubagents() {
+        return subagents;
+    }
+
     // -- Builder --------------------------------------------------------------
 
     public static Builder builder() {
@@ -280,6 +303,7 @@ public final class AgentConfig {
         private List<Map<String, String>> mcps;
         private Budgets budgets;
         private List<IMessageHook> hooks;
+        private List<SubAgentSpec> subagents;
 
         public Builder workspaceId(String v)         { this.workspaceId = v;         return this; }
         public Builder name(String v)                { this.name = v;                return this; }
@@ -293,6 +317,7 @@ public final class AgentConfig {
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder budgets(Budgets v)            { this.budgets = v;             return this; }
         public Builder hooks(List<IMessageHook> v)   { this.hooks = v;               return this; }
+        public Builder subagents(List<SubAgentSpec> v) { this.subagents = v;         return this; }
 
         public AgentConfig build() {
             return new AgentConfig(this);

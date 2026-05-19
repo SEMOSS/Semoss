@@ -169,10 +169,15 @@ public final class AgentConfigLoader {
         //    (c) workspace.system_prompt     (legacy column, kept as back-compat fallback)
         b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
-        // 4. Workdir AGENTS.md / CLAUDE.md (walked from working_dir).
-        if (workingDir != null && !workingDir.trim().isEmpty()) {
-            b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
-        }
+        // 4. Workdir AGENTS.md / CLAUDE.md auto-discovery.
+        //    DISABLED — the walk-up was leaking unrelated repo-level instructions
+        //    (e.g. Semoss/CLAUDE.md) into every run whenever SEMOSS_BASE_FOLDER lived
+        //    inside the source tree. Per-workspace / per-room behavior should be
+        //    expressed explicitly via:
+        //      - CONFIG_JSON.system_prompt   (workspace-level authored prompt), or
+        //      - room.options.instructions   (room-level override),
+        //    both of which are picked up by resolveAuthoredPrompt above.
+        //    To re-enable, restore: b.workdirAgentsMd(AgentsMdLoader.discover(workingDir)).
 
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
@@ -192,13 +197,17 @@ public final class AgentConfigLoader {
         //    previously have a persistence layer).
         b.hooks(resolveHooks(cfgJson));
 
-        // 10. Agent's own AGENTS.md - reserved for follow-up PR.
+        // 10. Subagents - CONFIG_JSON.subagents[] only. Semoss harness synthesizes one
+        //     MCP tool per spec; CLI harnesses read but ignore.
+        b.subagents(resolveSubagents(cfgJson));
+
+        // 11. Agent's own AGENTS.md - reserved for follow-up PR.
 
         AgentConfig cfg = b.build();
         logger.info(
-                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} hooks={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
+                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} hooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
                 room.getId(), cfg.getWorkspaceId(), cfg.getName(), cfg.getModelId(), cfg.getWorkingDir(),
-                cfg.getMcps().size(), cfg.getHooks().size(),
+                cfg.getMcps().size(), cfg.getHooks().size(), cfg.getSubagents().size(),
                 cfg.getBudgets().getMaxTurns(), cfg.getBudgets().getMaxReflections(), cfg.getBudgets().getMaxSeconds(),
                 lengthOrZero(cfg.getAuthoredPrompt()), lengthOrZero(cfg.getWorkdirAgentsMd()),
                 cfgJson == null ? "absent" : "present");
@@ -522,6 +531,50 @@ public final class AgentConfigLoader {
             if (spec == null) continue;
             IMessageHook h = resolveHook(spec);
             if (h != null) out.add(h);
+        }
+        return Collections.unmodifiableList(out);
+    }
+
+    /**
+     * Resolve named subagent slots from {@code CONFIG_JSON.subagents[]}. Each entry must
+     * have non-blank {@code alias} and {@code workspaceId}; {@code description} is optional.
+     * Duplicate aliases within the same list are dropped with a warn log (first wins).
+     *
+     * <p>The semoss harness synthesizes one MCP tool per returned spec; CLI harnesses
+     * ignore the list.
+     *
+     * @return unmodifiable list, never {@code null}
+     */
+    private static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+        if (cfgJson == null || !cfgJson.has("subagents")) {
+            return Collections.emptyList();
+        }
+        JSONArray arr = cfgJson.optJSONArray("subagents");
+        if (arr == null || arr.length() == 0) {
+            return Collections.emptyList();
+        }
+        List<SubAgentSpec> out = new ArrayList<>(arr.length());
+        Set<String> seenAliases = new LinkedHashSet<>();
+        for (int i = 0; i < arr.length(); i++) {
+            JSONObject spec = arr.optJSONObject(i);
+            if (spec == null) continue;
+            String alias       = StringUtils.trimToNull(spec.optString("alias",       null));
+            String workspaceId = StringUtils.trimToNull(spec.optString("workspaceId", null));
+            String description = StringUtils.trimToNull(spec.optString("description", null));
+            if (alias == null || workspaceId == null) {
+                logger.warn("AgentConfigLoader: subagent entry missing alias or workspaceId - skipping (index={})", i);
+                continue;
+            }
+            if (!seenAliases.add(alias)) {
+                logger.warn("AgentConfigLoader: duplicate subagent alias '{}' - keeping first, skipping later entry", alias);
+                continue;
+            }
+            try {
+                out.add(new SubAgentSpec(alias, workspaceId, description));
+            } catch (IllegalArgumentException e) {
+                logger.warn("AgentConfigLoader: invalid subagent entry alias='{}' workspaceId='{}': {}",
+                        alias, workspaceId, e.getMessage());
+            }
         }
         return Collections.unmodifiableList(out);
     }
