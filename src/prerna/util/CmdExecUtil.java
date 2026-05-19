@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.agent.sandbox.CmdSandboxLauncher;
-import prerna.reactor.agent.sandbox.Platform;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 public class CmdExecUtil {
@@ -265,17 +264,10 @@ public class CmdExecUtil {
 
 		org.apache.commons.exec.DefaultExecutor.Builder<?> executorBuilder = DefaultExecutor.builder();
 
-		// chroot wrapping (fakechroot → fakeroot → chroot → bash) is Linux-only.
-		// macOS / Windows fall through to the plain `commandAppender` branch below.
-		// Mirrors {@link CmdSandboxLauncher#execute} which gates the same wrap on
-		// {@code Platform.current() == Platform.LINUX}.
-		boolean useChrootWrapping = Platform.current() == Platform.LINUX
-				&& this.chrootFolderPath != null && !this.chrootFolderPath.trim().isEmpty();
-
 		// For chroot, we need to set working directory to the chroot base, not the
 		// target directory
 		File workingDirectory;
-		if (useChrootWrapping) {
+		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
 			workingDirectory = new File(this.chrootFolderPath);
 		} else {
 			workingDirectory = new File(Utility.normalizePath(workingDir));
@@ -285,7 +277,7 @@ public class CmdExecUtil {
 		CommandLine cmdLine = null;
 
 		// Check if we need to use chroot
-		if (useChrootWrapping) {
+		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
 			environment = new HashMap<>();
 			environment.put("HOME", "/home/default");
 			// Validate chroot setup
