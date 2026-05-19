@@ -934,7 +934,7 @@ public class Room {
 	 * @param response the response message to enrich
 	 */
 	public void updateToolResponseMeta(ResponseMessage response) {
-		MCPUtility.updateToolResponseWithProjectMeta(response, null, toolLookupByLLMName);
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, getToolLookupByLLMName());
 	}
 
 	/**
@@ -956,9 +956,8 @@ public class Room {
 	 * @return {@code true} when a matching assistant output message exists
 	 */
 	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream()
-				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----
@@ -967,11 +966,13 @@ public class Room {
 	 * Resolves the user-authored system prompt — the room/workspace layer, before
 	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
 	 * <ol>
-	 *   <li>{@code options.instructions}</li>
-	 *   <li>{@code workspace.system_prompt} (looked up via {@code options.workspace.workspace_id})</li>
+	 * <li>{@code options.instructions}</li>
+	 * <li>{@code workspace.system_prompt} (looked up via
+	 * {@code options.workspace.workspace_id})</li>
 	 * </ol>
 	 *
-	 * <p>Use this when you need the raw user prompt as a composable layer (e.g., a
+	 * <p>
+	 * Use this when you need the raw user prompt as a composable layer (e.g., a
 	 * harness combining it with built-in agent instructions). Use
 	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
 	 *
@@ -1023,8 +1024,8 @@ public class Room {
 		}
 		User user = this.insight.getUser();
 		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-			throw new IllegalArgumentException("Workspace " + workspaceId
-					+ " does not exist or user does not have access to the workspace");
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
 		Object isActive = workspace.get("is_active");
 		if (Boolean.FALSE.equals(isActive)) {
