@@ -74,13 +74,7 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 	private Double defaultThreshold = .7;
 
 	public GLiNERGuardrailEngine() {
-		// Dynamically initialize keysToGet based on a predefined list or configuration
-		List<String> dynamicKeys = new ArrayList<>(Arrays.asList("prompt", "labels", "threshold"));
-		String additionalKeys = this.smssProp.getProperty("ADDITIONAL_KEYS", ""); // Fetch additional keys dynamically
-		if (!additionalKeys.isEmpty()) {
-			dynamicKeys.addAll(Arrays.asList(additionalKeys.split(",")));
-		}
-		this.keysToGet = dynamicKeys.toArray(new String[0]);
+		this.keysToGet = new String[] { "prompt", "labels", "threshold" };
 	}
 
 	@Override
