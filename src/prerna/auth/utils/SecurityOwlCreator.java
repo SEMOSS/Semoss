@@ -77,6 +77,11 @@ public class SecurityOwlCreator {
 		conceptsRequired.add("GROUPPROJECTPERMISSION");
 		conceptsRequired.add("GROUPINSIGHTPERMISSION");
 
+		// skill registry permissions — SKILL metadata lives in model-inference-logs;
+		// these tables only hold the user/group access rules referencing SKILLID.
+		conceptsRequired.add("SKILLPERMISSION");
+		conceptsRequired.add("GROUPSKILLPERMISSION");
+
 		// trusted token security
 		conceptsRequired.add("TOKEN");
 
@@ -563,6 +568,32 @@ public class SecurityOwlCreator {
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
 		owler.addProp("GROUPINSIGHTPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
 
+		// SKILLPERMISSION — user-level access to a skill. SKILLID refers to the
+		// SKILL_ID column on SKILL__ in the model-inference-logs DB. Mirrors the
+		// ENGINEPERMISSION shape so SecuritySkillUtils can be modeled on
+		// SecurityEngineUtils.
+		owler.addConcept("SKILLPERMISSION", null, null);
+		owler.addProp("SKILLPERMISSION", "SKILLID", "VARCHAR(255)");
+		owler.addProp("SKILLPERMISSION", "USERID", "VARCHAR(255)");
+		owler.addProp("SKILLPERMISSION", "PERMISSION", "INT");
+		owler.addProp("SKILLPERMISSION", "VISIBILITY", "BOOLEAN");
+		owler.addProp("SKILLPERMISSION", "FAVORITE", "BOOLEAN");
+		owler.addProp("SKILLPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("SKILLPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+		owler.addProp("SKILLPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("SKILLPERMISSION", "ENDDATE", "TIMESTAMP");
+
+		// GROUPSKILLPERMISSION — group-level access to a skill.
+		owler.addConcept("GROUPSKILLPERMISSION", null, null);
+		owler.addProp("GROUPSKILLPERMISSION", "ID", "VARCHAR(255)");
+		owler.addProp("GROUPSKILLPERMISSION", "TYPE", "VARCHAR(255)");
+		owler.addProp("GROUPSKILLPERMISSION", "SKILLID", "VARCHAR(255)");
+		owler.addProp("GROUPSKILLPERMISSION", "PERMISSION", "INT");
+		owler.addProp("GROUPSKILLPERMISSION", "DATEADDED", "TIMESTAMP");
+		owler.addProp("GROUPSKILLPERMISSION", "ENDDATE", "TIMESTAMP");
+		owler.addProp("GROUPSKILLPERMISSION", "PERMISSIONGRANTEDBY", "VARCHAR(255)");
+		owler.addProp("GROUPSKILLPERMISSION", "PERMISSIONGRANTEDBYTYPE", "VARCHAR(255)");
+
 		// JIRA_CONNECTIONS
         owler.addConcept("JIRA_CONNECTIONS", null, null);
         owler.addProp("JIRA_CONNECTIONS", "ID", "VARCHAR(255)");
@@ -616,6 +647,12 @@ public class SecurityOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPINSIGHTPERMISSION", "SMSS_GROUP.TYPE.GROUPINSIGHTPERMISSION.TYPE");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.PROJECTID.GROUPINSIGHTPERMISSION.PROJECTID");
 		owler.addRelation("INSIGHT", "GROUPINSIGHTPERMISSION", "INSIGHT.INSIGHTID.GROUPINSIGHTPERMISSION.INSIGHTID");
+
+		// skill permission joins (mirror engine permission joins)
+		owler.addRelation("SMSS_USER", "SKILLPERMISSION", "SMSS_USER.ID.SKILLPERMISSION.USERID");
+		owler.addRelation("SKILLPERMISSION", "PERMISSION", "SKILLPERMISSION.PERMISSION.PERMISSION.ID");
+		owler.addRelation("SMSS_GROUP", "GROUPSKILLPERMISSION", "SMSS_GROUP.ID.GROUPSKILLPERMISSION.ID");
+		owler.addRelation("SMSS_GROUP", "GROUPSKILLPERMISSION", "SMSS_GROUP.TYPE.GROUPSKILLPERMISSION.TYPE");
 
 		owler.commit();
 		owler.export();

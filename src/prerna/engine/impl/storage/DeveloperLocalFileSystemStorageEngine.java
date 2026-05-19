@@ -223,11 +223,14 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 	 */
 	private void mirror(Path source, Path destination) throws IOException {
 		if (Files.isRegularFile(source)) {
-			if (Files.isDirectory(destination)) {
-				destination = destination.resolve(source.getFileName().toString());
-			}
-			Files.createDirectories(destination.getParent());
-			copyIfChanged(source, destination);
+			// When destination is an existing directory, the actual target file is
+			// <destination>/<source-filename>. Use a new local so the parameter stays
+			// effectively final — the lambdas below capture `destination` and require it.
+			Path target = Files.isDirectory(destination)
+					? destination.resolve(source.getFileName().toString())
+					: destination;
+			Files.createDirectories(target.getParent());
+			copyIfChanged(source, target);
 			return;
 		}
 
@@ -399,6 +402,15 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 			throw new IOException("Storage file does not exist: " + storagePath);
 		}
 		return Files.readAllBytes(target);
+	}
+
+	/**
+	 * No-op. This engine is stateless — there are no connections, streams, or
+	 * background processes to release.
+	 */
+	@Override
+	public void close() {
+		// nothing to do
 	}
 
 }

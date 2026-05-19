@@ -188,6 +188,12 @@ public final class AgentConfigLoader {
         //    contribute (layered, not switched), plus room.options.mcp[] additions.
         b.mcps(resolveMcps(workspaceId, room, cfgJson));
 
+        // 8b. Skill refs - same three-source merge as MCPs:
+        //     WORKSPACE_RESOURCE['SKILL'] + CONFIG_JSON.skills[] + room.options.skills[].
+        //     SkillStager materializes the SKILL.md folders into <workingDir>/.claude/skills/
+        //     once AgentRunner has resolved both the working dir and this list.
+        b.skills(resolveSkills(workspaceId, room, cfgJson));
+
         // 9. Hooks - CONFIG_JSON.hooks[] only. No legacy fallback (hooks didn't
         //    previously have a persistence layer).
         b.hooks(resolveHooks(cfgJson));
@@ -196,9 +202,9 @@ public final class AgentConfigLoader {
 
         AgentConfig cfg = b.build();
         logger.info(
-                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} hooks={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
+                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} hooks={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
                 room.getId(), cfg.getWorkspaceId(), cfg.getName(), cfg.getModelId(), cfg.getWorkingDir(),
-                cfg.getMcps().size(), cfg.getHooks().size(),
+                cfg.getMcps().size(), cfg.getSkills().size(), cfg.getHooks().size(),
                 cfg.getBudgets().getMaxTurns(), cfg.getBudgets().getMaxReflections(), cfg.getBudgets().getMaxSeconds(),
                 lengthOrZero(cfg.getAuthoredPrompt()), lengthOrZero(cfg.getWorkdirAgentsMd()),
                 cfgJson == null ? "absent" : "present");
@@ -303,6 +309,123 @@ public final class AgentConfigLoader {
         }
 
         return out;
+    }
+
+    /**
+     * Build the agent's skill ref list — a union of three sources, deduped by
+     * {@code skill_id}:
+     *
+     * <ol>
+     *   <li><b>{@code WORKSPACE_RESOURCE} rows</b> where {@code RESOURCE_TYPE='SKILL'}
+     *       for the resolved {@code workspaceId}. {@code RESOURCE_SUBTYPE} carries
+     *       the optional pinned version.</li>
+     *   <li><b>{@code CONFIG_JSON.skills[]} entries</b> (additive). Same shape as
+     *       MCP entries — when a workspace dual-writes or migrates to
+     *       CONFIG_JSON-only, skills land here without breaking the legacy read.</li>
+     *   <li><b>{@code room.options.skills[]} entries</b> — per-room additions /
+     *       overrides.</li>
+     * </ol>
+     *
+     * <p>Each output entry has at least {@code skill_id} (required); when a
+     * pin is supplied, {@code pinned_version} is included. Earlier sources win
+     * on dedup, so workspace pins are not overwritten by room-level entries for
+     * the same {@code skill_id}.
+     */
+    private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
+        List<Map<String, String>> out = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
+
+        // 1. WORKSPACE_RESOURCE['SKILL'] rows.
+        //    Use the SQL-based helper (getWorkspaceResources) because the
+        //    SelectQueryStruct-based variants in this file have an inverted
+        //    type-filter condition (only fires when the list is empty).
+        if (workspaceId != null) {
+            try {
+                List<Map<String, String>> rows = ModelInferenceLogsUtils.getWorkspaceResources(
+                        workspaceId, AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE, null);
+                if (rows != null) {
+                    for (Map<String, String> row : rows) {
+                        String skillId = StringUtils.trimToNull(row.get("resource_id"));
+                        if (skillId == null) continue;
+                        if (!seen.add(skillId)) continue;
+                        String pinned = StringUtils.trimToNull(row.get("resource_subtype"));
+                        out.add(skillRef(skillId, pinned));
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("AgentConfigLoader: workspace_resource SKILL lookup failed for workspaceId={}: {}",
+                        workspaceId, e.getMessage());
+            }
+        }
+
+        // 2. CONFIG_JSON.skills[] (additive).
+        if (cfgJson != null && cfgJson.has("skills")) {
+            JSONArray arr = cfgJson.optJSONArray("skills");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject s = arr.optJSONObject(i);
+                    if (s == null) continue;
+                    String skillId = StringUtils.trimToNull(s.optString("skill_id", null));
+                    if (skillId == null) continue;
+                    if (!seen.add(skillId)) continue;
+                    String pinned = StringUtils.trimToNull(s.optString("pinned_version", null));
+                    out.add(skillRef(skillId, pinned));
+                }
+            }
+        }
+
+        // 3. room.options.skills[] additions.
+        for (Map<String, String> entry : extractRoomSkills(room)) {
+            String skillId = entry.get("skill_id");
+            if (skillId == null || skillId.isEmpty()) continue;
+            if (!seen.add(skillId)) continue;
+            out.add(entry);
+        }
+
+        return out;
+    }
+
+    /** Parse {@code room.options.skills[]} into a list of skill refs. */
+    private static List<Map<String, String>> extractRoomSkills(Room room) {
+        List<Map<String, String>> result = new ArrayList<>();
+        String opts = room.getOptions();
+        if (opts == null || opts.trim().isEmpty()) {
+            return result;
+        }
+        try {
+            JsonObject obj = JsonParser.parseString(opts).getAsJsonObject();
+            JsonElement el = obj.get("skills");
+            if (el == null || !el.isJsonArray()) {
+                return result;
+            }
+            JsonArray arr = el.getAsJsonArray();
+            for (JsonElement e : arr) {
+                if (!e.isJsonObject()) continue;
+                JsonObject m = e.getAsJsonObject();
+                JsonElement idEl = m.get("skill_id");
+                if (idEl == null || !idEl.isJsonPrimitive()) continue;
+                String skillId = StringUtils.trimToNull(idEl.getAsString());
+                if (skillId == null) continue;
+                String pinned = null;
+                JsonElement pinEl = m.get("pinned_version");
+                if (pinEl != null && pinEl.isJsonPrimitive()) {
+                    pinned = StringUtils.trimToNull(pinEl.getAsString());
+                }
+                result.add(skillRef(skillId, pinned));
+            }
+        } catch (Exception ignore) {
+            // best-effort parse; bad options blob -> no room skills
+        }
+        return result;
+    }
+
+    private static Map<String, String> skillRef(String skillId, String pinnedVersion) {
+        Map<String, String> entry = new HashMap<>();
+        entry.put("skill_id", skillId);
+        if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
+            entry.put("pinned_version", pinnedVersion);
+        }
+        return entry;
     }
 
     /** Parse {@code room.options.mcp[]} into a list of {@code {id, name}} maps. */

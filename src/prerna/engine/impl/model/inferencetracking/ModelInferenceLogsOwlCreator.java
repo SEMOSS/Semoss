@@ -47,6 +47,8 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> feedbackColumns = null;
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
+	private List<Pair<String, String>> skillColumns = null;
+	private List<Pair<String, String>> skillVersionColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -66,6 +68,8 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("FEEDBACK");
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
+		conceptsRequired.add("SKILL");
+		conceptsRequired.add("SKILL_VERSION");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -190,14 +194,55 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
 				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
 			);
-		
+
+		// Skill registry. Metadata + pointer to the SKILL.md (or skill folder) sitting
+		// in an IStorageEngine. The frontmatter description is mirrored here so the
+		// registry is searchable without reading every blob. CURRENT_VERSION + CONTENT_HASH
+		// are the staging-cache keys read by SkillStager at agent run time.
+		this.skillColumns = Arrays.asList(
+				Pair.with("SKILL_ID", "VARCHAR(50)"),
+				Pair.with("SLUG", "VARCHAR(255)"),
+				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", "VARCHAR(255)"),
+				Pair.with("SHARING_ENABLED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("STORAGE_ENGINE_ID", "VARCHAR(255)"),
+				Pair.with("STORAGE_PREFIX", "VARCHAR(1024)"),
+				Pair.with("CURRENT_VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("CONTENT_HASH", "VARCHAR(64)"),
+				Pair.with("SIZE_BYTES", INTEGER_DATATYPE_NAME),
+				Pair.with("STATUS", "VARCHAR(20)"),
+				Pair.with("ORIGIN", "VARCHAR(50)"),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+			);
+
+		// Version history for SKILL. Each update writes a new row with a monotonic
+		// VERSION (per SKILL_ID) and a versioned STORAGE_PREFIX so old content is
+		// retained. WORKSPACE_RESOURCE.RESOURCE_SUBTYPE may pin a workspace to a
+		// specific VERSION; null/empty = "use SKILL.CURRENT_VERSION".
+		this.skillVersionColumns = Arrays.asList(
+				Pair.with("SKILL_VERSION_ID", "VARCHAR(50)"),
+				Pair.with("SKILL_ID", "VARCHAR(50)"),
+				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				Pair.with("CONTENT_HASH", "VARCHAR(64)"),
+				Pair.with("STORAGE_PREFIX", "VARCHAR(1024)"),
+				Pair.with("SIZE_BYTES", INTEGER_DATATYPE_NAME),
+				Pair.with("CREATED_BY", "VARCHAR(255)"),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CHANGE_NOTE", "VARCHAR(1024)")
+			);
+
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
+				Pair.with("SKILL", skillColumns),
+				Pair.with("SKILL_VERSION", skillVersionColumns)
 			);
 	}
 	

@@ -2911,6 +2911,85 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Returns the workspace-resource row matching the (workspaceId, resourceId,
+	 * resourceType) tuple, or {@code null} when no row exists. Used by the
+	 * skill attach reactor to detect already-attached skills before issuing an
+	 * insert.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param resourceId   resource identifier (e.g. SKILL_ID)
+	 * @param resourceType resource type discriminator (e.g. "SKILL")
+	 * @return row with keys {@code workspace_resource_id, workspace_id,
+	 *         resource_id, resource_type, resource_subtype}, or {@code null}
+	 */
+	public static Map<String, Object> findWorkspaceResource(String workspaceId, String resourceId,
+			String resourceType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"SELECT WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE "
+							+ "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
+				ps.setString(1, workspaceId);
+				ps.setString(2, resourceId);
+				ps.setString(3, resourceType);
+				try (ResultSet rs = ps.executeQuery()) {
+					if (rs.next()) {
+						Map<String, Object> row = new HashMap<>();
+						row.put("workspace_resource_id", rs.getString(1));
+						row.put("workspace_id", rs.getString(2));
+						row.put("resource_id", rs.getString(3));
+						row.put("resource_type", rs.getString(4));
+						row.put("resource_subtype", rs.getString(5));
+						return row;
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to look up workspace resource for workspaceId '" + workspaceId + "', resourceId '"
+					+ resourceId + "', resourceType '" + resourceType + "'.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+		return null;
+	}
+
+	/**
+	 * Deletes the workspace-resource row(s) matching the (workspaceId, resourceId,
+	 * resourceType) tuple. No-op when no row exists.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param resourceId   resource identifier (e.g. SKILL_ID)
+	 * @param resourceType resource type discriminator (e.g. "SKILL")
+	 * @return number of rows deleted
+	 */
+	public static int deleteWorkspaceResource(String workspaceId, String resourceId, String resourceType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
+				ps.setString(1, workspaceId);
+				ps.setString(2, resourceId);
+				ps.setString(3, resourceType);
+				int deleted = ps.executeUpdate();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+				return deleted;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to delete workspace resource for workspaceId '" + workspaceId + "', resourceId '"
+					+ resourceId + "', resourceType '" + resourceType + "'.", e);
+			throw new IllegalArgumentException("Error deleting workspace resource: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
 	 * Fetches workspace resources with optional type/subtype filters.
 	 *
 	 * @param workspaceId     workspace identifier
@@ -3390,6 +3469,519 @@ public class ModelInferenceLogsUtils {
 		andFilters.addFilter(
 				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(andFilters);
+	}
+
+	// ============================================================
+	// SKILL registry
+	//
+	// SKILL__ holds metadata + a pointer (STORAGE_ENGINE_ID + STORAGE_PREFIX) to a
+	// folder in an IStorageEngine containing SKILL.md (and any helper files).
+	// SKILL_VERSION__ tracks each revision. WORKSPACE_RESOURCE__ rows with
+	// RESOURCE_TYPE='SKILL' attach skills to workspaces; RESOURCE_SUBTYPE pins a
+	// specific VERSION (null/empty = use SKILL__.CURRENT_VERSION).
+	// ============================================================
+
+	/**
+	 * Inserts a new skill plus its initial v1 version row in one transaction.
+	 *
+	 * @param skillId            skill identifier
+	 * @param slug               stable slug (used as the staged directory name)
+	 * @param name               display name
+	 * @param description        SKILL.md frontmatter description, mirrored for search
+	 * @param createdBy          authoring user id (null/system for platform skills)
+	 * @param sharingEnabled     whether to consult SKILLPERMISSION for visibility
+	 * @param storageEngineId    storage engine that holds the SKILL.md folder
+	 * @param storagePrefix      folder prefix (current version) in the storage engine
+	 * @param versionStoragePrefix folder prefix for the v1 blob (typically suffixed with /v1/)
+	 * @param contentHash        sha-256 of canonical content
+	 * @param sizeBytes          aggregate byte size of the skill folder
+	 * @param status             initial status (DRAFT | PUBLISHED | ARCHIVED | DEPRECATED)
+	 * @param origin             USER | PLATFORM | IMPORTED | GENERATED — also the canonical
+	 *                           "is this a platform skill" signal: {@code "PLATFORM".equals(origin)}
+	 * @param configJson         optional forward-compat blob
+	 * @throws Exception if insert fails
+	 */
+	public static void createNewSkill(String skillId, String slug, String name, String description,
+			String createdBy, boolean sharingEnabled, String storageEngineId,
+			String storagePrefix, String versionStoragePrefix, String contentHash, long sizeBytes, String status,
+			String origin, JSONObject configJson) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		String configJsonStr = configJson == null ? null : configJson.toString();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"INSERT INTO SKILL (SKILL_ID, SLUG, NAME, DESCRIPTION, CREATED_BY, "
+							+ "SHARING_ENABLED, STORAGE_ENGINE_ID, STORAGE_PREFIX, CURRENT_VERSION, CONTENT_HASH, "
+							+ "SIZE_BYTES, STATUS, ORIGIN, CONFIG_JSON, DATE_CREATED, DATE_UPDATED) "
+							+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")) {
+				int index = 1;
+				ps.setString(index++, skillId);
+				ps.setString(index++, slug);
+				ps.setString(index++, name);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
+				ps.setString(index++, createdBy);
+				ps.setBoolean(index++, sharingEnabled);
+				ps.setString(index++, storageEngineId);
+				ps.setString(index++, storagePrefix);
+				ps.setInt(index++, 1);
+				ps.setString(index++, contentHash);
+				ps.setLong(index++, sizeBytes);
+				ps.setString(index++, status);
+				ps.setString(index++, origin);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, configJsonStr, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index++, now);
+				ps.execute();
+			}
+
+			insertSkillVersionRow(con, modelInferenceLogsDb, GUID.v7().toString(), skillId, 1, contentHash,
+					versionStoragePrefix, sizeBytes, createdBy, now, "initial version");
+
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to create skill '" + skillId + "'.", e);
+			throw new IllegalArgumentException("Error creating skill: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Appends a new version row and bumps SKILL__ to point at it. The new VERSION is
+	 * computed as the existing CURRENT_VERSION + 1 within the same transaction.
+	 *
+	 * @param skillId              skill identifier
+	 * @param contentHash          sha-256 of the new content
+	 * @param sizeBytes            aggregate byte size of the new content
+	 * @param storagePrefix        folder prefix of the new current blob
+	 * @param versionStoragePrefix folder prefix recorded on the version row
+	 * @param updatedBy            user id triggering the update
+	 * @param changeNote           optional changelog note
+	 * @return the new version number
+	 * @throws Exception if update fails
+	 */
+	public static int updateSkillContent(String skillId, String contentHash, long sizeBytes, String storagePrefix,
+			String versionStoragePrefix, String updatedBy, String changeNote) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+
+			int nextVersion;
+			try (PreparedStatement ps = con
+					.prepareStatement("SELECT CURRENT_VERSION FROM SKILL WHERE SKILL_ID = ?")) {
+				ps.setString(1, skillId);
+				try (ResultSet rs = ps.executeQuery()) {
+					if (!rs.next()) {
+						throw new IllegalArgumentException("Skill not found: " + skillId);
+					}
+					nextVersion = rs.getInt(1) + 1;
+				}
+			}
+
+			insertSkillVersionRow(con, modelInferenceLogsDb, GUID.v7().toString(), skillId, nextVersion, contentHash,
+					versionStoragePrefix, sizeBytes, updatedBy, now, changeNote);
+
+			try (PreparedStatement ps = con.prepareStatement("UPDATE SKILL SET CURRENT_VERSION = ?, CONTENT_HASH = ?, "
+					+ "SIZE_BYTES = ?, STORAGE_PREFIX = ?, DATE_UPDATED = ? WHERE SKILL_ID = ?")) {
+				int index = 1;
+				ps.setInt(index++, nextVersion);
+				ps.setString(index++, contentHash);
+				ps.setLong(index++, sizeBytes);
+				ps.setString(index++, storagePrefix);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, skillId);
+				ps.execute();
+			}
+
+			if (!con.getAutoCommit()) {
+				con.commit();
+			}
+			return nextVersion;
+		} catch (Exception e) {
+			classLogger.error("Failed to update content for skill '" + skillId + "'.", e);
+			throw new IllegalArgumentException("Error updating skill content: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Updates metadata on a skill (anything except CURRENT_VERSION / CONTENT_HASH /
+	 * SIZE_BYTES / STORAGE_PREFIX — those move with content via
+	 * {@link #updateSkillContent}). Null arguments leave a field untouched.
+	 *
+	 * @param skillId         skill identifier
+	 * @param name            new display name, or null to skip
+	 * @param description     new description, or null to skip
+	 * @param status          new status, or null to skip
+	 * @param sharingEnabled  new sharing flag, or null to skip
+	 * @param configJson      new CONFIG_JSON, or null to skip (use clearSkillConfigJson to null it)
+	 * @throws Exception if update fails
+	 */
+	public static void updateSkillMetadata(String skillId, String name, String description, String status,
+			Boolean sharingEnabled, JSONObject configJson) throws Exception {
+		if (skillId == null || skillId.isEmpty()) {
+			throw new IllegalArgumentException("skillId is required");
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		// Pair.with(sqlFragment, value) — value may be a String (for CLOB-handled fields,
+		// the SQL fragment carries a "::CLOB" suffix as a marker we strip before appending)
+		StringBuilder sql = new StringBuilder("UPDATE SKILL SET DATE_UPDATED = ?");
+		List<Object> params = new ArrayList<>();
+		List<Boolean> clobFlags = new ArrayList<>();
+		params.add(now);
+		clobFlags.add(false);
+		if (name != null) {
+			sql.append(", NAME = ?");
+			params.add(name);
+			clobFlags.add(false);
+		}
+		if (description != null) {
+			sql.append(", DESCRIPTION = ?");
+			params.add(description);
+			clobFlags.add(true);
+		}
+		if (status != null) {
+			sql.append(", STATUS = ?");
+			params.add(status);
+			clobFlags.add(false);
+		}
+		if (sharingEnabled != null) {
+			sql.append(", SHARING_ENABLED = ?");
+			params.add(sharingEnabled);
+			clobFlags.add(false);
+		}
+		if (configJson != null) {
+			sql.append(", CONFIG_JSON = ?");
+			params.add(configJson.toString());
+			clobFlags.add(true);
+		}
+		sql.append(" WHERE SKILL_ID = ?");
+		params.add(skillId);
+		clobFlags.add(false);
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
+				for (int i = 0; i < params.size(); i++) {
+					Object val = params.get(i);
+					int bindIdx = i + 1;
+					if (clobFlags.get(i)) {
+						modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, (String) val, bindIdx, GSON);
+					} else if (val instanceof Timestamp) {
+						ps.setTimestamp(bindIdx, (Timestamp) val);
+					} else if (val instanceof Boolean) {
+						ps.setBoolean(bindIdx, (Boolean) val);
+					} else {
+						ps.setObject(bindIdx, val);
+					}
+				}
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update metadata for skill '" + skillId + "'.", e);
+			throw new IllegalArgumentException("Error updating skill metadata: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Soft-deletes a skill by setting STATUS to ARCHIVED. Workspace attachments and
+	 * version history are preserved.
+	 *
+	 * @param skillId skill identifier
+	 */
+	public static void archiveSkill(String skillId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con
+					.prepareStatement("UPDATE SKILL SET STATUS = ?, DATE_UPDATED = ? WHERE SKILL_ID = ?")) {
+				ps.setString(1, "ARCHIVED");
+				ps.setTimestamp(2, now);
+				ps.setString(3, skillId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to archive skill '" + skillId + "'.", e);
+			throw new IllegalArgumentException("Error archiving skill: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Hard-deletes a skill: removes SKILL__ row, all SKILL_VERSION__ rows, and any
+	 * WORKSPACE_RESOURCE__ rows that point at this skill. Does NOT delete the
+	 * underlying storage-engine blobs — callers must clean those up separately.
+	 *
+	 * @param skillId skill identifier
+	 */
+	public static void deleteSkillEntry(String skillId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps1 = con.prepareStatement(
+					"DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
+					PreparedStatement ps2 = con
+							.prepareStatement("DELETE FROM SKILL_VERSION WHERE SKILL_ID = ?");
+					PreparedStatement ps3 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
+				ps1.setString(1, "SKILL");
+				ps1.setString(2, skillId);
+				ps2.setString(1, skillId);
+				ps3.setString(1, skillId);
+				ps1.execute();
+				ps2.execute();
+				ps3.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to delete skill '" + skillId + "'.", e);
+			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
+	 * Fetches one skill row by id.
+	 *
+	 * @param skillId skill identifier
+	 * @return skill row map, or {@code null} when not found
+	 */
+	public static Map<String, Object> getSkillEntry(String skillId) {
+		return fetchSkillRow("SKILL__SKILL_ID", skillId);
+	}
+
+	/**
+	 * Fetches one skill row by its (case-sensitive) slug. Useful when staging
+	 * skills by the directory name on disk.
+	 *
+	 * @param slug slug column value
+	 * @return skill row map, or {@code null} when not found
+	 */
+	public static Map<String, Object> getSkillBySlug(String slug) {
+		return fetchSkillRow("SKILL__SLUG", slug);
+	}
+
+	/**
+	 * Lists skill rows matching the supplied filters, ordered newest update first.
+	 * All filters are AND-combined; pass {@code null} to skip a filter.
+	 *
+	 * <p>Used by {@code GetSkillsReactor}. Each row carries the same columns as
+	 * {@link #getSkillEntry(String)}.
+	 *
+	 * @param origin           exact match on {@code ORIGIN}, or {@code null} for any
+	 * @param createdBy        exact match on {@code CREATED_BY}, or {@code null} for any
+	 * @param includeArchived  when false, rows with {@code STATUS='ARCHIVED'} are excluded
+	 * @return list of skill rows, never null
+	 */
+	public static List<Map<String, Object>> listSkills(String origin, String createdBy, boolean includeArchived) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SKILL__SKILL_ID", "skill_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SLUG", "slug"));
+		qs.addSelector(new QueryColumnSelector("SKILL__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DESCRIPTION", "description"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CREATED_BY", "created_by"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SHARING_ENABLED", "sharing_enabled"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STORAGE_ENGINE_ID", "storage_engine_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STORAGE_PREFIX", "storage_prefix"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CURRENT_VERSION", "current_version"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CONTENT_HASH", "content_hash"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SIZE_BYTES", "size_bytes"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STATUS", "status"));
+		qs.addSelector(new QueryColumnSelector("SKILL__ORIGIN", "origin"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CONFIG_JSON", "config_json"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DATE_UPDATED", "date_updated"));
+
+		if (origin != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__ORIGIN", "==", origin));
+		}
+		if (createdBy != null) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__CREATED_BY", "==", createdBy));
+		}
+		if (!includeArchived) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__STATUS", "!=", "ARCHIVED"));
+		}
+		qs.addOrderBy("SKILL__DATE_UPDATED", "desc");
+
+		List<Map<String, Object>> rows = new ArrayList<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			while (wrapper.hasNext()) {
+				rows.add(rowToMap(wrapper.next()));
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to list skills (origin='{}', createdBy='{}').", origin, createdBy, e);
+		}
+		return rows;
+	}
+
+	/**
+	 * Lists all version rows for a skill, ordered newest version first.
+	 *
+	 * @param skillId skill identifier
+	 * @return ordered list of version rows
+	 */
+	public static List<Map<String, Object>> listSkillVersions(String skillId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SKILL_VERSION_ID", "skill_version_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SKILL_ID", "skill_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__VERSION", "version"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CONTENT_HASH", "content_hash"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__STORAGE_PREFIX", "storage_prefix"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SIZE_BYTES", "size_bytes"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CREATED_BY", "created_by"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CHANGE_NOTE", "change_note"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL_VERSION__SKILL_ID", "==", skillId));
+		qs.addOrderBy("SKILL_VERSION__VERSION", "desc");
+
+		List<Map<String, Object>> rows = new ArrayList<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			while (wrapper.hasNext()) {
+				IHeadersDataRow headerRow = wrapper.next();
+				rows.add(rowToMap(headerRow));
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to list versions for skill '" + skillId + "'.", e);
+		}
+		return rows;
+	}
+
+	/**
+	 * Fetches a specific version row for a skill.
+	 *
+	 * @param skillId skill identifier
+	 * @param version version number
+	 * @return version row map, or {@code null} when not found
+	 */
+	public static Map<String, Object> getSkillVersion(String skillId, int version) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SKILL_VERSION_ID", "skill_version_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SKILL_ID", "skill_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__VERSION", "version"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CONTENT_HASH", "content_hash"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__STORAGE_PREFIX", "storage_prefix"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__SIZE_BYTES", "size_bytes"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CREATED_BY", "created_by"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("SKILL_VERSION__CHANGE_NOTE", "change_note"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL_VERSION__SKILL_ID", "==", skillId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL_VERSION__VERSION", "==", version,
+				PixelDataType.CONST_INT));
+		qs.setLimit(1L);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			if (wrapper.hasNext()) {
+				return rowToMap(wrapper.next());
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to fetch version " + version + " for skill '" + skillId + "'.", e);
+		}
+		return null;
+	}
+
+	private static Map<String, Object> fetchSkillRow(String filterColumn, String filterValue) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SKILL__SKILL_ID", "skill_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SLUG", "slug"));
+		qs.addSelector(new QueryColumnSelector("SKILL__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DESCRIPTION", "description"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CREATED_BY", "created_by"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SHARING_ENABLED", "sharing_enabled"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STORAGE_ENGINE_ID", "storage_engine_id"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STORAGE_PREFIX", "storage_prefix"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CURRENT_VERSION", "current_version"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CONTENT_HASH", "content_hash"));
+		qs.addSelector(new QueryColumnSelector("SKILL__SIZE_BYTES", "size_bytes"));
+		qs.addSelector(new QueryColumnSelector("SKILL__STATUS", "status"));
+		qs.addSelector(new QueryColumnSelector("SKILL__ORIGIN", "origin"));
+		qs.addSelector(new QueryColumnSelector("SKILL__CONFIG_JSON", "config_json"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DATE_CREATED", "date_created"));
+		qs.addSelector(new QueryColumnSelector("SKILL__DATE_UPDATED", "date_updated"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(filterColumn, "==", filterValue));
+		qs.setLimit(1L);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
+			if (wrapper.hasNext()) {
+				return rowToMap(wrapper.next());
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to fetch skill row for {} = '{}'.", filterColumn, filterValue, e);
+		}
+		return null;
+	}
+
+	private static Map<String, Object> rowToMap(IHeadersDataRow headerRow) {
+		String[] headers = headerRow.getHeaders();
+		Object[] values = headerRow.getValues();
+		Map<String, Object> map = new HashMap<>();
+		for (int i = 0; i < headers.length; i++) {
+			if (values[i] instanceof java.sql.Clob) {
+				map.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
+			} else if (values[i] instanceof java.sql.Blob) {
+				try {
+					map.put(headers[i], AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]));
+				} catch (java.sql.SQLException | java.io.IOException e) {
+					classLogger.warn("rowToMap: failed to read BLOB for column '{}': {}", headers[i], e.getMessage());
+					map.put(headers[i], null);
+				}
+			} else if (values[i] instanceof prerna.date.SemossDate) {
+				map.put(headers[i],
+						((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+			} else {
+				map.put(headers[i], values[i]);
+			}
+		}
+		return map;
+	}
+
+	private static void insertSkillVersionRow(Connection con, IRDBMSEngine modelInferenceLogsDb,
+			String skillVersionId, String skillId, int version, String contentHash, String storagePrefix,
+			long sizeBytes, String createdBy, Timestamp dateCreated, String changeNote) throws SQLException {
+		try (PreparedStatement ps = con.prepareStatement(
+				"INSERT INTO SKILL_VERSION (SKILL_VERSION_ID, SKILL_ID, VERSION, CONTENT_HASH, STORAGE_PREFIX, "
+						+ "SIZE_BYTES, CREATED_BY, DATE_CREATED, CHANGE_NOTE) VALUES (?,?,?,?,?,?,?,?,?)")) {
+			int index = 1;
+			ps.setString(index++, skillVersionId);
+			ps.setString(index++, skillId);
+			ps.setInt(index++, version);
+			ps.setString(index++, contentHash);
+			ps.setString(index++, storagePrefix);
+			ps.setLong(index++, sizeBytes);
+			ps.setString(index++, createdBy);
+			ps.setTimestamp(index++, dateCreated);
+			ps.setString(index++, changeNote);
+			ps.execute();
+		}
 	}
 
 }
