@@ -276,25 +276,14 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 		return GuardrailTypeEnum.EMBEDDED_GLINER;
 	}
 	
-
 	@Override
 	public Map<String, String> getKeysAndValuesToGet() {
-
 		Map<String, String> keyValues = new LinkedHashMap<>();
-
 		for (String key : this.keysToGet) {
-
-			// Exclude runtime prompt key
-			if ("prompt".equalsIgnoreCase(key)) {
-				continue;
-			}
 			String realKey = resolveRealKey(key);
-			// Return empty string if value not found
-			String value = this.smssProp.getProperty(realKey, "");
-
+			String value = this.smssProp.getProperty(realKey);
 			keyValues.put(key, value);
 		}
-
 		return keyValues;
 	}
 

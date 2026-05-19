@@ -21,6 +21,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -129,12 +130,9 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			}
 			String methodName = String.valueOf(methodNameObj);
 
-			// extract all non-structural keys as direct parameters
-			Map<String, Object> directParams = extractDirectParameters(pipelineMap);
-
 			Map<String, Object> pipelineConfig = new LinkedHashMap<>();
-			pipelineConfig.put("input", buildGuardrailList((List<?>) pipelineMap.get("input"), directParams));
-			pipelineConfig.put("output", buildGuardrailList((List<?>) pipelineMap.get("output"), directParams));
+			pipelineConfig.put("input", buildGuardrailList((List<?>) pipelineMap.get("input")));
+			pipelineConfig.put("output", buildGuardrailList((List<?>) pipelineMap.get("output")));
 			pipelines.put(methodName, pipelineConfig);
 		}
 
@@ -143,7 +141,7 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 	}
 
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> buildGuardrailList(List<?> guardrailList, Map<String, Object> pipelineDirectParams) {
+	private List<Map<String, Object>> buildGuardrailList(List<?> guardrailList) {
 		List<Map<String, Object>> interceptorList = new ArrayList<>();
 		if (guardrailList == null || guardrailList.isEmpty()) {
 			return interceptorList;
@@ -155,28 +153,12 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			}
 
 			String guardrailEngineId;
-			Map<String, Object> entryDirectParams = new LinkedHashMap<>(pipelineDirectParams);
-
-			if (guardrailObj instanceof Map) {
-				// map entry: {guardrailEngineId, ...any direct params as overrides}
-				Map<String, Object> guardrailMap = (Map<String, Object>) guardrailObj;
-				Object guardrailIdObj = guardrailMap.get("guardrailEngineId");
-				if (guardrailIdObj == null) {
-					throw new SemossPixelException("Guardrail map is missing the 'guardrailEngineId' key.");
-				}
-				guardrailEngineId = String.valueOf(guardrailIdObj);
-
-				// entry-level key overrides take priority over pipeline-level
-				for (Map.Entry<String, Object> entry : guardrailMap.entrySet()) {
-					String key = entry.getKey();
-					if (!key.equals("guardrailEngineId")) {
-						entryDirectParams.put(key, parseDirectParamValue(entry.getValue()));
-					}
-				}
-			} else {
-				// string entry: just a guardrail engine id
 				guardrailEngineId = String.valueOf(guardrailObj);
-			}
+				
+			IGuardrailReactorFunctionEngine engine = Utility.getGuardrailEngine(guardrailEngineId);
+			 if (engine == null) {
+				 throw new SemossPixelException("Could not load guardrail engine '" + guardrailEngineId + "'.");
+			 }
 
 			Map<String, Object> interceptor = new LinkedHashMap<>();
 			interceptor.put("reactorClass", DEFAULT_REACTOR_CLASS);
@@ -184,7 +166,7 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 			Map<String, Object> params = new LinkedHashMap<>();
 			params.put("blockOnGuardrailFailure", true);
 			params.put("guardrailEngineId", guardrailEngineId);
-			params.put("directParameters", entryDirectParams);
+			params.put("directParameters", engine.getKeysAndValuesToGet());
 
 			Map<String, Object> inputMapping = new LinkedHashMap<>();
 			inputMapping.put("prompt", "arg0");
@@ -195,43 +177,6 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 		}
 
 		return interceptorList;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Object parseDirectParamValue(Object value) {
-		if (value instanceof List) {
-			List<String> parsed = new ArrayList<>();
-			for (Object item : (List<?>) value) {
-				if (item != null) {
-					parsed.add(String.valueOf(item));
-				}
-			}
-			return parsed;
-		}
-		if (value instanceof Number) {
-			return value;
-		}
-		String strVal = String.valueOf(value).trim();
-		// try to parse as number
-		try {
-			return Double.parseDouble(strVal);
-		} catch (NumberFormatException e) {
-			// not a number, return as string
-		}
-		return strVal;
-	}
-
-	@SuppressWarnings("unchecked")
-	private Map<String, Object> extractDirectParameters(Map<String, Object> pipelineMap) {
-		Map<String, Object> directParams = new LinkedHashMap<>();
-		for (Map.Entry<String, Object> entry : pipelineMap.entrySet()) {
-			String key = entry.getKey();
-			if (STRUCTURAL_KEYS.contains(key)) {
-				continue;
-			}
-			directParams.put(key, parseDirectParamValue(entry.getValue()));
-		}
-		return directParams;
 	}
 
 	private void writePipelineFile(File file, Map<?, ?> pipelineMap) {
