@@ -54,6 +54,11 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  *
  * <p>Uses {@code ctx.getFilePath()} directly as the CLI cwd — callers wanting
  * the legacy {@code /client} subdir must pass {@code subdir="client"}.
+ *
+ * <p>Like the other CLI harnesses, SEMOSS passes only the authored
+ * room/workspace system prompt. The external agent runtime is responsible for
+ * discovering filesystem instructions such as {@code AGENTS.md} or
+ * {@code CLAUDE.md} from the working directory.
  */
 public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 
@@ -77,7 +82,7 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		if (engineId == null || engineId.trim().isEmpty()) {
 			throw new IllegalArgumentException(NAME + ": room does not have a modelId set");
 		}
-		String       systemPrompt   = room.getEffectiveSystemPrompt();
+		String       systemPrompt   = room.getRoomOrWorkspaceSystemPrompt();
 		if (systemPrompt == null) {
 			systemPrompt = "";
 		}

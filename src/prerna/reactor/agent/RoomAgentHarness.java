@@ -71,7 +71,12 @@ import prerna.util.Utility;
  * parallel via a thread pool. {@code Room.addToolExecutionResult()} is synchronized and only
  * triggers the next model call once every tool ID in the batch has reported in, so concurrent
  * submissions are safe.
+ *
+ * @deprecated Use {@link prerna.reactor.agent.runtime.SemossAgentHarness} for new agent
+ *             runs. This legacy harness remains registered as {@code "room_loop"} for
+ *             backward compatibility with the remaining caller.
  */
+@Deprecated
 public class RoomAgentHarness implements IAgentHarness {
 
     private static final Logger logger = LogManager.getLogger(RoomAgentHarness.class);

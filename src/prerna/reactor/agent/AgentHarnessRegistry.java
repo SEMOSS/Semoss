@@ -41,7 +41,7 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  *
  * <p>Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — legacy vendor-delegating loop
+ *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — deprecated legacy SEMOSS room loop
  *   <li>{@code "semoss"}    → {@link SemossAgentHarness} — SEMOSS-native canonical harness
  *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
  *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
