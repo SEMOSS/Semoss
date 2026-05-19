@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.platform;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -38,17 +36,23 @@ import org.json.JSONObject;
 
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.database.CommandReactor;
+import prerna.reactor.IReactor;
+import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Registry of platform-level reactors exposed as default tools to the LLM. The
- * active set is controlled by the admin theme ({@code playground.platformTools}).
- * LLM-facing names are prefixed with {@value #PLATFORM_PREFIX} to distinguish
- * them from MCP engine tools.
+ * Exposes Pixel reactors to the LLM as platform default tools. The active set
+ * is controlled entirely by the admin theme ({@code playground.platformTools});
+ * any bare reactor name registered with {@link ReactorFactory#reactorHash}
+ * (i.e. any reactor invocable from Pixel) that extends {@link AbstractReactor}
+ * is a valid candidate. LLM-facing names are prefixed with {@value #PLATFORM_PREFIX}.
+ *
+ * <p>Because admins can list any Pixel reactor here, treat the theme as a
+ * security boundary — exposing destructive or admin-only reactors will let the
+ * LLM invoke them.
  */
 public final class PlatformDefaultTools {
 
@@ -58,15 +62,26 @@ public final class PlatformDefaultTools {
     public static final String SMSS_REACTOR_CLASS = "SMSS_REACTOR_CLASS";
     public static final String SMSS_IS_PLATFORM_TOOL = "SMSS_IS_PLATFORM_TOOL";
 
-    private static final Map<String, Class<? extends AbstractReactor>> REGISTRY;
-
-    static {
-        Map<String, Class<? extends AbstractReactor>> m = new HashMap<>();
-        m.put("Command", CommandReactor.class);
-        REGISTRY = Collections.unmodifiableMap(m);
+    private PlatformDefaultTools() {
     }
 
-    private PlatformDefaultTools() {
+    /**
+     * Resolves a bare reactor name from the theme to an instantiable
+     * {@link AbstractReactor} subclass via {@link ReactorFactory#reactorHash}.
+     * Returns {@code null} if unknown or not an {@code AbstractReactor}.
+     */
+    private static Class<? extends AbstractReactor> resolveReactorClass(String name) {
+        Class<? extends IReactor> raw = ReactorFactory.reactorHash.get(name);
+        if (raw == null) {
+            return null;
+        }
+        if (!AbstractReactor.class.isAssignableFrom(raw)) {
+            classLogger.warn(
+                    "PlatformDefaultTools: reactor '{}' is not an AbstractReactor; cannot expose as platform tool",
+                    name);
+            return null;
+        }
+        return raw.asSubclass(AbstractReactor.class);
     }
 
     /** True if {@code llmFacingName} is a platform tool (carries the {@value #PLATFORM_PREFIX} prefix). */
@@ -74,11 +89,13 @@ public final class PlatformDefaultTools {
         return llmFacingName != null && llmFacingName.startsWith(PLATFORM_PREFIX);
     }
 
-    /** Builds the LLM-ready tool schema for a registered tool; empty if unknown. */
+    /** Builds the LLM-ready tool schema for {@code name}; empty if no such reactor. */
     public static Optional<Map<String, Object>> buildToolSchema(String name) {
-        Class<? extends AbstractReactor> clazz = REGISTRY.get(name);
+        Class<? extends AbstractReactor> clazz = resolveReactorClass(name);
         if (clazz == null) {
-            classLogger.warn("PlatformDefaultTools: unknown tool name '{}' — skipping", name);
+            classLogger.warn(
+                    "PlatformDefaultTools: theme references reactor '{}' but no AbstractReactor with that name is registered — skipping",
+                    name);
             return Optional.empty();
         }
         try {
@@ -104,15 +121,17 @@ public final class PlatformDefaultTools {
     }
 
     /**
-     * Instantiates the platform tool's reactor with {@code params} and runs it.
-     * Preserves ERROR type from the inner reactor; throws if {@code llmFacingName}
-     * is not in the registry.
+     * Instantiates the reactor named by {@code llmFacingName} with {@code params}
+     * and runs it. Preserves ERROR type from the inner reactor; throws if the
+     * bare name doesn't resolve to an {@link AbstractReactor} in
+     * {@link ReactorFactory#reactorHash}.
      */
     public static NounMetadata execute(String llmFacingName, Map<String, Object> params, Insight insight) {
         String bareName = stripPrefix(llmFacingName);
-        Class<? extends AbstractReactor> clazz = REGISTRY.get(bareName);
+        Class<? extends AbstractReactor> clazz = resolveReactorClass(bareName);
         if (clazz == null) {
-            throw new IllegalArgumentException("No platform tool registered for name '" + llmFacingName + "'");
+            throw new IllegalArgumentException(
+                    "No AbstractReactor registered for platform tool name '" + llmFacingName + "'");
         }
         try {
             AbstractReactor reactor = clazz.getDeclaredConstructor().newInstance();
