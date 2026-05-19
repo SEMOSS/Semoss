@@ -766,9 +766,9 @@ public class Room {
 		Set<String> ensureUnique = new HashSet<>();
 
 		if (o.containsKey("mcp")) {
-			try {
-				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
-				for (Map<String, Object> mcpMap : mapMapList) {
+			List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
+			for (Map<String, Object> mcpMap : mapMapList) {
+				try {
 					if (mcpMap.containsKey("id")) {
 						String id = (String) mcpMap.get("id");
 						if (!ensureUnique.contains(id)) {
@@ -778,9 +778,9 @@ public class Room {
 					} else {
 						throw new IllegalArgumentException("Tool map must contain both type and id");
 					}
+				} catch (Exception e) {
+					classLogger.error("Unable to add tool map from room mcp", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from room mcp", e);
 			}
 		}
 
