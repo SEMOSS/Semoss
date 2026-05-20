@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.model;
 
 import java.time.LocalDate;
@@ -9,8 +36,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -19,18 +44,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetAdminModelUsageReactor extends AbstractReactor {
 
-    private static final String USERS_KEY = "users";
+    private static final String USER_ID_KEY = "userId";
 
     public GetAdminModelUsageReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USERS_KEY,
+        this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USER_ID_KEY,
                 ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey() };
-        this.keyRequired = new int[] { 1, 1, 0, 0 }; // engine and users required, dates optional
+        this.keyRequired = new int[] { 1, 1, 0, 0 }; // engines and userId required, dates optional
     }
 
     @Override
     public NounMetadata execute() {
         organizeKeys();
-        User user = this.insight.getUser();
+        User user = insight.getUser();
+
         if (user == null) {
             throw new IllegalArgumentException("You are not properly logged in");
         }
@@ -39,55 +65,30 @@ public class GetAdminModelUsageReactor extends AbstractReactor {
             throwFunctionalityOnlyExposedForAdminsError();
         }
 
-        // Get and validate model engine
-        String modelId = getModelEngineId();
-        if (modelId == null || modelId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Must input a model id");
+        // Get and validate userId
+        String userId = this.keyValue.get(USER_ID_KEY);
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Must input a user id");
         }
 
-        if (SecurityEngineUtils.getEngineType(modelId) != IEngine.CATALOG_TYPE.MODEL) {
-            throw new IllegalArgumentException("Input engine must be a model engine");
-        }
-
-        // Get and validate users list
-        List<String> userIds = getListString(USERS_KEY);
-        if (userIds == null || userIds.isEmpty()) {
-            throw new IllegalArgumentException("Must input at least one user id");
-        }
-
-        // Get and validate date parameters
+        // Get the parameters
+        List<String> engineIds = getEngineIds();
         String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
         String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
+
+        // Validate date parameters
         validateDateParameters(startDate, endDate);
 
-        // Format dates for query (convert from YYYY-MM-DD to full datetime format if
-        // provided)
-        String formattedStartDate = startDate != null ? startDate + " 00:00:00.000" : null;
-        String formattedEndDate = endDate != null ? endDate + " 23:59:59.999" : null;
-
-        List<Map<String, Object>> usageList = ModelInferenceLogsUtils.getModelInferenceUserTokenReport(modelId,
-                userIds, formattedStartDate, formattedEndDate);
-        return new NounMetadata(usageList, PixelDataType.FORMATTED_DATA_SET);
-    }
-
-    @Override
-    public String getReactorDescription() {
-        return "Admin-only report of model tokens used by a specified list of users over a specified time period. "
-                + "Requires model engine ID and list of user IDs. Date range is optional (if provided, both start and end dates must be given).";
-    }
-
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-            return "Required model engine ID or alias";
-        } else if (key.equals(USERS_KEY)) {
-            return "Required list of user IDs to include in the report";
-        } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
-            return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
-        } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
-            return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
+        // Validate we have at least one engine
+        if (engineIds == null || engineIds.isEmpty()) {
+            throw new IllegalArgumentException("At least one engine ID must be provided");
         }
-        return super.getDescriptionForKey(key);
+
+        // Get usage data per engine for the specified user
+        List<Map<String, Object>> usageData = ModelInferenceLogsUtils.getUserModelUsagePerEngine(userId.trim(),
+                engineIds, startDate, endDate);
+
+        return new NounMetadata(usageData, PixelDataType.CUSTOM_DATA_STRUCTURE);
     }
 
     /**
@@ -136,19 +137,45 @@ public class GetAdminModelUsageReactor extends AbstractReactor {
         }
     }
 
-    private String getModelEngineId() {
+    /**
+     * Gets the list of engine IDs from the reactor parameters
+     * 
+     * @return List of engine IDs or null if not provided
+     */
+    private List<String> getEngineIds() {
+        // Try to get as a list first
+        List<String> engineIds = null;
+
+        // Also check keyValue
         if (this.keyValue.containsKey(ReactorKeysEnum.ENGINE.getKey())) {
-            Object engineObj = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-            if (engineObj instanceof String) {
-                return (String) engineObj;
-            } else if (engineObj instanceof List) {
-                List<?> engineList = (List<?>) engineObj;
-                if (!engineList.isEmpty()) {
-                    return (String) engineList.get(0); // take first if somehow a list
-                }
+            Object enginesObj = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+            if (enginesObj instanceof List) {
+                engineIds = (List<String>) enginesObj;
+            } else if (enginesObj instanceof String) {
+                engineIds = List.of((String) enginesObj);
             }
         }
-        return null;
+
+        return engineIds;
     }
 
+    @Override
+    public String getReactorDescription() {
+        return "Admin-only report of model usage (tokens used) for a specified user over a specified time period. "
+                + "Requires a list of engine IDs and a user ID. Optionally accepts a date range.";
+    }
+
+    @Override
+    protected String getDescriptionForKey(String key) {
+        if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+            return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
+        } else if (key.equals(USER_ID_KEY)) {
+            return "Required user ID to retrieve usage for.";
+        } else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
+            return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
+        } else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {
+            return "Optional end date (format: YYYY-MM-DD). Must be provided with startDate.";
+        }
+        return super.getDescriptionForKey(key);
+    }
 }
