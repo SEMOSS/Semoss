@@ -60,10 +60,11 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(VectorFileDownloadReactor.class);
 
 	private final String FILE_NAMES = "fileNames";
+	private final String SUB_DIR = "subDir";
 
 	public VectorFileDownloadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FILE_NAMES };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FILE_NAMES, SUB_DIR };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -79,8 +80,9 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		if (fileNames == null || fileNames.isEmpty()) {
 			throw new IllegalArgumentException("Must provide the key '" + FILE_NAMES + "' for the files to download");
 		}
+		String subDir = this.keyValue.get(this.keysToGet[2]);
 		try {
-			return getDownload(engineId, fileNames);
+			return getDownload(engineId, fileNames, subDir);
 		} catch (SemossPixelException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
@@ -92,12 +94,18 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
+	 *
+	 * @param engineId
 	 * @param fileNames
+	 * @param subDir    when provided, files are copied silently into this
+	 *                  subdirectory
+	 *                  of the insight/room folder (created if missing) with no
+	 *                  popup.
+	 *                  When null, the standard browser download popup is triggered.
 	 * @return
 	 * @throws IOException
 	 */
-	private NounMetadata getDownload(String engineId, List<String> fileNames) throws IOException {
+	private NounMetadata getDownload(String engineId, List<String> fileNames, String subDir) throws IOException {
 		String downloadKey = UUID.randomUUID().toString();
 
 		IVectorDatabaseEngine vectorDb = Utility.getVectorDatabase(engineId);
@@ -105,7 +113,15 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		String engineNameAndId = SmssUtilities.getUniqueName(engineName, engineId);
 
 		String vectorDbDocumentFilePath = vectorDb.getDocumentsFilesPath(null);
+		boolean downloadToInsight = subDir != null && !subDir.isBlank();
 		String outputDir = this.insight.getInsightFolder();
+		if (downloadToInsight) {
+			outputDir = outputDir + DIR_SEPARATOR + subDir;
+			File subDirFile = new File(outputDir);
+			if (!subDirFile.exists()) {
+				subDirFile.mkdirs();
+			}
+		}
 		String outFilePath = null;
 
 		List<String> warnings = new ArrayList<>();
@@ -113,7 +129,23 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 		FileOutputStream fos = null;
 		ZipOutputStream zos = null;
 		try {
-			if (fileNames.size() == 1) {
+			if (downloadToInsight) {
+				int fileExistsCount = 0;
+				for (String fileName : fileNames) {
+					File src = new File(vectorDbDocumentFilePath + DIR_SEPARATOR + fileName);
+					if (src.exists()) {
+						outFilePath = outputDir + DIR_SEPARATOR + fileName;
+						Files.copy(src, new File(outFilePath));
+						fileExistsCount++;
+					} else {
+						warnings.add(fileName);
+					}
+				}
+				if (fileExistsCount == 0) {
+					throw new SemossPixelException(
+							"None of the files selected to download exist in the vector db to download");
+				}
+			} else if (fileNames.size() == 1) {
 				String filepath = vectorDbDocumentFilePath + DIR_SEPARATOR + fileNames.get(0);
 				File fileToCheck = new File(filepath);
 				if (!fileToCheck.exists()) {
@@ -165,12 +197,13 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		insightFile.setDeleteOnInsightClose(true);
+		insightFile.setDeleteOnInsightClose(!downloadToInsight);
 		insightFile.setFilePath(outFilePath);
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
-				PixelOperationType.FILE_DOWNLOAD);
+		NounMetadata retNoun = downloadToInsight
+				? new NounMetadata(downloadKey, PixelDataType.CONST_STRING)
+				: new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
 		if (!warnings.isEmpty()) {
 			retNoun.addAdditionalReturn(
 					NounMetadata.getWarningNounMessage("Could not find some of the files to download: " + warnings));
@@ -179,7 +212,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return list of files to download
 	 */
 	public List<String> getFiles() {
@@ -212,6 +245,7 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 				Downloads original document files from a vector database. \
 				Retrieves the actual source files that were uploaded to the vector database. \
 				Downloads a single file if one file is specified, or a zip archive containing multiple files. \
+				When subDir is provided, files are copied silently into that subdirectory of the insight/room folder with no popup download. \
 				Returns a download key. If this is being called as an MCP, ignore the download key and alert the user it's been added to the room.\
 				""";
 	}
@@ -220,6 +254,9 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(FILE_NAMES)) {
 			return "The list of file names to download from the vector database";
+		}
+		if (key.equals(SUB_DIR)) {
+			return "Optional subdirectory within the insight/room folder to copy files into silently (no browser popup). The directory is created if it does not exist. Omit to trigger a standard download.";
 		}
 		return super.getDescriptionForKey(key);
 	}
