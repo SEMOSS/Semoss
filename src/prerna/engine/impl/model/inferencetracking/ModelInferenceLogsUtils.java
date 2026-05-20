@@ -3033,6 +3033,20 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Get user model usage per specific engines
 	 *
+	 * @param userId    The user ID to get usage for
+	 * @param engineIds List of engine IDs to filter by
+	 * @param startDate Optional start date (format: YYYY-MM-DD)
+	 * @param endDate   Optional end date (format: YYYY-MM-DD)
+	 * @return List of maps containing usage data per engine
+	 */
+	public static List<Map<String, Object>> getUserModelUsagePerEngine(String userId, List<String> engineIds,
+			String startDate, String endDate) {
+		return getUserModelUsagePerEngine(userId, null, engineIds, startDate, endDate);
+	}
+
+	/**
+	 * Get user model usage per specific engines
+	 *
 	 * @param user      The user to get usage for
 	 * @param engineIds List of engine IDs to filter by
 	 * @param startDate Optional start date (format: YYYY-MM-DD)
@@ -3041,6 +3055,11 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserModelUsagePerEngine(User user, List<String> engineIds,
 			String startDate, String endDate) {
+		return getUserModelUsagePerEngine(null, user, engineIds, startDate, endDate);
+	}
+
+	private static List<Map<String, Object>> getUserModelUsagePerEngine(String userId, User user,
+			List<String> engineIds, String startDate, String endDate) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
@@ -3077,8 +3096,9 @@ public class ModelInferenceLogsUtils {
 				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, requestIf, "TOTAL_REQUESTS"));
 
 		// Filter by user ID
-		String userId = user.getPrimaryLoginToken().getId();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", userId));
+		String resolvedUserId = (user != null) ? user.getPrimaryLoginToken().getId() : userId;
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "USER_ID", "==", resolvedUserId));
 
 		// Filter by engine IDs
 		if (engineIds != null && !engineIds.isEmpty()) {

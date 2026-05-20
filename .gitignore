@@ -92,6 +92,8 @@ testfolder/mailpit/mailpit.log
 testfolder/RDF_Map.prop
 /testfolder/py
 /testfolder/R
+db/security.smss
+db/ModelInferenceLogsDatabase.smss
 
 # test resources
 test/resources/RDF_MAP.prop
