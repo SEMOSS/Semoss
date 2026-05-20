@@ -188,7 +188,7 @@ final class HarnessToolExecutor {
         // jobId is captured on the caller's thread (where ThreadStore is valid) and
         // forwarded so subagent dispatch can address the parent's stream queue even
         // when this method runs on a worker thread from the parallel-tool pool.
-        ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx, jobId);
+        ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId);
         long durMs = System.currentTimeMillis() - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
@@ -210,42 +210,86 @@ final class HarnessToolExecutor {
     }
 
     private static ToolExecOutcome executeToolSafely(
-            String rawToolName, Map<String, Object> params, AgentRunContext ctx, String parentJobId) {
+            ParsedToolCall tc, AgentRunContext ctx, String parentJobId) {
 
         // 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
         //    the MCP pipeline. The dispatcher returns a JSON string suitable for handing
         //    straight back to the model.
         java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
-        if (SubAgentToolSynthesizer.isSubAgentTool(rawToolName, specs)) {
+        if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
             try {
-                String result = dispatchSubAgentTool(rawToolName, params, ctx, specs, parentJobId);
+                String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId);
                 return new ToolExecOutcome(result, true);
             } catch (Exception e) {
                 String msg = "Tool execution error: " + e.getMessage();
                 logger.warn("HarnessToolExecutor: subagent tool '{}' failed: {}",
-                        rawToolName, e.getMessage(), e);
+                        tc.rawToolName, e.getMessage(), e);
                 return new ToolExecOutcome(msg, false);
             }
         }
 
-        // 2. Normal MCP tool path - name format is "<engineId>__<functionName>".
-        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
-        if (parsed == null) {
-            String msg = "Tool execution error: cannot parse engine/project id from tool name '"
-                    + rawToolName + "'";
+        // 2. Normal MCP tool path. Prefer Room-enriched metadata so shortened
+        // provider-facing names still resolve; fall back to legacy UUID prefixes.
+        ResolvedMcpTool resolved = resolveMcpTool(tc);
+        if (resolved == null) {
+            String msg = "Tool execution error: cannot resolve engine/project id from tool name '"
+                    + tc.rawToolName + "'";
             logger.warn("HarnessToolExecutor: {}", msg);
             return new ToolExecOutcome(msg, false);
         }
         try {
-            String result = callMcpToolViaReactor(rawToolName, parsed[0], params, ctx);
+            String result = callMcpToolViaReactor(resolved.toolName, resolved.engineId, tc.toolParams, ctx);
             boolean success = result == null || !result.startsWith("Tool execution error:");
             return new ToolExecOutcome(result, success);
         } catch (Exception e) {
             String msg = "Tool execution error: " + e.getMessage();
             logger.warn("HarnessToolExecutor: uncaught exception from tool '{}': {}",
-                    rawToolName, e.getMessage(), e);
+                    tc.rawToolName, e.getMessage(), e);
             return new ToolExecOutcome(msg, false);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ResolvedMcpTool resolveMcpTool(ParsedToolCall tc) {
+        Map<String, Object> meta = null;
+        Object metaObj = tc.toolCall.get("_meta");
+        if (metaObj instanceof Map) {
+            meta = (Map<String, Object>) metaObj;
+        }
+
+        String engineId = getString(meta, MCPUtility.SMSS_ENGINE_ID);
+        if (engineId == null) {
+            engineId = getString(meta, MCPUtility.SMSS_PROJECT_ID);
+        }
+        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(tc.rawToolName);
+        if (engineId == null && parsed != null) {
+            engineId = parsed[0];
+        }
+        if (engineId == null) {
+            return null;
+        }
+
+        String toolName = getString(meta, MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+        if (toolName == null) {
+            toolName = getString(tc.toolCall, "original_name");
+        }
+        if (toolName == null) {
+            toolName = parsed != null ? parsed[1] : tc.rawToolName;
+        }
+
+        return new ResolvedMcpTool(engineId, toolName);
+    }
+
+    private static String getString(Map<String, Object> map, String key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        String str = value.toString().trim();
+        return str.isEmpty() ? null : str;
     }
 
     /**
@@ -363,6 +407,16 @@ final class HarnessToolExecutor {
         ToolExecOutcome(String content, boolean success) {
             this.content = content;
             this.success = success;
+        }
+    }
+
+    private static final class ResolvedMcpTool {
+        final String engineId;
+        final String toolName;
+
+        ResolvedMcpTool(String engineId, String toolName) {
+            this.engineId = engineId;
+            this.toolName = toolName;
         }
     }
 }
