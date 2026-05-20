@@ -281,8 +281,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     + _cache_read
                     + _cache_creation,
                     response_tokens=response.usage.output_tokens,
-                    cache_read_tokens=tool_cache_read,
-                    cache_creation_tokens=tool_cache_creation,
+                    cache_read_tokens=_cache_read,
+                    cache_creation_tokens=_cache_creation,
                 )
 
             thinking_text = ""
