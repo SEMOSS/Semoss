@@ -206,6 +206,48 @@ public class Skill {
 				+ FRONTMATTER_DELIM + "\n\n";
 	}
 
+	/**
+	 * Returns the body of {@code content} with any leading YAML frontmatter block
+	 * removed. If the content has no frontmatter (or has a malformed/unclosed one)
+	 * the original string is returned unchanged. A single blank line immediately
+	 * after the closing {@code ---} is also dropped, since {@link #buildFrontmatter}
+	 * always emits one and we don't want to stack them on a re-write.
+	 */
+	public static String stripFrontmatter(String content) {
+		if (content == null || content.isEmpty()) {
+			return "";
+		}
+		if (!hasFrontmatterBlock(content)) {
+			return content;
+		}
+		String[] lines = content.split("\\R", -1);
+		int i = 0;
+		while (i < lines.length && lines[i].trim().isEmpty()) {
+			i++;
+		}
+		// i points at the opening ---
+		i++;
+		while (i < lines.length && !FRONTMATTER_DELIM.equals(lines[i].trim())) {
+			i++;
+		}
+		if (i >= lines.length) {
+			// no closing delimiter - leave the original alone
+			return content;
+		}
+		i++; // past closing ---
+		if (i < lines.length && lines[i].trim().isEmpty()) {
+			i++;
+		}
+		StringBuilder sb = new StringBuilder();
+		for (int j = i; j < lines.length; j++) {
+			sb.append(lines[j]);
+			if (j < lines.length - 1) {
+				sb.append("\n");
+			}
+		}
+		return sb.toString();
+	}
+
 	private static String singleLine(String s) {
 		if (s == null) {
 			return "";
