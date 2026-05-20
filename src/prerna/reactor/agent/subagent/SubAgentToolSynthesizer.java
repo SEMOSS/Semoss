@@ -208,18 +208,20 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", TOOL_CHECK_SUBAGENT);
         tool.put("description",
-                "Non-blocking peek at a subagent's job status. Returns "
-                        + "{jobId, status, roomId, spawnedAt}. Status values: "
-                        + "'InProgress' (still running) or terminal: "
-                        + "'ProgressComplete' / 'Complete' / 'Error' / 'Canceled'. "
+                "Non-blocking peek at a subagent's job status. Returns the envelope "
+                        + "{jobId, status, result, error}. Status values: "
+                        + "'running' (still working) or terminal: "
+                        + "'succeeded' (result holds final text) / "
+                        + "'failed' (error holds short message) / "
+                        + "'cancelled' / 'timed_out'. "
                         + "WHEN status is terminal AND you (or the user) want the actual output, "
-                        + "IMMEDIATELY call WaitForSubAgent(jobId) in the same turn to fetch the "
-                        + "final text -- do not stop to ask the user for permission. Use this "
-                        + "tool only when you need a non-blocking status check; if you already "
-                        + "know you want the output, skip check and call WaitForSubAgent directly. "
+                        + "IMMEDIATELY call WaitForSubAgent(jobId) in the same turn -- it returns "
+                        + "the same envelope and is the canonical fetch path. Use CheckSubAgentStatus "
+                        + "only when you need a non-blocking status; if you already know you want "
+                        + "the output, skip check and call WaitForSubAgent directly. "
                         + "When the user asks whether a job is done, report the result explicitly "
                         + "in plain language as the FIRST sentence of your reply (\"No, it is still "
-                        + "in progress\" / \"Yes, it is complete\") -- do not rely on the raw status "
+                        + "running\" / \"Yes, it is complete\") -- do not rely on the raw status "
                         + "value or tool-narration to convey completion state.");
         tool.put("inputSchema", inputSchema);
 
@@ -235,7 +237,9 @@ public final class SubAgentToolSynthesizer {
                 "Subagent job id (returned by a spawn or named-subagent tool)."));
         Map<String, Object> timeoutProp = new LinkedHashMap<>();
         timeoutProp.put("description",
-                "Maximum seconds to wait before returning {error: 'timeout'}. Default 300.");
+                "Maximum seconds to wait. On wait-side timeout the envelope reports "
+                        + "status='running' (the child keeps running) and the parent may call "
+                        + "again. Default 300.");
         timeoutProp.put("title", "timeoutSec");
         timeoutProp.put("type", "number");
         properties.put("timeoutSec", timeoutProp);
@@ -249,15 +253,18 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", TOOL_WAIT_SUBAGENT);
         tool.put("description",
-                "Block until a spawned subagent completes (or timeoutSec elapses), then return "
-                        + "its final text. Use this whenever you want a subagent's OUTPUT -- either "
-                        + "right after spawn (blocking pattern) or after CheckSubAgentStatus says it's "
-                        + "done (deferred pattern). If the subagent is already complete, this "
-                        + "returns immediately with the text. On timeout returns "
-                        + "{error: 'timeout', jobId} -- the subagent keeps running in the background "
-                        + "and you can call WaitForSubAgent again later. When the user asks any "
-                        + "variant of 'are they done', 'what did they say', 'did you finish', or "
-                        + "'collect the results', call WaitForSubAgent -- do not just report status.");
+                "Block until a spawned subagent reaches a terminal status (or timeoutSec elapses). "
+                        + "Always returns the envelope {jobId, status, result, error}. "
+                        + "On success: status='succeeded' with the final text in result. "
+                        + "On failure: status='failed'/'cancelled'/'timed_out' with a short error message. "
+                        + "On wait-side timeout: status='running' (the subagent keeps working in the "
+                        + "background and you can call WaitForSubAgent again later). "
+                        + "Use this whenever you want a subagent's OUTPUT -- either right after spawn "
+                        + "(blocking pattern) or after CheckSubAgentStatus says it's done (deferred "
+                        + "pattern). If the subagent is already complete, this returns immediately. "
+                        + "When the user asks any variant of 'are they done', 'what did they say', "
+                        + "'did you finish', or 'collect the results', call WaitForSubAgent -- do not "
+                        + "just report status.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();

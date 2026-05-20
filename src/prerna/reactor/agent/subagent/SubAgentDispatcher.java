@@ -166,32 +166,24 @@ public final class SubAgentDispatcher {
         return ThreadStore.getJobId();
     }
 
-    /**
-     * Non-blocking status peek. Returns {@code {status, eventCount}} JSON; the
-     * {@code lastEventTimestamp} field is omitted when no events have been emitted.
-     */
+    // Non-blocking status peek. Always returns the {jobId, status, result, error} envelope.
+    // status=RUNNING when the child is still working; otherwise a terminal value with result/error filled in.
     public static String check(String jobId) {
         if (jobId == null || jobId.isBlank()) {
             return GSON.toJson(error("Missing required argument 'jobId' for CheckSubAgentStatus"));
         }
-        Map<String, Object> out = new LinkedHashMap<>();
-        out.put("jobId", jobId);
-        out.put("status", PixelJobManager.getManager().getStatus(jobId));
-        SubAgentMeta meta = AgentSubAgentRegistry.getManager().lookup(jobId);
-        if (meta != null) {
-            out.put("alias", meta.getAlias());
-            out.put("workspaceId", meta.getWorkspaceId());
-            out.put("roomId", meta.getChildRoomId());
-            out.put("spawnedAt", meta.getSpawnedAt());
-        }
-        return GSON.toJson(out);
+        String rawStatus = PixelJobManager.getManager().getStatus(jobId);
+        SubAgentResult envelope = isTerminal(rawStatus)
+                ? toTerminalEnvelope(jobId, rawStatus)
+                : SubAgentResult.running(jobId);
+        return GSON.toJson(envelope.toMap());
     }
 
-    /**
-     * Block until {@code jobId} is in a terminal status (COMPLETE / PROGRESS_COMPLETE
-     * / ERROR / CANCELED) or {@code timeoutSec} elapses. On success returns the
-     * subagent's final-text string. On timeout returns a JSON error object.
-     */
+    // Block until the child reaches a terminal status or wait-side timeoutSec elapses.
+    // On wait-side timeout the envelope reports status=RUNNING (the child is unaffected); the
+    // parent may call again. Terminal mappings: COMPLETE/PROGRESS_COMPLETE->SUCCEEDED,
+    // ERROR->FAILED, CANCELED->CANCELLED. Child-side max_seconds exhaustion currently surfaces
+    // as FAILED until PixelJobManager exposes the underlying exception kind.
     public static String wait(String jobId, int timeoutSec) {
         if (jobId == null || jobId.isBlank()) {
             return GSON.toJson(error("Missing required argument 'jobId' for WaitForSubAgent"));
@@ -202,26 +194,13 @@ public final class SubAgentDispatcher {
         long deadline = System.currentTimeMillis() + (timeoutSec * 1000L);
         PixelJobManager manager = PixelJobManager.getManager();
         while (true) {
-            String status = manager.getStatus(jobId);
-            if (isTerminal(status)) {
-                if (PixelJobStatus.ERROR.getValue().equals(status)) {
-                    Map<String, Object> errorOut = error("Subagent job ended in ERROR status");
-                    errorOut.put("jobId", jobId);
-                    return GSON.toJson(errorOut);
-                }
-                if (PixelJobStatus.CANCELED.getValue().equals(status)) {
-                    Map<String, Object> cancelOut = error("Subagent job was canceled");
-                    cancelOut.put("jobId", jobId);
-                    return GSON.toJson(cancelOut);
-                }
-                return collectFinalText(jobId);
+            String rawStatus = manager.getStatus(jobId);
+            if (isTerminal(rawStatus)) {
+                return GSON.toJson(toTerminalEnvelope(jobId, rawStatus).toMap());
             }
             if (System.currentTimeMillis() >= deadline) {
-                Map<String, Object> timeout = new LinkedHashMap<>();
-                timeout.put("error", "timeout");
-                timeout.put("jobId", jobId);
-                timeout.put("timeoutSec", timeoutSec);
-                return GSON.toJson(timeout);
+                // Wait-side timeout: child is still alive, parent gave up waiting.
+                return GSON.toJson(SubAgentResult.running(jobId).toMap());
             }
             try {
                 Thread.sleep(WAIT_POLL_MS);
@@ -233,35 +212,46 @@ public final class SubAgentDispatcher {
         }
     }
 
+    // Map a terminal PixelJobStatus value to a SubAgentResult envelope. SUCCEEDED carries
+    // the child's final text in result; FAILED/CANCELLED carry a short message in error.
+    private static SubAgentResult toTerminalEnvelope(String jobId, String rawStatus) {
+        if (PixelJobStatus.ERROR.getValue().equals(rawStatus)) {
+            return SubAgentResult.failed(jobId, "Subagent job ended in ERROR status");
+        }
+        if (PixelJobStatus.CANCELED.getValue().equals(rawStatus)) {
+            return SubAgentResult.cancelled(jobId);
+        }
+        // COMPLETE / PROGRESS_COMPLETE
+        String finalText = collectFinalText(jobId);
+        if (finalText == null) {
+            return SubAgentResult.failed(jobId, "Subagent completed but produced no output");
+        }
+        return SubAgentResult.succeeded(jobId, finalText);
+    }
+
+    // Returns the child's final text string, or null when the output is unavailable. Errors
+    // are logged - the caller decides how to express them in the envelope.
     private static String collectFinalText(String jobId) {
         try {
             PixelRunner runner = PixelJobManager.getManager().getOutput(jobId);
-            if (runner == null) {
-                Map<String, Object> err = error("Subagent output unavailable");
-                err.put("jobId", jobId);
-                return GSON.toJson(err);
-            }
+            if (runner == null) return null;
             // Mirror RunAgentReactor: the final text is the value of the last CONST_STRING
             // NounMetadata in the run's results list. RunAgent returns a single string result,
             // so the last value typically is the agent's final text.
             java.util.List<NounMetadata> results = runner.getResults();
-            if (results != null && !results.isEmpty()) {
-                for (int i = results.size() - 1; i >= 0; i--) {
-                    Object val = results.get(i).getValue();
-                    if (val instanceof CharSequence) {
-                        return val.toString();
-                    }
+            if (results == null || results.isEmpty()) return null;
+            for (int i = results.size() - 1; i >= 0; i--) {
+                Object val = results.get(i).getValue();
+                if (val instanceof CharSequence) {
+                    return val.toString();
                 }
-                // No string result - return JSON of the last result's value.
-                Object lastVal = results.get(results.size() - 1).getValue();
-                return GSON.toJson(lastVal == null ? new LinkedHashMap<>() : lastVal);
             }
-            return GSON.toJson(new LinkedHashMap<>());
+            // No string result - serialize the last non-null value as JSON.
+            Object lastVal = results.get(results.size() - 1).getValue();
+            return lastVal == null ? null : GSON.toJson(lastVal);
         } catch (Exception e) {
             logger.warn("SubAgentDispatcher: failed to collect final text for jobId={}: {}", jobId, e.getMessage());
-            Map<String, Object> err = error("Failed to collect subagent result: " + e.getMessage());
-            err.put("jobId", jobId);
-            return GSON.toJson(err);
+            return null;
         }
     }
 
