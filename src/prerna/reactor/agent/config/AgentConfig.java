@@ -33,7 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.reactor.agent.IMessageHook;
+import prerna.reactor.agent.IAgentRunHook;
+import prerna.reactor.agent.IToolHook;
 
 /**
  * Immutable resolved agent configuration for one run.
@@ -76,8 +77,11 @@ public final class AgentConfig {
     // Subagent-spawn policy (nested) — depth + spawn-count caps
     private final SubAgentSpawnPolicy spawnPolicy;
 
-    // Message hooks (resolved instances; never null, empty when none configured)
-    private final List<IMessageHook> hooks;
+    // Run hooks (resolved instances; never null, empty when none configured)
+    private final List<IAgentRunHook> runHooks;
+
+    // Tool hooks (resolved instances; never null, empty when none configured)
+    private final List<IToolHook> toolHooks;
 
     // Named subagent specs (resolved from CONFIG_JSON.subagents[]; never null, empty when none configured).
     // Semoss harness synthesizes one MCP tool per spec; CLI harnesses ignore this field.
@@ -103,8 +107,11 @@ public final class AgentConfig {
                 : Collections.emptyList();
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
         this.spawnPolicy     = b.spawnPolicy != null ? b.spawnPolicy : SubAgentSpawnPolicy.defaults();
-        this.hooks           = b.hooks != null
-                ? Collections.unmodifiableList(new ArrayList<>(b.hooks))
+        this.runHooks        = b.runHooks != null
+                ? Collections.unmodifiableList(new ArrayList<>(b.runHooks))
+                : Collections.emptyList();
+        this.toolHooks       = b.toolHooks != null
+                ? Collections.unmodifiableList(new ArrayList<>(b.toolHooks))
                 : Collections.emptyList();
         this.subagents       = b.subagents != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.subagents))
@@ -240,8 +247,13 @@ public final class AgentConfig {
     }
 
     // Hooks
-    public List<IMessageHook> getHooks() {
-        return hooks;
+    public List<IAgentRunHook> getRunHooks() {
+        return runHooks;
+    }
+
+    // Tool hooks - fired before/after each tool dispatch inside HarnessToolExecutor.
+    public List<IToolHook> getToolHooks() {
+        return toolHooks;
     }
 
     // Subagents
@@ -274,7 +286,8 @@ public final class AgentConfig {
         private List<Map<String, String>> skills;
         private Budgets             budgets;
         private SubAgentSpawnPolicy spawnPolicy;
-        private List<IMessageHook>  hooks;
+        private List<IAgentRunHook> runHooks;
+        private List<IToolHook>     toolHooks;
         private List<SubAgentSpec>  subagents;
 
         public Builder workspaceId(String v)         { this.workspaceId = v;         return this; }
@@ -290,7 +303,8 @@ public final class AgentConfig {
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }
         public Builder budgets(Budgets v)                       { this.budgets = v;             return this; }
         public Builder spawnPolicy(SubAgentSpawnPolicy v)       { this.spawnPolicy = v;         return this; }
-        public Builder hooks(List<IMessageHook> v)              { this.hooks = v;               return this; }
+        public Builder runHooks(List<IAgentRunHook> v)          { this.runHooks = v;            return this; }
+        public Builder toolHooks(List<IToolHook> v)             { this.toolHooks = v;           return this; }
         public Builder subagents(List<SubAgentSpec> v) { this.subagents = v;         return this; }
 
         public AgentConfig build() {
@@ -349,7 +363,8 @@ public final class AgentConfig {
     // Nested: SubAgentSpawnPolicy — depth + spawn-count caps for subagent sprawl.
     public static final class SubAgentSpawnPolicy {
 
-        // 1 = root may spawn but children may not (no grandchildren).
+        // Default depth cap. 0 disables spawning, 1 = root only, 2 = root + one nested level, etc.
+        // Workspaces opt into deeper trees via CONFIG_JSON.spawn_policy.max_subagent_depth.
         public static final int DEFAULT_MAX_SUBAGENT_DEPTH    = 1;
         // Lifetime cap across the whole tree under one root.
         public static final int DEFAULT_MAX_SUBAGENTS_PER_RUN = 10;

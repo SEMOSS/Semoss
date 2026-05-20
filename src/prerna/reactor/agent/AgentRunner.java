@@ -207,16 +207,16 @@ public final class AgentRunner {
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
 
         // Apply a temporary workspace overlay so room-based lookups match AgentConfig.
-        List<IMessageHook> hooks = ctx.getAgentConfig().getHooks();
+        List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
         WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
         AgentHarnessResult result;
         try {
-            for (IMessageHook h : hooks) {
-                h.beforeMessage(ctx);
+            for (IAgentRunHook h : hooks) {
+                h.beforeRun(ctx);
             }
             result = harness.execute(ctx);
-            for (IMessageHook h : hooks) {
-                h.afterMessage(ctx, result);
+            for (IAgentRunHook h : hooks) {
+                h.afterRun(ctx, result);
             }
         } finally {
             restoreWorkspaceOverlay(room, wsOverlay);
@@ -422,7 +422,7 @@ public final class AgentRunner {
 
         // 1. Container.
         //    Peek at PARAM_PROJECT (don't remove) - downstream consumers including
-        //    GitCommitAgentHook.afterMessage rely on params["project"] to know
+        //    GitCommitAgentHook.afterRun rely on params["project"] to know
         //    which project's git folder to commit against. The model engine
         //    treats unknown keys as no-ops, so leaving the project id in the
         //    map is safe.

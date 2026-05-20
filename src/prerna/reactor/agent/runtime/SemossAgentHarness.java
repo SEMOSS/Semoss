@@ -118,13 +118,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
-		// Root-only spawn policy for now: root runs see spawn/check/wait tools, child
-		// runs do not. max_subagent_depth=0 still disables spawning completely.
+		// Spawn tools are shown when this run is below the configured depth cap.
+		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root + one level; etc.
 		AgentConfig agentConfig = ctx.getAgentConfig();
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
-		boolean canSpawn = ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
-				&& policy.getMaxSubagentDepth() > AgentRunContext.ROOT_SPAWN_DEPTH;
+		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
 		List<Map<String, Object>> subAgentTools = canSpawn
 				? SubAgentToolSynthesizer.allTools(subAgentSpecs)
 				: Collections.emptyList();

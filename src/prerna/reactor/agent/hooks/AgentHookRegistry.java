@@ -37,17 +37,18 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.reactor.agent.IMessageHook;
+import prerna.reactor.agent.IAgentHook;
+import prerna.reactor.agent.IAgentRunHook;
 
 /**
- * Static registry for {@link IMessageHook} kinds. One source of truth for both
+ * Static registry for {@link IAgentHook} kinds. One source of truth for both
  * the validate-on-write path ({@code SetWorkspaceHooksReactor}) and the
  * resolve-on-read path ({@code AgentConfigLoader.resolveHook}).
  *
  * <p>Built-in hooks registered at class-load time:
  * <ul>
  *   <li>{@code "git_commit"} -> {@link GitCommitAgentHook} - runs
- *       {@code git add . && git commit} after each successful agent message.</li>
+ *       {@code git add . && git commit} after each successful agent run.</li>
  * </ul>
  *
  * <p>Custom hooks can be registered at application startup via
@@ -62,14 +63,18 @@ public final class AgentHookRegistry {
 
     private static final Logger logger = LogManager.getLogger(AgentHookRegistry.class);
 
-    private static final Map<String, Supplier<IMessageHook>> REGISTRY;
+    private static final Map<String, Supplier<? extends IAgentHook>> REGISTRY;
 
     /** JSON {@code kind} value for {@link GitCommitAgentHook}. */
     public static final String GIT_COMMIT = "git_commit";
 
+    /** JSON {@code kind} value for {@link LoggingToolHook}. */
+    public static final String LOG_TOOLS = "log_tools";
+
     static {
-        Map<String, Supplier<IMessageHook>> m = new HashMap<>();
+        Map<String, Supplier<? extends IAgentHook>> m = new HashMap<>();
         m.put(GIT_COMMIT, GitCommitAgentHook::new);
+        m.put(LOG_TOOLS,  LoggingToolHook::new);
         REGISTRY = Collections.synchronizedMap(m);
     }
 
@@ -82,7 +87,7 @@ public final class AgentHookRegistry {
      * @param kind    JSON {@code kind} string clients write into CONFIG_JSON.hooks[]
      * @param factory zero-arg supplier producing a fresh hook instance per call
      */
-    public static void register(String kind, Supplier<IMessageHook> factory) {
+    public static void register(String kind, Supplier<? extends IAgentHook> factory) {
         if (kind == null || kind.trim().isEmpty()) {
             throw new IllegalArgumentException("kind must not be null or empty");
         }
@@ -99,9 +104,9 @@ public final class AgentHookRegistry {
      * throwing - preserves forward-compat against newer CONFIG_JSON written
      * by a future server version.
      */
-    public static IMessageHook resolve(String kind) {
+    public static IAgentHook resolve(String kind) {
         if (kind == null) return null;
-        Supplier<IMessageHook> factory = REGISTRY.get(kind);
+        Supplier<? extends IAgentHook> factory = REGISTRY.get(kind);
         return factory == null ? null : factory.get();
     }
 

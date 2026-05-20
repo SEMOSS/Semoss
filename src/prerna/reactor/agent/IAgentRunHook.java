@@ -28,15 +28,15 @@
 package prerna.reactor.agent;
 
 /**
- * Observer-style hook fired around a single agent message - i.e. one
+ * Observer-style hook fired around a single agent run - i.e. one
  * {@link IAgentHarness#execute(AgentRunContext)} call.
  *
  * <p>Hooks live on the immutable {@link prerna.reactor.agent.config.AgentConfig}
- * (see {@code AgentConfig.getHooks()}) and are populated by
+ * (see {@code AgentConfig.getRunHooks()}) and are populated by
  * {@code AgentConfigLoader} from {@code WORKSPACE.CONFIG_JSON.hooks[]}. The
  * runtime invocation site is {@code AgentRunner}, which calls
- * {@link #beforeMessage(AgentRunContext)} on each hook before the harness runs
- * and {@link #afterMessage(AgentRunContext, AgentHarnessResult)} on each hook
+ * {@link #beforeRun(AgentRunContext)} on each hook before the harness runs
+ * and {@link #afterRun(AgentRunContext, AgentHarnessResult)} on each hook
  * after a successful return - all inside the workspace-overlay try-block so
  * hooks see the per-call {@code workspace_id}.
  *
@@ -50,11 +50,11 @@ package prerna.reactor.agent;
  * {@code AgentConfigLoader.resolveHook} (read path) and
  * {@code SetWorkspaceHooksReactor} (write-time validation).
  */
-public interface IMessageHook {
+public interface IAgentRunHook extends IAgentHook {
 
-    /** Fires before {@link IAgentHarness#execute(AgentRunContext)}. Throw to abort the message. Default: no-op. */
-    default void beforeMessage(AgentRunContext ctx) throws Exception {}
+    /** Fires before {@link IAgentHarness#execute(AgentRunContext)}. Throw to abort the run. Default: no-op. */
+    default void beforeRun(AgentRunContext ctx) throws Exception {}
 
     /** Fires after a successful {@link IAgentHarness#execute(AgentRunContext)}, with the produced result. Default: no-op. */
-    default void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
+    default void afterRun(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
 }

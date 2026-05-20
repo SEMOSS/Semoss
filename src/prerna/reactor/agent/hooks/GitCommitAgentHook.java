@@ -38,7 +38,7 @@ import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.IMessageHook;
+import prerna.reactor.agent.IAgentRunHook;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -46,7 +46,7 @@ import prerna.util.git.GitRepoUtils;
 
 /**
  * Hook that runs {@code git add . && git commit} on the project's git folder
- * after every agent message.
+ * after every agent run.
  *
  * <p>Opt in by adding {@code {"kind": "git_commit"}} to a workspace's
  * {@code WORKSPACE.CONFIG_JSON.hooks[]} (e.g. via {@code SetWorkspaceHooks}).
@@ -58,16 +58,16 @@ import prerna.util.git.GitRepoUtils;
  * {@link prerna.reactor.agent.hooks.AgentHookRegistry#GIT_COMMIT} for the
  * registered kind string.
  */
-public final class GitCommitAgentHook implements IMessageHook {
+public final class GitCommitAgentHook implements IAgentRunHook {
 	
 	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
 	
     @Override
-    public void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
+    public void afterRun(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
     	Map<String, Object> paramMap = ctx.getParamMap();
     	String projectId = Objects.toString(paramMap.get("project"), null);
     	if (projectId == null) {
-    		classLogger.error("POST MESSAGE GIT COMMIT HOOK IS MISSING PROJECT ID");
+    		classLogger.error("POST RUN GIT COMMIT HOOK IS MISSING PROJECT ID");
     		return;
     	}
     	

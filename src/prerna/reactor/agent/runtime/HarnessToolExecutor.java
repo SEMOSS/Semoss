@@ -49,6 +49,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -193,6 +194,10 @@ final class HarnessToolExecutor {
                 tc.rawToolName, tc.toolCallId, currentIter);
         SemossAgentStream.toolInvocation(jobId, tc.toolCallId, tc.rawToolName, tc.toolParams, tc.toolCall);
 
+        // Pre-tool hooks - observer only; exceptions logged + swallowed.
+        List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
+        fireBeforeTool(toolHooks, ctx, tc, currentIter);
+
         long startMs = System.currentTimeMillis();
         // jobId is captured on the caller's thread (where ThreadStore is valid) and
         // forwarded so subagent dispatch can address the parent's stream queue even
@@ -201,6 +206,9 @@ final class HarnessToolExecutor {
         long durMs = System.currentTimeMillis() - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
+
+        // Post-tool hooks - fired even on failure so observability survives errors.
+        fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 
         logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}",
                 tc.rawToolName, durMs, outcome.success);
@@ -216,6 +224,36 @@ final class HarnessToolExecutor {
                 outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
 
         return new ToolExecResult(record, modelResp);
+    }
+
+    // Fire all configured pre-tool hooks. Each hook is isolated so a thrower does not
+    // skip the remaining hooks or abort the tool dispatch.
+    private static void fireBeforeTool(List<IToolHook> hooks, AgentRunContext ctx,
+            ParsedToolCall tc, int currentIter) {
+        if (hooks == null || hooks.isEmpty()) return;
+        for (IToolHook hook : hooks) {
+            try {
+                hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, currentIter);
+            } catch (Throwable t) {
+                logger.warn("HarnessToolExecutor: tool hook {}#beforeTool threw for tool '{}': {}",
+                        hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
+            }
+        }
+    }
+
+    // Mirror of fireBeforeTool for the post-dispatch phase.
+    private static void fireAfterTool(List<IToolHook> hooks, AgentRunContext ctx,
+            ParsedToolCall tc, ToolExecOutcome outcome, long durMs, int currentIter) {
+        if (hooks == null || hooks.isEmpty()) return;
+        for (IToolHook hook : hooks) {
+            try {
+                hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams,
+                        outcome.content, durMs, outcome.success, currentIter);
+            } catch (Throwable t) {
+                logger.warn("HarnessToolExecutor: tool hook {}#afterTool threw for tool '{}': {}",
+                        hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
+            }
+        }
     }
 
     private static ToolExecOutcome executeToolSafely(

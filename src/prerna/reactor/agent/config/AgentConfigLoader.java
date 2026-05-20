@@ -52,7 +52,9 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
-import prerna.reactor.agent.IMessageHook;
+import prerna.reactor.agent.IAgentHook;
+import prerna.reactor.agent.IAgentRunHook;
+import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 
@@ -152,15 +154,19 @@ public final class AgentConfigLoader {
         // Skills follow the same layered merge and are staged later by AgentRunner.
         b.skills(resolveSkills(workspaceId, room, cfgJson));
 
-        // Hooks and subagents currently come from CONFIG_JSON only.
-        b.hooks(resolveHooks(cfgJson));
+        // Hooks and subagents currently come from CONFIG_JSON only. resolveHooks classifies
+        // each entry by interface so a hook can land on the run-hook list, tool-hook list,
+        // or both.
+        ResolvedHooks rh = resolveHooks(cfgJson);
+        b.runHooks(rh.runHooks);
+        b.toolHooks(rh.toolHooks);
         b.subagents(resolveSubagents(cfgJson));
 
         AgentConfig cfg = b.build();
         logger.info(
-                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} hooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
+                "AgentConfigLoader: resolved room={} workspaceId={} name={} modelId={} workingDir={} mcps={} skills={} runHooks={} toolHooks={} subagents={} budgets(turns={},refl={},secs={}) authoredChars={} workdirAgentsMdChars={} cfgJson={}",
                 room.getId(), cfg.getWorkspaceId(), cfg.getName(), cfg.getModelId(), cfg.getWorkingDir(),
-                cfg.getMcps().size(), cfg.getSkills().size(), cfg.getHooks().size(), cfg.getSubagents().size(),
+                cfg.getMcps().size(), cfg.getSkills().size(), cfg.getRunHooks().size(), cfg.getToolHooks().size(), cfg.getSubagents().size(),
                 cfg.getBudgets().getMaxTurns(), cfg.getBudgets().getMaxReflections(), cfg.getBudgets().getMaxSeconds(),
                 lengthOrZero(cfg.getAuthoredPrompt()), lengthOrZero(cfg.getWorkdirAgentsMd()),
                 cfgJson == null ? "absent" : "present");
@@ -550,38 +556,62 @@ public final class AgentConfigLoader {
                 if (t >= 0) maxPerTurn = t;
             }
         }
-        if (maxDepth > AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH) {
-            logger.warn(
-                    "AgentConfigLoader: spawn_policy.max_subagent_depth={} requested, but nested subagents are disabled for now; capping at {}",
-                    maxDepth, AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH);
-            maxDepth = AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH;
-        }
         return AgentConfig.SubAgentSpawnPolicy.of(maxDepth, maxPerRun, maxPerTurn);
     }
 
+    // Pair of resolved hook lists, returned in one pass over CONFIG_JSON.hooks[].
+    private static final class ResolvedHooks {
+        final List<IAgentRunHook> runHooks;
+        final List<IToolHook>    toolHooks;
+        ResolvedHooks(List<IAgentRunHook> m, List<IToolHook> t) {
+            this.runHooks = m;
+            this.toolHooks    = t;
+        }
+        static ResolvedHooks empty() {
+            return new ResolvedHooks(Collections.emptyList(), Collections.emptyList());
+        }
+    }
+
     /**
-     * Resolve the configured hook list from {@code CONFIG_JSON.hooks[]}. Each
-     * entry's {@code kind} is mapped to a concrete {@link IMessageHook} via
-     * {@link #resolveHook}; unknown kinds are logged and skipped.
-     *
-     * @return unmodifiable list, never {@code null}
+     * Resolve the configured hook list from {@code CONFIG_JSON.hooks[]}. Each entry's
+     * {@code kind} is mapped to a concrete {@link IAgentHook} via {@link #resolveHook};
+     * the result is then classified by interface - implementations of
+     * {@link IAgentRunHook} land in the run-hook list, implementations of
+     * {@link IToolHook} land in the tool-hook list. A single hook may implement both
+     * and land in both lists. Unknown kinds are logged and skipped.
      */
-    private static List<IMessageHook> resolveHooks(JSONObject cfgJson) {
+    private static ResolvedHooks resolveHooks(JSONObject cfgJson) {
         if (cfgJson == null || !cfgJson.has("hooks")) {
-            return Collections.emptyList();
+            return ResolvedHooks.empty();
         }
         JSONArray arr = cfgJson.optJSONArray("hooks");
         if (arr == null || arr.length() == 0) {
-            return Collections.emptyList();
+            return ResolvedHooks.empty();
         }
-        List<IMessageHook> out = new ArrayList<>(arr.length());
+        List<IAgentRunHook> runHooks = new ArrayList<>(arr.length());
+        List<IToolHook>    toolHooks    = new ArrayList<>(arr.length());
         for (int i = 0; i < arr.length(); i++) {
             JSONObject spec = arr.optJSONObject(i);
             if (spec == null) continue;
-            IMessageHook h = resolveHook(spec);
-            if (h != null) out.add(h);
+            IAgentHook h = resolveHook(spec);
+            if (h == null) continue;
+            boolean classified = false;
+            if (h instanceof IAgentRunHook) {
+                runHooks.add((IAgentRunHook) h);
+                classified = true;
+            }
+            if (h instanceof IToolHook) {
+                toolHooks.add((IToolHook) h);
+                classified = true;
+            }
+            if (!classified) {
+                logger.warn("AgentConfigLoader: hook kind '{}' resolved to class {} which implements neither IAgentRunHook nor IToolHook - skipping",
+                        spec.optString("kind", null), h.getClass().getName());
+            }
         }
-        return Collections.unmodifiableList(out);
+        return new ResolvedHooks(
+                Collections.unmodifiableList(runHooks),
+                Collections.unmodifiableList(toolHooks));
     }
 
     /**
@@ -630,12 +660,13 @@ public final class AgentConfigLoader {
 
     /**
      * Map one {@code {"kind": ..., "params": {...}}} spec to a concrete
-     * {@link IMessageHook} instance via {@link AgentHookRegistry}. The
+     * {@link IAgentHook} instance via {@link AgentHookRegistry}. The
      * {@code params} sub-object is loader-internal today - each hook reads
      * what it needs from {@link prerna.reactor.agent.AgentRunContext} at run
      * time.
      *
-     * <p>Adding a new hook: implement {@code IMessageHook} and register it via
+     * <p>Adding a new hook: implement {@code IAgentRunHook}, {@code IToolHook}, or
+     * both, and register it via
      * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}
      * (built-ins live in the registry's static init block). The registry is
      * the same source of truth {@code SetWorkspaceHooksReactor} validates
@@ -643,13 +674,13 @@ public final class AgentConfigLoader {
      *
      * @return new hook instance, or {@code null} for an unknown kind (logged warn)
      */
-    private static IMessageHook resolveHook(JSONObject spec) {
+    private static IAgentHook resolveHook(JSONObject spec) {
         String kind = spec.optString("kind", null);
         if (kind == null || kind.isEmpty()) {
             logger.warn("AgentConfigLoader: hook spec missing 'kind' - skipping");
             return null;
         }
-        IMessageHook hook = AgentHookRegistry.resolve(kind);
+        IAgentHook hook = AgentHookRegistry.resolve(kind);
         if (hook == null) {
             logger.warn("AgentConfigLoader: unknown hook kind '{}' - skipping", kind);
         }
