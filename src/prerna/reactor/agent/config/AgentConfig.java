@@ -36,34 +36,11 @@ import java.util.Map;
 import prerna.reactor.agent.IMessageHook;
 
 /**
- * Resolved, immutable view of an agent for one run.
+ * Immutable resolved agent configuration for one run.
  *
- * <p>An "agent" in SEMOSS is a workspace (row in {@code modellogs.workspace})
- * optionally backed by a SEMOSS project on disk at
- * {@code Semoss/project/<name>__<workspace_id>/}. {@code AgentConfig} is the
- * single object every harness reads from — same shape, same field names —
- * regardless of which harness drives the loop.
- *
- * <p>Built once at run start by {@link AgentConfigLoader} and attached to
- * {@link prerna.reactor.agent.AgentRunContext}.
- *
- * <h2>Field scope (v1)</h2>
- * The fields below cover everything an agent run currently needs. Future PRs
- * (per the design doc Part 5.3 deferred-fields list) add hooks, permissions,
- * sub-agents, evals, etc. — none of which the loader populates yet.
- *
- * <h2>Prompt layering</h2>
- * Three agent-side layers compose into {@link #getComposedAgentPrompt()}:
- * <ol>
- *   <li>{@link #getAgentAgentsMd()} — agent's own {@code AGENTS.md} (from the
- *       workspace's project assets folder; null when absent or not yet wired)</li>
- *   <li>{@link #getWorkdirAgentsMd()} — {@code AGENTS.md} walked from the
- *       working directory</li>
- *   <li>{@link #getAuthoredPrompt()} — {@code room.options.instructions} or
- *       {@code workspace.system_prompt}</li>
- * </ol>
- * Each harness optionally prepends its own baseline before sending to the model;
- * the baseline is a harness concern, not an agent-config concern.
+ * <p>Built once by {@link AgentConfigLoader} and shared across harnesses. It
+ * carries identity, prompt layers, model settings, working dir, MCP refs,
+ * skills, budgets, hooks, and subagent specs.
  */
 public final class AgentConfig {
 
@@ -130,8 +107,7 @@ public final class AgentConfig {
                 : Collections.emptyList();
     }
 
-    // -- Identity -------------------------------------------------------------
-
+    // Identity
     /** Workspace id ({@code workspace.workspace_id}); {@code null} for ad-hoc rooms with no workspace binding. */
     public String getWorkspaceId() {
         return workspaceId;
@@ -147,8 +123,7 @@ public final class AgentConfig {
         return description;
     }
 
-    // -- Prompt layers --------------------------------------------------------
-
+    // Prompt layers
     /**
      * The authored system prompt: {@code room.options.instructions} when set,
      * otherwise {@code workspace.system_prompt}. {@code null} when neither layer is set.
@@ -195,8 +170,7 @@ public final class AgentConfig {
         sb.append(layer);
     }
 
-    // -- Model ----------------------------------------------------------------
-
+    // Model
     /** Model engine id the agent should run against; {@code null} when not yet resolved. */
     public String getModelId() {
         return modelId;
@@ -207,15 +181,14 @@ public final class AgentConfig {
      * Never {@code null}; always an unmodifiable view.
      *
      * <p>In v1, this is the {@code paramMap} originally passed to
-     * {@code AgentRunner.run(...)} — harnesses may still strip harness-only keys
+     * {@code AgentRunner.run(...)} - harnesses may still strip harness-only keys
      * before sending to the provider. Future loader work will canonicalize these.
      */
     public Map<String, Object> getModelParams() {
         return modelParams;
     }
 
-    // -- Filesystem -----------------------------------------------------------
-
+    // Filesystem
     /**
      * Working directory the agent operates in (the project being worked on).
      * Used by file/tool resolution and by {@code AGENTS.md} discovery.
@@ -225,97 +198,54 @@ public final class AgentConfig {
         return workingDir;
     }
 
-    // -- MCP tool projects ----------------------------------------------------
-
+    // MCP tool projects
     /**
-     * Resolved MCP tool projects for this run — union of
-     * {@code WORKSPACE_RESOURCE} entries (workspace-level toolset, source of truth)
-     * and {@code room.options.mcp[]} (per-room additions), deduped by UUID.
+     * Resolved MCP project refs for this run.
      *
-     * <p>Each entry is a map with at least {@code id} (project UUID) and
-     * {@code name}. Never {@code null}; empty when neither source contributes.
-     *
-     * <p><b>Two parallel resolution paths exist by design, both reading the same
-     * underlying sources:</b>
-     * <ul>
-     *   <li><b>CLI harnesses</b> ({@code claude_code}, {@code github_copilot},
-     *       {@code github_copilot_py}) consume this method — they need the engine
-     *       <i>refs</i> ({@code id} + {@code name}) to write into the external
-     *       CLI's MCP config file. The CLI itself does the JSON-RPC handshake to
-     *       discover tool defs.</li>
-     *   <li><b>{@code semoss} harness</b> consumes
-     *       {@link prerna.engine.impl.model.Room#getAllToolsJsonForRoom(int)}
-     *       indirectly via {@code Room.appendToolsToParams} — that path returns
-     *       <i>resolved tool definitions</i> ({@code name}/{@code description}/
-     *       {@code inputSchema} maps) because the in-process LLM call needs the
-     *       full tool schema, not just engine refs.</li>
-     * </ul>
-     * The two shapes (refs vs. resolved defs) reflect the different consumers;
-     * collapsing them would force one consumer to do extra work. Both paths read
-     * {@code room.options.mcp[]} and the {@code WORKSPACE_RESOURCE} rows for
-     * {@code room.options.workspace.workspace_id}, so a {@code workspaceId}
-     * passed on {@code RunAgent} (applied via {@code AgentRunner}'s workspace
-     * overlay) is honored uniformly across harnesses.
+     * <p>Entries come from workspace resources plus any room-level additions.
+     * CLI harnesses use these ids to configure external MCP clients, while the
+     * in-process SEMOSS harness resolves full tool schemas through {@code Room}.
      */
     public List<Map<String, String>> getMcps() {
         return mcps;
     }
 
-    // -- Skills ---------------------------------------------------------------
-
+    // Skills
     /**
-     * Resolved skill refs for this run — union of {@code WORKSPACE_RESOURCE__}
-     * rows with {@code RESOURCE_TYPE='SKILL'}, {@code CONFIG_JSON.skills[]}
-     * entries, and {@code room.options.skills[]} entries, deduped by
-     * {@code skill_id}.
+     * Resolved skill refs for this run.
      *
-     * <p>Each entry has:
-     * <ul>
-     *   <li>{@code skill_id} — required, points at {@code SKILL__.SKILL_ID}</li>
-     *   <li>{@code pinned_version} — optional; when null/empty the stager
-     *       tracks {@code SKILL__.CURRENT_VERSION}</li>
-     * </ul>
-     *
-     * <p>{@link prerna.reactor.agent.skill.SkillStager} consumes this list to
-     * materialize {@code SKILL.md} (and any sibling files) into the run's
-     * working directory under {@code .claude/skills/<slug>/}. Never
-     * {@code null}; empty when no source contributes.
+     * <p>Each entry includes {@code skill_id} and an optional
+     * {@code pinned_version}. {@link prerna.reactor.agent.skill.SkillStager}
+     * consumes this list to materialize the working copy under
+     * {@code .claude/skills/}.
      */
     public List<Map<String, String>> getSkills() {
         return skills;
     }
 
-    // -- Budgets --------------------------------------------------------------
-
+    // Budgets
     /** Run-time budgets (turn cap, reflection cap, wall-clock). Never {@code null}. */
     public Budgets getBudgets() {
         return budgets;
     }
 
-    // -- Hooks ----------------------------------------------------------------
-
+    // Hooks
     public List<IMessageHook> getHooks() {
         return hooks;
     }
 
-    // -- Subagents ------------------------------------------------------------
-
+    // Subagents
     /**
-     * Named subagent slots declared in {@code CONFIG_JSON.subagents[]} for this agent.
+     * Named subagent specs declared in {@code CONFIG_JSON.subagents[]}.
      *
-     * <p>Each entry surfaces to the LLM (semoss harness only) as a synthesized MCP tool
-     * whose name is the spec's {@link SubAgentSpec#getAlias() alias}. CLI harnesses
-     * ({@code claude_code}, {@code github_copilot}, {@code github_copilot_py}) read but
-     * ignore this list — they spawn subagents through their own external CLI loop.
-     *
-     * <p>Never {@code null}; empty when no slots are configured.
+     * <p>The semoss harness exposes them as synthesized tools. CLI harnesses
+     * read but ignore this list.
      */
     public List<SubAgentSpec> getSubagents() {
         return subagents;
     }
 
-    // -- Builder --------------------------------------------------------------
-
+    // Builder
     public static Builder builder() {
         return new Builder();
     }
@@ -356,8 +286,7 @@ public final class AgentConfig {
         }
     }
 
-    // -- Nested: Budgets ------------------------------------------------------
-
+    // Nested: Budgets
     /**
      * Run-time budgets. Immutable; built via {@link #builder()} or
      * {@link #of(int, int, int)}. {@code 0} on any field means "no limit" except

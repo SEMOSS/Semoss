@@ -52,7 +52,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicy;
  * <p>Registered under the harness name {@code "github_copilot_py"} so callers
  * can opt in via Pixel: {@code RunAgent(harnessType="github_copilot_py", ...)}.
  *
- * <p>Uses {@code ctx.getFilePath()} directly as the CLI cwd — callers wanting
+ * <p>Uses {@code ctx.getFilePath()} directly as the CLI cwd - callers wanting
  * the legacy {@code /client} subdir must pass {@code subdir="client"}.
  *
  * <p>Like the other CLI harnesses, SEMOSS passes only the authored

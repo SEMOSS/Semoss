@@ -51,10 +51,10 @@ import prerna.util.git.GitRepoUtils;
  * <p>Opt in by adding {@code {"kind": "git_commit"}} to a workspace's
  * {@code WORKSPACE.CONFIG_JSON.hooks[]} (e.g. via {@code SetWorkspaceHooks}).
  * The hook reads {@code ctx.getParamMap().get("project")} for the project to
- * commit against — if the project id is missing, the hook logs an error and
+ * commit against - if the project id is missing, the hook logs an error and
  * returns without committing.
  *
- * <p>Authored as a clean component (no inheritance, no statics) — see
+ * <p>Authored as a clean component (no inheritance, no statics) - see
  * {@link prerna.reactor.agent.hooks.AgentHookRegistry#GIT_COMMIT} for the
  * registered kind string.
  */

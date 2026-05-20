@@ -55,15 +55,15 @@ import prerna.util.Constants;
  *
  * <p>The attachment uses the same {@code WORKSPACE_RESOURCE__} pattern as MCPs
  * and prompts so {@code AgentConfigLoader} surfaces the skill in the merged
- * config that {@code SkillStager} consumes at agent run time. Idempotent — a
+ * config that {@code SkillStager} consumes at agent run time. Idempotent - a
  * second call with the same {@code (workspaceId, skillId)} updates the pinned
  * version (or no-ops when the subtype already matches).
  *
  * <p>Inputs:
  * <ul>
- *   <li>{@code workspaceId} — target workspace (required)</li>
- *   <li>{@code skillId}     — skill to attach (required)</li>
- *   <li>{@code version}     — optional pinned version number; null/omitted means "track CURRENT_VERSION"</li>
+ *   <li>{@code workspaceId} - target workspace (required)</li>
+ *   <li>{@code skillId}     - skill to attach (required)</li>
+ *   <li>{@code version}     - optional pinned version number; null/omitted means "track CURRENT_VERSION"</li>
  * </ul>
  *
  * <p>Authorization:
@@ -137,11 +137,11 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			boolean created;
 			if (existing != null) {
 				if (Objects.equals(existing.get("resource_subtype"), pinnedVersion)) {
-					// already attached with same pin — no-op
+					// already attached with same pin - no-op
 					workspaceResourceId = (String) existing.get("workspace_resource_id");
 					created = false;
 				} else {
-					// updating the version pin — delete + re-insert
+					// updating the version pin - delete + re-insert
 					ModelInferenceLogsUtils.deleteWorkspaceResource(workspaceId, skillId,
 							AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE);
 					workspaceResourceId = GUID.v7().toString();

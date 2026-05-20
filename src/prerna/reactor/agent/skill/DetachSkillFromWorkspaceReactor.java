@@ -47,12 +47,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>Inputs:
  * <ul>
- *   <li>{@code workspaceId} — workspace identifier (required)</li>
- *   <li>{@code skillId}     — skill identifier to detach (required)</li>
+ *   <li>{@code workspaceId} - workspace identifier (required)</li>
+ *   <li>{@code skillId}     - skill identifier to detach (required)</li>
  * </ul>
  *
  * <p>Authorization: user must have edit access to the workspace
- * ({@link SecurityProjectUtils#userCanEditProject}). No skill-side check —
+ * ({@link SecurityProjectUtils#userCanEditProject}). No skill-side check -
  * detaching is always allowed for someone who can edit the workspace.
  */
 public class DetachSkillFromWorkspaceReactor extends AbstractReactor {

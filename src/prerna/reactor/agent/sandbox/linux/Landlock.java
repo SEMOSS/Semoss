@@ -40,9 +40,9 @@ import com.sun.jna.Structure;
 /**
  * Minimal JNA binding for the Linux landlock LSM (kernel 5.13+).
  *
- * <p>Kept deliberately small: we call exactly four things — {@code prctl},
+ * <p>Kept deliberately small: we call exactly four things - {@code prctl},
  * {@code syscall(SYS_landlock_create_ruleset)}, {@code syscall(SYS_landlock_add_rule)},
- * {@code syscall(SYS_landlock_restrict_self)} — and two helpers for {@code open(2)}
+ * {@code syscall(SYS_landlock_restrict_self)} - and two helpers for {@code open(2)}
  * and {@code close(2)} on allowlist paths.
  *
  * <p>References:
@@ -55,7 +55,7 @@ public final class Landlock {
 
     private Landlock() {}
 
-    // syscall numbers on x86_64 and aarch64 — same on both archs for these
+    // syscall numbers on x86_64 and aarch64 - same on both archs for these
     public static final int SYS_LANDLOCK_CREATE_RULESET = 444;
     public static final int SYS_LANDLOCK_ADD_RULE       = 445;
     public static final int SYS_LANDLOCK_RESTRICT_SELF  = 446;
@@ -66,7 +66,7 @@ public final class Landlock {
     // landlock_rule_type
     public static final int LANDLOCK_RULE_PATH_BENEATH = 1;
 
-    // Access rights (subset — enough for filesystem allowlist)
+    // Access rights (subset - enough for filesystem allowlist)
     // See linux/landlock.h
     public static final long LANDLOCK_ACCESS_FS_EXECUTE             = 1L << 0;
     public static final long LANDLOCK_ACCESS_FS_WRITE_FILE          = 1L << 1;
@@ -89,7 +89,7 @@ public final class Landlock {
     public static final int O_PATH      = 010000000;
     public static final int O_CLOEXEC   = 02000000;
 
-    /** JNA direct mapping for libc — just the handful of functions we need. */
+    /** JNA direct mapping for libc - just the handful of functions we need. */
     public interface LibC extends Library {
         LibC INSTANCE = Native.load("c", LibC.class);
 
@@ -105,13 +105,13 @@ public final class Landlock {
     }
 
     /**
-     * {@code struct landlock_ruleset_attr} — single {@code __u64 handled_access_fs} field
+     * {@code struct landlock_ruleset_attr} - single {@code __u64 handled_access_fs} field
      * in kernels we support. {@code handled_access_net} was added in 5.19 but is optional.
      */
     public static class RulesetAttr extends Structure {
         public long handled_access_fs;
-        public long handled_access_net;    // present kernel ≥ 5.19; ignored earlier
-        public long scoped;                // kernel ≥ 6.10; ignored earlier
+        public long handled_access_net;    // present kernel >= 5.19; ignored earlier
+        public long scoped;                // kernel >= 6.10; ignored earlier
 
         public RulesetAttr() {}
 
@@ -128,7 +128,7 @@ public final class Landlock {
     }
 
     /**
-     * {@code struct landlock_path_beneath_attr} — {@code __u64 allowed_access}
+     * {@code struct landlock_path_beneath_attr} - {@code __u64 allowed_access}
      * plus {@code __s32 parent_fd}.
      */
     public static class PathBeneathAttr extends Structure {
@@ -153,7 +153,7 @@ public final class Landlock {
      * -1 if the kernel does not implement landlock at all.
      *
      * <p>Also returns -1 early when we're not on Linux or when kernel < 5.13
-     * judging by {@code /proc/sys/kernel/osrelease} — cheap filter that
+     * judging by {@code /proc/sys/kernel/osrelease} - cheap filter that
      * avoids making a syscall that would crash the JVM on old kernels.
      */
     public static int probeAbiVersion() {
@@ -209,7 +209,7 @@ public final class Landlock {
     }
 
     /**
-     * Set {@code PR_SET_NO_NEW_PRIVS} — required before {@link #restrictSelf(int)}
+     * Set {@code PR_SET_NO_NEW_PRIVS} - required before {@link #restrictSelf(int)}
      * for unprivileged callers.
      */
     public static int setNoNewPrivs() {
@@ -222,7 +222,7 @@ public final class Landlock {
     }
 
     /**
-     * Open a path with {@code O_PATH|O_CLOEXEC} — the handle expected by
+     * Open a path with {@code O_PATH|O_CLOEXEC} - the handle expected by
      * {@code landlock_add_rule} as {@code parent_fd}.
      *
      * @return open fd, or -1 on failure.

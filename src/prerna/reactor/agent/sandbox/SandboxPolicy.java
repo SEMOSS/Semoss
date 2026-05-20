@@ -38,14 +38,14 @@ import java.util.Optional;
  * its own tools (Bash, Read/Write, etc.).
  *
  * <p>Built via {@link #builder()}. Applied to a spawn by a
- * {@link SandboxLauncher} — typically the launcher prepends an argv shim
+ * {@link SandboxLauncher} - typically the launcher prepends an argv shim
  * and clears dangerous env vars; the actual kernel-level restriction
  * (landlock on Linux, Seatbelt on macOS) is applied by
  * {@link SandboxLauncherMain} immediately before {@code execvp()}.
  *
  * <p>Policy model: reads are broadly allowed, then specific paths are
  * blocked via {@link #getBlockedPaths()}.  Paths in {@link #getAllowedPaths()}
- * act as carve-outs — they override blocks for any ancestor path.  Writes
+ * act as carve-outs - they override blocks for any ancestor path.  Writes
  * require explicit allowance in {@code getAllowedPaths()} with
  * {@link AccessMode#RW}.
  */

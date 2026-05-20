@@ -54,38 +54,16 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * App-builder helpers + the {@code .agents/AGENT_CONFIG.json} engine-selection store.
+ * App-builder helpers for {@code .agents/AGENT_CONFIG.json} and app-local skills.
  *
- * <p>Two responsibilities, both specific to the SemossWeb app-builder flow:
- * <ul>
- *   <li><b>Engine selection</b> ({@code .agents/AGENT_CONFIG.json}) — tracks the model,
- *       vector, storage, and database engines selected for the project's agent:
- *       <pre>
- *       {
- *         "selected_engines": {
- *           "model_engines":    [ { "name": "...", "id": "..." }, ... ],
- *           "vector_engines":   [ ... ],
- *           "storage_engines":  [ ... ],
- *           "database_engines": [ ... ]
- *         }
- *       }
- *       </pre></li>
- *   <li><b>Skill CRUD</b> ({@code client/.claude/skills/<name>/SKILL.md}) — the static
- *       methods called by {@code CreateAppSkillReactor}, {@code UpdateAppSkillReactor},
- *       {@code DeleteAppSkillReactor}, {@code GetAppSkillsReactor}. The skill files
- *       are the SemossWeb FE's "agent skill editor" backing store.</li>
- * </ul>
- *
- * <p>All methods are static — this class is a stateless utility, not a runtime helper
- * for the harness loop. Both groups self-create any missing directories on demand;
- * no separate scaffolding step is required.
+ * <p>This is a static utility used by the SemossWeb app-builder flow, not a
+ * runtime harness class.
  */
 public class AppBuilderHarnessConfiguration {
 
     private static final Logger logger = LogManager.getLogger(AppBuilderHarnessConfiguration.class);
 
-    // ── Path constants ───────────────────────────────────────────────────────
-
+    // Path constants
     /** Subdirectory of a project's assets folder where the agent operates. */
     public static final String CLIENT_DIR = "client";
     /** {@code .claude/} directory under {@link #CLIENT_DIR}. */
@@ -95,8 +73,7 @@ public class AppBuilderHarnessConfiguration {
     /** Filename inside each skill folder. */
     public static final String SKILL_FILE = "SKILL.md";
 
-    // ── AGENT_CONFIG.json constants ──────────────────────────────────────────
-
+    // AGENT_CONFIG.json constants
     public static final String AGENTS_DIR        = ".agents";
     public static final String AGENT_CONFIG_FILE = "AGENT_CONFIG.json";
 
@@ -127,10 +104,7 @@ public class AppBuilderHarnessConfiguration {
 
     private AppBuilderHarnessConfiguration() {}
 
-    // ============================================================
     // Scaffolding
-    // ============================================================
-
     /**
      * Creates {@code .agents/AGENT_CONFIG.json} under {@code clientPath} if it
      * does not yet exist, populated with the default empty engine lists.
@@ -159,10 +133,7 @@ public class AppBuilderHarnessConfiguration {
         return root;
     }
 
-    // ============================================================
     // Read
-    // ============================================================
-
     /**
      * Returns the config under {@code clientPath}, creating the file with
      * defaults if it is missing or unreadable.
@@ -197,10 +168,7 @@ public class AppBuilderHarnessConfiguration {
         return list != null ? list : new JSONArray();
     }
 
-    // ============================================================
     // Mutate
-    // ============================================================
-
     /**
      * Adds (or replaces, by id) an engine entry under {@code engineType}.
      * Returns true on successful write.
@@ -346,10 +314,7 @@ public class AppBuilderHarnessConfiguration {
         return getEnginesAsList(resolveProjectClientPath(projectId), engineType);
     }
 
-    // ============================================================
     // Internals
-    // ============================================================
-
     private static boolean updateEngineList(String clientPath, String engineType, Consumer<JSONArray> mutator) {
         validateEngineType(engineType);
         ensureAgentConfig(clientPath);
@@ -477,10 +442,7 @@ public class AppBuilderHarnessConfiguration {
         }
     }
 
-    // ============================================================
     // Path resolution
-    // ============================================================
-
     /**
      * Returns {@code <project-assets>/client} for the given project id.
      *
@@ -497,13 +459,7 @@ public class AppBuilderHarnessConfiguration {
         return Paths.get(projectPath, CLIENT_DIR).toString();
     }
 
-    // ============================================================
-    // Skill CRUD
-    //
-    // The SemossWeb FE's "agent skill editor" calls these via the
-    // CreateAppSkill / UpdateAppSkill / DeleteAppSkill / GetAppSkills reactors.
-    // Skill files live at:   <project>/client/.claude/skills/<slug>/SKILL.md
-    // ============================================================
+    // Skill CRUD used by the SemossWeb agent skill editor.
 
     public static Boolean createSkill(User user, String projectId, String skillName, String skillContent) {
         String clientPath = resolveProjectClientPath(projectId);

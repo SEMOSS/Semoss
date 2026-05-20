@@ -41,11 +41,11 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  *
  * <p>Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — deprecated legacy SEMOSS room loop
- *   <li>{@code "semoss"}    → {@link SemossAgentHarness} — SEMOSS-native canonical harness
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
- *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
- *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
+ *   <li>{@code "room_loop"} -> {@link RoomAgentHarness} - deprecated legacy SEMOSS room loop
+ *   <li>{@code "semoss"}    -> {@link SemossAgentHarness} - SEMOSS-native canonical harness
+ *   <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "github_copilot"} -> {@link GitHubCopilotAgentHarness}
+ *   <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
@@ -108,7 +108,7 @@ public final class AgentHarnessRegistry {
         if (name != null && !name.trim().isEmpty()) {
             IAgentHarness h = REGISTRY.get(name.trim());
             if (h != null) return h;
-            logger.warn("AgentHarnessRegistry: unknown harness '{}' — falling back to '{}'",
+            logger.warn("AgentHarnessRegistry: unknown harness '{}' - falling back to '{}'",
                     name, DEFAULT_HARNESS);
         }
         return REGISTRY.get(DEFAULT_HARNESS);

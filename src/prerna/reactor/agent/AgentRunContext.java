@@ -37,28 +37,11 @@ import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * Immutable per-call envelope handed to an {@link IAgentHarness}.
+ * Immutable per-call state handed to an {@link IAgentHarness}.
  *
- * <p><b>Lifetime contrast with {@link AgentConfig}:</b> {@code AgentConfig} is
- * the agent's declarative spec — persistable, replayable, same across runs.
- * {@code AgentRunContext} is the invocation: per-call live state (room,
- * insight, model engine handle, the user's input).
- *
- * <h2>Field homes</h2>
- * <ul>
- *   <li>"What this agent is" (workspace id, prompt layers, working dir, model
- *       id, model params, budgets) lives on {@link AgentConfig}.</li>
- *   <li>"What this specific call needs" (live {@link Room}, {@link Insight},
- *       {@link IModelEngine} reference, the user's {@code input}, sandbox
- *       policy) lives here.</li>
- * </ul>
- *
- * <h2>Compatibility accessors</h2>
- * For backward compatibility, this class exposes {@link #getMaxTurns()},
- * {@link #getMaxReflections()}, {@link #getFilePath()}, and
- * {@link #getParamMap()} as <em>delegating</em> accessors — they pull from
- * {@link #getAgentConfig()}. New code should read from {@code getAgentConfig()}
- * directly.
+ * <p>{@link AgentConfig} holds the resolved agent spec. This class holds the
+ * live invocation state for one run and keeps a few delegating accessors for
+ * older callers.
  */
 public final class AgentRunContext {
 
@@ -77,7 +60,7 @@ public final class AgentRunContext {
     private final String        input;
     private final SandboxPolicy sandboxPolicy;
 
-    // The agent spec (carries workspace id, prompt layers, working dir, model id, model params, budgets)
+    // Resolved agent spec shared across harnesses.
     private final AgentConfig   agentConfig;
 
     private AgentRunContext(Builder b) {
@@ -90,8 +73,7 @@ public final class AgentRunContext {
         this.agentConfig   = b.agentConfig;
     }
 
-    // ── Live per-call state ──────────────────────────────────────────────────
-
+    // Live per-call state
     /** Pre-loaded SEMOSS Room supplying history and MCP tool plumbing. */
     public Room getRoom() {
         return room;
@@ -107,7 +89,7 @@ public final class AgentRunContext {
         return insight;
     }
 
-    /** User id from {@code room.getUserId()} — used when persisting messages. */
+    /** User id from {@code room.getUserId()} - used when persisting messages. */
     public String getUserId() {
         return userId;
     }
@@ -127,7 +109,7 @@ public final class AgentRunContext {
     }
 
     /**
-     * Resolved agent configuration — the single source of truth every harness
+     * Resolved agent configuration - the single source of truth every harness
      * reads from. Built once by
      * {@link prerna.reactor.agent.config.AgentConfigLoader#load(Room, String, String, Map, int, int)}
      * at the top of {@link AgentRunner#run(String, String, String, String, int, int, Map, Insight)}.
@@ -137,8 +119,7 @@ public final class AgentRunContext {
         return agentConfig;
     }
 
-    // ── Compatibility accessors (delegate to AgentConfig) ────────────────────
-
+    // Compatibility accessors (delegate to AgentConfig)
     /**
      * @return working directory; equivalent to {@code getAgentConfig().getWorkingDir()}.
      * @deprecated read from {@link #getAgentConfig()}.
@@ -178,23 +159,17 @@ public final class AgentRunContext {
         return agentConfig.getBudgets().getMaxReflections();
     }
 
-    // ── Builder ──────────────────────────────────────────────────────────────
-
+    // Builder
     public static Builder builder() {
         return new Builder();
     }
 
     /**
-     * Builds an {@link AgentRunContext}. Callers should populate
-     * {@link #agentConfig(AgentConfig)} explicitly (the canonical path through
-     * {@link AgentRunner} does so).
+     * Builds an {@link AgentRunContext}.
      *
-     * <p>For backward compat, the legacy setters
-     * ({@link #filePath(String)}, {@link #paramMap(Map)}, {@link #maxTurns(int)},
-     * {@link #maxReflections(int)}) capture their values into a transient
-     * {@link AgentConfig.Builder} so old callers continue to work; on
-     * {@link #build()} the transient builder produces an {@code AgentConfig}
-     * only if {@link #agentConfig(AgentConfig)} was not set.
+     * <p>New code should supply {@link #agentConfig(AgentConfig)} directly.
+     * The legacy setters still synthesize a minimal {@link AgentConfig} so
+     * older callers continue to work.
      */
     public static final class Builder {
         // Live state
@@ -205,7 +180,7 @@ public final class AgentRunContext {
         private String        input;
         private SandboxPolicy sandboxPolicy;
 
-        // The spec — either set directly, or assembled from the legacy setters below.
+        // Either supplied directly or assembled from the legacy setters below.
         private AgentConfig   agentConfig;
 
         // Legacy field holders (used only when agentConfig is not supplied directly)

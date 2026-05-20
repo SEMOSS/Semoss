@@ -46,17 +46,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>Inputs (all optional):
  * <ul>
- *   <li>{@code filter} — one of {@code mine | platform | accessible}.
+ *   <li>{@code filter} - one of {@code mine | platform | accessible}.
  *       Default {@code accessible}.
  *     <ul>
- *       <li>{@code mine}       — skills where {@code CREATED_BY = me}</li>
- *       <li>{@code platform}   — skills with {@code ORIGIN = 'PLATFORM'}</li>
- *       <li>{@code accessible} — union of the two (v1 rule). Once
+ *       <li>{@code mine}       - skills where {@code CREATED_BY = me}</li>
+ *       <li>{@code platform}   - skills with {@code ORIGIN = 'PLATFORM'}</li>
+ *       <li>{@code accessible} - union of the two (v1 rule). Once
  *           {@code SecuritySkillUtils} lands this will also include skills
  *           shared via {@code SKILLPERMISSION} / {@code GROUPSKILLPERMISSION}.</li>
  *     </ul>
  *   </li>
- *   <li>{@code includeArchived} — when true, {@code STATUS='ARCHIVED'} rows are
+ *   <li>{@code includeArchived} - when true, {@code STATUS='ARCHIVED'} rows are
  *       returned. Default false.</li>
  * </ul>
  *
@@ -104,7 +104,7 @@ public class GetSkillsReactor extends AbstractReactor {
 				rows = ModelInferenceLogsUtils.listSkills(Skill.ORIGIN_PLATFORM, null, includeArchived);
 				break;
 			case FILTER_ACCESSIBLE:
-				// v1 visibility = mine ∪ platform. Once SecuritySkillUtils lands,
+				// v1 visibility = mine union platform. Once SecuritySkillUtils lands,
 				// this will also union in SKILLPERMISSION / GROUPSKILLPERMISSION rows.
 				List<Map<String, Object>> platform = ModelInferenceLogsUtils.listSkills(
 						Skill.ORIGIN_PLATFORM, null, includeArchived);
@@ -115,7 +115,7 @@ public class GetSkillsReactor extends AbstractReactor {
 				break;
 			default:
 				throw new IllegalArgumentException(
-						"Unknown filter '" + filterInput + "' — expected one of: mine, platform, accessible");
+						"Unknown filter '" + filterInput + "' - expected one of: mine, platform, accessible");
 		}
 
 		return new NounMetadata(rows, PixelDataType.VECTOR, PixelOperationType.OPERATION);
@@ -173,7 +173,7 @@ public class GetSkillsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (FILTER.equals(key)) {
 			return "Scope filter: 'mine' (skills I created), 'platform' (platform skills), "
-					+ "or 'accessible' (default — union of mine + platform; later includes shared)";
+					+ "or 'accessible' (default - union of mine + platform; later includes shared)";
 		}
 		if (INCLUDE_ARCHIVED.equals(key)) {
 			return "When true, include skills with STATUS='ARCHIVED'. Default false.";

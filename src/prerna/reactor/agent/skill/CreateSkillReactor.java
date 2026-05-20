@@ -57,13 +57,13 @@ import prerna.util.Utility;
  *
  * <p>Inputs:
  * <ul>
- *   <li>{@code storage}              — id of the {@link IStorageEngine} that will hold the SKILL.md blob (required)</li>
- *   <li>{@code skillContent}         — full SKILL.md text including YAML frontmatter (required)</li>
- *   <li>{@code name}                 — display name; overrides frontmatter {@code name} when supplied (optional)</li>
- *   <li>{@code description}          — description; overrides frontmatter {@code description} when supplied (optional)</li>
- *   <li>{@code sharingEnabled}       — toggles SKILLPERMISSION checks, default false (optional)</li>
- *   <li>{@code status}               — initial status, default {@link Skill#STATUS_DRAFT} (optional)</li>
- *   <li>{@code origin}               — provenance, default {@link Skill#ORIGIN_USER}. Setting this to
+ *   <li>{@code storage}              - id of the {@link IStorageEngine} that will hold the SKILL.md blob (required)</li>
+ *   <li>{@code skillContent}         - full SKILL.md text including YAML frontmatter (required)</li>
+ *   <li>{@code name}                 - display name; overrides frontmatter {@code name} when supplied (optional)</li>
+ *   <li>{@code description}          - description; overrides frontmatter {@code description} when supplied (optional)</li>
+ *   <li>{@code sharingEnabled}       - toggles SKILLPERMISSION checks, default false (optional)</li>
+ *   <li>{@code status}               - initial status, default {@link Skill#STATUS_DRAFT} (optional)</li>
+ *   <li>{@code origin}               - provenance, default {@link Skill#ORIGIN_USER}. Setting this to
  *                                      {@link Skill#ORIGIN_PLATFORM} requires platform admin (optional)</li>
  * </ul>
  *
@@ -156,7 +156,7 @@ public class CreateSkillReactor extends AbstractReactor {
 
 		String skillId = GUID.v7().toString();
 		// Slug is always derived from the resolved name. Not exposed as a reactor
-		// input — caller-supplied slugs would drift from frontmatter.name over time.
+		// input - caller-supplied slugs would drift from frontmatter.name over time.
 		String slug = Skill.slugify(name);
 		String versionPrefix = "skills/" + skillId + "/v1";
 		byte[] contentBytes = skillContent.getBytes(StandardCharsets.UTF_8);

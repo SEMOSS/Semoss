@@ -44,24 +44,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * Pixel reactor that invokes the generic agent loop.
- *
- * <h3>Pixel syntax</h3>
- * <pre>{@code
- * RunAgent(
- *   roomId     = "<roomId>",
- *   command    = "<user prompt>",
- *   engine     = "<engineId>",
- *   harnessType = "room_loop",
- *   maxTurns   = 30,
- *   maxReflections = 0,
- *   paramValues = {"key" : "val"}
- * )
- * }</pre>
- *
- * <p>Returns the final text as a {@code CONST_STRING NounMetadata}.
- */
+/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
@@ -107,14 +90,7 @@ public class RunAgentReactor extends AbstractReactor {
                 logger.warn("RunAgentReactor: command failed URL-decode, passing through raw: {}", e.getMessage());
             }
         }
-        
-        // agentId reserved for future agent-config lookup (named alias for an AgentConfig
-        // entry; currently unused).
-        // String agentId       = this.keyValue.get(AGENT_ID_KEY);
-        //
-        // workspaceId — explicit override for the agent's workspace. Wins over
-        // room.options.workspace.workspace_id. Stuffed into paramMap so AgentRunner picks
-        // it up; AgentConfigLoader reads it from paramMap and prefers it over room.options.
+        // workspaceId overrides room.options.workspace.workspace_id for this run.
         String explicitWorkspaceId = StringUtils.trimToNull(this.keyValue.get(WORKSPACE_ID_KEY));
 
         int maxTurns = parseIntAtLeast(

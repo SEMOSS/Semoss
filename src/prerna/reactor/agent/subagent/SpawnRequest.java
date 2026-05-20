@@ -76,6 +76,6 @@ public final class SpawnRequest {
      */
     public String workingDirOverride;
 
-    /** Caller's live insight — used for user, projectId, base URL inheritance. Required. */
+    /** Caller's live insight - used for user, projectId, base URL inheritance. Required. */
     public Insight callerInsight;
 }

@@ -46,14 +46,14 @@ import prerna.reactor.agent.IMessageHook;
  *
  * <p>Built-in hooks registered at class-load time:
  * <ul>
- *   <li>{@code "git_commit"} → {@link GitCommitAgentHook} — runs
+ *   <li>{@code "git_commit"} -> {@link GitCommitAgentHook} - runs
  *       {@code git add . && git commit} after each successful agent message.</li>
  * </ul>
  *
  * <p>Custom hooks can be registered at application startup via
  * {@link #register(String, Supplier)}. Each entry is a factory ({@link Supplier})
  * so the registry can produce fresh instances per run if a hook ever needs
- * per-call state — today's built-in hook is stateless.
+ * per-call state - today's built-in hook is stateless.
  *
  * <p>Mirrors {@code AgentHarnessRegistry} in shape; the only meaningful
  * difference is the factory-based registration so hooks can be stateful.
@@ -96,7 +96,7 @@ public final class AgentHookRegistry {
     /**
      * Returns a fresh hook instance for the given kind, or {@code null} when
      * the kind is unknown. Callers should log + skip on null rather than
-     * throwing — preserves forward-compat against newer CONFIG_JSON written
+     * throwing - preserves forward-compat against newer CONFIG_JSON written
      * by a future server version.
      */
     public static IMessageHook resolve(String kind) {

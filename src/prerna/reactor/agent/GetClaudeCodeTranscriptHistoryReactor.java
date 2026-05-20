@@ -49,8 +49,8 @@ import prerna.engine.impl.model.RoomUtils;
 /**
  * One-shot reactor that reads an existing room's Claude Code JSONL transcript
  * from disk and returns each line parsed through
- * {@link ClaudeCodeTranscriptParser} — the same parser the live websocket
- * tailer uses — so the frontend can render existing history with the same
+ * {@link ClaudeCodeTranscriptParser} - the same parser the live websocket
+ * tailer uses - so the frontend can render existing history with the same
  * logic it uses for streamed updates.
  */
 public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {

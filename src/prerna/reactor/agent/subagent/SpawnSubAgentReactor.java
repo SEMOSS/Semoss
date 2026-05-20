@@ -43,7 +43,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Platform reactor for spawning a subagent from Pixel — same code path the
+ * Platform reactor for spawning a subagent from Pixel - same code path the
  * semoss harness's built-in {@code spawn_subagent} / named-subagent tools use,
  * exposed as a first-class Pixel operation so frontends and scripts can drive
  * subagents directly.
@@ -67,7 +67,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
     private static final String HARNESS_TYPE_KEY           = "harnessType";
     /** When true, the child's working directory is the parent's room folder (shared
      *  filesystem). Stream + history isolation is preserved (child still gets its own
-     *  roomId / jobId). Default: false → child uses its own room folder. */
+     *  roomId / jobId). Default: false -> child uses its own room folder. */
     private static final String INHERIT_PARENT_WORKDIR_KEY = "inherit_parent_workdir";
     private static final Gson GSON = new Gson();
 

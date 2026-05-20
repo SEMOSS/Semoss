@@ -43,13 +43,13 @@ import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * {@link IAgentHarness} that delegates to {@link GitHubCopilotManager} — spawns the
+ * {@link IAgentHarness} that delegates to {@link GitHubCopilotManager} - spawns the
  * external {@code copilot} CLI in the agent's working directory and parses its
  * transcript.
  *
  * <p>Reads {@code allowed_tools}, {@code permission_mode}, MCP list, and system
  * prompt the same way {@link ClaudeCodeAgentHarness} does. Uses
- * {@code ctx.getFilePath()} directly as the CLI cwd — callers wanting the legacy
+ * {@code ctx.getFilePath()} directly as the CLI cwd - callers wanting the legacy
  * {@code /client} subdir must pass {@code subdir="client"} on {@code RunAgent}.
  */
 public class GitHubCopilotAgentHarness implements IAgentHarness {

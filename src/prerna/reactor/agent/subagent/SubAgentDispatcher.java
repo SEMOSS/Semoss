@@ -81,7 +81,7 @@ public final class SubAgentDispatcher {
 
     /**
      * Spawn a named subagent with an explicit parent jobId. Prefer this overload
-     * when the call originates from inside the harness's parallel tool pool —
+     * when the call originates from inside the harness's parallel tool pool -
      * the worker threads have a fresh empty {@link ThreadStore} so a fallback to
      * {@code ThreadStore.getJobId()} would yield null and silently skip the
      * parent-stream {@code subagent-spawned} envelope.
@@ -123,7 +123,7 @@ public final class SubAgentDispatcher {
     }
 
     /**
-     * Anonymous spawn with explicit parent jobId — same rationale as
+     * Anonymous spawn with explicit parent jobId - same rationale as
      * {@link #spawnNamed(SubAgentSpec, Map, Room, Insight, String)}.
      */
     public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight,
@@ -156,7 +156,7 @@ public final class SubAgentDispatcher {
     /**
      * Prefer the explicit parent jobId (captured on the caller's thread, where
      * {@link ThreadStore} is valid). Fall back to {@code ThreadStore.getJobId()}
-     * only when the caller didn't pass one — preserves callers that aren't yet
+     * only when the caller didn't pass one - preserves callers that aren't yet
      * on the explicit-jobId path.
      */
     private static String resolveParentJobId(String explicitParentJobId) {
@@ -252,7 +252,7 @@ public final class SubAgentDispatcher {
                         return val.toString();
                     }
                 }
-                // No string result — return JSON of the last result's value.
+                // No string result - return JSON of the last result's value.
                 Object lastVal = results.get(results.size() - 1).getValue();
                 return GSON.toJson(lastVal == null ? new LinkedHashMap<>() : lastVal);
             }

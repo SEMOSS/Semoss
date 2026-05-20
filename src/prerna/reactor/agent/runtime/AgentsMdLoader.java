@@ -58,7 +58,7 @@ public class AgentsMdLoader {
      * at each directory level. Returns the content of the first file found, or {@code null}.
      *
      * <p>Stops at the SEMOSS base folder, the filesystem root, or after {@value #MAX_WALK_DEPTH}
-     * levels — whichever comes first.
+     * levels - whichever comes first.
      */
     public static String discover(String startPath) {
         if (startPath == null || startPath.isBlank()) {

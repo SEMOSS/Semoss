@@ -55,8 +55,8 @@ import prerna.sablecc2.comm.PixelJobRunner;
  *
  * <p>Heavy lifting (thread, status, stream queue, interrupt) lives in
  * {@link PixelJobManager}; this registry holds the metadata that lets a parent
- * agent address its children — alias, parent jobId, child room id, target
- * workspace — and emits a {@code subagent-spawned} envelope into the parent
+ * agent address its children - alias, parent jobId, child room id, target
+ * workspace - and emits a {@code subagent-spawned} envelope into the parent
  * stream when a child is launched.
  *
  * <p>Each spawn becomes a normal async {@code RunAgent(...)} pixel job. The
@@ -95,7 +95,7 @@ public final class AgentSubAgentRegistry {
      *   <li>Build a fresh {@link Insight} owned by the parent's user, registered
      *       in {@link InsightStore} so the async runner can resolve it.</li>
      *   <li>Submit a {@code RunAgent(...)} pixel via {@link PixelJobManager} +
-     *       a virtual thread — same path the {@code /runPixelAsync} HTTP entry uses.</li>
+     *       a virtual thread - same path the {@code /runPixelAsync} HTTP entry uses.</li>
      *   <li>Stash {@link SubAgentMeta} keyed by the new jobId and append the
      *       jobId to {@code childrenByParent[parentJobId]}.</li>
      *   <li>Emit a {@code subagent-spawned} envelope into the parent's stream
@@ -141,7 +141,7 @@ public final class AgentSubAgentRegistry {
 
         // Shared-filesystem mode. When the caller asked for inherit_parent_workdir,
         // we record the override on the CHILD ROOM's own options. AgentRunner reads
-        // it from there on every run — RunAgent itself stays oblivious. The child
+        // it from there on every run - RunAgent itself stays oblivious. The child
         // keeps its own roomId / jobId / stream / history; only the on-disk
         // working dir is shared with the parent.
         if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()) {
@@ -212,7 +212,7 @@ public final class AgentSubAgentRegistry {
         pixel.append(");");
 
         // 6. Submit the job. Mirrors the path NameServer.runPixelAsync uses for HTTP-triggered
-        //    async pixels — same PixelJobManager, same virtual-thread launch.
+        //    async pixels - same PixelJobManager, same virtual-thread launch.
         String sessionId = ThreadStore.getSessionId();
         String routeId   = ThreadStore.getRouteId();
         PixelJobManager manager = PixelJobManager.getManager();
@@ -250,7 +250,7 @@ public final class AgentSubAgentRegistry {
             logger.info("AgentSubAgentRegistry: emitted subagent-spawned envelope (parentJobId={} childJobId={})",
                     req.parentJobId, childJobId);
         } else {
-            logger.warn("AgentSubAgentRegistry: SKIPPING subagent-spawned envelope — parentJobId is null/blank (childJobId={} alias={})",
+            logger.warn("AgentSubAgentRegistry: SKIPPING subagent-spawned envelope - parentJobId is null/blank (childJobId={} alias={})",
                     childJobId, req.alias);
         }
 

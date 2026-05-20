@@ -131,16 +131,16 @@ public final class AgentSandboxConfig {
      * <p>Covers credential stores and cloud-provider secret directories that no
      * agent run should ever access regardless of the task:
      * <ul>
-     *   <li>{@code ~/.ssh} — private SSH keys</li>
-     *   <li>{@code ~/.gnupg} — GPG private key ring</li>
-     *   <li>{@code ~/.aws} — AWS access keys / credentials</li>
-     *   <li>{@code ~/.kube} — Kubernetes cluster credentials</li>
-     *   <li>{@code ~/.config/gcloud} — GCloud auth tokens</li>
-     *   <li>{@code ~/.azure} — Azure service-principal credentials</li>
-     *   <li>{@code ~/.netrc} — Generic host credentials (FTP, HTTP basic auth)</li>
-     *   <li>{@code ~/.npmrc} — npm auth token</li>
-     *   <li>{@code ~/.pypirc} — PyPI upload credentials</li>
-     *   <li>{@code ~/.docker/config.json} — Docker registry auth</li>
+     *   <li>{@code ~/.ssh} - private SSH keys</li>
+     *   <li>{@code ~/.gnupg} - GPG private key ring</li>
+     *   <li>{@code ~/.aws} - AWS access keys / credentials</li>
+     *   <li>{@code ~/.kube} - Kubernetes cluster credentials</li>
+     *   <li>{@code ~/.config/gcloud} - GCloud auth tokens</li>
+     *   <li>{@code ~/.azure} - Azure service-principal credentials</li>
+     *   <li>{@code ~/.netrc} - Generic host credentials (FTP, HTTP basic auth)</li>
+     *   <li>{@code ~/.npmrc} - npm auth token</li>
+     *   <li>{@code ~/.pypirc} - PyPI upload credentials</li>
+     *   <li>{@code ~/.docker/config.json} - Docker registry auth</li>
      * </ul>
      */
     public static List<String> defaultSensitiveBlockList() {
@@ -192,7 +192,7 @@ public final class AgentSandboxConfig {
      * @param roomFolderPath       the per-room scratch/session directory (RW)
      * @param workingDirectory     the filePath/project slice the agent is editing (RW); nullable
      * @param targetBinaryPath     absolute path to the agent binary being wrapped (its parent dir is RO);
-     *                             nullable — callers may pass {@code null} when the path isn't known yet
+     *                             nullable - callers may pass {@code null} when the path isn't known yet
      */
     public static SandboxPolicy defaultPolicy(String roomFolderPath,
                                               String workingDirectory,
@@ -250,12 +250,12 @@ public final class AgentSandboxConfig {
      * Build the sandbox policy that should actually be applied to a run:
      * always start from {@link #defaultPolicy(String, String, String)} (room
      * folder + working dir + binary parent + DIHelper default reads), and
-     * overlay any pixel-supplied {@code override} on top — paths are unioned
+     * overlay any pixel-supplied {@code override} on top - paths are unioned
      * (RW wins over RO via the builder's dedupe), and the override's
      * enforcement mode wins when present.
      *
      * <p>This is the entry point harnesses should call instead of branching on
-     * {@code ctx.getSandboxPolicy()} directly — otherwise pixel-level
+     * {@code ctx.getSandboxPolicy()} directly - otherwise pixel-level
      * {@code sandbox_writes}/{@code sandbox_reads} would replace the defaults
      * and leave the agent binary unreadable inside the sandbox.
      */

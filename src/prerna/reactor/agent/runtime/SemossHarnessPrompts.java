@@ -149,10 +149,9 @@ public final class SemossHarnessPrompts {
 			+ "into your answer. If the analysis is already thorough and complete, respond with "
 			+ "your final consolidated answer.";
 
-	// ------------------------------------------------------------------------
+	//
 	// Alternative prompts (opt-in via workspace CONFIG_JSON / room overrides)
-	// ------------------------------------------------------------------------
-
+	//
 	/**
 	 * Alternative baseline tuned for SEMOSS app-builder rooms. Differs from
 	 * {@link #SYSTEM_PROMPT} in two ways:

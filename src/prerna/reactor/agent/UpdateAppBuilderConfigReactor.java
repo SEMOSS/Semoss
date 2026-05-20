@@ -41,7 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Updates {@code .agents/AGENT_CONFIG.json} for a project. Each engine-type key
- * is optional — only the keys that are present are replaced; omitted types are
+ * is optional - only the keys that are present are replaced; omitted types are
  * left untouched. Each value must be a list of maps shaped
  * {@code { "name": "...", "id": "..." }}.
  */

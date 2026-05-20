@@ -125,8 +125,7 @@ public final class SubAgentToolSynthesizer {
         return findSpec(specs, toolName) != null;
     }
 
-    // -- Tool def builders ----------------------------------------------------
-
+    // Tool def builders
     private static Map<String, Object> buildNamedTool(SubAgentSpec spec) {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(

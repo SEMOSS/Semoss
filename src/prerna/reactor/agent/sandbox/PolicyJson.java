@@ -94,7 +94,7 @@ public final class PolicyJson {
                         PosixFilePermission.OWNER_WRITE);
                 Files.setPosixFilePermissions(file, perms);
             } catch (UnsupportedOperationException ignored) {
-                // non-POSIX FS (e.g. Windows) — skip, not our target platform for sandboxing
+                // non-POSIX FS (e.g. Windows) - skip, not our target platform for sandboxing
             }
             return file.toAbsolutePath();
         } catch (IOException e) {
@@ -102,7 +102,7 @@ public final class PolicyJson {
         }
     }
 
-    /** Read back into a fresh {@link SandboxPolicy} — used by {@link SandboxLauncherMain}. */
+    /** Read back into a fresh {@link SandboxPolicy} - used by {@link SandboxLauncherMain}. */
     public static SandboxPolicy fromJson(String json) {
         try {
             @SuppressWarnings("unchecked")

@@ -66,7 +66,7 @@ import prerna.util.Utility;
  *       writes the {@code .skill-meta} sidecar with the new tuple.</li>
  * </ol>
  *
- * <p>This is a best-effort step — individual skill failures are logged and
+ * <p>This is a best-effort step - individual skill failures are logged and
  * the run continues. A failure to stage one skill should not prevent the
  * agent from running with the others.
  *
@@ -203,11 +203,11 @@ public final class SkillStager {
 		}
 
 		// Wipe the previous staged copy for this slug. This also handles the
-		// project-local-vs-registry conflict noted in the design — the registry
+		// project-local-vs-registry conflict noted in the design - the registry
 		// skill overlays any pre-existing local content with the same slug.
 		if (Files.exists(targetDir)) {
 			deleteTree(targetDir);
-			logger.info("SkillStager: re-staging skill '{}' (slug='{}') — wiped existing dir", skillId, slug);
+			logger.info("SkillStager: re-staging skill '{}' (slug='{}') - wiped existing dir", skillId, slug);
 		}
 		Files.createDirectories(targetDir);
 
@@ -243,7 +243,7 @@ public final class SkillStager {
 					&& expectedHash != null
 					&& expectedHash.equals(metaHash);
 		} catch (Exception e) {
-			logger.debug("SkillStager: cache miss for skill '{}' — unreadable sidecar: {}", skillId, e.getMessage());
+			logger.debug("SkillStager: cache miss for skill '{}' - unreadable sidecar: {}", skillId, e.getMessage());
 			return false;
 		}
 	}

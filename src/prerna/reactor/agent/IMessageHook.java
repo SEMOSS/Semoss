@@ -28,7 +28,7 @@
 package prerna.reactor.agent;
 
 /**
- * Observer-style hook fired around a single agent message — i.e. one
+ * Observer-style hook fired around a single agent message - i.e. one
  * {@link IAgentHarness#execute(AgentRunContext)} call.
  *
  * <p>Hooks live on the immutable {@link prerna.reactor.agent.config.AgentConfig}
@@ -37,7 +37,7 @@ package prerna.reactor.agent;
  * runtime invocation site is {@code AgentRunner}, which calls
  * {@link #beforeMessage(AgentRunContext)} on each hook before the harness runs
  * and {@link #afterMessage(AgentRunContext, AgentHarnessResult)} on each hook
- * after a successful return — all inside the workspace-overlay try-block so
+ * after a successful return - all inside the workspace-overlay try-block so
  * hooks see the per-call {@code workspace_id}.
  *
  * <p>If any hook throws, subsequent hooks in the chain are skipped and the

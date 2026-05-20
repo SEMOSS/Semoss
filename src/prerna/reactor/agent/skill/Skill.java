@@ -41,7 +41,7 @@ import org.json.JSONObject;
  *
  * <p>Skills live as a folder in an {@link prerna.engine.api.IStorageEngine} pointed
  * to by {@link #storageEngineId} + {@link #storagePrefix}. The folder contains a
- * {@code SKILL.md} (Anthropic skill format — YAML frontmatter with {@code name} and
+ * {@code SKILL.md} (Anthropic skill format - YAML frontmatter with {@code name} and
  * {@code description}, then a markdown body) plus any helper files.
  *
  * <p>This class is intentionally a thin DTO: row-mapping in {@link #fromRow(Map)}
@@ -57,28 +57,28 @@ public class Skill {
 	 * live alongside it. This is a domain truth, not a layout choice.
 	 *
 	 * <p>Where a skill folder lives on disk after staging is the stager's concern,
-	 * not this class's — see e.g. {@code SkillStager}.
+	 * not this class's - see e.g. {@code SkillStager}.
 	 */
 	public static final String SKILL_FILE = "SKILL.md";
 
-	// ── SKILL.STATUS values ──
+	// SKILL.STATUS values
 	public static final String STATUS_DRAFT      = "DRAFT";
 	public static final String STATUS_PUBLISHED  = "PUBLISHED";
 	public static final String STATUS_ARCHIVED   = "ARCHIVED";
 	public static final String STATUS_DEPRECATED = "DEPRECATED";
 
-	// ── SKILL.ORIGIN values ──
+	// SKILL.ORIGIN values
 	public static final String ORIGIN_USER      = "USER";
 	public static final String ORIGIN_PLATFORM  = "PLATFORM";
 	public static final String ORIGIN_IMPORTED  = "IMPORTED";
 	public static final String ORIGIN_GENERATED = "GENERATED";
 
-	// ── frontmatter keys ──
+	// frontmatter keys
 	public static final String FRONTMATTER_DELIM = "---";
 	public static final String FM_KEY_NAME = "name";
 	public static final String FM_KEY_DESCRIPTION = "description";
 
-	// ── SKILL__ fields ──
+	// SKILL__ fields
 	private String skillId;
 	private String slug;
 	private String name;
@@ -130,11 +130,7 @@ public class Skill {
 		s.dateUpdated     = asString(row.get("date_updated"));
 		return s;
 	}
-
-	// ============================================================
 	// Frontmatter parsing
-	// ============================================================
-
 	/**
 	 * Extracts {@code name} and {@code description} from the YAML frontmatter of a
 	 * {@code SKILL.md}. Only the simple line-based form is supported:
@@ -149,7 +145,7 @@ public class Skill {
 	 *
 	 * <p>Both quoted ({@code 'value'} or {@code "value"}) and unquoted values are
 	 * accepted. Multi-line values, block scalars ({@code |}, {@code >}), and nested
-	 * keys are not supported — those uploads should be rejected by the caller.
+	 * keys are not supported - those uploads should be rejected by the caller.
 	 *
 	 * @param skillMdContent full {@code SKILL.md} text
 	 * @return parsed frontmatter; {@code name} / {@code description} may be null
@@ -214,11 +210,7 @@ public class Skill {
 			return name != null && !name.isEmpty() && description != null && !description.isEmpty();
 		}
 	}
-
-	// ============================================================
 	// Slug + content hash helpers
-	// ============================================================
-
 	/**
 	 * Returns a stable, filesystem-safe slug for the given display name.
 	 *
@@ -271,15 +263,11 @@ public class Skill {
 		}
 	}
 
-	/** Convenience overload — hashes the UTF-8 bytes of the given string. */
+	/** Convenience overload - hashes the UTF-8 bytes of the given string. */
 	public static String contentHash(String content) {
 		return contentHash(content == null ? null : content.getBytes(StandardCharsets.UTF_8));
 	}
-
-	// ============================================================
 	// row-map value coercion
-	// ============================================================
-
 	private static String asString(Object o) {
 		return o == null ? null : o.toString();
 	}
@@ -339,11 +327,7 @@ public class Skill {
 			return null;
 		}
 	}
-
-	// ============================================================
 	// getters / setters
-	// ============================================================
-
 	public String getSkillId()              { return skillId; }
 	public void   setSkillId(String v)      { this.skillId = v; }
 

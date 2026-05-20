@@ -51,10 +51,7 @@ import prerna.reactor.agent.skill.SkillStager;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-/**
- * High-level orchestrator for the generic agent loop.
- *
- */
+/** High-level entry point for resolving context and executing an agent harness. */
 public final class AgentRunner {
 
     private static final Logger logger = LogManager.getLogger(AgentRunner.class);
@@ -91,20 +88,11 @@ public final class AgentRunner {
     public static final String PARAM_FILE_PATH_LEGACY = "filePath";
 
     /**
-     * {@code room.options} key: absolute working-dir override that wins over
-     * {@link #PARAM_PROJECT} and the default room-folder container. Set on the
-     * child room by {@code SpawnSubAgent} when {@code inherit_parent_workdir=true}
-     * so the child agent operates inside the parent's room folder (shared filesystem)
-     * while still keeping its own roomId for stream + history isolation.
+     * Room option for an absolute working-dir override.
      *
-     * <p>Lives on the room itself (not on {@code RunAgent}'s public surface) so the
-     * working dir is part of room state, like any other room option, rather than
-     * tunneled through every {@code RunAgent} invocation. Set once at spawn time;
-     * resolved on every run.
-     *
-     * <p>Containment is enforced: the resolved canonical path must sit under
-     * {@code Utility.getBaseFolder()} or the call is rejected — so a malicious
-     * caller can't redirect an agent at {@code /etc/...} via this key.
+     * <p>Used mainly by spawned child rooms that should operate inside the
+     * parent's workdir. The resolved path must stay under
+     * {@code Utility.getBaseFolder()}.
      */
     public static final String ROOM_OPTION_WORKING_DIR = "working_dir";
 
@@ -174,11 +162,7 @@ public final class AgentRunner {
 
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 
-        // Explicit workspace_id override (from the RunAgent `workspaceId` named arg
-        // or paramMap key). Wins over room.options.workspace.workspace_id when set.
-        // Stripped here so it doesn't leak into the model engine call.
-        // Resolved BEFORE resolveWorkingDir so the working-dir code can fall back to
-        // CONFIG_JSON.subdir for the per-workspace runtime convention.
+        // Resolve and strip any per-run workspace override before working-dir lookup.
         String explicitWorkspaceId = extractExplicitWorkspaceId(params);
         String effectiveWorkspaceId = explicitWorkspaceId != null
                 ? explicitWorkspaceId
@@ -191,16 +175,11 @@ public final class AgentRunner {
 
         SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
 
-        // Resolve the agent config once. Every harness reads from ctx.getAgentConfig()
-        // - no harness re-implements room/workspace prompt resolution. All "what is this
-        // agent" fields (working_dir, model_id, model_params, budgets, prompt layers) live
-        // on AgentConfig; AgentRunContext just carries the per-call live state.
+        // Resolve the shared agent config once for all harnesses.
         AgentConfig agentConfig = AgentConfigLoader.load(
                 room, filePath, modelId, params, maxTurns, maxReflections, explicitWorkspaceId);
 
-        // Materialize attached skills into <workingDir>/.claude/skills/<slug>/ so Claude
-        // Code's skill discovery picks them up. Best-effort — individual failures are
-        // logged inside the stager and do not abort the run.
+        // Best-effort skill staging for harnesses that discover local skills from disk.
         try {
             SkillStager.stage(filePath, agentConfig.getSkills());
         } catch (Exception e) {
@@ -220,16 +199,7 @@ public final class AgentRunner {
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
 
-        // Overlay room.options.workspace.workspace_id with the explicit override
-        // for the duration of the run. This ensures every code path that reads
-        // workspace_id (Room.getRoomOrWorkspaceSystemPrompt, Room.getAllToolsJsonForRoom,
-        // any harness reading room.options directly) sees the same value as AgentConfig.
-        // Restored in finally below - in-memory only, no DB write.
-        //
-        // Hook chain runs INSIDE the overlay (beforeMessage -> harness.execute ->
-        // afterMessage), so hooks see the per-call workspace_id too. If any hook
-        // throws, the chain short-circuits and the exception propagates; the
-        // overlay restore still runs in the finally.
+        // Apply a temporary workspace overlay so room-based lookups match AgentConfig.
         List<IMessageHook> hooks = ctx.getAgentConfig().getHooks();
         WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
         AgentHarnessResult result;
@@ -256,10 +226,7 @@ public final class AgentRunner {
         return result;
     }
 
-    // ============================================================
-    // workspace_id overlay - keeps Room and AgentConfig in agreement
-    // for the duration of one harness run
-    // ============================================================
+    // workspace_id overlay helpers
 
     /**
      * Captured state needed to restore {@code room.options.workspace} to its
@@ -279,12 +246,7 @@ public final class AgentRunner {
     }
 
     /**
-     * If {@code explicitWorkspaceId} is set and differs from the room's current
-     * {@code options.workspace.workspace_id}, overlay it for the run. Returns
-     * {@code null} when no overlay is needed (no override, or already matching).
-     *
-     * <p>In-memory mutation only - no DB write. Always pair with
-     * {@link #restoreWorkspaceOverlay} in a {@code finally} block.
+     * Applies an in-memory workspace override for one run when needed.
      */
     private static WorkspaceOverlay applyWorkspaceOverlay(Room room, String explicitWorkspaceId) {
         if (explicitWorkspaceId == null || explicitWorkspaceId.trim().isEmpty()) {
@@ -294,8 +256,7 @@ public final class AgentRunner {
         boolean hadField = opts.containsKey("workspace");
         Object originalWorkspace = opts.get("workspace");
 
-        // No-op when the room already points at this workspace_id (avoids
-        // touching state we don't need to).
+        // No-op when the room already points at this workspace_id.
         String currentId = extractWorkspaceIdFromOptionField(originalWorkspace);
         if (explicitWorkspaceId.equals(currentId)) {
             return null;
@@ -303,9 +264,7 @@ public final class AgentRunner {
 
         Map<String, Object> newWorkspace = new HashMap<>();
         newWorkspace.put("workspace_id", explicitWorkspaceId);
-        // Best-effort name lookup - not load-bearing for downstream reads (which only
-        // care about workspace_id), but keeps the field's shape consistent with how
-        // callers usually populate it.
+        // Best-effort name lookup keeps the options shape familiar to callers.
         try {
             Map<String, Object> ws = ModelInferenceLogsUtils.getWorkspaceEntry(explicitWorkspaceId);
             if (ws != null && ws.get("name") != null) {
@@ -375,24 +334,11 @@ public final class AgentRunner {
     }
 
     /**
-     * Resolve the agent's working directory from paramMap, in this priority:
+     * Resolves the working directory from room state plus {@code project} and
+     * {@code subdir} params.
      *
-     * <ol>
-     *   <li><b>Container</b>: {@code project=<uuid>} resolves to that project's assets
-     *       folder. Otherwise the current room's folder (created if missing) is used.</li>
-     *   <li><b>Subdir</b>: {@code subdir=<relative-path>} on paramMap joins under the
-     *       container. When absent, falls back to {@code CONFIG_JSON.subdir} on the
-     *       effective workspace (per-workspace runtime convention — e.g. app-builder
-     *       workspaces pin {@code "client"}). Must be relative, must not escape via
-     *       {@code ..}; checked by canonical-path containment.</li>
-     *   <li><b>Legacy {@code filePath}</b>: deprecated. Logged at WARN and ignored -
-     *       callers must use {@code project} + {@code subdir}.</li>
-     * </ol>
-     *
-     * <p>Consumed keys: {@code subdir}, legacy {@code filePath} are removed from
-     * {@code params} (runner-internal only). {@code project} is read but NOT
-     * removed — downstream hooks (notably {@code GitCommitAgentHook}) consume
-     * it from the same paramMap to resolve the project's git folder.
+     * <p>{@code filePath} is deprecated and ignored. {@code project} stays in
+     * the param map because downstream hooks still read it.
      *
      * @param effectiveWorkspaceId resolved workspace id (explicit override or
      *                             {@code room.options.workspace.workspace_id});
@@ -409,10 +355,7 @@ public final class AgentRunner {
                     PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
         }
 
-        // 0. room.options-level working-dir override.
-        //    Set by spawn_subagent when inherit_parent_workdir=true so the child
-        //    operates on the parent's room folder. Wins over project / room-folder
-        //    defaults. Containment: canonical path must live under SEMOSS base folder.
+        // Room-level override wins when present, mainly for inherited subagent runs.
         Object roomLevelOverride = room.getOptionsMap() == null ? null
                 : room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR);
         if (roomLevelOverride != null) {
@@ -445,7 +388,7 @@ public final class AgentRunner {
                 }
                 logger.info("AgentRunner: working dir overridden by room.options.{}='{}' (room={})",
                         ROOM_OPTION_WORKING_DIR, canonical, room.getId());
-                // Subdir is intentionally ignored when an absolute override is supplied —
+                // Subdir is intentionally ignored when an absolute override is supplied -
                 // the room option already names the final path.
                 params.remove(PARAM_SUBDIR);
                 return canonical;
@@ -453,7 +396,7 @@ public final class AgentRunner {
         }
 
         // 1. Container.
-        //    Peek at PARAM_PROJECT (don't remove) — downstream consumers including
+        //    Peek at PARAM_PROJECT (don't remove) - downstream consumers including
         //    GitCommitAgentHook.afterMessage rely on params["project"] to know
         //    which project's git folder to commit against. The model engine
         //    treats unknown keys as no-ops, so leaving the project id in the

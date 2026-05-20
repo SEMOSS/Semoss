@@ -32,13 +32,13 @@ package prerna.reactor.agent.sandbox;
  *
  * <p>One implementation per platform:
  * <ul>
- *   <li>{@link LandlockLauncher} — Linux, landlock LSM via JNA
- *   <li>{@link SandboxExecLauncher} — macOS, {@code sandbox-exec} + Seatbelt profile
+ *   <li>{@link LandlockLauncher} - Linux, landlock LSM via JNA
+ *   <li>{@link SandboxExecLauncher} - macOS, {@code sandbox-exec} + Seatbelt profile
  * </ul>
  *
  * <p>If neither backend is available on the host,
  * {@link SandboxLauncherRegistry#get()} throws {@link SandboxUnavailableException}
- * — there is no fallback launcher.
+ * - there is no fallback launcher.
  */
 public interface SandboxLauncher {
 
@@ -49,7 +49,7 @@ public interface SandboxLauncher {
 
     /**
      * @return {@code true} if the backend can actually enforce the policy on
-     *         the current host (e.g. kernel ≥ 5.13 for landlock, {@code
+     *         the current host (e.g. kernel >= 5.13 for landlock, {@code
      *         sandbox-exec} present on Mac). Callers consult this before
      *         {@link #plan(SandboxPolicy, String, String[])} to decide whether
      *         to honor {@link EnforcementMode#ENFORCE} or fall back.

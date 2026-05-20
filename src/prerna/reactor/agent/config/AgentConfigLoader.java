@@ -57,40 +57,10 @@ import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 
 /**
- * Single resolver that builds an {@link AgentConfig} for one agent run.
+ * Builds the resolved {@link AgentConfig} for one run.
  *
- * <p>Every harness reads its agent state from {@code ctx.getAgentConfig()} -
- * no harness re-implements room/workspace resolution. The composition rule
- * lives here, in one place.
- *
- * <h2>v1 sources (in resolution order)</h2>
- * <ol>
- *   <li><b>Workspace metadata</b> - {@code name}, {@code description} fetched via
- *       {@link ModelInferenceLogsUtils#getWorkspaceEntry(String)} when a
- *       {@code workspace_id} can be parsed from {@code room.options.workspace}
- *       (or supplied directly on {@code RunAgent}).</li>
- *   <li><b>CONFIG_JSON</b> - {@link ModelInferenceLogsUtils#getWorkspaceConfigJson(String)}
- *       returns the per-workspace agent config blob. Consumed by the resolvers
- *       below; layered on top of the legacy column / WORKSPACE_RESOURCE reads
- *       so workspaces without CONFIG_JSON keep working byte-identically.</li>
- *   <li><b>Authored prompt</b> - {@code room.options.instructions} (room-level
- *       override) → {@code CONFIG_JSON.system_prompt} → {@code workspace.system_prompt}
- *       (legacy column), with ACL + active-state checks against the resolved
- *       workspace.</li>
- *   <li><b>Workdir AGENTS.md</b> - discovered by walking up from {@code workingDir}
- *       via {@link AgentsMdLoader#discover(String)}.</li>
- *   <li><b>MCP tool projects</b> - union of {@code WORKSPACE_RESOURCE} rows
- *       (legacy source), {@code CONFIG_JSON.mcps} entries (new source, additive),
- *       and {@code room.options.mcp[]} per-room additions, deduped by UUID portion.</li>
- *   <li><b>Budgets</b> - {@code CONFIG_JSON.budgets} when present, else caller
- *       args ({@code maxTurns} / {@code maxReflections}) and {@code max_seconds}
- *       from {@code paramMap} (0 = no limit).</li>
- *   <li><b>Hooks</b> - {@code CONFIG_JSON.hooks[]}; each entry's {@code kind}
- *       resolves to a concrete {@link IMessageHook} via {@link #resolveHook}.
- *       Unknown kinds are logged and dropped.</li>
- *   <li><b>Agent's own AGENTS.md</b> - reserved; will load from the workspace's
- *       project assets folder once that wiring lands.</li>
- * </ol>
+ * <p>This is the single place where workspace, room, config-json, prompt,
+ * MCP, skill, budget, hook, and subagent resolution are composed.
  */
 public final class AgentConfigLoader {
 
@@ -130,8 +100,7 @@ public final class AgentConfigLoader {
 
         AgentConfig.Builder b = AgentConfig.builder();
 
-        // 1. Resolve the workspace id.
-        //    Precedence: explicit param > room.options.workspace.workspace_id.
+        // Resolve the workspace id: explicit param first, then room options.
         String workspaceId = explicitWorkspaceId != null
                 ? explicitWorkspaceId
                 : extractWorkspaceId(room);
@@ -140,7 +109,7 @@ public final class AgentConfigLoader {
                     explicitWorkspaceId);
         }
 
-        // 2. Workspace lookup + metadata (best-effort - ad-hoc rooms have no workspace).
+        // Workspace lookup is best-effort because ad-hoc rooms may have no workspace.
         Map<String, Object> workspaceRow = null;
         if (workspaceId != null) {
             b.workspaceId(workspaceId);
@@ -158,26 +127,13 @@ public final class AgentConfigLoader {
             }
         }
 
-        // 2.5. CONFIG_JSON - per-workspace agent config blob. Resolvers layer this
-        //      on top of legacy column / WORKSPACE_RESOURCE reads; null/empty means
-        //      everything falls back to the pre-CONFIG_JSON paths.
+        // Per-workspace config blob; null means fall back to legacy sources.
         JSONObject cfgJson = loadWorkspaceConfigJson(workspaceId);
 
-        // 3. Authored prompt - resolution rule, in priority order:
-        //    (a) room.options.instructions   (room-level override always wins)
-        //    (b) CONFIG_JSON.system_prompt   (new; preferred over the legacy column)
-        //    (c) workspace.system_prompt     (legacy column, kept as back-compat fallback)
+        // Room instructions win, then CONFIG_JSON.system_prompt, then workspace.system_prompt.
         b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
-        // 4. Workdir AGENTS.md / CLAUDE.md auto-discovery.
-        //    DISABLED — the walk-up was leaking unrelated repo-level instructions
-        //    (e.g. Semoss/CLAUDE.md) into every run whenever SEMOSS_BASE_FOLDER lived
-        //    inside the source tree. Per-workspace / per-room behavior should be
-        //    expressed explicitly via:
-        //      - CONFIG_JSON.system_prompt   (workspace-level authored prompt), or
-        //      - room.options.instructions   (room-level override),
-        //    both of which are picked up by resolveAuthoredPrompt above.
-        //    To re-enable, restore: b.workdirAgentsMd(AgentsMdLoader.discover(workingDir)).
+        // Workdir AGENTS.md discovery stays disabled to avoid leaking repo-level instructions.
 
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
@@ -186,28 +142,18 @@ public final class AgentConfigLoader {
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));
 
-        // 7. Budgets - CONFIG_JSON.budgets wins per-field, else caller args / paramMap.
+        // CONFIG_JSON budgets override per field; remaining values come from caller args.
         b.budgets(resolveBudgets(cfgJson, paramMap, maxTurns, maxReflections));
 
-        // 8. MCP tool projects - WORKSPACE_RESOURCE rows AND CONFIG_JSON.mcps both
-        //    contribute (layered, not switched), plus room.options.mcp[] additions.
+        // MCP refs come from workspace resources, CONFIG_JSON, and room options.
         b.mcps(resolveMcps(workspaceId, room, cfgJson));
 
-        // 8b. Skill refs - same three-source merge as MCPs:
-        //     WORKSPACE_RESOURCE['SKILL'] + CONFIG_JSON.skills[] + room.options.skills[].
-        //     SkillStager materializes the SKILL.md folders into <workingDir>/.claude/skills/
-        //     once AgentRunner has resolved both the working dir and this list.
+        // Skills follow the same layered merge and are staged later by AgentRunner.
         b.skills(resolveSkills(workspaceId, room, cfgJson));
 
-        // 9. Hooks - CONFIG_JSON.hooks[] only. No legacy fallback (hooks didn't
-        //    previously have a persistence layer).
+        // Hooks and subagents currently come from CONFIG_JSON only.
         b.hooks(resolveHooks(cfgJson));
-
-        // 10. Subagents - CONFIG_JSON.subagents[] only. Semoss harness synthesizes one
-        //     MCP tool per spec; CLI harnesses read but ignore.
         b.subagents(resolveSubagents(cfgJson));
-
-        // 11. Agent's own AGENTS.md - reserved for follow-up PR.
 
         AgentConfig cfg = b.build();
         logger.info(
@@ -239,32 +185,14 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Build the agent's MCP tool-project list - a union of three sources, deduped
-     * by UUID portion of the id:
-     *
-     * <ol>
-     *   <li><b>{@code WORKSPACE_RESOURCE} rows</b> (legacy source) for the resolved
-     *       {@code workspaceId}, excluding {@code PROMPT} rows. Mirrors what
-     *       {@link Room#getAllToolsJsonForRoom(int)} reads for the SEMOSS harness path.</li>
-     *   <li><b>{@code CONFIG_JSON.mcps[]} entries</b> (new source, additive). When
-     *       a workspace migrates to dual-write or CONFIG_JSON-only, this is where
-     *       new entries land. Older workspaces with only WORKSPACE_RESOURCE rows
-     *       keep working byte-identically.</li>
-     *   <li><b>{@code room.options.mcp[]} entries</b> - per-room additions / overrides.</li>
-     * </ol>
-     *
-     * <p>Dedupe uses the UUID portion ({@link #extractUuidPortion}) so the same
-     * engine appearing as {@code Name__uuid} in one source and bare {@code uuid}
-     * in another counts as one entry.
-     *
-     * <p>Returns a list of immutable {@code {id, name}} maps; empty when no source
-     * contributes.
+     * Builds the MCP project-ref list from workspace resources, CONFIG_JSON,
+     * and room options, deduped by UUID portion.
      */
     private static List<Map<String, String>> resolveMcps(String workspaceId, Room room, JSONObject cfgJson) {
         List<Map<String, String>> out = new ArrayList<>();
         Set<String> seenUuids = new LinkedHashSet<>();
 
-        // 1. Legacy WORKSPACE_RESOURCE rows (existing read path - unchanged).
+        // Legacy WORKSPACE_RESOURCE rows.
         if (workspaceId != null) {
             try {
                 List<Map<String, Object>> rows = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
@@ -278,7 +206,7 @@ public final class AgentConfigLoader {
                     if (!seenUuids.add(uuidKey)) continue;
                     Map<String, String> entry = new HashMap<>();
                     entry.put("id", id);
-                    entry.put("name", id);   // name defaults to id; harness consumers may resolve a friendlier name
+                    entry.put("name", id);
                     out.add(entry);
                 }
             } catch (Exception e) {
@@ -287,7 +215,7 @@ public final class AgentConfigLoader {
             }
         }
 
-        // 2. CONFIG_JSON.mcps[] (new source, layered on top - additive only).
+        // CONFIG_JSON.mcps[] additions.
         if (cfgJson != null && cfgJson.has("mcps")) {
             JSONArray arr = cfgJson.optJSONArray("mcps");
             if (arr != null) {
@@ -307,7 +235,7 @@ public final class AgentConfigLoader {
             }
         }
 
-        // 3. room.options.mcp[] additions.
+        // room.options.mcp[] additions.
         List<Map<String, String>> roomMcps = extractRoomMcps(room);
         for (Map<String, String> entry : roomMcps) {
             String id = entry.get("id");
@@ -321,33 +249,14 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Build the agent's skill ref list — a union of three sources, deduped by
-     * {@code skill_id}:
-     *
-     * <ol>
-     *   <li><b>{@code WORKSPACE_RESOURCE} rows</b> where {@code RESOURCE_TYPE='SKILL'}
-     *       for the resolved {@code workspaceId}. {@code RESOURCE_SUBTYPE} carries
-     *       the optional pinned version.</li>
-     *   <li><b>{@code CONFIG_JSON.skills[]} entries</b> (additive). Same shape as
-     *       MCP entries — when a workspace dual-writes or migrates to
-     *       CONFIG_JSON-only, skills land here without breaking the legacy read.</li>
-     *   <li><b>{@code room.options.skills[]} entries</b> — per-room additions /
-     *       overrides.</li>
-     * </ol>
-     *
-     * <p>Each output entry has at least {@code skill_id} (required); when a
-     * pin is supplied, {@code pinned_version} is included. Earlier sources win
-     * on dedup, so workspace pins are not overwritten by room-level entries for
-     * the same {@code skill_id}.
+     * Builds the skill-ref list from workspace resources, CONFIG_JSON, and
+     * room options, deduped by {@code skill_id}.
      */
     private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
         List<Map<String, String>> out = new ArrayList<>();
         Set<String> seen = new LinkedHashSet<>();
 
-        // 1. WORKSPACE_RESOURCE['SKILL'] rows.
-        //    Use the SQL-based helper (getWorkspaceResources) because the
-        //    SelectQueryStruct-based variants in this file have an inverted
-        //    type-filter condition (only fires when the list is empty).
+        // Use the SQL-based helper because the SelectQueryStruct path filters incorrectly here.
         if (workspaceId != null) {
             try {
                 List<Map<String, String>> rows = ModelInferenceLogsUtils.getWorkspaceResources(
@@ -367,7 +276,7 @@ public final class AgentConfigLoader {
             }
         }
 
-        // 2. CONFIG_JSON.skills[] (additive).
+        // CONFIG_JSON.skills[] additions.
         if (cfgJson != null && cfgJson.has("skills")) {
             JSONArray arr = cfgJson.optJSONArray("skills");
             if (arr != null) {
@@ -383,7 +292,7 @@ public final class AgentConfigLoader {
             }
         }
 
-        // 3. room.options.skills[] additions.
+        // room.options.skills[] additions.
         for (Map<String, String> entry : extractRoomSkills(room)) {
             String skillId = entry.get("skill_id");
             if (skillId == null || skillId.isEmpty()) continue;
@@ -488,21 +397,11 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Resolve the authored prompt for this run.
+     * Resolves the authored prompt for this run.
      *
-     * <ol>
-     *   <li>{@code room.options.instructions} - room-level override always wins.</li>
-     *   <li>{@code CONFIG_JSON.system_prompt} via the resolved {@code workspaceId}
-     *       - preferred over the legacy column when present.</li>
-     *   <li>{@code workspace.system_prompt} (legacy column) - back-compat fallback;
-     *       still written by {@code EditWorkspaceReactor} as a dual-write until a
-     *       follow-up PR removes it.</li>
-     * </ol>
-     *
-     * <p>ACL + active-state checks against the resolved workspace apply once
-     * either workspace-scoped source (CONFIG_JSON or column) is consulted.
-     *
-     * @throws IllegalArgumentException when the user lacks access or the workspace is disabled
+     * <p>Priority is room instructions, then {@code CONFIG_JSON.system_prompt},
+     * then the legacy workspace column. Workspace-backed reads still enforce
+     * ACL and active-state checks.
      */
     private static String resolveAuthoredPrompt(Room room, String workspaceId, Map<String, Object> workspaceRow,
             JSONObject cfgJson) {

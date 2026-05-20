@@ -212,7 +212,7 @@ final class HarnessToolExecutor {
     private static ToolExecOutcome executeToolSafely(
             String rawToolName, Map<String, Object> params, AgentRunContext ctx, String parentJobId) {
 
-        // 1. Subagent tools — named alias OR built-in spawn/check/wait — short-circuit
+        // 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
         //    the MCP pipeline. The dispatcher returns a JSON string suitable for handing
         //    straight back to the model.
         java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
@@ -228,7 +228,7 @@ final class HarnessToolExecutor {
             }
         }
 
-        // 2. Normal MCP tool path — name format is "<engineId>__<functionName>".
+        // 2. Normal MCP tool path - name format is "<engineId>__<functionName>".
         String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
         if (parsed == null) {
             String msg = "Tool execution error: cannot parse engine/project id from tool name '"
@@ -274,7 +274,7 @@ final class HarnessToolExecutor {
             }
             return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), timeoutSec);
         }
-        // Named subagent tool — look up the spec and spawn.
+        // Named subagent tool - look up the spec and spawn.
         SubAgentSpec spec = SubAgentToolSynthesizer.findSpec(specs, rawToolName);
         if (spec == null) {
             throw new IllegalStateException("Tool '" + rawToolName + "' classified as subagent but no matching spec");
