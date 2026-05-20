@@ -50,7 +50,6 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
-import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -338,29 +337,21 @@ public class RoomAgentHarness implements IAgentHarness {
 
     private ToolExecOutcome executeToolSafely(String rawToolName, Map<String, Object> params,
                                               AgentRunContext ctx) {
-        if (PlatformDefaultTools.isPlatformTool(rawToolName)) {
-            try {
-                NounMetadata noun = PlatformDefaultTools.execute(rawToolName, params, ctx.getInsight());
-                String content = noun != null && noun.getValue() != null ? noun.getValue().toString() : "";
-                boolean success = noun == null || noun.getNounType() != PixelDataType.ERROR;
-                return new ToolExecOutcome(content, success);
-            } catch (Exception e) {
-                String msg = "Tool execution error: " + e.getMessage();
-                logger.warn("RoomAgentHarness: uncaught exception from platform tool '{}': {}",
-                        rawToolName, e.getMessage(), e);
+        boolean isPlatform = MCPUtility.isPlatformTool(rawToolName);
+        String engineId = null;
+        if (!isPlatform) {
+            String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
+            if (parsed == null) {
+                String msg = "Tool execution error: cannot parse engine/project id from tool name '"
+                        + rawToolName + "'";
+                logger.warn("RoomAgentHarness: {}", msg);
                 return new ToolExecOutcome(msg, false);
             }
+            engineId = parsed[0];
         }
-        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
-        if (parsed == null) {
-            String msg = "Tool execution error: cannot parse engine/project id from tool name '"
-                    + rawToolName + "'";
-            logger.warn("RoomAgentHarness: {}", msg);
-            return new ToolExecOutcome(msg, false);
-        }
-        String engineId = parsed[0];
         try {
-            String result = mcpCallMode == McpCallMode.REACTOR
+            // Platform tools have no HTTP endpoint, so they must always use the reactor path.
+            String result = (isPlatform || mcpCallMode == McpCallMode.REACTOR)
                     ? callMcpToolViaReactor(rawToolName, engineId, params, ctx)
                     : callMcpToolViaApi(rawToolName, engineId, params, ctx);
             boolean success = result == null || !result.startsWith("Tool execution error:");
@@ -379,9 +370,11 @@ public class RoomAgentHarness implements IAgentHarness {
             reactor.In();
             reactor.setInsight(ctx.getInsight());
 
-            GenRowStruct engineGrs = new GenRowStruct();
-            engineGrs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
-            reactor.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), engineGrs);
+            if (engineId != null) {
+                GenRowStruct engineGrs = new GenRowStruct();
+                engineGrs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
+                reactor.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), engineGrs);
+            }
 
             GenRowStruct functionGrs = new GenRowStruct();
             functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));

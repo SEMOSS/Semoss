@@ -99,6 +99,9 @@ public final class MCPUtility {
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
 
+	public static final String PLATFORM_PREFIX = "SMSS_PLATFORM__";
+	public static final String SMSS_IS_PLATFORM_TOOL = "SMSS_IS_PLATFORM_TOOL";
+
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
 	@Deprecated
@@ -616,6 +619,11 @@ public final class MCPUtility {
 			return functionName.substring(fullPrefix.length());
 		}
 		return functionName;
+	}
+
+	/** True if {@code llmFacingName} is a platform tool (carries the {@link #PLATFORM_PREFIX} prefix). */
+	public static boolean isPlatformTool(String llmFacingName) {
+		return llmFacingName != null && llmFacingName.startsWith(PLATFORM_PREFIX);
 	}
 
 	/**
@@ -1247,10 +1255,10 @@ public final class MCPUtility {
 					continue;
 				}
 				JSONObject meta = tool.optJSONObject("_meta");
-				if (meta != null && meta.has(prerna.reactor.platform.PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+				if (meta != null && meta.has(SMSS_IS_PLATFORM_TOOL)) {
 					throw new IllegalArgumentException(
 							"MCP tool '" + tool.optString("name") + "' illegally declares "
-							+ prerna.reactor.platform.PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+							+ SMSS_IS_PLATFORM_TOOL
 							+ " in its _meta. This field is reserved for platform tools.");
 				}
 			}

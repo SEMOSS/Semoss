@@ -50,7 +50,6 @@ import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
-import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -206,29 +205,19 @@ final class HarnessToolExecutor {
     private static ToolExecOutcome executeToolSafely(
             String rawToolName, Map<String, Object> params, AgentRunContext ctx) {
 
-        if (PlatformDefaultTools.isPlatformTool(rawToolName)) {
-            try {
-                NounMetadata noun = PlatformDefaultTools.execute(rawToolName, params, ctx.getInsight());
-                String content = noun != null && noun.getValue() != null ? noun.getValue().toString() : "";
-                boolean success = noun == null || noun.getNounType() != PixelDataType.ERROR;
-                return new ToolExecOutcome(content, success);
-            } catch (Exception e) {
-                String msg = "Tool execution error: " + e.getMessage();
-                logger.warn("HarnessToolExecutor: uncaught exception from platform tool '{}': {}",
-                        rawToolName, e.getMessage(), e);
+        String engineId = null;
+        if (!MCPUtility.isPlatformTool(rawToolName)) {
+            String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
+            if (parsed == null) {
+                String msg = "Tool execution error: cannot parse engine/project id from tool name '"
+                        + rawToolName + "'";
+                logger.warn("HarnessToolExecutor: {}", msg);
                 return new ToolExecOutcome(msg, false);
             }
-        }
-
-        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
-        if (parsed == null) {
-            String msg = "Tool execution error: cannot parse engine/project id from tool name '"
-                    + rawToolName + "'";
-            logger.warn("HarnessToolExecutor: {}", msg);
-            return new ToolExecOutcome(msg, false);
+            engineId = parsed[0];
         }
         try {
-            String result = callMcpToolViaReactor(rawToolName, parsed[0], params, ctx);
+            String result = callMcpToolViaReactor(rawToolName, engineId, params, ctx);
             boolean success = result == null || !result.startsWith("Tool execution error:");
             return new ToolExecOutcome(result, success);
         } catch (Exception e) {
@@ -246,9 +235,11 @@ final class HarnessToolExecutor {
             reactor.In();
             reactor.setInsight(ctx.getInsight());
 
-            GenRowStruct engineGrs = new GenRowStruct();
-            engineGrs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
-            reactor.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), engineGrs);
+            if (engineId != null) {
+                GenRowStruct engineGrs = new GenRowStruct();
+                engineGrs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
+                reactor.getNounStore().addNoun(ReactorKeysEnum.ENGINE.getKey(), engineGrs);
+            }
 
             GenRowStruct functionGrs = new GenRowStruct();
             functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));

@@ -74,9 +74,11 @@ import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.IReactor;
+import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
-import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
@@ -813,17 +815,42 @@ public class Room {
 			}
 		}
 
-		// Append platform default tools from the active theme config
+		// Append platform default tools from the active theme config. Each toolName
+		// is a bare Pixel reactor registered in ReactorFactory.reactorHash. We
+		// instantiate the reactor, generate its MCP schema, prefix the LLM-facing
+		// name, and stamp the SMSS_IS_PLATFORM_TOOL flag onto _meta.
 		List<String> defaultToolNames = PlaygroundThemeUtils.getPlaygroundDefaultTools();
 		for (String toolName : defaultToolNames) {
-			PlatformDefaultTools.buildToolSchema(toolName).ifPresent(schema -> {
-				aggregated.add(schema);
-				// Register in reverse-lookup so updateToolResponseMeta can resolve them
-				String llmName = (String) schema.get("name");
-				if (llmName != null) {
-					toolLookupByLLMName.put(llmName, schema);
-				}
-			});
+			Class<? extends IReactor> raw = ReactorFactory.reactorHash.get(toolName);
+			if (raw == null || !AbstractReactor.class.isAssignableFrom(raw)) {
+				classLogger.warn(
+						"Theme references reactor '{}' but no AbstractReactor with that name is registered — skipping",
+						toolName);
+				continue;
+			}
+			try {
+				AbstractReactor reactor = raw.asSubclass(AbstractReactor.class)
+						.getDeclaredConstructor().newInstance();
+				JSONObject schema = reactor.asMcpTool();
+				String llmName = MCPUtility.PLATFORM_PREFIX + toolName;
+				schema.put("name", llmName);
+
+				JSONObject toolMeta = new JSONObject();
+				toolMeta.put(MCPUtility.SMSS_MCP_EXECUTION, "auto");
+				toolMeta.put(MCPUtility.SMSS_FUNCTION_NAME, toolName);
+				toolMeta.put(MCPUtility.SMSS_IS_PLATFORM_TOOL, true);
+				JSONObject uiJson = new JSONObject();
+				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, "inline");
+				toolMeta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+				schema.put("_meta", toolMeta);
+
+				Map<String, Object> schemaMap = schema.toMap();
+				aggregated.add(schemaMap);
+				toolLookupByLLMName.put(llmName, schemaMap);
+			} catch (Exception e) {
+				classLogger.error("Failed to build schema for platform tool '{}': {}",
+						toolName, e.getMessage(), e);
+			}
 		}
 
 		return aggregated;
@@ -890,12 +917,12 @@ public class Room {
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
 					Map<String, Object> toolMapEntry = toolObj.toMap();
 					// Reject any MCP tool that declares SMSS_IS_PLATFORM_TOOL — that flag is
-					// reserved for platform tools built by PlatformDefaultTools.buildToolSchema().
+					// reserved for platform tools injected from the active theme.
 					Object rawMeta = toolMapEntry.get("_meta");
-					if (rawMeta instanceof Map && ((Map<?, ?>) rawMeta).containsKey(PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+					if (rawMeta instanceof Map && ((Map<?, ?>) rawMeta).containsKey(MCPUtility.SMSS_IS_PLATFORM_TOOL)) {
 						throw new IllegalArgumentException(
 								"MCP tool '" + toolObj.optString("name") + "' in engine " + engineId
-								+ " illegally declares " + PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+								+ " illegally declares " + MCPUtility.SMSS_IS_PLATFORM_TOOL
 								+ " in its _meta. This field is reserved for platform tools.");
 					}
 					result.add(toolMapEntry);

@@ -35,6 +35,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.IReactor;
+import prerna.reactor.ReactorFactory;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -66,6 +68,40 @@ public class RunMCPToolReactor extends AbstractReactor {
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 
+		String toolName = this.keyValue.get(this.keysToGet[1]);
+		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
+		}
+
+		// platform tool — no engine required, instantiate the bare reactor and run
+		if (MCPUtility.isPlatformTool(toolName)) {
+			String bareName = toolName.substring(MCPUtility.PLATFORM_PREFIX.length());
+			Class<? extends IReactor> raw = ReactorFactory.reactorHash.get(bareName);
+			if (raw == null || !AbstractReactor.class.isAssignableFrom(raw)) {
+				return NounMetadata.getErrorNounMessage(
+						"No AbstractReactor registered for platform tool name '" + toolName + "'");
+			}
+			try {
+				AbstractReactor platformReactor = raw.asSubclass(AbstractReactor.class)
+						.getDeclaredConstructor().newInstance();
+				platformReactor.In();
+				platformReactor.setInsight(this.insight);
+				Map<String, Object> paramMap = getMap();
+				if (paramMap != null) {
+					for (Map.Entry<String, Object> entry : paramMap.entrySet()) {
+						GenRowStruct grs = new GenRowStruct();
+						String strVal = entry.getValue() != null ? entry.getValue().toString() : "";
+						grs.add(new NounMetadata(strVal, PixelDataType.CONST_STRING));
+						platformReactor.getNounStore().addNoun(entry.getKey(), grs);
+					}
+				}
+				NounMetadata result = platformReactor.execute();
+				return result != null ? result : new NounMetadata("", PixelDataType.CONST_STRING);
+			} catch (Exception e) {
+				return NounMetadata.getErrorNounMessage("Tool execution error: " + e.getMessage());
+			}
+		}
+
 		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
 		if (engineId == null || engineId.isEmpty()) {
 			engineId = insight.getContextProjectId();
@@ -88,10 +124,6 @@ public class RunMCPToolReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		checkEngineEditSecurity(engine, user);
 
-		String toolName = this.keyValue.get(this.keysToGet[1]);
-		if (toolName == null || (toolName = toolName.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Tool name must be passed in to execute the mcp tool");
-		}
 		toolName = MCPUtility.removeEngineIdFromToolsMethodName(engine.getEngineId(), toolName);
 
 		// these are the params

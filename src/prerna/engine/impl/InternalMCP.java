@@ -46,7 +46,6 @@ import prerna.engine.api.IMCP;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPErrorCode;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.reactor.platform.PlatformDefaultTools;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -170,10 +169,10 @@ public class InternalMCP implements IMCP {
 				continue;
 			}
 			JSONObject meta = tool.optJSONObject("_meta");
-			if (meta != null && meta.has(PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL)) {
+			if (meta != null && meta.has(MCPUtility.SMSS_IS_PLATFORM_TOOL)) {
 				throw new IllegalArgumentException(
 						"MCP tool '" + tool.optString("name") + "' in engine " + this.engineId
-						+ " illegally declares " + PlatformDefaultTools.SMSS_IS_PLATFORM_TOOL
+						+ " illegally declares " + MCPUtility.SMSS_IS_PLATFORM_TOOL
 						+ " in its _meta. This field is reserved for platform tools.");
 			}
 		}
