@@ -28,13 +28,15 @@
 package prerna.reactor.agent.skill;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,6 +46,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Lists skills the caller can see, with an optional scope filter.
  *
+ * <p>Skills are Projects of type {@code SKILL}. Access is determined entirely by
+ * project permissions: the {@code accessible} filter returns every skill-project
+ * the user can view via {@code PROJECTUSER} / {@code GROUPPROJECTPERMISSION} (the
+ * same machinery that gates workspaces).
+ *
  * <p>Inputs (all optional):
  * <ul>
  *   <li>{@code filter} - one of {@code mine | platform | accessible}.
@@ -51,13 +58,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *     <ul>
  *       <li>{@code mine}       - skills where {@code CREATED_BY = me}</li>
  *       <li>{@code platform}   - skills with {@code ORIGIN = 'PLATFORM'}</li>
- *       <li>{@code accessible} - union of the two (v1 rule). Once
- *           {@code SecuritySkillUtils} lands this will also include skills
- *           shared via {@code SKILLPERMISSION} / {@code GROUPSKILLPERMISSION}.</li>
+ *       <li>{@code accessible} - every skill-project the user can view</li>
  *     </ul>
  *   </li>
- *   <li>{@code includeArchived} - when true, {@code STATUS='ARCHIVED'} rows are
- *       returned. Default false.</li>
  * </ul>
  *
  * <p>Returns a list of skill maps; each map has the same shape as
@@ -66,16 +69,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  */
 public class GetSkillsReactor extends AbstractReactor {
 
-	private static final String FILTER          = "filter";
-	private static final String INCLUDE_ARCHIVED = "includeArchived";
+	private static final String FILTER = "filter";
 
 	private static final String FILTER_MINE       = "mine";
 	private static final String FILTER_PLATFORM   = "platform";
 	private static final String FILTER_ACCESSIBLE = "accessible";
 
 	public GetSkillsReactor() {
-		this.keysToGet = new String[] { FILTER, INCLUDE_ARCHIVED };
-		this.keyRequired = new int[] { 0, 0 };
+		this.keysToGet = new String[] { FILTER };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
@@ -86,7 +88,6 @@ public class GetSkillsReactor extends AbstractReactor {
 		String filter = (filterInput == null || filterInput.isEmpty())
 				? FILTER_ACCESSIBLE
 				: filterInput.trim().toLowerCase();
-		boolean includeArchived = parseBool(this.keyValue.get(INCLUDE_ARCHIVED), false);
 
 		User user = this.insight.getUser();
 		String userId = resolveUserId(user);
@@ -95,23 +96,23 @@ public class GetSkillsReactor extends AbstractReactor {
 		switch (filter) {
 			case FILTER_MINE:
 				if (userId == null) {
-					throw new IllegalArgumentException(
-							"filter='mine' requires an authenticated user");
+					throw new IllegalArgumentException("filter='mine' requires an authenticated user");
 				}
-				rows = ModelInferenceLogsUtils.listSkills(null, userId, includeArchived);
+				rows = ModelInferenceLogsUtils.listSkills(null, userId);
 				break;
 			case FILTER_PLATFORM:
-				rows = ModelInferenceLogsUtils.listSkills(Skill.ORIGIN_PLATFORM, null, includeArchived);
+				rows = ModelInferenceLogsUtils.listSkills(Skill.ORIGIN_PLATFORM, null);
 				break;
 			case FILTER_ACCESSIBLE:
-				// v1 visibility = mine union platform. Once SecuritySkillUtils lands,
-				// this will also union in SKILLPERMISSION / GROUPSKILLPERMISSION rows.
-				List<Map<String, Object>> platform = ModelInferenceLogsUtils.listSkills(
-						Skill.ORIGIN_PLATFORM, null, includeArchived);
-				List<Map<String, Object>> mine = (userId == null)
-						? new ArrayList<>()
-						: ModelInferenceLogsUtils.listSkills(null, userId, includeArchived);
-				rows = dedupBySkillId(platform, mine);
+				Set<String> visibleProjectIds = getVisibleSkillProjectIds(user);
+				List<Map<String, Object>> all = ModelInferenceLogsUtils.listSkills(null, null);
+				rows = new ArrayList<>(all.size());
+				for (Map<String, Object> row : all) {
+					String skillId = stringOf(row.get("skill_id"));
+					if (skillId != null && visibleProjectIds.contains(skillId)) {
+						rows.add(row);
+					}
+				}
 				break;
 			default:
 				throw new IllegalArgumentException(
@@ -122,27 +123,23 @@ public class GetSkillsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Returns the concatenation of the supplied lists with rows of duplicate
-	 * {@code skill_id} dropped. Earlier lists win on duplicates so the natural
-	 * "platform first, then mine" ordering is preserved.
+	 * Returns the set of project ids the user can view that are tagged
+	 * {@code Skill_Project}. Mirrors the pattern used by
+	 * {@code ListWorkspacesReactor} for workspace projects.
 	 */
-	private static List<Map<String, Object>> dedupBySkillId(
-			List<Map<String, Object>> first, List<Map<String, Object>> second) {
-		Set<String> seen = new LinkedHashSet<>();
-		List<Map<String, Object>> out = new ArrayList<>(first.size() + second.size());
-		for (Map<String, Object> row : first) {
-			String id = stringOf(row.get("skill_id"));
-			if (id != null && seen.add(id)) {
-				out.add(row);
+	private static Set<String> getVisibleSkillProjectIds(User user) {
+		Map<String, Object> projectMetadataFilter = new HashMap<>();
+		projectMetadataFilter.put("tag", ModelInferenceLogsUtils.SKILL_PROJECT_TAG);
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(user, null, null, false, false,
+				projectMetadataFilter, null, null, null, null);
+		Set<String> ids = new HashSet<>();
+		for (Map<String, Object> project : projectInfo) {
+			Object id = project.get("project_id");
+			if (id != null) {
+				ids.add(id.toString());
 			}
 		}
-		for (Map<String, Object> row : second) {
-			String id = stringOf(row.get("skill_id"));
-			if (id != null && seen.add(id)) {
-				out.add(row);
-			}
-		}
-		return out;
+		return ids;
 	}
 
 	private static String stringOf(Object o) {
@@ -157,13 +154,6 @@ public class GetSkillsReactor extends AbstractReactor {
 		return user.getAccessToken(login) == null ? null : user.getAccessToken(login).getId();
 	}
 
-	private static boolean parseBool(String s, boolean defaultValue) {
-		if (s == null || s.isEmpty()) {
-			return defaultValue;
-		}
-		return Boolean.parseBoolean(s);
-	}
-
 	@Override
 	public String getReactorDescription() {
 		return "Lists skills the caller can see. Filter scopes: mine | platform | accessible (default).";
@@ -173,10 +163,7 @@ public class GetSkillsReactor extends AbstractReactor {
 	protected String getDescriptionForKey(String key) {
 		if (FILTER.equals(key)) {
 			return "Scope filter: 'mine' (skills I created), 'platform' (platform skills), "
-					+ "or 'accessible' (default - union of mine + platform; later includes shared)";
-		}
-		if (INCLUDE_ARCHIVED.equals(key)) {
-			return "When true, include skills with STATUS='ARCHIVED'. Default false.";
+					+ "or 'accessible' (default - every skill-project I can view)";
 		}
 		return super.getDescriptionForKey(key);
 	}

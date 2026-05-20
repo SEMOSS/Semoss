@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.skill;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,186 +42,131 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IStorageEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Creates a new skill in the registry.
  *
- * <p>Inputs:
- * <ul>
- *   <li>{@code storage}              - id of the {@link IStorageEngine} that will hold the SKILL.md blob (required)</li>
- *   <li>{@code skillContent}         - full SKILL.md text including YAML frontmatter (required)</li>
- *   <li>{@code name}                 - display name; overrides frontmatter {@code name} when supplied (optional)</li>
- *   <li>{@code description}          - description; overrides frontmatter {@code description} when supplied (optional)</li>
- *   <li>{@code sharingEnabled}       - toggles SKILLPERMISSION checks, default false (optional)</li>
- *   <li>{@code status}               - initial status, default {@link Skill#STATUS_DRAFT} (optional)</li>
- *   <li>{@code origin}               - provenance, default {@link Skill#ORIGIN_USER}. Setting this to
- *                                      {@link Skill#ORIGIN_PLATFORM} requires platform admin (optional)</li>
- * </ul>
- *
- * <p>The directory-name slug is always derived server-side from the resolved {@code name}
- * via {@link Skill#slugify}; callers cannot override it so the on-disk layout stays
- * consistent across rooms and over time.
- *
- * <p>Side-effects:
+ * <p>A skill is a Project of type {@code SKILL}. This reactor:
  * <ol>
- *   <li>Uploads the SKILL.md to {@code skills/&lt;skillId&gt;/v1/SKILL.md} in the storage engine</li>
- *   <li>Inserts a {@code SKILL__} row and a {@code SKILL_VERSION__} row (version=1) in one transaction</li>
+ *   <li>Creates the underlying Project via {@link ProjectHelper#createSkillProject}.</li>
+ *   <li>Writes {@code SKILL.md} (and helper files, if any) into
+ *       {@code <project>/version/assets/skill/}.</li>
+ *   <li>Inserts a slim {@code SKILL__} row tying the skill identity (id, slug, origin)
+ *       to the project.</li>
  * </ol>
  *
- * <p>Returns the newly assigned {@code skillId}.
+ * <p>Inputs:
+ * <ul>
+ *   <li>{@code skillContent} - SKILL.md body, with or without a YAML frontmatter block (required)</li>
+ *   <li>{@code name}         - display name. Required <i>only</i> when the frontmatter omits one. When
+ *                              both are supplied, frontmatter wins.</li>
+ *   <li>{@code description}  - same rule as {@code name}: required only when frontmatter omits it.</li>
+ *   <li>{@code origin}       - provenance, default {@link Skill#ORIGIN_USER}. Setting this to
+ *                              {@link Skill#ORIGIN_PLATFORM} requires platform admin (optional)</li>
+ * </ul>
  *
- * <p>SkillStager (step 5 of the build) will copy the staged blob back out to a
- * room's {@code .claude/skills/&lt;slug&gt;/} working dir at agent run time.
+ * <p>When the supplied {@code skillContent} already starts with a {@code ---} frontmatter
+ * block it is written to disk verbatim. When it does not, a frontmatter block is synthesized
+ * from {@code name} and {@code description} and prepended before write, so the file on disk
+ * is always self-describing.
+ *
+ * <p>Returns the newly assigned {@code skillId} (== the underlying project id).
  */
 public class CreateSkillReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateSkillReactor.class);
 
-	private static final String SKILL_CONTENT  = "skillContent";
-	private static final String SHARING        = "sharingEnabled";
-	private static final String STATUS         = "status";
-	private static final String ORIGIN         = "origin";
+	private static final String SKILL_CONTENT = "skillContent";
+	private static final String ORIGIN        = "origin";
 
 	public CreateSkillReactor() {
 		this.keysToGet = new String[] {
-				ReactorKeysEnum.STORAGE.getKey(),
 				SKILL_CONTENT,
 				ReactorKeysEnum.NAME.getKey(),
 				ReactorKeysEnum.DESCRIPTION.getKey(),
-				SHARING,
-				STATUS,
 				ORIGIN,
 		};
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 
-		String storageEngineId = this.keyValue.get(ReactorKeysEnum.STORAGE.getKey());
-		String skillContent    = this.keyValue.get(SKILL_CONTENT);
-		String nameInput       = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
-		String descInput       = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
-		boolean sharingEnabled  = parseBool(this.keyValue.get(SHARING), false);
-		String status = orDefault(this.keyValue.get(STATUS), Skill.STATUS_DRAFT);
-		String origin = orDefault(this.keyValue.get(ORIGIN), Skill.ORIGIN_USER);
+		String skillContent = this.keyValue.get(SKILL_CONTENT);
+		String nameInput    = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String descInput    = this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey());
+		String origin       = orDefault(this.keyValue.get(ORIGIN), Skill.ORIGIN_USER);
 
-		if (storageEngineId == null || storageEngineId.isEmpty()) {
-			throw new IllegalArgumentException("storage is required");
-		}
 		if (skillContent == null || skillContent.isEmpty()) {
 			throw new IllegalArgumentException("skillContent is required");
 		}
 
-		// Frontmatter is the source of truth for name + description; allow caller to
-		// override either one explicitly (e.g. when name in DB should differ from the
-		// frontmatter for display reasons).
+		// Frontmatter wins when present; params are the fallback. The file on disk
+		// is left alone if it already carries a frontmatter block (even if partial)
+		// and gets a synthesized block prepended only when one is entirely absent.
 		Skill.Frontmatter fm = Skill.parseFrontmatter(skillContent);
-		String name = nameInput != null && !nameInput.isEmpty() ? nameInput : fm.name;
-		String description = descInput != null && !descInput.isEmpty() ? descInput : fm.description;
-		if (name == null || name.isEmpty()) {
+		boolean hasFrontmatter = Skill.hasFrontmatterBlock(skillContent);
+		String name = firstNonEmpty(fm.name, nameInput);
+		String description = firstNonEmpty(fm.description, descInput);
+		if (name == null) {
 			throw new IllegalArgumentException(
-					"SKILL.md must declare a 'name' in its frontmatter, or 'name' must be supplied as an input");
+					"name is required: provide a 'name' input, or include 'name' in the SKILL.md frontmatter");
 		}
-		if (description == null || description.isEmpty()) {
+		if (description == null) {
 			throw new IllegalArgumentException(
-					"SKILL.md must declare a 'description' in its frontmatter, or 'description' must be supplied as an input");
+					"description is required: provide a 'description' input, "
+							+ "or include 'description' in the SKILL.md frontmatter");
 		}
 
 		User user = this.insight.getUser();
 		String createdBy = resolveUserId(user);
-		if (Skill.ORIGIN_PLATFORM.equals(origin)
-				&& !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
+		boolean isPlatform = Skill.ORIGIN_PLATFORM.equals(origin);
+		if (isPlatform && !Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user))) {
 			throw new IllegalArgumentException("Only platform admins can create platform skills");
 		}
 
-		IStorageEngine storage = Utility.getStorage(storageEngineId);
-		if (storage == null) {
-			throw new IllegalArgumentException("Could not load storage engine with id: " + storageEngineId);
-		}
-		if (!SecurityEngineUtils.userCanEditEngine(user, storage.getEngineId())) {
-			throw new IllegalArgumentException(
-					"User does not have permission to write to the storage engine: " + storageEngineId);
-		}
-
 		String skillId = GUID.v7().toString();
-		// Slug is always derived from the resolved name. Not exposed as a reactor
-		// input - caller-supplied slugs would drift from frontmatter.name over time.
 		String slug = Skill.slugify(name);
-		String versionPrefix = "skills/" + skillId + "/v1";
-		byte[] contentBytes = skillContent.getBytes(StandardCharsets.UTF_8);
-		String hash = Skill.contentHash(contentBytes);
-		long sizeBytes = contentBytes.length;
+		String contentToWrite = hasFrontmatter
+				? skillContent
+				: Skill.buildFrontmatter(name, description) + skillContent;
 
-		Path tmpDir = null;
-		Path tmpFile = null;
 		try {
-			// Stage SKILL.md in a temp dir so the storage engine preserves the basename.
-			tmpDir = Files.createTempDirectory("skill-upload-");
-			tmpFile = tmpDir.resolve(Skill.SKILL_FILE);
-			Files.write(tmpFile, contentBytes);
+			ProjectHelper.createSkillProject(skillId, name, /* global */ isPlatform,
+					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
 
-			Map<String, Object> metadata = buildBlobMetadata(skillId, 1, hash, createdBy);
-			storage.copyToStorage(tmpFile.toString(), versionPrefix, metadata);
+			String assetsFolder = AssetUtility.getProjectAssetsFolder(name, skillId);
+			File skillDir = new File(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
+			if (!skillDir.exists() && !skillDir.mkdirs()) {
+				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());
+			}
+			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
+			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
 
-			ModelInferenceLogsUtils.createNewSkill(skillId, slug, name, description, createdBy,
-					sharingEnabled, storageEngineId, versionPrefix, versionPrefix, hash, sizeBytes, status, origin,
+			ModelInferenceLogsUtils.createNewSkill(skillId, slug, name, description, createdBy, origin,
 					/* configJson */ null);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);
-		} finally {
-			cleanup(tmpFile, tmpDir);
 		}
 
 		Map<String, Object> response = new HashMap<>();
 		response.put("skill_id", skillId);
+		response.put("project_id", skillId);
 		response.put("slug", slug);
 		response.put("name", name);
-		response.put("version", 1);
-		response.put("content_hash", hash);
-		response.put("storage_engine_id", storageEngineId);
-		response.put("storage_prefix", versionPrefix);
+		response.put("origin", origin);
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static Map<String, Object> buildBlobMetadata(String skillId, int version, String hash, String createdBy) {
-		Map<String, Object> md = new HashMap<>();
-		md.put("skill_id", skillId);
-		md.put("version", String.valueOf(version));
-		md.put("content_hash", hash);
-		if (createdBy != null) {
-			md.put("created_by", createdBy);
-		}
-		return md;
-	}
-
-	private static void cleanup(Path tmpFile, Path tmpDir) {
-		if (tmpFile != null) {
-			try {
-				Files.deleteIfExists(tmpFile);
-			} catch (Exception e) {
-				classLogger.warn("Failed to delete temp file {}: {}", tmpFile, e.getMessage());
-			}
-		}
-		if (tmpDir != null) {
-			try {
-				Files.deleteIfExists(tmpDir);
-			} catch (Exception e) {
-				classLogger.warn("Failed to delete temp dir {}: {}", tmpDir, e.getMessage());
-			}
-		}
 	}
 
 	private static String resolveUserId(User user) {
@@ -231,41 +177,38 @@ public class CreateSkillReactor extends AbstractReactor {
 		return user.getAccessToken(login) == null ? null : user.getAccessToken(login).getId();
 	}
 
-	private static boolean parseBool(String s, boolean defaultValue) {
-		if (s == null || s.isEmpty()) {
-			return defaultValue;
-		}
-		return Boolean.parseBoolean(s);
-	}
-
 	private static String orDefault(String s, String defaultValue) {
 		return (s == null || s.isEmpty()) ? defaultValue : s;
 	}
 
+	private static String firstNonEmpty(String a, String b) {
+		if (a != null && !a.isEmpty()) {
+			return a;
+		}
+		if (b != null && !b.isEmpty()) {
+			return b;
+		}
+		return null;
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Creates a new skill: uploads its SKILL.md to a storage engine and records SKILL__ + SKILL_VERSION__ rows";
+		return "Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/skill/ folder";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.STORAGE.getKey().equals(key)) {
-			return "Id of the storage engine that will hold the SKILL.md blob";
-		}
 		if (SKILL_CONTENT.equals(key)) {
-			return "Full SKILL.md text including YAML frontmatter (name + description required)";
+			return "SKILL.md body, with or without a YAML frontmatter block. "
+					+ "A frontmatter block will be synthesized from 'name' and 'description' if absent";
 		}
 		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Display name; overrides frontmatter 'name' when supplied";
+			return "Display name. Required only when the SKILL.md frontmatter omits 'name'. "
+					+ "Frontmatter wins when both are supplied";
 		}
 		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
-			return "Description; overrides frontmatter 'description' when supplied";
-		}
-		if (SHARING.equals(key)) {
-			return "Toggle SKILLPERMISSION-based sharing. Default false";
-		}
-		if (STATUS.equals(key)) {
-			return "Initial status: DRAFT | PUBLISHED | ARCHIVED | DEPRECATED. Default DRAFT";
+			return "Description. Required only when the SKILL.md frontmatter omits 'description'. "
+					+ "Frontmatter wins when both are supplied";
 		}
 		if (ORIGIN.equals(key)) {
 			return "Provenance: USER | PLATFORM | IMPORTED | GENERATED. Default USER. "

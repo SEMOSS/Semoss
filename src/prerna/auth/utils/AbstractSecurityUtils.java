@@ -842,63 +842,6 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// SKILLPERMISSION — user-level access for skills.
-			// SKILLID refers to SKILL__.SKILL_ID in the model-inference-logs DB.
-			// Shape mirrors ENGINEPERMISSION minus engine-specific usage caps.
-			colNames = new String[] { "USERID", "PERMISSION", "SKILLID", "VISIBILITY", "FAVORITE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
-			types = new String[] { "VARCHAR(255)", INTEGER_DATATYPE_NAME, "VARCHAR(255)", BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)", TIMESTAMP_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExistsWithDefaults("SKILLPERMISSION", colNames, types,
-						defaultValues);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				if (!queryUtil.tableExists(conn, "SKILLPERMISSION", database, schema)) {
-					String sql = queryUtil.createTable("SKILLPERMISSION", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "SKILLPERMISSION", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("SKILLPERMISSION", col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						securityDb.insertData(addColumnSql);
-					}
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("SKILLPERMISSION_SKILLID_INDEX", "SKILLPERMISSION",
-						"SKILLID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-
-				sql = queryUtil.createIndexIfNotExists("SKILLPERMISSION_USERID_INDEX", "SKILLPERMISSION", "USERID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				if (!queryUtil.indexExists(securityDb, "SKILLPERMISSION_SKILLID_INDEX", "SKILLPERMISSION", database,
-						schema)) {
-					String sql = queryUtil.createIndex("SKILLPERMISSION_SKILLID_INDEX", "SKILLPERMISSION", "SKILLID");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-				if (!queryUtil.indexExists(securityDb, "SKILLPERMISSION_USERID_INDEX", "SKILLPERMISSION", database,
-						schema)) {
-					String sql = queryUtil.createIndex("SKILLPERMISSION_USERID_INDEX", "SKILLPERMISSION", "USERID");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-
 			/*
 			 *
 			 *
@@ -1796,36 +1739,6 @@ public abstract class AbstractSecurityUtils {
 					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("GROUPINSIGHTPERMISSION", col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						securityDb.insertData(addColumnSql);
-					}
-				}
-			}
-
-			// GROUPSKILLPERMISSION — group-level access for skills.
-			// SKILLID refers to SKILL__.SKILL_ID in the model-inference-logs DB.
-			colNames = new String[] { "ID", "TYPE", "SKILLID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("GROUPSKILLPERMISSION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				if (!queryUtil.tableExists(conn, "GROUPSKILLPERMISSION", database, schema)) {
-					String sql = queryUtil.createTable("GROUPSKILLPERMISSION", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPSKILLPERMISSION", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("GROUPSKILLPERMISSION", col, types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}

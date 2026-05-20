@@ -40,6 +40,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -100,6 +101,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
+		// skill-projects carry a SKILL__ row + any WORKSPACE_RESOURCE__ refs in
+		// modellogs; clean those up before tearing down the project itself
+		if (project.getProjectType() == IProject.PROJECT_TYPE.SKILL) {
+			try {
+				ModelInferenceLogsUtils.deleteSkillEntry(projectId);
+			} catch (Exception e) {
+				classLogger.error("Failed to delete SKILL__ row for project '{}'.", projectId, e);
+			}
+		}
 		// remove from DIHelper
 		UploadUtilities.removeProjectFromDIHelper(projectId);
 		// remove from security
