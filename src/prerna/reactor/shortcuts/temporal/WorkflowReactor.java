@@ -188,9 +188,9 @@ public class WorkflowReactor extends AbstractReactor {
 				mapping.directory = watchDir; // input param
 				mapping.workflowName = workflowDefinition.name;
 				mapping.version = workflowDefinition.version;
-
-				SchedulerDatabaseUtility.saveWorkflowMapping(mapping.directory, mapping.workflowName, mapping.version,
-						user.getPrimaryLoginToken().getId());
+				mapping.setProjectId(projectId);
+				SchedulerDatabaseUtility.saveWorkflowMapping(mapping.directory, mapping.projectId, mapping.workflowName,
+						mapping.version, user.getPrimaryLoginToken().getId());
 
 				ConductorBootstrap.init(workflowDefinition.name, workflowDefinition.version, this.insight);
 				// SchedulerDatabaseUtility.createWorkflowTriggerMapping(watchDir, "*.txt",

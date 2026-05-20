@@ -2665,14 +2665,16 @@ public class SchedulerDatabaseUtility {
 		}
 	}
 
-	public static void saveWorkflowMapping(String dir, String wfName, int version, String createdBy) throws Exception {
+	public static void saveWorkflowMapping(String dir, String projectId, String wfName, int version, String createdBy)
+			throws Exception {
 
-		String sql = "INSERT INTO workflow_mapping(directory,workflow_name,version,created_by) VALUES(?,?,?,?)";
+		String sql = "INSERT INTO workflow_mapping(directory,project_id,workflow_name,version,created_by) VALUES(?,?,?,?,?)";
 		try (Connection con = connectToScheduler(); PreparedStatement ps = con.prepareStatement(sql)) {
 			ps.setString(1, dir);
-			ps.setString(2, wfName);
-			ps.setInt(3, version);
-			ps.setString(4, createdBy);
+			ps.setString(2, projectId);
+			ps.setString(3, wfName);
+			ps.setInt(4, version);
+			ps.setString(5, createdBy);
 			ps.executeUpdate();
 		}
 	}
@@ -2687,6 +2689,7 @@ public class SchedulerDatabaseUtility {
 		while (rs.next()) {
 			workflowMapping.directory = rs.getString("directory");
 			workflowMapping.workflowName = rs.getString("workflow_name");
+			workflowMapping.projectId = rs.getString("project_id");
 			workflowMapping.createdBy = rs.getString("created_by");
 		}
 		return workflowMapping;

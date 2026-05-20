@@ -30,9 +30,18 @@ package prerna.reactor.shortcuts.conductor.oss;
 public class WorkflowMapping {
 	public Long id;
 	public String directory;
+	public String projectId;
 	public String workflowName;
 	public int version;
 	public String createdBy;
+
+	public String getProjectId() {
+		return projectId;
+	}
+
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
+	}
 
 	public String getCreatedBy() {
 		return createdBy;

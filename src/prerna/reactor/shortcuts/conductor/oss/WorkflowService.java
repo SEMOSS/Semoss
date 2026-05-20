@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.shortcuts.conductor.oss;
 
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +47,8 @@ public class WorkflowService {
 	public String startWorkflow(String filePath, WorkflowMapping workflowMapping) {
 		Map<String, Object> input = new HashMap<>();
 		input.put("filePath", filePath);
+		input.put("projectId", workflowMapping.getProjectId());
+		input.put("fileName", Path.of(filePath).getFileName().toString());
 		StartWorkflowRequest req = new StartWorkflowRequest();
 		req.setName(workflowMapping.getWorkflowName());
 		req.setVersion(1);

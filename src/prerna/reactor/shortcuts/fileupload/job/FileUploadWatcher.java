@@ -39,6 +39,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
@@ -54,12 +55,13 @@ import com.netflix.conductor.client.http.WorkflowClient;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.shortcuts.conductor.oss.WorkflowMapping;
 import prerna.reactor.shortcuts.conductor.oss.WorkflowService;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 public class FileUploadWatcher implements Runnable {
 	private WatchService watchService;
 
-// WatchKey -> Directory
+	// WatchKey -> Directory
 	private final Map<WatchKey, Path> keyToDir = new ConcurrentHashMap<>();
 
 	private final ObjectMapper mapper = new ObjectMapper();
@@ -67,10 +69,10 @@ public class FileUploadWatcher implements Runnable {
 	private final MetadataClient metadataClient = new MetadataClient();
 	private final WorkflowClient workflowClient = new WorkflowClient();
 
-// Paused directories
+	// Paused directories
 	private final Set<Path> pausedDirs = ConcurrentHashMap.newKeySet();
 
-// Deduplicate file processing
+	// Deduplicate file processing
 	private final Set<Path> inProgressFiles = ConcurrentHashMap.newKeySet();
 
 	private volatile boolean running = true;
@@ -79,9 +81,9 @@ public class FileUploadWatcher implements Runnable {
 		this.watchService = FileSystems.getDefault().newWatchService();
 	}
 
-// =====================================================
-// REGISTER DIRECTORY RECURSIVELY
-// =====================================================
+	// =====================================================
+	// REGISTER DIRECTORY RECURSIVELY
+	// =====================================================
 	public synchronized void watch(Path rootDir) throws IOException {
 
 		if (!Files.exists(rootDir) || !Files.isDirectory(rootDir)) {
@@ -101,9 +103,9 @@ public class FileUploadWatcher implements Runnable {
 		});
 	}
 
-// =====================================================
-// REMOVE DIRECTORY (RECURSIVE)
-// =====================================================
+	// =====================================================
+	// REMOVE DIRECTORY (RECURSIVE)
+	// =====================================================
 	public void removeDirectory(Path rootDir) {
 
 		keyToDir.entrySet().removeIf(entry -> {
@@ -120,9 +122,9 @@ public class FileUploadWatcher implements Runnable {
 		});
 	}
 
-// =====================================================
-// PAUSE / RESUME PER DIRECTORY
-// =====================================================
+	// =====================================================
+	// PAUSE / RESUME PER DIRECTORY
+	// =====================================================
 	public void pauseDirectory(Path dir) {
 		pausedDirs.add(dir);
 		System.out.println(" Paused: " + dir);
@@ -137,9 +139,9 @@ public class FileUploadWatcher implements Runnable {
 		return pausedDirs.stream().anyMatch(path::startsWith);
 	}
 
-// =====================================================
-// WATCH LOOP (SINGLE THREAD)
-// =====================================================
+	// =====================================================
+	// WATCH LOOP (SINGLE THREAD)
+	// =====================================================
 	@Override
 	public void run() {
 
@@ -233,26 +235,33 @@ public class FileUploadWatcher implements Runnable {
 
 					// Create workers dynamically
 					// WorkflowEntity workflowEntity = null;
+
+					/*
+					 * workflowEntity = SchedulerDatabaseUtility
+					 * .findWorkflowActiveByDirectory(Utility.normalizePath(parentDir.toString()));
+					 * // String workflowJson = workflowEntity.getWorkflowJson(); // workflowJson =
+					 * workflowJson.replace("{filename}", fileName); List<Worker> workers =
+					 * WorkerFactory.createWorkers(workflowJson);
+					 * 
+					 * // Start workers WorkerInitializer.startWorkers(workers);
+					 */
+					// ===== 1. Find workflow =====
 					try {
-						/*
-						 * workflowEntity = SchedulerDatabaseUtility
-						 * .findWorkflowActiveByDirectory(Utility.normalizePath(parentDir.toString()));
-						 * // String workflowJson = workflowEntity.getWorkflowJson(); // workflowJson =
-						 * workflowJson.replace("{filename}", fileName); List<Worker> workers =
-						 * WorkerFactory.createWorkers(workflowJson);
-						 * 
-						 * // Start workers WorkerInitializer.startWorkers(workers);
-						 */
-						// ===== 1. Find workflow =====
-						try {
-							WorkflowMapping workflowMapping = SchedulerDatabaseUtility
-									.findByWorkflowMappingDirectory(Utility.normalizePath(parentDir.toString()));
-							WorkflowService workflowService = new WorkflowService();
-							workflowService.startWorkflow(Utility.normalizePath(fullPath), workflowMapping);
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						WorkflowMapping workflowMapping = SchedulerDatabaseUtility
+								.findByWorkflowMappingDirectory(Utility.normalizePath(parentDir.toString()));
+
+						// ===== 2. Copy file into project space =====
+						String projectId = workflowMapping.getProjectId();
+						if (projectId != null && !projectId.isEmpty()) {
+							String projectSpaceFolder = AssetUtility.getProjectAppRootFolder(projectId);
+							Path destPath = Path.of(projectSpaceFolder, fileName);
+							Files.createDirectories(destPath.getParent());
+							Files.copy(path, destPath, StandardCopyOption.REPLACE_EXISTING);
+							System.out.println(" Copied file to project space: " + destPath);
 						}
+
+						WorkflowService workflowService = new WorkflowService();
+						workflowService.startWorkflow(Utility.normalizePath(fullPath), workflowMapping);
 
 						/*
 						 * String workflowName = SchedulerDatabaseUtility
@@ -300,12 +309,10 @@ public class FileUploadWatcher implements Runnable {
 					 * parentDir.toString()); continue; }
 					 */
 
-				}
-
-				// =========================
-				// DIRECTORY CREATED
-				// =========================
-				else if (event.kind() == ENTRY_CREATE && Files.isDirectory(path)) {
+					// =========================
+					// DIRECTORY CREATED
+					// =========================
+				} else if (event.kind() == ENTRY_CREATE && Files.isDirectory(path)) {
 					try {
 						watch(path);
 					} catch (IOException ignored) {
@@ -337,9 +344,9 @@ public class FileUploadWatcher implements Runnable {
 		System.out.println(" WatchServiceWatcher stopped");
 	}
 
-// =====================================================
-// SHUTDOWN
-// =====================================================
+	// =====================================================
+	// SHUTDOWN
+	// =====================================================
 	public synchronized void shutdown() throws IOException {
 
 		running = false;
@@ -358,9 +365,9 @@ public class FileUploadWatcher implements Runnable {
 		System.out.println(" WatchServiceWatcher shutdown");
 	}
 
-// =====================================================
-// RESTART (SAFE)
-// =====================================================
+	// =====================================================
+	// RESTART (SAFE)
+	// =====================================================
 	public synchronized void restart() throws IOException {
 
 		System.out.println(" Restarting watcher");

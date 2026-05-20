@@ -27,17 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.shortcuts.fileupload.job;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -51,7 +45,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.web.services.util.WebUtility;
 
 public class StoreReactor extends AbstractReactor {
 
@@ -60,8 +53,8 @@ public class StoreReactor extends AbstractReactor {
 
 	public StoreReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ENGINE.getKey(),
-				ReactorKeysEnum.CONFIG.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.CONFIG.getKey() };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
@@ -91,6 +84,7 @@ public class StoreReactor extends AbstractReactor {
 		 */
 		String filePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 
 		Map<String, Object> output = new HashMap<String, Object>();
 		List<String> inputs = (List<String>) config.get("inputs");
@@ -99,7 +93,7 @@ public class StoreReactor extends AbstractReactor {
 			Map<String, Object> actionInput = (Map<String, Object>) inputNounMetadata.getValue();
 			System.out.println(actionInput);
 			Map<String, Object> input = (Map<String, Object>) actionInput.get(key);
-			nounMetadata = processInput(nounMetadata, config, input, filePath, engineId);
+			nounMetadata = processInput(nounMetadata, config, input, filePath, engineId, projectId);
 
 		}
 		/*
@@ -132,14 +126,14 @@ public class StoreReactor extends AbstractReactor {
 	}
 
 	private NounMetadata processInput(NounMetadata nounMetadata, Map<String, Object> config, Map<String, Object> input,
-			String filePath, String engineId) {
+			String filePath, String engineId, String projectId) {
 
 		this.storage = (String) config.get("storage");
 		this.keyPrefix = (String) config.get("keyPrefix");
 		System.out.println("Storage : " + storage);
 		System.out.println("Prefix  : " + keyPrefix);
 
-		Map<String, Object> output = store(input, filePath, config, engineId);
+		Map<String, Object> output = store(input, filePath, config, engineId, projectId);
 		/*
 		 * for (String key : inputs) { nounMetadata = planner.getVariable(key);
 		 * Map<String, Object> inputMap = (Map<String, Object>) nounMetadata.getValue();
@@ -179,37 +173,45 @@ public class StoreReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> store(Map<String, Object> input, String filePath, Map<String, Object> config,
-			String engineId) {
+			String engineId, String projectId) {
 		return switch (storage) {
-		case "INSIGHT" -> storeToInsight(input, this.insight, filePath, config, engineId);
+		case "INSIGHT" -> storeToInsight(input, this.insight, filePath, config, engineId, projectId);
 
-		case "DB" -> storeToDatabase(input, this.insight, filePath, config, engineId);
+		case "DB" -> storeToDatabase(input, this.insight, filePath, config, engineId, projectId);
 
-		case "VECTOR" -> storeToVectorDatabase(input, this.insight, filePath, config, engineId);
+		case "VECTOR" -> storeToVectorDatabase(input, this.insight, filePath, config, engineId, projectId);
 
-		case "FILE" -> storeToFile(input, this.insight, filePath, config, engineId);
+		case "FILE" -> storeToFile(input, this.insight, filePath, config, engineId, projectId);
 
 		default -> throw new IllegalArgumentException("Unsupported storage type: " + storage);
 		};
 	}
 
 	private Map<String, Object> storeToVectorDatabase(Map<String, Object> input, Insight insight, String filePath,
-			Map<String, Object> config, String engineId) {
+			Map<String, Object> config, String engineId, String projectId) {
 		// JDBC / JPA integration goes here
 		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
 		// System.out.println(fileExtractionResult.extractedText);
 		// Initializing and calling LLM Reactor
-		storeToInsight(input, insight, filePath, config, engineId);
+		// Convert string to Path object
+		Path path = Paths.get(filePath);
+
+		// Extract the filename
+		String fileNameWithExt = path.getFileName().toString();
 		CreateEmbeddingsFromDocumentsReactor createEmbeddingsFromDocumentsReactor = new CreateEmbeddingsFromDocumentsReactor();
-		NounStore outputNouns = new NounStore("Create Embeddings From Documents");
+		NounStore outputNouns = new NounStore("Predict Metamodel LLM ");
 
 		GenRowStruct grs = new GenRowStruct();
 		grs.add(new NounMetadata(engineId, PixelDataType.CONST_STRING));
 		outputNouns.addNoun(ReactorKeysEnum.ENGINE.getKey(), grs);
 
 		grs = new GenRowStruct();
-		grs.add(new NounMetadata(filePath, PixelDataType.CONST_STRING));
+		grs.add(new NounMetadata(fileNameWithExt, PixelDataType.CONST_STRING));
 		outputNouns.addNoun("filePaths", grs);
+
+		grs = new GenRowStruct();
+		grs.add(new NounMetadata(projectId, PixelDataType.CONST_STRING));
+		outputNouns.addNoun(ReactorKeysEnum.SPACE.getKey(), grs);
 
 		createEmbeddingsFromDocumentsReactor.setNounStore(outputNouns);
 
@@ -230,69 +232,11 @@ public class StoreReactor extends AbstractReactor {
 	/* ---------- Storage Implementations ---------- */
 
 	private Map<String, Object> storeToInsight(Map<String, Object> input, Insight insight, String filePath,
-			Map<String, Object> config, String engineId) {
+			Map<String, Object> config, String engineId, String projectId) {
 		// Replace with real Insight / NoSQL persistence
 
 		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
 		// System.out.println(fileExtractionResult.extractedText);
-
-		String insightId = WebUtility.inputSanitizer(insight.getInsightId());
-
-		String url = "http://localhost:5173/Monolith/api/uploadFile/baseUpload?insightId=" + insightId;
-
-		Path path = Path.of(filePath);
-
-		String boundary = "----JavaBoundary" + UUID.randomUUID();
-
-		byte[] fileBytes = null;
-		try {
-			fileBytes = Files.readAllBytes(path);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		String fileName = path.getFileName().toString();
-
-		String mimeType = null;
-		try {
-			mimeType = Files.probeContentType(path);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		if (mimeType == null) {
-			mimeType = "application/octet-stream";
-		}
-
-		String multipartBody = "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"file\"; filename=\""
-				+ fileName + "\"\r\n" + "Content-Type: " + mimeType + "\r\n\r\n";
-
-		String endBoundary = "\r\n--" + boundary + "--\r\n";
-
-		byte[] bodyBytes = concat(multipartBody.getBytes(), fileBytes, endBoundary.getBytes());
-
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url))
-				.header("Content-Type", "multipart/form-data; boundary=" + boundary)
-				.POST(HttpRequest.BodyPublishers.ofByteArray(bodyBytes)).build();
-
-		HttpClient client = HttpClient.newHttpClient();
-
-		HttpResponse<String> response = null;
-		try {
-			response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		System.out.println("Status : " + response.statusCode());
-		System.out.println("Response : " + response.body());
-
 		System.out.println(input.get("fileName"));
 		System.out.println(input.get("data"));
 		System.out.println(input.get("fileType"));
@@ -306,26 +250,6 @@ public class StoreReactor extends AbstractReactor {
 		return output;
 
 		// return workflowActionResult;
-	}
-
-	private static byte[] concat(byte[]... arrays) {
-
-		int totalLength = 0;
-
-		for (byte[] array : arrays) {
-			totalLength += array.length;
-		}
-
-		byte[] result = new byte[totalLength];
-
-		int currentIndex = 0;
-
-		for (byte[] array : arrays) {
-			System.arraycopy(array, 0, result, currentIndex, array.length);
-			currentIndex += array.length;
-		}
-
-		return result;
 	}
 
 	private Map<String, Object> processOutput(NounMetadata nounMetadata, Map<String, Object> output,
@@ -367,7 +291,7 @@ public class StoreReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> storeToDatabase(Map<String, Object> input, Insight insight, String filePath,
-			Map<String, Object> config, String engineId) {
+			Map<String, Object> config, String engineId, String projectId) {
 		// JDBC / JPA integration goes here
 		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
 		// System.out.println(fileExtractionResult.extractedText);
@@ -379,7 +303,7 @@ public class StoreReactor extends AbstractReactor {
 	}
 
 	private Map<String, Object> storeToFile(Map<String, Object> input, Insight insight, String filePath,
-			Map<String, Object> config, String engineId) {
+			Map<String, Object> config, String engineId, String projectId) {
 		// JDBC / JPA integration goes here
 		// System.out.println(" [INSIGHT] key=" + fileExtractionResult.extractedText);
 		// System.out.println(fileExtractionResult.extractedText);
