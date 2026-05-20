@@ -73,6 +73,9 @@ public final class AgentConfig {
     // Budgets (nested)
     private final Budgets budgets;
 
+    // Subagent-spawn policy (nested) — depth + spawn-count caps
+    private final SubAgentSpawnPolicy spawnPolicy;
+
     // Message hooks (resolved instances; never null, empty when none configured)
     private final List<IMessageHook> hooks;
 
@@ -99,6 +102,7 @@ public final class AgentConfig {
                 ? Collections.unmodifiableList(new ArrayList<>(b.skills))
                 : Collections.emptyList();
         this.budgets         = b.budgets != null ? b.budgets : Budgets.defaults();
+        this.spawnPolicy     = b.spawnPolicy != null ? b.spawnPolicy : SubAgentSpawnPolicy.defaults();
         this.hooks           = b.hooks != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.hooks))
                 : Collections.emptyList();
@@ -229,6 +233,12 @@ public final class AgentConfig {
         return budgets;
     }
 
+    // Subagent-spawn policy
+    /** Subagent-spawn policy (depth + spawn counts). Never {@code null}. */
+    public SubAgentSpawnPolicy getSpawnPolicy() {
+        return spawnPolicy;
+    }
+
     // Hooks
     public List<IMessageHook> getHooks() {
         return hooks;
@@ -262,9 +272,10 @@ public final class AgentConfig {
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
-        private Budgets budgets;
-        private List<IMessageHook> hooks;
-        private List<SubAgentSpec> subagents;
+        private Budgets             budgets;
+        private SubAgentSpawnPolicy spawnPolicy;
+        private List<IMessageHook>  hooks;
+        private List<SubAgentSpec>  subagents;
 
         public Builder workspaceId(String v)         { this.workspaceId = v;         return this; }
         public Builder name(String v)                { this.name = v;                return this; }
@@ -277,8 +288,9 @@ public final class AgentConfig {
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }
-        public Builder budgets(Budgets v)            { this.budgets = v;             return this; }
-        public Builder hooks(List<IMessageHook> v)   { this.hooks = v;               return this; }
+        public Builder budgets(Budgets v)                       { this.budgets = v;             return this; }
+        public Builder spawnPolicy(SubAgentSpawnPolicy v)       { this.spawnPolicy = v;         return this; }
+        public Builder hooks(List<IMessageHook> v)              { this.hooks = v;               return this; }
         public Builder subagents(List<SubAgentSpec> v) { this.subagents = v;         return this; }
 
         public AgentConfig build() {
@@ -331,6 +343,48 @@ public final class AgentConfig {
 
         public static Budgets of(int maxTurns, int maxReflections, int maxSeconds) {
             return new Budgets(maxTurns, maxReflections, maxSeconds);
+        }
+    }
+
+    // Nested: SubAgentSpawnPolicy — depth + spawn-count caps for subagent sprawl.
+    public static final class SubAgentSpawnPolicy {
+
+        // 1 = root may spawn but children may not (no grandchildren).
+        public static final int DEFAULT_MAX_SUBAGENT_DEPTH    = 1;
+        // Lifetime cap across the whole tree under one root.
+        public static final int DEFAULT_MAX_SUBAGENTS_PER_RUN = 10;
+        // Per tool batch (one model turn).
+        public static final int DEFAULT_MAX_SPAWNS_PER_TURN   = 5;
+
+        private final int maxSubagentDepth;
+        private final int maxSubagentsPerRun;
+        private final int maxSpawnsPerTurn;
+
+        private SubAgentSpawnPolicy(int maxSubagentDepth, int maxSubagentsPerRun, int maxSpawnsPerTurn) {
+            if (maxSubagentDepth < 0) {
+                throw new IllegalArgumentException("maxSubagentDepth must be >= 0 (got " + maxSubagentDepth + ")");
+            }
+            if (maxSubagentsPerRun < 0) {
+                throw new IllegalArgumentException("maxSubagentsPerRun must be >= 0 (got " + maxSubagentsPerRun + ")");
+            }
+            if (maxSpawnsPerTurn < 0) {
+                throw new IllegalArgumentException("maxSpawnsPerTurn must be >= 0 (got " + maxSpawnsPerTurn + ")");
+            }
+            this.maxSubagentDepth   = maxSubagentDepth;
+            this.maxSubagentsPerRun = maxSubagentsPerRun;
+            this.maxSpawnsPerTurn   = maxSpawnsPerTurn;
+        }
+
+        public int getMaxSubagentDepth()    { return maxSubagentDepth; }
+        public int getMaxSubagentsPerRun()  { return maxSubagentsPerRun; }
+        public int getMaxSpawnsPerTurn()    { return maxSpawnsPerTurn; }
+
+        public static SubAgentSpawnPolicy defaults() {
+            return new SubAgentSpawnPolicy(DEFAULT_MAX_SUBAGENT_DEPTH, DEFAULT_MAX_SUBAGENTS_PER_RUN, DEFAULT_MAX_SPAWNS_PER_TURN);
+        }
+
+        public static SubAgentSpawnPolicy of(int maxSubagentDepth, int maxSubagentsPerRun, int maxSpawnsPerTurn) {
+            return new SubAgentSpawnPolicy(maxSubagentDepth, maxSubagentsPerRun, maxSpawnsPerTurn);
         }
     }
 }

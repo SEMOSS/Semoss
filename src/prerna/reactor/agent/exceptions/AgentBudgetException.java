@@ -25,39 +25,28 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.subagent;
+package prerna.reactor.agent.exceptions;
 
 /**
- * Output of {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
+ * Thrown when a run-level budget (wall-clock time, token count, cost) is exceeded.
  *
- * <p>The {@code jobId} is the model-facing handle the parent passes to
- * {@code WaitForSubAgent} / {@code CheckSubAgentStatus} to collect the child's final answer.
- * Immutable.
+ * <p>Distinct from {@link AgentMaxTurnsException} (which guards the tool-call iteration cap)
+ * so callers can apply different handling per budget type. The {@link #getBudgetKind()} field
+ * identifies which limit was crossed.
  */
-public final class SpawnResult {
+public class AgentBudgetException extends RuntimeException {
 
-    private final String jobId;
-    private final String roomId;
-    private final String alias;
+    public enum BudgetKind { RUN_TIME, INPUT_TOKENS, TOTAL_TOKENS }
 
-    public SpawnResult(String jobId, String roomId, String alias) {
-        this.jobId  = jobId;
-        this.roomId = roomId;
-        this.alias  = alias;
+    private final BudgetKind budgetKind;
+
+    public AgentBudgetException(BudgetKind kind, String message) {
+        super(message);
+        this.budgetKind = kind;
     }
 
-    /** Async pixel job id assigned to the spawned subagent run. */
-    public String getJobId() {
-        return jobId;
-    }
-
-    /** Newly created child room id. */
-    public String getRoomId() {
-        return roomId;
-    }
-
-    /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
-    public String getAlias() {
-        return alias;
+    /** Which budget limit was exceeded. */
+    public BudgetKind getBudgetKind() {
+        return budgetKind;
     }
 }

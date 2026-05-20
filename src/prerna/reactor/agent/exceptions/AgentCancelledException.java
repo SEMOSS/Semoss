@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.runtime;
+package prerna.reactor.agent.exceptions;
 
 /**
  * Thrown when a cooperative cancellation signal is detected during the agent loop.

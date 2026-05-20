@@ -44,7 +44,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Platform reactor for spawning a subagent from Pixel - same code path the
- * semoss harness's built-in {@code spawn_subagent} / named-subagent tools use,
+ * semoss harness's built-in {@code SpawnSubAgent} / named-subagent tools use,
  * exposed as a first-class Pixel operation so frontends and scripts can drive
  * subagents directly.
  *

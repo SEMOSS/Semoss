@@ -39,7 +39,7 @@ import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.config.SubAgentSpec;
-import prerna.reactor.agent.runtime.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobStatus;
@@ -50,8 +50,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>Called from the semoss harness when a tool name matches either a named
  * {@link SubAgentSpec} alias or one of the {@link SubAgentToolSynthesizer}
- * built-ins ({@code spawn_subagent}, {@code check_subagent},
- * {@code wait_subagent}).
+ * built-ins ({@code SpawnSubAgent}, {@code CheckSubAgentStatus},
+ * {@code WaitForSubAgent}).
  *
  * <p>All four entry points return a string suitable for handing directly back
  * to the model as the tool result.
@@ -132,7 +132,7 @@ public final class SubAgentDispatcher {
         String context = stringArg(args, "context");
         boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
         if (prompt == null) {
-            return GSON.toJson(error("Missing required argument 'prompt' for spawn_subagent"));
+            return GSON.toJson(error("Missing required argument 'prompt' for SpawnSubAgent"));
         }
 
         SpawnRequest req = new SpawnRequest();
@@ -172,7 +172,7 @@ public final class SubAgentDispatcher {
      */
     public static String check(String jobId) {
         if (jobId == null || jobId.isBlank()) {
-            return GSON.toJson(error("Missing required argument 'jobId' for check_subagent"));
+            return GSON.toJson(error("Missing required argument 'jobId' for CheckSubAgentStatus"));
         }
         Map<String, Object> out = new LinkedHashMap<>();
         out.put("jobId", jobId);
@@ -194,7 +194,7 @@ public final class SubAgentDispatcher {
      */
     public static String wait(String jobId, int timeoutSec) {
         if (jobId == null || jobId.isBlank()) {
-            return GSON.toJson(error("Missing required argument 'jobId' for wait_subagent"));
+            return GSON.toJson(error("Missing required argument 'jobId' for WaitForSubAgent"));
         }
         if (timeoutSec <= 0) {
             timeoutSec = DEFAULT_WAIT_TIMEOUT_SEC;
@@ -228,7 +228,7 @@ public final class SubAgentDispatcher {
             } catch (InterruptedException ie) {
                 // propagate as cancel rather than returning a phantom tool-result string
                 Thread.currentThread().interrupt();
-                throw new AgentCancelledException("wait_subagent interrupted while polling jobId=" + jobId);
+                throw new AgentCancelledException("WaitForSubAgent interrupted while polling jobId=" + jobId);
             }
         }
     }

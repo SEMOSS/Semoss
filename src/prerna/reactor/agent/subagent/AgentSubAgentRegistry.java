@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +48,9 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.config.AgentConfig;
+import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
+import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobRunner;
 
@@ -61,7 +65,7 @@ import prerna.sablecc2.comm.PixelJobRunner;
  *
  * <p>Each spawn becomes a normal async {@code RunAgent(...)} pixel job. The
  * returned {@link SpawnResult#getJobId() jobId} is the model-facing handle the
- * orchestrator passes to {@code wait_subagent} / {@code check_subagent}.
+ * orchestrator passes to {@code WaitForSubAgent} / {@code CheckSubAgentStatus}.
  */
 public final class AgentSubAgentRegistry {
 
@@ -77,7 +81,20 @@ public final class AgentSubAgentRegistry {
     /** parentJobId -> list of child jobIds (kept in spawn order for predictable tree walks). */
     private final Map<String, List<String>> childrenByParent = new ConcurrentHashMap<>();
 
+    // rootJobId -> spawn policy + remaining-budget counter shared by the whole tree.
+    private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
+
     private AgentSubAgentRegistry() {}
+
+    // Shared by every descendant in the tree so the total stays bounded.
+    private static final class RootSpawnContext {
+        final AgentConfig.SubAgentSpawnPolicy policy;
+        final AtomicInteger                   spawnBudgetRemaining;
+        RootSpawnContext(AgentConfig.SubAgentSpawnPolicy policy) {
+            this.policy = policy;
+            this.spawnBudgetRemaining = new AtomicInteger(policy.getMaxSubagentsPerRun());
+        }
+    }
 
     public static AgentSubAgentRegistry getManager() {
         return INSTANCE;
@@ -122,6 +139,42 @@ public final class AgentSubAgentRegistry {
         Insight callerInsight = req.callerInsight;
         Room parentRoom       = RoomUtils.getOrLoadRoom(req.parentRoomId, callerInsight);
 
+        // Spawn-policy enforcement — depth + per-root budget.
+        SubAgentMeta parentMeta = req.parentJobId == null ? null : byJobId.get(req.parentJobId);
+        int parentDepth = parentMeta == null ? 0 : parentMeta.getSpawnDepth();
+        int childDepth  = parentDepth + 1;
+        RootSpawnContext rootCtx = lookupRootContextForJob(req.parentJobId);
+        AgentConfig.SubAgentSpawnPolicy policy = rootCtx != null
+                ? rootCtx.policy
+                : AgentConfig.SubAgentSpawnPolicy.defaults();
+
+        if (parentMeta != null && rootCtx == null) {
+            throw new IllegalStateException(
+                    "Missing root spawn context for subagent tree parentJobId=" + req.parentJobId);
+        }
+
+        if (childDepth > policy.getMaxSubagentDepth()) {
+            logger.warn(
+                "AgentSubAgentRegistry: spawn REJECTED — childDepth={} > maxSubagentDepth={} (parentJobId={})",
+                childDepth, policy.getMaxSubagentDepth(), req.parentJobId);
+            throw new AgentMaxSpawnDepthException(childDepth, policy.getMaxSubagentDepth());
+        }
+        boolean rootBudgetClaimed = false;
+        if (rootCtx != null) {
+            int remaining = rootCtx.spawnBudgetRemaining.decrementAndGet();
+            if (remaining < 0) {
+                rootCtx.spawnBudgetRemaining.incrementAndGet();   // restore — we did not spawn
+                logger.warn(
+                    "AgentSubAgentRegistry: spawn REJECTED — per-root budget exhausted (max={}, parentJobId={})",
+                    policy.getMaxSubagentsPerRun(), req.parentJobId);
+                throw new AgentSpawnBudgetExhaustedException(policy.getMaxSubagentsPerRun());
+            }
+            rootBudgetClaimed = true;
+        }
+
+        String childJobIdForCleanup = null;
+        boolean childStarted = false;
+        try {
         // 1. Build child room options. Start from parent's options (carries MCP refs,
         //    vectorDbs, etc.) so anonymous spawns inherit the orchestrator's setup.
         Map<String, Object> clonedOptions = parentRoom.getOptionsMap().isEmpty()
@@ -218,19 +271,23 @@ public final class AgentSubAgentRegistry {
         PixelJobManager manager = PixelJobManager.getManager();
         PixelJobRunner runner = manager.makeJob(childInsight, sessionId, routeId);
         runner.addPixel(pixel.toString());
-        Thread.ofVirtual().start(runner);
         String childJobId = runner.getJobId();
+        childJobIdForCleanup = childJobId;
 
-        // 7. Record metadata.
+        // 7. Record metadata before starting the child thread. AgentRunner resolves
+        //    ctx.spawnDepth from this registry using ThreadStore.getJobId(), so the
+        //    child must be able to find its metadata as soon as RunAgent begins.
         SubAgentMeta meta = new SubAgentMeta(
                 childJobId, req.parentJobId, req.alias, req.workspaceId, childRoomId,
-                System.currentTimeMillis());
+                System.currentTimeMillis(), childDepth);
         byJobId.put(childJobId, meta);
         if (req.parentJobId != null && !req.parentJobId.isBlank()) {
             childrenByParent
                     .computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
                     .add(childJobId);
         }
+        Thread.ofVirtual().start(runner);
+        childStarted = true;
 
         // 8. Notify the parent's stream so a frontend can mount a child pane.
         if (req.parentJobId != null && !req.parentJobId.isBlank()) {
@@ -257,6 +314,16 @@ public final class AgentSubAgentRegistry {
         logger.info("AgentSubAgentRegistry: spawned subagent jobId={} parentJobId={} alias={} workspaceId={} roomId={}",
                 childJobId, req.parentJobId, req.alias, req.workspaceId, childRoomId);
         return new SpawnResult(childJobId, childRoomId, req.alias);
+        } catch (RuntimeException | Error e) {
+            if (!childStarted && childJobIdForCleanup != null) {
+                byJobId.remove(childJobIdForCleanup);
+                removeChildLink(req.parentJobId, childJobIdForCleanup);
+            }
+            if (rootBudgetClaimed && !childStarted) {
+                rootCtx.spawnBudgetRemaining.incrementAndGet();
+            }
+            throw e;
+        }
     }
 
     /** Look up the metadata for a spawned subagent. {@code null} when the jobId is unknown. */
@@ -275,6 +342,18 @@ public final class AgentSubAgentRegistry {
         if (kids == null) return Collections.emptyList();
         synchronized (kids) {
             return new ArrayList<>(kids);
+        }
+    }
+
+    private void removeChildLink(String parentJobId, String childJobId) {
+        if (parentJobId == null || parentJobId.isBlank() || childJobId == null) return;
+        List<String> kids = childrenByParent.get(parentJobId);
+        if (kids == null) return;
+        synchronized (kids) {
+            kids.remove(childJobId);
+            if (kids.isEmpty()) {
+                childrenByParent.remove(parentJobId, kids);
+            }
         }
     }
 
@@ -305,5 +384,50 @@ public final class AgentSubAgentRegistry {
 
     private static String escapeSingle(String s) {
         return s == null ? "" : s.replace("'", "\\'");
+    }
+
+    // Root spawn-policy registry — called by the harness at run boundaries.
+
+    /**
+     * Harness calls this at the top of a root run.
+     *
+     * @return {@code true} only when this call created the root context; callers should
+     *         unregister only in that case.
+     */
+    public boolean registerRoot(String rootJobId, AgentConfig.SubAgentSpawnPolicy policy) {
+        if (rootJobId == null || rootJobId.isBlank() || policy == null) return false;
+        return rootContextByJobId.putIfAbsent(rootJobId, new RootSpawnContext(policy)) == null;
+    }
+
+    /** No-op on unknown id. */
+    public void unregisterRoot(String rootJobId) {
+        if (rootJobId == null || rootJobId.isBlank()) return;
+        rootContextByJobId.remove(rootJobId);
+    }
+
+    /** Returns 0 for any jobId that has no recorded parent (root, or unregistered spawn). */
+    public int getDepthForJob(String jobId) {
+        if (jobId == null) return 0;
+        SubAgentMeta meta = byJobId.get(jobId);
+        return meta == null ? 0 : meta.getSpawnDepth();
+    }
+
+    /** {@code null} = no registered root context; caller should fall back to defaults. */
+    public AgentConfig.SubAgentSpawnPolicy lookupSpawnPolicyForJob(String jobId) {
+        RootSpawnContext ctx = lookupRootContextForJob(jobId);
+        return ctx == null ? null : ctx.policy;
+    }
+
+    // Walk from jobId up to the root; null if the chain never reaches a registered root.
+    private RootSpawnContext lookupRootContextForJob(String jobId) {
+        String cursor = jobId;
+        while (cursor != null && !cursor.isBlank()) {
+            RootSpawnContext direct = rootContextByJobId.get(cursor);
+            if (direct != null) return direct;
+            SubAgentMeta m = byJobId.get(cursor);
+            if (m == null) return null;            // cursor is a root with no registered context
+            cursor = m.getParentJobId();
+        }
+        return null;
     }
 }

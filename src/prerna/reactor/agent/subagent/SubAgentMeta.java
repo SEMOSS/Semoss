@@ -45,15 +45,18 @@ public final class SubAgentMeta {
     private final String workspaceId;
     private final String childRoomId;
     private final long   spawnedAt;
+    // Root=0, direct children=1, etc.
+    private final int    spawnDepth;
 
     public SubAgentMeta(String jobId, String parentJobId, String alias, String workspaceId,
-            String childRoomId, long spawnedAt) {
+            String childRoomId, long spawnedAt, int spawnDepth) {
         this.jobId       = jobId;
         this.parentJobId = parentJobId;
         this.alias       = alias;
         this.workspaceId = workspaceId;
         this.childRoomId = childRoomId;
         this.spawnedAt   = spawnedAt;
+        this.spawnDepth  = spawnDepth;
     }
 
     /** Async pixel job id assigned to this subagent run; doubles as the model-facing handle. */
@@ -84,5 +87,9 @@ public final class SubAgentMeta {
     /** Wall-clock spawn timestamp (epoch ms). */
     public long getSpawnedAt() {
         return spawnedAt;
+    }
+
+    public int getSpawnDepth() {
+        return spawnDepth;
     }
 }

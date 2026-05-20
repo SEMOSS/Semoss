@@ -144,6 +144,7 @@ public final class AgentConfigLoader {
 
         // CONFIG_JSON budgets override per field; remaining values come from caller args.
         b.budgets(resolveBudgets(cfgJson, paramMap, maxTurns, maxReflections));
+        b.spawnPolicy(resolveSpawnPolicy(cfgJson));
 
         // MCP refs come from workspace resources, CONFIG_JSON, and room options.
         b.mcps(resolveMcps(workspaceId, room, cfgJson));
@@ -530,6 +531,32 @@ public final class AgentConfigLoader {
             }
         }
         return AgentConfig.Budgets.of(maxTurns, maxReflections, maxSeconds);
+    }
+
+    /** CONFIG_JSON.spawn_policy keys: max_subagent_depth, max_subagents_per_run, max_spawns_per_turn. */
+    private static AgentConfig.SubAgentSpawnPolicy resolveSpawnPolicy(JSONObject cfgJson) {
+        int maxDepth     = AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH;
+        int maxPerRun    = AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENTS_PER_RUN;
+        int maxPerTurn   = AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SPAWNS_PER_TURN;
+
+        if (cfgJson != null && cfgJson.has("spawn_policy")) {
+            JSONObject pj = cfgJson.optJSONObject("spawn_policy");
+            if (pj != null) {
+                int d = pj.optInt("max_subagent_depth",    -1);
+                int r = pj.optInt("max_subagents_per_run", -1);
+                int t = pj.optInt("max_spawns_per_turn",   -1);
+                if (d >= 0) maxDepth   = d;
+                if (r >= 0) maxPerRun  = r;
+                if (t >= 0) maxPerTurn = t;
+            }
+        }
+        if (maxDepth > AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH) {
+            logger.warn(
+                    "AgentConfigLoader: spawn_policy.max_subagent_depth={} requested, but nested subagents are disabled for now; capping at {}",
+                    maxDepth, AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH);
+            maxDepth = AgentConfig.SubAgentSpawnPolicy.DEFAULT_MAX_SUBAGENT_DEPTH;
+        }
+        return AgentConfig.SubAgentSpawnPolicy.of(maxDepth, maxPerRun, maxPerTurn);
     }
 
     /**

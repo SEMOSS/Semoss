@@ -25,39 +25,26 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.subagent;
+package prerna.reactor.agent.exceptions;
 
 /**
- * Output of {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
+ * Thrown when the SEMOSS agent loop reaches the maximum turn cap without
+ * the model producing a {@code RESPONSE_TEXT}.
  *
- * <p>The {@code jobId} is the model-facing handle the parent passes to
- * {@code WaitForSubAgent} / {@code CheckSubAgentStatus} to collect the child's final answer.
- * Immutable.
+ * <p>Callers are responsible for recording the failure and surfacing a clear error message.
  */
-public final class SpawnResult {
+public class AgentMaxTurnsException extends RuntimeException {
 
-    private final String jobId;
-    private final String roomId;
-    private final String alias;
+    private final int maxTurns;
 
-    public SpawnResult(String jobId, String roomId, String alias) {
-        this.jobId  = jobId;
-        this.roomId = roomId;
-        this.alias  = alias;
+    public AgentMaxTurnsException(int maxTurns) {
+        super("Agent loop exceeded max turns (" + maxTurns
+                + ") without producing a final RESPONSE_TEXT");
+        this.maxTurns = maxTurns;
     }
 
-    /** Async pixel job id assigned to the spawned subagent run. */
-    public String getJobId() {
-        return jobId;
-    }
-
-    /** Newly created child room id. */
-    public String getRoomId() {
-        return roomId;
-    }
-
-    /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
-    public String getAlias() {
-        return alias;
+    /** The turn cap that was reached. */
+    public int getMaxTurns() {
+        return maxTurns;
     }
 }

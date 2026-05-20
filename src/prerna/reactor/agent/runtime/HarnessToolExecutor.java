@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,6 +50,7 @@ import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.config.SubAgentSpec;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -96,9 +98,14 @@ final class HarnessToolExecutor {
         String jobId = ThreadStore.getJobId();
         AskModelEngineResponse<?> nextModelResp = null;
 
+        // Per-turn spawn cap — shared across the batch. Only spawn-kind calls decrement.
+        int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
+        AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
+
         if (toolCalls.size() == 1) {
             ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId);
+            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+                    spawnsRemainingInBatch);
             state.addToolCallRecord(r.record);
             nextModelResp = r.modelResponse;
 
@@ -112,7 +119,8 @@ final class HarnessToolExecutor {
                 for (int i = 0; i < toolCalls.size(); i++) {
                     final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
                     futures[i] = CompletableFuture.supplyAsync(
-                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId),
+                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+                                    spawnsRemainingInBatch),
                             pool);
                 }
                 // Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
@@ -178,7 +186,8 @@ final class HarnessToolExecutor {
             Map<String, Object> paramMap,
             String parentMsgId,
             AgentRunContext ctx,
-            String jobId) {
+            String jobId,
+            AtomicInteger spawnsRemainingInBatch) {
 
         logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, currentIter);
@@ -188,7 +197,7 @@ final class HarnessToolExecutor {
         // jobId is captured on the caller's thread (where ThreadStore is valid) and
         // forwarded so subagent dispatch can address the parent's stream queue even
         // when this method runs on a worker thread from the parallel-tool pool.
-        ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId);
+        ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
         long durMs = System.currentTimeMillis() - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
@@ -210,7 +219,8 @@ final class HarnessToolExecutor {
     }
 
     private static ToolExecOutcome executeToolSafely(
-            ParsedToolCall tc, AgentRunContext ctx, String parentJobId) {
+            ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
+            AtomicInteger spawnsRemainingInBatch) {
 
         // 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
         //    the MCP pipeline. The dispatcher returns a JSON string suitable for handing
@@ -218,7 +228,8 @@ final class HarnessToolExecutor {
         java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
         if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
             try {
-                String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId);
+                String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
+                        spawnsRemainingInBatch);
                 return new ToolExecOutcome(result, true);
             } catch (Exception e) {
                 String msg = "Tool execution error: " + e.getMessage();
@@ -297,9 +308,13 @@ final class HarnessToolExecutor {
      * are matched by name; named subagent tools resolve to the matching {@link SubAgentSpec}.
      */
     private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params,
-            AgentRunContext ctx, java.util.List<SubAgentSpec> specs, String parentJobId) {
+            AgentRunContext ctx, java.util.List<SubAgentSpec> specs, String parentJobId,
+            AtomicInteger spawnsRemainingInBatch) {
         Room parentRoom = ctx.getRoom();
         if (SubAgentToolSynthesizer.TOOL_SPAWN_SUBAGENT.equals(rawToolName)) {
+            if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
+                return perTurnRejectedJson(ctx);
+            }
             return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId);
         }
         if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
@@ -323,7 +338,36 @@ final class HarnessToolExecutor {
         if (spec == null) {
             throw new IllegalStateException("Tool '" + rawToolName + "' classified as subagent but no matching spec");
         }
+        if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
+            return perTurnRejectedJson(ctx);
+        }
         return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId);
+    }
+
+    /** Atomic claim against the per-turn spawn budget; restores on miss. */
+    private static boolean claimSpawnSlot(AtomicInteger budget, AgentRunContext ctx, String toolName) {
+        if (budget == null) return true;
+        if (budget.decrementAndGet() < 0) {
+            budget.incrementAndGet();
+            logger.warn(
+                "HarnessToolExecutor: per-turn spawn cap reached ({}). Rejecting subagent tool '{}'.",
+                ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn(), toolName);
+            return false;
+        }
+        return true;
+    }
+
+    private static String perTurnRejectedJson(AgentRunContext ctx) {
+        int cap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
+        Map<String, Object> err = new HashMap<>();
+        err.put("error", "spawn_rejected_per_turn_cap");
+        err.put("message",
+            "Spawn rejected: this turn already has " + cap + " subagent spawn(s) in flight, "
+            + "which matches the configured maxSpawnsPerTurn. Wait for the current children to "
+            + "complete (call WaitForSubAgent) before spawning more, or split the work across "
+            + "multiple turns.");
+        err.put("maxSpawnsPerTurn", cap);
+        return GSON.toJson(err);
     }
 
     private static String callMcpToolViaReactor(

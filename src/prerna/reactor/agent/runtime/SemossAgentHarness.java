@@ -28,6 +28,7 @@
 package prerna.reactor.agent.runtime;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +41,17 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
-import prerna.reactor.agent.AgentMaxTurnsException;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.IAgentHarness;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.SubAgentSpec;
-import prerna.reactor.agent.runtime.AgentBudgetException.BudgetKind;
+import prerna.reactor.agent.exceptions.AgentBudgetException;
+import prerna.reactor.agent.exceptions.AgentBudgetException.BudgetKind;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 
 /**
@@ -113,17 +118,32 @@ public class SemossAgentHarness implements IAgentHarness {
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
-		// Subagent tools -- the three built-ins (spawn_subagent / wait_subagent /
-		// check_subagent) are ALWAYS injected for the semoss harness so any workspace
-		// can fire anonymous subagents without first declaring named slots. Named
-		// specs from CONFIG_JSON.subagents[] (if any) are added on top, one tool per
-		// alias. The harness injects this combined list into every InputMessage's
-		// paramMap.tools before Room.ask() so the LLM sees them alongside the room's
-		// normal MCP toolset.
+		// Root-only spawn policy for now: root runs see spawn/check/wait tools, child
+		// runs do not. max_subagent_depth=0 still disables spawning completely.
 		AgentConfig agentConfig = ctx.getAgentConfig();
+		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
-		List<Map<String, Object>> subAgentTools = SubAgentToolSynthesizer.allTools(subAgentSpecs);
+		boolean canSpawn = ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& policy.getMaxSubagentDepth() > AgentRunContext.ROOT_SPAWN_DEPTH;
+		List<Map<String, Object>> subAgentTools = canSpawn
+				? SubAgentToolSynthesizer.allTools(subAgentSpecs)
+				: Collections.emptyList();
 		injectSubAgentTools(paramMap, subAgentTools);
+
+		// Register on root only; descendants look up the shared per-tree budget. Released in finally.
+		String rootJobIdRegistered = null;
+		if (ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH) {
+			String runJobId = ThreadStore.getJobId();
+			if (runJobId != null && !runJobId.isBlank()) {
+				if (AgentSubAgentRegistry.getManager().registerRoot(runJobId, policy)) {
+					rootJobIdRegistered = runJobId;
+				}
+					logger.info(
+					"SemossAgentHarness: root spawn policy active jobId={} maxDepth={} maxPerRun={} maxPerTurn={}",
+					runJobId, policy.getMaxSubagentDepth(), policy.getMaxSubagentsPerRun(),
+					policy.getMaxSpawnsPerTurn());
+			}
+		}
 
 		// Compose the final prompt as:
 		//   <harness baseline>            -- SemossHarnessPrompts.SYSTEM_PROMPT (harness-specific)
@@ -145,10 +165,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
-		// Subagent control block -- always appended for the semoss harness now that
-		// the spawn/wait/check built-ins are always injected. When the workspace has
-		// named specs in CONFIG_JSON.subagents[], the block also lists them.
-		composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
+		// Prompt block matches the tools — skip when this run can't spawn.
+		if (canSpawn) {
+			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
+		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
@@ -282,6 +302,9 @@ public class SemossAgentHarness implements IAgentHarness {
 				opts.remove("instructions");
 			}
 			room.setOptionsMap(opts);
+			if (rootJobIdRegistered != null) {
+				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
+			}
 		}
 	}
 
@@ -342,15 +365,15 @@ public class SemossAgentHarness implements IAgentHarness {
 				first = false;
 			}
 			sb.append(".\n");
-			sb.append("You can also spawn anonymous subagents (clones of yourself) via `spawn_subagent`.\n\n");
+			sb.append("You can also spawn anonymous subagents (clones of yourself) via `SpawnSubAgent`.\n\n");
 		} else {
-			sb.append("You can spawn anonymous subagents (clones of yourself) via `spawn_subagent` ")
+			sb.append("You can spawn anonymous subagents (clones of yourself) via `SpawnSubAgent` ")
 			  .append("to delegate independent pieces of work in parallel.\n\n");
 		}
 		sb.append("Each spawn tool returns IMMEDIATELY with a `jobId` handle -- NOT the final answer.\n");
-		sb.append("- To get a subagent's answer, call `wait_subagent(jobId=<handle>)`. This blocks ")
+		sb.append("- To get a subagent's answer, call `WaitForSubAgent(jobId=<handle>)`. This blocks ")
 		  .append("until the subagent completes or your timeoutSec elapses.\n");
-		sb.append("- To check progress without blocking, call `check_subagent(jobId=<handle>)`.\n");
+		sb.append("- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.\n");
 		sb.append("- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.\n\n");
 
 		sb.append("## Two patterns: blocking vs deferred\n\n");
@@ -360,7 +383,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("**Pattern B -- deferred (use when subagents are expected to be slow, ");
 		sb.append("the user might want to keep talking, or you've spawned 3+ children):**\n");
 		sb.append("  spawn -> spawn -> reply to the user IMMEDIATELY with the jobIds and a note ");
-		sb.append("that you've kicked them off (do NOT call wait_subagent yet). End your turn.\n");
+		sb.append("that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.\n");
 		sb.append("  Subagents continue running in the background between your turns -- they don't ");
 		sb.append("pause when you end your turn.\n\n");
 
@@ -371,7 +394,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("subagent completion (e.g. \"spawn 2 subagents to plan trips and then write the ");
 		sb.append("md files\" -- the writing is a standing order), then on ANY later turn where you ");
 		sb.append("observe the subagents are terminal, immediately collect their output via ");
-		sb.append("`wait_subagent` AND execute the standing-order action in the same turn -- EVEN if ");
+		sb.append("`WaitForSubAgent` AND execute the standing-order action in the same turn -- EVEN if ");
 		sb.append("the user's immediate message only asked for status. The user has already ");
 		sb.append("authorized the downstream work; asking for permission again is rude and wastes ");
 		sb.append("their time. The ONLY exception is if the user explicitly restricts you to ");
@@ -392,14 +415,14 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("**Rule 1 -- user intent maps to a tool.** When there's no standing order yet ");
 		sb.append("(or you genuinely can't tell from context whether the user wants output):\n");
 		sb.append("- \"are they done?\" / \"what's the status?\" / \"check on them\" -> call ");
-		sb.append("`check_subagent(jobId)` (non-blocking) and report status only.\n");
+		sb.append("`CheckSubAgentStatus(jobId)` (non-blocking) and report status only.\n");
 		sb.append("- \"what did they say?\" / \"give me the results\" / \"did you finish the task?\" / ");
 		sb.append("\"did you write the file?\" / any request for the actual output -> call ");
-		sb.append("`wait_subagent(jobId)` directly. If the subagent is done, it returns immediately ");
-		sb.append("with the text. If still running, it blocks briefly. DO NOT call check_subagent ");
-		sb.append("first in this case -- just go straight to wait_subagent.\n\n");
+		sb.append("`WaitForSubAgent(jobId)` directly. If the subagent is done, it returns immediately ");
+		sb.append("with the text. If still running, it blocks briefly. DO NOT call CheckSubAgentStatus ");
+		sb.append("first in this case -- just go straight to WaitForSubAgent.\n\n");
 
-		sb.append("**Reporting status -- required format.** After calling check_subagent, your reply ");
+		sb.append("**Reporting status -- required format.** After calling CheckSubAgentStatus, your reply ");
 		sb.append("must begin with a direct binary answer before any narration:\n");
 		sb.append("- any job non-terminal -> start with \"No, not yet.\" then list each job's status.\n");
 		sb.append("- all jobs terminal -> start with \"Yes\" then list each.\n");
@@ -409,7 +432,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("don't answer the question. Answer first, narrate second.\n\n");
 
 		sb.append("**Rule 2 -- never ask permission for the obvious next step.** When ");
-		sb.append("check_subagent returns terminal AND there's any reasonable next action ");
+		sb.append("CheckSubAgentStatus returns terminal AND there's any reasonable next action ");
 		sb.append("(collect output, run the standing-order downstream work, summarize), just do ");
 		sb.append("it in the SAME turn. Don't say \"want me to collect the results?\" -- the user ");
 		sb.append("said what they want, just do it.\n\n");

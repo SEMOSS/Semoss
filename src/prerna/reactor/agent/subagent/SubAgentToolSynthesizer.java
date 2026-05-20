@@ -44,9 +44,9 @@ import prerna.reactor.agent.config.SubAgentSpec;
  *
  * <p>Built-ins always synthesized when any subagent capability is in play:
  * <ul>
- *   <li>{@code spawn_subagent} -- anonymous clone of the parent agent</li>
- *   <li>{@code check_subagent} -- non-blocking status peek</li>
- *   <li>{@code wait_subagent}  -- block until a child finishes (or timeout)</li>
+ *   <li>{@code SpawnSubAgent} -- anonymous clone of the parent agent</li>
+ *   <li>{@code CheckSubAgentStatus} -- non-blocking status peek</li>
+ *   <li>{@code WaitForSubAgent}     -- block until a child finishes (or timeout)</li>
  * </ul>
  *
  * <p>Tool dispatch routing uses {@link #BUILTIN_TOOL_NAMES} and the alias set from
@@ -56,9 +56,9 @@ import prerna.reactor.agent.config.SubAgentSpec;
 public final class SubAgentToolSynthesizer {
 
     /** Built-in subagent control tool names recognized by the dispatcher. */
-    public static final String TOOL_SPAWN_SUBAGENT = "spawn_subagent";
-    public static final String TOOL_CHECK_SUBAGENT = "check_subagent";
-    public static final String TOOL_WAIT_SUBAGENT  = "wait_subagent";
+    public static final String TOOL_SPAWN_SUBAGENT = "SpawnSubAgent";
+    public static final String TOOL_CHECK_SUBAGENT = "CheckSubAgentStatus";
+    public static final String TOOL_WAIT_SUBAGENT  = "WaitForSubAgent";
 
     /** Convenience set for {@code contains()} checks during dispatch. */
     public static final Set<String> BUILTIN_TOOL_NAMES = Collections.unmodifiableSet(
@@ -145,8 +145,8 @@ public final class SubAgentToolSynthesizer {
         inputSchema.put("required", Collections.singletonList("prompt"));
 
         String description = spec.getDescription() != null && !spec.getDescription().isBlank()
-                ? spec.getDescription() + " (Returns a jobId handle -- call wait_subagent to collect.)"
-                : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle -- call wait_subagent to collect.";
+                ? spec.getDescription() + " (Returns a jobId handle -- call WaitForSubAgent to collect.)"
+                : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle -- call WaitForSubAgent to collect.";
 
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", spec.getAlias());
@@ -176,7 +176,7 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
-        inputSchema.put("title", "spawn_subagent_Arguments");
+        inputSchema.put("title", "SpawnSubAgent_Arguments");
         inputSchema.put("properties", properties);
         inputSchema.put("required", Collections.singletonList("prompt"));
 
@@ -184,7 +184,7 @@ public final class SubAgentToolSynthesizer {
         tool.put("name", TOOL_SPAWN_SUBAGENT);
         tool.put("description",
                 "Spawn an anonymous subagent (clone of yourself: same model, MCP tools, system prompt). "
-                        + "Returns a jobId handle IMMEDIATELY -- call wait_subagent(jobId) to collect the final answer. "
+                        + "Returns a jobId handle IMMEDIATELY -- call WaitForSubAgent(jobId) to collect the final answer. "
                         + "You may spawn multiple subagents in parallel before waiting on any.");
         tool.put("inputSchema", inputSchema);
 
@@ -201,7 +201,7 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
-        inputSchema.put("title", "check_subagent_Arguments");
+        inputSchema.put("title", "CheckSubAgentStatus_Arguments");
         inputSchema.put("properties", properties);
         inputSchema.put("required", Collections.singletonList("jobId"));
 
@@ -213,10 +213,10 @@ public final class SubAgentToolSynthesizer {
                         + "'InProgress' (still running) or terminal: "
                         + "'ProgressComplete' / 'Complete' / 'Error' / 'Canceled'. "
                         + "WHEN status is terminal AND you (or the user) want the actual output, "
-                        + "IMMEDIATELY call wait_subagent(jobId) in the same turn to fetch the "
+                        + "IMMEDIATELY call WaitForSubAgent(jobId) in the same turn to fetch the "
                         + "final text -- do not stop to ask the user for permission. Use this "
                         + "tool only when you need a non-blocking status check; if you already "
-                        + "know you want the output, skip check and call wait_subagent directly. "
+                        + "know you want the output, skip check and call WaitForSubAgent directly. "
                         + "When the user asks whether a job is done, report the result explicitly "
                         + "in plain language as the FIRST sentence of your reply (\"No, it is still "
                         + "in progress\" / \"Yes, it is complete\") -- do not rely on the raw status "
@@ -242,7 +242,7 @@ public final class SubAgentToolSynthesizer {
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
-        inputSchema.put("title", "wait_subagent_Arguments");
+        inputSchema.put("title", "WaitForSubAgent_Arguments");
         inputSchema.put("properties", properties);
         inputSchema.put("required", Collections.singletonList("jobId"));
 
@@ -251,13 +251,13 @@ public final class SubAgentToolSynthesizer {
         tool.put("description",
                 "Block until a spawned subagent completes (or timeoutSec elapses), then return "
                         + "its final text. Use this whenever you want a subagent's OUTPUT -- either "
-                        + "right after spawn (blocking pattern) or after check_subagent says it's "
+                        + "right after spawn (blocking pattern) or after CheckSubAgentStatus says it's "
                         + "done (deferred pattern). If the subagent is already complete, this "
                         + "returns immediately with the text. On timeout returns "
                         + "{error: 'timeout', jobId} -- the subagent keeps running in the background "
-                        + "and you can call wait_subagent again later. When the user asks any "
+                        + "and you can call WaitForSubAgent again later. When the user asks any "
                         + "variant of 'are they done', 'what did they say', 'did you finish', or "
-                        + "'collect the results', call wait_subagent -- do not just report status.");
+                        + "'collect the results', call WaitForSubAgent -- do not just report status.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();

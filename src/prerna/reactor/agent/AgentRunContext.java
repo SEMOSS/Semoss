@@ -52,6 +52,9 @@ public final class AgentRunContext {
     @Deprecated
     public static final int DEFAULT_MAX_REFLECTIONS = AgentConfig.Budgets.DEFAULT_MAX_REFLECTIONS;
 
+    // Root = not spawned by another agent. Each spawn increments by 1.
+    public static final int ROOT_SPAWN_DEPTH = 0;
+
     // Live per-call state
     private final Room          room;
     private final IModelEngine  modelEngine;
@@ -59,6 +62,9 @@ public final class AgentRunContext {
     private final String        userId;
     private final String        input;
     private final SandboxPolicy sandboxPolicy;
+
+    // 0 for a root run, parent.spawnDepth+1 for a subagent run.
+    private final int           spawnDepth;
 
     // Resolved agent spec shared across harnesses.
     private final AgentConfig   agentConfig;
@@ -70,6 +76,7 @@ public final class AgentRunContext {
         this.userId        = b.userId;
         this.input         = b.input;
         this.sandboxPolicy = b.sandboxPolicy;
+        this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
     }
 
@@ -117,6 +124,11 @@ public final class AgentRunContext {
      */
     public AgentConfig getAgentConfig() {
         return agentConfig;
+    }
+
+    /** 0 = root run; checked against {@code agentConfig.getSpawnPolicy().getMaxSubagentDepth()}. */
+    public int getSpawnDepth() {
+        return spawnDepth;
     }
 
     // Compatibility accessors (delegate to AgentConfig)
@@ -180,6 +192,8 @@ public final class AgentRunContext {
         private String        input;
         private SandboxPolicy sandboxPolicy;
 
+        private int           spawnDepth = ROOT_SPAWN_DEPTH;
+
         // Either supplied directly or assembled from the legacy setters below.
         private AgentConfig   agentConfig;
 
@@ -195,6 +209,8 @@ public final class AgentRunContext {
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
+
+        public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 
         /** Sets the canonical agent spec. Preferred path. */
         public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }

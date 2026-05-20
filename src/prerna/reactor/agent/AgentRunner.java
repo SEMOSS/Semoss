@@ -42,12 +42,14 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
@@ -193,6 +195,11 @@ public final class AgentRunner {
                 .userId(room.getUserId())
                 .input(input)
                 .sandboxPolicy(sandboxPolicy)
+                // Root runs are not registered as subagents and resolve to depth 0.
+                // Child runs are recorded by AgentSubAgentRegistry before their
+                // virtual thread starts, so this lookup can classify the run without
+                // storing transient spawn state on the durable room options.
+                .spawnDepth(resolveSpawnDepth())
                 .agentConfig(agentConfig)
                 .build();
 
@@ -334,6 +341,23 @@ public final class AgentRunner {
     }
 
     /**
+     * Resolve this run's position in the subagent tree from the current async job id.
+     *
+     * <p>The current policy is root-only spawning: a normal {@code RunAgent} call has no
+     * {@link prerna.reactor.agent.subagent.SubAgentMeta} entry and resolves to depth 0,
+     * while spawned child jobs resolve to the depth recorded by
+     * {@link AgentSubAgentRegistry#spawn}. The harness uses this value to decide whether
+     * to expose spawn tools.
+     */
+    private static int resolveSpawnDepth() {
+        String jobId = ThreadStore.getJobId();
+        if (jobId == null || jobId.isBlank()) {
+            return AgentRunContext.ROOT_SPAWN_DEPTH;
+        }
+        return AgentSubAgentRegistry.getManager().getDepthForJob(jobId);
+    }
+
+    /**
      * Resolves the working directory from room state plus {@code project} and
      * {@code subdir} params.
      *
@@ -344,6 +368,7 @@ public final class AgentRunner {
      *                             {@code room.options.workspace.workspace_id});
      *                             {@code null} when the room has no workspace binding.
      *                             Used only for the {@code CONFIG_JSON.subdir} fallback.
+     *
      * @throws IllegalArgumentException for unresolvable project, illegal subdir, or
      *                                  containment failure
      */

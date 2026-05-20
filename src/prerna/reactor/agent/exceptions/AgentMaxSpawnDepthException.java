@@ -25,26 +25,21 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.agent.exceptions;
 
-/**
- * Thrown when the SEMOSS agent loop reaches the maximum turn cap without
- * the model producing a {@code RESPONSE_TEXT}.
- *
- * <p>Callers are responsible for recording the failure and surfacing a clear error message.
- */
-public class AgentMaxTurnsException extends RuntimeException {
+/** Thrown when a spawn would exceed {@code SubAgentSpawnPolicy.maxSubagentDepth}. */
+public class AgentMaxSpawnDepthException extends RuntimeException {
 
-    private final int maxTurns;
+    private final int attemptedDepth;
+    private final int maxDepth;
 
-    public AgentMaxTurnsException(int maxTurns) {
-        super("Agent loop exceeded max turns (" + maxTurns
-                + ") without producing a final RESPONSE_TEXT");
-        this.maxTurns = maxTurns;
+    public AgentMaxSpawnDepthException(int attemptedDepth, int maxDepth) {
+        super("Subagent spawn rejected: would create depth " + attemptedDepth
+                + " which exceeds the configured maxSubagentDepth=" + maxDepth);
+        this.attemptedDepth = attemptedDepth;
+        this.maxDepth = maxDepth;
     }
 
-    /** The turn cap that was reached. */
-    public int getMaxTurns() {
-        return maxTurns;
-    }
+    public int getAttemptedDepth() { return attemptedDepth; }
+    public int getMaxDepth()       { return maxDepth; }
 }
