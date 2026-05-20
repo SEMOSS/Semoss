@@ -69,7 +69,10 @@ class SEMOSSMessageBuilder:
                         )
 
                     elif p.get("type") == "TEXT":
-                        text_part = SEMOSSTextMessagePart(text=p.get("text"))
+                        text_part = SEMOSSTextMessagePart(
+                            text=p.get("text"),
+                            ui_text=p.get("uiText") or p.get("ui_text"),
+                        )
                         process_parts.append(text_part)
 
                     elif p.get("type") == "MEDIA":
@@ -90,18 +93,22 @@ class SEMOSSMessageBuilder:
                                 ),
                                 id=tc.get("id"),
                                 type="function",
-                                thought_signature=tc.get("thought_signature"),
+                                thought_signature=tc.get("thought_signature")
+                                or tc.get("thoughtSignature"),
+                                server_tool=tc.get("server_tool")
+                                or tc.get("serverTool"),
                             )
                         )
                         process_parts.append(tool_call_part)
 
                     elif p.get("type") == "TOOL_RESULT":
                         tr = p.get("toolResult") or p.get("tool_result")
+                        # SEMOSSToolExecution has AliasChoices on every field,
+                        # so model_validate maps both snake_case and camelCase
+                        # keys (id/toolCallId, tool_name/toolName, server_tool/serverTool, ...)
+                        # without duplicating the alias logic here.
                         tool_result_part = SEMOSSToolResultMessagePart(
-                            tool_result=SEMOSSToolExecution(
-                                id=tr.get("id") or tr.get("toolCallId"),
-                                output=tr.get("output"),
-                            )
+                            tool_result=SEMOSSToolExecution.model_validate(tr)
                         )
                         process_parts.append(tool_result_part)
 
