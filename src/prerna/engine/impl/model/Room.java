@@ -460,14 +460,14 @@ public class Room {
 		if (toolResultsMessage == null) {
 			isToolResultsInputMessage = true;
 			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
-					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)
+					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 					.withModelType(modelEngine.getModelType()).build();
 			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 			toolResultsMessage.setModel(modelEngine);
 			toolResultsMessage.setVisibile(false);
 		} else {
-			toolResultsMessage.addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)));
+			toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+					toolExecutionResponse, toolParameterValues, toolStatus, false)));
 			toolResultsMessage.normalizeForWrite();
 		}
 
