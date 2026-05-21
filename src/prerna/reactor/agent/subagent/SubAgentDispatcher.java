@@ -51,9 +51,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Called from the semoss harness when a tool name matches either a named
  * {@link SubAgentSpec} alias or one of the {@link SubAgentToolSynthesizer}
  * built-ins ({@code SpawnSubAgent}, {@code CheckSubAgentStatus},
- * {@code WaitForSubAgent}).
+ * {@code WaitForSubAgent}, {@code AskParent}, {@code NotifyParent},
+ * {@code ReplyToSubAgentAsk}).
  *
- * <p>All four entry points return a string suitable for handing directly back
+ * <p>All entry points return a string suitable for handing directly back
  * to the model as the tool result.
  */
 public final class SubAgentDispatcher {
@@ -67,6 +68,9 @@ public final class SubAgentDispatcher {
 
     /** Poll interval while blocking inside {@link #wait(String, int)}. */
     private static final long WAIT_POLL_MS = 250L;
+
+    /** Poll interval while a child AskParent tool waits for a parent reply. */
+    private static final long ASK_PARENT_POLL_MS = 250L;
 
     private SubAgentDispatcher() {}
 
@@ -172,6 +176,12 @@ public final class SubAgentDispatcher {
         if (jobId == null || jobId.isBlank()) {
             return GSON.toJson(error("Missing required argument 'jobId' for CheckSubAgentStatus"));
         }
+        AgentSubAgentRegistry.PendingClarification pending =
+                AgentSubAgentRegistry.getManager().pendingClarificationFor(jobId);
+        if (pending != null) {
+            return GSON.toJson(SubAgentResult.needsInput(
+                    jobId, pending.getQuestion(), pending.getRequestId()).toMap());
+        }
         String rawStatus = PixelJobManager.getManager().getStatus(jobId);
         SubAgentResult envelope = isTerminal(rawStatus)
                 ? toTerminalEnvelope(jobId, rawStatus)
@@ -193,7 +203,13 @@ public final class SubAgentDispatcher {
         }
         long deadline = System.currentTimeMillis() + (timeoutSec * 1000L);
         PixelJobManager manager = PixelJobManager.getManager();
+        AgentSubAgentRegistry registry = AgentSubAgentRegistry.getManager();
         while (true) {
+            AgentSubAgentRegistry.PendingClarification pending = registry.pendingClarificationFor(jobId);
+            if (pending != null) {
+                return GSON.toJson(SubAgentResult.needsInput(
+                        jobId, pending.getQuestion(), pending.getRequestId()).toMap());
+            }
             String rawStatus = manager.getStatus(jobId);
             if (isTerminal(rawStatus)) {
                 return GSON.toJson(toTerminalEnvelope(jobId, rawStatus).toMap());
@@ -210,6 +226,109 @@ public final class SubAgentDispatcher {
                 throw new AgentCancelledException("WaitForSubAgent interrupted while polling jobId=" + jobId);
             }
         }
+    }
+
+    /**
+     * Child -> parent progress event. This is observability/status only; it does not
+     * inject anything into the parent's model loop.
+     */
+    public static String notifyParent(String callerJobId, String message, String kind) {
+        if (callerJobId == null || callerJobId.isBlank()) {
+            return GSON.toJson(error("Caller has no jobId - cannot notify parent."));
+        }
+        if (message == null || message.isBlank()) {
+            return GSON.toJson(error("Missing required argument 'message' for NotifyParent."));
+        }
+        AgentSubAgentRegistry registry = AgentSubAgentRegistry.getManager();
+        SubAgentMeta callerMeta = registry.lookup(callerJobId);
+        if (callerMeta == null || callerMeta.getParentJobId() == null
+                || callerMeta.getParentJobId().isBlank()) {
+            return GSON.toJson(error("This run has no recorded parent - NotifyParent is only valid for subagent runs."));
+        }
+        String normalizedKind = normalizeNotifyKind(kind);
+        Map<String, Object> data = baseSubagentEvent("subagent-notification", callerJobId, callerMeta.getParentJobId());
+        data.put("noticeKind", normalizedKind);
+        data.put("message", message.trim());
+        emitStreamEvent(callerMeta.getParentJobId(), "subagent-notification", data);
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        out.put("status", "notified");
+        out.put("kind", normalizedKind);
+        return GSON.toJson(out);
+    }
+
+    /**
+     * Child -> parent clarification request. The tool call blocks here until the
+     * direct parent replies, then returns the reply as a normal tool result.
+     */
+    public static String askParent(String callerJobId, String question) {
+        if (callerJobId == null || callerJobId.isBlank()) {
+            throw new IllegalArgumentException("Caller has no jobId - cannot ask parent.");
+        }
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("Missing required argument 'question' for AskParent.");
+        }
+
+        AgentSubAgentRegistry registry = AgentSubAgentRegistry.getManager();
+        SubAgentMeta callerMeta = registry.lookup(callerJobId);
+        if (callerMeta == null || callerMeta.getParentJobId() == null
+                || callerMeta.getParentJobId().isBlank()) {
+            throw new IllegalStateException("This run has no recorded parent - AskParent is only valid for subagent runs.");
+        }
+        String parentJobId = callerMeta.getParentJobId();
+        String parentStatus = PixelJobManager.getManager().getStatus(parentJobId);
+        if (!isActive(parentStatus)) {
+            throw new IllegalStateException("Parent run is not active; cannot wait for clarification reply.");
+        }
+
+        AgentSubAgentRegistry.PendingClarification pending =
+                registry.openClarification(callerJobId, parentJobId, question);
+        Map<String, Object> data = baseSubagentEvent("subagent-needs-input", callerJobId, parentJobId);
+        data.put("question", pending.getQuestion());
+        data.put("requestId", pending.getRequestId());
+        data.put("createdAtMs", pending.getCreatedAtMs());
+        emitStreamEvent(parentJobId, "subagent-needs-input", data);
+
+        logger.info("SubAgentDispatcher.askParent: childJobId={} parentJobId={} requestId={}",
+                callerJobId, parentJobId, pending.getRequestId());
+
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                registry.cleanupClarification(callerJobId);
+                throw new AgentCancelledException(
+                        "AskParent interrupted while waiting for parent reply requestId=" + pending.getRequestId());
+            }
+            if (pending.hasReply()) {
+                Map<String, Object> out = new LinkedHashMap<>();
+                out.put("ok", true);
+                out.put("requestId", pending.getRequestId());
+                out.put("reply", pending.getReply());
+                return GSON.toJson(out);
+            }
+            if (pending.isClosed()) {
+                throw new IllegalStateException("AskParent was closed before the parent replied.");
+            }
+            try {
+                pending.awaitReply(ASK_PARENT_POLL_MS);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /** Parent -> child reply to a pending AskParent request. */
+    public static String replyToSubAgentAsk(String callerJobId, String childJobId,
+            String requestId, String message) {
+        AgentSubAgentRegistry.PendingClarification pending =
+                AgentSubAgentRegistry.getManager().replyToClarification(
+                        callerJobId, childJobId, requestId, message);
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("ok", true);
+        out.put("status", "replied");
+        out.put("jobId", pending.getChildJobId());
+        out.put("requestId", pending.getRequestId());
+        return GSON.toJson(out);
     }
 
     // Map a terminal PixelJobStatus value to a SubAgentResult envelope. SUCCEEDED carries
@@ -260,6 +379,45 @@ public final class SubAgentDispatcher {
                 || PixelJobStatus.PROGRESS_COMPLETE.getValue().equals(status)
                 || PixelJobStatus.ERROR.getValue().equals(status)
                 || PixelJobStatus.CANCELED.getValue().equals(status);
+    }
+
+    private static boolean isActive(String status) {
+        return PixelJobStatus.CREATED.getValue().equals(status)
+                || PixelJobStatus.SUBMITTED.getValue().equals(status)
+                || PixelJobStatus.IN_PROGRESS.getValue().equals(status)
+                || PixelJobStatus.STREAMING.getValue().equals(status)
+                || PixelJobStatus.PAUSED.getValue().equals(status);
+    }
+
+    private static String normalizeNotifyKind(String kind) {
+        if (kind == null) return "progress";
+        String k = kind.trim().toLowerCase();
+        if ("progress".equals(k) || "completed".equals(k) || "blocked".equals(k)
+                || "milestone".equals(k)) {
+            return k;
+        }
+        return "progress";
+    }
+
+    private static Map<String, Object> baseSubagentEvent(String kind, String childJobId, String parentJobId) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("kind", kind);
+        data.put("jobId", childJobId);
+        data.put("childJobId", childJobId);
+        data.put("parentJobId", parentJobId);
+        return data;
+    }
+
+    private static void emitStreamEvent(String recipientJobId, String streamType, Map<String, Object> data) {
+        try {
+            Map<String, Object> envelope = new LinkedHashMap<>();
+            envelope.put("stream_type", streamType);
+            envelope.put("data", data);
+            PixelJobManager.getManager().addStreamOut(recipientJobId, envelope);
+        } catch (Exception streamErr) {
+            logger.warn("SubAgentDispatcher: stream emit failed recipientJobId={} streamType={}: {}",
+                    recipientJobId, streamType, streamErr.toString());
+        }
     }
 
     private static String stringArg(Map<String, Object> args, String key) {

@@ -84,7 +84,63 @@ public final class AgentSubAgentRegistry {
     // rootJobId -> spawn policy + remaining-budget counter shared by the whole tree.
     private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
 
+    // childJobId -> pending child-to-parent clarification. This is runtime-only
+    // coordination for AskParent; nothing here is persisted to room options/history.
+    private final Map<String, PendingClarification> pendingClarificationByChildJobId = new ConcurrentHashMap<>();
+
     private AgentSubAgentRegistry() {}
+
+    public static final class PendingClarification {
+        private final String childJobId;
+        private final String parentJobId;
+        private final String question;
+        private final String requestId;
+        private final long createdAtMs;
+        private String reply;
+        private boolean closed;
+
+        private PendingClarification(String childJobId, String parentJobId,
+                String question, String requestId) {
+            this.childJobId = childJobId;
+            this.parentJobId = parentJobId;
+            this.question = question;
+            this.requestId = requestId;
+            this.createdAtMs = System.currentTimeMillis();
+        }
+
+        public String getChildJobId() { return childJobId; }
+        public String getParentJobId() { return parentJobId; }
+        public String getQuestion() { return question; }
+        public String getRequestId() { return requestId; }
+        public long getCreatedAtMs() { return createdAtMs; }
+
+        public synchronized String getReply() {
+            return reply;
+        }
+
+        public synchronized boolean hasReply() {
+            return reply != null;
+        }
+
+        public synchronized boolean isClosed() {
+            return closed;
+        }
+
+        private synchronized void setReply(String reply) {
+            this.reply = reply;
+            notifyAll();
+        }
+
+        private synchronized void close() {
+            this.closed = true;
+            notifyAll();
+        }
+
+        public synchronized void awaitReply(long timeoutMs) throws InterruptedException {
+            if (reply != null || closed) return;
+            wait(timeoutMs);
+        }
+    }
 
     // Shared by every descendant in the tree so the total stays bounded.
     private static final class RootSpawnContext {
@@ -317,6 +373,7 @@ public final class AgentSubAgentRegistry {
         } catch (RuntimeException | Error e) {
             if (!childStarted && childJobIdForCleanup != null) {
                 byJobId.remove(childJobIdForCleanup);
+                cleanupClarification(childJobIdForCleanup);
                 removeChildLink(req.parentJobId, childJobIdForCleanup);
             }
             if (rootBudgetClaimed && !childStarted) {
@@ -367,6 +424,7 @@ public final class AgentSubAgentRegistry {
             // depth-first so grandchildren get signaled before their parent finishes
             count += cascadeCancel(childJobId);
             try {
+                cleanupClarification(childJobId);
                 prerna.sablecc2.comm.JobStreamEnvelopes.jobCancelled(childJobId, "parent-cancelled");
             } catch (Exception streamErr) {
                 logger.warn("cascadeCancel: stream emit failed childJobId={}: {}", childJobId, streamErr.toString());
@@ -403,6 +461,109 @@ public final class AgentSubAgentRegistry {
     public void unregisterRoot(String rootJobId) {
         if (rootJobId == null || rootJobId.isBlank()) return;
         rootContextByJobId.remove(rootJobId);
+    }
+
+    /** Open one pending AskParent request for a child. A child can have only one active clarification. */
+    public PendingClarification openClarification(String childJobId, String parentJobId, String question) {
+        if (childJobId == null || childJobId.isBlank()) {
+            throw new IllegalArgumentException("childJobId is required");
+        }
+        if (parentJobId == null || parentJobId.isBlank()) {
+            throw new IllegalArgumentException("parentJobId is required");
+        }
+        if (question == null || question.isBlank()) {
+            throw new IllegalArgumentException("question is required");
+        }
+        String requestId = "ask-" + UUID.randomUUID();
+        PendingClarification pending = new PendingClarification(
+                childJobId, parentJobId, question.trim(), requestId);
+        PendingClarification existing = pendingClarificationByChildJobId.putIfAbsent(childJobId, pending);
+        if (existing != null) {
+            throw new IllegalStateException("Subagent is already waiting for parent input: jobId=" + childJobId);
+        }
+        return pending;
+    }
+
+    /** Returns the active clarification for {@code childJobId}, or null when the child is not waiting. */
+    public PendingClarification pendingClarificationFor(String childJobId) {
+        if (childJobId == null || childJobId.isBlank()) return null;
+        return pendingClarificationByChildJobId.get(childJobId);
+    }
+
+    /**
+     * Resolve a child clarification. The caller must be the direct parent and
+     * must provide the exact request id returned by WaitForSubAgent/CheckSubAgentStatus.
+     */
+    public PendingClarification replyToClarification(String callerJobId, String childJobId,
+            String requestId, String reply) {
+        if (callerJobId == null || callerJobId.isBlank()) {
+            throw new IllegalArgumentException("Caller has no jobId - cannot reply to subagent.");
+        }
+        if (childJobId == null || childJobId.isBlank()) {
+            throw new IllegalArgumentException("jobId is required");
+        }
+        if (requestId == null || requestId.isBlank()) {
+            throw new IllegalArgumentException("requestId is required");
+        }
+        if (reply == null || reply.isBlank()) {
+            throw new IllegalArgumentException("message is required");
+        }
+        PendingClarification pending = pendingClarificationByChildJobId.get(childJobId);
+        if (pending == null) {
+            throw new IllegalArgumentException("Subagent is not waiting for parent input: jobId=" + childJobId);
+        }
+        if (!callerJobId.equals(pending.getParentJobId())) {
+            throw new IllegalArgumentException("Not your direct child: jobId=" + childJobId);
+        }
+        if (!requestId.equals(pending.getRequestId())) {
+            throw new IllegalArgumentException("requestId does not match pending clarification for jobId=" + childJobId);
+        }
+        pending.setReply(reply.trim());
+        pendingClarificationByChildJobId.remove(childJobId, pending);
+        return pending;
+    }
+
+    /** Clear any pending AskParent request for this child and wake the waiting tool worker. */
+    public void cleanupClarification(String childJobId) {
+        if (childJobId == null || childJobId.isBlank()) return;
+        PendingClarification pending = pendingClarificationByChildJobId.remove(childJobId);
+        if (pending != null) {
+            pending.close();
+        }
+    }
+
+    /** Wake children that were waiting on a parent run that is now exiting. */
+    public void cleanupClarificationsForParent(String parentJobId) {
+        if (parentJobId == null || parentJobId.isBlank()) return;
+        for (PendingClarification pending : new ArrayList<>(pendingClarificationByChildJobId.values())) {
+            if (parentJobId.equals(pending.getParentJobId())
+                    && pendingClarificationByChildJobId.remove(pending.getChildJobId(), pending)) {
+                pending.close();
+            }
+        }
+    }
+
+    /**
+     * Runtime/UI notification that a child finished. The canonical model-facing
+     * result path remains WaitForSubAgent; this only wakes listeners watching the
+     * parent job stream.
+     */
+    public void emitSubAgentCompleted(String childJobId, String finalText) {
+        if (childJobId == null || childJobId.isBlank()) return;
+        SubAgentMeta meta = byJobId.get(childJobId);
+        if (meta == null || meta.getParentJobId() == null || meta.getParentJobId().isBlank()) return;
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("kind", "subagent-completed");
+        data.put("jobId", childJobId);
+        data.put("childJobId", childJobId);
+        data.put("parentJobId", meta.getParentJobId());
+        data.put("status", "succeeded");
+        data.put("result", finalText);
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("stream_type", "subagent-completed");
+        envelope.put("data", data);
+        PixelJobManager.getManager().addStreamOut(meta.getParentJobId(), envelope);
     }
 
     /** Returns 0 for any jobId that has no recorded parent (root, or unregistered spawn). */
