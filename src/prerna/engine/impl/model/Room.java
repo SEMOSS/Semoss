@@ -828,8 +828,9 @@ public class Room {
 										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
-							if (ensureUnique.add(toolId)) {
+							if (!ensureUnique.contains(toolId)) {
 								aggregated.addAll(getToolJson(toolId, maxLength));
+								ensureUnique.add(toolId);
 							}
 						}
 					} catch (Exception e) {
@@ -845,8 +846,9 @@ public class Room {
 								JSONObject mcp = arr.optJSONObject(i);
 								if (mcp == null) continue;
 								String toolId = mcp.optString("id", null);
-								if (toolId != null && !toolId.isEmpty() && ensureUnique.add(toolId)) {
+								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
 									aggregated.addAll(getToolJson(toolId, maxLength));
+									ensureUnique.add(toolId);
 								}
 							}
 						}
