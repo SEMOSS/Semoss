@@ -824,7 +824,8 @@ public class Room {
 					// legacy: workspace_resource rows
 					try {
 						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+								workspaceId, Arrays.asList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
+										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
 							if (ensureUnique.add(toolId)) {

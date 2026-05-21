@@ -205,7 +205,8 @@ public final class AgentConfigLoader {
         if (workspaceId != null) {
             try {
                 List<Map<String, Object>> rows = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-                        workspaceId, Collections.singletonList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+                        workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
+                                AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
                 for (Map<String, Object> row : rows) {
                     Object idObj = row.get("resource_id");
                     if (idObj == null) continue;
