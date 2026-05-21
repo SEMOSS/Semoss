@@ -3044,29 +3044,32 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 
-		// Select engine ID and name
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID", "ENGINE_ID"));
 
-		// SUM(CASE WHEN MESSAGE_TYPE='INPUT' THEN MESSAGE_TOKENS ELSE 0 END) AS
-		// INPUT_TOKENS
-		QueryIfSelector inputIf = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),
-				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
-				"INPUT_IF");
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, inputIf, "INPUT_TOKENS"));
+		// Granular token columns — each is only populated on the row type it belongs to,
+		// so SUM() across both row types gives the correct per-engine total directly.
+		// COALESCE(..., 0) ensures null (no data) is returned as 0 rather than omitted.
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "INPUT_TOKENS", null),
+				new QueryConstantSelector(0), "INPUT_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", null),
+				new QueryConstantSelector(0), "OUTPUT_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_READ_TOKENS", null),
+				new QueryConstantSelector(0), "CACHE_READ_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "CACHE_CREATION_TOKENS", null),
+				new QueryConstantSelector(0), "CACHE_CREATION_TOKENS"));
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
+				new QueryConstantSelector(0), "THINKING_TOKENS"));
 
-		// SUM(CASE WHEN MESSAGE_TYPE='RESPONSE' THEN MESSAGE_TOKENS ELSE 0 END) AS
-		// RESPONSE_TOKENS
-		QueryIfSelector responseIf = QueryIfSelector.makeQueryIfSelector(
-				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "RESPONSE"),
-				new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_TOKENS"), new QueryConstantSelector(0),
-				"RESPONSE_IF");
-		qs.addSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, responseIf, "RESPONSE_TOKENS"));
-
-		// Sum total tokens
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM,
-				MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", "TOTAL_TOKENS"));
+		// Legacy MESSAGE_TOKENS is the sum of prompt+response tokens; sum across both
+		// rows gives total billable tokens (equivalent to INPUT_TOKENS + OUTPUT_TOKENS).
+		qs.addSelector(QueryFunctionSelector.makeCoalesceSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.SUM, MESSAGE_TABLE_NAME + "MESSAGE_TOKENS", null),
+				new QueryConstantSelector(0), "TOTAL_TOKENS"));
 
 		// Count number of requests (INPUT messages only)
 		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(

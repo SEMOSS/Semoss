@@ -144,8 +144,9 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return """
-				Returns model usage (tokens used) for the current user over a specified time period. \
-				Requires a list of engine IDs and optionally accepts a date range
+				Returns model usage for the current user over a specified time period, broken down by engine. \
+				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
+				TOTAL_TOKENS, and TOTAL_REQUESTS. Requires a list of engine IDs and optionally accepts a date range.
 				""";
 	}
 

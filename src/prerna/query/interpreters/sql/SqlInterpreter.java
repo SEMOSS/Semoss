@@ -408,6 +408,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 
 			// if this doesn't return anything...
 			return "NULL";
+		} else if (constant == null) {
+			return "NULL";
 		} else if (constant instanceof Number) {
 			return constant.toString();
 		} else if (constant instanceof Boolean) {
@@ -1457,11 +1459,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 					String orderByColumn = columnConceptualName;
 
-//							if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-//								orderByColumn = getPrimKey4Table(tableConceptualName);
-//							} else {
-//								orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-//							}
+					// if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					// orderByColumn = getPrimKey4Table(tableConceptualName);
+					// } else {
+					// orderByColumn =
+					// getPhysicalPropertyNameFromConceptualName(tableConceptualName,
+					// columnConceptualName);
+					// }
 
 					if (queryUtil.isSelectorKeyword(orderByTable)) {
 						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
@@ -1533,11 +1537,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 					String orderByTable = getAlias(getPhysicalTableNameFromConceptualName(tableConceptualName));
 					String orderByColumn = columnConceptualName;
 
-//							if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
-//								orderByColumn = getPrimKey4Table(tableConceptualName);
-//							} else {
-//								orderByColumn = getPhysicalPropertyNameFromConceptualName(tableConceptualName, columnConceptualName);
-//							}
+					// if(columnConceptualName.equals(SelectQueryStruct.PRIM_KEY_PLACEHOLDER)){
+					// orderByColumn = getPrimKey4Table(tableConceptualName);
+					// } else {
+					// orderByColumn =
+					// getPhysicalPropertyNameFromConceptualName(tableConceptualName,
+					// columnConceptualName);
+					// }
 
 					if (queryUtil.isSelectorKeyword(orderByTable)) {
 						orderByTable = queryUtil.getEscapeKeyword(orderByTable);
@@ -1907,8 +1913,8 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 			String fromURI = null;
 			String toURI = null;
 
-//			String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
-//			String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
+			// String fromConceptual = "http://semoss.org/ontologies/Concept/" + fromString;
+			// String toConceptual = "http://semoss.org/ontologies/Concept/" + toString;
 
 			fromURI = this.engine.getPhysicalUriFromPixelSelector(fromString);
 			toURI = this.engine.getPhysicalUriFromPixelSelector(toString);
@@ -2012,17 +2018,17 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 	///////////////////////////////////////// test method
 	///////////////////////////////////////// /////////////////////////////////////////////////
 
-//	public static void main(String[] args) throws Exception {
-//		// load in the engine
-//		TestUtilityMethods.loadDIHelper();
-//
-//		//TODO: put in correct path for your database
-//		String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
-//		RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
-//		coreEngine.setEngineId("Movie_RDBMS");
-//		coreEngine.open(engineProp);
-//		DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-//	}
+	// public static void main(String[] args) throws Exception {
+	// // load in the engine
+	// TestUtilityMethods.loadDIHelper();
+	//
+	// //TODO: put in correct path for your database
+	// String engineProp = "C:\\workspace\\Semoss_Dev\\db\\Movie_RDBMS.smss";
+	// RDBMSNativeEngine coreEngine = new RDBMSNativeEngine();
+	// coreEngine.setEngineId("Movie_RDBMS");
+	// coreEngine.open(engineProp);
+	// DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
+	// }
 
 	///////////////////////////////////////// end test methods
 	///////////////////////////////////////// //////////////////////////////////////////////
