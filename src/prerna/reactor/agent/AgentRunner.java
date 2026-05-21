@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -109,6 +111,8 @@ public final class AgentRunner {
     /** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
     public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
+    private static final Set<String> ACTIVE_ROOMS = ConcurrentHashMap.newKeySet();
+
     private AgentRunner() { /* static utility */ }
 
     /**
@@ -142,6 +146,10 @@ public final class AgentRunner {
         if (input == null || input.trim().isEmpty()) {
             throw new IllegalArgumentException("input is required");
         }
+        if (!ACTIVE_ROOMS.add(roomId)) {
+            throw new IllegalStateException("Agent run already in progress for room: " + roomId);
+        }
+        try {
 
         Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
@@ -237,6 +245,9 @@ public final class AgentRunner {
         }
 
         return result;
+        } finally {
+            ACTIVE_ROOMS.remove(roomId);
+        }
     }
 
     // workspace_id overlay helpers
