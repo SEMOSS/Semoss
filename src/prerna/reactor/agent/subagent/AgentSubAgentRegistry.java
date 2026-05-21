@@ -209,6 +209,14 @@ public final class AgentSubAgentRegistry {
                     "Missing root spawn context for subagent tree parentJobId=" + req.parentJobId);
         }
 
+        // Pixel-initiated spawns (parentMeta == null) bypass SemossAgentHarness and never
+        // call registerRoot. Auto-register defaults keyed by the caller's job ID so
+        // maxSubagentsPerRun is tracked for these callers too.
+        if (rootCtx == null && req.parentJobId != null && !req.parentJobId.isBlank()) {
+            registerRoot(req.parentJobId, policy);
+            rootCtx = lookupRootContextForJob(req.parentJobId);
+        }
+
         if (childDepth > policy.getMaxSubagentDepth()) {
             logger.warn(
                 "AgentSubAgentRegistry: spawn REJECTED — childDepth={} > maxSubagentDepth={} (parentJobId={})",
