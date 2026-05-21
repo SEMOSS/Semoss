@@ -523,23 +523,25 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
     }
 
     /**
-     * Counts tokens contributed by tool-call/result cycles in the branch.
-     * Stops at the first pruneToolsAbove marker since earlier tool tokens are
-     * already excluded from the live context.
+     * Counts tokens contributed by tool-call/result cycles that are still in the
+     * live context. Walks leaf-to-root and stops at the latest pruneToolsAbove
+     * marker since everything at/above that point has already been stripped.
      */
     private static int computeToolTokens(List<AbstractMessage> branch) {
         int toolTokens = 0;
-        int prevInputCumulative = 0;
-        for (AbstractMessage m : branch) {
+        AbstractMessage laterInput = null;
+        for (int i = branch.size() - 1; i >= 0; i--) {
+            AbstractMessage m = branch.get(i);
             if (m instanceof InputMessage) {
-                if (m.getPruneToolsAbove())
-                    break;
-                if (m.hasToolResultPart()) {
-                    int delta = m.getTokensInMessage() - prevInputCumulative;
+                if (laterInput != null && laterInput.hasToolResultPart()) {
+                    int delta = laterInput.getTokensInMessage() - m.getTokensInMessage();
                     if (delta > 0)
                         toolTokens += delta;
                 }
-                prevInputCumulative = m.getTokensInMessage();
+                laterInput = m;
+            }
+            if (m.getPruneToolsAbove()) {
+                break;
             }
         }
         return toolTokens;
