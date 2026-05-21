@@ -586,6 +586,9 @@ public final class AgentSubAgentRegistry {
         envelope.put("stream_type", "subagent-completed");
         envelope.put("data", data);
         PixelJobManager.getManager().addStreamOut(meta.getParentJobId(), envelope);
+        byJobId.remove(childJobId);
+        rootCtxByChildJobId.remove(childJobId);
+        removeChildLink(meta.getParentJobId(), childJobId);
     }
 
     /** Returns 0 for any jobId that has no recorded parent (root, or unregistered spawn). */
