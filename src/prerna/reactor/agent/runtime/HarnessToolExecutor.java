@@ -269,6 +269,8 @@ final class HarnessToolExecutor {
                 String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
                         spawnsRemainingInBatch);
                 return new ToolExecOutcome(result, true);
+            } catch (AgentCancelledException e) {
+                throw e;
             } catch (Exception e) {
                 String msg = "Tool execution error: " + e.getMessage();
                 logger.warn("HarnessToolExecutor: subagent tool '{}' failed: {}",
@@ -371,6 +373,30 @@ final class HarnessToolExecutor {
             }
             return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), timeoutSec);
         }
+        if (SubAgentToolSynthesizer.TOOL_REPLY_TO_SUBAGENT_ASK.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            Object requestIdObj = params == null ? null : params.get("requestId");
+            Object messageObj = params == null ? null : params.get("message");
+            return SubAgentDispatcher.replyToSubAgentAsk(
+                    parentJobId,
+                    jobIdObj == null ? null : String.valueOf(jobIdObj),
+                    requestIdObj == null ? null : String.valueOf(requestIdObj),
+                    messageObj == null ? null : String.valueOf(messageObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_NOTIFY_PARENT.equals(rawToolName)) {
+            Object messageObj = params == null ? null : params.get("message");
+            Object kindObj = params == null ? null : params.get("kind");
+            return SubAgentDispatcher.notifyParent(
+                    parentJobId,
+                    messageObj == null ? null : String.valueOf(messageObj),
+                    kindObj == null ? null : String.valueOf(kindObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_ASK_PARENT.equals(rawToolName)) {
+            Object questionObj = params == null ? null : params.get("question");
+            return SubAgentDispatcher.askParent(
+                    parentJobId,
+                    questionObj == null ? null : String.valueOf(questionObj));
+        }
         // Named subagent tool - look up the spec and spawn.
         SubAgentSpec spec = SubAgentToolSynthesizer.findSpec(specs, rawToolName);
         if (spec == null) {
@@ -423,11 +449,14 @@ final class HarnessToolExecutor {
             functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
             reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-            if (params != null && !params.isEmpty()) {
-                GenRowStruct paramGrs = new GenRowStruct();
-                paramGrs.add(new NounMetadata(params, PixelDataType.MAP));
-                reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
-            }
+            // Always attach paramValues — RunMCPToolReactor declares it required, so no-arg
+            // tools (ListSkill, TodoRead, …) would otherwise blow up with "Required input(s)
+            // missing: paramValues". Pass an empty map when the model sent no args.
+            GenRowStruct paramGrs = new GenRowStruct();
+            paramGrs.add(new NounMetadata(
+                    params != null ? params : java.util.Collections.emptyMap(),
+                    PixelDataType.MAP));
+            reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
             NounMetadata result = reactor.execute();
             return result != null && result.getValue() != null ? result.getValue().toString() : "";

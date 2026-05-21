@@ -35,13 +35,16 @@ import java.util.Map;
 // tool-call records, transcripts, token usage, or prompts. Those live in observability/logs.
 //
 // JSON shape on the wire:
-//   { "jobId":..., "status": "...", "result": "...", "error": "..." }
+//   { "jobId":..., "status": "...", "result": "...", "error": "...",
+//     "question": "...", "requestId": "..." }
 public final class SubAgentResult {
 
     public enum Status {
         // CheckSubAgentStatus may return this; WaitForSubAgent returns it only when its own
         // timeoutSec elapsed while the child is still working (the child is unaffected).
         RUNNING("running"),
+        // Child is blocked inside AskParent until its direct parent replies.
+        NEEDS_INPUT("needs_input"),
         // Terminal happy-path.
         SUCCEEDED("succeeded"),
         // Terminal error path. error field carries a short human/model-readable message.
@@ -60,37 +63,48 @@ public final class SubAgentResult {
     private final Status status;
     private final String result;
     private final String error;
+    private final String question;
+    private final String requestId;
 
-    private SubAgentResult(String jobId, Status status, String result, String error) {
-        this.jobId  = jobId;
-        this.status = status;
-        this.result = result;
-        this.error  = error;
+    private SubAgentResult(String jobId, Status status, String result, String error,
+            String question, String requestId) {
+        this.jobId     = jobId;
+        this.status    = status;
+        this.result    = result;
+        this.error     = error;
+        this.question  = question;
+        this.requestId = requestId;
     }
 
-    public String getJobId()  { return jobId; }
-    public Status getStatus() { return status; }
-    public String getResult() { return result; }
-    public String getError()  { return error; }
+    public String getJobId()     { return jobId; }
+    public Status getStatus()    { return status; }
+    public String getResult()    { return result; }
+    public String getError()     { return error; }
+    public String getQuestion()  { return question; }
+    public String getRequestId() { return requestId; }
 
     public static SubAgentResult running(String jobId) {
-        return new SubAgentResult(jobId, Status.RUNNING, null, null);
+        return new SubAgentResult(jobId, Status.RUNNING, null, null, null, null);
+    }
+
+    public static SubAgentResult needsInput(String jobId, String question, String requestId) {
+        return new SubAgentResult(jobId, Status.NEEDS_INPUT, null, null, question, requestId);
     }
 
     public static SubAgentResult succeeded(String jobId, String finalText) {
-        return new SubAgentResult(jobId, Status.SUCCEEDED, finalText, null);
+        return new SubAgentResult(jobId, Status.SUCCEEDED, finalText, null, null, null);
     }
 
     public static SubAgentResult failed(String jobId, String errorMessage) {
-        return new SubAgentResult(jobId, Status.FAILED, null, errorMessage);
+        return new SubAgentResult(jobId, Status.FAILED, null, errorMessage, null, null);
     }
 
     public static SubAgentResult cancelled(String jobId) {
-        return new SubAgentResult(jobId, Status.CANCELLED, null, "Subagent was cancelled");
+        return new SubAgentResult(jobId, Status.CANCELLED, null, "Subagent was cancelled", null, null);
     }
 
     public static SubAgentResult timedOut(String jobId) {
-        return new SubAgentResult(jobId, Status.TIMED_OUT, null, "Subagent exceeded its time budget");
+        return new SubAgentResult(jobId, Status.TIMED_OUT, null, "Subagent exceeded its time budget", null, null);
     }
 
     // Stable JSON-friendly Map view. Field order is fixed for log/diff readability.
@@ -100,6 +114,10 @@ public final class SubAgentResult {
         out.put("status", status.wire());
         out.put("result", result);
         out.put("error",  error);
+        if (status == Status.NEEDS_INPUT) {
+            out.put("question", question);
+            out.put("requestId", requestId);
+        }
         return out;
     }
 }

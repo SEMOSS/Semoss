@@ -135,7 +135,9 @@ public final class AgentConfigLoader {
         // Room instructions win, then CONFIG_JSON.system_prompt, then workspace.system_prompt.
         b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
-        // Workdir AGENTS.md discovery stays disabled to avoid leaking repo-level instructions.
+        // Workdir AGENTS.md / CLAUDE.md — exact-dir lookup only (no walk-up). Loader
+        // tolerates null workingDir.
+        b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
 
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
