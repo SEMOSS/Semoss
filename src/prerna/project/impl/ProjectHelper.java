@@ -27,8 +27,12 @@
  *******************************************************************************/
 package prerna.project.impl;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -481,6 +485,9 @@ public final class ProjectHelper {
 		Pattern UUID_PATTERN = Pattern.compile(UUID_PATTERN_STRING);
 		String folderPath = finalProjectFolderF.getAbsolutePath();
 
+		CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPLACE)
+				.onUnmappableCharacter(CodingErrorAction.REPLACE);
+
 		try (Stream<Path> stream = Files.walk(Paths.get(folderPath))) {
 			stream.filter(Files::isRegularFile).filter(path -> {
 				String fileName = path.getFileName().toString().toLowerCase();
@@ -493,7 +500,9 @@ public final class ProjectHelper {
 			}).forEach(path -> {
 				// get the file name
 				String fileName = path.getFileName().toString();
-				try (Stream<String> lines = Files.lines(path, StandardCharsets.UTF_8)) {
+				try (BufferedReader reader = new BufferedReader(
+						new InputStreamReader(Files.newInputStream(path), decoder));
+						Stream<String> lines = reader.lines()) {
 
 					// to keep the count of no of occurrence of a particular uuid in a particular
 					// file
