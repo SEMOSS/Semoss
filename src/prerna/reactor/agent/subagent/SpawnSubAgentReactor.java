@@ -36,8 +36,11 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -107,6 +110,16 @@ public class SpawnSubAgentReactor extends AbstractReactor {
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "SpawnSubAgent requires roomId, either as a parameter or via the calling insight's current room");
+        }
+        if (workspaceId != null) {
+            User user = this.insight != null ? this.insight.getUser() : null;
+            if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+                throw new IllegalArgumentException(
+                        "Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+            }
+        }
+        if (harnessType != null && AgentHarnessRegistry.get(harnessType) == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + harnessType);
         }
 
         SpawnRequest req = new SpawnRequest();
