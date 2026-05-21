@@ -281,8 +281,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     + _cache_read
                     + _cache_creation,
                     response_tokens=response.usage.output_tokens,
-                    cache_read_tokens=tool_cache_read,
-                    cache_creation_tokens=tool_cache_creation,
+                    cache_read_tokens=_cache_read,
+                    cache_creation_tokens=_cache_creation,
                 )
 
             thinking_text = ""
@@ -326,11 +326,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             if thinking_text:
                 parts.append({"type": "THINKING", "thinking": thinking_text})
 
-            total_input_tokens = (
-                usage.input_tokens
-                + (cache_read_tokens or 0)
-                + (cache_creation_tokens or 0)
-            )
             return AskModelEngineResponse2(
                 response=response_text,
                 response_tokens=usage.output_tokens,
@@ -776,9 +771,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 flush=True,
             )
 
-        total_input_tokens = (
-            input_tokens + (cache_read_tokens or 0) + (cache_creation_tokens or 0)
-        )
+        # input_tokens was already normalized to include cache at message_start
+        total_input_tokens = input_tokens
 
         if tool_result:
             if self.has_schema:
