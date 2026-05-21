@@ -449,11 +449,14 @@ final class HarnessToolExecutor {
             functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
             reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-            if (params != null && !params.isEmpty()) {
-                GenRowStruct paramGrs = new GenRowStruct();
-                paramGrs.add(new NounMetadata(params, PixelDataType.MAP));
-                reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
-            }
+            // Always attach paramValues — RunMCPToolReactor declares it required, so no-arg
+            // tools (ListSkill, TodoRead, …) would otherwise blow up with "Required input(s)
+            // missing: paramValues". Pass an empty map when the model sent no args.
+            GenRowStruct paramGrs = new GenRowStruct();
+            paramGrs.add(new NounMetadata(
+                    params != null ? params : java.util.Collections.emptyMap(),
+                    PixelDataType.MAP));
+            reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
             NounMetadata result = reactor.execute();
             return result != null && result.getValue() != null ? result.getValue().toString() : "";
