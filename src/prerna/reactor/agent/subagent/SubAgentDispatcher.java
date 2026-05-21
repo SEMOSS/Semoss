@@ -38,6 +38,7 @@ import com.google.gson.Gson;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.sablecc2.PixelRunner;
@@ -111,7 +112,12 @@ public final class SubAgentDispatcher {
         req.additionalContext = context;
         req.callerInsight     = callerInsight;
         if (inheritParentWorkdir) {
-            req.workingDirOverride = parentRoom.getRoomFolderPath();
+            Object wd = parentRoom.getOptionsMap() != null
+                    ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
+                    : null;
+            req.workingDirOverride = (wd != null && !String.valueOf(wd).trim().isEmpty())
+                    ? String.valueOf(wd).trim()
+                    : parentRoom.getRoomFolderPath();
         }
 
         SpawnResult result = AgentSubAgentRegistry.getManager().spawn(req);
@@ -150,7 +156,12 @@ public final class SubAgentDispatcher {
         req.additionalContext = context;
         req.callerInsight     = callerInsight;
         if (inheritParentWorkdir) {
-            req.workingDirOverride = parentRoom.getRoomFolderPath();
+            Object wd = parentRoom.getOptionsMap() != null
+                    ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
+                    : null;
+            req.workingDirOverride = (wd != null && !String.valueOf(wd).trim().isEmpty())
+                    ? String.valueOf(wd).trim()
+                    : parentRoom.getRoomFolderPath();
         }
 
         SpawnResult result = AgentSubAgentRegistry.getManager().spawn(req);
