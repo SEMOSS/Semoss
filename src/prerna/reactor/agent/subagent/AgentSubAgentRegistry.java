@@ -84,6 +84,12 @@ public final class AgentSubAgentRegistry {
     // rootJobId -> spawn policy + remaining-budget counter shared by the whole tree.
     private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
 
+    // childJobId -> root context snapshot for that child's tree. Populated on spawn so
+    // that descendants can find the shared budget counter even after the root harness has
+    // called unregisterRoot (e.g. "spawn now, wait later" flows where the root run returns
+    // before all children finish their own spawning).
+    private final Map<String, RootSpawnContext> rootCtxByChildJobId = new ConcurrentHashMap<>();
+
     // childJobId -> pending child-to-parent clarification. This is runtime-only
     // coordination for AskParent; nothing here is persisted to room options/history.
     private final Map<String, PendingClarification> pendingClarificationByChildJobId = new ConcurrentHashMap<>();
@@ -345,6 +351,9 @@ public final class AgentSubAgentRegistry {
                 childJobId, req.parentJobId, req.alias, req.workspaceId, childRoomId,
                 System.currentTimeMillis(), childDepth);
         byJobId.put(childJobId, meta);
+        if (rootCtx != null) {
+            rootCtxByChildJobId.put(childJobId, rootCtx);
+        }
         if (req.parentJobId != null && !req.parentJobId.isBlank()) {
             childrenByParent
                     .computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
@@ -381,6 +390,7 @@ public final class AgentSubAgentRegistry {
         } catch (RuntimeException | Error e) {
             if (!childStarted && childJobIdForCleanup != null) {
                 byJobId.remove(childJobIdForCleanup);
+                rootCtxByChildJobId.remove(childJobIdForCleanup);
                 cleanupClarification(childJobIdForCleanup);
                 removeChildLink(req.parentJobId, childJobIdForCleanup);
             }
@@ -593,6 +603,10 @@ public final class AgentSubAgentRegistry {
         while (cursor != null && !cursor.isBlank()) {
             RootSpawnContext direct = rootContextByJobId.get(cursor);
             if (direct != null) return direct;
+            // Child-to-root snapshot: persists after the root harness calls unregisterRoot,
+            // so deferred spawns from still-running children resolve the shared budget.
+            RootSpawnContext snapshot = rootCtxByChildJobId.get(cursor);
+            if (snapshot != null) return snapshot;
             SubAgentMeta m = byJobId.get(cursor);
             if (m == null) return null;            // cursor is a root with no registered context
             cursor = m.getParentJobId();
