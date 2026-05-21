@@ -216,7 +216,12 @@ public final class AgentRunner {
             }
             result = harness.execute(ctx);
             for (IAgentRunHook h : hooks) {
-                h.afterRun(ctx, result);
+                try {
+                    h.afterRun(ctx, result);
+                } catch (Exception hookEx) {
+                    logger.warn("AgentRunner: afterRun hook {} threw — logging and continuing",
+                            h.getClass().getSimpleName(), hookEx);
+                }
             }
         } finally {
             restoreWorkspaceOverlay(room, wsOverlay);

@@ -63,22 +63,25 @@ public final class GitCommitAgentHook implements IAgentRunHook {
 	private static final Logger classLogger = LogManager.getLogger(GitCommitAgentHook.class);
 	
     @Override
-    public void afterRun(AgentRunContext ctx, AgentHarnessResult result) throws Exception {
+    public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
     	Map<String, Object> paramMap = ctx.getParamMap();
     	String projectId = Objects.toString(paramMap.get("project"), null);
-    	if (projectId == null) {
-    		classLogger.error("POST RUN GIT COMMIT HOOK IS MISSING PROJECT ID");
+    	if (projectId == null || projectId.trim().isEmpty()) {
+    		classLogger.error("GitCommitAgentHook: missing project id — skipping git commit");
     		return;
     	}
-    	
-    	IEngine projectEngine = Utility.getProject(projectId);
-    	
-    	String projectName = projectEngine.getEngineName();
-    	
-    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId, projectName);
-    	
-    	User user = ctx.getInsight().getUser();
-    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-    	
-    }    	
+    	try {
+	    	IEngine projectEngine = Utility.getProject(projectId.trim());
+	    	if (projectEngine == null) {
+	    		classLogger.error("GitCommitAgentHook: project not found for id={} — skipping git commit", projectId);
+	    		return;
+	    	}
+	    	String projectName = projectEngine.getEngineName();
+	    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId.trim(), projectName);
+	    	User user = ctx.getInsight().getUser();
+	    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
+    	} catch (Exception e) {
+    		classLogger.error("GitCommitAgentHook: git commit failed for projectId={}", projectId, e);
+    	}
+    }
 }
