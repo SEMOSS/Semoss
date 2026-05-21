@@ -209,21 +209,22 @@ public final class AgentRunner {
         // Apply a temporary workspace overlay so room-based lookups match AgentConfig.
         List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
         WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
-        AgentHarnessResult result;
+        AgentHarnessResult result = null;
         try {
             for (IAgentRunHook h : hooks) {
                 h.beforeRun(ctx);
             }
             result = harness.execute(ctx);
+        } finally {
+            AgentHarnessResult finalResult = result;
             for (IAgentRunHook h : hooks) {
                 try {
-                    h.afterRun(ctx, result);
+                    h.afterRun(ctx, finalResult);
                 } catch (Exception hookEx) {
                     logger.warn("AgentRunner: afterRun hook {} threw — logging and continuing",
                             h.getClass().getSimpleName(), hookEx);
                 }
             }
-        } finally {
             restoreWorkspaceOverlay(room, wsOverlay);
         }
 
