@@ -184,6 +184,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		} catch (Exception e) {
 			classLogger.warn("Failed to mirror system_prompt/mcps into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
 					workspaceId, e);
+			Map<String, Object> partial = new HashMap<>();
+			partial.put("success", true);
+			partial.put("warning", "Workspace saved but CONFIG_JSON sync failed: " + e.getMessage());
+			return new NounMetadata(partial, PixelDataType.MAP);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
