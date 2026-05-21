@@ -49,13 +49,13 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
- * The default harness (used when the requested name is unknown) is {@code "room_loop"}.
+ * The default harness (used when the requested name is unknown) is {@code "semoss"}.
  */
 public final class AgentHarnessRegistry {
 
     private static final Logger logger = LogManager.getLogger(AgentHarnessRegistry.class);
 
-    public static final String DEFAULT_HARNESS = "room_loop";
+    public static final String DEFAULT_HARNESS = "semoss";
 
     private static final Map<String, IAgentHarness> REGISTRY;
 
