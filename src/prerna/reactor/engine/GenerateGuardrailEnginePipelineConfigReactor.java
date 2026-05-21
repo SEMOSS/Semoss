@@ -162,11 +162,10 @@ public class GenerateGuardrailEnginePipelineConfigReactor extends AbstractReacto
 
 			Map<String, Object> interceptor = new LinkedHashMap<>();
 			interceptor.put("reactorClass", DEFAULT_REACTOR_CLASS);
-
+			interceptor.put("guardrailEngineName", engine.getEngineName());
 			Map<String, Object> params = new LinkedHashMap<>();
 			params.put("blockOnGuardrailFailure", true);
 			params.put("guardrailEngineId", guardrailEngineId);
-			params.put("guardrailEngineName", engine.getEngineName());
 			params.put("directParameters", engine.getKeysAndValuesToGet());
 
 			Map<String, Object> inputMapping = new LinkedHashMap<>();
