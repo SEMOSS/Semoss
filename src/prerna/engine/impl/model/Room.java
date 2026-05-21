@@ -460,14 +460,14 @@ public class Room {
 		if (toolResultsMessage == null) {
 			isToolResultsInputMessage = true;
 			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
-					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)
+					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 					.withModelType(modelEngine.getModelType()).build();
 			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 			toolResultsMessage.setModel(modelEngine);
 			toolResultsMessage.setVisibile(false);
 		} else {
-			toolResultsMessage.addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)));
+			toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+					toolExecutionResponse, toolParameterValues, toolStatus, false)));
 			toolResultsMessage.normalizeForWrite();
 		}
 
@@ -769,18 +769,22 @@ public class Room {
 			try {
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
 				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("id")) {
-						String id = (String) mcpMap.get("id");
-						if (!ensureUnique.contains(id)) {
-							aggregated.addAll(getToolJson(id, maxLength));
-							ensureUnique.add(id);
+					try {
+						if (mcpMap.containsKey("id")) {
+							String id = (String) mcpMap.get("id");
+							if (!ensureUnique.contains(id)) {
+								aggregated.addAll(getToolJson(id, maxLength));
+								ensureUnique.add(id);
+							}
+						} else {
+							throw new IllegalArgumentException("Tool map must contain both type and id");
 						}
-					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from room mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from room mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'mcp' value in the options map", e);
 			}
 		}
 
@@ -788,19 +792,23 @@ public class Room {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
-					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
-					for (Map<String, Object> tool : tools) {
-						String toolId = (String) tool.get("resource_id");
-						if (!ensureUnique.contains(toolId)) {
-							aggregated.addAll(getToolJson(toolId, maxLength));
-							ensureUnique.add(toolId);
+					try {
+						String workspaceId = (String) workspace.get("workspace_id");
+						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+						for (Map<String, Object> tool : tools) {
+							String toolId = (String) tool.get("resource_id");
+							if (!ensureUnique.contains(toolId)) {
+								aggregated.addAll(getToolJson(toolId, maxLength));
+								ensureUnique.add(toolId);
+							}
 						}
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from workspace mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from workspace mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'workspace' value in the options map", e);
 			}
 		}
 
@@ -911,7 +919,7 @@ public class Room {
 	 * @param response the response message to enrich
 	 */
 	public void updateToolResponseMeta(ResponseMessage response) {
-		MCPUtility.updateToolResponseWithProjectMeta(response, null, toolLookupByLLMName);
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, getToolLookupByLLMName());
 	}
 
 	/**
@@ -933,9 +941,8 @@ public class Room {
 	 * @return {@code true} when a matching assistant output message exists
 	 */
 	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream()
-				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----
@@ -944,11 +951,13 @@ public class Room {
 	 * Resolves the user-authored system prompt — the room/workspace layer, before
 	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
 	 * <ol>
-	 *   <li>{@code options.instructions}</li>
-	 *   <li>{@code workspace.system_prompt} (looked up via {@code options.workspace.workspace_id})</li>
+	 * <li>{@code options.instructions}</li>
+	 * <li>{@code workspace.system_prompt} (looked up via
+	 * {@code options.workspace.workspace_id})</li>
 	 * </ol>
 	 *
-	 * <p>Use this when you need the raw user prompt as a composable layer (e.g., a
+	 * <p>
+	 * Use this when you need the raw user prompt as a composable layer (e.g., a
 	 * harness combining it with built-in agent instructions). Use
 	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
 	 *
@@ -1000,8 +1009,8 @@ public class Room {
 		}
 		User user = this.insight.getUser();
 		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-			throw new IllegalArgumentException("Workspace " + workspaceId
-					+ " does not exist or user does not have access to the workspace");
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
 		Object isActive = workspace.get("is_active");
 		if (Boolean.FALSE.equals(isActive)) {
