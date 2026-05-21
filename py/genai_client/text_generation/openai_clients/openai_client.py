@@ -335,6 +335,12 @@ class OpenAiClient(AbstractTextGenerationClient):
                             if aggregated_thinking
                             else []
                         )
+                        # preamble text the model emitted alongside the tool calls
+                        + (
+                            [{"type": "TEXT", "text": aggregated_content}]
+                            if aggregated_content
+                            else []
+                        )
                         + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
                     ),
                 )
@@ -682,6 +688,17 @@ class OpenAiClient(AbstractTextGenerationClient):
                     }
                 )
 
+        # preamble text the model emitted alongside the tool calls
+        preamble_text = None
+        if self.chat_type == "chat-completion":
+            preamble_text = response.choices[0].message.content
+        elif self.chat_type == "responses":
+            preamble_text = getattr(response, "output_text", None)
+
+        text_parts = (
+            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        )
+
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
@@ -691,7 +708,8 @@ class OpenAiClient(AbstractTextGenerationClient):
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     @staticmethod
