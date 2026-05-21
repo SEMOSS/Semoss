@@ -23,6 +23,7 @@ from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
+from .google_video_client import GoogleGenAiVideoClient
 
 
 class UsageMetadata(BaseModel):
@@ -66,7 +67,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             api_key=api_key,
             base_url=base_url,
         )
-        self.client = GoogleClient(config=self.client_config).client
+        self.google_client = GoogleClient(config=self.client_config).client
+        self.video_client = GoogleGenAiVideoClient(parent_client=self)
 
         self.safety_settings = safety_settings
 
@@ -78,7 +80,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prefix="",
         **kwargs,
     ):
-        if self.client is None:
+        if self.google_client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
         if (
@@ -103,6 +105,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         try:
             semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
+
+            if self.model_settings.model_type == "video":
+                return self.video_client.ask_call(semoss_messages=semoss_messages)
 
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(
@@ -294,7 +299,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         latest_usage_metadata = None
         tool_result = []
 
-        stream = self.client.models.generate_content_stream(
+        stream = self.google_client.models.generate_content_stream(
             model=self.model_name, contents=contents, config=config
         )
 
@@ -435,7 +440,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         if latest_usage_metadata is not None:
             if getattr(latest_usage_metadata, "prompt_token_count", None) is not None:
                 input_tokens = latest_usage_metadata.prompt_token_count
-            if getattr(latest_usage_metadata, "candidates_token_count", None) is not None:
+            if (
+                getattr(latest_usage_metadata, "candidates_token_count", None)
+                is not None
+            ):
                 output_tokens = latest_usage_metadata.candidates_token_count
             cache_read_tokens = getattr(
                 latest_usage_metadata, "cached_content_token_count", None
@@ -542,7 +550,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
-            response = self.client.models.count_tokens(
+            response = self.google_client.models.count_tokens(
                 model=self.model_name,
                 contents=contents,
             )
