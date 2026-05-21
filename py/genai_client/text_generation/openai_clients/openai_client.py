@@ -555,6 +555,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                         }
                     )
 
+                parts = (
+                    [{"type": "TEXT", "text": aggregated_content}]
+                    if aggregated_content
+                    else []
+                )
+                parts += [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
+
                 return AskModelEngineResponse2(
                     response=tool_result,
                     prompt_tokens=prompt_tokens,
@@ -564,7 +571,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
-                    parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tool_result],
+                    parts=parts,
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
