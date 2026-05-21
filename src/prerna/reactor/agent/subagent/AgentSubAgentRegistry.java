@@ -47,6 +47,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
@@ -319,6 +320,9 @@ public final class AgentSubAgentRegistry {
         String harnessType = (req.harnessType != null && !req.harnessType.trim().isEmpty())
                 ? req.harnessType.trim()
                 : DEFAULT_HARNESS_TYPE;
+        if (AgentHarnessRegistry.get(harnessType) == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + harnessType);
+        }
         StringBuilder pixel = new StringBuilder();
         pixel.append("RunAgent(roomId='").append(escapeSingle(childRoomId)).append("'")
              .append(", command='<encode>").append(encodedPrompt).append("</encode>'")
@@ -459,7 +463,7 @@ public final class AgentSubAgentRegistry {
     }
 
     private static String escapeSingle(String s) {
-        return s == null ? "" : s.replace("'", "\\'");
+        return s == null ? "" : s.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     // Root spawn-policy registry — called by the harness at run boundaries.
