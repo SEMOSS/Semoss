@@ -42,6 +42,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
+import prerna.skill.AbstractSkillUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.notifications.NotificationDbUtils;
@@ -272,6 +273,20 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 
+		// load skill database
+		{
+			String skillDbName = Constants.SKILL_DB + this.extension;
+			int skillDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, skillDbName);
+			if (skillDbNameIndex > -1) {
+				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[skillDbNameIndex]);
+					AbstractSkillUtils.loadSkillDatabase();
+				} catch (Exception e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+		}
+
 		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
 		// USING THE DB AND PROJECT SPLIT OF AN APP
 		// TODO: need to update this for the cloud
@@ -301,6 +316,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
 		String notificationDB = Constants.NOTIFICATION_DB + this.extension;
+		String skillDB = Constants.SKILL_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
@@ -312,7 +328,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						|| (fileName.equals(promptDBName) && !Utility.isPromptDatabaseEnabled())
 						|| fileName.equals(userTrackingDBName)
 						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
-						|| (fileName.equals(notificationDB) && !Utility.isNotificationDatabaseEnabled())) {
+						|| (fileName.equals(notificationDB) && !Utility.isNotificationDatabaseEnabled())
+						|| fileName.equals(skillDB)) {
 					// ignore - we have already loaded these or they are disabled and need to be
 					// ignored
 					continue;

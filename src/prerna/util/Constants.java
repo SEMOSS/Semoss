@@ -816,6 +816,9 @@ public class Constants {
 	public static final String MODEL_INFERENCE_LOGS_ENABLED = "MODEL_INFERENCE_LOGS_ENABLED";
 	public static final String MODEL_INFERENCE_LOGS_DB = "ModelInferenceLogsDatabase";
 
+	// Skill Database
+	public static final String SKILL_DB = "skill";
+
 	// Working directories used for R
 	public static final String R_BASE_FOLDER = "R";
 	public static final String R_ANALYTICS_SCRIPTS_FOLDER = "AnalyticsRoutineScripts";

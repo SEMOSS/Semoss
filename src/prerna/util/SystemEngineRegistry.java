@@ -107,6 +107,9 @@ public final class SystemEngineRegistry {
 	private static final Set<String> MODEL_INFERENCE_LOGS_DB_ALLOWED = Set.of("prerna.auth",
 			"prerna.engine.impl.model.inferencetracking", "prerna.util", "prerna.web.conf");
 
+	private static final Set<String> SKILL_DB_ALLOWED = Set.of("prerna.auth", "prerna.skill", "prerna.util",
+			"prerna.web.conf");
+
 	/**
 	 * Registration allowlist - the startup/init classes that can register an engine
 	 */
@@ -119,7 +122,8 @@ public final class SystemEngineRegistry {
 	 */
 	static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
-			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB,
+			Constants.SKILL_DB);
 
 	/**
 	 * Cache of proxy-verified callers. The classloader check result is stable for
@@ -137,6 +141,7 @@ public final class SystemEngineRegistry {
 	private static volatile Supplier<IRDBMSEngine> notificationDbHolder;
 	private static volatile Supplier<IRDBMSEngine> auditLogsDbHolder;
 	private static volatile Supplier<IRDBMSEngine> modelInferenceLogsDbHolder;
+	private static volatile Supplier<IRDBMSEngine> skillDbHolder;
 
 	private SystemEngineRegistry() {
 		throw new UnsupportedOperationException("SystemEngineRegistry is a utility class");
@@ -191,6 +196,11 @@ public final class SystemEngineRegistry {
 		return modelInferenceLogsDbHolder != null ? modelInferenceLogsDbHolder.get() : null;
 	}
 
+	public static IRDBMSEngine getSkillDb() {
+		checkAccess(SKILL_DB_ALLOWED, "SkillDb");
+		return skillDbHolder != null ? skillDbHolder.get() : null;
+	}
+
 	// -------------------------------------------------------------------------
 	// Loaded-state checks: public, no access restriction, callable from anywhere
 	// -------------------------------------------------------------------------
@@ -238,6 +248,11 @@ public final class SystemEngineRegistry {
 	/** Returns true if the ModelInferenceLogsDb has been loaded and registered. */
 	public static boolean isModelInferenceLogsDbLoaded() {
 		return modelInferenceLogsDbHolder != null;
+	}
+
+	/** Returns true if the SkillDb has been loaded and registered. */
+	public static boolean isSkillDbLoaded() {
+		return skillDbHolder != null;
 	}
 
 	/**
@@ -349,6 +364,13 @@ public final class SystemEngineRegistry {
 			IRDBMSEngine guardedModelInferenceLogsDb = wrapWithGuard(engine, "ModelInferenceLogsDb");
 			modelInferenceLogsDbHolder = () -> guardedModelInferenceLogsDb;
 		}
+		case Constants.SKILL_DB -> {
+			if (skillDbHolder != null) {
+				throw new IllegalStateException("SkillDb is already registered");
+			}
+			IRDBMSEngine guardedSkillDb = wrapWithGuard(engine, "SkillDb");
+			skillDbHolder = () -> guardedSkillDb;
+		}
 		default -> throw new IllegalArgumentException("Not a known system engine ID: " + engineId);
 		}
 	}
@@ -387,6 +409,9 @@ public final class SystemEngineRegistry {
 		}
 		case Constants.MODEL_INFERENCE_LOGS_DB -> {
 			return getModelInferenceLogsDb();
+		}
+		case Constants.SKILL_DB -> {
+			return getSkillDb();
 		}
 		default -> throw new IllegalArgumentException("Not a known system engine ID: " + engineId);
 		}
