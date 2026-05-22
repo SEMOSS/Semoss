@@ -72,11 +72,8 @@ public class LLMReactor extends AbstractReactor {
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
 
-		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
 
 		Map<String, Object> paramMap = getParamMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
@@ -89,10 +86,11 @@ public class LLMReactor extends AbstractReactor {
 
 		List<String> inputImages = getImages();
 		List<String> inputImageURLs = getImageURLs();
-		
+
 		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, parentRoomId);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null,
+				parentRoomId);
 		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
@@ -158,18 +156,17 @@ public class LLMReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
 
 	private String resolveParentRoomId(Map<String, Object> paramMap, String roomId) {
-	    Object raw = paramMap.remove("PARENT_ROOM_ID");
-	    if (raw == null) {
-	        return null;
-	    }
-	    String parentRoomId = raw.toString().trim();
-	    if (parentRoomId.isEmpty() || parentRoomId.equals(roomId)) {
-	        return null;
-	    }
-	    return parentRoomId;
+		Object raw = paramMap.remove("PARENT_ROOM_ID");
+		if (raw == null) {
+			return null;
+		}
+		String parentRoomId = raw.toString().trim();
+		if (parentRoomId.isEmpty() || parentRoomId.equals(roomId)) {
+			return null;
+		}
+		return parentRoomId;
 	}
 
 	@Override

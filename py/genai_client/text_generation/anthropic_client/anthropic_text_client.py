@@ -51,7 +51,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self,
         provider: str,
         use_beta_header: Optional[Union[str, bool]] = False,
-        prompt_caching: Optional[Union[str, bool]] = False,
+        prompt_caching: Optional[Union[str, bool]] = True,
         **kwargs,
     ):
         super().__init__(
@@ -269,10 +269,20 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 )
 
             if response.stop_reason == "tool_use":
+                _cache_read = (
+                    getattr(response.usage, "cache_read_input_tokens", None) or 0
+                )
+                _cache_creation = (
+                    getattr(response.usage, "cache_creation_input_tokens", None) or 0
+                )
                 return self._parse_tools_call_response(
                     response,
-                    prompt_tokens=response.usage.input_tokens,
+                    prompt_tokens=response.usage.input_tokens
+                    + _cache_read
+                    + _cache_creation,
                     response_tokens=response.usage.output_tokens,
+                    cache_read_tokens=_cache_read,
+                    cache_creation_tokens=_cache_creation,
                 )
 
             thinking_text = ""
@@ -296,6 +306,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             cache_creation_tokens = (
                 getattr(response.usage, "cache_creation_input_tokens", None) or None
             )
+            # Normalize Anthropic input_tokens (new-only) to total billed, matching OpenAI/Gemini
+            total_input_tokens = (
+                usage.input_tokens
+                + (cache_read_tokens or 0)
+                + (cache_creation_tokens or 0)
+            )
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
@@ -313,7 +329,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return AskModelEngineResponse2(
                 response=response_text,
                 response_tokens=usage.output_tokens,
-                prompt_tokens=usage.input_tokens,
+                prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
@@ -327,7 +343,12 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             ).parse_error()
 
     def _parse_tools_call_response(
-        self, response, prompt_tokens: int = 0, response_tokens: int = 0
+        self,
+        response,
+        prompt_tokens: int = 0,
+        response_tokens: int = 0,
+        cache_read_tokens: Optional[int] = None,
+        cache_creation_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
         for content in response.content:
@@ -348,6 +369,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response=json_str,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=parts,
@@ -358,6 +381,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response=tools_result,
             response_tokens=response_tokens,
             prompt_tokens=prompt_tokens,
+            cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
@@ -384,6 +409,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         this_content_block_type = ""
 
         tool_result = []
+        # Maps server-tool_use id -> the underlying tool name (e.g. "web_search").
+        # Populated when a server_tool_use block closes, read when its result block
+        # arrives so the persisted TOOL_RESULT carries the real tool name instead
+        # of an Anthropic-specific block-type string.
+        server_tool_use_names: Dict[str, str] = {}
 
         use_beta_stream = self.use_beta_header and hasattr(
             self.client.beta.messages, "stream"
@@ -415,6 +445,21 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                             event.message.usage, "cache_creation_input_tokens", None
                         )
                         or None
+                    )
+                    # Normalize to total input billed (see non-streaming path).
+                    input_tokens = (
+                        input_tokens
+                        + (cache_read_tokens or 0)
+                        + (cache_creation_tokens or 0)
+                    )
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(
+                            input_tokens=input_tokens,
+                            cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
+                        ),
+                        stream_type="usage",
                     )
 
                 elif event.type == "content_block_start":
@@ -474,17 +519,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         print(prefix + str(data), end="")
 
                     elif this_content_block_type == "web_search_tool_result":
+                        tool_use_id = event.content_block.tool_use_id
                         this_content_block.update(
                             {
-                                "tool_use_id": None,
+                                "tool_use_id": tool_use_id,
                                 "type": "tool_result",
                                 "content": [],
-                                "name": "web_search_tool_result",
+                                # Resolve to the underlying tool name (e.g. "web_search")
+                                # captured when the matching server_tool_use block closed.
+                                "name": server_tool_use_names.get(
+                                    tool_use_id, "web_search"
+                                ),
                                 "server_tool": True,
                             }
-                        )
-                        this_content_block["tool_use_id"] = (
-                            event.content_block.tool_use_id
                         )
                         for item in event.content_block.content:
                             this_content_block["content"].append(
@@ -546,7 +593,14 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         except json.decoder.JSONDecodeError:
                             arguments = this_content_block["function"]["arguments"]
 
-                        if not this_content_block["server_tool"]:
+                        if this_content_block["server_tool"]:
+                            # Remember the real tool name so the paired result block
+                            # can replay with `name="web_search"` rather than the
+                            # Anthropic block-type string.
+                            server_tool_use_names[this_content_block["id"]] = (
+                                this_content_block["function"]["name"]
+                            )
+                        else:
                             tool_result.append(
                                 {
                                     "id": this_content_block["id"],
@@ -580,6 +634,11 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         event.delta, "stop_reason", None
                     ):
                         stop_reason = event.delta.stop_reason
+
+                    smss_stream(
+                        StreamUtil.create_usage_chunk(output_tokens=output_tokens),
+                        stream_type="usage",
+                    )
 
             if stop_reason is None:
                 try:
@@ -695,6 +754,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         "tool_result": {
                             "id": tool_use_id,
                             "tool_name": tool_name,
+                            "server_tool": content.get("server_tool", False),
                             "output": json.dumps(tool_content, ensure_ascii=False),
                         },
                     }
@@ -711,6 +771,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 flush=True,
             )
 
+        # input_tokens was already normalized to include cache at message_start
+        total_input_tokens = input_tokens
+
         if tool_result:
             if self.has_schema:
                 # TODO: come back to this method and have it properly mantain and update the existing parts instead of making a new one
@@ -726,7 +789,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
-                        prompt_tokens=input_tokens,
+                        prompt_tokens=total_input_tokens,
                         cache_read_tokens=cache_read_tokens,
                         cache_creation_tokens=cache_creation_tokens,
                         schemaVersion=2,
@@ -738,7 +801,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             return AskModelEngineResponse2(
                 response=tool_result,
                 response_tokens=output_tokens,
-                prompt_tokens=input_tokens,
+                prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
                 schemaVersion=2,
@@ -749,7 +812,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
         return AskModelEngineResponse2(
             response=final_response,
-            prompt_tokens=input_tokens,
+            prompt_tokens=total_input_tokens,
             response_tokens=output_tokens,
             cache_read_tokens=cache_read_tokens,
             cache_creation_tokens=cache_creation_tokens,

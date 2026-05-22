@@ -72,15 +72,14 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 		}
 		String finalRoomId = roomId.trim();
 		
+		List<Object> events = new ArrayList<>();
+		
 		Room room;
 		try {
 		    room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 		} catch(Exception e) {
-			classLogger.error("User does not have access to this room {}", finalRoomId, e);
-			throw new IllegalStateException("User does not have access to this room");
+			return new NounMetadata(events, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
-
-		List<Object> events = new ArrayList<>();
 
 		Path jsonl = ClaudeCodeTranscriptLocator.findJsonlFile(roomId);
 		if (jsonl == null) {

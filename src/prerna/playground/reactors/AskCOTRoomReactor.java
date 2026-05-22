@@ -83,7 +83,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 
 		// Required
 		String modelId = this.keyValue.get(this.keysToGet[0]);
-		String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
+		String userQuery = this.keyValue.get(this.keysToGet[3]);
 		// Optional
 		List<String> vectorDbIds = getListString(ReactorKeysEnum.VECTORDB.getKey());
 		String roomId = this.keyValue.get(this.keysToGet[2]);

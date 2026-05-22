@@ -42,7 +42,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 
 	@Deprecated
 	public SetDatabaseMetadataReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), META, ReactorKeysEnum.ENCODED.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), META,
 				ReactorKeysEnum.JSON_CLEANUP.getKey() };
 	}
 

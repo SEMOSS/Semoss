@@ -83,7 +83,7 @@ public abstract class AbstractSaveAppAssetsReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
-			comment = "add: save app assets executed";
+			comment = "add: saved " + String.join(", ", filePaths);
 		}
 
 		// Check strict script source settings once
@@ -94,6 +94,9 @@ public abstract class AbstractSaveAppAssetsReactor extends AbstractReactor {
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
 		for (String fileName : filePaths) {
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 			// for git, we need to add the assets folder which is assumed in the path
 			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
 		}

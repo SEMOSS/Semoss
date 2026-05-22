@@ -315,8 +315,6 @@ public class AuditLogsDbUtils {
 		AuditLogsDbOwlCreator owlCreator = new AuditLogsDbOwlCreator(auditLogsDb);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(auditLogsDb.getEngineId());
 		}
 
 		Connection conn = null;

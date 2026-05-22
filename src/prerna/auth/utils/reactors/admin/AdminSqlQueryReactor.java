@@ -53,7 +53,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -88,7 +87,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String sqlQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[0]));
+		String sqlQuery = this.keyValue.get(this.keysToGet[0]);
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
 		String commitStr = this.keyValue.get(this.keysToGet[3]);
@@ -106,7 +105,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			classLogger.info("Admin SQL Query type detected: {}", queryType);
 			return delegateToAppropriateReactor(sqlQuery, databaseId, queryType, limitStr, commitStr);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to process the admin SQL query request.", e);
 			throw new SemossPixelException("Error executing admin SQL query: " + e.getMessage());
 		}
 	}
@@ -133,7 +132,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 				return QueryType.OTHER;
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not parse SQL statement, using keyword fallback: " + e.getMessage());
+			classLogger.warn("Could not parse SQL statement, using keyword fallback: {}", e.getMessage());
 			return detectQueryTypeFromKeyword(sql);
 		}
 	}
@@ -193,10 +192,10 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
-			this.insight.addQueriedDatabasesese(databaseId);
+			this.insight.addQueriedDatabases(databaseId);
 			return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to execute the admin SELECT query.", e);
 			throw new SemossPixelException("Error executing SELECT query: " + e.getMessage());
 		}
 	}
@@ -225,7 +224,7 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 
 			return execReactor.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to execute the admin data-modification query.", e);
 			throw new SemossPixelException("Error executing modification query: " + e.getMessage());
 		}
 	}
@@ -270,15 +269,15 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 				limit = Integer.parseInt(limitStr.trim());
 
 				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: " + limit + ", using default " + DEFAULT_LIMIT);
+					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
 					limit = DEFAULT_LIMIT;
 				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value " + limit + " exceeds maximum " + MAX_LIMIT + ", using maximum");
+					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
 					limit = MAX_LIMIT;
 				}
 
 			} catch (NumberFormatException e) {
-				classLogger.warn("Invalid limit value: " + limitStr + ", using default " + DEFAULT_LIMIT);
+				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}
 		}
 

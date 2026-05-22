@@ -47,6 +47,7 @@ import org.apache.curator.retry.RetryNTimes;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.clients.AppCloudClientProperties;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -54,7 +55,7 @@ import prerna.util.Utility;
 
 /**
  * Coordinates cross-node synchronization events through ZooKeeper for engines,
- * projects, and user asset/workspace state.
+ * projects, and user asset state.
  * <p>
  * This component publishes change notifications to ZooKeeper paths and listens
  * for updates from other nodes so stale local resources can be refreshed from
@@ -276,25 +277,22 @@ public final class ClusterSynchronizer {
 	}
 
 	/**
-	 * Determines whether a user asset/workspace project is present locally on this
-	 * node.
+	 * Determines whether a user asset project is present locally on this node.
 	 *
-	 * @param projectId user asset/workspace project identifier
+	 * @param projectId user asset project identifier
 	 * @return {@code true} if local files indicate loaded state, otherwise
 	 *         {@code false}
 	 */
 	private static boolean userLoaded(String projectId) {
-		// User assets/workspaces are not registered in DIHelper like projects/engines.
+		// User assetss are not registered in DIHelper like projects/engines.
 		// Check if the SMSS file exists locally it is only written here by
 		// pullUserAssetOrWorkspace, meaning this pod has previously fetched this
 		// user's data and may have a stale copy.
 		String userFolder = prerna.util.EngineUtility.USER_FOLDER;
-		String assetSmss = userFolder + java.io.File.separator + prerna.engine.impl.SmssUtilities
-				.getUniqueName(prerna.auth.utils.WorkspaceAssetUtils.ASSET_APP_NAME, projectId) + ".smss";
-		String workspaceSmss = userFolder + java.io.File.separator + prerna.engine.impl.SmssUtilities
-				.getUniqueName(prerna.auth.utils.WorkspaceAssetUtils.WORKSPACE_APP_NAME, projectId) + ".smss";
-		if (new java.io.File(assetSmss).exists() || new java.io.File(workspaceSmss).exists()) {
-			classLogger.info("User asset/workspace " + projectId + " is out of date. Pulling latest changes");
+		String assetSmss = userFolder + java.io.File.separator
+				+ prerna.engine.impl.SmssUtilities.getUniqueName(UserAssetUtils.ASSET_APP_NAME, projectId) + ".smss";
+		if (new java.io.File(assetSmss).exists()) {
+			classLogger.info("User asset " + projectId + " is out of date. Pulling latest changes");
 			return true;
 		}
 		return false;
@@ -333,10 +331,10 @@ public final class ClusterSynchronizer {
 	}
 
 	/**
-	 * Publishes a user asset/workspace change event to ZooKeeper so other nodes can
-	 * pull updates.
+	 * Publishes a user asset change event to ZooKeeper so other nodes can pull
+	 * updates.
 	 *
-	 * @param projectId  user asset/workspace project identifier
+	 * @param projectId  user asset project identifier
 	 * @param methodName {@code ClusterUtil} static method to execute on peers
 	 * @param params     serialized method arguments
 	 * @throws Exception if path creation, serialization, or publish fails
@@ -349,7 +347,7 @@ public final class ClusterSynchronizer {
 			client.create().creatingParentsIfNeeded().forPath(userPath);
 		}
 
-		classLogger.info("Publishing change for user asset/workspace " + projectId + " and for nodes to " + methodName);
+		classLogger.info("Publishing change for user asset " + projectId + " and for nodes to " + methodName);
 		Map<String, Object> dataMap = new HashMap<>();
 		dataMap.put("nodeId", host);
 		dataMap.put("methodName", methodName);

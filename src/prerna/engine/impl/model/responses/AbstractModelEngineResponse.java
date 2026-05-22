@@ -41,14 +41,20 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
 	public static final String RESPONSE = "response";
 	public static final String NUMBER_OF_TOKENS_IN_PROMPT = "numberOfTokensInPrompt";
 	public static final String NUMBER_OF_TOKENS_IN_RESPONSE = "numberOfTokensInResponse";
+	public static final String NUMBER_OF_CACHE_READ_TOKENS = "numberOfCacheReadTokens";
+	public static final String NUMBER_OF_CACHE_CREATION_TOKENS = "numberOfCacheCreationTokens";
+	public static final String NUMBER_OF_THINKING_TOKENS = "numberOfThinkingTokens";
 	public static final String USAGE_RESTRICTION_KEY = "usageRestriction";
 	public static final String USAGE_RESTRICTION_MODE = "restrictedBy";
 	public static final String USAGE_RESTRICTION_CURRENT_VALUE = "currentValue";
 	public static final String USAGE_RESTRICTION_MAX_VALUE = "maxValue";
-	
+
 	protected T response;
 	protected Integer numberOfTokensInPrompt;
 	protected Integer numberOfTokensInResponse;
+	protected Integer numberOfCacheReadTokens;
+	protected Integer numberOfCacheCreationTokens;
+	protected Integer numberOfThinkingTokens;
 	protected Map<String, Object> usageRestriction = null;
 
     public AbstractModelEngineResponse(T response, Integer numberOfTokensInPrompt, Integer numberOfTokensInResponse) {
@@ -80,7 +86,31 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
     public void setNumberOfTokensInResponse(Integer numberOfTokensInResponse) {
         this.numberOfTokensInResponse = numberOfTokensInResponse;
     }
-    
+
+    public Integer getNumberOfCacheReadTokens() {
+        return numberOfCacheReadTokens;
+    }
+
+    public void setNumberOfCacheReadTokens(Integer numberOfCacheReadTokens) {
+        this.numberOfCacheReadTokens = numberOfCacheReadTokens;
+    }
+
+    public Integer getNumberOfCacheCreationTokens() {
+        return numberOfCacheCreationTokens;
+    }
+
+    public void setNumberOfCacheCreationTokens(Integer numberOfCacheCreationTokens) {
+        this.numberOfCacheCreationTokens = numberOfCacheCreationTokens;
+    }
+
+    public Integer getNumberOfThinkingTokens() {
+        return numberOfThinkingTokens;
+    }
+
+    public void setNumberOfThinkingTokens(Integer numberOfThinkingTokens) {
+        this.numberOfThinkingTokens = numberOfThinkingTokens;
+    }
+
 	public Map<String, Object> getUsageRestriction() {
 		return usageRestriction;
 	}
@@ -94,6 +124,15 @@ public abstract class AbstractModelEngineResponse<T> implements Serializable {
     	responseMap.put(RESPONSE, this.response);
     	responseMap.put(NUMBER_OF_TOKENS_IN_PROMPT, this.numberOfTokensInPrompt);
     	responseMap.put(NUMBER_OF_TOKENS_IN_RESPONSE, this.numberOfTokensInResponse);
+    	if (this.numberOfCacheReadTokens != null) {
+    		responseMap.put(NUMBER_OF_CACHE_READ_TOKENS, this.numberOfCacheReadTokens);
+    	}
+    	if (this.numberOfCacheCreationTokens != null) {
+    		responseMap.put(NUMBER_OF_CACHE_CREATION_TOKENS, this.numberOfCacheCreationTokens);
+    	}
+    	if (this.numberOfThinkingTokens != null) {
+    		responseMap.put(NUMBER_OF_THINKING_TOKENS, this.numberOfThinkingTokens);
+    	}
     	if(this.usageRestriction != null) {
     		responseMap.put(USAGE_RESTRICTION_KEY, this.usageRestriction);
     	}

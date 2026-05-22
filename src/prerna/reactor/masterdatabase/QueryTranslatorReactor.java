@@ -40,12 +40,11 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class QueryTranslatorReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(QueryTranslatorReactor.class);
-	
+
 	public QueryTranslatorReactor() {
 		this.keysToGet = new String[] { "query", "sourceDB", "targetDB" };
 	}
@@ -54,7 +53,6 @@ public class QueryTranslatorReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String query = this.keyValue.get(this.keysToGet[0]);
-		query = Utility.decodeURIComponent(query);
 		System.out.println(query);
 		String sourceDbId = this.keyValue.get(this.keysToGet[1]);
 		String targetDbId = this.keyValue.get(this.keysToGet[2]);

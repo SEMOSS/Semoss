@@ -58,6 +58,14 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 	private static final String SALESFORCE_CONNECTIONS_TABLE = "SALESFORCE_CONNECTIONS";
 	private static final String INSERT_CONNECTION_SQL = "INSERT INTO " + SALESFORCE_CONNECTIONS_TABLE
 			+ " (ID, ALIAS, CLIENTID, CLIENTSECRET) VALUES (?, ?, ?, ?)";
+	private static final String SERVICENOW_CONNECTIONS_TABLE = "SERVICENOW_CONNECTIONS";
+	private static final String INSERT_SERVICENOW_CONNECTION_SQL = "INSERT INTO " + SERVICENOW_CONNECTIONS_TABLE
+			+ " (ID, INSTANCEURL, ALIAS, CLIENTID, CLIENTSECRET, USERPROFILEURL) VALUES (?, ?, ?, ?, ?, ?)";
+
+	// Jira connections table and insert statement
+	private static final String JIRA_CONNECTIONS_TABLE = "JIRA_CONNECTIONS";
+	private static final String INSERT_JIRA_CONNECTION_SQL = "INSERT INTO " + JIRA_CONNECTIONS_TABLE
+			+ " (ID, ALIAS, CLIENTID, CLIENTSECRET, SCOPE, USERPROFILEURL) VALUES (?, ?, ?, ?, ?, ?)";
 
 	private SecurityAdminExternalConnectorsUtils() {
 
@@ -166,6 +174,182 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 		} catch (SQLException e) {
 			classLogger.error("Failed to insert Salesforce connection.", e);
 			throw new SemossPixelException("Unable to insert Salesforce connection: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
+		}
+	}
+
+	/**
+	 * Inserts a new ServiceNow connection into the security database.
+	 * <p>
+	 * This method validates required inputs, checks for duplicate {@code CLIENTID}
+	 * or {@code ALIAS}, then inserts a new row using prepared statements.
+	 * </p>
+	 *
+	 * @param instanceUrl    ServiceNow instance URL
+	 * @param alias          unique alias for the saved connection
+	 * @param clientId       ServiceNow client id
+	 * @param clientSecret   ServiceNow client secret
+	 * @param userProfileUrl ServiceNow user profile URL
+	 * @return generated ServiceNow connection id
+	 */
+	public String insertServiceNowConnection(String instanceUrl, String alias, String clientId, String clientSecret,
+			String userProfileUrl) {
+		if (instanceUrl == null || (instanceUrl = instanceUrl.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Instance URL must not be empty.");
+		}
+		if (alias == null || (alias = alias.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Alias must not be empty.");
+		}
+		if (clientId == null || (clientId = clientId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Client id must not be empty.");
+		}
+		if (clientSecret == null || (clientSecret = clientSecret.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Client secret must not be empty.");
+		}
+		if (userProfileUrl == null || (userProfileUrl = userProfileUrl.trim()).isEmpty()) {
+			throw new IllegalArgumentException("User profile URL must not be empty.");
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String generatedId = UUID.randomUUID().toString();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SERVICENOW_CONNECTIONS__ALIAS", "alias"));
+		OrQueryFilter or = new OrQueryFilter();
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("SERVICENOW_CONNECTIONS__CLIENTID", "==", clientId));
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("SERVICENOW_CONNECTIONS__ALIAS", "==", alias));
+		qs.addExplicitFilter(or);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				throw new IllegalArgumentException(
+						"A ServiceNow connection with the same alias or clientId already exists.");
+			}
+		} catch (Exception e) {
+			classLogger.error(
+					"An error occurred attemping to determine if clientId or alias already exist for ServiceNow connection",
+					e);
+			throw new IllegalArgumentException(
+					"An error occurred attemping to determine if clientId or alias already exist for ServiceNow connection",
+					e);
+		}
+
+		Connection conn = null;
+		Statement ps = null;
+		try {
+			conn = securityDb.getConnection();
+			ps = conn.prepareStatement(INSERT_SERVICENOW_CONNECTION_SQL);
+			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_SERVICENOW_CONNECTION_SQL)) {
+				insertStmt.setString(1, generatedId);
+				insertStmt.setString(2, instanceUrl);
+				insertStmt.setString(3, alias);
+				insertStmt.setString(4, clientId);
+				insertStmt.setString(5, clientSecret);
+				insertStmt.setString(6, userProfileUrl);
+
+				int rowsInserted = insertStmt.executeUpdate();
+				if (rowsInserted != 1) {
+					throw new SemossPixelException("Unable to insert ServiceNow connection.");
+				}
+
+				if (!conn.getAutoCommit()) {
+					conn.commit();
+				}
+				return generatedId;
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to insert ServiceNow connection.", e);
+			throw new SemossPixelException("Unable to insert ServiceNow connection: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
+		}
+	}
+
+	/**
+	 * Inserts a new Jira connection into the security database.
+	 * <p>
+	 * This method validates required inputs, checks for a duplicate
+	 * {@code CLIENTID} or {@code ALIAS}, then inserts a new row using prepared
+	 * statements.
+	 * </p>
+	 *
+	 * @param alias          unique alias for the saved connection
+	 * @param clientId       Jira connected-app client id
+	 * @param clientSecret   Jira connected-app client secret
+	 * @param scope          OAuth scope for the Jira connection
+	 * @param userProfileUrl URL used to retrieve the Jira user profile
+	 * @return generated Jira connection id
+	 */
+	public String insertJiraConnection(String alias, String clientId, String clientSecret, String scope,
+			String userProfileUrl) {
+		if (alias == null || (alias = alias.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Alias must not be empty.");
+		}
+		if (clientId == null || (clientId = clientId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Client id must not be empty.");
+		}
+		if (clientSecret == null || (clientSecret = clientSecret.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Client secret must not be empty.");
+		}
+		if (scope == null || (scope = scope.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Scope must not be empty.");
+		}
+		if (userProfileUrl == null || (userProfileUrl = userProfileUrl.trim()).isEmpty()) {
+			throw new IllegalArgumentException("User profile URL must not be empty.");
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String generatedId = UUID.randomUUID().toString();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("JIRA_CONNECTIONS__ALIAS", "alias"));
+		OrQueryFilter or = new OrQueryFilter();
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__CLIENTID", "==", clientId));
+		or.addFilter(SimpleQueryFilter.makeColToValFilter("JIRA_CONNECTIONS__ALIAS", "==", alias));
+		qs.addExplicitFilter(or);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				throw new IllegalArgumentException("A Jira connection with the same clientId or alias already exists.");
+			}
+		} catch (Exception e) {
+			classLogger.error(
+					"An error occurred attempting to determine if clientId or alias already exists for Jira connection",
+					e);
+			throw new IllegalArgumentException(
+					"An error occurred attempting to determine if clientId or alias already exists for Jira connection",
+					e);
+		}
+
+		Connection conn = null;
+		Statement ps = null;
+		try {
+			conn = securityDb.getConnection();
+			ps = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL);
+			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL)) {
+				insertStmt.setString(1, generatedId);
+				insertStmt.setString(2, alias);
+				insertStmt.setString(3, clientId);
+				insertStmt.setString(4, clientSecret);
+				insertStmt.setString(5, scope);
+				insertStmt.setString(6, userProfileUrl);
+
+				int rowsInserted = insertStmt.executeUpdate();
+				if (rowsInserted != 1) {
+					throw new SemossPixelException("Unable to insert Jira connection.");
+				}
+
+				if (!conn.getAutoCommit()) {
+					conn.commit();
+				}
+				return generatedId;
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to insert Jira connection.", e);
+			throw new SemossPixelException("Unable to insert Jira connection: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
 		}

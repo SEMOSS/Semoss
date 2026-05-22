@@ -7,6 +7,9 @@ import traceback as tb
 import threading
 
 import importlib
+import importlib.util
+import builtins as _builtins_mod
+
 import os
 import gc as gc
 import sys
@@ -66,6 +69,53 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
         return data_dict
 
     return dataframe
+
+
+from gaas_tcp_server_thread_local import (
+    _asset_thread_local,
+    _asset_ns_key,
+    smss_clear_app_imports as _smss_clear_app_imports,
+    smss_get_runtime_var as _smss_get_runtime_var,
+)
+
+
+# Capture the real __import__ before we replace it.
+_orig_import = _builtins_mod.__import__
+
+
+def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0):
+    """
+    Wraps builtins.__import__ to isolate project-local modules per asset path.
+
+    When handle_python sets _asset_thread_local.active_paths, any simple
+    (non-dotted, absolute) import whose .py file exists inside one of those
+    paths is loaded from the explicit file path and cached under a namespaced
+    sys.modules key (_smss_{hash}_{name}).  Concurrent threads with different
+    asset paths never see each other's cached copy.
+
+    All other imports (e.g. torch, numpy, stdlib) fall through to the real
+    __import__ unchanged — sys.modules is never replaced.
+    """
+    if level == 0 and "." not in name:
+        active_paths = getattr(_asset_thread_local, "active_paths", None)
+        if active_paths:
+            for path in active_paths:
+                ns_key = _asset_ns_key(path) + "_" + name
+                cached = sys.modules.get(ns_key)
+                if cached is not None:
+                    return cached
+                candidate = os.path.join(path, name + ".py")
+                if os.path.exists(candidate):
+                    spec = importlib.util.spec_from_file_location(ns_key, candidate)
+                    mod = importlib.util.module_from_spec(spec)
+                    # Register before exec so circular imports resolve correctly
+                    sys.modules[ns_key] = mod
+                    spec.loader.exec_module(mod)
+                    return mod
+    return _orig_import(name, _globals, _locals, fromlist, level)
+
+
+_builtins_mod.__import__ = _asset_aware_import
 
 
 class ExecutionCancelled(Exception):
@@ -484,7 +534,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     response=True,
                     exception=True,
                 )
-        except Exception as e:
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
             print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
             error_payload = {"epoc": epoc, "ex": [output]}
@@ -819,6 +871,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        runtime_vars = payload.get("runtime_vars") or {}
         cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
         cancel_trace = self._build_cancel_trace(cancel_events)
 
@@ -848,29 +901,45 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     )
                 command = path_script + command
 
+        # If legacy append_vars are provided, prepend these vars at the start of the script
+        append_vars = payload.get("append_vars") or {}
+        if append_vars:
+            append_vars_script = ""
+            # Add each variable
+            for key in append_vars:
+                append_vars_script += textwrap.dedent(
+                    f"""
+                        {key} = r'{append_vars.get(key)}'
+                        """
+                )
+            append_vars_script += "\n"
+            command = append_vars_script + command
+
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
-        if "mcp_driver" in sys.modules and asset_paths:
-            try:
-                mcp_module = sys.modules["mcp_driver"]
-                if hasattr(mcp_module, "__file__") and mcp_module.__file__:
-                    module_path = os.path.abspath(mcp_module.__file__)
+        # Collect the normalised asset paths for per-project module isolation.
+        # _asset_aware_import reads _asset_thread_local.active_paths to namespace
+        # any project-local .py file under a per-path key in sys.modules so
+        # concurrent threads for different projects never share helper modules.
+        _active_paths = (
+            [p for p in (asset_paths or []) if p]
+            if isinstance(asset_paths, list)
+            else ([asset_paths] if asset_paths else [])
+        )
 
-                    is_correct_path = False
-                    for p in asset_paths:
-                        if module_path.startswith(os.path.abspath(p)):
-                            is_correct_path = True
-                            break
+        # Store insight_globals in thread-local so smss_clear_app_imports()
+        # (gaas_tcp_server_thread_local) can evict __smss_mcp_* aliases at call
+        # time without needing to import this module. Injecting the same module-
+        # level function object every time means there is no closure and no race
+        # on the 'smss_clear_app_imports' key in insight_globals.
+        _asset_thread_local.insight_globals = insight_globals
+        insight_globals["smss_clear_app_imports"] = _smss_clear_app_imports
 
-                    if not is_correct_path:
-                        reload_mcp_function = insight_globals.get("reload_mcp_function")
-                        if reload_mcp_function:
-                            reload_mcp_function()
-            except Exception:
-                # If anything goes wrong during the check, do nothing and proceed
-                pass
+        # Store runtime vars in thread-local so they can be accessed by the smss_get_runtime_var function that is injected into the insight's globals. This is so variables can be passed from Java to Python without running into a race condition on the insight_globals when multiple threads are running for the same insight.
+        _asset_thread_local.runtime_vars = runtime_vars
+
+        insight_globals["smss_get_runtime_var"] = _smss_get_runtime_var
 
         # Define and inject the smss_stream function
         def smss_stream_func(
@@ -894,6 +963,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
+            # Activate per-project module isolation for this thread
+            _asset_thread_local.active_paths = _active_paths if _active_paths else None
 
             # Determine the target CWD for this specific insight from its globals
             target_cwd = insight_globals.get("__smss_cwd__")
@@ -940,6 +1011,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         finally:
             # Always clear the function for the current thread
             clear_smss_stream()
+            _asset_thread_local.active_paths = None
+            _asset_thread_local.insight_globals = None
+            _asset_thread_local.runtime_vars = None
             # Always change back to the original process CWD
             if process_cwd is not None:
                 os.chdir(process_cwd)
@@ -1040,8 +1114,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         except ExecutionCancelled as e:
             return (str(e), True, True)
-        except Exception as e:
-            # if we fail all attempts then send back the traceback
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
+            # Catch BaseException (not just Exception) so that C-extension panics
+            # such as pyo3_runtime.PanicException are captured and returned to the
+            # caller instead of crashing the thread silently.
             traceback = sys.exc_info()[2]
             full_trace = ["Traceback (most recent call last):\n"]
             full_trace = (
@@ -1414,23 +1492,6 @@ class InsightGlobalStore:
 
                 return module
 
-            def reload_mcp_function(globals_dict):
-                """
-                Reloads the mcp_driver module
-                """
-                import importlib
-
-                if "mcp_driver" in sys.modules:
-                    # Use importlib.reload for a proper reload
-                    mcp_module = importlib.reload(sys.modules["mcp_driver"])
-                else:
-                    # First-time import
-                    mcp_module = secure_import("mcp_driver", globals=globals_dict)
-
-                # Inject the newly loaded module into the current insight's globals
-                globals_dict["mcp_driver"] = mcp_module
-                return mcp_module
-
             # First-time initialization: build the globals dict
             globals_dict = {
                 "__builtins__": {
@@ -1450,9 +1511,6 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp_function"] = lambda: reload_mcp_function(
-                globals_dict
-            )
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1472,7 +1530,6 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp_function",
                     "string",
                     "np",
                     "pd",

@@ -31,6 +31,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.api.Git;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -43,10 +47,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
-import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
 public class DeleteAppAssetsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteAppAssetsReactor.class);
 
 	public DeleteAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -91,7 +96,7 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "remove: delete app assets executed";
+			comment = "remove: deleted " + String.join(", ", filePaths);
 		}
 
 		// Prepare to collect Git relative paths and actual File objects
@@ -110,7 +115,15 @@ public class DeleteAppAssetsReactor extends AbstractReactor {
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
 
-		GitDestroyer.removeSpecificFiles(versionGitFolder, true, gitRelativeFilePaths);
+		// Stage the file deletions in git
+		// Using git add --update (setUpdate=true) to detect all deletions on disk
+		// This is more reliable than GitDestroyer.removeSpecificFiles() which uses
+		// addFilepattern and can silently fail if the pattern doesn't match the index
+		try (Git git = Git.open(new File(versionGitFolder))) {
+			git.add().addFilepattern(".").setUpdate(true).call();
+		} catch (Exception e) {
+			classLogger.error("Error staging deleted files in git for project {}", projectId, e);
+		}
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud

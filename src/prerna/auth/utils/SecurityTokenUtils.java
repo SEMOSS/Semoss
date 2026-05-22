@@ -43,7 +43,6 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -74,7 +73,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.execute();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to clear expired tokens.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
@@ -100,9 +99,9 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			ps.setString(parameterIndex++, clientId);
 			ps.execute();
-			classLogger.debug("Adding new token=" + tokenValue + " for ip=" + ipAddr);
+			classLogger.debug("Adding new token={} for ip={}", tokenValue, ipAddr);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to generate token.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
@@ -128,7 +127,7 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve token.", e);
 		}
 
 		return null;

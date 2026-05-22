@@ -38,7 +38,6 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
 import prerna.project.api.IProject;
@@ -64,9 +63,6 @@ public class DeleteProjectReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		List<String> projectIds = getProjectIds();
 		for (String projectId : projectIds) {
-			if (WorkspaceAssetUtils.isAssetOrWorkspaceProject(projectId)) {
-				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset app.");
-			}
 			User user = this.insight.getUser();
 
 			// we may have the alias

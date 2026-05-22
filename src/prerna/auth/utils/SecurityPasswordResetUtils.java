@@ -46,7 +46,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
+import prerna.util.ConnectionUtils;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -90,7 +90,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
 		return false;
@@ -113,7 +113,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user ID from email.", e);
 		}
 
 		return null;
@@ -159,17 +159,10 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the user is allowed to reset the password.", e);
 			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
 		} finally {
-			if (ps != null) {
-				ps.close();
-			}
-			if (securityDb.isConnectionPooling()) {
-				if (ps != null) {
-					ps.getConnection().close();
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return uniqueToken;
@@ -203,7 +196,7 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				type = (String) row[2];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to reset the user password.", e);
 		}
 
 		if (dateTokenAdded == null) {
@@ -256,25 +249,10 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete token.", e);
 			return false;
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
-			if (securityDb.isConnectionPooling()) {
-				if (ps != null) {
-					try {
-						ps.getConnection().close();
-					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return true;

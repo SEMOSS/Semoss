@@ -33,9 +33,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,6 +61,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -114,8 +115,6 @@ public class ModelInferenceLogsUtils {
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if (modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
 		}
 
 		Connection conn = null;
@@ -806,8 +805,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -1121,7 +1120,9 @@ public class ModelInferenceLogsUtils {
 			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize,
+				null, null, null, null, null,
+				reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
@@ -1147,7 +1148,9 @@ public class ModelInferenceLogsUtils {
 	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
 			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
 			String sessionId, String roomId, String userId, String userName, String userEmail) {
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize,
+				null, null, null, null, null,
+				reponseTime, dateCreated,
 				agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
@@ -1174,15 +1177,32 @@ public class ModelInferenceLogsUtils {
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
+		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize,
+				null, null, null, null, null,
+				reponseTime, dateCreated, agentId, insightId, sessionId, roomId, userId, userName, userEmail);
+	}
+
+	/**
+	 * Records a message row with granular, nullable per-transaction token counts.
+	 * THINKING_TOKENS is intended for the RESPONSE row only (assistant output);
+	 * pass null for the INPUT row.
+	 */
+	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
+			String messageMethod, Integer tokenSize,
+			Integer inputTokens, Integer outputTokens, Integer cacheReadTokens, Integer cacheCreationTokens,
+			Integer thinkingTokens,
+			Double reponseTime, ZonedDateTime dateCreated, String agentId,
+			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
+				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1202,6 +1222,31 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageMethod);
 			if (tokenSize != null) {
 				ps.setInt(index++, tokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (inputTokens != null) {
+				ps.setInt(index++, inputTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (outputTokens != null) {
+				ps.setInt(index++, outputTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheReadTokens != null) {
+				ps.setInt(index++, cacheReadTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheCreationTokens != null) {
+				ps.setInt(index++, cacheCreationTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (thinkingTokens != null) {
+				ps.setInt(index++, thinkingTokens);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
@@ -1531,31 +1576,56 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Get user conversations with flexible ordering/paging.
+	 * Retrieves conversation rooms for a user with optional filtering, sorting, and
+	 * paging.
+	 * <p>
+	 * Only active rooms are returned, and each room must have at least one stored
+	 * message row with non-null message content.
+	 * </p>
 	 *
-	 * @param userId    User's ID
-	 * @param projectId Project ID for filter (nullable)
-	 * @param limit     Max results to return; if <=0 or null, returns all
-	 * @param offset    Records to skip for pagination (nullable/0 = none)
-	 * @param sortDir   ASC or DESC - default DESC
-	 * @param search    Optional keyword to search for in room name or context
-	 * @return List of conversations (maps)
+	 * @param userId    user identifier used to scope rooms
+	 * @param projectId optional project identifier to further scope rooms; when
+	 *                  {@code null}, rooms across all projects are eligible
+	 * @param limit     maximum number of rooms to return; values {@code <= 0}
+	 *                  disable limiting
+	 * @param offset    number of rows to skip before collecting results; values
+	 *                  {@code <= 0} disable offset paging
+	 * @param sortDir   sort direction for {@code DATE_CREATED}; accepted values are
+	 *                  {@code ASC} and {@code DESC} (any other value is treated as
+	 *                  {@code DESC})
+	 * @param search    optional room-name contains filter (case-insensitive
+	 *                  {@code LIKE}); {@code null}/blank disables search filtering
+	 * @param pinned    optional pinned-state filter; {@code true} returns only
+	 *                  pinned rooms, {@code false} returns unpinned rooms
+	 *                  (including {@code null} pinned values), and {@code null}
+	 *                  disables pinned filtering
+	 * @return a list of room records, where each map contains the selected room
+	 *         fields for that row:
+	 *         <ul>
+	 *         <li>{@code ROOM_ID} (or aliased header for room id)</li>
+	 *         <li>{@code ROOM_NAME} (or aliased header for room name)</li>
+	 *         <li>{@code DATE_CREATED} (or aliased header for room create
+	 *         timestamp)</li>
+	 *         <li>{@code PINNED} (or aliased header for pinned state)</li>
+	 *         <li>{@code WORKSPACE_ID} (or aliased header for workspace link)</li>
+	 *         </ul>
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
-			long offset, String sortDir, String search) {
+			long offset, String sortDir, String search, Boolean pinned) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		// Subquery to filter only rooms with at least 1 message and correct
-		// user/project/active
+		// Subquery to filter only rooms that are active and fit query restraints
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
@@ -1566,12 +1636,33 @@ public class ModelInferenceLogsUtils {
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		// SEARCH
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
+		}
+
+		// ROOM OPTIONS SEARCH — free-text substring match on the OPTIONS text column.
+		// Portable across H2 and PostgreSQL since OPTIONS is stored as plain text.
+		if (roomOptionsSearch != null && !roomOptionsSearch.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?like",
+					"%" + roomOptionsSearch.trim() + "%", PixelDataType.CONST_STRING));
+		}
+
+		// PINNED filter
+		// when pinned == true -> only rooms with PINNED == true
+		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat
+		// unset as not pinned)
+		if (pinned != null) {
+			if (pinned.booleanValue()) {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true, PixelDataType.BOOLEAN));
+			} else {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==",
+						Arrays.asList(false, null), PixelDataType.BOOLEAN));
+			}
 		}
 
 		// LIMIT/OFFSET
@@ -1584,21 +1675,7 @@ public class ModelInferenceLogsUtils {
 		// SORTING
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
-
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
-	}
-
-	/**
-	 * Convenience overload for fetching all conversations for a user/project.
-	 *
-	 * @param userId    user identifier
-	 * @param projectId project identifier (nullable)
-	 * @return conversation rows
-	 */
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		return getUserConversations(userId, projectId, -1, 0, null, null);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1796,7 +1873,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        engine identifier
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
@@ -1806,21 +1883,10 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equalsIgnoreCase("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			// assume they want daily
-			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
-			dates.put("start", startOfTodayUtc);
-			dates.put("end", endOfTodayUtc);
-		}
+		// Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1843,8 +1909,8 @@ public class ModelInferenceLogsUtils {
 			int psIndex = 1;
 			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
 			ps.setString(psIndex++, engineId);
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
 
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
@@ -1879,7 +1945,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        current engine id used to derive exclusions
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
@@ -1905,19 +1971,10 @@ public class ModelInferenceLogsUtils {
 			excludePSString = excludeSB.toString();
 		}
 
-		// Step 2: Get the date range based on the frequency
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equals("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equals("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-		}
+		// Step 2: Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");
@@ -2122,8 +2179,8 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
+						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
@@ -2426,7 +2483,7 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		SelectQueryStruct outerQs = new SelectQueryStruct();
 		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_id", "room_id", SemossDataType.STRING));
@@ -3071,10 +3128,12 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
 
 		// Room columns for project context
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "WORKSPACE_ID"));
 
 		// Join FEEDBACK -> MESSAGE on MESSAGE_ID
 		qs.addRelation(FEEDBACK_TABLE_NAME + "MESSAGE_ID", MESSAGE_TABLE_NAME + "MESSAGE_ID", "inner.join");
@@ -3099,7 +3158,65 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "DESC");
 
 		addLimitAndOffSet(qs, limit, offset);
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		List<Map<String, Object>> feedbackList = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+
+		// Ensure WORKSPACE_ID is always present in the payload (serializer drops nulls)
+		for (Map<String, Object> row : feedbackList) {
+			if (row.get("WORKSPACE_ID") == null) {
+				row.put("WORKSPACE_ID", "");
+			}
+		}
+
+		attachInputPromptsByTransactionId(modelInferenceLogsDb, feedbackList);
+		return feedbackList;
+	}
+
+	/**
+	 * For each feedback row in {@code feedbackList}, looks up the paired INPUT
+	 * message (same TRANSACTION_ID) and stamps its MESSAGE_DATA onto the row under
+	 * the {@code PROMPT} key. Rows without a matching INPUT row get a null PROMPT.
+	 */
+	private static void attachInputPromptsByTransactionId(IRDBMSEngine modelInferenceLogsDb,
+			List<Map<String, Object>> feedbackList) {
+		if (feedbackList == null || feedbackList.isEmpty()) {
+			return;
+		}
+
+		Set<String> transactionIds = new HashSet<>();
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			if (txId != null) {
+				transactionIds.add(txId.toString());
+			}
+		}
+		if (transactionIds.isEmpty()) {
+			for (Map<String, Object> row : feedbackList) {
+				row.put("PROMPT", null);
+			}
+			return;
+		}
+
+		SelectQueryStruct inputQs = new SelectQueryStruct();
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		inputQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "TRANSACTION_ID", "==",
+				new ArrayList<>(transactionIds)));
+		inputQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"));
+
+		List<Map<String, Object>> inputRows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, inputQs);
+		Map<String, Object> txIdToInputData = new HashMap<>();
+		for (Map<String, Object> inputRow : inputRows) {
+			Object txId = inputRow.get("TRANSACTION_ID");
+			if (txId != null) {
+				txIdToInputData.put(txId.toString(), inputRow.get("MESSAGE_DATA"));
+			}
+		}
+
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			row.put("PROMPT", txId == null ? null : txIdToInputData.get(txId.toString()));
+		}
 	}
 
 	/**

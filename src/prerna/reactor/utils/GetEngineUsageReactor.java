@@ -147,8 +147,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Generation with Image
 
 						```
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", image = "myImage.png");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
 						```
 
 						Generation with ChatML

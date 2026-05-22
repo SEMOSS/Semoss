@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -42,6 +43,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.StreamingOutput;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,20 +55,27 @@ import org.json.JSONObject;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
+import prerna.sablecc2.PixelStreamUtility;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.AbstractTask;
+import prerna.sablecc2.om.task.ConstantDataTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -86,6 +97,7 @@ public final class MCPUtility {
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
+	public static final String UI_AUTO_OPEN = "autoOpen";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -164,14 +176,32 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Run a python mcp tool
-	 * 
-	 * @param project
-	 * @param insight
-	 * @param functionName
-	 * @param functionProperties
-	 * @param paramMap
-	 * @return
+	 * Executes a Python MCP tool function from the engine's {@code assets/py}
+	 * directory.
+	 * <p>
+	 * The engine asset folder path is resolved once and forwarded explicitly to the
+	 * Python process via {@link PyTranslator#runScriptWithExplicitAssetPaths}, so
+	 * the shared {@code Insight} context fields ({@code contextProjectId} /
+	 * {@code contextProjectName}) are never written. This prevents the race
+	 * condition where concurrent threads for different engines on the same insight
+	 * would overwrite each other's context before the Python call completes.
+	 * <p>
+	 * On the Python side, the generated script loads the driver file under a
+	 * per-engine namespaced key in {@code insight_globals} (e.g.
+	 * {@code __smss_mcp_<engineId>__}) rather than the bare name
+	 * {@code mcp_driver}. All temporary variables live in function-local scope so
+	 * they never pollute the shared globals dict. File modification-time checking
+	 * ensures the module is reloaded automatically when the source file changes.
+	 *
+	 * @param engine             the engine whose {@code assets/py} folder contains
+	 *                           the driver
+	 * @param insight            the calling insight (provides the Python translator
+	 *                           and globals store)
+	 * @param functionName       the Python function to invoke inside the driver
+	 * @param functionProperties JSON schema of the function's parameters (type /
+	 *                           default)
+	 * @param paramMap           runtime argument values keyed by parameter name
+	 * @return the stringified result of the Python function call
 	 */
 	public static String runPythonTool(IEngine engine, Insight insight, String functionName,
 			JSONObject functionProperties, Map<String, Object> paramMap) {
@@ -189,31 +219,12 @@ public final class MCPUtility {
 			}
 		}
 
-		String moduleName = namedMCP ? "mcp_driver" : "smss_driver";
-
-		// clear the cached modules and reimport to get latest file changes
-		// @formatter:off
-		String loadFreshSmssModule = 
-			    "if 'reload_mcp_function' in globals():\n" +
-			    "    mcp_driver = reload_mcp_function()\n" +
-			    "else:\n" +
-			    "    import " + moduleName + " as mcp_driver";
-		
-		// @formatter:on
-		// Copy default path vars from translator globals into the loaded MCP module.
-		// These vars are injected into the translator scope, not the module scope.
-		// @formatter:off
-		String injectDefaultVars = "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:\n" +
-		                          "    if _k in globals():\n" +
-		                          "        setattr(mcp_driver, _k, globals()[_k])";
-		// @formatter:on
-
 		if (!namedMCP) {
 			classLogger.warn("Using legacy {} python file name - needs to be updated to {}", LEGACY_PY_FILE_NAME,
 					MCP_PY_FILE_NAME);
 		}
 
-		// iterate function properties and find if it is string etc.
+		// Build the parameter string from functionProperties + paramMap
 		Iterator<String> props = functionProperties.keys();
 		StringBuilder paramString = new StringBuilder();
 		while (props.hasNext()) {
@@ -222,31 +233,17 @@ public final class MCPUtility {
 			}
 			String propName = props.next();
 			JSONObject thisProp = ((JSONObject) functionProperties.get(propName));
-			String propType = thisProp.getString("type");
 			Object propValue = null;
-
-			// get the value
 			if (paramMap != null && paramMap.containsKey(propName)) {
 				propValue = paramMap.get(propName);
 			} else if (thisProp.has("default")) {
-				// get the default value
 				propValue = thisProp.getString("default");
-			} else {
-				// PyUtils.determineStringType(propValue) will turn this to None w/o quotes
-				// around it
-				propValue = null;
 			}
-			// while we do have the type, the propValue is much better at sending
-			// appropriate python syntax
 			paramString.append(propName).append("=").append(PyUtils.determineStringType(propValue));
 		}
 
 		PyTranslator pyt = null;
 		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
-
 			String pyEngine = "user";
 			if (engine.getSmssProp().containsKey(Constants.USE_PYTHON)) {
 				pyEngine = engine.getSmssProp().get(Constants.USE_PYTHON) + "";
@@ -254,21 +251,83 @@ public final class MCPUtility {
 			if (pyEngine.equalsIgnoreCase("project")) {
 				pyt = ((IProject) engine).getProjectPyTranslator();
 			}
+
+			// dont forget to mount the project into the symlink folder if chroot is enabled
+			// so that the python process can access the files
+			User user = insight.getUser();
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				user.getUserSymlinkHelper().symlinkProject(user, engine.getEngineId());
+			}
 		}
 		if (pyt == null) {
 			pyt = insight.getPyTranslator();
 		}
 
-		String runMethod = "mcp_driver." + functionName + "(" + paramString + ")";
-		classLogger.info("Running python tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
-				engine.getEngineId());
+		// Use an engine-namespaced alias so concurrent calls for different engines
+		// writing to the same insight_globals never overwrite each other's mcp_driver
+		// reference. The module is loaded from an explicit file path so sys.modules is
+		// never mutated and third-party packages (e.g. torch) are not affected.
+		String modAlias = "__smss_mcp_" + engine.getEngineId().replace("-", "_") + "__";
+		String modMtimeKey = modAlias + "_mtime__";
+		String funcDefName = "__smss_run_" + engine.getEngineId().replace("-", "_") + "__";
+		String mcpFilePath = pyFolderLoc + "/" + (namedMCP ? MCP_PY_FILE_NAME : LEGACY_PY_FILE_NAME);
+		// All temp vars (_f, _mt, _spec, _mod, _drv, ...) live inside the function's
+		// local scope and never touch insight_globals. Only globals()[modAlias] and
+		// globals()[modMtimeKey] are written - both are per-engine keys - so
+		// concurrent
+		// threads for different engines on the same insight cannot overwrite each
+		// other's
+		// state. funcDefName is also per-engine so the def itself doesn't collide.
+		String runScript = """
+				def <funcDefName>():
+				    import importlib.util as _ilu, os as _os, hashlib as _hl, sys as _sys
+				    _f = r'<mcpFilePath>'
+				    _mt = _os.path.getmtime(_f) if _os.path.exists(_f) else None
+				    if globals().get('<modAlias>') is None or globals().get('<modMtimeKey>') != _mt:
+				        _pfx = '_smss_' + _hl.md5(r'<pyFolderLoc>'.encode()).hexdigest()[:12] + '_'
+				        for _k in [k for k in _sys.modules if k.startswith(_pfx)]:
+				            del _sys.modules[_k]
+				        _spec = _ilu.spec_from_file_location('mcp_driver', _f)
+				        _mod = _ilu.module_from_spec(_spec)
+				        _spec.loader.exec_module(_mod)
+				        globals()['<modAlias>'] = _mod
+				        globals()['<modMtimeKey>'] = _mt
+				    _drv = globals()['<modAlias>']
 
-		// reload the module
-		pyt.runScript(insight, loadFreshSmssModule);
-		// inject default vars into module scope
-		pyt.runScript(insight, injectDefaultVars);
-		// run method
-		return stringifyMcpResult(pyt.runScript(insight, runMethod));
+				<legacyVarCodeSnipped>
+
+				    return _drv.<functionName>(<paramString>)
+				<funcDefName>()
+				""";
+		// @formatter:off 
+		final String PY_INDENT = "    ";
+		final String legacyVarCodeSnippet = String.join(
+				"\n",
+				PY_INDENT + "for _k in ['ROOT', 'APP_ROOT', 'USER_ROOT']:",
+				PY_INDENT + PY_INDENT + "_v = smss_get_runtime_var(_k)",
+				PY_INDENT + PY_INDENT + "if _v is not None:",
+				PY_INDENT + PY_INDENT + PY_INDENT + "setattr(_drv, _k, _v)"
+				);
+		runScript = runScript
+				/*
+				 * Will delete the below replace. Only here for backwards compatability using
+				 * incorrect syntax to access ROOT, APP_ROOT, USER_ROOT as storing in globals
+				 * can cause race conditions
+				 */
+				.replace("<legacyVarCodeSnipped>", legacyVarCodeSnippet)
+				.replace("<funcDefName>", funcDefName)
+				.replace("<mcpFilePath>", mcpFilePath)
+				.replace("<modAlias>", modAlias)
+				.replace("<modMtimeKey>", modMtimeKey)
+				.replace("<pyFolderLoc>", pyFolderLoc)
+				.replace("<functionName>", functionName)
+				.replace("<paramString>", paramString.toString());
+		// @formatter:on
+		classLogger.info("Running python tool '{}.{}({})' from {} engine '{}'", modAlias, functionName, paramString,
+				engine.getCatalogType(), engine.getEngineId());
+
+		return stringifyMcpResult(
+				pyt.runScriptWithExplicitAssetPaths(insight, runScript, assetsFolder, new String[] { pyFolderLoc }));
 	}
 
 	/**
@@ -319,12 +378,6 @@ public final class MCPUtility {
 			}
 		}
 
-		if (engine instanceof IProject) {
-			// just in case a SetContext/LoadApp was not called
-			insight.setContext(engine.getEngineId());
-			insight.setContextProjectName(engine.getEngineName());
-		}
-
 		String runMethod = functionName + "(" + paramString + ");";
 		if (engine != null) {
 			classLogger.info("Running pixel tool '{}' from {} engine '{}'", runMethod, engine.getCatalogType(),
@@ -332,12 +385,79 @@ public final class MCPUtility {
 		} else {
 			classLogger.info("Running pixel tool '{}' directly without an engine", runMethod);
 		}
-		// run pixel
-		PixelRunner pixelReturn = insight.runPixel(runMethod);
+		// run pixel - use scoped context when engine is a project so concurrent tool
+		// calls for different engines on the same insight don't overwrite each other's
+		// contextProjectId
+		PixelRunner pixelReturn = (engine instanceof IProject)
+				? insight.runPixelWithContext(engine.getEngineId(), engine.getEngineName(), runMethod)
+				: insight.runPixel(runMethod);
 		NounMetadata result = pixelReturn.getResults().get(0);
 		if (result.getOpType().contains(PixelOperationType.ERROR)) {
 			throw new SemossMCPException(result.getValue() + "", MCPErrorCode.SERVER_ERROR);
 		}
+		if (result.getNounType() == PixelDataType.PIXEL_RUNNER) {
+			PixelRunner runner = (PixelRunner) ((Map<String, Object>) result.getValue()).get("runner");
+			return stringifyMcpResult(runner);
+		} else if (result.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
+			Object value = result.getValue();
+			if (value instanceof ITask) {
+				// if we have a task
+				// iterate through it to return the data
+				try (ITask task = (ITask) value) {
+					if (task instanceof ConstantDataTask) {
+						return stringifyMcpResult(((ConstantDataTask) task).getOutputData());
+					}
+
+					classLogger.debug("Start flushing task = {}", task.getId());
+					Map<String, Object> dataMap = new HashMap<>();
+					// first merge the metadata
+					dataMap.putAll(task.getMetaMap());
+
+					int numCollect = task.getNumCollect();
+					boolean collectAll = numCollect == -1;
+					String formatType = task.getFormatter().getFormatType();
+
+					if (formatType.equals("TABLE")) {
+						// right now, only grid will work
+						String[] headers = null;
+						String[] rawHeaders = null;
+						int count = 0;
+
+						// try to at least provide the headers
+						List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+						if (headerInfo != null) {
+							headers = new String[headerInfo.size()];
+							rawHeaders = new String[headerInfo.size()];
+							for (int i = 0; i < headers.length; i++) {
+								headers[i] = headerInfo.get(i).get("alias") + "";
+								rawHeaders[i] = headerInfo.get(i).get("header") + "";
+							}
+						}
+						dataMap.put("headers", headers);
+						dataMap.put("rawHeaders", rawHeaders);
+						List<Object[]> values = new ArrayList<>();
+						while (task.hasNext() && (collectAll || count < numCollect)) {
+							IHeadersDataRow row = task.next();
+							values.add(row.getValues());
+							count++;
+						}
+						dataMap.put("values", values);
+					} else {
+						// just let the formatter handle the output of this data
+						dataMap.put("data", ((AbstractTask) task).getData());
+					}
+					classLogger.debug("Done flushing sending task = {}", task.getId());
+
+					Map<String, Object> retObj = new HashMap<>();
+					retObj.put("output", dataMap);
+					return stringifyMcpResult(retObj);
+				} catch (Exception e) {
+					throw new SemossMCPException(e.getMessage(), MCPErrorCode.TOOL_EXECUTION_FAILED);
+				}
+			}
+		}
+
+		// all other situations, just return the value
 		return stringifyMcpResult(result.getValue());
 	}
 
@@ -352,6 +472,17 @@ public final class MCPUtility {
 		if (value instanceof org.json.JSONObject || value instanceof org.json.JSONArray
 				|| value instanceof com.google.gson.JsonElement) {
 			return value.toString();
+		} else if (value instanceof PixelRunner) {
+			try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+				// The StreamingOutput writes its data to the provided OutputStream
+				StreamingOutput streamingOutput = PixelStreamUtility.collectPixelData((PixelRunner) value, null);
+				streamingOutput.write(baos);
+				// Convert the captured bytes to a String using UTF-8 encoding
+				return baos.toString(StandardCharsets.UTF_8.name());
+			} catch (WebApplicationException | IOException e) {
+				classLogger.error("The pixel ran but an error occurred streaming the pixel results", e.getMessage());
+				return "An error occurred streaming the pixel execution output: " + e.getMessage();
+			}
 		}
 
 		return GSON.toJson(value);
@@ -380,7 +511,7 @@ public final class MCPUtility {
 				try {
 					return Integer.parseInt(smssValue.trim());
 				} catch (NumberFormatException e) {
-					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} — falling back to provider default",
+					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} - falling back to provider default",
 							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
 				}
 			}
@@ -1027,6 +1158,10 @@ public final class MCPUtility {
 			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
 			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
+		}
+
+		if (uiJson.has(UI_AUTO_OPEN) && !uiJson.isNull(UI_AUTO_OPEN)) {
+			validUiJson.put(UI_AUTO_OPEN, uiJson.getBoolean(UI_AUTO_OPEN));
 		}
 
 		return validUiJson;

@@ -49,7 +49,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -136,7 +135,7 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to export all users.", e);
 			throw new IllegalArgumentException(
 					"An error occurred retrieving the users. Message is : " + e.getMessage());
 		} finally {
@@ -144,7 +143,7 @@ public class AdminExportAllUsersReactor extends ToExcelReactor {
 				try {
 					iterator.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to export all users.", e);
 				}
 			}
 		}

@@ -51,7 +51,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -119,7 +118,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can view insight.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -183,7 +182,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can edit insight.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -239,7 +238,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -310,7 +309,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		}
 
@@ -348,7 +347,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		}
 
@@ -415,7 +414,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -448,7 +447,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		}
 
 		return null;
@@ -527,7 +526,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -584,7 +583,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -625,7 +624,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

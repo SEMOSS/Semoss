@@ -265,8 +265,8 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup Git inside the chroot by copying the binary, its dependencies,
-	 * and required helper programs for both RHEL/UBI and Ubuntu systems.
+	 * Setup Git inside the chroot by copying the binary, its dependencies, and
+	 * required helper programs for both RHEL/UBI and Ubuntu systems.
 	 */
 	private void setupGitForChroot() {
 		try {
@@ -362,8 +362,7 @@ public class SymlinkHelper {
 	 * Setup essential binaries for git operations on both platforms
 	 */
 	private void setupGitEssentialBinaries() {
-		String[] essentialBinaries = {
-				"/usr/bin/curl", // Required for git-remote-https
+		String[] essentialBinaries = { "/usr/bin/curl", // Required for git-remote-https
 				"/usr/bin/ssh", // For git@... URLs
 				"/bin/tar", // Archive operations
 				"/bin/gzip", // Compression
@@ -390,21 +389,12 @@ public class SymlinkHelper {
 	 */
 	private void copyGitSpecificLibraries() {
 		// RHEL/UBI library paths
-		String[] rhelLibs = {
-				"/usr/lib64/libcurl.so.4",
-				"/usr/lib64/libssl.so.3",
-				"/usr/lib64/libcrypto.so.3",
-				"/usr/lib64/libz.so.1",
-				"/usr/lib64/libgssapi_krb5.so.2"
-		};
+		String[] rhelLibs = { "/usr/lib64/libcurl.so.4", "/usr/lib64/libssl.so.3", "/usr/lib64/libcrypto.so.3",
+				"/usr/lib64/libz.so.1", "/usr/lib64/libgssapi_krb5.so.2" };
 
 		// Ubuntu library paths
-		String[] ubuntuLibs = {
-				"/usr/lib/x86_64-linux-gnu/libcurl.so.4",
-				"/usr/lib/x86_64-linux-gnu/libssl.so.3",
-				"/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
-				"/usr/lib/x86_64-linux-gnu/libz.so.1"
-		};
+		String[] ubuntuLibs = { "/usr/lib/x86_64-linux-gnu/libcurl.so.4", "/usr/lib/x86_64-linux-gnu/libssl.so.3",
+				"/usr/lib/x86_64-linux-gnu/libcrypto.so.3", "/usr/lib/x86_64-linux-gnu/libz.so.1" };
 
 		// Try RHEL paths first
 		boolean foundRhelLibs = false;
@@ -427,8 +417,7 @@ public class SymlinkHelper {
 	 * Setup git templates for cross-platform compatibility
 	 */
 	private void setupGitTemplatesForCrossPlatform() {
-		String[] templatePaths = {
-				"/usr/share/git-core/templates", // Common location
+		String[] templatePaths = { "/usr/share/git-core/templates", // Common location
 				"/usr/local/share/git-core/templates" // Alternative location
 		};
 
@@ -474,9 +463,8 @@ public class SymlinkHelper {
 	 */
 	private boolean isRHELBasedSystem() {
 		// Check for RHEL-specific files/directories
-		return Files.exists(Paths.get("/etc/redhat-release")) ||
-				Files.exists(Paths.get("/etc/rhel-release")) ||
-				Files.exists(Paths.get("/etc/pki"));
+		return Files.exists(Paths.get("/etc/redhat-release")) || Files.exists(Paths.get("/etc/rhel-release"))
+				|| Files.exists(Paths.get("/etc/pki"));
 	}
 
 	/**
@@ -484,11 +472,8 @@ public class SymlinkHelper {
 	 */
 	private void setupSSLCertsForRHEL() {
 		try {
-			String[] caCertFiles = {
-					"/etc/pki/tls/certs/ca-bundle.crt",
-					"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
-					"/etc/pki/tls/cert.pem"
-			};
+			String[] caCertFiles = { "/etc/pki/tls/certs/ca-bundle.crt",
+					"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", "/etc/pki/tls/cert.pem" };
 
 			// Copy CA certificate files
 			for (String certPath : caCertFiles) {
@@ -504,11 +489,7 @@ public class SymlinkHelper {
 			}
 
 			// Copy certificate directories
-			String[] certDirs = {
-					"/etc/pki/tls/certs",
-					"/etc/pki/ca-trust/extracted",
-					"/etc/pki/tls"
-			};
+			String[] certDirs = { "/etc/pki/tls/certs", "/etc/pki/ca-trust/extracted", "/etc/pki/tls" };
 
 			for (String certDir : certDirs) {
 				Path sourceCertDir = Paths.get(certDir);
@@ -673,7 +654,7 @@ public class SymlinkHelper {
 	public void symlinkUserAsset(User user) {
 		AuthProvider provider = user.getPrimaryLogin();
 		String projectId = user.getAssetProjectId(provider);
-		String assetFolder = AssetUtility.getUserAssetAndWorkspaceAppRootFolder("Asset", projectId);
+		String assetFolder = AssetUtility.getUserAssetAppRootFolder("Asset", projectId);
 		classLogger.info("Symlinking user asset folder for projectId=" + projectId);
 		symlinkFolder(assetFolder);
 	}
@@ -688,15 +669,15 @@ public class SymlinkHelper {
 			return;
 		}
 
-		boolean readOnlyCopyEnabled = Boolean.parseBoolean(
-				Utility.getDIHelperProperty(Constants.CHROOT_READ_ONLY_COPY));
+		boolean readOnlyCopyEnabled = Boolean
+				.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_READ_ONLY_COPY));
 
 		if (readOnlyCopyEnabled) {
 			Path projectTarget = Paths.get(userChrootFolder)
 					.resolve(Utility.normalizePath(projectAppRootFolder).substring(1));
 			if (Files.exists(projectTarget)) {
-				classLogger.info("Chrooted project already copied for projectId=" + projectId +
-						" at: " + projectTarget + ", skipping copy and permission patch.");
+				classLogger.info("Chrooted project already copied for projectId=" + projectId + " at: " + projectTarget
+						+ ", skipping copy and permission patch.");
 				return;
 			}
 
@@ -712,17 +693,16 @@ public class SymlinkHelper {
 	}
 
 	private void setOwnerRWX(Path dir) throws IOException {
-		Files.setPosixFilePermissions(dir, EnumSet.of(
-				PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE, PosixFilePermission.OWNER_EXECUTE,
-				PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
+		Files.setPosixFilePermissions(dir, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
+				PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
 				PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
 	}
 
 	private void setOwnerRX(Path dir) throws IOException {
-		Files.setPosixFilePermissions(dir, EnumSet.of(
-				PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE,
-				PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
-				PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
+		Files.setPosixFilePermissions(dir,
+				EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE,
+						PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
+						PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
 	}
 
 	private void setupCopiedProject(String projectId) {
@@ -749,9 +729,8 @@ public class SymlinkHelper {
 	public void setAllReadExecuteForProject(String projectId) {
 		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
 		projectAppRootFolder = Utility.normalizePath(projectAppRootFolder);
-		Path chrootAppRoot = Paths.get(userChrootFolder, projectAppRootFolder.startsWith("/")
-				? projectAppRootFolder.substring(1)
-				: projectAppRootFolder);
+		Path chrootAppRoot = Paths.get(userChrootFolder,
+				projectAppRootFolder.startsWith("/") ? projectAppRootFolder.substring(1) : projectAppRootFolder);
 
 		if (!Files.exists(chrootAppRoot)) {
 			classLogger.warn("Chrooted app root does not exist for project: " + chrootAppRoot);
@@ -780,9 +759,8 @@ public class SymlinkHelper {
 	public void setExecuteOnlyOnAssetCodeFolders(String projectId) {
 		String assetsFolderPath = AssetUtility.getProjectAssetsFolder(projectId);
 		assetsFolderPath = Utility.normalizePath(assetsFolderPath);
-		Path chrootAssetsFolder = Paths.get(userChrootFolder, assetsFolderPath.startsWith("/")
-				? assetsFolderPath.substring(1)
-				: assetsFolderPath);
+		Path chrootAssetsFolder = Paths.get(userChrootFolder,
+				assetsFolderPath.startsWith("/") ? assetsFolderPath.substring(1) : assetsFolderPath);
 
 		if (!Files.exists(chrootAssetsFolder)) {
 			classLogger.warn("Chroot assets folder does not exist: " + chrootAssetsFolder);
@@ -798,19 +776,15 @@ public class SymlinkHelper {
 						@Override
 						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
 								throws IOException {
-							Files.setPosixFilePermissions(dir, EnumSet.of(
-									PosixFilePermission.OWNER_EXECUTE,
-									PosixFilePermission.GROUP_EXECUTE,
-									PosixFilePermission.OTHERS_EXECUTE));
+							Files.setPosixFilePermissions(dir, EnumSet.of(PosixFilePermission.OWNER_EXECUTE,
+									PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_EXECUTE));
 							return FileVisitResult.CONTINUE;
 						}
 
 						@Override
 						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-							Files.setPosixFilePermissions(file, EnumSet.of(
-									PosixFilePermission.OWNER_EXECUTE,
-									PosixFilePermission.GROUP_EXECUTE,
-									PosixFilePermission.OTHERS_EXECUTE));
+							Files.setPosixFilePermissions(file, EnumSet.of(PosixFilePermission.OWNER_EXECUTE,
+									PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_EXECUTE));
 							return FileVisitResult.CONTINUE;
 						}
 					});

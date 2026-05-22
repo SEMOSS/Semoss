@@ -30,7 +30,7 @@ package prerna.reactor;
 import prerna.auth.User;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobManager.InterruptResult;
-import prerna.sablecc2.comm.PixelJobThread;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,10 +50,10 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 
 		String jobId = this.keyValue.get(ReactorKeysEnum.ID.getKey());
 		PixelJobManager jobManager = PixelJobManager.getManager();
-		PixelJobThread pjt = jobManager.getJob(jobId);
+		PixelJobRunner jobRunner = jobManager.getJob(jobId);
 		String insightId = null;
-		if (pjt != null && pjt.getInsight() != null) {
-			insightId = pjt.getInsight().getInsightId();
+		if (jobRunner != null && jobRunner.getInsight() != null) {
+			insightId = jobRunner.getInsight().getInsightId();
 		}
 
 		InterruptResult interruptResult = jobManager.interruptThread(jobId);
@@ -64,13 +64,13 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 			pySocketClient.interruptInsightJob(insightId, jobId);
 		}
 
-		if (pjt == null) {
+		if (jobRunner == null) {
 			jobManager.clearJob(jobId);
 		} else {
-			final PixelJobThread jobThread = pjt;
+			final PixelJobRunner jobThread = jobRunner;
 			Thread cleanupThread = new Thread(() -> {
 				try {
-					jobThread.join();
+					jobThread.joinExecution();
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
 				} finally {

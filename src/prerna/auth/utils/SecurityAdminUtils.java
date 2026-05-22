@@ -3857,7 +3857,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
-		classLogger.info("Number of accounts locked = " + numUpdated);
+		classLogger.info("Number of accounts locked = {}", numUpdated);
 		return numUpdated;
 	}
 
@@ -3996,7 +3996,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 
-		classLogger.info("Number of accounts locked = " + numUpdated);
+		classLogger.info("Number of accounts locked = {}", numUpdated);
 		return numUpdated;
 	}
 

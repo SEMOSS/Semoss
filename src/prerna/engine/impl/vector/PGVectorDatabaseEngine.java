@@ -639,11 +639,9 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
-					this.getCatalogType(), filesToRemoveFromCloud.stream().toArray(String[]::new)));
-			deleteFilesFromCloudThread.start();
+			Thread.ofVirtual().start(new DeleteFilesFromEngineRunner(engineId, this.getCatalogType(),
+					filesToRemoveFromCloud.stream().toArray(String[]::new)));
 		}
-
 	}
 
 	@Override
@@ -1247,9 +1245,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 			if (ClusterUtil.IS_CLUSTER) {
 				// push the actual documents over to the cloud
-				Thread copyFilesToCloudThread = new Thread(new CopyFilesToEngineRunner(this.engineId,
-						this.getCatalogType(), filesToCopyToCloud.stream().toArray(String[]::new)));
-				copyFilesToCloudThread.start();
+				Thread.ofVirtual().start(new CopyFilesToEngineRunner(this.engineId, this.getCatalogType(),
+						filesToCopyToCloud.stream().toArray(String[]::new)));
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to add documents to PGVector for index class: " + indexClass, e);
