@@ -2346,4 +2346,44 @@ public abstract class AbstractSqlQueryUtil {
 				interpreter.processSelector(innerSelectors.get(0), false));
 	}
 
+	public static boolean isDatabasePartitioningEnabled() {
+		String auditLogsPartitionDb = Utility.getDIHelperProperty(Constants.DATABASE_PARTITIONING_ENABLED);
+		if (auditLogsPartitionDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(auditLogsPartitionDb);
+	}
+
+	public enum PartitionFrequency {
+		MONTHLY, YEARLY
+	}
+
+	/**
+	 * Return true if the DB supports partitioning
+	 */
+	public boolean supportsPartitioning() {
+		return false;
+	}
+
+	public boolean isTablePartitioned(Connection conn, String tableName) throws SQLException {
+		return false;
+	}
+
+	public List<String> getCreatePartitionedTableSql(String tableName, String partitionColumn, String columnDefinitions,
+			PartitionFrequency freq, int ahead) {
+		throw new UnsupportedOperationException("Partition creation not supported");
+	}
+
+	public void getEnsureFuturePartitionsSql(Connection conn, String tableName, String partitionColumn,
+			PartitionFrequency freq, int ahead) {
+		throw new UnsupportedOperationException("Ensure partitions not supported");
+	}
+
+	public List<String> getConvertTableToPartitionedSql(Connection conn, String tableName, String partitionColumn,
+			String columnDefinitions, PartitionFrequency freq, int ahead) throws SQLException {
+		throw new UnsupportedOperationException("Conversion not supported");
+	}
+
 }

@@ -1030,6 +1030,9 @@ public class Constants {
 	public static final String AUDIT_LOGS_DATABASE_ENABLED = "AUDIT_LOGS_DATABASE_ENABLED";
 	public static final String AUDIT_LOGS_DB = "AuditLogs";
 
+	// Database Partitioning
+	public static final String DATABASE_PARTITIONING_ENABLED = "DATABASE_PARTITIONING_ENABLED";
+
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 

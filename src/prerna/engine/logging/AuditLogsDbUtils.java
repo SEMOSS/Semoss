@@ -33,8 +33,11 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -55,6 +58,7 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.PartitionManager;
 
 public class AuditLogsDbUtils {
 
@@ -74,11 +78,12 @@ public class AuditLogsDbUtils {
 	/**
 	 * @param engine
 	 * @param conn
-	 * @param columnNamesAndTypes
+	 * @param dbSchema
 	 * @throws SQLException
 	 */
 	private static void executeInitDatabaseSchema(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
+
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 
 		String database = engine.getDatabase();
@@ -88,29 +93,139 @@ public class AuditLogsDbUtils {
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
 
+		boolean partitioningSupported = queryUtil.supportsPartitioning()
+				&& AbstractSqlQueryUtil.isDatabasePartitioningEnabled();
+
+		String auditLogColDefs = null;
+
 		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
 			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+
+			if (partitioningSupported && "AUDIT_LOGS".equalsIgnoreCase(tableName)) {
+				// build Audit_Logs table columns definition
+				auditLogColDefs = buildColumnDefinitions(tableSchema.getValue1());
+				classLogger.info("Partitioning enabled. AUDIT_LOGS creation will be handled separately.");
+				continue;
+			}
+			// table creation or update
+			createOrUpdateTable(conn, queryUtil, engine, database, schema, tableSchema, allowIfExistsTable);
+		}
+		// create partition for Audit_Logs table
+		if (partitioningSupported && auditLogColDefs != null) {
+			ensureAuditLogsPartitioning(conn, queryUtil, engine, database, schema, auditLogColDefs);
+		}
+		// create Indexes for Audit_Logs table
+		createAuditLogsIndexes(conn, queryUtil, auditLogsDb, database, schema, allowIfExistsIndexs);
+	}
+
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param engine
+	 * @param database
+	 * @param schema
+	 * @param tableSchema
+	 * @param allowIfExistsTable
+	 * @return
+	 * @throws SQLException
+	 */
+	private static void createOrUpdateTable(Connection conn, AbstractSqlQueryUtil queryUtil, IRDBMSEngine engine,
+			String database, String schema, Pair<String, List<Pair<String, String>>> tableSchema,
+			boolean allowIfExistsTable) throws SQLException {
+
+		String tableName = tableSchema.getValue0();
+		String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
+		String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+
+		if (allowIfExistsTable) {
+			String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
+			executeSql(conn, sql);
+		} else {
+			if (!queryUtil.tableExists(engine, tableName, database, schema)) {
+				String sql = queryUtil.createTable(tableName, colNames, types);
 				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
+			}
+		}
+
+		List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
+		if (allCols == null) {
+			allCols = List.of();
+		}
+
+		Set<String> allColsLower = new HashSet<>();
+		for (String c : allCols) {
+			if (c != null) {
+				allColsLower.add(c.toLowerCase(Locale.ROOT));
+			}
+		}
+
+		for (int i = 0; i < colNames.length; i++) {
+			String col = colNames[i];
+			if (col == null) {
+				continue;
 			}
 
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+			if (!allColsLower.contains(col.toLowerCase(Locale.ROOT))) {
+				String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+				try {
 					executeSql(conn, addColumnSql);
+				} catch (SQLException e) {
+					classLogger.warn("Failed to add column {} to table {}: {}", col, tableName, e.getMessage());
 				}
 			}
 		}
+	}
+
+	private static String buildColumnDefinitions(List<Pair<String, String>> cols) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < cols.size(); i++) {
+			Pair<String, String> col = cols.get(i);
+			sb.append(col.getValue0()).append(" ").append(col.getValue1());
+			if (i < cols.size() - 1) {
+				sb.append(", ");
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param engine
+	 * @param database
+	 * @param schema
+	 * @param auditLogColDefs
+	 * @return
+	 * @throws SQLException
+	 */
+	private static void ensureAuditLogsPartitioning(Connection conn, AbstractSqlQueryUtil queryUtil,
+			IRDBMSEngine engine, String database, String schema, String auditLogColDefs) {
+		try {
+			boolean exists = queryUtil.tableExists(engine, "AUDIT_LOGS", database, schema);
+
+			PartitionManager.ensurePartitioned(exists, conn, queryUtil, "AUDIT_LOGS", "LOG_TIMESTAMP", auditLogColDefs,
+					AbstractSqlQueryUtil.PartitionFrequency.MONTHLY, 2);
+		} catch (Exception e) {
+			classLogger.warn("Partitioning failed for AUDIT_LOGS: {}", e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 
+	 * @param conn
+	 * @param queryUtil
+	 * @param auditLogsDb
+	 * @param database
+	 * @param schema
+	 * @param allowIfExistsIndexs
+	 * @return
+	 * @throws SQLException
+	 */
+	private static void createAuditLogsIndexes(Connection conn, AbstractSqlQueryUtil queryUtil,
+			IRDBMSEngine auditLogsDb, String database, String schema, boolean allowIfExistsIndexs) throws SQLException {
+
 		if (allowIfExistsIndexs) {
 			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
 			executeSql(conn, sql);
@@ -132,36 +247,37 @@ public class AuditLogsDbUtils {
 
 			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
 			executeSql(conn, sql);
+
 		} else {
-			// REQUEST_ID
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
 				executeSql(conn, sql);
 			}
-			// COMPOSITE INDEX PROJECT_ID + LOG_TIMESTAMP
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
 						List.of("PROJECT_ID", "LOG_TIMESTAMP"));
 				executeSql(conn, sql);
 			}
-			// COMPOSITE INDEX USER_ID + LOG_TIMESTAMP
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
 						List.of("USER_ID", "LOG_TIMESTAMP"));
 				executeSql(conn, sql);
 			}
-			// COMPOSITE INDEX ENGINE_ID + LOG_TIMESTAMP
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
 						List.of("ENGINE_ID", "LOG_TIMESTAMP"));
 				executeSql(conn, sql);
 			}
-			// SESSION_ID
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
 				executeSql(conn, sql);
 			}
-			// ROOM_ID
+
 			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", database, schema)) {
 				String sql = queryUtil.createIndex("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
 				executeSql(conn, sql);

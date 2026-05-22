@@ -27,9 +27,20 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
@@ -635,5 +646,111 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getDatabaseMetadataSchemaFilter() {
 		return this.schema;
+	}
+
+	@Override
+	public boolean supportsPartitioning() {
+		// SQL Server supports partitioning via partition functions and schemes
+		return true;
+	}
+
+	@Override
+	public boolean isTablePartitioned(Connection conn, String tableName) throws SQLException {
+		// Check entries in sys.partitions
+		String sql = "SELECT COUNT(DISTINCT partition_id) AS cnt " + "FROM sys.partitions p "
+				+ "JOIN sys.objects o ON p.object_id = o.object_id " + "WHERE o.name = ?";
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.setString(1, tableName);
+			try (ResultSet rs = ps.executeQuery()) {
+				if (rs.next()) {
+					return rs.getInt("cnt") > 1;
+				}
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public List<String> getCreatePartitionedTableSql(String tableName, String partitionColumn, String columnDefinitions,
+			PartitionFrequency freq, int ahead) {
+		List<String> sqls = new ArrayList<>();
+		// Names
+		String pfName = "PF_" + tableName;
+		String psName = "PS_" + tableName;
+		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+		// Build initial boundaries (months ahead)
+		LocalDate start = LocalDate.now().withDayOfMonth(1);
+		StringBuilder boundaries = new StringBuilder();
+		for (int i = 0; i < ahead; i++) {
+			LocalDate boundary = start.plusMonths(i + 1);
+			boundaries.append("'").append(boundary.format(fmt)).append("'");
+			if (i < ahead - 1) {
+				boundaries.append(", ");
+			}
+		}
+
+		// 1) Create partition function (RANGE RIGHT)
+		String createPf = String.format("CREATE PARTITION FUNCTION %s (DATETIME) AS RANGE RIGHT FOR VALUES (%s)",
+				pfName, boundaries.toString());
+		sqls.add(createPf);
+
+		// 2) Create partition scheme (map to PRIMARY for all ranges)
+		String createPs = String.format("CREATE PARTITION SCHEME %s AS PARTITION %s ALL TO ([PRIMARY])", psName,
+				pfName);
+		sqls.add(createPs);
+
+		// 3) Create table on partition scheme
+		String createTable = String.format("CREATE TABLE %s (%s) ON %s(%s)", tableName, columnDefinitions, psName,
+				partitionColumn);
+		sqls.add(createTable);
+
+		return sqls;
+	}
+
+	@Override
+	public void getEnsureFuturePartitionsSql(Connection conn, String tableName, String partitionColumn,
+			PartitionFrequency freq, int ahead) {
+		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		String pfName = "PF_" + tableName;
+
+		// Try to list existing boundaries for partition function
+		String listBoundaries = "SELECT CONVERT(varchar(10), rv.value, 120) AS boundary "
+				+ "FROM sys.partition_functions pf "
+				+ "JOIN sys.partition_range_values rv ON pf.function_id = rv.function_id " + "WHERE pf.name = ? "
+				+ "ORDER BY rv.boundary_id";
+		Set<String> existing = new HashSet<>();
+		try (PreparedStatement ps = conn.prepareStatement(listBoundaries)) {
+			ps.setString(1, pfName);
+			try (ResultSet rs = ps.executeQuery()) {
+				while (rs.next()) {
+					existing.add(rs.getString("boundary"));
+				}
+			}
+		} catch (SQLException e) {
+			// fallback will attempt to SPLIT and ignore duplicates
+		}
+
+		LocalDate start = LocalDate.now().withDayOfMonth(1);
+		for (int i = 0; i < ahead; i++) {
+			LocalDate boundary = start.plusMonths(i + 1); // split at first day of next month
+			String boundaryStr = boundary.format(fmt);
+			if (existing.contains(boundaryStr)) {
+				continue;
+			}
+
+			String splitSql = String.format("ALTER PARTITION FUNCTION %s() SPLIT RANGE ( '%s' )", pfName, boundaryStr);
+			try (Statement st = conn.createStatement()) {
+				st.execute(splitSql);
+			} catch (SQLException e) {
+				// non-fatal: duplicate split will raise error; log and continue
+			}
+		}
+	}
+
+	@Override
+	public List<String> getConvertTableToPartitionedSql(Connection conn, String tableName, String partitionColumn,
+			String columnDefinitions, PartitionFrequency freq, int ahead) throws SQLException {
+		return new ArrayList<>(); // empty -> PartitionManager will skip conversion for MSSQL
 	}
 }

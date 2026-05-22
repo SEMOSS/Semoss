@@ -35,7 +35,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -500,6 +506,222 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 		}
 		return "ALTER TABLE " + tableName + " ALTER " + columnName + " TYPE " + dataType + ", ALTER " + columnName
 				+ " SET NOT NULL";
+	}
+
+	@Override
+	public boolean supportsPartitioning() {
+		return true;
+	}
+
+	@Override
+	public boolean isTablePartitioned(Connection conn, String tableName) throws SQLException {
+		String checkSql = "SELECT 1 FROM pg_partitioned_table pt JOIN pg_class c ON pt.partrelid = c.oid WHERE c.relname = ?";
+
+		try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+			ps.setString(1, tableName.toLowerCase());
+			try (ResultSet rs = ps.executeQuery()) {
+				return rs.next();
+			}
+		}
+	}
+
+	private List<String> createMonthlyPartitionStatements(String tableName, LocalDate start, int months,
+			DateTimeFormatter fmt) {
+		List<String> sqls = new ArrayList<>();
+		for (int i = 0; i < months; i++) {
+			LocalDate s = start.plusMonths(i);
+			LocalDate e = s.plusMonths(1);
+			String partName = String.format("%s_%d_%02d", tableName, s.getYear(), s.getMonthValue());
+			sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')",
+					partName, tableName, s.format(fmt), e.format(fmt)));
+		}
+		return sqls;
+	}
+
+	@Override
+	public List<String> getCreatePartitionedTableSql(String tableName, String partitionColumn, String columnDefinitions,
+			PartitionFrequency freq, int ahead) {
+		if (columnDefinitions == null) {
+			return Collections.emptyList();
+		}
+		if (freq != PartitionFrequency.MONTHLY) {
+			// implement other frequencies later
+			throw new UnsupportedOperationException("Only MONTHLY implemented for Postgres");
+		}
+
+		List<String> sqls = new ArrayList<>();
+		sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s (%s) PARTITION BY RANGE (%s)", tableName,
+				columnDefinitions, partitionColumn));
+		// default partition
+		sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT", tableName, tableName));
+
+		LocalDate start = LocalDate.now().withDayOfMonth(1);
+		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		sqls.addAll(createMonthlyPartitionStatements(tableName, start, ahead, fmt));
+		// add per-partition indexes for the created partitions
+		for (int i = 0; i < ahead; i++) {
+			LocalDate s = start.plusMonths(i);
+			String partName = String.format("%s_%d_%02d", tableName, s.getYear(), s.getMonthValue());
+			sqls.add(String.format("CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, %s)", partName,
+					partName, partitionColumn));
+		}
+		return sqls;
+	}
+
+	@Override
+	public void getEnsureFuturePartitionsSql(Connection conn, String tableName, String partitionColumn,
+			PartitionFrequency freq, int ahead) {
+		ensureMonthlyPartitions(conn, tableName, ahead);
+		return;
+	}
+
+	@Override
+	public List<String> getConvertTableToPartitionedSql(Connection conn, String tableName, String partitionColumn,
+			String columnDefinitions, PartitionFrequency freq, int ahead) throws SQLException {
+		if (columnDefinitions == null) {
+			return Collections.emptyList();
+		}
+		if (freq != PartitionFrequency.MONTHLY) {
+			throw new UnsupportedOperationException("Only MONTHLY implemented for Postgres");
+		}
+
+		List<String> sqls = new ArrayList<>();
+
+		// 1) rename original to <table>_old
+		sqls.add(String.format("ALTER TABLE %s RENAME TO %s_old", tableName, tableName));
+
+		// 2) create partitioned parent
+		sqls.add(String.format("CREATE TABLE %s (%s) PARTITION BY RANGE (%s)", tableName, columnDefinitions,
+				partitionColumn));
+
+		// 3) create default partition
+		sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s_default PARTITION OF %s DEFAULT", tableName, tableName));
+
+		// 4)
+		LocalDate minDate = null;
+		LocalDate maxDate = null;
+		String minMaxQuery = String.format("SELECT MIN(%s) AS min_ts, MAX(%s) AS max_ts FROM %s", partitionColumn,
+				partitionColumn, tableName);
+		try (PreparedStatement ps = conn.prepareStatement(minMaxQuery); ResultSet rs = ps.executeQuery()) {
+			if (rs.next()) {
+				Timestamp minTs = rs.getTimestamp("min_ts");
+				Timestamp maxTs = rs.getTimestamp("max_ts");
+				if (minTs != null) {
+					minDate = minTs.toLocalDateTime().toLocalDate().withDayOfMonth(1);
+				}
+				if (maxTs != null) {
+					maxDate = maxTs.toLocalDateTime().toLocalDate().withDayOfMonth(1);
+				}
+			}
+		} catch (SQLException e) {
+			classLogger.warn(
+					"Could not determine min/max " + partitionColumn + " from " + tableName + ": " + e.getMessage(), e);
+		}
+
+		LocalDate rangeStart = (minDate != null) ? minDate : LocalDate.now().withDayOfMonth(1);
+		LocalDate rangeEnd = (maxDate != null) ? maxDate.plusMonths(1)
+				: LocalDate.now().plusMonths(ahead).withDayOfMonth(1);
+
+		DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+		// 5) create partitions for historic + future
+		LocalDate cursor = rangeStart;
+		LocalDate maxCursor = rangeEnd.plusMonths(ahead);
+		while (!cursor.isAfter(maxCursor)) {
+			LocalDate next = cursor.plusMonths(1);
+			String partName = String.format("%s_%d_%02d", tableName, cursor.getYear(), cursor.getMonthValue());
+			sqls.add(String.format("CREATE TABLE IF NOT EXISTS %s PARTITION OF %s FOR VALUES FROM ('%s') TO ('%s')",
+					partName, tableName, cursor.format(fmt), next.format(fmt)));
+			cursor = next;
+		}
+
+		// 6) copy data month-by-month from <table>_old to new table
+		LocalDate copyCursor = rangeStart;
+		while (!copyCursor.isAfter(rangeEnd.minusMonths(1))) {
+			LocalDate nxt = copyCursor.plusMonths(1);
+			sqls.add(String.format("INSERT INTO %s SELECT * FROM %s_old WHERE %s >= '%s' AND %s < '%s'", tableName,
+					tableName, partitionColumn, copyCursor.format(fmt), partitionColumn, nxt.format(fmt)));
+			copyCursor = nxt;
+		}
+
+		// 7) create indexes on newly created partitions for next months (best-effort)
+		LocalDate startCreate = LocalDate.now().withDayOfMonth(1);
+		for (int i = 0; i < ahead; i++) {
+			LocalDate s = startCreate.plusMonths(i);
+			String partName = String.format("%s_%d_%02d", tableName, s.getYear(), s.getMonthValue());
+			sqls.add(String.format("CREATE INDEX IF NOT EXISTS IDX_%s_PROJECT_TS ON %s (PROJECT_ID, %s)", partName,
+					partName, partitionColumn));
+		}
+
+		return sqls;
+	}
+
+	public void ensureMonthlyPartitions(Connection conn, String parentTable, int monthsAhead) {
+
+		String createPartitionFunction = """
+				CREATE OR REPLACE FUNCTION SMSS_create_monthly_partition(parent_table regclass, target_date date)
+				RETURNS VOID AS $$
+				DECLARE
+				    partition_name TEXT;
+				    start_date DATE;
+				    end_date DATE;
+				BEGIN
+				    start_date := date_trunc('month', target_date)::date;
+				    end_date := (start_date + INTERVAL '1 month')::date;
+
+				    -- Build partition name from the parent table name
+				    partition_name := regexp_replace(parent_table::text, '[^a-zA-Z0-9_]+', '_', 'g')
+				                      || '_' || to_char(start_date, 'YYYY_MM');
+
+				    IF NOT EXISTS (
+				        SELECT 1
+				        FROM pg_class c
+				        JOIN pg_namespace n ON n.oid = c.relnamespace
+				        WHERE c.relname = partition_name
+				    ) THEN
+				        EXECUTE format(
+				            'CREATE TABLE %I PARTITION OF %s
+				             FOR VALUES FROM (%L) TO (%L)',
+				            partition_name, parent_table, start_date, end_date
+				        );
+				        RAISE NOTICE 'Created partition: %', partition_name;
+				    END IF;
+				END;
+				$$ LANGUAGE plpgsql;
+				""";
+
+		String createBatchFunction = """
+				CREATE OR REPLACE FUNCTION SMSS_create_monthly_partitions(parent_table regclass, start_date date, months int)
+				RETURNS VOID AS $$
+				DECLARE
+				    i INT;
+				BEGIN
+				    IF months IS NULL OR months <= 0 THEN
+				        RAISE EXCEPTION 'months must be > 0';
+				    END IF;
+
+				    FOR i IN 0..months-1 LOOP
+				        PERFORM SMSS_create_monthly_partition(parent_table, (start_date + (i || ' month')::interval)::date);
+				    END LOOP;
+				END;
+				$$ LANGUAGE plpgsql;
+				""";
+
+		try (Statement stmt = conn.createStatement()) {
+			stmt.execute(createPartitionFunction);
+			stmt.execute(createBatchFunction);
+
+			String callSql = "SELECT SMSS_create_monthly_partitions(?::regclass, ?::date, ?)";
+
+			try (PreparedStatement ps = conn.prepareStatement(callSql)) {
+				ps.setString(1, parentTable);
+				ps.setDate(2, java.sql.Date.valueOf(java.time.LocalDate.now().withDayOfMonth(1)));
+				ps.setInt(3, monthsAhead);
+				ps.execute();
+			}
+
+		} catch (Exception e) {
+			classLogger.warn("Error ensuring partitions for table {}", parentTable, e);
+		}
 	}
 
 }
