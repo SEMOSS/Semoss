@@ -378,8 +378,8 @@ public class ModelInferenceLogsUtils {
 					try {
 						executeSql(conn, sqlStatement);
 					} catch (SQLException se) {
-						classLogger.error("Failed to add foreign key constraint '{}' on table '{}'.",
-								constraintName, tableName, se);
+						classLogger.error("Failed to add foreign key constraint '{}' on table '{}'.", constraintName,
+								tableName, se);
 						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
 					}
 				} else {
@@ -412,7 +412,8 @@ public class ModelInferenceLogsUtils {
 					.executeUpdate("UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
 			int mCount = stmt
 					.executeUpdate("UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount, mCount);
+			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
+					mCount);
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
 		}
@@ -430,7 +431,8 @@ public class ModelInferenceLogsUtils {
 					.executeUpdate("UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
 			int mCount = stmt
 					.executeUpdate("UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount, mCount);
+			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
+					mCount);
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
 		}
@@ -498,8 +500,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to verify message ownership for userId '{}' and messageId '{}'.",
-					userId, messageId, e);
+			classLogger.error("Failed to verify message ownership for userId '{}' and messageId '{}'.", userId,
+					messageId, e);
 		}
 		return false;
 	}
@@ -946,8 +948,8 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create conversation room record for roomId '{}' and userId '{}'.",
-					roomId, userId, e);
+			classLogger.error("Failed to create conversation room record for roomId '{}' and userId '{}'.", roomId,
+					userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1009,8 +1011,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to validate message migration for roomId '{}' and messageId '{}'.",
-					roomId, messageId, e);
+			classLogger.error("Failed to validate message migration for roomId '{}' and messageId '{}'.", roomId,
+					messageId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -2005,8 +2007,7 @@ public class ModelInferenceLogsUtils {
 				return retNum;
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
+			classLogger.error("Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
 					user.getAccessToken(user.getLogins().get(0)).getId(), restrictionMode, frequency, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
@@ -2273,8 +2274,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create workspace '{}' for owner '{}' with resources.",
-					workspaceId, ownerId, e);
+			classLogger.error("Failed to create workspace '{}' for owner '{}' with resources.", workspaceId, ownerId,
+					e);
 			throw new IllegalArgumentException("Error creating workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2467,7 +2468,13 @@ public class ModelInferenceLogsUtils {
 		// room has at least one non-null message
 		SelectQueryStruct messageExistsQs = new SelectQueryStruct();
 		messageExistsQs.addSelector(new QueryColumnSelector("MESSAGE__ROOM_ID"));
+		messageExistsQs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
 		messageExistsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		messageExistsQs
+				.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
+		messageExistsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userIds));
+		messageExistsQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", messageExistsQs));
 
 		// append other filters directly in
@@ -2790,8 +2797,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create workspace resource '{}' for workspaceId '{}'.",
-					workspaceResourceId, workspaceId, e);
+			classLogger.error("Failed to create workspace resource '{}' for workspaceId '{}'.", workspaceResourceId,
+					workspaceId, e);
 			throw new IllegalArgumentException("Error creating workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
