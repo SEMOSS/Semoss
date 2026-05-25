@@ -170,6 +170,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
+		MCPToolDiscoveryService.invalidate(projectId);
 
 		return new NounMetadata(mcpJson, PixelDataType.MAP);
 	}

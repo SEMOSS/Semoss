@@ -87,6 +87,7 @@ public class DeleteFunctionsInMCPDriverReactor extends AbstractReactor {
 		success.put("mcp_driver.py",
 				MCPUtility.removeExistingFunctionFromPyFile(this.insight, mcpPyFileLoc, functionName));
 		success.put("py_mcp.json", MCPUtility.removePythonFunctionFromMCPJson(engine, functionName));
+		MCPToolDiscoveryService.invalidate(engineId);
 		return new NounMetadata(success, PixelDataType.MAP);
 	}
 

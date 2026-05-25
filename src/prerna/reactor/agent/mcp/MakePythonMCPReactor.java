@@ -212,6 +212,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 				ClusterUtil.pushEngineSmss(engineId);
 			}
 		}
+		MCPToolDiscoveryService.invalidate(engineId);
 
 		return new NounMetadata(mcpJson, PixelDataType.MAP);
 	}

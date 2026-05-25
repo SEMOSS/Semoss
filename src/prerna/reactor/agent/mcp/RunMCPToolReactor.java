@@ -30,6 +30,9 @@ package prerna.reactor.agent.mcp;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
@@ -43,6 +46,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RunMCPToolReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(RunMCPToolReactor.class);
 
 	// we should possibly remove the function and param values map
 	public RunMCPToolReactor() {
@@ -97,8 +102,12 @@ public class RunMCPToolReactor extends AbstractReactor {
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
+		classLogger.debug("Executing MCP tool '{}' for engine '{}'.", toolName, engine.getEngineId());
+
 		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
+		Object result = mcp.callTool(toolName, paramMap, this.insight);
+		classLogger.debug("MCP tool '{}' execution completed for engine '{}'.", toolName, engine.getEngineId());
+		return new NounMetadata(result, PixelDataType.MCP_TOOL_EXECUTION,
 				PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 

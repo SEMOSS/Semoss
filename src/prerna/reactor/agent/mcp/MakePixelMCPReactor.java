@@ -307,6 +307,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, assetFolder);
+		MCPToolDiscoveryService.invalidate(project.getProjectId());
 
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}

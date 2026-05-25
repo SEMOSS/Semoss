@@ -762,8 +762,10 @@ public class Room {
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
-		// make sure the same toolbox is not accidentally added more than once
-		Set<String> ensureUnique = new HashSet<>();
+		// preserve existing toolbox-level dedupe while allowing multiple selected tools
+		// from the same toolbox when a room option includes toolName.
+		Set<String> ensureUniqueToolboxes = new HashSet<>();
+		Set<String> ensureUniqueTools = new HashSet<>();
 
 		if (o.containsKey("mcp")) {
 			try {
@@ -771,12 +773,16 @@ public class Room {
 				for (Map<String, Object> mcpMap : mapMapList) {
 					if (mcpMap.containsKey("id")) {
 						String id = (String) mcpMap.get("id");
-						if (!ensureUnique.contains(id)) {
-							aggregated.addAll(getToolJson(id, maxLength));
-							ensureUnique.add(id);
+						String selectedToolName = getSelectedMcpToolName(mcpMap);
+						if (selectedToolName == null) {
+							if (ensureUniqueToolboxes.add(id)) {
+								addUniqueTools(aggregated, ensureUniqueTools, getToolJson(id, maxLength));
+							}
+						} else {
+							addUniqueTools(aggregated, ensureUniqueTools, getToolJson(id, maxLength, selectedToolName));
 						}
 					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
+						throw new IllegalArgumentException("Tool map must contain an id");
 					}
 				}
 			} catch (Exception e) {
@@ -793,9 +799,8 @@ public class Room {
 							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
 					for (Map<String, Object> tool : tools) {
 						String toolId = (String) tool.get("resource_id");
-						if (!ensureUnique.contains(toolId)) {
-							aggregated.addAll(getToolJson(toolId, maxLength));
-							ensureUnique.add(toolId);
+						if (ensureUniqueToolboxes.add(toolId)) {
+							addUniqueTools(aggregated, ensureUniqueTools, getToolJson(toolId, maxLength));
 						}
 					}
 				}
@@ -819,6 +824,11 @@ public class Room {
 	 */
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
+		return getToolJson(engineId, maxLength, null);
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, String selectedToolName) {
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -866,6 +876,11 @@ public class Room {
 				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
 
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
+					String originalToolName = originalNames.get(i);
+					if (selectedToolName != null && !selectedToolName.equals(originalToolName)) {
+						continue;
+					}
+
 					Map<String, Object> toolMapEntry = toolObj.toMap();
 					result.add(toolMapEntry);
 
@@ -900,6 +915,26 @@ public class Room {
 
 		// Fallback: always return an empty list if nothing found
 		return Collections.emptyList();
+	}
+
+	private String getSelectedMcpToolName(Map<String, Object> mcpMap) {
+		Object value = mcpMap.get("toolName");
+		if (value == null) {
+			return null;
+		}
+		String toolName = value.toString().trim();
+		return toolName.isEmpty() ? null : toolName;
+	}
+
+	private void addUniqueTools(List<Map<String, Object>> aggregated, Set<String> ensureUnique,
+			List<Map<String, Object>> tools) {
+		for (Map<String, Object> tool : tools) {
+			Object toolName = tool.get("name");
+			String uniqueKey = toolName == null ? GSON.toJson(tool) : toolName.toString();
+			if (ensureUnique.add(uniqueKey)) {
+				aggregated.add(tool);
+			}
+		}
 	}
 
 	/**

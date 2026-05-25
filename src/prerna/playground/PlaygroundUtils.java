@@ -251,6 +251,7 @@ public class PlaygroundUtils {
 			     3.  **Assign Actors:** For each step, determine if it should be `tool_call`, `llm_reasoning`, or `human_intervention`.
 			     4.  **Identify Gaps:** If a necessary action cannot be performed, create a `no_tool_available` step.
 			     5.  **Define Success:** For each step, you MUST define a machine-readable `success_criteria` object.
+			     6.  **Describe Missing Tools:** For every `no_tool_available` step, set `details.missing_capability` to a short searchable phrase that describes the missing capability.
 
 			     Available tools:
 			     %s

@@ -45,6 +45,7 @@ import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPToolDiscoveryService;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -128,6 +129,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 		UserTrackingUtils.deleteEngine(engineId);
 		// remove the cache
 		EngineSyncUtility.clearEngineCache(engineId);
+		MCPToolDiscoveryService.invalidate(engineId);
 
 		// now try to actually remove from disk
 		if (engine != null) {

@@ -42,6 +42,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPToolDiscoveryService;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -106,6 +107,8 @@ public class DeleteProjectReactor extends AbstractReactor {
 		SecurityProjectUtils.deleteProject(projectId);
 		// remove from user tracking
 		UserTrackingUtils.deleteProject(projectId);
+		// invalidate MCP tool discovery service
+		MCPToolDiscoveryService.invalidate(projectId);
 
 		// now try to actually remove from disk
 		try {

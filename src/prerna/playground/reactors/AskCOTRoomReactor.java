@@ -51,6 +51,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPToolDiscoveryService;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -195,6 +196,8 @@ public class AskCOTRoomReactor extends AbstractReactor {
 				String thisStepType = (String) thisStep.get("type");
 				if ("tool_call".equals(thisStepType)) {
 					MCPUtility.updateCOTToolStepWithEngineMeta(thisStep);
+				} else if ("no_tool_available".equals(thisStepType)) {
+					addToolRecommendations(user, thisStep, userQuery);
 				}
 			}
 
@@ -209,6 +212,50 @@ public class AskCOTRoomReactor extends AbstractReactor {
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 
+	}
+
+	/**
+	 * Adds MCP tool recommendations to a COT step when the model reports that no
+	 * current room tool can perform the required action.
+	 *
+	 * @param user      logged-in user used for MCP tool security filtering.
+	 * @param step      COT step containing the missing tool details.
+	 * @param userQuery original user request used as a fallback search query.
+	 */
+	private void addToolRecommendations(User user, Map<String, Object> step, String userQuery) {
+		String recommendationQuery = null;
+		Object detailsObj = step.get("details");
+		if (detailsObj instanceof Map<?, ?> details) {
+			Object missingCapability = details.get("missing_capability");
+			if (missingCapability != null) {
+				recommendationQuery = missingCapability.toString();
+			}
+		}
+		if (recommendationQuery == null || recommendationQuery.trim().isEmpty()) {
+			Object description = step.get("description");
+			if (description != null) {
+				recommendationQuery = description.toString();
+			}
+		}
+		if (recommendationQuery == null || recommendationQuery.trim().isEmpty()) {
+			recommendationQuery = userQuery;
+		}
+
+		Map<String, Object> recommendationResponse;
+		try {
+			recommendationResponse = new MCPToolDiscoveryService().recommend(user, recommendationQuery, null, 5);
+		} catch (Exception e) {
+			classLogger.debug("Unable to recommend MCP tools for missing capability", e);
+			return;
+		}
+
+		Object results = recommendationResponse.get("results");
+		if (results instanceof List<?> resultList && !resultList.isEmpty()) {
+			Map<String, Object> recommendationPayload = new LinkedHashMap<>();
+			recommendationPayload.put("message", "These tools might help. Add to room?");
+			recommendationPayload.put("results", resultList);
+			step.put("tool_recommendations", recommendationPayload);
+		}
 	}
 
 	@Override

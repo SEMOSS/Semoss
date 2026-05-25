@@ -321,6 +321,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		if (!mcpEnabled) {
 			ClusterUtil.pushEngineSmss(engineId);
 		}
+		MCPToolDiscoveryService.invalidate(engineId);
 		return new NounMetadata(mcpJson, PixelDataType.JSON_OBJECT);
 	}
 
