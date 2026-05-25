@@ -133,7 +133,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Utility;
 
 public class SchedulerOwlCreator {
-	
+
 	private static List<String> conceptsRequired = new ArrayList<>();
 	private IDatabaseEngine schedulerDb;
 
@@ -166,15 +166,14 @@ public class SchedulerOwlCreator {
 	 */
 	public boolean needsRemake() {
 		/*
-		 * This is a very simple check
-		 * Just looking at the tables
-		 * Not doing anything with columns but should eventually do that
+		 * This is a very simple check Just looking at the tables Not doing anything
+		 * with columns but should eventually do that
 		 */
 
 		List<String> cleanConcepts = new ArrayList<>();
 		try {
 			List<String> concepts = schedulerDb.getPhysicalConcepts();
-			if(concepts.isEmpty()) {
+			if (concepts.isEmpty()) {
 				return true;
 			}
 			for (String concept : concepts) {
@@ -184,32 +183,34 @@ public class SchedulerOwlCreator {
 				String cTable = Utility.getInstanceName(concept);
 				cleanConcepts.add(cTable);
 			}
-		} catch(Exception e) {
-			//ignore
+		} catch (Exception e) {
+			// ignore
 		}
 
-		if(!cleanConcepts.containsAll(conceptsRequired)) {
+		if (!cleanConcepts.containsAll(conceptsRequired)) {
 			return true;
 		}
-		
+
 		{
 			// dont need to keep adding a million things to this list
 			// just need the latest change ...
-			List<String> props = schedulerDb.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
-			if(!props.contains("http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
+			List<String> props = schedulerDb
+					.getPropertyUris4PhysicalUri("http://semoss.org/ontologies/Concept/SMSS_JOB_RECIPES");
+			if (!props.contains("http://semoss.org/ontologies/Relation/Contains/CRON_TIMEZONE/SMSS_JOB_RECIPES")) {
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 
 	/**
 	 * Remake the OWL
-	 * @throws Exception 
+	 * 
+	 * @throws Exception
 	 */
 	public void remakeOwl() throws Exception {
-		try(WriteOWLEngine owlEngine = schedulerDb.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = schedulerDb.getOWLEngineFactory().getWriteOWL()) {
 			owlEngine.createEmptyOWLFile();
 			// write the new OWL
 			writeNewOwl(owlEngine);
@@ -220,7 +221,7 @@ public class SchedulerOwlCreator {
 	 * Method that uses the OWLER to generate a new OWL structure
 	 * 
 	 * @param owlLocation
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	private void writeNewOwl(WriteOWLEngine owler) throws Exception {
 		// QRTZ_CALENDARS
@@ -371,23 +372,35 @@ public class SchedulerOwlCreator {
 		owler.addProp(SMSS_EXECUTION, EXEC_ID, VARCHAR_200);
 		owler.addProp(SMSS_EXECUTION, JOB_NAME, VARCHAR_200);
 		owler.addProp(SMSS_EXECUTION, JOB_GROUP, VARCHAR_200);
-		
+
 		// add Foreign Keys/Relations
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS, QRTZ_CRON_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_CRON_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_CRON_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+		owler.addRelation(QRTZ_CRON_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_CRON_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
 
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPLE_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+		owler.addRelation(QRTZ_SIMPLE_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPLE_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
 
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS, QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
-		
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_JOB_DETAILS + "." + SCHED_NAME);
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_NAME);
-		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS, QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
+		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPROP_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_TRIGGERS + "." + SCHED_NAME);
+		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_TRIGGERS + "." + TRIGGER_NAME);
+		owler.addRelation(QRTZ_SIMPROP_TRIGGERS, QRTZ_TRIGGERS,
+				QRTZ_SIMPROP_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_TRIGGERS + "." + TRIGGER_GROUP);
+
+		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS,
+				QRTZ_TRIGGERS + "." + SCHED_NAME + "." + QRTZ_JOB_DETAILS + "." + SCHED_NAME);
+		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS,
+				QRTZ_TRIGGERS + "." + TRIGGER_NAME + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_NAME);
+		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS,
+				QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
 
 		owler.commit();
 		owler.export();
