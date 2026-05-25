@@ -206,7 +206,7 @@ public class StoreReactor extends AbstractReactor {
 		outputNouns.addNoun(ReactorKeysEnum.ENGINE.getKey(), grs);
 
 		grs = new GenRowStruct();
-		grs.add(new NounMetadata(fileNameWithExt, PixelDataType.CONST_STRING));
+		grs.add(new NounMetadata("\\" + fileNameWithExt, PixelDataType.CONST_STRING));
 		outputNouns.addNoun("filePaths", grs);
 
 		grs = new GenRowStruct();
@@ -221,11 +221,11 @@ public class StoreReactor extends AbstractReactor {
 		NounMetadata resultNoun = createEmbeddingsFromDocumentsReactor.execute();
 
 		// Response from the LLM Model
-		Map<String, Object> response = (Map<String, Object>) resultNoun.getValue();
+		String response = (String) resultNoun.getValue();
 
 		Map<String, Object> output = new HashMap<>();
 		// output.put("FileExtractionResult", output1);
-		output.put("message", "storeToDatabase successfully");
+		output.put("message", response);
 		return output;
 	}
 
