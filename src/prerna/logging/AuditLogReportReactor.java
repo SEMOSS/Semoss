@@ -261,10 +261,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getString(Map<String, Object> map, String key) {
-		Object val = map.get(key);
 		if (map == null || key == null) {
 			return "";
 		}
+		Object val = map.get(key);
 		return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
 	}
 
