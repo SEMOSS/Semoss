@@ -95,7 +95,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		}
 		Logger logger = getLogger(CLASS_NAME);
 
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		this.code = this.curRow.get(0).toString();
 		int tokens = code.split("\\n").length;
 
 		return handlePyPlot(code);

@@ -142,7 +142,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		}
 
 		if (this.schema != null && !this.schema.isEmpty()) {
-			this.connectionUrl += "/" + schema;
+			this.connectionUrl += ";SCHEMA=" + schema;
 		}
 
 		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {

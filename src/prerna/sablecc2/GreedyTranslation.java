@@ -79,6 +79,9 @@ public class GreedyTranslation extends LazyTranslation {
 	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
 		this.runner = runner;
+		// share the runner's encode map so word literals emitted by
+		// PixelPreProcessor's <encode> blocks get auto URI-decoded
+		this.encodedTextToOriginal = runner.encodedTextToOriginal;
 	}
 
 	@Override

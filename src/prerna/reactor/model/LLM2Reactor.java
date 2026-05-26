@@ -75,11 +75,8 @@ public class LLM2Reactor extends AbstractReactor {
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
 
-		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
 
 		Map<String, Object> paramMap = getParamMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);

@@ -78,9 +78,9 @@ public class AddToolExecutionReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(this.keysToGet[1]);
 		String toolId = this.keyValue.get(this.keysToGet[2]);
 		String toolName = this.keyValue.get(this.keysToGet[3]);
-		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
+		String toolResponseRaw = this.keyValue.get(this.keysToGet[4]);
 		if (toolResponseRaw == null) {
-			toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(tool_execution_response));
+			toolResponseRaw = this.keyValue.get(tool_execution_response);
 		}
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");

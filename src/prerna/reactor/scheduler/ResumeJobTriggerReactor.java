@@ -45,7 +45,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
 
@@ -151,7 +150,8 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 				}
 			}
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			logger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 		}
 
 		// Save metadata into a map and return

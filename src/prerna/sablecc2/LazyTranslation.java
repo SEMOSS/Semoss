@@ -131,6 +131,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class LazyTranslation extends DepthFirstAdapter {
@@ -159,6 +160,12 @@ public class LazyTranslation extends DepthFirstAdapter {
 	protected ITableDataFrame currentFrame = null;
 	protected Pixel pixelObj = null;
 	protected boolean isTimeTracking = true;
+
+	// shared with the PixelRunner / parent translation so that string literals
+	// produced by <encode> blocks in PixelPreProcessor can be auto URI-decoded
+	// when the parser hands them back as word literals. Subclasses can repoint
+	// this to their own preProcess output map.
+	protected Map<String, String> encodedTextToOriginal = new HashMap<String, String>();
 
 	public static String envClassPath = null;
 
@@ -648,6 +655,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 	public void inAWordWordOrId(AWordWordOrId node) {
 		defaultIn(node);
 		String word = PixelUtility.decodePixelStringLiteral(node.getWord().getText());
+		if (encodedTextToOriginal.containsKey(word)) {
+			word = Utility.decodeURIComponent(word, false);
+		}
 		// if its an assignment
 		// just put in results in case we are doing a |
 		if (curReactor != null && !(curReactor instanceof AssignmentReactor)) {
@@ -1369,6 +1379,9 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAWordMapKey(AWordMapKey node) {
 		String mapKey = PixelUtility.decodePixelStringLiteral(node.getWord().getText());
+		if (encodedTextToOriginal.containsKey(mapKey)) {
+			mapKey = Utility.decodeURIComponent(mapKey, false);
+		}
 		this.curReactor.getCurRow().addLiteral(mapKey);
 	}
 

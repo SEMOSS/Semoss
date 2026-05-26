@@ -40,7 +40,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
 
@@ -115,7 +114,8 @@ public class ExecuteScheduledJobReactor extends AbstractReactor {
 						"Could not find job with name = " + jobId + " and group = " + jobGroup);
 			}
 		} catch (SchedulerException se) {
-			logger.error(Constants.STACKTRACE, se);
+			logger.error("Failed to trigger Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

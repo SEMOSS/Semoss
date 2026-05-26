@@ -52,7 +52,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
 
@@ -92,7 +91,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to resolve cron time zone '{}': {}", cronTz, e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 
@@ -123,10 +122,11 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 		boolean triggerOnLoad = getTriggerOnLoad();
 		boolean triggerNow = getTriggerNow();
 
-		String uiState = this.keyValue.get(UI_STATE);
-		if (uiState == null) {
-			throw new NullPointerException("UI State is null and needs to be passed");
-		}
+		String uiState = null;
+//		String uiState = this.keyValue.get(UI_STATE);
+//		if(uiState == null) {
+//			throw new NullPointerException("UI State is null and needs to be passed");
+//		}
 
 		// existing name/group
 		String curJobName = this.keyValue.get(CURRENT_JOB_NAME);
@@ -243,7 +243,7 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 			JobKey jobKey = JobKey.jobKey(jobId, curJobGroup);
 			// if job does not exist throw error
 			if (!scheduler.checkExists(jobKey)) {
-				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
+				classLogger.error("Job {} could not be found to edit", Utility.cleanLogString(jobKey.toString()));
 				throw new IllegalArgumentException(
 						"job " + Utility.cleanLogString(jobKey.toString()) + " could not be found to edit");
 			}
@@ -290,7 +290,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to edit Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 			throw new IllegalArgumentException("Unable to schedule the job. Error message = " + se.getMessage());
 		}
 	}

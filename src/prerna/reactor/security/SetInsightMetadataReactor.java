@@ -43,7 +43,7 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 
 	public SetInsightMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), META,
-				ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.JSON_CLEANUP.getKey() };
+				ReactorKeysEnum.JSON_CLEANUP.getKey() };
 	}
 
 	@Override
@@ -79,10 +79,9 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 	 * @return parsed metadata map
 	 */
 	protected Map<String, Object> getMetaMap() {
-		Boolean encoded = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ENCODED.getKey()) + "");
 		Boolean jsonCleanup = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.JSON_CLEANUP.getKey()) + "");
 		GenRowStruct metaGrs = this.store.getGenRowStruct(META);
-		return AbstractSetMetadataReactor.parseMetaMap(metaGrs, this.curRow, encoded, jsonCleanup);
+		return AbstractSetMetadataReactor.parseMetaMap(metaGrs, this.curRow, jsonCleanup);
 	}
 
 	@Override
@@ -94,8 +93,7 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(META)) {
 			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the insight. The list of values will determine the order that is defined for field";
-		}
-		if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
+		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
 			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}
 		return super.getDescriptionForKey(key);

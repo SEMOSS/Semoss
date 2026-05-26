@@ -34,12 +34,15 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.reactor.agent.runtime.SemossAgentHarness;
+
 /**
  * Static registry for {@link IAgentHarness} implementations.
  *
- * <p>Two built-in harnesses are registered at class-load time:
+ * <p>Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness}
+ *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — legacy vendor-delegating loop
+ *   <li>{@code "semoss"}    → {@link SemossAgentHarness} — SEMOSS-native canonical harness
  *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
  *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
  *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
@@ -59,10 +62,12 @@ public final class AgentHarnessRegistry {
     static {
         Map<String, IAgentHarness> m = new HashMap<>();
         IAgentHarness roomLoop        = new RoomAgentHarness();
+        IAgentHarness semoss          = new SemossAgentHarness();
         IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
         IAgentHarness githubCopilot   = new GitHubCopilotAgentHarness();
         IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
         m.put(roomLoop.getName(),        roomLoop);
+        m.put(semoss.getName(),          semoss);
         m.put(claudeCode.getName(),      claudeCode);
         m.put(githubCopilot.getName(),   githubCopilot);
         m.put(githubCopilotPy.getName(), githubCopilotPy);

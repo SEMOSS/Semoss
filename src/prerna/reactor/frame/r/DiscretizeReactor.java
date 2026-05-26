@@ -128,7 +128,7 @@ public class DiscretizeReactor extends AbstractRFrameReactor {
 				} else {
 					// check if labels contains whitespaces, then replace with
 					// underscore
-					labels = Utility.decodeURIComponent(labels).replaceAll("[()]", "").trim();
+					labels = labels.replaceAll("[()]", "").trim();
 					String[] labelsSplit = labels.split(",");
 					List<String> labelsList = Arrays.asList(labelsSplit);
 					for (int j = 0; j < labelsList.size(); j++) {

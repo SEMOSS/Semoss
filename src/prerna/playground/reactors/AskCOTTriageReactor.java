@@ -31,10 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
-import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
@@ -54,9 +51,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class AskCOTTriageReactor extends AbstractReactor {
-
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
 
 	// TODO:
 	// 1. Determine params?
@@ -85,7 +79,7 @@ public class AskCOTTriageReactor extends AbstractReactor {
 					"Model " + modelId + " does not exist or user does not have access to this model");
 		}
 
-		String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[2]));
+		String userQuery = this.keyValue.get(this.keysToGet[2]);
 		String roomId = this.keyValue.get(this.keysToGet[1]);
 
 		IModelEngine modelEngine = Utility.getModel(modelId);

@@ -61,6 +61,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -72,6 +73,9 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossMCPException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.AbstractTask;
+import prerna.sablecc2.om.task.ConstantDataTask;
+import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -93,6 +97,7 @@ public final class MCPUtility {
 	public static final String UI_RESOURCE_URI = "resourceURI";
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
+	public static final String UI_AUTO_OPEN = "autoOpen";
 
 	@Deprecated
 	public static final String SMSS_PROJECT_ID = "SMSS_PROJECT_ID";
@@ -393,7 +398,66 @@ public final class MCPUtility {
 		if (result.getNounType() == PixelDataType.PIXEL_RUNNER) {
 			PixelRunner runner = (PixelRunner) ((Map<String, Object>) result.getValue()).get("runner");
 			return stringifyMcpResult(runner);
+		} else if (result.getNounType() == PixelDataType.FORMATTED_DATA_SET) {
+			Object value = result.getValue();
+			if (value instanceof ITask) {
+				// if we have a task
+				// iterate through it to return the data
+				try (ITask task = (ITask) value) {
+					if (task instanceof ConstantDataTask) {
+						return stringifyMcpResult(((ConstantDataTask) task).getOutputData());
+					}
+
+					classLogger.debug("Start flushing task = {}", task.getId());
+					Map<String, Object> dataMap = new HashMap<>();
+					// first merge the metadata
+					dataMap.putAll(task.getMetaMap());
+
+					int numCollect = task.getNumCollect();
+					boolean collectAll = numCollect == -1;
+					String formatType = task.getFormatter().getFormatType();
+
+					if (formatType.equals("TABLE")) {
+						// right now, only grid will work
+						String[] headers = null;
+						String[] rawHeaders = null;
+						int count = 0;
+
+						// try to at least provide the headers
+						List<Map<String, Object>> headerInfo = task.getHeaderInfo();
+						if (headerInfo != null) {
+							headers = new String[headerInfo.size()];
+							rawHeaders = new String[headerInfo.size()];
+							for (int i = 0; i < headers.length; i++) {
+								headers[i] = headerInfo.get(i).get("alias") + "";
+								rawHeaders[i] = headerInfo.get(i).get("header") + "";
+							}
+						}
+						dataMap.put("headers", headers);
+						dataMap.put("rawHeaders", rawHeaders);
+						List<Object[]> values = new ArrayList<>();
+						while (task.hasNext() && (collectAll || count < numCollect)) {
+							IHeadersDataRow row = task.next();
+							values.add(row.getValues());
+							count++;
+						}
+						dataMap.put("values", values);
+					} else {
+						// just let the formatter handle the output of this data
+						dataMap.put("data", ((AbstractTask) task).getData());
+					}
+					classLogger.debug("Done flushing sending task = {}", task.getId());
+
+					Map<String, Object> retObj = new HashMap<>();
+					retObj.put("output", dataMap);
+					return stringifyMcpResult(retObj);
+				} catch (Exception e) {
+					throw new SemossMCPException(e.getMessage(), MCPErrorCode.TOOL_EXECUTION_FAILED);
+				}
+			}
 		}
+
+		// all other situations, just return the value
 		return stringifyMcpResult(result.getValue());
 	}
 
@@ -1094,6 +1158,10 @@ public final class MCPUtility {
 			MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
 			String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
+		}
+
+		if (uiJson.has(UI_AUTO_OPEN) && !uiJson.isNull(UI_AUTO_OPEN)) {
+			validUiJson.put(UI_AUTO_OPEN, uiJson.getBoolean(UI_AUTO_OPEN));
 		}
 
 		return validUiJson;

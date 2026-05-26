@@ -62,7 +62,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.jobrunr.JobRunrService;
 
@@ -107,7 +106,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 		try {
 			cronTimeZone = TimeZone.getTimeZone(cronTz);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to resolve cron time zone '{}': {}", cronTz, e.getMessage(), e);
 			throw new IllegalArgumentException("Invalid Time Zone = " + cronTz);
 		}
 		List<String> jobTags = getJobTags();
@@ -249,7 +248,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 			JobKey jobKey = JobKey.jobKey(jobId, jobGroup);
 			// if job exists throw error, job already exists
 			if (scheduler.checkExists(jobKey)) {
-				classLogger.error("job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
+				classLogger.error("Job {} already exists", Utility.cleanLogString(jobKey.toString()));
 				throw new IllegalArgumentException(
 						"job " + Utility.cleanLogString(jobKey.toString()) + " already exists");
 			}
@@ -275,7 +274,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to schedule Quartz job for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+					se.getMessage(), se);
 			throw new IllegalArgumentException("Unable to schedule the job. Error message = " + se.getMessage());
 		}
 	}
@@ -288,7 +288,7 @@ public class ScheduleJobReactor extends AbstractReactor {
 				scheduler.triggerJob(jobKey);
 			}
 		} catch (SchedulerException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to trigger Quartz job '{}': {}", jobKey, se.getMessage(), se);
 		}
 	}
 
@@ -325,8 +325,8 @@ public class ScheduleJobReactor extends AbstractReactor {
 
 		scheduler.scheduleJob(job, trigger);
 
-		classLogger.info("Scheduled " + Utility.cleanLogString(jobId) + " to run on the following schedule: "
-				+ Utility.cleanLogString(cronExpression) + ".");
+		classLogger.info("Scheduled {} to run on the following schedule: {}.", Utility.cleanLogString(jobId),
+				Utility.cleanLogString(cronExpression));
 
 		// Return the job key
 		return job.getKey();
