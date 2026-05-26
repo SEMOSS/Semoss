@@ -377,8 +377,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 	@Override
 	public void inAWordWordOrId(AWordWordOrId node) {
 		defaultIn(node);
-		String trimmedWord = node.getWord().toString().trim();
-		String word = PixelUtility.removeSurroundingQuotes(trimmedWord);
+		String word = PixelUtility.decodePixelStringLiteral(node.getWord().getText());
 		// remove some of this so that the all doesn't come through
 		if (curReactor != null) {
 			// making sure it doesnt add if it is a map reactor
@@ -965,7 +964,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 		// if so this could be a full array
 
 		processNode = node.getKey().toString().trim();
-		processNode = PixelUtility.removeSurroundingQuotes(processNode);
+		processNode = PixelUtility.decodePixelStringLiteral(processNode);
 
 		// the first JSON map
 		// will contain the request type
@@ -1002,7 +1001,7 @@ public class LazyJsonTranslation extends DepthFirstAdapter {
 	@Override
 	public void outAMapEntry(AMapEntry node) {
 		processNode = node.getKey().toString().trim();
-		processNode = PixelUtility.removeSurroundingQuotes(processNode);
+		processNode = PixelUtility.decodePixelStringLiteral(processNode);
 		// System.out.println("Map Entry.. OUT" + processNode);
 		defaultOut(node);
 		if (curReactor.getParentReactor() == null) {

@@ -390,13 +390,13 @@ public class CollectPivotReactor extends TaskBuilderReactor {
 	
 	private void getPivotLimits() {
 		if(row_max < 0 || col_max < 0) {
-			if(DIHelper.getInstance().getProperty(Constants.PIVOT_ROW_MAX) != null) {
-				row_max = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.PIVOT_ROW_MAX));
+			if(Utility.getDIHelperProperty(Constants.PIVOT_ROW_MAX) != null) {
+				row_max = Integer.parseInt(Utility.getDIHelperProperty(Constants.PIVOT_ROW_MAX));
 			} else {
 				row_max = 1000;
 			}
-			if(DIHelper.getInstance().getProperty(Constants.PIVOT_COL_MAX) != null) {
-				col_max = Integer.parseInt(DIHelper.getInstance().getProperty(Constants.PIVOT_COL_MAX));
+			if(Utility.getDIHelperProperty(Constants.PIVOT_COL_MAX) != null) {
+				col_max = Integer.parseInt(Utility.getDIHelperProperty(Constants.PIVOT_COL_MAX));
 			} else {
 				col_max = 100;
 			}

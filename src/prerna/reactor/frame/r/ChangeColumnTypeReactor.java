@@ -36,20 +36,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * This reactor changes the data type of an existing column The inputs to the
- * reactor are: 
- * 1) the column to update 
- * 2) the desired column type
+ * reactor are: 1) the column to update 2) the desired column type
  */
 
 public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
-	
+
 	public ChangeColumnTypeReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
 				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey(), "format" };
 	}
 
@@ -75,16 +71,16 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Need to define " + ReactorKeysEnum.DATA_TYPE.getKey());
 		}
 		newType = SemossDataType.convertStringToDataType(newType).toString();
-		
+
 		String additionalDataType = this.keyValue.get(this.keysToGet[2]);
 
 		OwlTemporalEngineMeta metadata = this.getFrame().getMetaData();
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + column);
-		if(dataType == null) {
+		if (dataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 		}
-		
-		//check if there is a new dataType
+
+		// check if there is a new dataType
 		if (!dataType.equals(newType)) {
 			// define the r script to execute
 			// script depends on the new data type
@@ -117,7 +113,8 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				this.addExecutedCode(script);
 			} else if (Utility.isDoubleType(newType)) {
 				// r script syntax cleaning characters with regex
-				script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column + "));";
+				script = table + "$" + column + " <- as.numeric(gsub('[^-\\\\.0-9]', '', " + table + "$" + column
+						+ "));";
 				frame.executeRScript(script);
 				this.addExecutedCode(script);
 			} else if (Utility.isDateType(newType)) {
@@ -125,7 +122,7 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 				// conversion
 				// define date format
 				String dateFormat = this.keyValue.get(this.keysToGet[3]);
-				if(dateFormat == null) {
+				if (dateFormat == null) {
 					dateFormat = "%Y-%m-%d";
 				} else {
 					// convert from java format to R
@@ -138,18 +135,12 @@ public class ChangeColumnTypeReactor extends AbstractRFrameReactor {
 			// update the metadata
 			metadata.modifyDataTypeToProperty(table + "__" + column, table, newType);
 		}
-		
-		if(additionalDataType != null && !additionalDataType.isEmpty()) {
+
+		if (additionalDataType != null && !additionalDataType.isEmpty()) {
 			metadata.modifyAdditionalDataTypeToProperty(table + "__" + column, table, newType);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ChangeColumnType", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 }

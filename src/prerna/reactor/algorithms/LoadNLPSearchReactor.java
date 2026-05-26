@@ -39,88 +39,88 @@ import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class LoadNLPSearchReactor extends AbstractRFrameReactor {
-	
+
 	protected static final String CLASS_NAME = LoadNLPSearchReactor.class.getName();
-	
+
 	protected static final String NLDR_DB = "nldr_db";
 	protected static final String NLDR_JOINS = "nldr_joins";
 	protected static final String NLDR_MEMBERSHIP = "nldr_membership";
-	
+
 	public LoadNLPSearchReactor() {
-		this.keysToGet = new String[] { };
+		this.keysToGet = new String[] {};
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		this.init();
 		this.organizeKeys();
-		
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
 
-        String[] packages = new String[] { "igraph", "SteinerNet", "data.table" , "tools" };
+		String baseFolder = Utility.getBaseFolder();
+
+		String[] packages = new String[] { "igraph", "SteinerNet", "data.table", "tools" };
 		this.rJavaTranslator.checkPackages(packages);
 		this.rJavaTranslator.runR(RSyntaxHelper.loadPackages(packages));
-		
-		// Pull necessary files / create file paths. 
+
+		// Pull necessary files / create file paths.
 		String savePath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts";
 		User user = this.insight.getUser();
 		String assetId = user.getAssetProjectId(user.getPrimaryLogin());
 		if (assetId != null && !(assetId.isEmpty())) {
-			ClusterUtil.pullUserWorkspace(assetId, true);
-			savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
+			ClusterUtil.pullUserAsset(assetId);
+			savePath = AssetUtility.getUserAssetVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
 
 			File assetDir = new File(Utility.normalizePath(savePath));
 			if (!assetDir.isDirectory() || !assetDir.exists()) {
 				assetDir.mkdirs();
-			} 
+			}
 		}
-		savePath = Utility.normalizePath(savePath.replace("\\", "/")); 
+		savePath = Utility.normalizePath(savePath.replace("\\", "/"));
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();
 		String wd = "wd" + Utility.getRandomString(5);
-		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts" + DIR_SEPARATOR;
+		String rFolderPath = baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts"
+				+ DIR_SEPARATOR;
 		sb.append(wd + "<- getwd();");
 		sb.append(("setwd(\"" + savePath + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + rFolderPath + "template_assembly.R" + "\");").replace("\\", "/"));
 		sb.append(("source(\"" + rFolderPath + "template_db.R" + "\");").replace("\\", "/"));
 
-		
 		this.rJavaTranslator.runR(sb.toString());
-		
+
 		String nldrPath1 = savePath + DIR_SEPARATOR + "nldr_membership.rds";
 		String nldrPath2 = savePath + DIR_SEPARATOR + "nldr_db.rds";
-		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";	
+		String nldrPath3 = savePath + DIR_SEPARATOR + "nldr_joins.rds";
 		File nldrMembership = new File(nldrPath1);
 		File nldrDb = new File(nldrPath2);
 		File nldrJoins = new File(nldrPath3);
-		long replaceTime = System.currentTimeMillis() - ((long)1 * 24 * 60 * 60 * 1000);
-		
+		long replaceTime = System.currentTimeMillis() - ((long) 1 * 24 * 60 * 60 * 1000);
+
 		StringBuilder script = new StringBuilder();
-		if(!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists() || nldrMembership.lastModified() < replaceTime ) {
+		if (!nldrDb.exists() || !nldrJoins.exists() || !nldrMembership.exists()
+				|| nldrMembership.lastModified() < replaceTime) {
 			createRdsFiles(rFolderPath);
 		} else {
 			script.append(NLDR_MEMBERSHIP + " <- readRDS(\"nldr_membership.rds\");")
-				  .append(NLDR_DB + " <- readRDS(\"nldr_db.rds\");")
-				  .append(NLDR_JOINS + " <- readRDS(\"nldr_joins.rds\")");
+					.append(NLDR_DB + " <- readRDS(\"nldr_db.rds\");")
+					.append(NLDR_JOINS + " <- readRDS(\"nldr_joins.rds\")");
 			this.rJavaTranslator.runR(script.toString());
 		}
-		
+
 		this.rJavaTranslator.runR("setwd(" + wd + ")");
 		this.rJavaTranslator.executeEmptyR("rm( " + wd + "); gc();");
-		
+
 		// push Asset folder
 		if (assetId != null && !(assetId.isEmpty())) {
-			ClusterUtil.pushUserWorkspace(assetId, true);
+			ClusterUtil.pushUserAsset(assetId);
 		}
-		
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
-	
+
 	/**
 	 * Creates the RDS files used for NLP Search
 	 */
@@ -272,17 +272,16 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 				db + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rDatabaseIds
 						+ ", Datatype = " + rColTypes + ", Key = " + rPrimKey + ", stringsAsFactors = FALSE);");
 		sessionTableBuilder.append(joins + " <- data.frame(tbl1 = " + rTbl1 + " , tbl2 = " + rTbl2 + " , joinby1 = "
-				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rDatabaseIdsJoin +  ",AppID2 = "
-				+ rDatabaseIdsJoin +", stringsAsFactors = FALSE);");
+				+ rJoinBy1 + " , joinby2 = " + rJoinBy2 + " , AppID = " + rDatabaseIdsJoin + ",AppID2 = "
+				+ rDatabaseIdsJoin + ", stringsAsFactors = FALSE);");
 
 		// run the cluster tables function
-		sessionTableBuilder.append(NLDR_MEMBERSHIP + " <- cluster_tables(" + db + ","+ joins + ");")
-						   .append(NLDR_DB + " <- " + db + ";" +NLDR_JOINS + " <- " + joins + ";")
-						   .append("saveRDS(" + NLDR_DB + ",\"nldr_db.rds\");saveRDS(" + NLDR_JOINS + ",\"nldr_joins.rds\");");
+		sessionTableBuilder.append(NLDR_MEMBERSHIP + " <- cluster_tables(" + db + "," + joins + ");")
+				.append(NLDR_DB + " <- " + db + ";" + NLDR_JOINS + " <- " + joins + ";")
+				.append("saveRDS(" + NLDR_DB + ",\"nldr_db.rds\");saveRDS(" + NLDR_JOINS + ",\"nldr_joins.rds\");");
 
 		this.rJavaTranslator.runR(sessionTableBuilder.toString());
-		
-		
+
 		this.rJavaTranslator.executeEmptyR("rm( " + db + "," + joins + " ); gc();");
 	}
 

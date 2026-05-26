@@ -40,7 +40,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ListStoragePathDetailsReactor extends AbstractReactor {
@@ -61,7 +60,7 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 			List<Map<String, Object>> storageList = storage.listDetails(path);
 			return new NounMetadata(storageList, PixelDataType.VECTOR);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error listing storage path details for path {}", path, e);
 			throw new IllegalArgumentException("Error listing storage details at path " + path);
 		}
 	}
@@ -93,7 +92,11 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Get detailed information about files and folders in a storage path";
+		return """
+				Get detailed information about files and folders in a storage path.
+				Returns one map per file/folder with common keys:
+				`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
+				""";
 	}
 
 	@Override
@@ -101,7 +104,11 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
 			return "The storage engine instance or id";
 		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The storage path to get details from";
+			return """
+					The storage path to get details from.
+					The response is a vector of maps with keys:
+					`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
+					""";
 		}
 		return super.getDescriptionForKey(key);
 	}

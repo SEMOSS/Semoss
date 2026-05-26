@@ -66,8 +66,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -75,22 +73,26 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReactor {
 
-	/*
-	 * There are quite a few things that we need 1) database -> name of the database
-	 * to create 1) filePath -> string contianing the path of the file 2) dataTypes
-	 * -> map of the sheet to another map of the header to the type, this will
-	 * contain the original headers we send to FE 3) newHeaders -> map of the sheet
-	 * to another map containing old header to new headers for the csv file 4)
-	 * additionalTypes -> map of the sheet to another map containing header to an
-	 * additional type specification additional inputs would be {header : currency,
-	 * header : date_format, ... } 5) clean -> boolean if we should clean up the
-	 * strings before insertion, default is true TODO: 6) deduplicate -> boolean if
-	 * we should remove duplicate rows in the relational database 7) existing ->
-	 * boolean if we should add to an existing database, defualt is false
-	 */
-
 	private ExcelWorkbookFileHelper helper;
 
+	/**
+	 * Required and optional inputs:
+	 * <ul>
+	 * <li>database - name of the database to create</li>
+	 * <li>filePath - string containing the path of the file</li>
+	 * <li>dataTypes - map of the sheet to a map of header to type (original headers
+	 * sent to FE)</li>
+	 * <li>newHeaders - map of the sheet to a map of old header to new header</li>
+	 * <li>additionalTypes - map of the sheet to a map of header to additional type
+	 * specification, e.g. {header: currency, header: date_format, ...}</li>
+	 * <li>clean - boolean, whether to clean up strings before insertion (default:
+	 * true)</li>
+	 * <li>deduplicate - boolean, whether to remove duplicate rows (default:
+	 * false)</li>
+	 * <li>existing - boolean, whether to add to an existing database (default:
+	 * false)</li>
+	 * </ul>
+	 */
 	public RdbmsUploadExcelDataReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DATA_TYPE_MAP, UploadInputUtility.NEW_HEADERS,
@@ -133,10 +135,9 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -539,7 +540,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable(database, tableName, uniqueRowId, headers, types,
 					replace);
 		} catch (Exception e1) {
-			logger.error(Constants.STACKTRACE, e1);
+			logger.error("Error occurred while creating new RDBMS table for Excel sheet '{}': {}", tableName,
+					e1.getMessage(), e1);
 			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR));
 		}
@@ -709,7 +711,8 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
 		} catch (SQLException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error occurred while bulk inserting Excel data into table '{}': {}", TABLE_NAME,
+					e.getMessage(), e);
 			String errorMessage = "";
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on excel row number = " + count;

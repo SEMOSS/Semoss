@@ -94,7 +94,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
-		this.code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		this.code = this.curRow.get(0).toString();
 		try {
 			ClassPool pool = ClassPool.getDefault();
 			ClassClassPath ccp = new ClassClassPath(this.getClass());

@@ -88,24 +88,21 @@ import prerna.sablecc2.translations.DatasourceTranslation;
 import prerna.sablecc2.translations.ParamStructSaveRecipeTranslation;
 import prerna.sablecc2.translations.ParameterizeSaveRecipeTranslation;
 import prerna.sablecc2.translations.ReplaceDatasourceTranslation;
-import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 
 public class PixelUtility {
 
-	private static final Logger logger = LogManager.getLogger(PixelUtility.class);
-	private static final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+	private static final Logger classLogger = LogManager.getLogger(PixelUtility.class);
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	/**
-	 * 
-	 * @param pixelExpression
-	 * @return
-	 * 
-	 *         Returns true if the pixel is a valid pixel that can be executed
-	 *         Returns false otherwise
-	 * @throws IOException
-	 * @throws LexerException
-	 * @throws ParserException
+	 * Validates a pixel expression without executing it.
+	 *
+	 * @param pixelExpression pixel expression to validate
+	 * @return validation output from the parser
+	 * @throws ParserException when parsing fails
+	 * @throws LexerException  when tokenization fails
+	 * @throws IOException     when stream reading fails
 	 */
 	public static Set<String> validatePixel(String pixelExpression)
 			throws ParserException, LexerException, IOException {
@@ -113,15 +110,14 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param pixelExpression
-	 * @return
-	 * @throws ParserException
-	 * @throws LexerException
-	 * @throws IOException
-	 * 
-	 *                         Returns a list of the parsed pixels from the
-	 *                         expression
+	 * Parses a pixel expression into individual recipe steps and restores any
+	 * encoded text back to the original form.
+	 *
+	 * @param pixelExpression pixel expression to parse
+	 * @return list of parsed pixel steps
+	 * @throws ParserException when parsing fails
+	 * @throws LexerException  when tokenization fails
+	 * @throws IOException     when stream reading fails
 	 */
 	public static List<String> parsePixel(String pixelExpression) throws ParserException, LexerException, IOException {
 		List<String> parsed = new ArrayList<>();
@@ -138,12 +134,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param value
-	 * @return
-	 * 
-	 *         Returns the noun for a STRING or NUMBER ONLY if value is an
-	 *         instanceof another object IllegalArgumentException will be thrown
+	 * Builds a noun from a scalar value.
+	 *
+	 * @param value number, literal string, or column-like string
+	 * @return noun metadata inferred from the input value
 	 */
 	public static NounMetadata getNoun(Object value) {
 		NounMetadata noun = null;
@@ -152,7 +146,7 @@ public class PixelUtility {
 		} else if (value instanceof String) {
 			if (isLiteral((String) value)) {
 				// we have a literal
-				String literal = removeSurroundingQuotes((String) value);
+				String literal = decodePixelStringLiteral((String) value);
 				noun = new NounMetadata(literal, PixelDataType.CONST_STRING);
 			} else {
 				// try to convert to a number
@@ -181,10 +175,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Adds a pkslString to the planner via lazy translation
-	 * 
-	 * @param translation
-	 * @param pixelString
+	 * Parses and applies a pixel string to a translation object.
+	 *
+	 * @param translation translation target
+	 * @param pixelString pixel expression
 	 */
 	public static void addPixelToTranslation(DepthFirstAdapter translation, String pixelString) {
 		try {
@@ -193,25 +187,17 @@ public class PixelUtility {
 			Start tree = p.parse();
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException ioe) {
-			logger.error("FAILED ON :::: " + pixelString);
-			logger.error(Constants.STACKTRACE, ioe);
+			classLogger.error("Failed to parse pixel expression for translation: {}", pixelString, ioe);
 		} catch (Exception e) {
-			logger.error("FAILED ON :::: " + pixelString);
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unexpected error while applying translation for pixel expression: {}", pixelString, e);
 		}
 	}
 
 	/**
-	 * @param literal
-	 * @return
-	 * 
-	 *         input: 'literal' OR "literal" output: literal
-	 * 
-	 *         input: 'literal OR "literal output: literal
-	 * 
-	 *         input: literal' OR literal" output: literal
-	 * 
-	 *         input: literal output: literal
+	 * Removes a single leading and trailing quote character, if present.
+	 *
+	 * @param literal input string
+	 * @return string without outer quotes
 	 */
 	public static String removeSurroundingQuotes(String literal) {
 		literal = literal.trim();
@@ -233,11 +219,107 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param literal
-	 * @return
-	 * 
-	 *         Determines if the string is a literal
+	 * Decodes a Pixel string literal token by removing surrounding quotes and
+	 * resolving supported escape sequences.
+	 *
+	 * @param literalToken token text as produced by the parser
+	 * @return decoded string content, or {@code null} when input is null
+	 */
+	public static String decodePixelStringLiteral(String literalToken) {
+		if (literalToken == null) {
+			return null;
+		}
+		String unquoted = removeSurroundingQuotes(literalToken.trim());
+		return decodeEscapedString(unquoted);
+	}
+
+	/**
+	 * Decodes common escaped character sequences in a string.
+	 * <p>
+	 * Supported escapes: {@code \\}, {@code \"}, {@code \'}, {@code \n},
+	 * {@code \r}, {@code \t}, {@code \b}, {@code \f}, {@code \/}, and
+	 * {@code \\uXXXX}. Unknown escapes are preserved as-is.
+	 *
+	 * @param input string to decode
+	 * @return decoded string, or {@code null} when input is null
+	 */
+	public static String decodeEscapedString(String input) {
+		if (input == null || input.indexOf('\\') < 0) {
+			return input;
+		}
+
+		StringBuilder decoded = new StringBuilder(input.length());
+		int length = input.length();
+		for (int i = 0; i < length; i++) {
+			char current = input.charAt(i);
+			if (current != '\\' || i == length - 1) {
+				decoded.append(current);
+				continue;
+			}
+
+			char next = input.charAt(++i);
+			switch (next) {
+			case '\\':
+				decoded.append('\\');
+				break;
+			case '"':
+				decoded.append('"');
+				break;
+			case '\'':
+				decoded.append('\'');
+				break;
+			case 'n':
+				decoded.append('\n');
+				break;
+			case 'r':
+				decoded.append('\r');
+				break;
+			case 't':
+				decoded.append('\t');
+				break;
+			case 'b':
+				decoded.append('\b');
+				break;
+			case 'f':
+				decoded.append('\f');
+				break;
+			case '/':
+				decoded.append('/');
+				break;
+			case 'u':
+				if (i + 4 < length) {
+					String unicodeHex = input.substring(i + 1, i + 5);
+					if (isHexSequence(unicodeHex)) {
+						decoded.append((char) Integer.parseInt(unicodeHex, 16));
+						i += 4;
+						break;
+					}
+				}
+				decoded.append('\\').append(next);
+				break;
+			default:
+				decoded.append('\\').append(next);
+				break;
+			}
+		}
+
+		return decoded.toString();
+	}
+
+	private static boolean isHexSequence(String value) {
+		for (int i = 0; i < value.length(); i++) {
+			if (Character.digit(value.charAt(i), 16) < 0) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Determines whether the input is surrounded by matching quote delimiters.
+	 *
+	 * @param literal input string
+	 * @return true when the value starts and ends with a quote character
 	 */
 	public static boolean isLiteral(String literal) {
 		literal = literal.trim();
@@ -246,11 +328,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Checks if recipe is not cacheable True if it is a parameter insight, or
-	 * grid-delta, etc.
-	 * 
-	 * @param pixels
-	 * @return
+	 * Checks whether a pixel recipe should be treated as non-cacheable.
+	 *
+	 * @param pixels pixel steps
+	 * @return true when the recipe is not cacheable
 	 */
 	public static boolean isNotCacheable(String[] pixels) {
 		String recipe = String.join("", pixels);
@@ -258,11 +339,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Checks if recipe is not cacheable True if it is a parameter insight, or
-	 * grid-delta, etc.
-	 * 
-	 * @param pixels
-	 * @return
+	 * Checks whether a pixel recipe should be treated as non-cacheable.
+	 *
+	 * @param pixels pixel steps
+	 * @return true when the recipe is not cacheable
 	 */
 	public static boolean isNotCacheable(List<String> pixels) {
 		String recipe = String.join("", pixels);
@@ -270,11 +350,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Checks if recipe is not cacheable True if it is a parameter insight, or
-	 * grid-delta, etc.
-	 * 
-	 * @param pixel
-	 * @return
+	 * Checks whether a pixel recipe should be treated as non-cacheable.
+	 *
+	 * @param pixel full pixel expression
+	 * @return true when the recipe is not cacheable
 	 */
 	public static boolean isNotCacheable(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
@@ -291,7 +370,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.notCacheable();
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to evaluate cacheability for the provided pixel expression", e);
 			String eMessage = e.getMessage();
 			if (eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -304,16 +383,16 @@ public class PixelUtility {
 							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			logger.info(eMessage);
+			classLogger.info(eMessage);
 		}
 		return false;
 	}
 
 	/**
-	 * Get the insight json parameter if it exists
-	 * 
-	 * @param pixelList
-	 * @return
+	 * Retrieves the parameter panel JSON configuration from a recipe, when present.
+	 *
+	 * @param pixelList recipe steps
+	 * @return parsed parameter view JSON, or {@code null} if unavailable
 	 */
 	public static Map<String, Object> getInsightParameterJson(List<String> pixelList) {
 		String pixel = String.join("", pixelList);
@@ -331,7 +410,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.getPanelViewJson();
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to parse insight parameter JSON from recipe", e);
 			String eMessage = e.getMessage();
 			if (eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -344,17 +423,17 @@ public class PixelUtility {
 							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			logger.info(eMessage);
+			classLogger.info(eMessage);
 		}
 
 		return null;
 	}
 
 	/**
-	 * Check if recipe is for a dashboard
-	 * 
-	 * @param pixels
-	 * @return
+	 * Checks whether a recipe is a dashboard recipe.
+	 *
+	 * @param pixels recipe steps
+	 * @return true when the recipe is a dashboard recipe
 	 */
 	public static boolean isDashboard(String[] pixels) {
 		String recipe = String.join("", pixels);
@@ -362,10 +441,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Check if recipe is for a dashboard
-	 * 
-	 * @param pixels
-	 * @return
+	 * Checks whether a recipe is a dashboard recipe.
+	 *
+	 * @param pixels recipe steps
+	 * @return true when the recipe is a dashboard recipe
 	 */
 	@Deprecated
 	public static boolean isDashboard(List<String> pixels) {
@@ -374,10 +453,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Check if recipe is for a dashboard
-	 * 
-	 * @param pixel
-	 * @return
+	 * Checks whether a recipe is a dashboard recipe.
+	 *
+	 * @param pixel full recipe expression
+	 * @return true when the recipe is a dashboard recipe
 	 */
 	@Deprecated
 	public static boolean isDashboard(String pixel) {
@@ -395,7 +474,7 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.isDashboard();
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to evaluate dashboard recipe from pixel expression", e);
 			String eMessage = e.getMessage();
 			if (eMessage.startsWith("[")) {
 				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
@@ -408,15 +487,16 @@ public class PixelUtility {
 							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
 				}
 			}
-			logger.info(eMessage);
+			classLogger.info(eMessage);
 		}
 		return false;
 	}
 
 	/**
-	 * 
-	 * @param pixel
-	 * @return {into, values}
+	 * Extracts `into` and `values` inputs from a form-widget pixel expression.
+	 *
+	 * @param pixel pixel expression
+	 * @return object array where index 0 is `into` and index 1 is `values`
 	 */
 	public static Object[] getFormWidgetInputs(String pixel) {
 		pixel = PixelPreProcessor.preProcessPixel(pixel, new ArrayList<String>(), new HashMap<String, String>());
@@ -436,20 +516,19 @@ public class PixelUtility {
 			ret[1] = translation.getValues();
 			return ret;
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to parse form widget inputs from pixel expression", e);
 		}
 		return null;
 	}
 
 	/**
-	 * 
-	 * @param expression
-	 * @param encodedTextToOriginal
-	 * @return
-	 * 
-	 *         Returns the string of the NOT encoded expression allows us to get the
-	 *         expression in its not encoded form from a mapping of the expression
-	 *         to what it looked like originally
+	 * Replaces encoded placeholders in a parsed expression back to their original
+	 * values.
+	 *
+	 * @param expression            original parsed expression
+	 * @param encodingList          ordered list of encoded tokens
+	 * @param encodedTextToOriginal mapping from encoded token to original value
+	 * @return expression with original text restored
 	 */
 	public static String recreateOriginalPixelExpression(String expression, List<String> encodingList,
 			Map<String, String> encodedTextToOriginal) {
@@ -477,9 +556,32 @@ public class PixelUtility {
 		Iterator<String> iterator = encodingList.iterator();
 		while (iterator.hasNext()) {
 			String encodedText = iterator.next();
-			if (expression.contains(encodedText)) {
-				expression = expression.replaceFirst(Pattern.quote(encodedText),
-						Matcher.quoteReplacement(encodedTextToOriginal.get(encodedText)));
+			String original = encodedTextToOriginal.get(encodedText);
+			if (original == null) {
+				iterator.remove();
+				continue;
+			}
+			// URI-encoding was a no-op (inner content had no special chars), so the
+			// encoded token is byte-identical to the value the user wrote. Restoring
+			// <encode>...</encode> wrapping serves no purpose here and a positionally
+			// naive replace would corrupt the expression by matching the same chars
+			// elsewhere — e.g. "sea" inside the param name "search". Drop the block
+			// entirely; the expression already reads correctly without the wrapper.
+			if (original.contains(encodedText)) {
+				iterator.remove();
+				continue;
+			}
+			// Otherwise the encoded form contains %XX escapes (which can't appear
+			// in identifiers or grammar tokens, and never inside a quoted string
+			// boundary since URI-encoding maps " → %22). Anchor the match to a
+			// string-literal position so an unrelated coincidental occurrence of
+			// the same escape sequence elsewhere can't be picked up. Every encode
+			// block in this codebase is emitted inside "..." so anchoring is safe.
+			String quotedEncoded = "\"" + encodedText + "\"";
+			int idx = expression.indexOf(quotedEncoded);
+			if (idx >= 0) {
+				expression = expression.substring(0, idx + 1) + original
+						+ expression.substring(idx + 1 + encodedText.length());
 				iterator.remove();
 			}
 		}
@@ -487,11 +589,12 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param expression
-	 * @param jobId
-	 * @return
+	 * Parses an expression and returns datasource metadata detected in its recipe
+	 * steps.
+	 *
+	 * @param user       execution user context
+	 * @param expression full recipe expression
+	 * @return list of datasource metadata maps
 	 */
 	public static List<Map<String, Object>> getDatasourcesMetadata(User user, String expression) {
 		/*
@@ -514,18 +617,18 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to parse datasource metadata from expression", e);
 		}
 
 		return translation.getDatasourcePixels();
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param expression
-	 * @param jobId
-	 * @return
+	 * Extracts datasource engine ids from a list of recipe steps.
+	 *
+	 * @param user       execution user context
+	 * @param expression recipe steps
+	 * @return set of datasource engine ids referenced by the recipe
 	 */
 	public static Set<String> getDatabaseIds(User user, List<String> expression) {
 		StringBuilder finalExpression = new StringBuilder();
@@ -534,12 +637,11 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Get the data sources within the full expression
-	 * 
-	 * @param user
-	 * @param expression
-	 * @param jobId
-	 * @return
+	 * Extracts datasource engine ids from a full recipe expression.
+	 *
+	 * @param user       execution user context
+	 * @param expression full recipe expression
+	 * @return set of datasource engine ids referenced by the recipe
 	 */
 	public static Set<String> getDatabaseIds(User user, String expression) {
 		/*
@@ -562,7 +664,7 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to extract datasource ids from expression", e);
 		}
 
 		Set<String> databaseIds = new HashSet<>();
@@ -591,15 +693,13 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param in
-	 * @param fullRecipe         String containing the original recipe to change
-	 * @param replacementOptions List of maps containing "index" and "pixel" which
-	 *                           represents the pixel step to change and the new
-	 *                           pixel to put in its place If no index is found and
-	 *                           the size of the list is 1, we will replace the
-	 *                           first datasource
-	 * @return
+	 * Applies datasource replacement options to an existing insight recipe.
+	 *
+	 * @param in                 insight context
+	 * @param fullRecipe         original recipe text
+	 * @param replacementOptions replacement maps containing step index and
+	 *                           replacement pixel text
+	 * @return updated recipe steps
 	 */
 	public static List<String> modifyInsightDatasource(Insight in, String fullRecipe,
 			List<Map<String, Object>> replacementOptions) {
@@ -616,18 +716,17 @@ public class PixelUtility {
 			// apply the translation.
 			tree.apply(translation);
 		} catch (ParserException | LexerException | IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to modify datasource recipe for insight", e);
 		}
 
 		return translation.getPixels();
 	}
 
 	/**
-	 * Determine if an operation op type is an error that requires user input and
-	 * then a re-run of the insight
-	 * 
-	 * @param opTypes
-	 * @return
+	 * Determines whether execution should auto-resume after user input.
+	 *
+	 * @param opTypes operation types from execution output
+	 * @return true when the operation indicates a login-required flow
 	 */
 	public static boolean autoExecuteAfterUserInput(List<PixelOperationType> opTypes) {
 		if (opTypes.contains(PixelOperationType.LOGGIN_REQUIRED_ERROR)) {
@@ -637,13 +736,14 @@ public class PixelUtility {
 	}
 
 	/**
-	 * 
-	 * @param currentInsight
-	 * @param recipe
-	 * @param recipeIds
-	 * @param params
-	 * @param insightName
-	 * @return
+	 * Parameterizes recipe steps and builds a parameter-panel recipe for save flow.
+	 *
+	 * @param currentInsight source insight
+	 * @param recipe         recipe steps
+	 * @param recipeIds      ids for each recipe step
+	 * @param params         parameter definitions to apply
+	 * @param insightName    display name used in generated parameter JSON
+	 * @return recipe containing parameter setup and panel view steps
 	 */
 	public static List<String> parameterizeRecipe(Insight currentInsight, List<String> recipe, List<String> recipeIds,
 			List<ParamStruct> params, String insightName) {
@@ -669,7 +769,7 @@ public class PixelUtility {
 				translation.setCurrentPixelId(pixelId);
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to parameterize recipe step for pixel id {}", pixelId, e);
 			}
 		}
 
@@ -697,11 +797,11 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Get additional insight meta recipe steps for maintaining additional metadata
-	 * in the insight
-	 * 
-	 * @param in
-	 * @return
+	 * Builds supplemental metadata recipe steps used during insight save.
+	 *
+	 * @param in        insight context
+	 * @param pixelList source pixel list used for recipe-position metadata
+	 * @return additional metadata steps
 	 */
 	public static List<String> getMetaInsightRecipeSteps(Insight in, PixelList pixelList) {
 		List<String> additionalSteps = new ArrayList<>();
@@ -732,7 +832,7 @@ public class PixelUtility {
 				if (position == null) {
 					builder.append("null");
 				} else {
-					builder.append(gson.toJson(position));
+					builder.append(GSON.toJson(position));
 				}
 
 				if (i + 1 != size) {
@@ -745,10 +845,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Append add insight parameter to the recipe list
-	 * 
-	 * @param in
-	 * @param additionalSteps
+	 * Appends `AddInsightParameter` metadata steps for all stored insight params.
+	 *
+	 * @param in              insight context
+	 * @param additionalSteps destination recipe list
 	 */
 	public static void appendAddInsightParameter(Insight in, List<String> additionalSteps) {
 		VarStore varStore = in.getVarStore();
@@ -760,7 +860,7 @@ public class PixelUtility {
 			ParamStruct param = (ParamStruct) paramNoun.getValue();
 			// also adjust for the new optimized id if it is set
 			param.swapOptimizedIds();
-			additionalSteps.add("META | AddInsightParameter(" + gson.toJson(param) + ");");
+			additionalSteps.add("META | AddInsightParameter(" + GSON.toJson(param) + ");");
 			// swap back for this instance of the insight
 			// since we make a new pixel list object all together
 			// during the save process
@@ -769,10 +869,11 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Append preApplied parameter to the recipe list
-	 * 
-	 * @param in
-	 * @param additionalSteps
+	 * Appends `AddPreDefinedParameter` metadata steps for predefined params.
+	 *
+	 * @param in              insight context
+	 * @param additionalSteps destination recipe list
+	 * @return the same destination list for chaining
 	 */
 	public static List<String> appendPreAppliedParameter(Insight in, List<String> additionalSteps) {
 		VarStore varStore = in.getVarStore();
@@ -783,7 +884,7 @@ public class PixelUtility {
 			ParamStruct param = (ParamStruct) paramNoun.getValue();
 			// also adjust for the new optimized id if it is set
 			param.swapOptimizedIds();
-			additionalSteps.add("META | AddPreDefinedParameter(" + gson.toJson(param) + ");");
+			additionalSteps.add("META | AddPreDefinedParameter(" + GSON.toJson(param) + ");");
 			// swap back for this instance of the insight
 			// since we make a new pixel list object all together
 			// during the save process
@@ -793,33 +894,39 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Add set insight config to the recipe list
-	 * 
-	 * @param in
-	 * @param additionalSteps
+	 * Appends a `SetInsightConfig` step when the insight config noun is present.
+	 *
+	 * @param in              insight context
+	 * @param additionalSteps destination recipe list
 	 */
 	public static void appendSetInsightConfig(Insight in, List<String> additionalSteps) {
 		VarStore varStore = in.getVarStore();
 		NounMetadata noun = varStore.get(SetInsightConfigReactor.INSIGHT_CONFIG);
 		if (noun != null) {
 			StringBuilder builder = new StringBuilder("META | SetInsightConfig(");
-			builder.append(gson.toJson(noun.getValue()));
+			builder.append(GSON.toJson(noun.getValue()));
 			builder.append(");");
 			additionalSteps.add(builder.toString());
 		}
 	}
 
+	/**
+	 * Appends a step to reload the current insight theme.
+	 *
+	 * @param additionalSteps destination recipe list
+	 */
 	public static void appendReadInsightTheme(List<String> additionalSteps) {
 		additionalSteps.add("ReadInsightTheme();");
 	}
 
 	/**
-	 * This will return pixel steps to set the current value for the insight
-	 * parameters NOTE ::: These have placeholders for params to be filled. This
-	 * will NOT compile as proper pixel until they are filled in
-	 * 
-	 * @param in
-	 * @return
+	 * Builds `SetInsightParamValue` steps for existing insight parameters.
+	 * <p>
+	 * Returned steps include placeholders (for example `&lt;param&gt;`) and are
+	 * intended to be resolved before execution.
+	 *
+	 * @param in insight context
+	 * @return parameter-value recipe steps with placeholders
 	 */
 	public static List<String> getSetParamValuePixels(Insight in) {
 		List<String> additionalSteps = new ArrayList<>();
@@ -850,10 +957,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Get the cached recipe to use for this insight
-	 * 
-	 * @param in
-	 * @return
+	 * Creates a cache-oriented recipe for reconstructing insight state.
+	 *
+	 * @param in insight context
+	 * @return cache recipe steps
 	 */
 	public static List<String> getCachedInsightRecipe(Insight in) {
 		List<String> cacheRecipe = new ArrayList<>();
@@ -894,12 +1001,12 @@ public class PixelUtility {
 							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true))
 									.append(" | Format(type=['").append(format.getFormatType()).append("']");
 							if (format.getOptionsMap() != null && !format.getOptionsMap().isEmpty()) {
-								taskPixel.append(", options=[").append(gson.toJson(format.getOptionsMap()))
+								taskPixel.append(", options=[").append(GSON.toJson(format.getOptionsMap()))
 										.append("])");
 							} else {
 								taskPixel.append(")");
 							}
-							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
+							taskPixel.append(" | TaskOptions(").append(GSON.toJson(tOptions.getOptions()));
 							if (tOptions.getLayout(panelId).equals("PivotTable")) {
 								taskPixel.append(") | CollectPivot();");
 							} else {
@@ -942,10 +1049,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Get the optimized pixel recipe steps
-	 * 
-	 * @param in
-	 * @return
+	 * Builds an optimized pixel list for save/export scenarios.
+	 *
+	 * @param in insight context
+	 * @return optimized pixel list
 	 */
 	public static PixelList getOptimizedPixelList(Insight in) {
 		PixelList pList = new PixelList();
@@ -1053,12 +1160,12 @@ public class PixelUtility {
 							StringBuffer taskPixel = new StringBuffer(QsToPixelConverter.getPixel(qs, true))
 									.append(" | Format(type=['").append(format.getFormatType()).append("']");
 							if (format.getOptionsMap() != null && !format.getOptionsMap().isEmpty()) {
-								taskPixel.append(", options=[").append(gson.toJson(format.getOptionsMap()))
+								taskPixel.append(", options=[").append(GSON.toJson(format.getOptionsMap()))
 										.append("])");
 							} else {
 								taskPixel.append(")");
 							}
-							taskPixel.append(" | TaskOptions(").append(gson.toJson(tOptions.getOptions()));
+							taskPixel.append(" | TaskOptions(").append(GSON.toJson(tOptions.getOptions()));
 							if (tOptions.getLayout(panelId).equals("PivotTable")) {
 								taskPixel.append(") | CollectPivot();");
 							} else {
@@ -1103,9 +1210,9 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Remove unnecessary task pixels
-	 * 
-	 * @param in
+	 * Removes task pixels that are not needed to reconstruct visualization state.
+	 *
+	 * @param in insight context
 	 */
 	public static void removeUnnecessaryTaskPixels(Insight in) {
 		PixelList insightPixelList = in.getPixelList();
@@ -1225,10 +1332,10 @@ public class PixelUtility {
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Get the pipeline operations for a given pixel
-	 * 
-	 * @param in
-	 * @return
+	 * Generates pipeline metadata for the current insight recipe.
+	 *
+	 * @param in insight context
+	 * @return map containing pixel id mapping and parsed pipeline structure
 	 */
 	public static Map<String, Object> generatePipeline(Insight in) {
 		long start = System.currentTimeMillis();
@@ -1277,7 +1384,7 @@ public class PixelUtility {
 			}
 		}
 		long end = System.currentTimeMillis();
-		logger.debug("Total time to process = " + (end - start));
+		classLogger.debug("Total time to process = " + (end - start));
 
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("idMapping", pixelList);
@@ -1301,13 +1408,13 @@ public class PixelUtility {
 	 */
 
 	/**
-	 * Add parameters into an existing recipe
-	 * 
-	 * @param user
-	 * @param recipe
-	 * @param paramsMap
-	 * @param insightName
-	 * @return
+	 * Legacy parameterization path used by older save flows.
+	 *
+	 * @param user        execution user context
+	 * @param recipe      recipe steps
+	 * @param paramsMap   parameter definitions
+	 * @param insightName insight display name
+	 * @return generated parameter-panel recipe
 	 */
 	@Deprecated
 	public static List<String> getParameterizedRecipe(User user, List<String> recipe,
@@ -1342,7 +1449,7 @@ public class PixelUtility {
 				// apply the translation.
 				tree.apply(translation);
 			} catch (ParserException | LexerException | IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to parameterize deprecated recipe expression: {}", expression, e);
 			}
 		}
 
@@ -1461,10 +1568,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Recursively join two maps together based on the keys
-	 * 
-	 * @param mainMap
-	 * @param newMap
+	 * Recursively merges keys from {@code newMap} into {@code mainMap}.
+	 *
+	 * @param mainMap destination map
+	 * @param newMap  source map
 	 */
 	private static void recursivelyMergeMaps(Map<String, Object> mainMap, Map<String, Object> newMap) {
 		if (newMap != null) {
@@ -1497,10 +1604,10 @@ public class PixelUtility {
 	}
 
 	/**
-	 * Determine if we need the search in the parameter list
-	 * 
-	 * @param map
-	 * @return
+	 * Determines whether search scaffolding should be generated for a parameter.
+	 *
+	 * @param map parameter configuration map
+	 * @return true when search support should be retained
 	 */
 	private static boolean keepSearchParameter(Map<String, Object> map) {
 		final String MODEL_KEY = "model";

@@ -131,6 +131,7 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 		} else {
 			metaData.modifyDataTypeToProperty(rFrameName + "__" + srcCol, rFrameName, SemossDataType.STRING.toString());
 		}
+
 		return retNoun;
 	}
 

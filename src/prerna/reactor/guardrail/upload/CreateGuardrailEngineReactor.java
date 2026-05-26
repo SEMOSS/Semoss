@@ -54,7 +54,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -117,7 +116,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 				global = false;
 			}
 		}
-		
+
 		String guardrailTypeStr = (String) guardrailDetails.get(IGuardrailReactorFunctionEngine.GUARDRAIL_TYPE);
 		if (guardrailTypeStr == null || (guardrailTypeStr = guardrailTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the guardrail type");
@@ -148,14 +147,14 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(guardrailId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(guardrailId, tempSmss.getAbsolutePath());
 			guardrail.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(guardrailId, guardrailName, guardrail, smssFile);
+			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
 
 			List<AuthProvider> logins = user.getLogins();
@@ -171,7 +170,8 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), guardrailId);
-		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}

@@ -39,8 +39,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 
 public class PasswordRequirements {
 
@@ -50,15 +49,15 @@ public class PasswordRequirements {
 	// at least one numeric
 	// at least one special character
 	// enable password expiration
-	// 		# of days
+	// # of days
 	// password expiration requires admin reset
 	// allow users to change their own password
 	// prevent password reuse
-	//		# of passwords to remember
+	// # of passwords to remember
 
 	private static final Logger classLogger = LogManager.getLogger(PasswordRequirements.class);
 
-	private static PasswordRequirements instance = null;
+	private static volatile PasswordRequirements instance = null;
 
 	private int minPassLength = 0;
 	private boolean requireUpperCase = false;
@@ -71,18 +70,18 @@ public class PasswordRequirements {
 	private int passReuseCount = -1;
 	private int daysToLock = -1;
 	private int daysToLockEmail = 14;
-	
+
 	public static PasswordRequirements getInstance() throws Exception {
-		if(instance != null) {
+		if (instance != null) {
 			return instance;
 		}
 
-		if(instance == null) {
-			synchronized(PasswordRequirements.class) {
-				if(instance != null) {
+		if (instance == null) {
+			synchronized (PasswordRequirements.class) {
+				if (instance != null) {
 					return instance;
 				}
-				
+
 				instance = new PasswordRequirements();
 				instance.loadRequirements();
 			}
@@ -93,21 +92,20 @@ public class PasswordRequirements {
 
 	public void loadRequirements() throws Exception {
 		// pull the necessary details
-		String[] colNames = new String[] { 
-				"PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC", "REQUIRE_SPECIAL", 
-				"EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE", "PASS_REUSE_COUNT",
-				"DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING"};
-		
-		IDatabaseEngine securityDb = Utility.getDatabase(Constants.SECURITY_DB);
+		String[] colNames = new String[] { "PASS_LENGTH", "REQUIRE_UPPER", "REQUIRE_LOWER", "REQUIRE_NUMERIC",
+				"REQUIRE_SPECIAL", "EXPIRATION_DAYS", "ADMIN_RESET_EXPIRATION", "ALLOW_USER_PASS_CHANGE",
+				"PASS_REUSE_COUNT", "DAYS_TO_LOCK", "DAYS_TO_LOCK_WARNING" };
+
+		IDatabaseEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
-		for(String c : colNames) {
+		for (String c : colNames) {
 			qs.addSelector(new QueryColumnSelector("PASSWORD_RULES__" + c));
 		}
-		
+
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
-			if(iterator.hasNext()) {
+			if (iterator.hasNext()) {
 				Object[] data = iterator.next().getValues();
 				int index = 0;
 				this.minPassLength = ((Number) data[index++]).intValue();
@@ -120,28 +118,28 @@ public class PasswordRequirements {
 				this.allowUserChangePassword = (Boolean) data[index++];
 				this.passReuseCount = ((Number) data[index++]).intValue();
 				Number daysToLockNum = (Number) data[index++];
-				if(daysToLockNum != null) {
+				if (daysToLockNum != null) {
 					this.daysToLock = daysToLockNum.intValue();
 				}
 				Number daysToLockEmailNum = (Number) data[index++];
-				if(daysToLockEmailNum != null) {
+				if (daysToLockEmailNum != null) {
 					this.daysToLockEmail = daysToLockEmailNum.intValue();
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load password requirement rules from the security database.", e);
 			throw e;
 		} finally {
-			if(iterator != null) {
+			if (iterator != null) {
 				try {
 					iterator.close();
-				} catch(IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+				} catch (IOException e) {
+					classLogger.error("Failed to close password requirements query wrapper after loading rules.", e);
 				}
 			}
 		}
 	}
-	
+
 	public Map<String, Object> getAllPasswordRequirements() {
 		Map<String, Object> retMap = new HashMap<>();
 		retMap.put("minPassLength", this.minPassLength);
@@ -151,7 +149,7 @@ public class PasswordRequirements {
 		retMap.put("requireSpecial", this.requireSpecial);
 		retMap.put("passwordExpirationDays", this.passwordExpirationDays);
 		retMap.put("requireAdminResetForExpiration", this.requireAdminResetForExpiration);
-		retMap.put("allowUserChangePassword", this.allowUserChangePassword );
+		retMap.put("allowUserChangePassword", this.allowUserChangePassword);
 		retMap.put("passReuseCount", this.passReuseCount);
 		retMap.put("daysToLock", this.daysToLock);
 		retMap.put("daysToLockEmail", this.daysToLockEmail);
@@ -161,44 +159,45 @@ public class PasswordRequirements {
 	public boolean validatePassword(String password) {
 		boolean isValid = true;
 		StringBuilder errorMessage = new StringBuilder();
-		if(password.length() < this.minPassLength) {
-			errorMessage.append("Password must be at least ").append(this.minPassLength).append(" characters in length.\n");
+		if (password.length() < this.minPassLength) {
+			errorMessage.append("Password must be at least ").append(this.minPassLength)
+					.append(" characters in length.\n");
 			isValid = false;
 		}
-		if(this.requireUpperCase) {
+		if (this.requireUpperCase) {
 			String upperCaseChars = "(.*[A-Z].*)";
-			if(!password.matches(upperCaseChars )) {
+			if (!password.matches(upperCaseChars)) {
 				errorMessage.append("Password must have atleast one uppercase character.\n");
 				isValid = false;
 			}
 		}
-		if(this.requireLowerCase) {
+		if (this.requireLowerCase) {
 			String lowerCaseChars = "(.*[a-z].*)";
-			if(!password.matches(lowerCaseChars )) {
+			if (!password.matches(lowerCaseChars)) {
 				errorMessage.append("Password must have atleast one lowercase character.\n");
 				isValid = false;
 			}
 		}
-		if(this.requireNumeric) {
+		if (this.requireNumeric) {
 			String numbers = "(.*[0-9].*)";
-			if(!password.matches(numbers )) {
+			if (!password.matches(numbers)) {
 				System.out.println("Password must have atleast one number");
 				isValid = false;
 			}
 		}
-		if(this.requireSpecial) {
+		if (this.requireSpecial) {
 			String specialChars = "(.*[!,@,#,$,%,^,&,*].*$)";
-			if(!password.matches(specialChars )) {
+			if (!password.matches(specialChars)) {
 				errorMessage.append("Password must have atleast one special character among [!,@,#,$,%,^,&,*]");
 				isValid = false;
 			}
 		}
-		
-		if(!isValid) {
+
+		if (!isValid) {
 			throw new IllegalArgumentException(errorMessage.toString());
 		}
-		
-		return isValid; 
+
+		return isValid;
 	}
 
 	public int getMinPassLength() {

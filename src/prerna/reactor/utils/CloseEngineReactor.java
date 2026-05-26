@@ -38,7 +38,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
-import prerna.auth.utils.WorkspaceAssetUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -51,34 +50,32 @@ import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 public class CloseEngineReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(CloseEngineReactor.class);
-	
+
 	public CloseEngineReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey()};
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		List<String> engineIds = getEngineIds();
-		
+
 		User user = this.insight.getUser();
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if(!isAdmin) {
+		if (!isAdmin) {
 			for (String engineId : engineIds) {
-				if(WorkspaceAssetUtils.isAssetOrWorkspaceProject(engineId)) {
-					throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
-				}
 				// we may have the alias
 				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if(!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+				if (!isOwner) {
+					throw new IllegalArgumentException("Engine " + engineId
+							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 				}
 			}
 		}
-		
+
 		// once all are good, we can close
 		for (String engineId : engineIds) {
 			classLogger.info("Attempting to close engine: " + engineId);
@@ -99,6 +96,7 @@ public class CloseEngineReactor extends AbstractReactor {
 
 	/**
 	 * Get inputs
+	 * 
 	 * @return list of engines to close
 	 */
 	public List<String> getEngineIds() {

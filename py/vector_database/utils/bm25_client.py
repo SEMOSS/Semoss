@@ -1,6 +1,6 @@
 import bm25s
 import os
-from datasets import Dataset
+import pandas as pd
 import logging
 from typing import List, Tuple, Optional, Dict
 import json
@@ -63,14 +63,14 @@ class BM25Searcher:
         except Exception as e:
             self.class_logger.error(f"Failed to save BM25 index: {e}")
 
-    def generate_and_load_bm25_index(self, ds: Dataset):
+    def generate_and_load_bm25_index(self, ds: Optional[pd.DataFrame]):
         """Load existing BM25 index and corpus if they exist"""
         try:
             if (
                 not os.path.exists(self.bm25_index_path)
                 or not os.path.exists(self.bm25_corpus_path)
             ) and ds is not None:
-                self.build_bm25_index(ds["Content"])
+                self.build_bm25_index(list(ds["Content"]))
             elif os.path.exists(self.bm25_index_path) and os.path.exists(
                 self.bm25_corpus_path
             ):
@@ -84,6 +84,9 @@ class BM25Searcher:
     def build_bm25_index(self, texts: List[str]):
         """Build BM25 index from text corpus"""
         try:
+            # Coerce to a plain list so downstream JSON serialization works whether the
+            # caller passed a list, a pandas Series, or any other iterable of strings.
+            texts = list(texts)
             corpus_tokens = bm25s.tokenize(texts, stopwords="en", stemmer=self.stemmer)
 
             self.bm25_index = bm25s.BM25(method="lucene")
@@ -142,7 +145,7 @@ class BM25Searcher:
         self,
         query: str,
         top_k: int = 10,
-        ds: Dataset = None,
+        ds: Optional[pd.DataFrame] = None,
         columns_to_return: Optional[List[str]] = None,
     ) -> List[Dict]:
         """Perform BM25 search and return document indices with scores"""
@@ -150,7 +153,7 @@ class BM25Searcher:
             return []
 
         if columns_to_return is None:
-            columns_to_return = list(ds.features)
+            columns_to_return = list(ds.columns)
 
         try:
             query_tokens = bm25s.tokenize([query], stopwords="en", stemmer=self.stemmer)
@@ -167,7 +170,7 @@ class BM25Searcher:
 
                     if doc_idx != -1:
                         output = {"BM25_Score": similarity_score, "idx": doc_idx}
-                        data_row = ds[doc_idx]
+                        data_row = ds.iloc[doc_idx]
                         output.update({col: data_row[col] for col in columns_to_return})
                         results.append(output)
 

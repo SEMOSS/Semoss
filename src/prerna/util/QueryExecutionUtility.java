@@ -78,7 +78,7 @@ public class QueryExecutionUtility {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result to String", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -101,7 +101,7 @@ public class QueryExecutionUtility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result to Integer", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -117,7 +117,7 @@ public class QueryExecutionUtility {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result to Long", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -137,7 +137,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result to List<String>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -162,7 +162,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result to Set<String>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -187,7 +187,7 @@ public class QueryExecutionUtility {
 				values.add(wrapper.next().getValues()[0].toString());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing raw query result to Set<String>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -209,7 +209,7 @@ public class QueryExecutionUtility {
 				ret.add(strVals);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result set to List<String[]>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -224,7 +224,7 @@ public class QueryExecutionUtility {
 				ret.add(wrapper.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result set to List<Object[]>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -240,7 +240,7 @@ public class QueryExecutionUtility {
 				ret.add(wrapper.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result set to matrix", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 
@@ -257,7 +257,7 @@ public class QueryExecutionUtility {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			return flushWrapperToMap(wrapper);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result set to List<Map>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 	}
@@ -274,7 +274,34 @@ public class QueryExecutionUtility {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			return flushWrapperToMap(wrapper, mapKeys);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing query result set to List<Map> with key filter", e);
+			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Query can only have 2 projections
+	 * 
+	 * @param engine
+	 * @param qs
+	 * @return
+	 */
+	public static Map<Object, Object> flushRsToKeyValueMap(IDatabaseEngine engine, SelectQueryStruct qs) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
+			Map<Object, Object> result = new HashMap<>();
+			try {
+				while (wrapper.hasNext()) {
+					IHeadersDataRow headerRow = wrapper.next();
+					Object[] values = headerRow.getValues();
+					result.put(values[0], values[1]);
+				}
+			} catch (Exception e) {
+				classLogger.error("Error iterating query result set to key-value Map", e);
+				throw new IllegalArgumentException("Error executing query: " + e.getMessage());
+			}
+			return result;
+		} catch (Exception e) {
+			classLogger.error("Error flushing query result set to key-value Map", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 	}
@@ -318,7 +345,7 @@ public class QueryExecutionUtility {
 				result.add(map);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error flushing wrapper result set to List<Map>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
 		}
 

@@ -39,6 +39,7 @@ import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -49,28 +50,25 @@ import prerna.util.Utility;
 public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUploadReactor {
 
 	public RdfReplaceDatabaseLoaderSheetUploadReactor() {
-		this.keysToGet = new String[] { 
-				UploadInputUtility.DATABASE, 
-				UploadInputUtility.FILE_PATH,
-				UploadInputUtility.SPACE,
-				UploadInputUtility.CUSTOM_BASE_URI
-		};
+		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
+				UploadInputUtility.SPACE, UploadInputUtility.CUSTOM_BASE_URI };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		/*
-		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor
-		 * EXCEPT IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE
-		 * THE LOGIC IS THE SAME EXCEPT THERE IS AN ADDITIONAL METHOD
-		 * TO REMOVE THE DATABASE BEFORE RUNNING THE UPDATE
+		 * THIS LOGIC IS THE SAME AS THE LOGIC IN THE AbstractUploadFileReactor EXCEPT
+		 * IT CAN ONLY BE FOR OVERRIDING AN EXISTING DATABASE THE LOGIC IS THE SAME
+		 * EXCEPT THERE IS AN ADDITIONAL METHOD TO REMOVE THE DATABASE BEFORE RUNNING
+		 * THE UPDATE
 		 * 
 		 */
 
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
@@ -78,14 +76,16 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 		// check security
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create or update a database", PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create or update a database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
 		}
 
 		// throw error if user is anonymous
-		if(AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
 			throwAnonymousUserError();
 		}
 
@@ -94,7 +94,9 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
-			NounMetadata noun = new NounMetadata("User must be the owner in order to replace all the data in the database", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+			NounMetadata noun = new NounMetadata(
+					"User must be the owner in order to replace all the data in the database",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -112,9 +114,11 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 			this.logger.info("Done");
 			RdfUploadReactorUtility.deleteAllTriples(this.database);
 			addToExistingDatabase(filePath);
-			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE REPLACE!
-			//			this.logger.info("Process database metadata to allow for traversing across databases");
-			//			UploadUtilities.updateMetadata(this.engine.getEngineId());
+			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE
+			// REPLACE!
+			// this.logger.info("Process database metadata to allow for traversing across
+			// databases");
+			// UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
 			this.logger.error(Constants.STACKTRACE, e);

@@ -87,8 +87,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.SemossDefaultEngines;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
@@ -101,16 +99,7 @@ import prerna.util.gson.ZonedDateTimeAdapter;
 public class PipelineInvocationHandler implements InvocationHandler {
 
 	private static final Logger classLogger = LogManager.getLogger(PipelineInvocationHandler.class);
-	private static boolean USE_ENGINE_LOGGER = false;
-	static {
-		// Get the logger configuration
-		LoggerContext context = (LoggerContext) LogManager.getContext(false);
-		Configuration config = context.getConfiguration();
-
-		// Check if EngineLogger is specifically defined
-		LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
-		USE_ENGINE_LOGGER = engineLoggerConfig.getName().equals("EngineLogger");
-	}
+	private static final boolean USE_ENGINE_LOGGER = isEngineLoggerConfigured();
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
@@ -176,8 +165,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		if (method.isAnnotationPresent(IgnoreEngineLogging.class)
-				|| SemossDefaultEngines.getDatabaseIgnoreAudit().contains(this.engineId)) {
+		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
 			} catch (InvocationTargetException e) {
@@ -493,9 +481,25 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		try {
 			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Unable to read pipeline configuration file '{}'; pipeline interceptors will not be loaded.",
+					pipelineFile.getAbsolutePath(), e);
 		}
 		return jsonString;
+	}
+
+	private static boolean isEngineLoggerConfigured() {
+		try {
+			LoggerContext context = (LoggerContext) LogManager.getContext(false);
+			Configuration config = context.getConfiguration();
+			LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
+			return engineLoggerConfig != null && "EngineLogger".equals(engineLoggerConfig.getName());
+		} catch (Exception e) {
+			classLogger.warn(
+					"Unable to verify whether '{}' logger is configured. Falling back to engine-specific logger only.",
+					"EngineLogger", e);
+			return false;
+		}
 	}
 
 	/**
@@ -567,7 +571,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 			return reactor;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create reactor: {}", className, e);
 			throw new RuntimeException("Failed to create reactor: " + className, e);
 		}
 	}

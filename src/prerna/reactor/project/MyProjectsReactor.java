@@ -35,6 +35,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
@@ -43,7 +45,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class MyProjectsReactor extends AbstractReactor {
 
@@ -54,14 +55,12 @@ public class MyProjectsReactor extends AbstractReactor {
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
-				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey() };
+				ReactorKeysEnum.ONLY_PORTALS.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
+				ReactorKeysEnum.SORT.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		// add creator, upvotes, total views
-		// sort by name, date created, views, upvotes, trending
-
 		String searchTerm = getString(ReactorKeysEnum.FILTER_WORD.getKey());
 		String limit = getString(ReactorKeysEnum.LIMIT.getKey());
 		String offset = getString(ReactorKeysEnum.OFFSET.getKey());
@@ -73,12 +72,13 @@ public class MyProjectsReactor extends AbstractReactor {
 		List<Integer> permissionFilters = getListInteger(ReactorKeysEnum.PERMISSION_FILTERS.getKey());
 		boolean includeUserT = getBoolean(ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(), false);
 		Map<String, Object> projectMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
+		Map<String, String> sortFields = getMap(ReactorKeysEnum.SORT.getKey());
 
 		// for right now, do not apply filter on project type since it is not properly
 		// in some smss files
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
 				projectTypeFilters, projectIdFilters, favoritesOnly, portalsOnly, projectMetadataFilter,
-				permissionFilters, searchTerm, limit, offset);
+				permissionFilters, searchTerm, limit, offset, sortFields);
 
 		if (!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
@@ -125,13 +125,14 @@ public class MyProjectsReactor extends AbstractReactor {
 						}
 					}
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to attach project metadata values to the project list response", e);
 				} finally {
 					if (wrapper != null) {
 						try {
 							wrapper.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close metadata wrapper while building project list response",
+									e);
 						}
 					}
 				}
@@ -150,13 +151,13 @@ public class MyProjectsReactor extends AbstractReactor {
 //						res.put("upvotes", upvotes);
 //					}
 //				} catch (Exception e) {
-//					classLogger.error(Constants.STACKTRACE, e);
+//					classLogger.error("Failed to attach vote totals to the project list response", e);
 //				} finally {
 //					if(wrapper!=null) {
 //						try {
 //							wrapper.close();
 //						} catch (IOException e) {
-//							classLogger.error(Constants.STACKTRACE, e);
+//							classLogger.error("Failed to close vote wrapper while building project list response", e);
 //						}
 //					}
 //				}
@@ -184,10 +185,79 @@ public class MyProjectsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
+			return "The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "This is an optional project filter";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getResponseSchema() {
+		JSONObject schema = new JSONObject();
+		schema.put("type", "array");
+		schema.put("description", "List of project objects the user has access to");
+
+		JSONObject itemProperties = new JSONObject();
+
+		itemProperties.put("project_id",
+				new JSONObject().put("type", "string").put("description", "Unique project identifier (UUID)"));
+
+		itemProperties.put("project_name",
+				new JSONObject().put("type", "string").put("description", "Display name of the project"));
+
+		itemProperties.put("project_type", new JSONObject().put("type", "string")
+				.put("enum", new JSONArray().put("CODE").put("INSIGHTS")).put("description", "The type of project"));
+
+		itemProperties.put("project_date_created", new JSONObject().put("type", "string").put("format", "datetime")
+				.put("description", "ISO datetime when project was created"));
+
+		itemProperties.put("project_date_last_edited", new JSONObject().put("type", "string").put("format", "datetime")
+				.put("description", "ISO datetime when project was last modified"));
+
+		itemProperties.put("project_created_by",
+				new JSONObject().put("type", "string").put("description", "Username of the project creator"));
+
+		itemProperties.put("project_created_by_type",
+				new JSONObject().put("type", "string").put("description", "Auth type of creator, e.g. NATIVE"));
+
+		itemProperties.put("permission",
+				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(1).put(2).put(3))
+						.put("description", "User's permission level: 1=Owner, 2=Editor, 3=ReadOnly"));
+
+		itemProperties.put("user_permission",
+				new JSONObject().put("type", "integer").put("description", "Same as permission"));
+
+		itemProperties.put("project_has_portal", new JSONObject().put("type", "boolean").put("description",
+				"Whether the project has a portal attached"));
+
+		itemProperties.put("project_portal_name",
+				new JSONObject().put("type", "string").put("description", "Name of the portal, empty string if none"));
+
+		itemProperties.put("project_discoverable", new JSONObject().put("type", "boolean").put("description",
+				"Whether the project is discoverable by other users"));
+
+		itemProperties.put("project_global", new JSONObject().put("type", "boolean").put("description",
+				"Whether the project is globally accessible"));
+
+		itemProperties.put("project_favorite",
+				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(0).put(1)).put("description",
+						"1 if user has favorited this project, 0 otherwise"));
+
+		itemProperties.put("project_cost",
+				new JSONObject().put("type", "string").put("description", "Cost metadata, may be empty string"));
+
+		itemProperties.put("tag",
+				new JSONObject().put("type", "string").put("description", "Metadata tag associated with the project"));
+
+		itemProperties.put("low_project_name",
+				new JSONObject().put("type", "string").put("description", "Lowercase version of project_name"));
+
+		JSONObject items = new JSONObject();
+		items.put("type", "object");
+		items.put("properties", itemProperties);
+
+		schema.put("items", items);
+		return schema;
 	}
 }

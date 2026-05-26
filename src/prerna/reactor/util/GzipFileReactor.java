@@ -50,9 +50,9 @@ import prerna.util.ZipUtils;
 public class GzipFileReactor extends AbstractReactor {
 
 	public GzipFileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
 				ReactorKeysEnum.FILE_NAME.getKey() };
-		this.keyRequired = new int[] {1, 0, 0};
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -63,21 +63,22 @@ public class GzipFileReactor extends AbstractReactor {
 		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
 			throwAnonymousUserError();
 		}
-		
+
 		// specify the folder from the base
 		String fileRelativePath = Utility.normalizePath(keyValue.get(keysToGet[0]));
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String outputFileName = this.keyValue.get(this.keysToGet[1]);
 		// if security enables, you need proper permissions
-		// this takes in the insight and does a user check that the user has access to perform the operations
+		// this takes in the insight and does a user check that the user has access to
+		// perform the operations
 		String baseFolder = AssetUtility.getRootFolderPath(this.insight, space, true);
 		String fileToGzip = (baseFolder + "/" + fileRelativePath).replace('\\', '/');
 		File fileToGzipF = new File(fileToGzip);
-		if(fileToGzipF.exists() && !fileToGzipF.isFile()) {
+		if (fileToGzipF.exists() && !fileToGzipF.isFile()) {
 			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "')");
 		}
 
-		if(outputFileName == null || (outputFileName=outputFileName.trim()).isEmpty()) {
+		if (outputFileName == null || (outputFileName = outputFileName.trim()).isEmpty()) {
 			outputFileName = FilenameUtils.getName(fileToGzip) + ".gz";
 		}
 
@@ -87,50 +88,50 @@ public class GzipFileReactor extends AbstractReactor {
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to gzip file. Detailed error = " + e.getMessage());
 		}
-		
-		if(ClusterUtil.IS_CLUSTER) {
-			//is it in the user space?
+
+		if (ClusterUtil.IS_CLUSTER) {
+			// is it in the user space?
 			if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
-				if(projectId!=null && !(projectId.isEmpty())) {
-					ClusterUtil.pushUserWorkspace(projectId, true);
+				if (projectId != null && !(projectId.isEmpty())) {
+					ClusterUtil.pushUserAsset(projectId);
 				}
-			// is it in the insight space of a saved insight?
-			} else if(space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
-				if(this.insight.isSavedInsight()) {
+				// is it in the insight space of a saved insight?
+			} else if (space == null || space.trim().isEmpty() || space.equals(AssetUtility.INSIGHT_SPACE_KEY)) {
+				if (this.insight.isSavedInsight()) {
 					IProject project = Utility.getProject(this.insight.getProjectId());
 					ClusterUtil.pushProjectFolder(project, gzipFile.getParent());
 				}
-			// this is in the project space where space = project id
+				// this is in the project space where space = project id
 			} else {
 				IProject project = Utility.getProject(space);
 				ClusterUtil.pushProjectFolder(project, gzipFile.getParent());
 			}
 		}
-		
+
 		Map<String, Object> fileDetails = new HashMap<>();
 		fileDetails.put("fileName", gzipFile.getName());
 		fileDetails.put("sourceSize", Utility.getReadableFileSize(fileToGzipF.length()));
 		fileDetails.put("size", Utility.getReadableFileSize(gzipFile.length()));
 		return new NounMetadata(fileDetails, PixelDataType.MAP);
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
 		return "This reactor is used to gzip a file";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-	        return "This is a required value containing the relative file path of a single file to be compressed";
-	    } else if(key.equals(ReactorKeysEnum.SPACE.getKey())) {
-	        return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-	    } else if(key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-	    	return "This is a optional value to determine the filename of the gzip file. If not provided, the current file name will be appended with '.gz'";
-	    }
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "This is a required value containing the relative file path of a single file to be compressed";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
+		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+			return "This is a optional value to determine the filename of the gzip file. If not provided, the current file name will be appended with '.gz'";
+		}
 		return super.getDescriptionForKey(key);
 	}
-	
+
 }

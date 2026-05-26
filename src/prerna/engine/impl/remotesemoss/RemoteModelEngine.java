@@ -41,7 +41,6 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -177,12 +176,6 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public InstructModelEngineResponse instruct(String task, String context, List<Map<String, Object>> projectData,
-			Insight insight, Map<String, Object> parameters) {
-		return null;
-	}
-
-	@Override
 	public EmbeddingsModelEngineResponse embeddings(List<String> stringsToEncode, Insight insight,
 			Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
@@ -225,10 +218,21 @@ public class RemoteModelEngine implements IModelEngine {
 		// TODO Auto-generated method stub
 		return false;
 	}
-	
+
 	@Override
 	public int getContextWindow() {
 		return this.getContextWindow();
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		// no display name for engine
+
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getEngineName();
 	}
 
 }

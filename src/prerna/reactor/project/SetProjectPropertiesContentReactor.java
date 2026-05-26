@@ -30,7 +30,6 @@ package prerna.reactor.project;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.utils.SecurityProjectUtils;
@@ -44,9 +43,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class SetProjectPropertiesContentReactor extends AbstractReactor {
-	
+
 	public SetProjectPropertiesContentReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_PROPERTIES_MAP.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.PROJECT_PROPERTIES_MAP.getKey() };
 	}
 
 	@Override
@@ -54,28 +54,28 @@ public class SetProjectPropertiesContentReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 
-		if(StringUtils.isBlank(projectId)) {
+		if (StringUtils.isBlank(projectId)) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
-		
-		if(!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
+
+		if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
 		}
-				
+
 		IProject project = Utility.getProject(projectId);
 		ProjectProperties props = project.getProjectProperties();
-		
+
 		Map<String, String> mods = getMods();
 		try {
 			props.updateAllProperties(mods);
-		} catch (ConfigurationException e) {
+		} catch (Exception e) {
 			throw new IllegalArgumentException(e.getMessage());
 		}
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set new properties for project"));
 		return noun;
 	}
-	
+
 	/*
 	 * Converts inputed map of pixel call into a Map<string, string>
 	 */
