@@ -39,20 +39,16 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RenameColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor renames a column 
-	 * 1) the original column
-	 * 2) the new column name 
+	 * This reactor renames a column 1) the original column 2) the new column name
 	 */
-	
+
 	public RenameColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(),
+				ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -67,8 +63,9 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		// get inputs
 		String originalColName = keyValue.get(this.keysToGet[1]);
 		String dataType = metadata.getHeaderTypeAsString(table + "__" + originalColName);
-		if(dataType == null)
+		if (dataType == null) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+		}
 
 		String updatedColName = keyValue.get(this.keysToGet[2]);
 		// check that the frame isn't null
@@ -93,7 +90,8 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		String script = "names(" + table + ")[names(" + table + ") == \"" + originalColName + "\"] = \""
 				+ validNewHeader + "\"";
 		// execute the r script
-		// script is of the form: names(FRAME)[names(FRAME) == "Director"] = "directing_person"
+		// script is of the form: names(FRAME)[names(FRAME) == "Director"] =
+		// "directing_person"
 		frame.executeRScript(script);
 		this.addExecutedCode(script);
 		// FE passes the column name
@@ -103,22 +101,17 @@ public class RenameColumnReactor extends AbstractRFrameReactor {
 		metadata.setAliasToProperty(table + "__" + validNewHeader, validNewHeader);
 		this.getFrame().syncHeaders();
 
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(frame.getName(), originalColName, validNewHeader);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
+		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(frame.getName(), originalColName,
+				validNewHeader);
 		retNoun.addAdditionalReturn(metaNoun);
-		
+
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
 		modMap.put(originalColName, validNewHeader);
 		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap, false));
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"RenameColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		// return the output
 		return retNoun;
 	}

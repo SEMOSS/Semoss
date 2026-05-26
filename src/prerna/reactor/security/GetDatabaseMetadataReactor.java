@@ -34,7 +34,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,52 +41,63 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 @Deprecated
 public class GetDatabaseMetadataReactor extends AbstractReactor {
-	
+
+	@Deprecated
 	public GetDatabaseMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.META_KEYS.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		
-		if(databaseId == null || databaseId.isEmpty()) {
+
+		if (databaseId == null || databaseId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an database id");
 		}
-		
+
 		List<Map<String, Object>> baseInfo = null;
 		// make sure valid id for user
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+		if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null);
-		} else if(SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
+		} else if (SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(databaseId, null);
 		} else {
 			// you dont have access
 			throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 		}
-		
-		if(baseInfo == null || baseInfo.isEmpty()) {
+
+		if (baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any database data");
 		}
-		
+
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, getMetaKeys(), false));
+		@SuppressWarnings("unchecked")
+		List<String> metaKeys = getList(ReactorKeysEnum.META_KEYS.getKey());
+		if (metaKeys != null && metaKeys.isEmpty()) {
+			metaKeys = null;
+		}
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(databaseId, metaKeys, false));
 		// append last engine update
 		databaseInfo.put("last_updated", MasterDatabaseUtility.getEngineDate(databaseId));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
-	
-	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
+
+	@Deprecated
+	@Override
+	public String getReactorDescription() {
+		return """
+				Deprecated: use GetEngineMetadata instead.
+				Returns metadata for a single engine (legacy GetDatabaseMetadata name) when the user can access it or it is discoverable.
+
+				Inputs: database, metaKeys.
+				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys and last_updated.
+				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				""";
 	}
 
 }

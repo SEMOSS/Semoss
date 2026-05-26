@@ -36,6 +36,7 @@ import java.lang.ProcessBuilder.Redirect;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +46,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IRCloneStorage;
@@ -90,8 +90,8 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 		if (smssProp.containsKey(RCLONE_KEY)) {
 			String rcloneValue = smssProp.getProperty(RCLONE_KEY);
 			if (rcloneValue != null && !(rcloneValue = rcloneValue.trim()).isEmpty()) {
-				classLogger.info("Using custom rclone install for "
-						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.info("Using custom rclone install for {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				this.RCLONE = smssProp.getProperty(RCLONE_KEY);
 			}
 		}
@@ -231,6 +231,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	public List<Map<String, Object>> listDetails(String path, String rCloneConfig)
 			throws IOException, InterruptedException {
 		boolean delete = false;
+		String basePath = "";
 		if (rCloneConfig == null || rCloneConfig.isEmpty()) {
 			rCloneConfig = createRCloneConfig();
 			delete = true;
@@ -247,6 +248,13 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 				} else {
 					rClonePath += path;
 				}
+				basePath = path;
+				while (basePath.startsWith("/")) {
+					basePath = basePath.substring(1);
+				}
+				while (basePath.endsWith("/")) {
+					basePath = basePath.substring(0, basePath.length() - 1);
+				}
 			}
 			// wrap in quotes just in case of spaces, etc.
 //			if(!rClonePath.startsWith("'")) {
@@ -254,7 +262,42 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 //			}
 			List<Map<String, Object>> results = runRcloneListJsonProcess(rCloneConfig, RCLONE, "lsjson", rClonePath,
 					"--max-depth=1", "--metadata");
-			return results;
+			List<Map<String, Object>> standardized = new ArrayList<>(results.size());
+			for (Map<String, Object> item : results) {
+				Map<String, Object> formatted = new HashMap<>();
+
+				String entryPath = "";
+				Object entryPathObj = item.get("Path");
+				if (entryPathObj != null) {
+					entryPath = entryPathObj.toString().replace("\\", "/");
+				}
+				while (entryPath.startsWith("/")) {
+					entryPath = entryPath.substring(1);
+				}
+
+				String fullPath;
+				if (basePath.isEmpty()) {
+					fullPath = entryPath;
+				} else if (entryPath.isEmpty()) {
+					fullPath = basePath;
+				} else {
+					fullPath = basePath + "/" + entryPath;
+				}
+
+				formatted.put("Path", fullPath.isEmpty() ? "/" : "/" + fullPath);
+				formatted.put("Name", item.get("Name"));
+				formatted.put("Size", item.get("Size"));
+				formatted.put("MimeType", item.get("MimeType"));
+				Object modTime = item.get("ModTime");
+				formatted.put("ModTime", modTime == null ? null : modTime.toString());
+				formatted.put("IsDir", item.get("IsDir"));
+
+				Object metadata = item.get("Metadata");
+				formatted.put("Metadata", metadata instanceof Map ? metadata : Collections.emptyMap());
+
+				standardized.add(formatted);
+			}
+			return standardized;
 		} finally {
 			if (delete && rCloneConfig != null) {
 				deleteRcloneConfig(rCloneConfig);
@@ -749,28 +792,21 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static Map<String, Object> runProcessJsonOutput(String... command)
 			throws IOException, InterruptedException {
-		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
+		Process p = null;
 		try {
-			Process p = null;
-			try {
-				ProcessBuilder pb = new ProcessBuilder(command);
-				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
-				pb.redirectOutput(Redirect.PIPE);
-				pb.redirectError(Redirect.PIPE);
-				p = pb.start();
-				p.waitFor();
-				Map<String, Object> results = streamJsonOutput(p.getInputStream());
-				streamError(p.getErrorStream());
-				return results;
-			} finally {
-				if (p != null) {
-					p.destroyForcibly();
-				}
-			}
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
+			pb.redirectOutput(Redirect.PIPE);
+			pb.redirectError(Redirect.PIPE);
+			p = pb.start();
+			p.waitFor();
+			Map<String, Object> results = streamJsonOutput(p.getInputStream());
+			streamError(p.getErrorStream());
+			return results;
 		} finally {
-//			System.setSecurityManager(priorManager);
+			if (p != null) {
+				p.destroyForcibly();
+			}
 		}
 	}
 
@@ -783,28 +819,21 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 	 */
 	protected static List<Map<String, Object>> runProcessListJsonOutput(String... command)
 			throws IOException, InterruptedException {
-		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
+		Process p = null;
 		try {
-			Process p = null;
-			try {
-				ProcessBuilder pb = new ProcessBuilder(command);
-				pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
-				pb.redirectOutput(Redirect.PIPE);
-				pb.redirectError(Redirect.PIPE);
-				p = pb.start();
-				p.waitFor();
-				List<Map<String, Object>> results = streamListJsonOutput(p.getInputStream());
-				streamError(p.getErrorStream());
-				return results;
-			} finally {
-				if (p != null) {
-					p.destroyForcibly();
-				}
-			}
+			ProcessBuilder pb = new ProcessBuilder(command);
+			pb.directory(new File(Utility.normalizePath(System.getProperty("user.home"))));
+			pb.redirectOutput(Redirect.PIPE);
+			pb.redirectError(Redirect.PIPE);
+			p = pb.start();
+			p.waitFor();
+			List<Map<String, Object>> results = streamListJsonOutput(p.getInputStream());
+			streamError(p.getErrorStream());
+			return results;
 		} finally {
-//			System.setSecurityManager(priorManager);
+			if (p != null) {
+				p.destroyForcibly();
+			}
 		}
 	}
 
@@ -866,7 +895,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			StringBuilder builder = new StringBuilder();
 			reader.lines().forEach(line -> builder.append(line));
 			classLogger.info(builder.toString());
-			return new Gson().fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {
+			return GSON.fromJson(builder.toString(), new TypeToken<Map<String, Object>>() {
 			}.getType());
 		}
 	}
@@ -882,7 +911,7 @@ public abstract class AbstractRCloneStorageEngine extends AbstractStorageEngine 
 			StringBuilder builder = new StringBuilder();
 			reader.lines().forEach(line -> builder.append(line));
 			classLogger.info(builder.toString());
-			return new Gson().fromJson(builder.toString(), new TypeToken<List<Map<String, Object>>>() {
+			return GSON.fromJson(builder.toString(), new TypeToken<List<Map<String, Object>>>() {
 			}.getType());
 		}
 	}

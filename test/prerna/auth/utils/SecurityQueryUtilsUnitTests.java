@@ -48,6 +48,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -71,7 +72,7 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 	@BeforeEach
 	void setUp() throws Exception {
-		this.securityDb = AbstractSecurityUtils.securityDb;
+		this.securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb, "Security database should be initialized by AbstractSecurityUtilsUnitTests");
 		seedTestData();

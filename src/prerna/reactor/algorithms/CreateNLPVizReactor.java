@@ -50,14 +50,13 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class CreateNLPVizReactor extends AbstractRFrameReactor {
 
 	/**
-	 * Reads in the Columns and Database IDs and returns the visualization string, which
-	 * is then appended to the NLP search
+	 * Reads in the Columns and Database IDs and returns the visualization string,
+	 * which is then appended to the NLP search
 	 */
 
 	protected static final String SORT_PIXEL = "sortPixel";
@@ -74,7 +73,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		Logger logger = this.getLogger(CLASS_NAME);
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 		String panelId = getPanelId();
 		List<String> cols = getColumns();
@@ -91,11 +90,11 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 			databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId).replace(" ", "_");
 		}
 		boolean allStrings = true;
-		
+
 		// check if packages are installed
 		String[] packages = { "data.table", "plyr", "jsonlite" };
 		this.rJavaTranslator.checkPackages(packages);
-		
+
 		// have pixel to paint as grid
 		String gridPixel = "Frame () | QueryAll ( ) | " + sortPixel + " AutoTaskOptions ( panel = [ \"" + panelId
 				+ "\" ] , layout = [ \"Grid\" ] ) | Collect ( 500 );";
@@ -109,6 +108,7 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		// sort the columns list in ascending order of unique inst
 		// put the aggregate columns last
 		Collections.sort(cols, new Comparator<String>() {
+			@Override
 			public int compare(String firstCol, String secondCol) {
 				if (isAggregate(firstCol)) {
 					return 1;
@@ -147,10 +147,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 			if (dataType.equalsIgnoreCase("INT") || dataType.equalsIgnoreCase("DOUBLE")) {
 				dataType = "NUMBER";
 			}
-			
+
 			// catch the date functions and flip it to string if so
 			String[] dates = { "DAYNAME", "MONTHNAME", "WEEK", "QUARTER", "YEAR" };
-			if(Stream.of(dates).anyMatch(colName.toUpperCase()::startsWith)) {
+			if (Stream.of(dates).anyMatch(colName.toUpperCase()::startsWith)) {
 				dataType = "STRING";
 			}
 
@@ -167,8 +167,8 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 				uniqueValues = frame.getUniqueInstanceCount(colName);
 			}
 
-			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + databaseId + "$" + databaseName + "$" + tableName + "$"
-					+ colName + "\",");
+			rsb.append(inputFrame + "[" + rowCounter + ",] <- c(\"" + databaseId + "$" + databaseName + "$" + tableName
+					+ "$" + colName + "\",");
 			rsb.append("\"" + dataType + "\",");
 			rsb.append(uniqueValues + ");");
 
@@ -181,14 +181,14 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		// if user wants 'Recommended' then call function to use usual flow
 		// otherwise, use new flow
 		// now let's look for the shared history vs personal history
-		File userHistory = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations"
-				+ DIR_SEPARATOR + "dataitem-user-history.rds");
+		File userHistory = new File(baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "Recommendations" + DIR_SEPARATOR
+				+ "dataitem-user-history.rds");
 		if (!userHistory.exists()) {
 			// user history does not exist, let's use shared history
 			fileroot = "shared";
 			logger.info("Selecting proper visualization for insight");
 		}
-		
+
 		// now lets run the script and return a json
 		String json = "";
 		String outputJson = "outputJson" + Utility.getRandomString(5);
@@ -197,10 +197,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 		rsb.append(wd + " <- getwd();");
 		rsb.append("setwd(\"" + baseFolder.replace("\\", "/") + "/R/Recommendations/\");");
 		rsb.append("source(\"viz_recom.r\");");
-	
+
 		// change int/double to number in the history
 		rsb.append("sync_numeric(\"" + fileroot + "\",\"" + fileroot + "\");");
-					
+
 		if (vizSelection.equals("Recommended")) {
 			// if it only has one column or one row, just return it as a grid
 			if (cols.size() < 2 || frame.getNumRows(frameName) < 2 || allStrings) {
@@ -222,7 +222,8 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 			rsb.append("source(\"viz_selection.r\");");
 
 			// run function and create json
-			rsb.append(recommend + " <- get_viz_choices(\"" + fileroot + "\"," + inputFrame + ",\"" + vizSelection + "\");");
+			rsb.append(recommend + " <- get_viz_choices(\"" + fileroot + "\"," + inputFrame + ",\"" + vizSelection
+					+ "\");");
 			rsb.append("library(jsonlite);");
 			rsb.append(outputJson + " <-toJSON(" + recommend + ", byrow = TRUE, colNames = TRUE);");
 			rsb.append("setwd(" + wd + ");");
@@ -270,9 +271,10 @@ public class CreateNLPVizReactor extends AbstractRFrameReactor {
 				}
 			}
 		}
-		
-		//garbage cleanup
-		this.rJavaTranslator.executeEmptyR("rm(" + wd + "," + outputJson + "," + inputFrame + "," + recommend + "); gc();");
+
+		// garbage cleanup
+		this.rJavaTranslator
+				.executeEmptyR("rm(" + wd + "," + outputJson + "," + inputFrame + "," + recommend + "); gc();");
 
 		// return
 		String returnPixel = generatePixelFromRec(recommendations, cols, frameName, metadata, panelId, sortPixel);

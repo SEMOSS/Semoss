@@ -42,27 +42,32 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
+import prerna.engine.impl.SmssUtilities;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.H2SqlInterpreter;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class H2QueryUtil extends AnsiSqlQueryUtil {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(H2QueryUtil.class);
 
+	public static final String BASE_H2_FILE_CONNECTION = "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@"
+			+ DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@" + Constants.ENGINE + "@" + DIR_SEPARATOR
+			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+
 	private boolean forceFile;
-	
+
 	H2QueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.H2_DB);
 	}
-	
+
 	H2QueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.H2_DB);
 	}
-	
+
 	@Override
 	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new H2SqlInterpreter(engine);
@@ -72,14 +77,14 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public IQueryInterpreter getInterpreter(ITableDataFrame frame) {
 		return new H2SqlInterpreter(frame);
 	}
-	
+
 	@Override
 	public String setConnectionDetailsfromMap(Map<String, Object> configMap) throws RuntimeException {
-		if(configMap == null || configMap.isEmpty()){
+		if (configMap == null || configMap.isEmpty()) {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
-		
-		this.forceFile = Boolean.parseBoolean( configMap.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
+
+		this.forceFile = Boolean.parseBoolean(configMap.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
 		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
@@ -87,17 +92,17 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
 		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
 		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
-		
+
 		return buildConnectionString();
 	}
-	
+
 	@Override
 	public String setConnectionDetailsFromSMSS(CaseInsensitiveProperties prop) throws RuntimeException {
-		if(prop == null || prop.isEmpty()){
+		if (prop == null || prop.isEmpty()) {
 			throw new RuntimeException("Properties object is null or empty");
 		}
-		
-		this.forceFile = Boolean.parseBoolean( prop.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
+
+		this.forceFile = Boolean.parseBoolean(prop.get(AbstractSqlQueryUtil.FORCE_FILE) + "");
 		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
 		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
 		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
@@ -108,49 +113,49 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 
 		return buildConnectionString();
 	}
-	
+
 	@Override
 	public String buildConnectionString() {
-		if(this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
+		if (this.connectionUrl != null && !this.connectionUrl.isEmpty()) {
 			return this.connectionUrl;
 		}
-		
+
 		this.connectionUrl = this.dbType.getUrlPrefix();
-		
-		if(this.hostname == null || this.hostname.isEmpty()) {
+
+		if (this.hostname == null || this.hostname.isEmpty()) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
-		
+
 		String port = this.port;
 		if (port != null && !port.isEmpty()) {
 			port = ":" + port;
 		} else {
 			port = "";
 		}
-		
+
 		File f = new File(Utility.normalizePath(hostname));
-		if(this.forceFile || f.exists()) {
+		if (this.forceFile || f.exists()) {
 			hostname = hostname.replace(".mv.db", "");
 			this.connectionUrl += ":nio:" + hostname;
 		} else {
-			this.connectionUrl += ":tcp://"+hostname+":"+port;
+			this.connectionUrl += ":tcp://" + hostname + ":" + port;
 		}
-		
-		if(this.schema != null && !this.schema.isEmpty()) {
-			this.connectionUrl += "/"+schema;
+
+		if (this.schema != null && !this.schema.isEmpty()) {
+			this.connectionUrl += ";SCHEMA=" + schema;
 		}
-		
-		if(this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if(!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
+
+		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
+			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
 				this.connectionUrl += ";" + this.additionalProps;
 			} else {
 				this.connectionUrl += this.additionalProps;
 			}
 		}
-		
+
 		return this.connectionUrl;
 	}
-	
+
 	@Override
 	public void enhanceConnection(Connection con) {
 		Statement stmt = null;
@@ -161,18 +166,38 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 			stmt = con.createStatement();
 			stmt.execute("CREATE AGGREGATE IF NOT EXISTS SMSS_MEDIAN FOR \"prerna.ds.rdbms.h2.H2MedianAggregation\";");
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error enhancing H2 connection while registering SMSS_MEDIAN aggregate: {}",
+					e.getMessage(), e);
 		} finally {
-			if(stmt != null) {
+			if (stmt != null) {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing statement after H2 connection enhancement: {}", e.getMessage(), e);
 				}
 			}
 		}
 	}
-	
+
+	@Override
+	public String fillFileParameterizedConnectionUrl(String connectionUrl, String engineId, String engineName) {
+		if (engineId == null && engineName == null) {
+			return connectionUrl;
+		}
+
+		if (connectionUrl == null || (connectionUrl = connectionUrl.trim()).isEmpty()) {
+			connectionUrl = BASE_H2_FILE_CONNECTION;
+		}
+
+		String baseFolder = Utility.getBaseFolder().replace('\\', '/');
+		if (baseFolder.endsWith("/")) {
+			baseFolder = baseFolder.substring(0, baseFolder.length() - 1);
+		}
+
+		return connectionUrl.replace("@" + Constants.BASE_FOLDER + "@", baseFolder)
+				.replace("@" + Constants.ENGINE + "@", SmssUtilities.getUniqueName(engineName, engineId));
+	}
+
 	@Override
 	public String getMedianFunctionSyntax() {
 		return "SMSS_MEDIAN";
@@ -192,7 +217,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	public String getDateFormatFunctionSyntax() {
 		return "FORMATDATETIME";
 	}
-	
+
 	@Override
 	public String escapeReferencedAlias(String alias) {
 		return "\"" + alias + "\"";
@@ -203,86 +228,95 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	/*
 	 * Query database scripts
 	 */
-	
+
 	@Override
 	public String tableExistsQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '" + tableName.toUpperCase() + "'";
+		return "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '"
+				+ tableName.toUpperCase() + "'";
 	}
-	
+
 	@Override
 	public String tableConstraintExistsQuery(String constraintName, String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "' AND TABLE_NAME = '" + tableName.toUpperCase() + "'";
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE CONSTRAINT_NAME = '"
+				+ constraintName.toUpperCase() + "' AND TABLE_NAME = '" + tableName.toUpperCase() + "'";
 	}
 
 	@Override
 	public String referentialConstraintExistsQuery(String constraintName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '" + constraintName.toUpperCase() + "'";
+		return "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_NAME = '"
+				+ constraintName.toUpperCase() + "'";
 	}
-	
+
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "';";
+		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+				+ tableName.toUpperCase() + "';";
 	}
-	
+
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '" + tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
+		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+				+ tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
 	}
-	
+
 	@Override
 	public String getIndexList(String database, String schema) {
 		// do not need to use the schema
 		return "SELECT DISTINCT INDEX_NAME, TABLE_NAME FROM INFORMATION_SCHEMA.INDEXES;";
 	}
-	
+
 	@Override
 	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		// do not use the schema
-		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='" + indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='"
+				+ indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
-	
+
 	@Override
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='" + tableName.toUpperCase() + "';";
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='"
+				+ tableName.toUpperCase() + "';";
 	}
-	
+
 	@Override
 	public String alterTableDropColumns(String tableName, Collection<String> columnNames) {
 		// should escape keywords
-		if(isSelectorKeyword(tableName)) {
+		if (isSelectorKeyword(tableName)) {
 			tableName = getEscapeKeyword(tableName);
 		}
-		
+
 		StringBuilder alterString = new StringBuilder("ALTER TABLE " + tableName + " DROP COLUMN (");
 		int i = 0;
-		for(String newColumn : columnNames) {
+		for (String newColumn : columnNames) {
 			if (i > 0) {
 				alterString.append(", ");
 			}
-			
+
 			// should escape keywords
-			if(isSelectorKeyword(newColumn)) {
+			if (isSelectorKeyword(newColumn)) {
 				newColumn = getEscapeKeyword(newColumn);
 			}
-			
+
 			alterString.append(newColumn);
-			
+
 			i++;
 		}
 		alterString.append(");");
 		return alterString.toString();
 	}
 
-	public String hashColumn(String tableName, String[] columns){
+	@Override
+	public String hashColumn(String tableName, String[] columns) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("UPDATE " + tableName + " SET ");
-		builder.append(String.join(",",Stream.of(columns).map(c -> c + " = HASH('SHA256', STRINGTOUTF8(" + c + "), 1000)").collect(Collectors.toList())));
+		builder.append(String.join(",", Stream.of(columns)
+				.map(c -> c + " = HASH('SHA256', STRINGTOUTF8(" + c + "), 1000)").collect(Collectors.toList())));
 		return builder.toString();
 	}
 }

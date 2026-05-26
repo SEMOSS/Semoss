@@ -41,7 +41,6 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 
 import prerna.io.connector.antivirus.IVirusScanner;
-import prerna.util.Constants;
 
 public class ApacheTikaScannerUtils implements IVirusScanner {
 
@@ -59,20 +58,20 @@ public class ApacheTikaScannerUtils implements IVirusScanner {
 		Metadata metadata = new Metadata();
 		try {
 			String detectedType = tika.detect(is, metadata);
-			classLogger.info("Predicted " + name + " has type " + detectedType);
-			if(isSubtypeOfMsDownload(detectedType)) {
+			classLogger.info("Predicted {} has type {}", name, detectedType);
+			if (isSubtypeOfMsDownload(detectedType)) {
 				Collection<String> allIssues = new TreeSet<>();
 				retMap.put(name, allIssues);
 				allIssues.add(detectedType);
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to detect file type for '{}'.", name, e);
 		} finally {
-			if(is != null) {
+			if (is != null) {
 				try {
 					is.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close input stream after virus scan for '{}'.", name, e);
 				}
 			}
 		}

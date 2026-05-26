@@ -55,7 +55,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -134,22 +133,19 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(venvId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(venvId, tempSmss.getAbsolutePath());
 			venv.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			venv.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(venvId, venvName, venv, smssFile);
+			UploadUtilities.addEngineToDIHelper(venvId, venvName, venv, smssFile);
 			SecurityEngineUtils.addEngine(venvId, global, user);
 
-			// even if no security, just add user as database owner
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityEngineUtils.addEngineOwner(venvId, user.getAccessToken(ap).getId());
-				}
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(venvId, user.getAccessToken(ap).getId());
 			}
 
 			ClusterUtil.pushEngine(venvId);

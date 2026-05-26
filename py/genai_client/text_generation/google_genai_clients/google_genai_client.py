@@ -1,14 +1,19 @@
-import json, base64
-from typing import List, Optional, Dict
+import json, base64, uuid
+from typing import List, Optional, Dict, Any
 from types import SimpleNamespace
 from pydantic import BaseModel
 from google.genai import types
+from google.genai import Client as GoogleGenAIClient
 from ...clients.google_clients import (
     GoogleClient,
     GoogleClientConfig,
     GoogleClientType,
 )
-from ...constants import AskModelEngineResponse, TEMPLATE, TEMPLATE_NAME
+from ...constants import (
+    AskModelEngineResponse2,
+    TEMPLATE,
+    TEMPLATE_NAME,
+)
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
@@ -18,6 +23,7 @@ from smss_thread_local import get_smss_stream
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
 from ..model_engine_exception import ModelEngineException
 from ...utils import string_to_bool
+from .google_video_client import GoogleGenAiVideoClient
 
 
 class UsageMetadata(BaseModel):
@@ -34,6 +40,8 @@ class StreamingResponse(BaseModel):
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
+    client: GoogleGenAIClient
+
     def __init__(
         self,
         service_account_credentials: Optional[Dict] = None,
@@ -41,6 +49,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         region: Optional[str] = None,
         project: Optional[str] = None,
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
         safety_settings: Optional[dict] = None,
         **kwargs,
     ):
@@ -56,8 +65,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             region=region,
             project=project,
             api_key=api_key,
+            base_url=base_url,
         )
-        self.client = GoogleClient(config=self.client_config).client
+        self.google_client = GoogleClient(config=self.client_config).client
+        self.video_client = GoogleGenAiVideoClient(parent_client=self)
 
         self.safety_settings = safety_settings
 
@@ -69,7 +80,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prefix="",
         **kwargs,
     ):
-        if self.client is None:
+        if self.google_client is None:
             raise ValueError("Google Gen AI client is not initialized.")
 
         if (
@@ -95,6 +106,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         try:
             semoss_messages = self.build_semoss_messages(self.model_settings, **kwargs)
 
+            if self.model_settings.model_type == "video":
+                return self.video_client.ask_call(semoss_messages=semoss_messages)
+
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(
                     semoss_messages, self.model_settings, self.model_limits
@@ -119,29 +133,40 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
 
                 return self.generate_with_retry(streaming_call)
-            else:
 
-                def call_generate_content():
-                    return self.client.models.generate_content(
-                        model=self.model_name,
-                        contents=google_messages,
-                        config=provider_config,
-                    )
+            def call_generate_content():
+                return self.client.models.generate_content(
+                    model=self.model_name,
+                    contents=google_messages,
+                    config=provider_config,
+                )
 
-                model_response = self.generate_with_retry(call_generate_content)
+            model_response = self.generate_with_retry(call_generate_content)
 
             text_response = model_response.text if model_response.text else ""
             if web_search_enabled and inline_citations_enabled:
                 text_response = self._add_citations(model_response) or ""
 
+            # Gemini reports candidates and thoughts as DISJOINT (unlike OpenAI/Anthropic).
+            # Fold thoughts into response_tokens so output_tokens is total billed output.
             response_tokens = model_response.usage_metadata.candidates_token_count
             prompt_tokens = model_response.usage_metadata.prompt_token_count
+            cache_read_tokens = getattr(
+                model_response.usage_metadata, "cached_content_token_count", None
+            )
+            thinking_tokens = getattr(
+                model_response.usage_metadata, "thoughts_token_count", None
+            )
+            if thinking_tokens:
+                response_tokens = (response_tokens or 0) + thinking_tokens
 
             if len(getattr(model_response, "function_calls", None) or []) > 0:
                 return self._parse_tools_call_response(
                     response=model_response,
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
+                    cache_read_tokens=cache_read_tokens,
+                    thinking_tokens=thinking_tokens,
                 )
 
             thinking_text = ""
@@ -162,7 +187,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                             thinking_text += getattr(part, "text", "")
                         if part.inline_data:
                             image_data.append(
-                                self._create_image_url(
+                                self._create_media_info(
                                     mime_type=part.inline_data.mime_type,
                                     image_bytes=part.inline_data.data,
                                 )
@@ -171,13 +196,24 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             if thinking_text == "":
                 thinking_text = None
 
-            return AskModelEngineResponse(
+            parts = []
+            if thinking_text:
+                parts.append({"type": "THINKING", "thinking": thinking_text})
+            if text_response:
+                parts.append({"type": "TEXT", "text": text_response})
+            for media_info in image_data or []:
+                parts.append({"type": "MEDIA", "media_info": media_info})
+
+            return AskModelEngineResponse2(
                 response=text_response,
-                response_media=image_data,
                 prompt_tokens=prompt_tokens,
                 response_tokens=response_tokens,
+                cache_read_tokens=cache_read_tokens,
+                thinking_tokens=thinking_tokens,
                 messageType="CHAT",
-                thinking=thinking_text,
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=parts,
             )
         except Exception as e:
             return ModelEngineException(
@@ -196,24 +232,50 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         response: types.GenerateContentResponse,
         response_tokens: int,
         prompt_tokens: int,
-    ) -> AskModelEngineResponse:
+        cache_read_tokens: Optional[int] = None,
+        thinking_tokens: Optional[int] = None,
+    ) -> AskModelEngineResponse2:
         tools_result = []
-        for i, function_call in enumerate(response.function_calls):
-            function_id = str(i)
 
-            tools_result.append(
-                {
-                    "id": function_id,
-                    "type": "function",
-                    "name": function_call.name,
-                    "arguments": getattr(function_call, "args", {}),
-                }
-            )
-        return AskModelEngineResponse(
+        parts_with_fc = []
+        if (
+            hasattr(response, "candidates")
+            and response.candidates
+            and hasattr(response.candidates[0], "content")
+            and getattr(response.candidates[0].content, "parts", None)
+        ):
+            parts_with_fc = [
+                p
+                for p in response.candidates[0].content.parts
+                if getattr(p, "function_call", None) is not None
+            ]
+
+        for i, function_call in enumerate(response.function_calls):
+            function_id = function_call.id or str(uuid.uuid4())
+            tool_entry = {
+                "id": function_id,
+                "type": "function",
+                "name": function_call.name,
+                "arguments": getattr(function_call, "args", {}),
+            }
+            if i < len(parts_with_fc):
+                ts = getattr(parts_with_fc[i], "thought_signature", None)
+                if ts:
+                    tool_entry["thought_signature"] = base64.b64encode(ts).decode(
+                        "utf-8"
+                    )
+            tools_result.append(tool_entry)
+
+        return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
+            cache_read_tokens=cache_read_tokens,
+            thinking_tokens=thinking_tokens,
             messageType="TOOL",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     def _handle_streaming(
@@ -223,8 +285,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         prefix: Optional[str] = "",
         web_search_enabled: bool = False,
         inline_citations_enabled: bool = True,
-    ) -> AskModelEngineResponse:
-
+    ) -> AskModelEngineResponse2:
         smss_stream = get_smss_stream()
         final_response = ""
         thinking_response = ""
@@ -233,36 +294,46 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         output_tokens = 0
 
         content_array = []
-        this_content_block = {}
+        this_content_block: Dict[str, Any] = {}
         latest_grounding_metadata = None
+        latest_usage_metadata = None
         tool_result = []
 
-        stream = self.client.models.generate_content_stream(
+        stream = self.google_client.models.generate_content_stream(
             model=self.model_name, contents=contents, config=config
         )
 
         for event in stream:
+            parts_with_fc = []
+            if getattr(event, "usage_metadata", None):
+                latest_usage_metadata = event.usage_metadata
             if hasattr(event, "candidates") and event.candidates:
                 candidate = event.candidates[0]
                 if getattr(candidate, "grounding_metadata", None):
                     latest_grounding_metadata = candidate.grounding_metadata
-                if hasattr(candidate, "content") and hasattr(
-                    candidate.content, "parts"
+                if hasattr(candidate, "content") and getattr(
+                    candidate.content, "parts", None
                 ):
                     for part in candidate.content.parts:
                         if (
                             hasattr(part, "thought")
                             and part.thought
                             and hasattr(part, "text")
+                            and part.text
                         ):
                             thinking_response += part.text
+                            data = StreamUtil.create_thinking_chunk(part.text)
+                            smss_stream(data, stream_type="thinking")
+                            print(prefix + part.text, end="", flush=True)
                         if part.inline_data:
                             image_data.append(
-                                self._create_image_url(
+                                self._create_media_info(
                                     mime_type=part.inline_data.mime_type,
                                     image_bytes=part.inline_data.data,
                                 )
                             )
+                        if getattr(part, "function_call", None) is not None:
+                            parts_with_fc.append(part)
 
             if event.text:
                 this_content_block["final_response"] = ""
@@ -284,14 +355,14 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                     )
                 ]
 
-                output_tokens = self._count_tokens(response_content)
+                output_tokens += self._count_tokens(response_content)
 
                 content_array.append(this_content_block)
                 this_content_block = {}
 
             if len(getattr(event, "function_calls", None) or []) > 0:
                 for i, function_call in enumerate(event.function_calls):
-                    function_id = str(i)
+                    function_id = function_call.id or str(uuid.uuid4())
                     this_content_block.update(
                         {
                             "id": function_id,
@@ -300,8 +371,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         }
                     )
                     this_content_block["function"]["name"] = function_call.name
+
                     data = StreamUtil.create_tool_id_chunk(
-                        index=len(tool_result), tool_id=function_call.id
+                        index=len(tool_result), tool_id=function_id
                     )
                     smss_stream(data, stream_type="tool")
                     print(prefix + str(data), end="")
@@ -336,81 +408,149 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                         except Exception:
                             arguments = this_content_block["function"]["arguments"]
 
-                    tool_result.append(
-                        {
-                            "id": this_content_block["id"],
-                            "type": this_content_block["type"],
-                            "name": this_content_block["function"]["name"],
-                            "arguments": arguments,
-                        }
-                    )
+                    tool_entry = {
+                        "id": this_content_block["id"],
+                        "type": this_content_block["type"],
+                        "name": this_content_block["function"]["name"],
+                        "arguments": arguments,
+                    }
+                    if i < len(parts_with_fc):
+                        ts = getattr(parts_with_fc[i], "thought_signature", None)
+                        if ts:
+                            ts_b64 = base64.b64encode(ts).decode("utf-8")
+                            tool_entry["thought_signature"] = ts_b64
+                            # Side-channel the signature through the SSE stream so
+                            # the AnthropicEndpoint can persist it in the room's
+                            # sidecar keyed by tool_use_id. The signature has no
+                            # home in the Anthropic wire protocol, so without this
+                            # extra chunk it would be dropped on the way to the
+                            # Claude Code SDK.
+                            sig_chunk = StreamUtil.create_thought_signature_chunk(
+                                index=len(tool_result),
+                                signature=ts_b64,
+                            )
+                            smss_stream(sig_chunk, stream_type="tool")
+                    tool_result.append(tool_entry)
 
                     content_array.append(this_content_block)
                     this_content_block = {}
 
-        input_tokens = self._count_tokens(contents)
+        cache_read_tokens = None
+        thinking_tokens = None
+        if latest_usage_metadata is not None:
+            if getattr(latest_usage_metadata, "prompt_token_count", None) is not None:
+                input_tokens = latest_usage_metadata.prompt_token_count
+            if (
+                getattr(latest_usage_metadata, "candidates_token_count", None)
+                is not None
+            ):
+                output_tokens = latest_usage_metadata.candidates_token_count
+            cache_read_tokens = getattr(
+                latest_usage_metadata, "cached_content_token_count", None
+            )
+            thinking_tokens = getattr(
+                latest_usage_metadata, "thoughts_token_count", None
+            )
+            # Gemini reports candidates and thoughts as DISJOINT; fold thoughts in
+            # so output_tokens is total billed output (matches OpenAI/Anthropic).
+            if thinking_tokens:
+                output_tokens = (output_tokens or 0) + thinking_tokens
+        else:
+            input_tokens = self._count_tokens(contents)
 
         if tool_result:
-            data = StreamUtil.create_finish_reason_chunk()
+            data = StreamUtil.create_finish_reason_chunk("tool_calls")
             smss_stream(data, stream_type="tool", interim=False)
         else:
             data = StreamUtil.create_finish_reason_chunk("stop")
             smss_stream(data, stream_type="content", interim=False)
 
-        # aggregate text blocks
         for content in content_array:
             if content.get("final_response", None):
                 final_response += content.get("final_response")
 
         if tool_result:
-            if config.response_schema:
+            if getattr(config, "response_schema", None):
                 is_schema, json_str = self._flatten_schema_tool(
                     tool_result, "return_json"
                 )
                 if is_schema:
-                    return AskModelEngineResponse(
+                    parts = [{"type": "TEXT", "text": json_str}] if json_str else []
+                    if thinking_response:
+                        parts.append(
+                            {"type": "THINKING", "thinking": thinking_response}
+                        )
+                    for media_info in image_data or []:
+                        parts.append({"type": "MEDIA", "media_info": media_info})
+                    return AskModelEngineResponse2(
                         response=json_str,
                         response_tokens=output_tokens,
                         prompt_tokens=input_tokens,
-                        response_media=image_data,
+                        cache_read_tokens=cache_read_tokens,
+                        thinking_tokens=thinking_tokens,
                         messageType="CHAT",
-                        thinking=thinking_response if thinking_response else None,
+                        schemaVersion=2,
+                        io="OUTPUT",
+                        parts=parts,
                     )
-            else:
-                return AskModelEngineResponse(
-                    response=tool_result,
-                    response_tokens=output_tokens,
-                    prompt_tokens=input_tokens,
-                    response_media=image_data,
-                    messageType="TOOL",
-                )
-        else:
-            final_text = final_response
-            if (
-                web_search_enabled
-                and inline_citations_enabled
-                and latest_grounding_metadata
-                and final_response
-            ):
-                response_stub = SimpleNamespace(
-                    text=final_response,
-                    candidates=[
-                        SimpleNamespace(grounding_metadata=latest_grounding_metadata)
-                    ],
-                )
-                final_text = self._add_citations(response_stub)
-            return AskModelEngineResponse(
-                response=final_text,
-                thinking=thinking_response if thinking_response else None,
+
+            parts = []
+            if thinking_response:
+                parts.append({"type": "THINKING", "thinking": thinking_response})
+            for media_info in image_data or []:
+                parts.append({"type": "MEDIA", "media_info": media_info})
+            parts.extend([{"type": "TOOL_CALL", "tool_call": t} for t in tool_result])
+
+            return AskModelEngineResponse2(
+                response=tool_result,
                 response_tokens=output_tokens,
                 prompt_tokens=input_tokens,
-                response_media=image_data,
-                messageType="CHAT",
+                cache_read_tokens=cache_read_tokens,
+                thinking_tokens=thinking_tokens,
+                messageType="TOOL",
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=parts,
             )
+
+        final_text = final_response
+        if (
+            web_search_enabled
+            and inline_citations_enabled
+            and latest_grounding_metadata
+            and final_response
+        ):
+            response_stub = SimpleNamespace(
+                text=final_response,
+                candidates=[
+                    SimpleNamespace(grounding_metadata=latest_grounding_metadata)
+                ],
+            )
+            final_text = self._add_citations(response_stub)
+
+        parts = []
+        if thinking_response:
+            parts.append({"type": "THINKING", "thinking": thinking_response})
+        if final_text:
+            parts.append({"type": "TEXT", "text": final_text})
+        for media_info in image_data or []:
+            parts.append({"type": "MEDIA", "media_info": media_info})
+
+        return AskModelEngineResponse2(
+            response=final_text,
+            response_tokens=output_tokens,
+            prompt_tokens=input_tokens,
+            cache_read_tokens=cache_read_tokens,
+            thinking_tokens=thinking_tokens,
+            messageType="CHAT",
+            schemaVersion=2,
+            io="OUTPUT",
+            parts=parts,
+        )
 
     def _count_tokens(self, contents: List[types.Content]) -> int:
         try:
-            response = self.client.models.count_tokens(
+            response = self.google_client.models.count_tokens(
                 model=self.model_name,
                 contents=contents,
             )
@@ -466,11 +606,30 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
         return True, json_str
 
-    def _create_image_url(self, mime_type: str, image_bytes: str):
-        """Creating base64 string URL for generated image from bytes."""
-        return (
-            f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
-        )
+    def _create_media_info(self, mime_type: str, image_bytes: bytes) -> Dict:
+        """
+        Create a MessageInputMedia-shaped dict for Java to persist into the room folder.
+        """
+        if not mime_type:
+            mime_type = "application/octet-stream"
+
+        if mime_type == "image/jpeg":
+            file_format = "jpeg"
+        elif mime_type.startswith("image/"):
+            file_format = mime_type.split("/", 1)[1]
+        else:
+            file_format = "bin"
+
+        base64_data = base64.b64encode(image_bytes).decode("utf-8")
+        file_name = f"gen_{uuid.uuid4().hex}.{file_format}"
+
+        return {
+            "fileName": file_name,
+            "base64Data": base64_data,
+            "fileFormat": file_format,
+            "mimeType": mime_type,
+            "mediaInputType": "FILE",
+        }
 
     def _find_citation_insert_index(self, text: str, segment) -> Optional[int]:
         """Match the grounded span inside the response text to place citations accurately."""
@@ -508,6 +667,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         except Exception:
             return getattr(response, "text", "") or ""
 
+        if not supports or not chunks:
+            return text or ""
+
         # Sort supports by end_index in descending order to avoid shifting issues when inserting.
         sorted_supports = sorted(
             supports, key=lambda s: getattr(s.segment, "end_index", 0), reverse=True
@@ -523,7 +685,6 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 continue
 
             if support.grounding_chunk_indices:
-                # Create citation string like <sup>[1](link1)</sup><sup>[2](link2)</sup>
                 citation_links = []
                 for i in support.grounding_chunk_indices:
                     if 0 <= i < len(chunks):

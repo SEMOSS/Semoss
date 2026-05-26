@@ -1,0 +1,18 @@
+#Base Properties 
+ENGINE	ModelInferenceLogsDatabase
+ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
+OWL	testfolder/db/ModelInferenceLogsDatabase/ModelInferenceLogsDatabase_OWL.OWL
+
+RDBMS_TYPE	H2_DB
+DATABASE
+SCHEMA PUBLIC
+DRIVER	org.h2.Driver
+USERNAME	sa
+PASSWORD	
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database
+USE_CONNECTION_POOLING	false
+POOL_MIN_SIZE
+POOL_MAX_SIZE
+AUTO_COMMIT
+
+DATABASE_ZONEID UTC

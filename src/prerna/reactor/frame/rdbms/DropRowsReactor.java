@@ -46,7 +46,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class DropRowsReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DropRowsReactor.class);
 
 	@Override
@@ -96,13 +96,16 @@ public class DropRowsReactor extends AbstractFrameReactor {
 
 					// put quotes if string
 					if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
-						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " '" + value + "'; ";
+						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " '"
+								+ value + "'; ";
 					} else {
-						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " " + value + "; ";
+						sqlStatements += "DELETE FROM " + table + " WHERE " + column + " " + nounComparator + " "
+								+ value + "; ";
 					}
 				}
 			}
 		}
+
 		try {
 			frame.getBuilder().runQuery(sqlStatements);
 		} catch (Exception e) {

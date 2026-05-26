@@ -34,21 +34,18 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CountIfReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor creates a new column based on the count of regex matches of
-	 * an existing column The inputs to the reactor are: 
-	 * 1) the column to count regex instances in 
-	 * 2) the regex 
-	 * 3) the new column name
+	 * This reactor creates a new column based on the count of regex matches of an
+	 * existing column The inputs to the reactor are: 1) the column to count regex
+	 * instances in 2) the regex 3) the new column name
 	 */
-	
+
 	public CountIfReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(), ReactorKeysEnum.NEW_COLUMN.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.REGEX.getKey(),
+				ReactorKeysEnum.NEW_COLUMN.getKey() };
 	}
 
 	@Override
@@ -81,17 +78,19 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		// TODO: doesn't this need to be updated/fixed?
 		// TODO: doesn't this need to be updated/fixed?
 		// TODO: doesn't this need to be updated/fixed?
-		
+
 		// this function only works on strings, so we must convert the data to a
 		// string if it is not already
-		boolean numeric = (boolean)frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
-		if(!numeric) {
-			String script = wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName + "')";
+		boolean numeric = (boolean) frame.runScript(wrapperFrameName + ".is_numeric('" + column + "')");
+		if (!numeric) {
+			String script = wrapperFrameName + ".countif('" + column + "', '" + regexToCount + "', '" + newColName
+					+ "')";
 			frame.runScript(script);
 			this.addExecutedCode(script);
 		}
-		//else
-			// return an error ?
+
+		// else
+		// return an error ?
 
 		// update the metadata
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
@@ -100,14 +99,8 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		metaData.setDataTypeToProperty(frame.getName() + "__" + newColName, SemossDataType.DOUBLE.toString());
 		this.getFrame().syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"CountIf", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	//////////////////////////////////////////////////////////////////////
@@ -139,5 +132,5 @@ public class CountIfReactor extends AbstractPyFrameReactor {
 		String column = noun.getValue().toString();
 		return column;
 	}
-	
+
 }

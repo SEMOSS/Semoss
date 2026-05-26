@@ -40,8 +40,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 
@@ -57,7 +55,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		init();
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		if(column == null | column.isEmpty()) {
+		if (column == null | column.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the column to run the update on");
 		}
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);
@@ -65,7 +63,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		// check if packages are installed
 		String[] packages = { "stringdist", "data.table" };
 		this.rJavaTranslator.checkPackages(packages);
-		
+
 		StringBuilder rsb = new StringBuilder();
 		String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 		String bestMatchScript = "source(\"" + baseFolder + "/R/Recommendations/advanced_federation_blend.r\");";
@@ -81,8 +79,9 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
-		if(allMatches == null || allMatches.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in matches to connect the 'current value' to the 'replacement value'");
+		if (allMatches == null || allMatches.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must pass in matches to connect the 'current value' to the 'replacement value'");
 		}
 		// add all matches
 		StringBuilder col1Builder = new StringBuilder();
@@ -94,7 +93,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 				col2Builder.append(",");
 				col3Builder.append(",");
 			}
-			String match = (String) allMatches.get(i);
+			String match = allMatches.get(i);
 			String[] matchList = match.split(" == ");
 			if (matchList.length > 2) {
 				throw new IllegalArgumentException("match seperator didnt work");
@@ -106,7 +105,8 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 			col3Builder.append("1");
 		}
 		// add all matches provided
-		String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder	+ ")); ";
+		String script = linkFrame + " <- data.table(\"col1\"=c(" + col1Builder + "), \"col2\"=c(" + col2Builder
+				+ ")); ";
 		rsb.append(script);
 		// make link frame unique
 		rsb.append(linkFrame + " <- unique(" + linkFrame + ");");
@@ -118,41 +118,37 @@ public class UpdateMatchColumnValuesReactor extends AbstractRFrameReactor {
 		String tempColHeader = Utility.getRandomString(8);
 
 		// make resultFrame a DT and update the header to a temp name
-		rsb.append(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\"" + tempColHeader + "\";");
-		
+		rsb.append(resultFrame + " <- as.data.table(" + resultFrame + ");" + "names(" + resultFrame + ")<-\""
+				+ tempColHeader + "\";");
+
 		// add new temp name column to frame
 		rsb.append(frameName + " <- cbind(" + frameName + "," + resultFrame + ");");
-		
+
 		// delete existing column from frame
 		rsb.append(frameName + " <- " + frameName + "[,-c(\"" + column + "\")];");
-		
+
 		// update temp column name to the original column name
-		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column + "\";");
+		rsb.append("colnames(" + frameName + ")[colnames(" + frameName + ")==\"" + tempColHeader + "\"] <- \"" + column
+				+ "\";");
 
 		// get current frame data type
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		Map<String, SemossDataType> typeMap = metaData.getHeaderToTypeMap();
 		SemossDataType dataType = typeMap.get(column);
 		// return data type to original state
-		if (dataType == SemossDataType.DOUBLE ) {
+		if (dataType == SemossDataType.DOUBLE) {
 			rsb.append(RSyntaxHelper.alterColumnType(frameName, column, SemossDataType.DOUBLE));
-		} else if(dataType == SemossDataType.INT) {
+		} else if (dataType == SemossDataType.INT) {
 			rsb.append(RSyntaxHelper.alterColumnType(frameName, column, SemossDataType.INT));
 		}
 
-		rsb.append("rm(" + resultFrame + "," + linkFrame + "," + col1 +  "," + matchesTable + ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
-		
+		rsb.append("rm(" + resultFrame + "," + linkFrame + "," + col1 + "," + matchesTable
+				+ ", best_match, best_match_nonzero, best_match_zero, blend, curate, self_match );");
+
 		this.rJavaTranslator.runR(rsb.toString());
 		this.addExecutedCode(rsb.toString());
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"UpdateSimilarColumnValues", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-
 		return retNoun;
 	}
 

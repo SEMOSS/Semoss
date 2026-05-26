@@ -1,0 +1,65 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.insights;
+
+import java.util.Map;
+
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+public class GetInsightActiveRoomModelReactor extends AbstractReactor {
+
+	@Override
+	public NounMetadata execute() {
+		String roomId = this.insight.getRoomId();
+		if (roomId == null) {
+			throw new IllegalArgumentException("Insight is not associated with any room");
+		}
+		String userId = this.insight.getUser().getPrimaryLoginToken().getId();
+		Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+
+		String modelId = null;
+		Map<String, Object> optionsMap = room.getOptionsMap();
+		if (optionsMap.containsKey("modelId")) {
+			modelId = (String) optionsMap.get("modelId");
+		}
+		if (modelId == null) {
+			throw new IllegalArgumentException("No model associated with the room");
+		}
+
+		return new NounMetadata(modelId, PixelDataType.CONST_STRING);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Get the active model for the room set in the current insight";
+	}
+}

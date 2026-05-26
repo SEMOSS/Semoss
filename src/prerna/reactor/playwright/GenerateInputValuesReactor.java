@@ -125,8 +125,7 @@ public class GenerateInputValuesReactor extends AbstractReactor {
 			String modelOutput = null;
 			try {
 				Room room = RoomUtils.createRoomIfNotExists(promptRoomId, this.insight, modelEngine, null);
-				InputMessage inputMessage = InputMessage.builder(room).withInputUIPrompt(prompt).withInputPrompt(prompt)
-						.build();
+				InputMessage inputMessage = InputMessage.builder(room).withText(prompt).build();
 				ResponseMessage response = room.ask(inputMessage, modelEngine);
 				modelOutput = response.getContent();
 			} catch (Exception e) {

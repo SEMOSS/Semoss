@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
@@ -50,7 +50,6 @@ import org.rosuda.REngine.Rserve.RConnection;
 import com.google.common.base.Strings;
 
 import prerna.reactor.mgmt.MgmtUtil;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RserveUtil {
@@ -115,11 +114,15 @@ public class RserveUtil {
 	public static final boolean R_KILL_ON_STARTUP = Boolean
 			.parseBoolean(Utility.getDIHelperProperty(R_KILL_ON_STARTUP_KEY) + "");
 
-	//////////////////////////////////////////////////////////////////////
-	// Connections
-	//////////////////////////////////////////////////////////////////////
+	/**
+	 * 
+	 * @param host
+	 * @param port
+	 * @return
+	 * @throws Exception
+	 */
 	public static RConnection connect(String host, int port) throws Exception {
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 		try {
 			Future<RConnection> future = executor.submit(new Callable<RConnection>() {
 				@Override
@@ -133,9 +136,12 @@ public class RserveUtil {
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	// Start and stop
-	//////////////////////////////////////////////////////////////////////
+	/**
+	 * 
+	 * @param port
+	 * @return
+	 * @throws Exception
+	 */
 	public static Process startR(int port) throws Exception {
 		Process process = null;
 		// Start
@@ -162,15 +168,20 @@ public class RserveUtil {
 			pb.redirectError(error);
 			process = pb.start();
 			process.waitFor(7L, TimeUnit.SECONDS);
-			classLogger.info("R starting Rserve on process id >> " + MgmtUtil.getProcessID(process));
+			classLogger.info("Rserve started on port {} with process id {}", port, MgmtUtil.getProcessID(process));
 			MgmtUtil.printChild(MgmtUtil.getProcessID(process));
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to start Rserve process on port {}", port, e);
 			throw e;
 		}
 		return process;
 	}
 
+	/**
+	 * 
+	 * @param port
+	 * @throws Exception
+	 */
 	public static void stopR(int port) throws Exception {
 		// Stop
 		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
@@ -194,16 +205,14 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						classLogger.error("pid is not a valid pid");
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}", Utility.cleanLogString(pid), port, e);
 						throw e;
 					}
 					// Go through and kill these processes
 					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
 					Process processTaskkill = pbTaskkill.start();
 					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve running on port " + port + " with the pid "
-							+ Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve on port {} with pid {}", port, Utility.cleanLogString(pid));
 				}
 
 			} else {
@@ -220,15 +229,13 @@ public class RserveUtil {
 					try {
 						Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						classLogger.error("pid is not a valid pid");
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}", Utility.cleanLogString(pid), port, e);
 						throw e;
 					}
 					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
 					Process processKill = pbKill.start();
 					processKill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve running on port " + port + " with the pid "
-							+ Utility.cleanLogString(pid) + ".");
+					classLogger.info("Stopped Rserve on port {} with pid {}", port, Utility.cleanLogString(pid));
 				}
 			}
 		} finally {
@@ -236,13 +243,21 @@ public class RserveUtil {
 		}
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	// Recovery
-	//////////////////////////////////////////////////////////////////////
+	/**
+	 * 
+	 * @param rDataFileName
+	 * @return
+	 */
 	public static String getRDataFile(String rDataFileName) {
 		return R_FOLDER + rDataFileName + R_DATA_EXT;
 	}
 
+	/**
+	 * 
+	 * @param rootDirectory
+	 * @param rDataFileName
+	 * @return
+	 */
 	public static String getRDataFile(String rootDirectory, String rDataFileName) {
 		rootDirectory = rootDirectory.replace('\\', '/');
 		if (rootDirectory.endsWith("/")) {
@@ -251,9 +266,6 @@ public class RserveUtil {
 		return rootDirectory.replace('\\', '/') + '/' + rDataFileName + R_DATA_EXT;
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	// End All R
-	//////////////////////////////////////////////////////////////////////
 	/**
 	 * Stops all r processes.
 	 * 
@@ -261,21 +273,14 @@ public class RserveUtil {
 	 */
 	public static void endR() throws Exception {
 		// Need to allow this process to execute the below commands
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
-		try {
-			ProcessBuilder pb;
-			if (SystemUtils.IS_OS_WINDOWS) {
-				pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
-			} else {
-				pb = new ProcessBuilder("pkill", "Rserve");
-			}
-			Process process = pb.start();
-			process.waitFor(7L, TimeUnit.SECONDS);
-		} finally {
-			// Restore the prior security manager
-//			System.setSecurityManager(priorManager);
+		ProcessBuilder pb;
+		if (SystemUtils.IS_OS_WINDOWS) {
+			pb = new ProcessBuilder("taskkill", "/f", "/IM", "Rserve.exe");
+		} else {
+			pb = new ProcessBuilder("pkill", "Rserve");
 		}
+		Process process = pb.start();
+		process.waitFor(7L, TimeUnit.SECONDS);
 	}
 
 }

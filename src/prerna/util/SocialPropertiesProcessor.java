@@ -40,8 +40,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -50,18 +52,21 @@ import jakarta.mail.Session;
 import jakarta.mail.Store;
 import prerna.auth.AuthProvider;
 
-public class SocialPropertiesProcessor {
+public final class SocialPropertiesProcessor {
 
 	public static final String SMTP_ENABLED = "smtp_enabled";
+	public static final String SMTP_ONLY_CUSTOM_PROPS = "smtp_only_custom_props";
 	public static final String SMTP_USERNAME = "smtp_username";
 	public static final String SMTP_PASSWORD = "smtp_password";
 	public static final String SMTP_SENDER = "smtp_sender";
 
 	public static final String POP3_ENABLED = "pop3_enabled";
+	public static final String POP3_ONLY_CUSTOM_PROPS = "pop3_only_custom_props";
 	public static final String POP3_USERNAME = "pop3_username";
 	public static final String POP3_PASSWORD = "pop3_password";
 
 	public static final String IMAP_ENABLED = "imap_enabled";
+	public static final String IMAP_ONLY_CUSTOM_PROPS = "imap_only_custom_props";
 	public static final String IMAP_USERNAME = "imap_username";
 	public static final String IMAP_PASSWORD = "imap_password";
 
@@ -71,6 +76,7 @@ public class SocialPropertiesProcessor {
 
 	// social properties
 	private Properties socialData = null;
+	@Deprecated
 	private Map<String, Boolean> loginsAllowedMap;
 	private List<Map<String, Object>> availableProviders;
 
@@ -91,9 +97,12 @@ public class SocialPropertiesProcessor {
 	private Properties imapEmailProps = null;
 
 	/**
-	 * Constructor
-	 * 
-	 * @param socialPropFile
+	 * Creates a processor backed by the provided social properties file and loads
+	 * it into memory.
+	 *
+	 * @param socialPropFile path to the social properties file
+	 * @throws NullPointerException     if {@code socialPropFile} is null
+	 * @throws IllegalArgumentException if the file does not exist
 	 */
 	public SocialPropertiesProcessor(String socialPropFile) {
 		this.socialPropFile = socialPropFile;
@@ -109,7 +118,7 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * 
+	 * Loads the social properties from disk and refreshes derived cached values.
 	 */
 	public void loadSocialProperties() {
 		this.socialData = Utility.loadProperties(this.socialPropFile);
@@ -117,6 +126,10 @@ public class SocialPropertiesProcessor {
 		setAvailableProviders();
 	}
 
+	/**
+	 * Builds the provider-login allowlist map from configured {@code *_login}
+	 * properties plus the legacy registration flag.
+	 */
 	public void setLoginsAllowed() {
 		this.loginsAllowedMap = new HashMap<>();
 		// define the default provider set
@@ -146,28 +159,34 @@ public class SocialPropertiesProcessor {
 		this.loginsAllowedMap.put("registration", isNativeRegistrationAllowed());
 	}
 
+	/**
+	 * Determines whether native user registration is enabled.
+	 *
+	 * @return {@code true} when {@code native_registration} is enabled
+	 */
 	public boolean isNativeRegistrationAllowed() {
 		return Boolean.parseBoolean(socialData.getProperty("native_registration") + "");
 	}
 
 	/**
-	 * Get a list of providers from the social.properties
+	 * Builds the list of currently enabled login providers for client consumption.
 	 */
 	public void setAvailableProviders() {
 		this.availableProviders = new ArrayList<Map<String, Object>>();
 
 		// define the allProviders set
 		Map<String, AuthProvider> allProviders = AuthProvider.getSocialPropKeysToEnum();
-		
+
 		// get all _login props
-		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_login")).collect(Collectors.toSet());
+		Set<String> loginProps = socialData.stringPropertyNames().stream().filter(str -> str.endsWith("_login"))
+				.collect(Collectors.toSet());
 		for (String prop : loginProps) {
 			// check if it allowed
 			Boolean isAllowed = Boolean.parseBoolean(socialData.getProperty(prop));
-			if(!isAllowed) {
+			if (!isAllowed) {
 				continue;
 			}
-			
+
 			// get provider from prop by split on _
 			String provider = prop.split("_login")[0];
 
@@ -179,7 +198,7 @@ public class SocialPropertiesProcessor {
 					name = value;
 				}
 			}
-			
+
 			AuthProvider thisProvider = allProviders.get(provider);
 			Map<String, Object> providerMap = new HashMap<>();
 			providerMap.put("name", name);
@@ -189,30 +208,35 @@ public class SocialPropertiesProcessor {
 			this.availableProviders.add(providerMap);
 		}
 	}
-	
+
 	/**
-	 * 
-	 * @param provider
-	 * @return
+	 * Checks whether access-key authentication is allowed for a provider.
+	 *
+	 * @param provider the authentication provider to evaluate
+	 * @return {@code true} when access keys are permitted
 	 */
 	public boolean accessKeyAllowed(AuthProvider provider) {
 		String prefix = provider.toString().toLowerCase();
-		boolean accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed")+"");
-		// LEGACY 
-		if(!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
-			accessKeysAllowed = Boolean.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed")+"");
+		boolean accessKeysAllowed = Boolean
+				.parseBoolean(SocialPropertiesUtil.getInstance().getProperty(prefix + "_access_keys_allowed") + "");
+		// LEGACY
+		if (!accessKeysAllowed && provider == AuthProvider.MICROSOFT) {
+			accessKeysAllowed = Boolean
+					.parseBoolean(SocialPropertiesUtil.getInstance().getProperty("ms_access_keys_allowed") + "");
 		}
-		
+
 		return accessKeysAllowed;
 	}
 
 	/**
-	 * 
-	 * @param provider
-	 * @param mods
-	 * @throws ConfigurationException
+	 * Updates provider-scoped properties by prefixing each incoming key with the
+	 * provider name.
+	 *
+	 * @param provider provider prefix (for example {@code google})
+	 * @param mods     key/value updates without provider prefix
+	 * @throws Exception if the update cannot be persisted
 	 */
-	public void updateProviderProperties(String provider, Map<String, String> mods) throws ConfigurationException {
+	public void updateProviderProperties(String provider, Map<String, String> mods) throws Exception {
 		Map<String, String> updates = new HashMap<>(mods.size());
 		for (String mod : mods.keySet()) {
 			updates.put(provider + "_" + mod, mods.get(mod));
@@ -221,31 +245,41 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * 
-	 * @param mods
-	 * @throws ConfigurationException
+	 * Updates and persists a set of social properties, then reloads in-memory
+	 * caches.
+	 *
+	 * @param mods property key/value pairs to write
+	 * @throws Exception if loading or saving the properties file fails
 	 */
-	public void updateAllProperties(Map<String, String> mods) throws ConfigurationException {
-		PropertiesConfiguration config = null;
+	public void updateAllProperties(Map<String, String> mods) throws Exception {
+		Parameters params = new Parameters();
+		FileBasedConfigurationBuilder<FileBasedConfiguration> builder = new FileBasedConfigurationBuilder<FileBasedConfiguration>(
+				PropertiesConfiguration.class).configure(params.properties().setFile(new File(this.socialPropFile)));
+
+		// Load
+		FileBasedConfiguration config;
 		try {
-			config = new PropertiesConfiguration(this.socialPropFile);
-		} catch (ConfigurationException e1) {
-			logger.error(Constants.STACKTRACE, e1);
-			throw new ConfigurationException(
+			config = builder.getConfiguration();
+		} catch (Exception e1) {
+			logger.error("Error loading PropertiesConfiguration for social properties file: {}", this.socialPropFile,
+					e1);
+			throw new IllegalArgumentException(
 					"An unexpected error happened trying to access the properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
 					e1);
 		}
 
+		// Modify
 		for (String mod : mods.keySet()) {
 			config.setProperty(mod, mods.get(mod));
 		}
 
+		// Save via the builder
 		try {
-			config.save();
+			builder.save();
 			reloadProps();
-		} catch (ConfigurationException e1) {
-			throw new ConfigurationException(
+		} catch (Exception e1) {
+			throw new IllegalArgumentException(
 					"An unexpected error happened when saving the new login properties. Please try again or reach out to server admin. Detailed message = "
 							+ e1.getMessage(),
 					e1);
@@ -253,9 +287,11 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * 
-	 * @param newFileContents
-	 * @throws IOException
+	 * Replaces the full contents of the social properties file and reloads caches.
+	 * If writing fails, the previous file contents are restored when possible.
+	 *
+	 * @param newFileContents full replacement content for the file
+	 * @throws IOException if reading, writing, or restoring the file fails
 	 */
 	public void updateAllProperties(String newFileContents) throws IOException {
 		File currentSocialProperties = new File(this.socialPropFile);
@@ -265,7 +301,7 @@ public class SocialPropertiesProcessor {
 			try {
 				currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Error reading social properties file: {}", this.socialPropFile, e);
 				throw new IOException(
 						"An error occurred reading the current social properties file. Detailed message = "
 								+ e.getMessage());
@@ -279,14 +315,15 @@ public class SocialPropertiesProcessor {
 			}
 			reloadProps();
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error writing new social properties file: {}", this.socialPropFile, e);
 			// reset the values
 			currentSocialProperties.delete();
 			if (currentContent != null) {
 				try (FileWriter fw = new FileWriter(currentSocialProperties, false)) {
 					fw.write(currentContent);
 				} catch (IOException e2) {
-					logger.error(Constants.STACKTRACE, e2);
+					logger.error("Error reverting social properties file to previous content: {}", this.socialPropFile,
+							e2);
 					throw new IOException(
 							"A fatal error occurred and could not revert the social properties to an operational state. Detailed message = "
 									+ e2.getMessage());
@@ -298,10 +335,11 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * 
-	 * @return
-	 * @throws IOException
-	 * @throws NullPointerException
+	 * Reads and returns the raw social properties file contents.
+	 *
+	 * @return entire social properties file as a string
+	 * @throws NullPointerException if the file does not exist
+	 * @throws IOException          if the file cannot be read
 	 */
 	public String getFileContents() throws NullPointerException, IOException {
 		File currentSocialProperties = new File(this.socialPropFile);
@@ -313,7 +351,7 @@ public class SocialPropertiesProcessor {
 		try {
 			currentContent = new String(Files.readAllBytes(Paths.get(currentSocialProperties.toURI())));
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error reading social properties file: {}", this.socialPropFile, e);
 			throw new IOException("An error occurred reading the current social properties file. Detailed message = "
 					+ e.getMessage());
 		}
@@ -321,7 +359,8 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * 
+	 * Reloads social properties and clears all cached email sessions, stores, and
+	 * derived property maps.
 	 */
 	public void reloadProps() {
 		// null out values to be reset
@@ -337,38 +376,79 @@ public class SocialPropertiesProcessor {
 		this.imapEmailStore = null;
 	}
 
+	/**
+	 * Switch to using {@link #getAvailableProviders()}
+	 *
+	 * @return legacy provider-login allowlist map
+	 */
+	@Deprecated
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.loginsAllowedMap;
 	}
 
+	/**
+	 * Returns the enabled provider metadata built from social properties.
+	 *
+	 * @return list of enabled provider metadata maps
+	 */
 	public List<Map<String, Object>> getAvailableProviders() {
 		return this.availableProviders;
 	}
 
+	/**
+	 * Returns a social property value.
+	 *
+	 * @param key property key
+	 * @return property value or {@code null} when absent
+	 */
 	public String getProperty(String key) {
 		return this.socialData.getProperty(key);
 	}
 
+	/**
+	 * Returns a social property value with fallback.
+	 *
+	 * @param key          property key
+	 * @param defaultValue fallback when key is absent
+	 * @return configured value or {@code defaultValue}
+	 */
 	public String getProperty(String key, String defaultValue) {
 		return this.socialData.getProperty(key, defaultValue);
 	}
 
+	/**
+	 * Returns a raw social property object.
+	 *
+	 * @param key property key
+	 * @return raw property value object or {@code null} when absent
+	 */
 	public Object get(Object key) {
 		return this.socialData.get(key);
 	}
 
+	/**
+	 * Checks whether a social property key exists.
+	 *
+	 * @param key property key
+	 * @return {@code true} when the key exists
+	 */
 	public boolean containsKey(String key) {
 		return this.socialData.containsKey(key);
 	}
 
+	/**
+	 * Returns all property keys currently loaded.
+	 *
+	 * @return set of property names
+	 */
 	public Set<String> stringPropertyNames() {
 		return this.socialData.stringPropertyNames();
 	}
 
 	/**
-	 * Method to get the redirect URL if defined in the social properties
-	 * 
-	 * @return
+	 * Returns the login redirect URL normalized to end in {@code #!/login}.
+	 *
+	 * @return normalized login redirect URL
 	 */
 	public String getLoginRedirect() {
 		String redirectUrl = this.socialData.getProperty("redirect");
@@ -386,25 +466,10 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Get the SEMOSS user id to the list of SAML attributes that generate the value
-	 * 
-	 * #### SAML Attributes goes here ##### Rule for specifying the key-values #
-	 * applicationKey - Used by the application. This is specified in the code(See
-	 * SamlAttributeMapperObject class enum). saml_<key_in_saml_assertion> - This is
-	 * the name of the value specified in AM. Needs to be set here. isMandatory -
-	 * specifies true or false whether the field is required. Need to be set here,
-	 * either true or false. defaultValue - specifies a default value in case a
-	 * field is not required. This is optional to set. Add new key value pairs in
-	 * the below format. saml_<key_in_saml_assertion>
-	 * <applicationKey->isMandatory->defaultValue> More than 1 mandatory fields can
-	 * be specified here.
-	 * 
-	 * Example:
-	 * 
-	 * saml_id DOD_EDI_PN_ID saml_name FIRST_NAME+MIDDLE_NAME+LAST_NAME saml_email
-	 * NULL saml_username FIRST_NAME+MIDDLE_NAME+LAST_NAME
-	 * 
-	 * @return
+	 * Parses configured {@code saml_*} properties into a map of application keys to
+	 * ordered source attribute lists.
+	 *
+	 * @return map of SAML application key to source attribute array
 	 */
 	public Map<String, String[]> getSamlAttributeNames() {
 		final String NULL_INPUT = "NULL";
@@ -432,23 +497,37 @@ public class SocialPropertiesProcessor {
 		return samlAttrMap;
 	}
 
+	/**
+	 * Indicates whether central SMTP configuration is enabled.
+	 *
+	 * @return {@code true} when SMTP is enabled
+	 */
 	public boolean smtpEmailEnabled() {
 		return Boolean.parseBoolean(this.socialData.getProperty(SMTP_ENABLED, "false"));
 	}
 
+	/**
+	 * Indicates whether central POP3 configuration is enabled.
+	 *
+	 * @return {@code true} when POP3 is enabled
+	 */
 	public boolean pop3EmailEnabled() {
 		return Boolean.parseBoolean(this.socialData.getProperty(POP3_ENABLED, "false"));
 	}
 
+	/**
+	 * Indicates whether central IMAP configuration is enabled.
+	 *
+	 * @return {@code true} when IMAP is enabled
+	 */
 	public boolean imapEmailEnabled() {
 		return Boolean.parseBoolean(this.socialData.getProperty(IMAP_ENABLED, "false"));
 	}
 
 	/**
-	 * Return a properties object with the details of the application central SMTP
-	 * server
-	 * 
-	 * @return
+	 * Loads SMTP transport properties from keys prefixed with {@code smtp_}.
+	 *
+	 * @return SMTP properties or {@code null} when none are configured
 	 */
 	public Properties loadSmtpEmailProperties() {
 		final String prefix = "smtp_";
@@ -456,6 +535,9 @@ public class SocialPropertiesProcessor {
 		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str -> str.startsWith(prefix))
 				.collect(Collectors.toSet());
 		for (String key : smtpKeys) {
+			if (SMTP_ONLY_CUSTOM_PROPS.equals(key)) {
+				continue;
+			}
 			Object smtpValue = socialData.get(key);
 			if (smtpValue == null) {
 				continue;
@@ -471,10 +553,9 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Return a properties object with the details of the application central POP3
-	 * server
-	 * 
-	 * @return
+	 * Loads POP3 transport properties from keys prefixed with {@code pop3_}.
+	 *
+	 * @return POP3 properties or {@code null} when none are configured
 	 */
 	public Properties loadPop3EmailProperties() {
 		final String prefix = "pop3_";
@@ -482,6 +563,9 @@ public class SocialPropertiesProcessor {
 		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str -> str.startsWith(prefix))
 				.collect(Collectors.toSet());
 		for (String key : smtpKeys) {
+			if (POP3_ONLY_CUSTOM_PROPS.equals(key)) {
+				continue;
+			}
 			Object smtpValue = socialData.get(key);
 			if (smtpValue == null) {
 				continue;
@@ -497,10 +581,9 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Return a properties object with the details of the application central POP3
-	 * server
-	 * 
-	 * @return
+	 * Loads IMAP transport properties from keys prefixed with {@code imap_}.
+	 *
+	 * @return IMAP properties or {@code null} when none are configured
 	 */
 	public Properties loadImapEmailProperties() {
 		final String prefix = "imap_";
@@ -508,6 +591,9 @@ public class SocialPropertiesProcessor {
 		Set<String> smtpKeys = this.socialData.stringPropertyNames().stream().filter(str -> str.startsWith(prefix))
 				.collect(Collectors.toSet());
 		for (String key : smtpKeys) {
+			if (IMAP_ONLY_CUSTOM_PROPS.equals(key)) {
+				continue;
+			}
 			Object smtpValue = socialData.get(key);
 			if (smtpValue == null) {
 				continue;
@@ -523,9 +609,10 @@ public class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Return static properties that can be used to fill in for email templates
-	 * 
-	 * @return
+	 * Loads static email template replacement properties from keys prefixed with
+	 * {@code smtpprop_}.
+	 *
+	 * @return map of static template replacement values
 	 */
 	public Map<String, String> loadSmtpEmailStaticProps() {
 		final String prefix = "smtpprop_";
@@ -544,6 +631,13 @@ public class SocialPropertiesProcessor {
 		return emailStaticProps;
 	}
 
+	/**
+	 * Initializes the shared SMTP session from configured SMTP properties. Security
+	 * defaults are applied unless {@code smtp_only_custom_props=true}.
+	 *
+	 * @throws IllegalArgumentException when SMTP is enabled but configuration is
+	 *                                  missing or invalid
+	 */
 	public void loadSmtpEmailSession() {
 		if (this.socialData == null || !smtpEmailEnabled()) {
 			return;
@@ -555,6 +649,20 @@ public class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
+		boolean smtpOnlyCustomProps = Boolean
+				.parseBoolean(this.socialData.getProperty(SMTP_ONLY_CUSTOM_PROPS, "false"));
+		if (!smtpOnlyCustomProps) {
+			boolean smtpSslEnabled = Boolean
+					.parseBoolean(this.smtpEmailProps.getProperty("mail.smtp.ssl.enable", "false"));
+			this.smtpEmailProps.setProperty("mail.smtp.starttls.enable", "true");
+			if (!smtpSslEnabled) {
+				this.smtpEmailProps.setProperty("mail.smtp.starttls.required", "true");
+			}
+			this.smtpEmailProps.setProperty("mail.smtp.ssl.checkserveridentity", "true");
+			if (this.smtpEmailProps.getProperty("mail.smtp.ssl.protocols") == null) {
+				this.smtpEmailProps.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+			}
+		}
 		this.smtpEmailStaticProps = getSmtpEmailStaticProps();
 
 		String username = getSmtpUsername();
@@ -564,6 +672,8 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps, new jakarta.mail.Authenticator() {
+					/** {@inheritDoc} */
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -573,7 +683,7 @@ public class SocialPropertiesProcessor {
 				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating SMTP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -581,6 +691,14 @@ public class SocialPropertiesProcessor {
 		}
 	}
 
+	/**
+	 * Initializes and connects the shared POP3 store from configured POP3
+	 * properties. Security defaults are applied unless
+	 * {@code pop3_only_custom_props=true}.
+	 *
+	 * @throws IllegalArgumentException when POP3 is enabled but configuration is
+	 *                                  missing or invalid
+	 */
 	public void loadPop3EmailSession() {
 		if (this.socialData == null || !pop3EmailEnabled()) {
 			return;
@@ -592,9 +710,35 @@ public class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"POP3 properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		this.pop3EmailProps.setProperty("mail.store.protocol", "pop3");
+		boolean pop3OnlyCustomProps = Boolean
+				.parseBoolean(this.socialData.getProperty(POP3_ONLY_CUSTOM_PROPS, "false"));
+		if (!pop3OnlyCustomProps) {
+			this.pop3EmailProps.setProperty("mail.store.protocol", "pop3s");
+			this.pop3EmailProps.setProperty("mail.pop3.ssl.enable", "true");
+			this.pop3EmailProps.setProperty("mail.pop3s.ssl.enable", "true");
+			this.pop3EmailProps.setProperty("mail.pop3.ssl.checkserveridentity", "true");
+			this.pop3EmailProps.setProperty("mail.pop3s.ssl.checkserveridentity", "true");
+			if (this.pop3EmailProps.getProperty("mail.pop3.ssl.protocols") == null) {
+				this.pop3EmailProps.setProperty("mail.pop3.ssl.protocols", "TLSv1.2 TLSv1.3");
+			}
+			if (this.pop3EmailProps.getProperty("mail.pop3s.ssl.protocols") == null) {
+				this.pop3EmailProps.setProperty("mail.pop3s.ssl.protocols", "TLSv1.2 TLSv1.3");
+			}
+		}
 
-		String host = this.pop3EmailProps.getProperty("mail.pop3.host");
+		String pop3StoreProtocol = this.pop3EmailProps.getProperty("mail.store.protocol", "pop3s");
+		String host = null;
+		if ("pop3".equalsIgnoreCase(pop3StoreProtocol)) {
+			host = this.pop3EmailProps.getProperty("mail.pop3.host");
+			if (host == null || host.trim().isEmpty()) {
+				host = this.pop3EmailProps.getProperty("mail.pop3s.host");
+			}
+		} else {
+			host = this.pop3EmailProps.getProperty("mail.pop3s.host");
+			if (host == null || host.trim().isEmpty()) {
+				host = this.pop3EmailProps.getProperty("mail.pop3.host");
+			}
+		}
 		String username = getPop3Username();
 		String password = getPop3Password();
 
@@ -603,6 +747,8 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.pop3EmailProps, new jakarta.mail.Authenticator() {
+					/** {@inheritDoc} */
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -612,7 +758,7 @@ public class SocialPropertiesProcessor {
 				emailSession = Session.getInstance(this.pop3EmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating POP3 email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -621,10 +767,10 @@ public class SocialPropertiesProcessor {
 
 		try {
 			// create the POP3 store object and connect with the pop server
-			this.pop3EmailStore = emailSession.getStore("pop3s");
+			this.pop3EmailStore = emailSession.getStore(pop3StoreProtocol);
 			this.pop3EmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error connecting to POP3 email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -632,6 +778,14 @@ public class SocialPropertiesProcessor {
 		}
 	}
 
+	/**
+	 * Initializes and connects the shared IMAP store from configured IMAP
+	 * properties. Security defaults are applied unless
+	 * {@code imap_only_custom_props=true}.
+	 *
+	 * @throws IllegalArgumentException when IMAP is enabled but configuration is
+	 *                                  missing or invalid
+	 */
 	public void loadImapEmailSession() {
 		if (this.socialData == null || !imapEmailEnabled()) {
 			return;
@@ -643,9 +797,35 @@ public class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"IMAP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		this.imapEmailProps.setProperty("mail.store.protocol", "imaps");
+		boolean imapOnlyCustomProps = Boolean
+				.parseBoolean(this.socialData.getProperty(IMAP_ONLY_CUSTOM_PROPS, "false"));
+		if (!imapOnlyCustomProps) {
+			this.imapEmailProps.setProperty("mail.store.protocol", "imaps");
+			this.imapEmailProps.setProperty("mail.imap.ssl.enable", "true");
+			this.imapEmailProps.setProperty("mail.imaps.ssl.enable", "true");
+			this.imapEmailProps.setProperty("mail.imap.ssl.checkserveridentity", "true");
+			this.imapEmailProps.setProperty("mail.imaps.ssl.checkserveridentity", "true");
+			if (this.imapEmailProps.getProperty("mail.imap.ssl.protocols") == null) {
+				this.imapEmailProps.setProperty("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
+			}
+			if (this.imapEmailProps.getProperty("mail.imaps.ssl.protocols") == null) {
+				this.imapEmailProps.setProperty("mail.imaps.ssl.protocols", "TLSv1.2 TLSv1.3");
+			}
+		}
 
-		String host = this.imapEmailProps.getProperty("mail.imap.host");
+		String imapStoreProtocol = this.imapEmailProps.getProperty("mail.store.protocol", "imaps");
+		String host = null;
+		if ("imap".equalsIgnoreCase(imapStoreProtocol)) {
+			host = this.imapEmailProps.getProperty("mail.imap.host");
+			if (host == null || host.trim().isEmpty()) {
+				host = this.imapEmailProps.getProperty("mail.imaps.host");
+			}
+		} else {
+			host = this.imapEmailProps.getProperty("mail.imaps.host");
+			if (host == null || host.trim().isEmpty()) {
+				host = this.imapEmailProps.getProperty("mail.imap.host");
+			}
+		}
 		String username = getImapUsername();
 		String password = getImapPassword();
 
@@ -654,6 +834,8 @@ public class SocialPropertiesProcessor {
 			if (username != null && password != null) {
 				logger.info("Making secured connection to the email server");
 				emailSession = Session.getInstance(this.imapEmailProps, new jakarta.mail.Authenticator() {
+					/** {@inheritDoc} */
+					@Override
 					protected PasswordAuthentication getPasswordAuthentication() {
 						return new PasswordAuthentication(username, password);
 					}
@@ -663,7 +845,7 @@ public class SocialPropertiesProcessor {
 				emailSession = Session.getInstance(this.imapEmailProps);
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error creating IMAP email session", e);
 			throw new IllegalArgumentException(
 					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -672,10 +854,10 @@ public class SocialPropertiesProcessor {
 
 		try {
 			// create the POP3 store object and connect with the pop server
-			this.imapEmailStore = emailSession.getStore("imaps");
+			this.imapEmailStore = emailSession.getStore(imapStoreProtocol);
 			this.imapEmailStore.connect(host, username, password);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error connecting to IMAP email store at host: {}", host, e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -683,34 +865,74 @@ public class SocialPropertiesProcessor {
 		}
 	}
 
+	/**
+	 * Returns the configured SMTP username.
+	 *
+	 * @return SMTP username or {@code null} when not set
+	 */
 	public String getSmtpUsername() {
 		return this.socialData.getProperty(SMTP_USERNAME);
 	}
 
+	/**
+	 * Returns the configured SMTP password.
+	 *
+	 * @return SMTP password or {@code null} when not set
+	 */
 	public String getSmtpPassword() {
 		return this.socialData.getProperty(SMTP_PASSWORD);
 	}
 
+	/**
+	 * Returns the configured SMTP sender address.
+	 *
+	 * @return sender email address or {@code null} when not set
+	 */
 	public String getSmtpSender() {
 		return this.socialData.getProperty(SMTP_SENDER);
 	}
 
+	/**
+	 * Returns the configured POP3 username.
+	 *
+	 * @return POP3 username or {@code null} when not set
+	 */
 	public String getPop3Username() {
 		return this.socialData.getProperty(POP3_USERNAME);
 	}
 
+	/**
+	 * Returns the configured POP3 password.
+	 *
+	 * @return POP3 password or {@code null} when not set
+	 */
 	public String getPop3Password() {
 		return this.socialData.getProperty(POP3_PASSWORD);
 	}
 
+	/**
+	 * Returns the configured IMAP username.
+	 *
+	 * @return IMAP username or {@code null} when not set
+	 */
 	public String getImapUsername() {
 		return this.socialData.getProperty(IMAP_USERNAME);
 	}
 
+	/**
+	 * Returns the configured IMAP password.
+	 *
+	 * @return IMAP password or {@code null} when not set
+	 */
 	public String getImapPassword() {
 		return this.socialData.getProperty(IMAP_PASSWORD);
 	}
 
+	/**
+	 * Returns the cached SMTP session, loading it if necessary.
+	 *
+	 * @return SMTP session or {@code null} when SMTP is disabled
+	 */
 	public Session getSmtpEmailSession() {
 		if (this.smtpEmailSession == null) {
 			loadSmtpEmailSession();
@@ -718,6 +940,11 @@ public class SocialPropertiesProcessor {
 		return this.smtpEmailSession;
 	}
 
+	/**
+	 * Returns the cached POP3 store, loading and connecting it if necessary.
+	 *
+	 * @return POP3 store or {@code null} when POP3 is disabled
+	 */
 	public Store getPop3EmailStore() {
 		if (this.pop3EmailStore == null) {
 			loadPop3EmailSession();
@@ -725,6 +952,11 @@ public class SocialPropertiesProcessor {
 		return this.pop3EmailStore;
 	}
 
+	/**
+	 * Returns the cached IMAP store, loading and connecting it if necessary.
+	 *
+	 * @return IMAP store or {@code null} when IMAP is disabled
+	 */
 	public Store getImapEmailStore() {
 		if (this.imapEmailStore == null) {
 			loadImapEmailSession();
@@ -732,6 +964,11 @@ public class SocialPropertiesProcessor {
 		return this.imapEmailStore;
 	}
 
+	/**
+	 * Returns a defensive copy of configured SMTP properties.
+	 *
+	 * @return SMTP properties copy or {@code null} when not configured
+	 */
 	public Properties getSmtpEmailProps() {
 		if (this.smtpEmailProps == null) {
 			this.smtpEmailProps = loadSmtpEmailProperties();
@@ -742,6 +979,11 @@ public class SocialPropertiesProcessor {
 		return new Properties(this.smtpEmailProps);
 	}
 
+	/**
+	 * Returns a defensive copy of configured POP3 properties.
+	 *
+	 * @return POP3 properties copy or {@code null} when not configured
+	 */
 	public Properties getPop3EmailProps() {
 		if (this.pop3EmailProps == null) {
 			this.pop3EmailProps = loadPop3EmailProperties();
@@ -752,6 +994,11 @@ public class SocialPropertiesProcessor {
 		return new Properties(this.pop3EmailProps);
 	}
 
+	/**
+	 * Returns a defensive copy of configured IMAP properties.
+	 *
+	 * @return IMAP properties copy or {@code null} when not configured
+	 */
 	public Properties getImapEmailProps() {
 		if (this.imapEmailProps == null) {
 			this.imapEmailProps = loadImapEmailProperties();
@@ -762,6 +1009,12 @@ public class SocialPropertiesProcessor {
 		return new Properties(this.imapEmailProps);
 	}
 
+	/**
+	 * Returns a defensive copy of static SMTP email template properties.
+	 *
+	 * @return static SMTP template properties copy or {@code null} when not
+	 *         configured
+	 */
 	public Map<String, String> getSmtpEmailStaticProps() {
 		if (this.smtpEmailStaticProps == null) {
 			this.smtpEmailStaticProps = loadSmtpEmailStaticProps();

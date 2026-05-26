@@ -43,68 +43,67 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.om.AbstractValueObject;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.git.GitRepoUtils;
-import prerna.util.Constants;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+public class AppTokens extends AbstractValueObject {
 
-public class AppTokens extends AbstractValueObject{
-	protected static final Logger logger = LogManager.getLogger(AppTokens.class);
+	protected static final Logger classLogger = LogManager.getLogger(AppTokens.class);
 
 	// name of this user in the SEMOSS system if there is one
-	
+
 	private static AppTokens app = null;
-	
+
 	private static SocialPropertiesUtil socialData = null;
 	private static AccessToken twitToken = null;
-	private static AccessToken googAppToken = null; 
-	
+	private static AccessToken googAppToken = null;
+
 	// need to have an access token store
 	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
-	
+
 	private AppTokens() {
-		
+
 	}
-	
+
 	public static AppTokens getInstance() {
-		if(app == null) {
+		if (app == null) {
 			app = new AppTokens();
 			loginGoogleApp();
 			loginTwitterApp();
-			
-			if(googAppToken != null) {
+
+			if (googAppToken != null) {
 				app.setAccessToken(googAppToken);
 			}
-			if(twitToken != null) {
+			if (twitToken != null) {
 				app.setAccessToken(twitToken);
 			}
-			
+
 			socialData = SocialPropertiesUtil.getInstance();
 		}
 		return app;
 	}
-	
+
 	public void setAccessToken(AccessToken value) {
 		AuthProvider name = value.getProvider();
 		accessTokens.put(name, value);
 	}
-	
+
 	public AccessToken getAccessToken(AuthProvider name) {
 		AccessToken token = accessTokens.get(name);
-		if(token == null) {
-			if(name == AuthProvider.TWITTER) {
+		if (token == null) {
+			if (name == AuthProvider.TWITTER) {
 				loginTwitterApp();
-				if(twitToken != null) {
+				if (twitToken != null) {
 					app.setAccessToken(twitToken);
 				}
-			} else if(name == AuthProvider.GOOGLE_MAP) {
+			} else if (name == AuthProvider.GOOGLE_MAP) {
 				loginGoogleApp();
-				if(googAppToken != null) {
+				if (googAppToken != null) {
 					app.setAccessToken(googAppToken);
 				}
 			}
@@ -113,103 +112,176 @@ public class AppTokens extends AbstractValueObject{
 		}
 		return token;
 	}
-	
+
 	public void dropAccessToken(AuthProvider name) {
 		accessTokens.remove(name);
 	}
-	
-	private static void loginTwitterApp() {
-		// getting the bearer token on twitter for app authentication is a lot simpler
-		// need to just combine the id and secret
-		// base 64 and send as authorization
-		GitRepoUtils.addCertForDomain("https://twitter.com");
-		
-		InputStream is = null;
-		InputStreamReader isr = null;
-		BufferedReader rd = null;
-		CloseableHttpClient httpclient = null;
-		if(twitToken == null) {
-			try {
-				String prefix = "twitter_";
-				String clientId = "***REMOVED***";
-				String clientSecret = "***REMOVED***";
-				if(socialData != null && socialData.containsKey(prefix+"client_id")) {
-					clientId = socialData.getProperty(prefix+"client_id");
-				}
-				if(socialData != null && socialData.containsKey(prefix+"secret_key")) {
-					clientSecret = socialData.getProperty(prefix+"secret_key");
-				}
-				
-				// make a joint string
-				String jointString = clientId + ":" + clientSecret;
 
-				// encde this base 64
-				String encodedJointString = new String(Base64.getEncoder().encode(jointString.getBytes()));
-				httpclient = HttpClients.createDefault();
-				HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
-				httppost.addHeader("Authorization", "Basic " + encodedJointString);
-
-				List<NameValuePair> paramList = new ArrayList<NameValuePair>();
-				paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
-				httppost.setEntity(new UrlEncodedFormEntity(paramList));
-
-				CloseableHttpResponse authResp = httpclient.execute(httppost);
-
-				System.out.println("Response Code " + authResp.getStatusLine().getStatusCode());
-
-				is = authResp.getEntity().getContent();
-				isr = new InputStreamReader(is);
-				rd = new BufferedReader(isr);
-				StringBuffer result = new StringBuffer();
-				String line = "";
-				while ((line = rd.readLine()) != null) {
-					result.append(line);
-				}
-
-				twitToken = HttpHelperUtility.getJAccessToken(result.toString());
-				twitToken.setProvider(AuthProvider.TWITTER);
-			} catch(Exception ex) {
-				logger.error(Constants.STACKTRACE, ex);
-			} finally {
-				if(is != null) {
-					try {
-						is.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(isr != null) {
-					try {
-						isr.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(rd != null) {
-					try {
-						rd.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-				if(httpclient != null) {
-					try {
-						httpclient.close();
-					} catch(IOException e) {
-						// ignore
-					}
-				}
-			}
-		}
-	}
-	
 	private static void loginGoogleApp() {
 		// nothing big here
 		// set the name on accesstoken
-		if(socialData != null && googAppToken == null) {
+		if (socialData != null && googAppToken == null) {
 			googAppToken = new AccessToken();
 			googAppToken.setAccess_token(socialData.getProperty("google_maps_api"));
 			googAppToken.setProvider(AuthProvider.GOOGLE_MAP);
+		}
+	}
+
+	private static void loginTwitterApp() {
+		if (twitToken != null) {
+			return; // Token already exists
+		}
+
+		CloseableHttpClient httpclient = null;
+		CloseableHttpResponse authResp = null;
+
+		try {
+			// Load credentials
+			TwitterCredentials credentials = loadTwitterCredentials();
+			if (credentials == null) {
+				classLogger.warn("Twitter credentials not configured");
+				return;
+			}
+
+			// Add SSL certificate support
+			GitRepoUtils.addCertForDomain("https://twitter.com");
+
+			// Create and encode credentials
+			String jointString = credentials.getEncodedCredentials();
+
+			// Build and execute request
+			httpclient = HttpClients.createDefault();
+			HttpPost httppost = new HttpPost("https://api.twitter.com/oauth2/token");
+			httppost.addHeader("Authorization", "Basic " + jointString);
+			httppost.addHeader("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8");
+
+			List<NameValuePair> paramList = new ArrayList<>();
+			paramList.add(new BasicNameValuePair("grant_type", "client_credentials"));
+			httppost.setEntity(new UrlEncodedFormEntity(paramList, "UTF-8"));
+
+			authResp = httpclient.execute(httppost);
+
+			int statusCode = authResp.getStatusLine().getStatusCode();
+			classLogger.info("Twitter authentication response code: {}", statusCode);
+
+			if (statusCode == 200) {
+				String responseBody = readResponseBody(authResp);
+				twitToken = HttpHelperUtility.getJAccessToken(responseBody);
+				twitToken.setProvider(AuthProvider.TWITTER);
+				classLogger.info("Successfully authenticated with Twitter API");
+			} else {
+				String errorBody = readResponseBody(authResp);
+				classLogger.error("Twitter authentication failed with status {}: {}", statusCode, errorBody);
+			}
+
+			// Clear sensitive data
+			credentials.clear();
+
+		} catch (IOException ex) {
+			classLogger.error("IOException during Twitter authentication", ex);
+		} catch (Exception ex) {
+			classLogger.error("Unexpected error during Twitter authentication", ex);
+		} finally {
+			closeQuietly(authResp);
+			closeQuietly(httpclient);
+		}
+	}
+
+	/**
+	 * Helper class to securely manage Twitter credentials
+	 */
+	private static class TwitterCredentials {
+		private char[] clientId;
+		private char[] clientSecret;
+
+		public TwitterCredentials(char[] clientId, char[] clientSecret) {
+			this.clientId = clientId;
+			this.clientSecret = clientSecret;
+		}
+
+		public String getEncodedCredentials() {
+			String combined = new String(clientId) + ":" + new String(clientSecret);
+			String encoded = Base64.getEncoder().encodeToString(combined.getBytes());
+			overwriteString(combined);
+			return encoded;
+		}
+
+		public void clear() {
+			overwriteCharArray(clientId);
+			overwriteCharArray(clientSecret);
+		}
+
+		private void overwriteString(String str) {
+			str = null;
+		}
+	}
+
+	/**
+	 * Load Twitter credentials from social properties
+	 */
+	private static TwitterCredentials loadTwitterCredentials() {
+		if (socialData == null) {
+			return null;
+		}
+
+		String prefix = "twitter_";
+		char[] clientId = null;
+		char[] clientSecret = null;
+
+		if (socialData.containsKey(prefix + "client_id")) {
+			clientId = socialData.getProperty(prefix + "client_id").toCharArray();
+		}
+		if (socialData.containsKey(prefix + "secret_key")) {
+			clientSecret = socialData.getProperty(prefix + "secret_key").toCharArray();
+		}
+
+		if (clientId == null || clientSecret == null) {
+			if (clientId != null) {
+				overwriteCharArray(clientId);
+			}
+			if (clientSecret != null) {
+				overwriteCharArray(clientSecret);
+			}
+			return null;
+		}
+
+		return new TwitterCredentials(clientId, clientSecret);
+	}
+
+	/**
+	 * Read response body from HTTP response
+	 */
+	private static String readResponseBody(CloseableHttpResponse response) throws IOException {
+		if (response == null || response.getEntity() == null) {
+			return "";
+		}
+
+		try (InputStream is = response.getEntity().getContent();
+				InputStreamReader isr = new InputStreamReader(is, "UTF-8");
+				BufferedReader rd = new BufferedReader(isr)) {
+
+			StringBuilder result = new StringBuilder();
+			String line;
+			while ((line = rd.readLine()) != null) {
+				result.append(line);
+			}
+			return result.toString();
+		}
+	}
+
+	private static void closeQuietly(AutoCloseable closeable) {
+		if (closeable != null) {
+			try {
+				closeable.close();
+			} catch (Exception e) {
+				classLogger.debug("Error closing resource: {}", e.getMessage());
+			}
+		}
+	}
+
+	private static void overwriteCharArray(char[] val) {
+		if (val != null) {
+			java.util.Arrays.fill(val, '\0');
 		}
 	}
 

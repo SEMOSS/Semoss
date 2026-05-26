@@ -34,6 +34,7 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
@@ -41,21 +42,135 @@ import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 public class ResponseMessage extends AbstractMessage {
 
 	@SerializedName("content")
+	@Deprecated
 	private String content;
 
 	@SerializedName("thinking")
+	@Deprecated
 	private String thinking;
 
 	@SerializedName("type")
+	@Deprecated
 	private MessageType type = MessageType.RESPONSE_TEXT;
 
 	@SerializedName("tool_responses")
+	@Deprecated
 	private List<Map<String, Object>> toolResponses = new ArrayList<>();
 
 	private transient AskModelEngineResponse<?> modelEngineResponse;
 
 	private ResponseMessage() {
 		super();
+	}
+
+	@Override
+	public void normalizeAfterLoad(Room room) {
+		super.normalizeAfterLoad(room);
+		ensurePartsFromLegacy();
+		ensureLegacyFromParts();
+
+		for (MessagePart part : getParts()) {
+			if (MessagePartType.MEDIA == part.type) {
+				MediaMessagePart mediaMessagePart = (MediaMessagePart) part;
+				if (room != null) {
+					mediaMessagePart.getMediaInfo().setRoomFolder(room.getRoomFolderPath());
+				}
+				mediaMessagePart.getMediaInfo().getBase64Data();
+			}
+		}
+	}
+
+	@Override
+	public void normalizeForWrite() {
+		if (io == null) {
+			io = MessageIO.OUTPUT;
+		}
+		ensurePartsFromLegacy();
+		ensureLegacyFromParts();
+		super.normalizeForWrite();
+		stripLegacyFieldsForWrite();
+	}
+
+	/**
+	 * When persisting schema v2+ messages, avoid writing the legacy flat fields.
+	 * They can always be re-derived from {@code parts} on load.
+	 */
+	private void stripLegacyFieldsForWrite() {
+		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
+			return;
+		}
+		this.content = null;
+		this.thinking = null;
+		this.toolResponses = null;
+	}
+
+	private void ensurePartsFromLegacy() {
+		if (hasParts()) {
+			return;
+		}
+
+		if (content != null && !content.trim().isEmpty()) {
+			addPart(new TextMessagePart(content));
+		}
+		if (thinking != null && !thinking.trim().isEmpty()) {
+			addPart(new ThinkingMessagePart(thinking));
+		}
+		if (toolResponses != null && !toolResponses.isEmpty()) {
+			for (Map<String, Object> toolCall : toolResponses) {
+				addPart(new ToolCallMessagePart(toolCall));
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void ensureLegacyFromParts() {
+		if (!hasParts()) {
+			return;
+		}
+
+		String derivedText = null;
+		String derivedThinking = null;
+		List<Map<String, Object>> derivedToolCalls = null;
+		boolean hasMedia = false;
+
+		for (MessagePart part : getParts()) {
+			if (part == null || part.getType() == null) {
+				continue;
+			}
+			if (part.getType() == MessagePartType.TEXT && derivedText == null) {
+				if (part instanceof TextMessagePart) {
+					derivedText = ((TextMessagePart) part).getText();
+				}
+			} else if (part.getType() == MessagePartType.THINKING && derivedThinking == null) {
+				if (part instanceof ThinkingMessagePart) {
+					derivedThinking = ((ThinkingMessagePart) part).getThinking();
+				}
+			} else if (part.getType() == MessagePartType.MEDIA) {
+				hasMedia = true;
+			}
+		}
+
+		derivedToolCalls = this.getToolResponses();
+
+		if (derivedText != null && (content == null || content.isEmpty())) {
+			content = derivedText;
+		}
+		if (derivedThinking != null && (thinking == null || thinking.isEmpty())) {
+			thinking = derivedThinking;
+		}
+		if (derivedToolCalls != null && !derivedToolCalls.isEmpty()
+				&& (toolResponses == null || toolResponses.isEmpty())) {
+			toolResponses = new ArrayList<>(derivedToolCalls);
+		}
+
+		MessagePart lastPart = parts.getLast();
+		if (lastPart.getType() == MessagePartType.TOOL_CALL) {
+			type = MessageType.RESPONSE_TOOL;
+		} else if (lastPart.getType() == MessagePartType.MEDIA) {
+			type = MessageType.RESPONSE_MEDIA;
+		} else {
+			type = MessageType.RESPONSE_TEXT;
+		}
 	}
 
 	public AskModelEngineResponse<?> getModelEngineResponse() {
@@ -72,19 +187,50 @@ public class ResponseMessage extends AbstractMessage {
 	}
 
 	public String getContent() {
+		if (hasParts()) {
+			for (MessagePart part : getParts()) {
+				if (part instanceof TextMessagePart) {
+					String text = ((TextMessagePart) part).getText();
+					if (text != null) {
+						return text;
+					}
+				}
+			}
+		}
 		return content;
 	}
 
 	public String getThinking() {
+		if (hasParts()) {
+			for (MessagePart part : getParts()) {
+				if (part instanceof ThinkingMessagePart) {
+					String t = ((ThinkingMessagePart) part).getThinking();
+					if (t != null) {
+						return t;
+					}
+				}
+			}
+		}
 		return thinking;
 	}
 
 	public List<Map<String, Object>> getToolResponses() {
-		return new ArrayList<>(toolResponses);
+		if (hasParts()) {
+			List<Map<String, Object>> allTools = new ArrayList<>();
+			for (MessagePart part : getParts()) {
+				if (part instanceof ToolCallMessagePart) {
+					allTools.add(((ToolCallMessagePart) part).getToolCall());
+				}
+			}
+			if (!allTools.isEmpty()) {
+				return allTools;
+			}
+		}
+		return toolResponses != null ? new ArrayList<>(toolResponses) : new ArrayList<>();
 	}
 
 	public boolean hasToolResponses() {
-		return toolResponses != null && !toolResponses.isEmpty();
+		return hasToolCallPart() || (toolResponses != null && !toolResponses.isEmpty());
 	}
 
 	public void setContent(String content) {
@@ -117,27 +263,31 @@ public class ResponseMessage extends AbstractMessage {
 		private final ResponseMessage message = new ResponseMessage();
 
 		public Builder withText(String content) {
-			message.content = content;
+			if (content != null && !content.isEmpty()) {
+				message.addPart(new TextMessagePart(content));
+			}
 			return this;
 		}
 
 		public Builder withType(MessageType type) {
+			// Legacy-only: keep for compatibility, but behavior is driven by parts.
 			message.type = type;
 			return this;
 		}
 
 		public Builder withToolResponses(List<Map<String, Object>> toolResponses) {
-			message.setToolResponses(toolResponses);
-			message.type = MessageType.RESPONSE_TOOL;
+			if (toolResponses != null && !toolResponses.isEmpty()) {
+				for (Map<String, Object> toolCall : toolResponses) {
+					message.addPart(new ToolCallMessagePart(toolCall));
+				}
+			}
 			return this;
 		}
 
-		public Builder addToolResponse(Map<String, Object> toolResponse) {
-			if (message.toolResponses == null) {
-				message.toolResponses = new ArrayList<>();
+		public Builder withToolResponse(Map<String, Object> toolResponse) {
+			if (toolResponse != null) {
+				message.addPart(new ToolCallMessagePart(toolResponse));
 			}
-			message.toolResponses.add(toolResponse);
-			message.type = MessageType.RESPONSE_TOOL;
 			return this;
 		}
 
@@ -164,9 +314,11 @@ public class ResponseMessage extends AbstractMessage {
 		}
 
 		public Builder withThinking(String thinking) {
-            message.thinking = thinking;
-            return this;
-        }
+			if (thinking != null && !thinking.isEmpty()) {
+				message.addPart(new ThinkingMessagePart(thinking));
+			}
+			return this;
+		}
 
 		public static Builder fromAskModelEngineResponse(AskModelEngineResponse<?> llmResponse) {
 
@@ -177,33 +329,64 @@ public class ResponseMessage extends AbstractMessage {
 			Builder builder = new Builder();
 			builder.withModelEngineResponse(llmResponse);
 
+			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
+
+			// Prefer parts-based responses, fall back to legacy messageType.
+			if (llmResponse.getParts() != null && !llmResponse.getParts().isEmpty()) {
+				for (MessagePart part : llmResponse.getParts()) {
+					if (part != null) {
+						builder.message.addPart(part);
+					}
+				}
+
+				// Set a legacy type hint for older code paths based on the last part
+				MessagePart lastPart = llmResponse.getParts().getLast();
+				if (lastPart.getType() == MessagePartType.TOOL_CALL) {
+					builder.withType(MessageType.RESPONSE_TOOL);
+				} else if (lastPart.getType() == MessagePartType.MEDIA) {
+					builder.withType(MessageType.RESPONSE_MEDIA);
+				} else {
+					builder.withType(MessageType.RESPONSE_TEXT);
+				}
+				return builder;
+			}
+
 			String messageType = llmResponse.getMessageType();
 			if (AskModelEngineResponse.CHAT.equals(messageType)) {
 				builder.withText(llmResponse.getStringResponse()).withType(MessageType.RESPONSE_TEXT);
-			} else if (AskModelEngineResponse.TOOL.equals(messageType)) {
-				// tool response handling
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
+			}
+
+			if (AskModelEngineResponse.TOOL.equals(messageType)) {
 				if (llmResponse instanceof AskToolModelEngineResponse) {
 					List<Map<String, Object>> toolReps = ((AskToolModelEngineResponse) llmResponse).getToolResponse();
-					builder.withToolResponses(toolReps);
+					builder.withToolResponses(toolReps).withType(MessageType.RESPONSE_TOOL);
 				} else {
-					builder.withText("No tool response").withType(MessageType.RESPONSE_TOOL);
+					builder.withType(MessageType.RESPONSE_TOOL);
 				}
-			} else if (AskModelEngineResponse.IMAGE.equals(messageType)) {
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
+			}
 
-				// TODO build this out
+			if (AskModelEngineResponse.IMAGE.equals(messageType)) {
 				if (llmResponse instanceof AskImageModelEngineResponse) {
 					String[] imgs = ((AskImageModelEngineResponse) llmResponse).getImages();
 					builder.withText(String.join(",", imgs)).withType(MessageType.RESPONSE_MEDIA);
 				} else {
-					builder.withText("No image response").withType(MessageType.RESPONSE_MEDIA);
+					builder.withType(MessageType.RESPONSE_MEDIA);
 				}
-			} else {
-				builder.withText("null").withType(MessageType.RESPONSE_TEXT);
+				if (llmResponse.getThinking() != null) {
+					builder.withThinking(llmResponse.getThinking());
+				}
+				return builder;
 			}
-			
-			if (llmResponse.getThinking() != null) {
-				builder.withThinking(llmResponse.getThinking());
-			}
+
+			builder.withText(llmResponse.getStringResponse()).withType(MessageType.RESPONSE_TEXT);
 			return builder;
 		}
 
@@ -211,6 +394,8 @@ public class ResponseMessage extends AbstractMessage {
 			if (message.type == null) {
 				message.type = MessageType.RESPONSE_TEXT;
 			}
+			// Prefer parts-based schema; keep legacy fields derived for compatibility.
+			message.normalizeForWrite();
 			return message;
 		}
 	}
@@ -225,7 +410,6 @@ public class ResponseMessage extends AbstractMessage {
 		return builder().withToolResponses(toolResponses).withModelEngineResponse(resp).build();
 	}
 
-
 	// Or legacy factories if you want them (w/o model response)
 	public static ResponseMessage text(String content) {
 		return builder().withText(content).withType(MessageType.RESPONSE_TEXT).build();
@@ -236,9 +420,7 @@ public class ResponseMessage extends AbstractMessage {
 	}
 
 	public static ResponseMessage toolResponse(Map<String, Object> toolResponse) {
-		List<Map<String, Object>> toolResponses = new ArrayList<>();
-		toolResponses.add(toolResponse);
-		return builder().withToolResponses(toolResponses).build();
+		return builder().withToolResponse(toolResponse).build();
 	}
 
 }

@@ -27,27 +27,25 @@
  *******************************************************************************/
 package prerna.cluster.util;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import prerna.util.Constants;
 
 public class DeleteProjectRunner implements Runnable {
 
-	protected static final Logger logger = LogManager.getLogger(DeleteProjectRunner.class);
+	protected static final Logger classLogger = LogManager.getLogger(DeleteProjectRunner.class);
 
-	private final String projectId;
-	
-	public DeleteProjectRunner(String projectId) {
-		this.projectId = projectId;
+	private final String PROJECT_ID;
+
+	public DeleteProjectRunner(final String PROJECT_ID) {
+		this.PROJECT_ID = PROJECT_ID;
 	}
-	
+
 	@Override
 	public void run() {
 		try {
-			ClusterUtil.deleteProject(projectId);
+			ClusterUtil.deleteProject(PROJECT_ID);
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error("An error occurred trying to delete the project {} from cloud storage", PROJECT_ID, e);
 		}
 	}
 

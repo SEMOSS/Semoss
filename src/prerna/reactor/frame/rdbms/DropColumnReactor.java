@@ -41,7 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class DropColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DropColumnReactor.class);
 
 	@Override

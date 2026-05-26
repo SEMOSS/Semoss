@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -53,6 +54,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -60,18 +62,17 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(BlocksThemeUtils.class);
 
-	private static BlocksThemeUtils instance = new BlocksThemeUtils();
-
-	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName() + " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST, CREATED_BY) "
+	private static final String BLOCK_QUERY = "INSERT INTO " + ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName()
+			+ " (ID, NAME, SECTION, HOVER_TEXT, BLOCK_JSON, DATE_ADDED, IS_LATEST, CREATED_BY) "
 			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON" , "DATE_ADDED", "IS_LATEST" , "CREATED_BY" };
+	public static String[] BLOCK_COLUMN_NAMES = new String[] { "ID", "NAME", "SECTION", "HOVER_TEXT", "BLOCK_JSON",
+			"DATE_ADDED", "IS_LATEST", "CREATED_BY" };
 
-	
 	private BlocksThemeUtils() {
 
 	}
-	
+
 	private static ThemeDbTable validateThemeDbTable(String tablename) {
 		ThemeDbTable table = ThemeDbTable.valueOf(tablename);
 		if (table == null || !table.equals(ThemeDbTable.BLOCKS_TABLE)) {
@@ -81,67 +82,66 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	// get all blocks
-	public static List<Map<String, Object>> getClientBlocks(String tableName, GenRowFilters filters) throws SQLException {
+	public static List<Map<String, Object>> getClientBlocks(String tableName, GenRowFilters filters)
+			throws SQLException {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		ThemeDbTable table = validateThemeDbTable(tableName);
 		final String blocksPrefix = table.getThemeDbTablePrefix();
 		List<Map<String, Object>> retVal = null;
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
+
 		for (String colName : BlocksThemeUtils.BLOCK_COLUMN_NAMES) {
 			qs.addSelector(new QueryColumnSelector(blocksPrefix + colName));
 		}
-		if(filters != null) {
+		if (filters != null) {
 			qs.mergeExplicitFilters(filters);
 		}
-		
+
 		try {
 			retVal = QueryExecutionUtility.flushRsToMap(themeDb, qs);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		if (retVal == null || retVal.isEmpty()) {
 			return new ArrayList<>();
 		}
-		
-		return retVal.stream()
-		        .map(record -> {
-		            convertBlockJsonStringToJSONObject(record);
-		            return record.entrySet().stream()
-		                    .collect(Collectors.toMap(
-		                        entry -> entry.getKey().toLowerCase(),
-		                        Map.Entry::getValue
-		                    ));
-		        })
-		        .collect(Collectors.toList());
+
+		return retVal.stream().map(record -> {
+			convertBlockJsonStringToJSONObject(record);
+			return record.entrySet().stream()
+					.collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
+		}).collect(Collectors.toList());
 	}
+
 	// convert block_json field into json for output
 	private static void convertBlockJsonStringToJSONObject(Map<String, Object> map) {
-	    try {
-	        String blockJson = (String) map.get("BLOCK_JSON");
-	        Gson gson = new Gson();
-	        Type type = new TypeToken<Map<String, Object>>() {}.getType();
-	        map.put("json", gson.fromJson(blockJson, type));
-	        map.remove("BLOCK_JSON");
-	    } catch (Exception e) {
-	        throw new SemossPixelException("Error converting BLOCK_JSON to json object", e);
-	    }
+		try {
+			String blockJson = (String) map.get("BLOCK_JSON");
+			Gson gson = new Gson();
+			Type type = new TypeToken<Map<String, Object>>() {
+			}.getType();
+			map.put("json", gson.fromJson(blockJson, type));
+			map.remove("BLOCK_JSON");
+		} catch (Exception e) {
+			throw new SemossPixelException("Error converting BLOCK_JSON to json object", e);
+		}
 	}
-	 
 
 	public static Map<String, Object> getBlock(String blockId, String tableName) throws SQLException {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		ThemeDbTable table = validateThemeDbTable(tableName);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		
+
 		for (String colName : BlocksThemeUtils.BLOCK_COLUMN_NAMES) {
 			qs.addSelector(new QueryColumnSelector(table.getThemeDbTablePrefix() + colName));
 		}
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "ID", "==",
-						blockId, PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "IS_LATEST", "==", 1));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "ID", "==", blockId, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter
+				.makeColToValFilter(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "IS_LATEST", "==", 1));
 
 		List<Map<String, Object>> retVal = null;
 		try {
@@ -156,8 +156,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 		return retVal.get(0);
 	}
-	
+
 	public static boolean deleteBlock(String blockId, String tableName, boolean hardDelete) throws SQLException {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		ThemeDbTable table = validateThemeDbTable(tableName);
 
 		if (hardDelete) {
@@ -179,11 +180,11 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			return updateBlock(blockId);
 		}
 	}
-	
-	
+
 	// add block function
 	public static String addBlock(Map<String, Object> blockDetails) {
-		
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
+
 		boolean allowClob = themeDb.getQueryUtil().allowClobJavaObject();
 		String blockId = UUID.randomUUID().toString();
 		blockDetails.put("id", blockId);
@@ -198,7 +199,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		validateString(blockDetails, "section", false, false);
 		validateString(blockDetails, "json", false, false);
 	}
-	
+
 	// validate the individual fields
 	private static void validateString(Map<String, Object> blockDetails, String mapKey, boolean nullable,
 			boolean allowEmpty) {
@@ -217,10 +218,10 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			throw new IllegalArgumentException(e.getMessage());
 		}
 	}
-	
-	
+
 	// insert the row into blocks_table table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		PreparedStatement blockPS = null;
 		try {
 			blockPS = themeDb.getPreparedStatement(BLOCK_QUERY);
@@ -238,7 +239,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 			}
 			blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			blockPS.setBoolean(parameterIndex++, true);
-			//blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
+			// blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
 			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
 			blockPS.executeUpdate();
 			if (!blockPS.getConnection().getAutoCommit()) {
@@ -252,14 +253,14 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		}
 	}
 
-	
 	// update the row in blocks_table associated with the ID to be latest
 	// (If not soft delete)
 	private static boolean updateBlock(String blockId) {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String[] colToUpdate = { "IS_LATEST" };
 		String[] whereCol = { "ID" };
-		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString(ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(),
-				colToUpdate, whereCol);
+		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString(
+				ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), colToUpdate, whereCol);
 		PreparedStatement ps = null;
 		try {
 			ps = themeDb.getPreparedStatement(promptPermissionQuery);
@@ -281,7 +282,9 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	}
 
 	public static String[] getThemeColTypes(AbstractSqlQueryUtil queryUtil) {
-		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)", queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(), queryUtil.getBooleanDataTypeName(),"varchar(255)" };
+		return new String[] { "varchar(255)", "varchar(255)", "varchar(255)", "varchar(500)",
+				queryUtil.getClobDataTypeName(), queryUtil.getDateWithTimeDataType(),
+				queryUtil.getBooleanDataTypeName(), "varchar(255)" };
 	}
 
 }

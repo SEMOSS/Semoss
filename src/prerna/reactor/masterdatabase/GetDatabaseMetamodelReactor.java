@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.masterdatabase.util.GenerateMetamodelUtility;
@@ -45,22 +46,23 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
+import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 	/*
-	 * PAYLOAD MUST MATCH THAT OF 
-	 * {@link  prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
+	 * PAYLOAD MUST MATCH THAT OF {@link
+	 * prerna.sablecc2.reactor.frame.GetFrameMetamodelReactor}
 	 */
-	
+
 	private static final String CLASS_NAME = GetDatabaseMetamodelReactor.class.getName();
-	
+
 	/*
-	 * Get the database metamodel + meta options
-	 * OPTIONS include datatypes, logicalnames, descriptions
+	 * Get the database metamodel + meta options OPTIONS include datatypes,
+	 * logicalnames, descriptions
 	 */
 	public GetDatabaseMetamodelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
 	}
 
 	@Override
@@ -69,12 +71,14 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		List<String> options = getOptions();
 
 		// account for security
-		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!	
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId) && 
-				!SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
+		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)
+				&& !SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 		}
-		
+
+		IDatabaseEngine database = Utility.getDatabase(databaseId);
+
 		Logger logger = getLogger(CLASS_NAME);
 		boolean includeDataTypes = options.contains("datatypes");
 
@@ -82,7 +86,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
 			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
-			if(cacheMetamodel != null) {
+			if (cacheMetamodel != null) {
 				metamodelObject.putAll(cacheMetamodel);
 			} else {
 				includeDataTypes = true;
@@ -93,10 +97,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 
 		// add logical names
-		if(options.contains("logicalnames")) {
+		if (options.contains("logicalnames")) {
 			logger.info("Pulling database logical names for database " + databaseId);
 			Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
-			if(logicalNames == null) {
+			if (logicalNames == null) {
 				logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
 				EngineSyncUtility.setMetamodelLogicalNames(databaseId, logicalNames);
 			}
@@ -104,10 +108,10 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 			logger.info("Done pulling database logical names for database " + databaseId);
 		}
 		// add descriptions
-		if(options.contains("descriptions")) {
+		if (options.contains("descriptions")) {
 			logger.info("Pulling database descriptions for database " + databaseId);
 			Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
-			if(descriptions == null) {
+			if (descriptions == null) {
 				descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);
 				EngineSyncUtility.setMetamodelDescriptions(databaseId, descriptions);
 			}
@@ -116,25 +120,27 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		}
 
 		// this is for the OWL positions for the new layout
-		if(options.contains("positions")) {
-			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId);
+		if (options.contains("positions")) {
+			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId,
+					database.getEngineName(), database.getSmssFilePath());
 			metamodelObject.put("positions", positions);
 			logger.info("Done pulling database positions for database " + databaseId);
 		}
-		
-		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_METAMODEL);
+
+		return new NounMetadata(metamodelObject, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.DATABASE_METAMODEL);
 	}
 
 	private String getDatabase() {
 		GenRowStruct eGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if(eGrs != null && !eGrs.isEmpty()) {
-			if(eGrs.size() > 1) {
+		if (eGrs != null && !eGrs.isEmpty()) {
+			if (eGrs.size() > 1) {
 				throw new IllegalArgumentException("Can only define one database within this call");
 			}
 			return eGrs.get(0).toString();
 		}
 
-		if(this.curRow.isEmpty()) {
+		if (this.curRow.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the database to get the concepts from");
 		}
 
@@ -143,15 +149,39 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 
 	private List<String> getOptions() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues().stream().map(p -> p.toLowerCase()).collect(Collectors.toList());
 		}
 
 		List<String> options = new Vector<String>();
-		for(int i = 1; i < this.curRow.size(); i++) {
+		for (int i = 1; i < this.curRow.size(); i++) {
 			options.add(this.curRow.get(i).toString().toLowerCase());
 		}
 		return options;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
+			return MCP_KEY_TYPE.ARRAY;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Returns the metamodel of the database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
+			return "Optional array for metamodel information: can include logicalnames, descriptions, and positions";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

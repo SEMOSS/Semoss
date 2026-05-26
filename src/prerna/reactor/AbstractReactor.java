@@ -34,16 +34,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.codehaus.plexus.util.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -114,7 +114,7 @@ public abstract class AbstractReactor implements IReactor {
 	protected List<String> outputTypes = null;
 
 	@Deprecated
-	protected Hashtable<String, Object> propStore = new Hashtable<String, Object>();
+	protected Map<String, Object> propStore = new ConcurrentHashMap<>();
 
 	protected Lambda runner = null;
 
@@ -131,7 +131,7 @@ public abstract class AbstractReactor implements IReactor {
 	// defaults if one exists
 	// this I am not so sure.. but let us try
 	protected Object[] keyDefaults = new Object[] {};
-	public Map<String, String> keyValue = new Hashtable<String, String>();
+	public Map<String, String> keyValue = new ConcurrentHashMap<>();
 
 	public AbstractReactor() {
 
@@ -564,6 +564,14 @@ public abstract class AbstractReactor implements IReactor {
 		return null;
 	}
 
+	/**
+	 * Override in child reactors to define the output schema. Returns null by
+	 * default, meaning no output schema is defined.
+	 */
+	public JSONObject getResponseSchema() {
+		return null;
+	}
+
 	@Override
 	public String getHelp() {
 		if (keysToGet == null) {
@@ -591,6 +599,13 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		help.append("\nMCP Schema:\n");
 		help.append(this.asMcpTool().toString(4));
+
+		JSONObject responseSchema = getResponseSchema();
+		if (responseSchema != null) {
+			help.append("\nResponse Schema:\n");
+			help.append(responseSchema.toString(4));
+		}
+
 		return help.toString();
 	}
 
@@ -830,7 +845,54 @@ public abstract class AbstractReactor implements IReactor {
 		inputSchema.put("type", "object");
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
+
+		// Read MCP tool metadata if present and populate _meta
+		Map<String, String> mcpMeta = getMcpToolMetadata();
+		if (mcpMeta != null) {
+			JSONObject meta = new JSONObject();
+			meta.put(MCPUtility.SMSS_FUNCTION_NAME, name);
+			meta.put(MCPUtility.SMSS_MCP_EXECUTION, mcpMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto"));
+
+			JSONObject uiJson = new JSONObject();
+			String displayLocation = mcpMeta.get(MCPUtility.UI_DISPLAY_LOCATION);
+			if (displayLocation != null && !displayLocation.isEmpty()) {
+				uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayLocation);
+			}
+			String loadingMessage = mcpMeta.get(MCPUtility.UI_LOADING_MESSAGE);
+			if (loadingMessage != null && !loadingMessage.isEmpty()) {
+				uiJson.put(MCPUtility.UI_LOADING_MESSAGE, loadingMessage);
+			}
+			String resourceURI = mcpMeta.get(MCPUtility.UI_RESOURCE_URI);
+			if (resourceURI != null && !resourceURI.isEmpty()) {
+				uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
+			}
+			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
+			tool.put("_meta", meta);
+		}
+
 		return tool;
+	}
+
+	/**
+	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
+	 * is not an MCP tool. Reactors that should be discoverable by package scanning
+	 * in {@code MakePixelMCPReactor} must override this method and return a
+	 * non-null map.
+	 * <p>
+	 * Supported keys (use {@link MCPUtility} constants):
+	 * <ul>
+	 * <li>{@code SMSS_MCP_EXECUTION} - "auto", "ask", or "disabled" (defaults to
+	 * "auto" if omitted)</li>
+	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
+	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
+	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
+	 * </ul>
+	 *
+	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP
+	 *         tool
+	 */
+	public Map<String, String> getMcpToolMetadata() {
+		return null;
 	}
 
 	/**
