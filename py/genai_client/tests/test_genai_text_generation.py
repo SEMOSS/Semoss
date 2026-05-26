@@ -10,7 +10,6 @@ from typing import Dict
 from genai_client import (
     OpenAiClient,
     AzureOpenAiClient,
-    TextGenClient,
     BedrockClient,
     VertexClient,
 )
@@ -48,30 +47,6 @@ SAMPLE_QUESTION = "What is the capital of France?"
 
 
 class AskModelTests(unittest.TestCase):
-
-    def test_text_generation_inference(self):
-        # declare the model
-        model = TextGenClient(
-            endpoint="***REMOVED***",
-            model_name="garage-bAInd/Platypus2-70B-instruct",
-            max_tokens=8192,
-            max_input_tokens=4096,
-        )
-
-        # make sure the ask expected
-        ask_response = model.ask_call(question=SAMPLE_QUESTION)
-        self.assertIsInstance(ask_response, AskModelEngineResponse)
-        self.assertCountEqual(
-            ask_response.to_dict(),
-            ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
-        )
-
-        embeddings_response = model.embeddings(strings_to_embed=[SAMPLE_QUESTION])
-        self.assertIsInstance(embeddings_response, Dict)
-        self.assertCountEqual(
-            embeddings_response,
-            ["response", "numberOfTokensInPrompt", "numberOfTokensInResponse"],
-        )
 
     def test_openai_chat_completions(self):
 

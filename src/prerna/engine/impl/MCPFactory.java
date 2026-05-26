@@ -30,6 +30,8 @@ package prerna.engine.impl;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPErrorCode;
+import prerna.sablecc2.om.execptions.SemossMCPException;
 
 public class MCPFactory {
 
@@ -43,8 +45,8 @@ public class MCPFactory {
 		}
 
 		if (!engine.isMCPEnabled()) {
-			throw new IllegalArgumentException(
-					"MCP access needs to be enabled for this resource before it can be used");
+			throw new SemossMCPException("MCP access needs to be enabled for this resource before it can be used",
+					MCPErrorCode.RESOURCE_NOT_FOUND);
 		}
 
 		InternalMCP mcp = new InternalMCP(engine);

@@ -66,8 +66,8 @@ import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.export.GraphFormatter;
 import prerna.reactor.frame.FrameFactory;
+import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.comm.PixelJobStatus;
-import prerna.sablecc2.comm.PixelJobThread;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -75,7 +75,6 @@ import prerna.sablecc2.om.task.AbstractTask;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
@@ -97,13 +96,33 @@ public class PixelStreamUtility {
 	}
 
 	/**
-	 * Collect pixel data from the runner
-	 * 
-	 * @param runner
-	 * @param jt
-	 * @return
+	 * Collect pixel data from the runner and stream the JSON response to the
+	 * caller.
+	 *
+	 * @param runner         the pixel runner whose results will be streamed
+	 * @param pixelJobRunner optional job runner used to publish status transitions;
+	 *                       may be null
+	 * @return a {@link StreamingOutput} that writes the runner's JSON response when
+	 *         consumed
 	 */
-	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobThread jt) {
+	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobRunner pixelJobRunner) {
+		return collectPixelData(runner, pixelJobRunner, null);
+	}
+
+	/**
+	 * Collect pixel data from the runner and stream the JSON response to the
+	 * caller, invoking {@code afterWrite} once the stream has been fully written.
+	 *
+	 * @param runner         the pixel runner whose results will be streamed
+	 * @param pixelJobRunner optional job runner used to publish status transitions;
+	 *                       may be null
+	 * @param afterWrite     optional hook executed after the stream has been
+	 *                       written; may be null
+	 * @return a {@link StreamingOutput} that writes the runner's JSON response when
+	 *         consumed
+	 */
+	public static StreamingOutput collectPixelData(PixelRunner runner, PixelJobRunner pixelJobRunner,
+			Runnable afterWrite) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -114,8 +133,8 @@ public class PixelStreamUtility {
 
 				@Override
 				public void write(OutputStream outputStream) throws IOException, WebApplicationException {
-					if (jt != null) {
-						jt.setStatus(PixelJobStatus.STREAMING);
+					if (pixelJobRunner != null && pixelJobRunner.getPixelJobStatus() != PixelJobStatus.CANCELED) {
+						pixelJobRunner.setStatus(PixelJobStatus.STREAMING);
 					}
 					try {
 						ps = new PrintStream(outputStream, true, StandardCharsets.UTF_8);
@@ -124,36 +143,65 @@ public class PixelStreamUtility {
 						long start = System.currentTimeMillis();
 						processPixelRunner(ps, gson, runner);
 						long end = System.currentTimeMillis();
-						classLogger.debug("Time to generate json response = " + (end - start) + "ms");
+						classLogger.debug("Time to generate json response = {}ms", (end - start));
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to stream pixel response to output", e);
 					} finally {
 						if (ps != null) {
 							ps.close();
 						}
 						ThreadStore.remove();
+
+						if (afterWrite != null) {
+							try {
+								afterWrite.run();
+							} catch (Exception e) {
+								classLogger.error("Error occurred with processing the post streaming runnable", e);
+							}
+						}
 					}
-					if (jt != null) {
-						jt.setStatus(PixelJobStatus.COMPLETE);
+					if (pixelJobRunner != null && pixelJobRunner.getPixelJobStatus() != PixelJobStatus.CANCELED) {
+						pixelJobRunner.setStatus(PixelJobStatus.COMPLETE);
 					}
+
 				}
 			};
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			if (jt != null) {
-				jt.setStatus(PixelJobStatus.ERROR);
+			classLogger.error("Failed to construct streaming output for pixel runner", e);
+			if (pixelJobRunner != null && pixelJobRunner.getPixelJobStatus() != PixelJobStatus.CANCELED) {
+				pixelJobRunner.setStatus(PixelJobStatus.ERROR);
 			}
 		}
 		return null;
 	}
 
 	/**
-	 * Collect pixel data from the runner
-	 * 
-	 * @param runner
-	 * @return
+	 * Write the pixel runner's JSON response to disk, optionally encrypting the
+	 * output.
+	 *
+	 * @param runner      the pixel runner whose results will be written
+	 * @param fileToWrite destination file for the serialized response
+	 * @param cipher      optional cipher used to encrypt the output stream; may be
+	 *                    null
+	 * @return the {@code fileToWrite} reference for chaining
 	 */
 	public static File writePixelData(PixelRunner runner, File fileToWrite, Cipher cipher) {
+		return writePixelData(runner, fileToWrite, cipher, null);
+	}
+
+	/**
+	 * Write the pixel runner's JSON response to disk, optionally encrypting the
+	 * output, and invoke {@code afterWrite} once the file has been written.
+	 *
+	 * @param runner      the pixel runner whose results will be written
+	 * @param fileToWrite destination file for the serialized response
+	 * @param cipher      optional cipher used to encrypt the output stream; may be
+	 *                    null
+	 * @param afterWrite  optional hook executed after the file has been written;
+	 *                    may be null
+	 * @return the {@code fileToWrite} reference for chaining
+	 */
+	public static File writePixelData(PixelRunner runner, File fileToWrite, Cipher cipher, Runnable afterWrite) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -169,11 +217,18 @@ public class PixelStreamUtility {
 			}
 			processPixelRunner(ps, gson, runner);
 		} catch (Exception e) {
-			classLogger.error("Failed to write object to stream");
+			classLogger.error("Failed to write object to stream", e);
 		} finally {
 			if (ps != null) {
 				ps.flush();
 				ps.close();
+			}
+			if (afterWrite != null) {
+				try {
+					afterWrite.run();
+				} catch (Exception e) {
+					classLogger.error("Error occurred with processing the post streaming runnable", e);
+				}
 			}
 		}
 
@@ -181,10 +236,13 @@ public class PixelStreamUtility {
 	}
 
 	/**
-	 * 
-	 * @param ps
-	 * @param gson
-	 * @param runner
+	 * Serialize the pixel runner's results, including any delayed messages, as a
+	 * JSON object containing the insight id and an array of pixel returns.
+	 *
+	 * @param ps     print stream the JSON response is written to
+	 * @param gson   gson instance used to serialize values
+	 * @param runner pixel runner providing the results and pixel expressions to
+	 *               emit
 	 */
 	private static void processPixelRunner(PrintStream ps, Gson gson, PixelRunner runner) {
 		// get the values we need from the runner
@@ -406,7 +464,7 @@ public class PixelStreamUtility {
 				// if we have a task
 				// we gotta iterate through it to return the data
 				ITask task = (ITask) noun.getValue();
-				classLogger.debug("Start flushing task = " + task.getId());
+				classLogger.debug("Start flushing task = {}", task.getId());
 				int numCollect = task.getNumCollect();
 				boolean collectAll = numCollect == -1;
 				String formatType = task.getFormatter().getFormatType();
@@ -554,8 +612,7 @@ public class PixelStreamUtility {
 							cit.processCache();
 						}
 					} catch (Exception e) {
-						// on no, this is not good
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to flush task {} data to stream", task.getId(), e);
 						// let us send back an error
 						ps.print("\"output\":");
 						ps.print(gson.toJson(e.getMessage()));
@@ -572,7 +629,7 @@ public class PixelStreamUtility {
 						try {
 							task.close();
 						} catch (IOException e2) {
-							classLogger.error(Constants.STACKTRACE, e2);
+							classLogger.error("Failed to close task {} after streaming error", task.getId(), e2);
 						}
 						return;
 					}
@@ -603,7 +660,7 @@ public class PixelStreamUtility {
 					ps.print("}");
 					ps.flush();
 
-					classLogger.debug("Done flushing sending task = " + task.getId());
+					classLogger.debug("Done flushing sending task = {}", task.getId());
 				} else if (formatType.equals("GRAPH")) {
 //					// format type is probably graph
 //					ps.print("\"output\":{");
@@ -641,7 +698,7 @@ public class PixelStreamUtility {
 					try {
 						task.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close task {} after streaming completed", task.getId(), e);
 					}
 				}
 			}
@@ -668,7 +725,7 @@ public class PixelStreamUtility {
 					ps.print(gson.toJson(noun.getValue()));
 					ps.flush();
 					long end = System.currentTimeMillis();
-					classLogger.info("Total time to convert to json = " + (end - start) + "ms");
+					classLogger.info("Total time to convert to json = {}ms", (end - start));
 				}
 				ps.print(",\"operationType\":");
 				ps.print(gson.toJson(noun.getOpType()));
@@ -689,8 +746,12 @@ public class PixelStreamUtility {
 			ps.print(",\"core_engine\":" + gson.toJson(innerInsight.getProjectId()));
 			ps.print(",\"core_engine_id\":" + gson.toJson(innerInsight.getRdbmsId()));
 			ps.print(",\"recipe\":" + gson.toJson(innerInsight.getPixelList().getPixelRecipe()));
-			ps.print(",\"params\":" + gson.toJson(params));
-			ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			if (params != null) {
+				ps.print(",\"params\":" + gson.toJson(params));
+			}
+			if (additionalPixels != null) {
+				ps.print(",\"additionalPixels\":" + gson.toJson(additionalPixels));
+			}
 			if (variableOutput != null) {
 				ps.print(",\"variableOutput\":" + gson.toJson(variableOutput));
 			}
@@ -768,7 +829,7 @@ public class PixelStreamUtility {
 		}
 
 		// json object
-		else if (nounT == PixelDataType.JSON_OBJECT) {
+		else if (nounT == PixelDataType.JSON_OBJECT || nounT == PixelDataType.MCP_TOOL_EXECUTION) {
 			ps.print("\"output\":");
 			ps.print(noun.getValue().toString());
 			ps.print(",\"operationType\":");
@@ -805,11 +866,13 @@ public class PixelStreamUtility {
 	}
 
 	/**
-	 * Logic to more efficiently print out the map formatted data
-	 * 
-	 * @param ps
-	 * @param retData
-	 * @param gson
+	 * Stream a graph-formatted data map (meta, nodes, edges) directly to the print
+	 * stream so the collections are not held in memory as a single serialized
+	 * string.
+	 *
+	 * @param ps      print stream the JSON fragment is written to
+	 * @param retData graph-formatted map containing meta, nodes, and edges entries
+	 * @param gson    gson instance used to serialize values
 	 */
 	private static void printMapData(PrintStream ps, Map<String, Object> retData, Gson gson) {
 		ps.print("\"data\":");

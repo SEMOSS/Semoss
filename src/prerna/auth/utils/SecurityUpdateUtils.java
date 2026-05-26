@@ -42,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -51,6 +52,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityUpdateUtils extends AbstractSecurityUtils {
@@ -71,6 +73,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @param userName String representing the name of the user to add
 	 */
 	public static boolean addOAuthUser(AccessToken newUser) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (newUser.getId() == null || newUser.getId().isEmpty()) {
 			throw new IllegalArgumentException("User id for the token is null or empty. Must provide a valid id.");
 		}
@@ -167,7 +170,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to add or synchronize OAuth user records.", e);
 					} finally {
 						if (ps != null) {
 							ps.close();
@@ -194,7 +197,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to add or synchronize OAuth user records.", e);
 					} finally {
 						if (ps != null) {
 							ps.close();
@@ -210,7 +213,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					classLogger.info("User " + newUser.getId() + " already exists");
+					classLogger.info("User {} already exists", newUser.getId());
 					return false;
 				}
 
@@ -230,7 +233,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 							}
 						} catch (NumberFormatException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add or synchronize OAuth user records.", e);
 							classLogger.error("User limit is not a valid numeric value");
 						}
 					}
@@ -294,7 +297,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add or synchronize OAuth user records.", e);
 						} finally {
 							if (ps != null) {
 								try {
@@ -303,11 +306,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 										try {
 											ps.getConnection().close();
 										} catch (SQLException e) {
-											classLogger.error(Constants.STACKTRACE, e);
+											classLogger.error("Unable to add or synchronize OAuth user records.", e);
 										}
 									}
 								} catch (SQLException e) {
-									classLogger.error(Constants.STACKTRACE, e);
+									classLogger.error("Unable to add or synchronize OAuth user records.", e);
 								}
 							}
 						}
@@ -317,7 +320,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add or synchronize OAuth user records.", e);
 		}
 
 		return false;
@@ -330,6 +333,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static void validateUserLogin(AccessToken newUser) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user is not locked out
 		Object[] lastLoginDetails = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(newUser.getId(),
 				newUser.getProvider());
@@ -366,7 +370,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			newUser.setLastPasswordReset(lastPassReset);
 
 			if (isLocked) {
-				classLogger.info("User " + newUser.getId() + " is locked");
+				classLogger.info("User {} is locked", newUser.getId());
 				return;
 			}
 
@@ -374,8 +378,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// check to make sure user is not locked
 				ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("UTC"));
 				if (currentTime.isAfter(lastLogin.getZonedDateTime().plusDays(daysToLock))) {
-					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over "
-							+ daysToLock + " days");
+					classLogger.info("User {} is now locked due to not logging in for over {} days", newUser.getId(),
+							daysToLock);
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
@@ -420,6 +424,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static boolean updateOAuthUser(AccessToken existingToken) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String name = existingToken.getName();
 		String username = existingToken.getUsername();
 		String email = existingToken.getEmail();
@@ -467,21 +472,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update OAuth user profile information.", e);
 			return false;
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update OAuth user profile information.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update OAuth user profile information.", e);
 				}
 			}
 		}
@@ -490,6 +495,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		PreparedStatement ps = null;
 		try {
@@ -503,26 +509,27 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user lock status.", e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user lock status.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user lock status.", e);
 				}
 			}
 		}
 	}
 
 	public static void updateUserLastLogin(String userId, AuthProvider type) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// update the user last login
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
@@ -538,20 +545,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user last-login timestamp.", e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 		}
@@ -580,6 +587,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter,
 			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens,
 			Double modelMaxResponseTime) throws IllegalArgumentException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
 		if (isExistingUser) {
 			return false;
@@ -596,7 +604,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch (NumberFormatException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update the user last-login timestamp.", e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
@@ -696,7 +704,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user last-login timestamp.", e);
 		} finally {
 			if (ps != null) {
 				try {
@@ -705,7 +713,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 		}

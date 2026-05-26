@@ -38,8 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class UnpivotReactor extends AbstractPyFrameReactor {
 
@@ -62,8 +60,9 @@ public class UnpivotReactor extends AbstractPyFrameReactor {
 		valueColumns.append("[");
 		for (int i = 0; i < columns.length; i++) {
 			valueColumns.append("'" + columns[i] + "'");
-			if (i + 1 < columns.length)
+			if (i + 1 < columns.length) {
 				valueColumns.append(", ");
+			}
 		}
 		valueColumns.append("]");
 
@@ -91,12 +90,7 @@ public class UnpivotReactor extends AbstractPyFrameReactor {
 		frame.runScript(rename);
 		this.addExecutedCode(rename);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Unpivot",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
 		frame = (PandasFrame) recreateMetadata(frame);
-
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}

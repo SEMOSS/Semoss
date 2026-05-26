@@ -43,30 +43,29 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
-public class GoogleLatLongGetter implements IConnectorIOp{
+public class GoogleLatLongGetter implements IConnectorIOp {
 
-	String url = "https://maps.googleapis.com/maps/api/geocode/json" ;
-	
 	// name of the object to return
-	String [] beanProps = {"latitude", "longitude"}; // add is done when you have a list
+	String[] beanProps = { "latitude", "longitude" }; // add is done when you have a list
 	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
-	
+
 	@Override
 	public Object execute(User user, Map params) {
-		if(params == null) {
-			params = new HashMap();
+		if (params == null) {
+			params = new HashMap<>();
 		}
 
 		AccessToken googToken = null;
-		if(user != null) {
+		if (user != null) {
 			googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
 		}
-		if(googToken == null) {
+		if (googToken == null) {
 			googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
 		}
-		
-		if(googToken == null) {
-			SemossPixelException exception = new SemossPixelException(new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+
+		if (googToken == null) {
+			SemossPixelException exception = new SemossPixelException(
+					new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
@@ -77,11 +76,12 @@ public class GoogleLatLongGetter implements IConnectorIOp{
 		params.put("key", accessToken);
 
 		// make the API call
+		String url = "https://maps.googleapis.com/maps/api/geocode/json";
 		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
-		//System.out.println("Output >>>>> " + output);
-		
+
 		// fill the bean with the return
-		GeoLocation retLocation = (GeoLocation)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new GeoLocation());
+		GeoLocation retLocation = (GeoLocation) BeanFiller.fillFromJson(output, jsonPattern, beanProps,
+				new GeoLocation());
 		return retLocation;
 	}
 

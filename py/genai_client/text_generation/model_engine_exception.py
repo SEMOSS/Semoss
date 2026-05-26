@@ -34,6 +34,8 @@ class ModelEngineException:
             return self._parse_google_error()
         elif self.client in ["openai", "azure"]:
             return self._parse_openai_error()
+        elif self.client == "bedrock":
+            return self._parse_bedrock_error()
 
         # Generic fallback
         return self._create_error_details(

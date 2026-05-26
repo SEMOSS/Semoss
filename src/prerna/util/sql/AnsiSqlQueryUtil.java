@@ -72,6 +72,11 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	}
 
 	@Override
+	public String fillFileParameterizedConnectionUrl(String connectionUrl, String engineId, String engineName) {
+		throw new UnsupportedOperationException("Database does not support file based connections");
+	}
+
+	@Override
 	public void initTypeConverstionMap() {
 		typeConversionMap.put("INT", "INT");
 		typeConversionMap.put("LONG", "BIGINT");

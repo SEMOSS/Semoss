@@ -54,7 +54,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -152,14 +151,14 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(storageId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(storageId, tempSmss.getAbsolutePath());
 			storage.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			storage.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(storageId, storageName, storage, smssFile);
+			UploadUtilities.addEngineToDIHelper(storageId, storageName, storage, smssFile);
 			SecurityEngineUtils.addEngine(storageId, global, user);
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
@@ -177,7 +176,8 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), storageId);
-		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}

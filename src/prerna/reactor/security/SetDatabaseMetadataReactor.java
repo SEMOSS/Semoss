@@ -39,45 +39,51 @@ import prerna.util.UploadInputUtility;
 
 @Deprecated
 public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
-	
+
+	@Deprecated
 	public SetDatabaseMetadataReactor() {
-		this.keysToGet = new String[]{
-				ReactorKeysEnum.DATABASE.getKey(), META, 
-				ReactorKeysEnum.ENCODED.getKey(), ReactorKeysEnum.JSON_CLEANUP.getKey()
-			};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), META,
+				ReactorKeysEnum.JSON_CLEANUP.getKey() };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String databaseId = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
 		}
-		
+
 		Map<String, Object> metadata = getMetaMap();
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
-		if(!validMetakeys.containsAll(metadata.keySet())) {
-	    	throw new IllegalArgumentException("Unallowed metakeys. Can only use: "+String.join(", ", validMetakeys));
+		if (!validMetakeys.containsAll(metadata.keySet())) {
+			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
-		
+
 		SecurityEngineUtils.updateEngineMetadata(databaseId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the database"));
+		noun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the database"));
 		return noun;
 	}
-	
+
+	@Deprecated
 	@Override
 	public String getReactorDescription() {
 		return "Define metadata on a datasource";
 	}
-	
+
+	@Deprecated
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(META)) {
+		if (key.equals(META)) {
 			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the database. The list of values will determine the order that is defined for field";
+		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
+			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}
 		return super.getDescriptionForKey(key);
 	}

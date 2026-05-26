@@ -61,7 +61,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.StorageTypeEnum;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -76,6 +75,7 @@ import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
 import software.amazon.awssdk.services.s3.model.CompletedPart;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.CommonPrefix;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectAttributesParts;
 import software.amazon.awssdk.services.s3.model.GetObjectAttributesRequest;
@@ -160,9 +160,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				if (this.pathStyleAccess) {
 					builder.forcePathStyle(true);
 				}
-				classLogger.info("Using S3 endpoint override: " + this.endpoint);
+				classLogger.info("Using S3 endpoint override: {}", this.endpoint);
 			} catch (java.net.URISyntaxException e) {
-				classLogger.error("Invalid S3 endpoint URI: " + this.endpoint, e);
+				classLogger.error("Invalid S3 endpoint URI: {}", this.endpoint, e);
 				throw new RuntimeException("Invalid S3 endpoint URI: " + this.endpoint, e);
 			}
 		}
@@ -178,7 +178,6 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public List<String> list(String path) throws Exception {
-		List<String> fileList = new ArrayList<String>();
 		// Normalize the path using the utility method
 		path = Utility.normalizePath(path);
 
@@ -189,53 +188,90 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		if (path.endsWith("/")) {
 			path = path.substring(0, path.length() - 1);
 		}
-		try {
-			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
-			for (S3Object object : listObjectsV2Response.contents()) {
-				fileList.add(object.key());
+		List<Map<String, Object>> details = listDetails(path);
+		List<String> fileList = new ArrayList<>(details.size());
+		for (Map<String, Object> item : details) {
+			Object nameObj = item.get("Name");
+			if (nameObj == null) {
+				continue;
 			}
-
-		} catch (S3Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			String name = nameObj.toString();
+			boolean isDir = Boolean.TRUE.equals(item.get("IsDir"));
+			fileList.add(isDir ? name + "/" : name);
 		}
-
 		return fileList;
 	}
 
 	@Override
 	public List<Map<String, Object>> listDetails(String path) throws Exception {
 		List<Map<String, Object>> objectDetails = new ArrayList<>();
-		// Normalize the path using the utility method
-		path = Utility.normalizePath(path);
-
-		// Remove leading and trailing slashes, if any
+		path = path == null ? "" : Utility.normalizePath(path);
 		if (path.startsWith("/")) {
 			path = path.substring(1);
 		}
 		if (path.endsWith("/")) {
 			path = path.substring(0, path.length() - 1);
 		}
+		String prefix = path.isEmpty() ? "" : path + "/";
 
 		try {
-			ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(path);
-			for (S3Object object : listObjectsV2Response.contents()) {
+			ListObjectsV2Request.Builder requestBuilder = ListObjectsV2Request.builder().bucket(this.bucket)
+					.delimiter("/");
+			if (!prefix.isEmpty()) {
+				requestBuilder.prefix(prefix);
+			}
+			ListObjectsV2Response listObjectsV2Response = this.client.listObjectsV2(requestBuilder.build());
+
+			for (CommonPrefix commonPrefix : listObjectsV2Response.commonPrefixes()) {
+				String dirPath = commonPrefix.prefix();
+				if (dirPath == null || dirPath.equals(prefix)) {
+					continue;
+				}
+				String dirName = prefix.isEmpty() ? dirPath : dirPath.substring(prefix.length());
+				if (dirName.endsWith("/")) {
+					dirName = dirName.substring(0, dirName.length() - 1);
+				}
+				if (dirName.isEmpty() || dirName.contains("/")) {
+					continue;
+				}
 				Map<String, Object> objectInfo = new HashMap<>();
-				objectInfo.put("key", object.key());
-				objectInfo.put("size", object.size());
-				objectInfo.put("lastModified", object.lastModified());
-				objectInfo.put("etag", object.eTag());
+				objectInfo.put("Path", path.isEmpty() ? "/" + dirName : "/" + path + "/" + dirName);
+				objectInfo.put("Name", dirName);
+				objectInfo.put("Size", 0L);
+				objectInfo.put("MimeType", "inode/directory");
+				objectInfo.put("ModTime", null);
+				objectInfo.put("IsDir", true);
+				objectInfo.put("Metadata", Collections.emptyMap());
+				objectDetails.add(objectInfo);
+			}
+
+			for (S3Object object : listObjectsV2Response.contents()) {
+				String key = object.key();
+				if (key == null || key.equals(prefix)) {
+					continue;
+				}
+				String fileName = prefix.isEmpty() ? key : key.substring(prefix.length());
+				if (fileName.isEmpty() || fileName.contains("/")) {
+					continue;
+				}
+				Map<String, Object> objectInfo = new HashMap<>();
 				// Fetch object metadata
-				HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(object.key())
-						.build();
+				HeadObjectRequest headRequest = HeadObjectRequest.builder().bucket(this.bucket).key(key).build();
 				HeadObjectResponse headResponse = this.client.headObject(headRequest);
 				Map<String, String> metadata = headResponse.metadata();
 
-				objectInfo.put("metadata", (metadata != null) ? metadata : Collections.emptyMap());
+				objectInfo.put("Path", path.isEmpty() ? "/" + fileName : "/" + path + "/" + fileName);
+				objectInfo.put("Name", fileName);
+				objectInfo.put("Size", object.size());
+				objectInfo.put("MimeType", headResponse.contentType());
+				objectInfo.put("ModTime", object.lastModified() == null ? null : object.lastModified().toString());
+				objectInfo.put("IsDir", false);
+				objectInfo.put("Metadata", (metadata != null) ? metadata : Collections.emptyMap());
 				objectDetails.add(objectInfo);
 			}
 
 		} catch (S3Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to list S3 storage details for bucket='{}' path='{}'.", this.bucket, path, e);
 		}
 
 		return objectDetails;
@@ -266,7 +302,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
 				} catch (Exception e) {
 					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file:" + file, e);
+					classLogger.error("Failed to upload file: {}", file, e);
 				}
 			});
 			found = true;
@@ -276,34 +312,36 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		}
 
-		classLogger.info(uploadedFiles.isEmpty() ? "No files were uploaded." : "Sucessfully uploaded:" + uploadedFiles);
-		classLogger.info(
-				found ? "Sync complted successfully for:" + storagePath : "No files found to sync for:" + storagePath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Sucessfully uploaded: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Sync complted successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-
 		Path localDirectory = Paths.get(localPath);
 		Files.createDirectories(localDirectory);
 
 		Set<String> cloudFiles = new HashSet<>();
 		List<String> downloadedFiles = new ArrayList<>(), failedFiles = new ArrayList<>();
 		boolean found = false;
+		String requestedPath = normalizeStoragePrefixPath(storagePath);
 
 		// Delete zero-byte objects from S3
-		deleteEmptyBlobsFromS3(storagePath);
+		deleteEmptyBlobsFromS3(requestedPath);
 
-		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(storagePath);
+		ListObjectsV2Response listObjectsResponse = s3ListObjectResponse(requestedPath);
 
 		for (S3Object s3Object : listObjectsResponse.contents()) {
-			String relativePath;
 			String key = s3Object.key();
-			if (!storagePath.isEmpty() && key.startsWith(storagePath + "/")) {
-				relativePath = key.substring((storagePath + "/").length());
-			} else {
-				relativePath = key;
+			String relativePath = resolveRelativeStoragePath(key, requestedPath);
+			if (relativePath == null) {
+				continue;
 			}
+
 			Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 			cloudFiles.add(localFilePath.toString());
 			Files.createDirectories(localFilePath.getParent());
@@ -329,19 +367,18 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 						try {
 							downloadedFile(this.bucket, key, localFilePath);
 						} catch (IOException e) {
-							classLogger.error("Failed to write file: " + localFilePath, e);
+							classLogger.error("Failed to write file: {}", localFilePath, e);
 							throw new RuntimeException("Error writing file: " + localFilePath, e);
 						}
 					}, "Syncing file to local: " + key);
 
 					downloadedFiles.add(key);
-					classLogger.info(
-							fileExists ? "Updated file: " + localFilePath : "Downloaded new file: " + localFilePath);
+					classLogger.info(fileExists ? "Updated file: {}" : "Downloaded new file: {}", localFilePath);
 				}
 				found = true;
 			} catch (Exception e) {
-				failedFiles.add(key);
-				classLogger.error("Failed to sync file: " + key, e);
+				failedFiles.add(relativePath);
+				classLogger.error("Failed to sync file: {}", key, e);
 			}
 		}
 
@@ -350,25 +387,27 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
 					try {
 						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: " + localFile);
+						classLogger.info("Deleted extra local file: {}", localFile);
 					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: " + localFile, e);
+						classLogger.error("Failed to delete extra file: {}", localFile, e);
 					}
 				});
 
 		// Delete empty local directories
 		deleteEmptyDirectories(localDirectory);
 
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to sync. Rolling back...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
 
-		classLogger.info(found ? "Sync completed successfully for: " + storagePath
-				: "No files found to sync for: " + storagePath);
+		classLogger.info(found ? "Sync completed successfully for: {}" : "No files found to sync for: {}", storagePath);
 	}
 
 	@Override
@@ -381,7 +420,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		for (Path path : paths) {
 			if (!Files.exists(path)) {
-				classLogger.error("File not found: " + path);
+				classLogger.error("File not found: {}", path);
 				failedFiles.add(path.toString());
 				continue;
 			}
@@ -395,7 +434,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 							uploadedFiles.add(uploadFile(path, file, storageFolderPath, metadata));
 						} catch (Exception e) {
 							failedFiles.add(file.toString());
-							classLogger.error("Failed to upload file: " + file, e);
+							classLogger.error("Failed to upload file: {}", file, e);
 							rollbackUploads(this.client, failedFiles);
 						}
 					});
@@ -407,17 +446,20 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					found = true;
 				} catch (Exception e) {
 					failedFiles.add(path.toString());
-					classLogger.error("Failed to upload file: " + path, e);
+					classLogger.error("Failed to upload file: {}", path, e);
 					rollbackUploads(this.client, failedFiles);
 				}
 			}
 		}
 		// Delete empty blobs from GCS
 		deleteEmptyBlobsFromS3(storageFolderPath);
-		classLogger.info(
-				uploadedFiles.isEmpty() ? "No files were uploaded." : "Successfully uploaded files: " + uploadedFiles);
-		classLogger.info(found ? "Copy completed successfully for: " + storageFolderPath
-				: "No files found to copy for: " + storageFolderPath);
+		if (uploadedFiles.isEmpty()) {
+			classLogger.info("No files were uploaded.");
+		} else {
+			classLogger.info("Successfully uploaded files: {}", uploadedFiles);
+		}
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFolderPath);
 	}
 
 	@Override
@@ -433,16 +475,13 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		boolean found = false;
 
 		for (String s3FolderPath : paths) {
+			String requestedPath = normalizeStoragePrefixPath(s3FolderPath);
+
 			// Delete empty folder blobs
-			deleteEmptyBlobsFromS3(s3FolderPath);
+			deleteEmptyBlobsFromS3(requestedPath);
 
-			// Normalize prefix using the utility method
-			String prefix = Utility.normalizePath(s3FolderPath);
-			if (!prefix.endsWith("/") && !prefix.isEmpty()) {
-				prefix += "/";
-			}
-
-			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(prefix).build();
+			ListObjectsV2Request request = ListObjectsV2Request.builder().bucket(this.bucket).prefix(requestedPath)
+					.build();
 
 			ListObjectsV2Response response;
 			do {
@@ -456,8 +495,12 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 						continue;
 					}
 
-					Path localFilePath = localDirectory
-							.resolve(key.substring(prefix.length()).replace("/", File.separator));
+					String relativePath = resolveRelativeStoragePath(key, requestedPath);
+					if (relativePath == null) {
+						continue;
+					}
+
+					Path localFilePath = localDirectory.resolve(relativePath.replace("/", File.separator));
 
 					try {
 						Files.createDirectories(localFilePath.getParent());
@@ -466,16 +509,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 							try {
 								downloadFile(key, localFilePath);
 							} catch (Exception e) {
-								classLogger.error("Failed to download: " + key, e);
+								classLogger.error("Failed to download: {}", key, e);
 							}
 						}, "Downloading file: " + key);
 
 						downloadedFiles.add(key);
-						classLogger.info("Downloaded file: " + localFilePath);
+						classLogger.info("Downloaded file: {}", localFilePath);
 						found = true;
 					} catch (Exception e) {
-						failedFiles.add(key);
-						classLogger.error("Failed to download: " + key, e);
+						failedFiles.add(relativePath);
+						classLogger.error("Failed to download: {}", key, e);
 					}
 				}
 
@@ -487,16 +530,19 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		// delete empty local folders
 		deleteEmptyDirectories(localDirectory);
 
-		classLogger.info(downloadedFiles.isEmpty() ? "No files were downloaded."
-				: "Successfully downloaded files: " + downloadedFiles);
+		if (downloadedFiles.isEmpty()) {
+			classLogger.info("No files were downloaded.");
+		} else {
+			classLogger.info("Successfully downloaded files: {}", downloadedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to download. Retrying...");
 			rollbackDownloads(failedFiles, localDirectory);
 		}
 
-		classLogger.info(found ? "Copy completed successfully for: " + storageFilePath
-				: "No files found to copy for: " + storageFilePath);
+		classLogger.info(found ? "Copy completed successfully for: {}" : "No files found to copy for: {}",
+				storageFilePath);
 	}
 
 	@Override
@@ -517,8 +563,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		ListObjectsV2Response responseListObjects = s3ListObjectResponse(storagePath);
 		if (responseListObjects == null || responseListObjects.contents() == null
 				|| responseListObjects.contents().isEmpty()) {
-			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + this.bucket
-					: "No files found in directory: " + storagePath);
+			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: {}" : "No files found in directory: {}",
+					storagePath.isEmpty() ? this.bucket : storagePath);
 			return;
 		}
 		for (S3Object object : responseListObjects.contents()) {
@@ -536,12 +582,15 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (!hasFilesToDelete) {
-			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: " + this.bucket
-					: "No files found in directory: " + storagePath);
+			classLogger.warn(storagePath.isEmpty() ? "No files found in bucket: {}" : "No files found in directory: {}",
+					storagePath.isEmpty() ? this.bucket : storagePath);
 			return;
 		}
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -577,11 +626,15 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			}
 		}
 
-		classLogger.info(hasFilesToDelete ? "Deletion process completed for: " + storagePath
-				: "No files found to delete in path: " + storagePath);
-
 		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+				hasFilesToDelete ? "Deletion process completed for: {}" : "No files found to delete in path: {}",
+				storagePath);
+
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
@@ -609,9 +662,8 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 		boolean folderExists = false;
 
-		classLogger
-				.info(storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: " + this.bucket
-						: "Deleting folder: " + storageFolderPath);
+		classLogger.info(storageFolderPath.isEmpty() ? "Folder path is empty. Deleting all files in bucket: {}"
+				: "Deleting folder: {}", storageFolderPath.isEmpty() ? this.bucket : storageFolderPath);
 		ListObjectsV2Response listObjectsV2Response = s3ListObjectResponse(storageFolderPath);
 		for (S3Object object : listObjectsV2Response.contents()) {
 			folderExists = true;
@@ -621,25 +673,28 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey)
 							.build();
 					this.client.deleteObject(deleteRequest);
-					classLogger.info("Deleted file: " + objectKey);
+					classLogger.info("Deleted file: {}", objectKey);
 					deletedFiles.add(objectKey);
 				}, "Deleting file: " + objectKey);
 			} catch (Exception e) {
 				failedFiles.add(objectKey);
-				classLogger.error("Failed to delete file: " + objectKey, e);
+				classLogger.error("Failed to delete file: {}", objectKey, e);
 			}
 		}
 
-		classLogger.info(
-				deletedFiles.isEmpty() ? "No files were deleted." : "Successfully deleted files: " + deletedFiles);
+		if (deletedFiles.isEmpty()) {
+			classLogger.info("No files were deleted.");
+		} else {
+			classLogger.info("Successfully deleted files: {}", deletedFiles);
+		}
 
 		if (!failedFiles.isEmpty()) {
 			classLogger.error("Some files failed to delete. Retrying...");
 			retryDelete(failedFiles);
 		}
 
-		classLogger.info(folderExists ? "Successfully deleted folder: " + storageFolderPath
-				: "No files found in directory: " + storageFolderPath);
+		classLogger.info(folderExists ? "Successfully deleted folder: {}" : "No files found in directory: {}",
+				storageFolderPath);
 	}
 
 	private String uploadFileToS3(String storagePath, Path filePath, Path basePath, Map<String, Object> metadata)
@@ -660,12 +715,12 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			long localLastModified = Files.getLastModifiedTime(filePath).toMillis();
 
 			if (localSize == cloudSize && localLastModified <= cloudLastModified) {
-				classLogger.info("Skipping unchanged file: " + fileKey);
+				classLogger.info("Skipping unchanged file: {}", fileKey);
 				return null;
 			}
 		} catch (S3Exception e) {
 			if (e.statusCode() != 404) {
-				classLogger.error("Error checking S3 object: " + fileKey, e);
+				classLogger.error("Error checking S3 object: {}", fileKey, e);
 				throw e;
 			}
 		}
@@ -1088,10 +1143,10 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				operation.run();
 				return;
 			} catch (Exception e) {
-				classLogger.error("Attempt " + attempt + " failed for " + actionDescription, e);
+				classLogger.error("Attempt {} failed for {}", attempt, actionDescription, e);
 				// If last attempt fails, throw an exception
 				if (attempt == maxRetries) {
-					classLogger.error("All retry attempts failed for: " + actionDescription);
+					classLogger.error("All retry attempts failed for: {}", actionDescription);
 					throw new RuntimeException(
 							"Operation failed after " + maxRetries + " retries: " + actionDescription, e);
 				}
@@ -1117,7 +1172,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				if (!Files.exists(localFile)) {
 					this.client.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
 
-					classLogger.info("Deleted stale object from S3: " + objectKey);
+					classLogger.info("Deleted stale object from S3: {}", objectKey);
 				}
 			}
 		} catch (S3Exception e) {
@@ -1135,10 +1190,10 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				try (DirectoryStream<Path> entries = Files.newDirectoryStream(dir)) {
 					if (!entries.iterator().hasNext()) { // Directory is empty
 						Files.delete(dir);
-						classLogger.info("Deleted empty local folder: " + dir);
+						classLogger.info("Deleted empty local folder: {}", dir);
 					}
 				} catch (IOException e) {
-					classLogger.error("Failed to delete empty folder: " + dir, e);
+					classLogger.error("Failed to delete empty folder: {}", dir, e);
 				}
 			}
 		} catch (IOException e) {
@@ -1156,18 +1211,18 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			Files.copy(s3Object, destinationPath, StandardCopyOption.REPLACE_EXISTING);
 		}
 
-		classLogger.info("File downloaded from S3: " + key + " -> " + destinationPath);
+		classLogger.info("File downloaded from S3: {} -> {}", key, destinationPath);
 	}
 
 	private boolean deleteObject(String objectKey) {
 		try {
 			retryOperation(() -> {
 				this.client.deleteObject(DeleteObjectRequest.builder().bucket(this.bucket).key(objectKey).build());
-				classLogger.info("Deleted object: " + objectKey);
+				classLogger.info("Deleted object: {}", objectKey);
 			}, "Deleting object: " + objectKey);
 			return true;
 		} catch (Exception e) {
-			classLogger.error("Failed to delete object: " + objectKey, e);
+			classLogger.error("Failed to delete object: {}", objectKey, e);
 			return false;
 		}
 	}
@@ -1181,7 +1236,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			PutObjectRequest request = PutObjectRequest.builder().bucket(this.bucket).key(folderPath).build();
 
 			this.client.putObject(request, RequestBody.empty());
-			classLogger.info("Preserved folder structure: " + folderPath);
+			classLogger.info("Preserved folder structure: {}", folderPath);
 		}
 	}
 
@@ -1190,9 +1245,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			try {
 				Path filePath = baseDirectory.resolve(key.replace("/", File.separator));
 				Files.deleteIfExists(filePath);
-				classLogger.info("Rolled back file: " + filePath);
+				classLogger.info("Rolled back file: {}", filePath);
 			} catch (IOException e) {
-				classLogger.error("Failed to rollback file: " + key, e);
+				classLogger.error("Failed to rollback file: {}", key, e);
 			}
 		}
 	}
@@ -1206,7 +1261,7 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 				DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(obj.key())
 						.build();
 				this.client.deleteObject(deleteRequest);
-				classLogger.info("Deleted empty blob from S3: " + obj.key());
+				classLogger.info("Deleted empty blob from S3: {}", obj.key());
 			}
 		}
 	}
@@ -1218,10 +1273,10 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 					DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder().bucket(this.bucket).key(fileKey)
 							.build();
 					this.client.deleteObject(deleteRequest);
-					classLogger.info("Rolled back failed upload: " + fileKey);
+					classLogger.info("Rolled back failed upload: {}", fileKey);
 				}, "Rolling back failed upload: " + fileKey);
 			} catch (Exception e) {
-				classLogger.error("Rollback failed for: " + fileKey, e);
+				classLogger.error("Rollback failed for: {}", fileKey, e);
 			}
 		}
 	}
@@ -1313,14 +1368,14 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 		for (String objectKey : failedFiles) {
 			if (deleteObject(objectKey)) {
-				classLogger.info("Successfully deleted on retry: " + objectKey);
+				classLogger.info("Successfully deleted on retry: {}", objectKey);
 			} else {
 				remainingFailedFiles.add(objectKey);
 			}
 		}
 
 		if (!remainingFailedFiles.isEmpty()) {
-			classLogger.error("Some files still failed to delete after retries: " + remainingFailedFiles);
+			classLogger.error("Some files still failed to delete after retries: {}", remainingFailedFiles);
 		} else {
 			classLogger.info("All previously failed files were successfully deleted after retry.");
 		}
@@ -1335,8 +1390,9 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
+		if (client != null) {
+			client.close();
+		}
 	}
 
 }

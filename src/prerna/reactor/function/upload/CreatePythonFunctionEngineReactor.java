@@ -57,7 +57,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -124,21 +123,19 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(functionId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(functionId, tempSmss.getAbsolutePath());
 			function.open(tempSmss.getAbsolutePath());
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			function.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(functionId, functionName, function, smssFile);
+			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
 				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
 			}
-
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
 
 			ClusterUtil.pushEngine(functionId);
 		} catch (Exception e) {

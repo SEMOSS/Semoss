@@ -43,8 +43,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 /**
  * This reactor updates determines the outlier rows based on the selected
@@ -56,7 +54,6 @@ import prerna.util.usertracking.UserTrackerFactory;
  * RunOutlier(attributes=["bp_1d","bp_1s","bp_2d","bp_2s"],alpha=[0.05],nullHandleType=["Impute"])
  * 
  */
-
 public class RunOutlierReactor extends AbstractRFrameReactor {
 
 	private static final String CLASS_NAME = RunOutlierReactor.class.getName();
@@ -119,10 +116,6 @@ public class RunOutlierReactor extends AbstractRFrameReactor {
 			String msg = errorMessage;
 			throw new IllegalArgumentException(msg);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, dataFrame, "OutliersAlgorithm",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// now create the frame and return the noun
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(frameName, newFrameName));

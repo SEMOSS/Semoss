@@ -58,7 +58,6 @@ import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.kserve.KServeAdapter;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -558,17 +557,6 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			classLogger.error("Error getting model URL or deploying model", e);
 			return null;
 		}
-	}
-
-	@Override
-	protected InstructModelEngineResponse instructCall(String task, String context,
-			List<Map<String, Object>> projectData, Insight insight, Map<String, Object> hyperParameters) {
-		try {
-			checkModelUp();
-		} catch (Exception e) {
-			classLogger.error("Error deploying model", e);
-		}
-		return implementingEngineClass.instructCall(task, context, projectData, insight, hyperParameters);
 	}
 
 }

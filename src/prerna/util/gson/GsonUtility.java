@@ -31,6 +31,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,6 +43,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
+import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 
 import prerna.date.SemossDate;
@@ -95,20 +98,20 @@ public class GsonUtility {
 	private static final Logger classLogger = LogManager.getLogger(GsonUtility.class);
 
 	private static boolean testing = false;
-	
+
 	private GsonUtility() {
-		
+
 	}
-	
+
 	public static Gson getDefaultGson(boolean pretty) {
-		GsonBuilder gsonBuilder = new GsonBuilder()
-				.disableHtmlEscaping()
+		GsonBuilder gsonBuilder = new GsonBuilder().disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
 				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
-				
+
 				// qs
-				.registerTypeAdapter(TemporalEngineHardQueryStruct.class, new TemporalEngineHardSelectQueryStructAdapter())
+				.registerTypeAdapter(TemporalEngineHardQueryStruct.class,
+						new TemporalEngineHardSelectQueryStructAdapter())
 				.registerTypeAdapter(HardSelectQueryStruct.class, new HardSelectQueryStructAdapter())
 				.registerTypeAdapter(SelectQueryStruct.class, new SelectQueryStructAdapter())
 				.registerTypeAdapter(CsvQueryStruct.class, new CsvQueryStructAdapter())
@@ -116,7 +119,7 @@ public class GsonUtility {
 				.registerTypeAdapter(ParquetQueryStruct.class, new ParquetQueryStructAdapter())
 				.registerTypeAdapter(UpdateQueryStruct.class, new UpdateQueryStructAdapter())
 				.registerTypeAdapter(ColorByValueRule.class, new ColorByValueRuleAdapter())
-				
+
 				// selectors
 				.registerTypeAdapter(IQuerySelector.class, new IQuerySelectorAdapter())
 				.registerTypeAdapter(QueryColumnSelector.class, new QueryColumnSelectorAdapter())
@@ -136,7 +139,7 @@ public class GsonUtility {
 				.registerTypeAdapter(OrQueryFilter.class, new OrQueryFilterAdapter())
 				.registerTypeAdapter(AndQueryFilter.class, new AndQueryFilterAdapter())
 				.registerTypeAdapter(FunctionQueryFilter.class, new FunctionQueryFilterAdapter())
-				
+
 				// sorts
 				.registerTypeAdapter(IQuerySort.class, new IQuerySortAdapter())
 				.registerTypeAdapter(QueryColumnOrderBySelector.class, new QueryColumnOrderBySelectorAdapter())
@@ -161,27 +164,26 @@ public class GsonUtility {
 				// OLD LEGACY STUFF
 				.registerTypeAdapter(SEMOSSVertex.class, new SEMOSSVertexAdapter())
 				.registerTypeAdapter(SEMOSSEdge.class, new SEMOSSEdgeAdapter())
-				
+
 				// cluster
 				.registerTypeAdapter(IHeadersDataRow.class, new IHeadersDataRowAdapter())
 				.registerTypeAdapter(HeadersDataRow.class, new HeadersDataRowAdapter())
-				
+
 				// pixel objects
 				.registerTypeAdapter(Pixel.class, new PixelAdapter())
 				.registerTypeAdapter(PixelList.class, new PixelListAdapter())
-				
+
 				// dates
 				.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-				;
-		
-		if(pretty) {
+				.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter());
+
+		if (pretty) {
 			gsonBuilder.setPrettyPrinting();
 		}
-		
+
 		return gsonBuilder.create();
 	}
-	
+
 	public static Gson getDefaultGson() {
 		return getDefaultGson(testing);
 	}
@@ -190,46 +192,44 @@ public class GsonUtility {
 	 * 
 	 * @param filePath
 	 * @param typeToken
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static Object readJsonFileToObject(String filePath, java.lang.reflect.Type type) throws IOException {
 		return readJsonFileToObject(new File(filePath), type);
 	}
-	
+
 	/**
 	 * 
 	 * @param file
 	 * @param typeToken
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public static Object readJsonFileToObject(File file, java.lang.reflect.Type type) throws IOException {
 		JsonReader jReader = null;
 		BufferedReader fReader = null;
 		try {
-			Gson gson = new GsonBuilder()
-					.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
-					.create();
+			Gson gson = new GsonBuilder().registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 			fReader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8);
 			jReader = new JsonReader(fReader);
-	        return gson.fromJson(jReader, type);
-	    } finally {
-	    	if(fReader != null) {
-	    		try {
+			return gson.fromJson(jReader, type);
+		} finally {
+			if (fReader != null) {
+				try {
 					fReader.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    	if(jReader != null) {
-	    		try {
+			}
+			if (jReader != null) {
+				try {
 					jReader.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
-	    	}
-	    }	
+			}
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param file
@@ -243,7 +243,7 @@ public class GsonUtility {
 			writer = new FileWriter(file);
 			gson.toJson(objToWrite, writer);
 		} finally {
-			if(writer != null) {
+			if (writer != null) {
 				try {
 					writer.close();
 				} catch (IOException e) {
@@ -252,5 +252,47 @@ public class GsonUtility {
 			}
 		}
 	}
-	
+
+	/**
+	 * Validates that the given string is valid JSON format using strict parsing.
+	 *
+	 * @param jsonString the JSON string to validate
+	 * @throws IllegalArgumentException if the string is not valid JSON
+	 */
+	public static void validateJsonString(String jsonString) {
+		if (jsonString == null || jsonString.trim().isEmpty()) {
+			throw new IllegalArgumentException("JSON string cannot be null or empty");
+		}
+		try {
+			JsonReader reader = new JsonReader(new StringReader(jsonString));
+			reader.setStrictness(Strictness.STRICT);
+			JsonParser.parseReader(reader);
+			// Ensure there's no extra content after the JSON
+			reader.peek();
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Invalid JSON format: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Checks if the given string is valid JSON format using strict parsing.
+	 *
+	 * @param jsonString the JSON string to check
+	 * @return true if the string is valid JSON, false otherwise
+	 */
+	public static boolean isValidJson(String jsonString) {
+		if (jsonString == null || jsonString.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			JsonReader reader = new JsonReader(new StringReader(jsonString));
+			reader.setStrictness(Strictness.STRICT);
+			JsonParser.parseReader(reader);
+			reader.peek();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 }

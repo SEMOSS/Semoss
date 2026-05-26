@@ -42,7 +42,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GoogleCalendarCreateEventReactor extends AbstractReactor {
@@ -78,6 +77,12 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 		String frequency = "";
 		String until = "";
 		String enablevideo = "";
+		if (startdatetime == null || startdatetime.trim().isEmpty()) {
+			throw new SemossPixelException("Start date and time are required.");
+		}
+		if (enddatetime == null || enddatetime.trim().isEmpty()) {
+			throw new SemossPixelException("End date and time are required.");
+		}
 
 		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
 			summary = this.keyValue.get(this.keysToGet[0]);
@@ -94,10 +99,10 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 			emailsInput = this.keyValue.get(this.keysToGet[5]);
 		}
 		if (this.keyValue.get(this.keysToGet[6]) != null && !this.keyValue.get(this.keysToGet[6]).isEmpty()) {
-			frequency = this.keyValue.get(this.keysToGet[6]);
+			frequency = this.keyValue.get(this.keysToGet[6]).trim().toUpperCase();
 		}
 		if (this.keyValue.get(this.keysToGet[7]) != null && !this.keyValue.get(this.keysToGet[7]).isEmpty()) {
-			until = this.keyValue.get(this.keysToGet[7]);
+			until = this.keyValue.get(this.keysToGet[7]).trim();
 		}
 		if (this.keyValue.get(this.keysToGet[8]) != null && !this.keyValue.get(this.keysToGet[8]).isEmpty()) {
 			enablevideo = this.keyValue.get(this.keysToGet[8]);
@@ -121,7 +126,15 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 			if (zoneId == null) {
 				zoneId = Utility.getApplicationZoneIdObj();
 			}
-			boolean video = Boolean.parseBoolean(enablevideo);
+			boolean video = false;
+			if (enablevideo != null && !enablevideo.trim().isEmpty()) {
+				String normalizedVideo = enablevideo.trim().toLowerCase();
+				if ("true".equals(normalizedVideo) || "false".equals(normalizedVideo)) {
+					video = Boolean.parseBoolean(normalizedVideo);
+				} else {
+					throw new SemossPixelException("Video must be set to true or false.");
+				}
+			}
 			boolean isRecurring = frequency != null && !frequency.isEmpty() && !frequency.equals(NONE);
 			if (!isRecurring) {
 				Map<String, Object> result = GoogleCalendarHelper.createEvent(accessToken, summary, location, desc,
@@ -133,39 +146,39 @@ public class GoogleCalendarCreateEventReactor extends AbstractReactor {
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 			}
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while creating a Google Calendar event", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create a Google Calendar event", e);
 			throw new SemossPixelException("An error occurred creating the event. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Create an event (non-recurring or recurring event) in Google Calender";
+		return "Create a Google Calendar event (single or recurring).";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(SUMMARY)) {
-			return "Summary or title of the event";
+			return "Title or summary for the event.";
 		} else if (key.equals(LOCATION)) {
-			return "Location where the event will take place";
+			return "Location where the event takes place.";
 		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
-			return "Detailed description of the event " + ReactorKeysEnum.DESCRIPTION.getKey();
+			return "Detailed description of the event (" + ReactorKeysEnum.DESCRIPTION.getKey() + ").";
 		} else if (key.equals(START_DATE)) {
-			return "Date and time when the event starts";
+			return "Start date and time of the event.";
 		} else if (key.equals(END_DATE)) {
-			return "Date and time when the event ends";
+			return "End date and time of the event.";
 		} else if (key.equals(EMAIL)) {
-			return "Email address of the event organizer or attendee";
+			return "Comma-separated attendee email addresses.";
 		} else if (key.equals(FREQUENCY)) {
-			return "Frequency of the recurring event (e.g., daily, weekly)";
+			return "Recurrence frequency for recurring events (DAILY, WEEKLY, or NONE).";
 		} else if (key.equals(UNTIL)) {
-			return "End date for the recurring event";
+			return "Optional end date and time for a recurring event; leave blank for no end date.";
 		} else if (key.equals(VIDEO)) {
-			return "Video conferencing details for the event";
+			return "Whether to include Google Meet video conferencing.";
 		}
 		return super.getDescriptionForKey(key);
 	}

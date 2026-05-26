@@ -41,18 +41,20 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import com.google.gson.Gson;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.reflect.TypeToken;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteFilesFromEngineRunner;
 import prerna.engine.api.IModelEngine;
@@ -75,7 +77,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final String V2_VECTOR_ENDPOINT = "/v2/vectordb";
 	private static final String CREATE_INDEX_ENDPOINT = "/indexes/create";
-	private static final String DATABASE_LIST_ENDPOINT ="/databases/list";
+	private static final String DATABASE_LIST_ENDPOINT = "/databases/list";
 	private static final String DATABASE_CREATE_ENDPOINT = "/databases/create";
 	private static final String DATABASE_DISCRIBE_ENDPOINT = "/databases/describe";
 	private static final String DATABASE_DROP_ENDPOINT = "/databases/drop";
@@ -99,7 +101,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private static final String INDEX_TYPE = "INDEX_TYPE";
 	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
 	private static final String M_VALUE = "M_VALUE";
-	
+
 	private final String ID = "id";
 	private final String EMBEDDINGS = "vector";
 
@@ -112,7 +114,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private int dimension = 1024;
 	private int efConstruction = 128;
 	private int m = 24;
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -124,9 +126,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		this.milvusUrl = this.smssProp.getProperty(Constants.HOSTNAME);
 		this.collectionName = this.smssProp.getProperty(COLLECTION_NAME);
 		this.databaseName = smssProp.getProperty(DATABASE_NAME);
-		if(this.databaseName != null && (
-				(this.databaseName=this.databaseName.trim()).isEmpty() || DEFAULT_DATABASE.equalsIgnoreCase(this.databaseName))
-				){
+		if (this.databaseName != null && ((this.databaseName = this.databaseName.trim()).isEmpty()
+				|| DEFAULT_DATABASE.equalsIgnoreCase(this.databaseName))) {
 			// keep database as null for all of these
 			this.databaseName = null;
 		}
@@ -136,29 +137,30 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		String indexTypeInput = this.smssProp.getProperty(INDEX_TYPE);
-		if(indexTypeInput != null && !(indexTypeInput=indexTypeInput.trim()).isEmpty()) {
+		if (indexTypeInput != null && !(indexTypeInput = indexTypeInput.trim()).isEmpty()) {
 			this.indexType = indexTypeInput;
 		}
 		String efConstructionInput = this.smssProp.getProperty(EF_CONSTRUCTION);
-		if(efConstructionInput != null && !(efConstructionInput=efConstructionInput.trim()).isEmpty()) {
+		if (efConstructionInput != null && !(efConstructionInput = efConstructionInput.trim()).isEmpty()) {
 			try {
 				this.efConstruction = ((Number) Double.parseDouble(efConstructionInput)).intValue();
-			} catch(NumberFormatException e) {
-				classLogger.warn("Invalid string value for ef construction '"+efConstructionInput+"'. Must be an integer value");
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid string value for ef construction '" + efConstructionInput
+						+ "'. Must be an integer value");
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		String mValueInput = this.smssProp.getProperty(M_VALUE);
-		if(mValueInput != null && !(mValueInput=mValueInput.trim()).isEmpty()) {
+		if (mValueInput != null && !(mValueInput = mValueInput.trim()).isEmpty()) {
 			try {
 				this.m = ((Number) Double.parseDouble(mValueInput)).intValue();
-			} catch(NumberFormatException e) {
-				classLogger.warn("Invalid string value for m value '"+mValueInput+"'. Must be an integer value");
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid string value for m value '" + mValueInput + "'. Must be an integer value");
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-		
-		if(this.databaseName != null) {
+
+		if (this.databaseName != null) {
 			if (!doesDatabaseExist()) {
 				createDatabase();
 			}
@@ -169,14 +171,15 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			createEmbeddingsIndex();
 		}
 	}
-	
+
 	@Override
 	protected String getDefaultDistanceMethod() {
 		return "COSINE";
 	}
 
 	@Override
-	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight, Map<String, Object> parameters) throws Exception {
+	public List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
+			Map<String, Object> parameters) throws Exception {
 		if (!modelPropsLoaded) {
 			verifyModelProps();
 		}
@@ -191,20 +194,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		JsonArray entities = new JsonArray();
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
 		Map<String, Integer> sourceId = new HashMap<>();
-		for (VectorDatabaseCSVRow row: vectorCsvTable.getRows()) {
+		for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 			String source = row.getSource();
 			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
 			int index = 0;
-			if(sourceId.containsKey(source)) {
+			if (sourceId.containsKey(source)) {
 				index = sourceId.get(source);
-				sourceId.put(source, index+1);
+				sourceId.put(source, index + 1);
 			} else {
 				sourceId.put(source, new Integer(0));
 			}
 
 			JsonObject record = new JsonObject();
 			// Generate a unique primary key for Milvus Vector Database
-			record.addProperty(this.ID, source+"_"+index);
+			record.addProperty(this.ID, source + "_" + index);
 			record.addProperty(VectorDatabaseCSVTable.SOURCE, row.getSource());
 			record.addProperty(VectorDatabaseCSVTable.MODALITY, row.getModality());
 			record.addProperty(VectorDatabaseCSVTable.DIVIDER, row.getDivider());
@@ -223,45 +226,48 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to add embeddings into collection '{}' within database '{}'", this.collectionName, this.databaseName);
+			classLogger.error("Failed to add embeddings into collection '{}' within database '{}'", this.collectionName,
+					this.databaseName);
 			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
-				fileStatusList.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
-	        }
-	        return fileStatusList;
-		}
-		else {
-		// {"code":0,"cost":284,"data":{"insertCount":228,"insertIds":["documentId1", ...
-		JsonObject dataJson = json.get("data").getAsJsonObject();
-		long insertedCount = dataJson.get("insertCount").getAsLong();
-		classLogger.info("Inserted {} records into Milvus Vector collection: {}", insertedCount, this.collectionName);
-		for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
-	        String file = entry.getKey();
-	        int totalRecords = entry.getValue();
+				fileStatusList
+						.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
+			}
+			return fileStatusList;
+		} else {
+			// {"code":0,"cost":284,"data":{"insertCount":228,"insertIds":["documentId1",
+			// ...
+			JsonObject dataJson = json.get("data").getAsJsonObject();
+			long insertedCount = dataJson.get("insertCount").getAsLong();
+			classLogger.info("Inserted {} records into Milvus Vector collection: {}", insertedCount,
+					this.collectionName);
+			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
+				String file = entry.getKey();
+				int totalRecords = entry.getValue();
 
-	        long inserted = 0;
-	        long failed = 0;
-	        String status;
+				long inserted = 0;
+				long failed = 0;
+				String status;
 
-	        if (insertedCount == totalRecords) {
-	            inserted = totalRecords;
-	            failed = 0;
-	            status = "SUCCESS";
-	            insertedCount -= totalRecords;
-	        } else if (insertedCount > 0 && insertedCount < totalRecords) {
-	            inserted = insertedCount;
-	            failed = totalRecords - insertedCount;
-	            status = "PARTIAL";
-	            insertedCount = 0;
-	        } else {
-	            inserted = 0;
-	            failed = totalRecords;
-	            status = "FAILED";
-	        }
+				if (insertedCount == totalRecords) {
+					inserted = totalRecords;
+					failed = 0;
+					status = "SUCCESS";
+					insertedCount -= totalRecords;
+				} else if (insertedCount > 0 && insertedCount < totalRecords) {
+					inserted = insertedCount;
+					failed = totalRecords - insertedCount;
+					status = "PARTIAL";
+					insertedCount = 0;
+				} else {
+					inserted = 0;
+					failed = totalRecords;
+					status = "FAILED";
+				}
 
-	        fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
-	    }
+				fileStatusList.add(new FileEmbeddingStatus(file, status, inserted, failed, totalRecords));
+			}
 
-	    return fileStatusList;
+			return fileStatusList;
 		}
 	}
 
@@ -272,8 +278,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
-				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
+				+ FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
 
 		JsonObject deleteRequest = new JsonObject();
 		deleteRequest.addProperty("collectionName", this.collectionName);
@@ -288,7 +294,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), deleteRequest.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 
-		Map<String, Object> responseMap = new Gson().fromJson(response, new TypeToken<Map<String, Object>>() {}.getType());
+		Map<String, Object> responseMap = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+		}.getType());
 		Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 		if (data != null) {
 			int deleteCount = ((Double) data.get("deleteCount")).intValue();
@@ -318,15 +325,15 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		if (ClusterUtil.IS_CLUSTER) {
-			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(
-					engineId, this.getCatalogType(), filesToRemoveFromCloud.toArray(new String[0])
-					));
+			Thread deleteFilesFromCloudThread = new Thread(new DeleteFilesFromEngineRunner(engineId,
+					this.getCatalogType(), filesToRemoveFromCloud.toArray(new String[0])));
 			deleteFilesFromCloudThread.start();
 		}
 	}
 
 	@Override
-	protected List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit, Map<String, Object> parameters) {
+	protected List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
+			Map<String, Object> parameters) {
 		if (insight == null) {
 			throw new IllegalArgumentException("Insight must be provided to run Model Engine Encoder");
 		}
@@ -336,7 +343,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
-		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
+		EmbeddingsModelEngineResponse embeddingsResponse = engine
+				.embeddings(Arrays.asList(new String[] { searchStatement }), insight, null);
 		JsonObject search = new JsonObject();
 		search.addProperty("collectionName", this.collectionName);
 		search.addProperty("limit", limit);
@@ -380,7 +388,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + SEARCH_ENDPOINT;
-		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), search.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), search.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
 
 		JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
 		JsonArray data = jsonObject.getAsJsonArray("data");
@@ -407,7 +416,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			indexClass = (String) parameters.get("indexClass");
 		}
 
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
+				+ DOCUMENTS_FOLDER_NAME);
 
 		List<Map<String, Object>> filesInMilvus = new ArrayList<>();
 
@@ -421,16 +431,14 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		queryRequest.add("outputFields", outputFields);
 
 		/*
-		 * As of 2025-04, there is no way to get distinct. Seems to be in roadmap for 2025
-		 * example response:
-		 * {"code":0,"cost":6,"data":[
-		 * 		{"Source":"document.pdf", "id":"document.pdf_0"},
-		 * 		{"Source":"document.pdf", "id":"document.pdf_1"},
-		 * 		...
+		 * As of 2025-04, there is no way to get distinct. Seems to be in roadmap for
+		 * 2025 example response: {"code":0,"cost":6,"data":[ {"Source":"document.pdf",
+		 * "id":"document.pdf_0"}, {"Source":"document.pdf", "id":"document.pdf_1"}, ...
 		 * ]}
 		 */
 		String url = this.milvusUrl + ENTITIES_ENDPOINT + QUERY_ENDPOINT;
-		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), queryRequest.toString(), ContentType.APPLICATION_JSON, null, null, null);
+		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), queryRequest.toString(),
+				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
 		JsonArray data = jsonObject.getAsJsonArray("data");
 		if (data != null && !data.isEmpty()) {
@@ -440,13 +448,13 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				JsonObject record = recordEle.getAsJsonObject();
 				String source = record.get(VectorDatabaseCSVTable.SOURCE).getAsString();
 
-				if(!uniqueFileNames.contains(source)) {
+				if (!uniqueFileNames.contains(source)) {
 					uniqueFileNames.add(source);
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
 					File thisF = new File(documentsDir, source);
-					if(thisF.exists() && thisF.isFile()) {
+					if (thisF.exists() && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);
 						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -466,7 +474,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	@Override
 	public List<Map<String, Object>> listAllRecords(Map<String, Object> parameters) {
 		List<Map<String, Object>> documentsList = new ArrayList<>();
-		int offset = 0;  
+		int offset = 0;
 		int limit = 100; // Fetch 100 records per request
 		boolean hasMoreRecords = true;
 
@@ -482,25 +490,31 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			queryRequest.add("outputFields", outputFields);
 
 			String url = this.milvusUrl + ENTITIES_ENDPOINT + QUERY_ENDPOINT;
-			String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), queryRequest.toString(), ContentType.APPLICATION_JSON, null, null, null);
+			String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), queryRequest.toString(),
+					ContentType.APPLICATION_JSON, null, null, null);
 			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
 			JsonArray data = jsonObject.getAsJsonArray("data");
 			if (data != null && !data.isEmpty()) {
 				for (JsonElement recordEle : data) {
 					JsonObject record = recordEle.getAsJsonObject();
 					Map<String, Object> document = new HashMap<>();
-					document.put(VectorDatabaseCSVTable.SOURCE, getJsonValue(record.get(VectorDatabaseCSVTable.SOURCE)));
-					document.put(VectorDatabaseCSVTable.MODALITY, getJsonValue(record.get(VectorDatabaseCSVTable.MODALITY)));
-					document.put(VectorDatabaseCSVTable.DIVIDER, getJsonValue(record.get(VectorDatabaseCSVTable.DIVIDER)));
+					document.put(VectorDatabaseCSVTable.SOURCE,
+							getJsonValue(record.get(VectorDatabaseCSVTable.SOURCE)));
+					document.put(VectorDatabaseCSVTable.MODALITY,
+							getJsonValue(record.get(VectorDatabaseCSVTable.MODALITY)));
+					document.put(VectorDatabaseCSVTable.DIVIDER,
+							getJsonValue(record.get(VectorDatabaseCSVTable.DIVIDER)));
 					document.put(VectorDatabaseCSVTable.PART, getJsonValue(record.get(VectorDatabaseCSVTable.PART)));
-					document.put(VectorDatabaseCSVTable.TOKENS, getJsonValue(record.get(VectorDatabaseCSVTable.TOKENS)));
-					document.put(VectorDatabaseCSVTable.CONTENT, getJsonValue(record.get(VectorDatabaseCSVTable.CONTENT)));
-					document.put(this.ID, getJsonValue(record.get(this.ID))); 
+					document.put(VectorDatabaseCSVTable.TOKENS,
+							getJsonValue(record.get(VectorDatabaseCSVTable.TOKENS)));
+					document.put(VectorDatabaseCSVTable.CONTENT,
+							getJsonValue(record.get(VectorDatabaseCSVTable.CONTENT)));
+					document.put(this.ID, getJsonValue(record.get(this.ID)));
 					documentsList.add(document);
 				}
 				// if we didn't pull the limit
 				// we are done
-				if(data.size() != limit) {
+				if (data.size() != limit) {
 					hasMoreRecords = false;
 				}
 				// Move to the next batch
@@ -508,12 +522,13 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			} else {
 				hasMoreRecords = false; // No more data to fetch
 			}
-		}   
+		}
 		return documentsList;
 	}
 
 	/**
 	 * Helper method to extract the correct type from JsonElement.
+	 * 
 	 * @param element
 	 * @return
 	 */
@@ -523,14 +538,14 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		} else if (element.isJsonPrimitive()) {
 			JsonPrimitive primitive = element.getAsJsonPrimitive();
 			if (primitive.isNumber()) {
-				return primitive.getAsInt(); 
+				return primitive.getAsInt();
 			} else if (primitive.isBoolean()) {
 				return primitive.getAsBoolean();
 			} else {
 				return primitive.getAsString();
 			}
 		} else {
-			return element.toString(); 
+			return element.toString();
 		}
 	}
 
@@ -564,7 +579,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 	/**
-	 * Indexing has not been implemented based on the intended use. Will implement it accordingly 
+	 * Indexing has not been implemented based on the intended use. Will implement
+	 * it accordingly
 	 */
 	private void createEmbeddingsIndex() {
 		JsonObject request = new JsonObject();
@@ -572,16 +588,16 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		request.addProperty("collectionName", this.collectionName);
 
 		JsonObject indexParamObject = new JsonObject();
-		indexParamObject.addProperty("index_type", this.indexType); 
-		indexParamObject.addProperty("metricType", this.distanceMethod); 
+		indexParamObject.addProperty("index_type", this.indexType);
+		indexParamObject.addProperty("metricType", this.distanceMethod);
 		indexParamObject.addProperty("fieldName", this.EMBEDDINGS);
-		indexParamObject.addProperty("indexName", this.EMBEDDINGS + "_index"); 
+		indexParamObject.addProperty("indexName", this.EMBEDDINGS + "_index");
 
 		JsonObject params = new JsonObject();
 		params.addProperty("M", this.m);
 		params.addProperty("efConstruction", this.efConstruction);
 		indexParamObject.add("params", params);
-		
+
 		JsonArray indexParamsList = new JsonArray();
 		indexParamsList.add(indexParamObject);
 		request.add("indexParams", indexParamsList);
@@ -592,12 +608,12 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") && json.get("code").getAsInt() != 0) {
 			classLogger.error("Failed to create index on field '{}' in collection '{}'", "", this.collectionName);
-			throw new RuntimeException("Failed to create index in Milvus collection: " + this.collectionName + ". Detailed error = " + json);
+			throw new RuntimeException("Failed to create index in Milvus collection: " + this.collectionName
+					+ ". Detailed error = " + json);
 		}
 
 		classLogger.info("Index '{}' created successfully for collection '{}'", "", this.collectionName);
 	}
-
 
 	/**
 	 * Check if the database exists in Milvus.
@@ -680,7 +696,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private void createCollection() {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", this.collectionName);
@@ -691,7 +707,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		request.add("params", params);
 
 		request.addProperty("vectorField", this.EMBEDDINGS);
-		request.addProperty("dimension",this.dimension);
+		request.addProperty("dimension", this.dimension);
 		request.addProperty("metricType", this.distanceMethod);
 
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_CREATE_ENDPOINT;
@@ -699,8 +715,10 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to create collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to create collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to create collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to create collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 
 		classLogger.info("Milvus collection '{}' created successfully", this.collectionName);
@@ -721,7 +739,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
 			classLogger.error("Failed to describe database '{}'", this.databaseName);
-			throw new RuntimeException("Failed to describe database " + this.databaseName + ". Detailed error = " + json);
+			throw new RuntimeException(
+					"Failed to describe database " + this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -734,7 +753,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	private JsonObject dropDatabase(String databaseName) {
 		JsonObject request = new JsonObject();
 		request.addProperty("dbName", this.databaseName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + DATABASE_DROP_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
@@ -753,18 +772,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject describeCollection(String collectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_DESCRIBE_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to describe collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to drop collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to describe collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to drop collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -776,18 +797,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject getCollectionStats(String collectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_GET_STATS_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to describe stats for collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to describe stats for collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to describe stats for collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to describe stats for collection " + this.collectionName
+					+ " in database " + this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -800,7 +823,7 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject getCollectionLoadState(String collectionName, List<String> partitionNames) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
@@ -813,8 +836,10 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to get collection load state for collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to get collection load state for collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to get collection load state for collection '{}' in database '{}'",
+					this.collectionName, this.databaseName);
+			throw new RuntimeException("Failed to get collection load state for collection " + this.collectionName
+					+ " in database " + this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -826,18 +851,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject loadCollection(String collectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_LOAD_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to load collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to load collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to load collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to load collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -849,18 +876,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject releaseCollection(String collectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_RELEASE_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to release collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to release collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to release collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to release collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -873,19 +902,21 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject renameCollection(String collectionName, String newCollectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
 		request.addProperty("newCollectionName", newCollectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_RENAME_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to rename collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to rename collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to rename collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to rename collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}
@@ -897,18 +928,20 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	private JsonObject dropCollection(String collectionName) {
 		JsonObject request = new JsonObject();
-		if(this.databaseName != null) {
+		if (this.databaseName != null) {
 			request.addProperty("dbName", this.databaseName);
 		}
 		request.addProperty("collectionName", collectionName);
-		
+
 		String url = this.milvusUrl + V2_VECTOR_ENDPOINT + COLLECTION_DROP_ENDPOINT;
 		String response = HttpHelperUtility.postRequestStringBody(url, getHeaders(), request.toString(),
 				ContentType.APPLICATION_JSON, null, null, null);
 		JsonObject json = JsonParser.parseString(response).getAsJsonObject();
 		if (!json.has("code") || json.get("code").getAsInt() != 0) {
-			classLogger.error("Failed to drop collection '{}' in database '{}'", this.collectionName, this.databaseName);
-			throw new RuntimeException("Failed to drop collection " + this.collectionName + " in database " + this.databaseName + ". Detailed error = " + json);
+			classLogger.error("Failed to drop collection '{}' in database '{}'", this.collectionName,
+					this.databaseName);
+			throw new RuntimeException("Failed to drop collection " + this.collectionName + " in database "
+					+ this.databaseName + ". Detailed error = " + json);
 		}
 		return json;
 	}

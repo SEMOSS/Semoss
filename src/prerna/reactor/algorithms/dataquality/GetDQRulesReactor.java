@@ -41,27 +41,27 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class GetDQRulesReactor extends AbstractReactor{
+public class GetDQRulesReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetDQRulesReactor.class);
 	private static final String DIR_SEP = System.getProperty("file.separator");
-	
+
+	@Override
 	public NounMetadata execute() {
-		String base = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		String base = Utility.getBaseFolder();
 		String fileLoc = base + DIR_SEP + "R" + DIR_SEP + "DQ" + DIR_SEP + "rule-defs.json";
-		
+
 		String fileString = null;
 		try {
-			// depreated function will normalize string to not hit a new scan 
+			// depreated function will normalize string to not hit a new scan
 			fileString = Utility.normalizePath(fileString);
 			fileString = FileUtils.readFileToString(new File(fileLoc));
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
+
 		Gson gson = new Gson();
 		Map<String, Object> rulesMap = gson.fromJson(fileString, Map.class);
 		NounMetadata noun = new NounMetadata(rulesMap, PixelDataType.MAP);

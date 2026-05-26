@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.SystemUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,7 +49,6 @@ import oshi.hardware.GlobalMemory;
 import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -64,8 +63,8 @@ public class MgmtUtil {
 	static AtomicLong freeMemory = new AtomicLong(-1);
 	static AtomicLong userCount = new AtomicLong(0);
 
-	private static final String Temp_FOLDER = (DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + "/" + "R"
-			+ "/" + "Temp" + "/").replace('\\', '/');
+	private static final String TEMP_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\',
+			'/');
 
 	public static void diskUtilizationPerProcess(int pid) {
 		/**
@@ -167,7 +166,7 @@ public class MgmtUtil {
 			freeMemory.set(availableMemory / (1024 * 1024 * 1024));
 			logger.info("Server total available memory = " + freeMemory.longValue() + " GB");
 			// give a 2GB limit
-			String reservedJavaMem = DIHelper.getInstance().getProperty(Settings.RESERVED_JAVA_MEM);
+			String reservedJavaMem = Utility.getDIHelperProperty(Settings.RESERVED_JAVA_MEM);
 			if (reservedJavaMem != null && !(reservedJavaMem = reservedJavaMem.trim()).isEmpty()) {
 				long javaReservedMemory = Long.parseLong(reservedJavaMem);
 				freeMemory.getAndAdd(-1 * javaReservedMemory);
@@ -189,7 +188,7 @@ public class MgmtUtil {
 	public static int getPidByPort(int port) {
 //		SecurityManager priorManager = System.getSecurityManager();
 //		System.setSecurityManager(null);
-		File tempFile = new File(Temp_FOLDER + Utility.getRandomString(12) + ".txt");
+		File tempFile = new File(TEMP_FOLDER + Utility.getRandomString(12) + ".txt");
 		try {
 			if (SystemUtils.IS_OS_WINDOWS) {
 

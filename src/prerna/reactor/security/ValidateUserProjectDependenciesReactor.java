@@ -58,7 +58,7 @@ public class ValidateUserProjectDependenciesReactor extends AbstractSetMetadataR
 		
 		Map<String, Boolean> hasAccess = new HashMap<>();
 		
-		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId);
+		List<Map<String, Object>> dependentEngines = SecurityProjectUtils.getProjectDependencies(projectId, true);
 		for(Map<String, Object> depEngine : dependentEngines) {
 			String depEngineId = (String) depEngine.get("engine_id");
 			String depEngineType = (String) depEngine.get("engine_type");

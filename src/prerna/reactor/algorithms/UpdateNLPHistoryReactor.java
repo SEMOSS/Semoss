@@ -36,7 +36,6 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
@@ -58,22 +57,25 @@ public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
 		organizeKeys();
 
 		// otherwise, proceed with the reactor
-		String[] packages = new String[] { "data.table", "stringr", "stringdist", "udpipe", "tokenizers", "openNLP", "openNLPmodels.en" };
+		String[] packages = new String[] { "data.table", "stringr", "stringdist", "udpipe", "tokenizers", "openNLP",
+				"openNLPmodels.en" };
 		this.rJavaTranslator.checkPackages(packages);
 
 		// Generate string to initialize R console
 		StringBuilder sb = new StringBuilder();
-		String baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
+		String baseFolder = Utility.getBaseFolder();
 		String wd = "wd" + Utility.getRandomString(5);
 		sb.append(wd + "<- getwd();");
-		sb.append(("setwd(\"" + baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts\");").replace("\\", "/"));
+		sb.append(("setwd(\"" + baseFolder + DIR_SEPARATOR + "R" + DIR_SEPARATOR + "AnalyticsRoutineScripts\");")
+				.replace("\\", "/"));
 		sb.append("source(\"nli_db.R\");");
 		sb.append("source(\"word_vectors.R\");");
 		sb.append(RSyntaxHelper.loadPackages(packages));
 		this.rJavaTranslator.runR(sb.toString());
 
 		// get all id's of a user
-		List<String> allIds = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());;
+		List<String> allIds = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
+		;
 
 		// get matrix of data from local master
 		List<Object[]> allTableCols = MasterDatabaseUtility.getAllTablesAndColumns(allIds);
@@ -143,8 +145,10 @@ public class UpdateNLPHistoryReactor extends AbstractRFrameReactor {
 		rColNames += ")";
 		rColTypes += ")";
 
-		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = " + rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
-		rsb.append("refresh_nlidb_history(\"nlq_history.txt\"," + rTempTable + " , filename = \"nli_training.rds\" " + ");");
+		rsb.append(rTempTable + " <- data.frame(Column = " + rColNames + " , Table = " + rTableNames + " , AppID = "
+				+ rAppIds + ", Datatype = " + rColTypes + ", stringsAsFactors = FALSE);");
+		rsb.append("refresh_nlidb_history(\"nlq_history.txt\"," + rTempTable + " , filename = \"nli_training.rds\" "
+				+ ");");
 		this.rJavaTranslator.runR(rsb.toString());
 
 		// variable cleanup

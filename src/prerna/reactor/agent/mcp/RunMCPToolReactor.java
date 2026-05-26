@@ -98,7 +98,7 @@ public class RunMCPToolReactor extends AbstractReactor {
 		Map<String, Object> paramMap = getMap();
 
 		IMCP mcp = MCPFactory.build(engine);
-		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.CONST_STRING,
+		return new NounMetadata(mcp.callTool(toolName, paramMap, this.insight), PixelDataType.MCP_TOOL_EXECUTION,
 				PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
