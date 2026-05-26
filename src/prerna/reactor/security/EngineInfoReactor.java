@@ -33,57 +33,63 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class EngineInfoReactor extends AbstractReactor {
-	
+
 	public EngineInfoReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.META_KEYS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		
-		if(engineId == null || engineId.isEmpty()) {
+
+		if (engineId == null || engineId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
-		
+
 		List<Map<String, Object>> baseInfo = null;
 		// make sure valid id for user
 		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-		if(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+		if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), engineId, null);
-		} else if(SecurityEngineUtils.engineIsDiscoverable(engineId)) {
+		} else if (SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 		} else {
 			// you dont have access
 			throw new IllegalArgumentException("Engine does not exist or user does not have access to the engine");
 		}
-		
-		if(baseInfo == null || baseInfo.isEmpty()) {
+
+		if (baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any engine data");
 		}
-		
+
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, getMetaKeys(), true));
+		@SuppressWarnings("unchecked")
+		List<String> metaKeys = getList(ReactorKeysEnum.META_KEYS.getKey());
+		if (metaKeys != null && metaKeys.isEmpty()) {
+			metaKeys = null;
+		}
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, metaKeys, true));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
 	}
-	
-	private List<String> getMetaKeys() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.META_KEYS.getKey());
-		if(grs != null && !grs.isEmpty()) {
-			return grs.getAllStrValues();
-		}
-		
-		return null;
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns information for a single engine when the user can access it or it is discoverable.
+
+				Inputs: engine, metaKeys.
+				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name).
+				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				""";
 	}
 
 }

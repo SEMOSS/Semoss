@@ -7,6 +7,9 @@ import os
 from typing import List, Optional
 from deprecated import deprecated
 
+# this is here so users only need to know to import smssutil and not worry about the internal structure of the code
+from gaas_tcp_server_thread_local import smss_get_runtime_var
+
 logger = logging.getLogger("SocketServer")
 
 # callback link
@@ -621,36 +624,6 @@ def run_alpaca(nl_query, max_tokens_value, api_base, model_name="alpaca-13b-lora
     return query
 
 
-def run_guanaco(
-    nl_query,
-    max_tokens_value,
-    api_base,
-    stop_sequences=["#", ";"],
-    temperature_val=0.01,
-    top_p_val=0.5,
-    **kwargs,
-):
-    from text_generation import Client
-
-    client = Client(api_base)
-    client.timeout = 60
-    text = ""
-    # for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
-    for response in client.generate_stream(
-        compose_sql_prompt(nl_query),
-        temperature=temperature_val,
-        top_p=top_p_val,
-        max_new_tokens=max_tokens_value,
-        stop_sequences=stop_sequences,
-        **kwargs,
-    ):
-        if not response.token.special:
-            text += response.token.text
-    text = text.replace("\r", " ").replace("\n", " ").replace("`", "")
-    print(text)
-    return text
-
-
 def chat_alpaca(
     context, nl_query, max_tokens_value, api_base, model_name="guanaco-33b", long=False
 ):
@@ -685,13 +658,6 @@ def chat_alpaca(
     return query
 
 
-def compose_sql_prompt(question=None):
-    assert question is not None
-    query = f"A chat between a curious human and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions. Based on the table and columns defined below, create a sql statement that answers the human's question:### Question:\n\n{question}\n\n### SQL:"
-    print(query)
-    return query
-
-
 def compose_prompt(context=None, question=None):
     assert question is not None
     if context is None:
@@ -715,132 +681,6 @@ def compose_prompt_wizard(context=None, question=None):
 def compose_prompt_qa(context=None, question=None):
     prompt = f"Context information is below. \n---------------------\n{context}\n---------------------\nGiven the context information and not prior knowledge, answer the question: {question}\n"
     return prompt
-
-
-def chat_guanaco(
-    context=None,
-    question=None,
-    client=None,
-    max_new_tokens=200,
-    prev_response=None,
-    stop_sequences=["###", "#", ";"],
-    **kwargs,
-):
-    if context == "":
-        context = None
-    text = ""
-    finish_reason = ""
-    input_text = compose_prompt(context, question)
-    final_output = {}
-    if prev_response is not None:
-        input_text = f"{input_text} {prev_response}"
-    # for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
-    for response in client.generate_stream(
-        compose_prompt(context, question),
-        max_new_tokens=max_new_tokens,
-        stop_sequences=stop_sequences,
-        **kwargs,
-    ):
-        # for response in client.generate_stream(compose_prompt_qa(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
-        if not response.token.special:
-            text += response.token.text
-        if response.details is not None:
-            detail = response.details
-            from text_generation.types import FinishReason
-
-            # print(f"Finished with {detail.finish_reason}")
-            if (
-                detail.finish_reason != "stop_sequence"
-                and detail.finish_reason != "eos_token"
-            ):
-                finish_reason = f"... <Unable to complete request, please try by increasing token size from {max_new_tokens}>"
-                final_output.update({"meta": finish_reason})
-    # print(client.generated_stream.finish_reason)
-    # print(f"{text}")
-    final_output.update({"response": f"{text}"})
-    return final_output
-
-
-def chat_guanaco_code(
-    context=None,
-    question=None,
-    client=None,
-    prev_response=None,
-    max_new_tokens=100,
-    stop_sequences=["###", ";"],
-    incremental=False,
-    **kwargs,
-):
-    text = ""
-    # code starts with ``` and ends with ```
-    if context == "":
-        context = None
-    input_text = compose_prompt(context, question)
-    if prev_response is not None:
-        input_text = f"{input_text} {prev_response}"
-    # print(input_text)
-    response_available = False
-    str_start = -1
-    str_end = -1
-    cur_new_tokens = 100
-    total_tokens = 100
-    response_so_far = ""
-    final_answer = ""
-    finish_reason = ""
-    final_output = {}
-    while not response_available and total_tokens < max_new_tokens:
-        # for response in client.generate_stream(compose_prompt(context, question), max_new_tokens=max_new_tokens, temperature=0.2,top_p=0.5):
-        # print("running while loop")
-        for response in client.generate_stream(
-            input_text,
-            max_new_tokens=cur_new_tokens,
-            stop_sequences=stop_sequences,
-            **kwargs,
-        ):
-            # for response in client.generate_stream(compose_prompt_qa(context, question), max_new_tokens=max_new_tokens, stop_sequences=stop_sequences, **kwargs):
-            # print("in for loop")
-            if not response.token.special:
-                text += response.token.text
-
-        # if(len(response_so_far) == 0):
-        # print(f"text is >>>> {text} <<<<<")
-        # response_so_far = text
-
-        if str_start < 0:
-            str_start = text.find("```")
-
-        if str_start > 0 and str_end < 0:
-            str_end = text.find("```", str_start + 3)
-
-        if str_start > 0 and str_end > 0:
-            response_available = True
-            # print("found both start and end")
-            final_answer = text[str_start + 3 : str_end]
-            final_output.update({"response": f"{final_answer}"})
-            # print(f" Response so far {response_so_far}")
-        else:
-            input_text = f"{compose_prompt(context, question)} {text}"
-            total_tokens = total_tokens + 100
-            if incremental:
-                print(f"{text}")
-            # print(f" Response so far {response_so_far}")
-            # print(f"{input_text}")
-
-        # print(f"Start : {str_start}, End : {str_end}")
-        # print(f"Response available ? {response_available}")
-    if str_start < 0:
-        final_answer = text
-        finish_reason = ".. <Unable to complete request>"
-        final_output.update({"meta": finish_reason})
-        final_output.update({"response": f"{final_answer}"})
-    elif str_start > 0 and str_end < 0:
-        final_answer = text
-        finish_reason = "... <Unable to get the full data. Please try by increasing max_tokens or resubmit the request>"
-        final_output.update({"meta": finish_reason})
-        final_output.update({"response": f"{final_answer}"})
-    print(f"{final_answer}")
-    # print(f"{text}")
-    return final_output
 
 
 def convert_pdf_to_text(document_location):
@@ -1183,12 +1023,12 @@ def generate_mcp(
 
 
 @deprecated(
-    reason="Use @mcp_metadata({'execution':'auto'|'ask_user'|'disabled'}) instead",
+    reason="Use @mcp_metadata({'execution':'auto'|'ask'|'disabled'}) instead",
     version="5.1.0",
 )
 def mcp_execution(arg: str):
     """
-    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask_user'|'disabled')
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask'|'disabled')
     """
 
     def _decorator(func):
@@ -1206,7 +1046,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask_user'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
     """
 
     def _decorator(func):

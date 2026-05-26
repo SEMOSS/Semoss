@@ -67,6 +67,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -257,7 +258,8 @@ public class AdminUploadUsersReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -265,7 +267,7 @@ public class AdminUploadUsersReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			when(db.getConnection()).thenThrow(new SQLException("connection refused"));
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -281,7 +283,8 @@ public class AdminUploadUsersReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -289,7 +292,7 @@ public class AdminUploadUsersReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			when(db.getConnection()).thenThrow(new SQLException((String) null));
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
@@ -305,7 +308,8 @@ public class AdminUploadUsersReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<UploadInputUtility> uiu = Mockito.mockStatic(UploadInputUtility.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -313,7 +317,7 @@ public class AdminUploadUsersReactorUnitTests {
 			util.when(() -> Utility.normalizePath(filePath)).thenReturn(filePath);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			Connection c = mock(Connection.class);
 			when(db.getConnection()).thenReturn(c);
 			Mockito.doThrow(new SQLException("cannot set auto commit")).when(c).setAutoCommit(false);

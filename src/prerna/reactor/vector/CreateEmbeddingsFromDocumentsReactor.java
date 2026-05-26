@@ -122,22 +122,54 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			}
 
 			fileStatusList = vectorDatabase.addDocument(validFiles, paramMap);
+			List<String> failedFiles = new ArrayList<>();
+			List<String> partialFiles = new ArrayList<>();
+			for (FileEmbeddingStatus status : fileStatusList) {
+				if (status == null) {
+					continue;
+				}
+				boolean hasError = status.getError() != null && !status.getError().isEmpty();
+				String statusValue = status.getStatus();
+				boolean failed = "FAILED".equalsIgnoreCase(statusValue);
+				boolean partial = "PARTIAL".equalsIgnoreCase(statusValue);
+				if (failed || hasError) {
+					failedFiles.add(status.getFileName());
+				} else if (partial) {
+					partialFiles.add(status.getFileName());
+				}
+			}
+			if (!failedFiles.isEmpty()) {
+				String message = "Embedding failed for: " + String.join(", ", failedFiles);
+				NounMetadata error = NounMetadata.getErrorNounMessage(message);
+				error.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION));
+				return error;
+			} else if (!partialFiles.isEmpty()) {
+				String message = "Embedding partially failed for: " + String.join(", ", partialFiles);
+				NounMetadata warning = NounMetadata.getWarningNounMessage(message);
+				warning.addAdditionalReturn(new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+						PixelOperationType.OPERATION));
+				return warning;
+			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("The following exception occured: " + e.getMessage());
+			classLogger.error("Error creating embeddings from document files for engine {}", engineId, e);
+			throw new SemossPixelException("The following exception occured: " + e.getMessage());
 		} finally {
 			File zipFileExtractionDir = new File(rootFolder + "/" + PATH_TO_UNZIP_FILES);
 			if (zipFileExtractionDir.exists()) {
 				try {
 					FileUtils.forceDelete(zipFileExtractionDir);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error deleting temporary extraction directory {}",
+							zipFileExtractionDir.getAbsolutePath(), e);
 				}
 			}
 		}
-		NounMetadata noun = new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE,
-				PixelOperationType.OPERATION);
-		return noun;
+		// On success, we return the fileStatusList as additional output
+		NounMetadata success = NounMetadata.getSuccessNounMessage("Successfully embedded all files");
+		success.addAdditionalReturn(
+				new NounMetadata(fileStatusList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION));
+		return success;
 	}
 
 	/**
@@ -325,10 +357,18 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(FILE_PATHS_KEY)) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to add embeddings into.";
+		} else if (key.equals(FILE_PATHS_KEY)) {
 			return """
 					The list of file paths to process. Can include pdf, word, ppt, txt files or zip archives. \
-					Paths are relative to the insight or project space.\
+					Paths are resolved relative to the selected `space` (or current insight when `space` is omitted).\
+					""";
+		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
+			return """
+					Optional space used to resolve relative file paths. \
+					When omitted, files are resolved from the current insight/room space. \
+					Pass a project/app UUID to resolve from that app/project folder, or pass `user` for user space.\
 					""";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");

@@ -29,32 +29,23 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.common.cache.CacheBuilder;
-
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
-import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.responses.InstructModelEngineResponse;
-import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
@@ -86,10 +77,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
-
-	private ConcurrentMap<String, ArrayList<Map<String, Object>>> chatHistory = CacheBuilder.newBuilder()
-			.expireAfterAccess(1, TimeUnit.HOURS) // Clears entries if not accessed for 1 hour
-			.<String, ArrayList<Map<String, Object>>>build().asMap();
 
 	@Override
 	public void open(String smssFilePath) throws Exception {
@@ -273,25 +260,23 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		checkSocketStatus();
 
-		boolean keepConvoHisotry = this.keepsConversationHistory();
 		final String TRIPLE_QUOTE = "\"\"\"";
-
 		StringBuilder callMaker = new StringBuilder(varName + ".ask(");
 
-		// TODO fullPrompt should be removed
-		if (fullPrompt != null) {
-			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
-			if (context != null) {
-				if (context.startsWith("\"")) {
-					context = " " + context;
-				}
-				if (context.endsWith("\"")) {
-					context = context + " ";
-				}
-				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-			}
-		}
+//		// TODO fullPrompt should be removed
+//		if (fullPrompt != null) {
+//			callMaker.append(FULL_PROMPT).append("=").append(PyUtils.determineStringType(fullPrompt));
+//			if (context != null) {
+//				if (context.startsWith("\"")) {
+//					context = " " + context;
+//				}
+//				if (context.endsWith("\"")) {
+//					context = context + " ";
+//				}
+//				context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
+//				callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
+//			}
+//		}
 //		else {
 //			if (question.startsWith("\"")) {
 //				question = " " + question;
@@ -363,110 +348,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
-		
+
 		// DON'T UPDATE CHAT HISTORY IF RESPONSE IS AN ERRROR
 		if (response instanceof AskErrorModelEngineResponse) {
-		    classLogger.warn("Model returned an error: {}", response.getStringResponse());
-		    return response; 
+			classLogger.warn("Model returned an error: {}", response.getStringResponse());
+			return response;
 		}
 
-		if (keepConvoHisotry) {
-			// IF ITS A tool call - then append adjust history
-			Map<String, Object> inputMap = new HashMap<>();
-			Map<String, Object> outputMap = new HashMap<>();
-
-			inputMap.put(ROLE, "user");
-			inputMap.put(MESSAGE_CONTENT, question);
-
-			outputMap.put(ROLE, "assistant");
-
-			// TODO: handle multiple tools being returned
-			// TODO: handle multiple tools being returned
-			// TODO: handle multiple tools being returned
-			if (response.getMessageType().equalsIgnoreCase(AskModelEngineResponse.TOOL)) {
-				AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) response;
-				// Create the tool call structure
-				Map<String, Object> toolCall = new HashMap<>();
-				toolCall.put(TYPE, "function");
-				toolCall.put(ID, toolResponse.getToolCallId());
-
-				Map<String, String> functionMap = new HashMap<>();
-				functionMap.put(ARGUMENTS, toolResponse.getToolCallArgumentsAsString());
-				functionMap.put(NAME, toolResponse.getToolCallName());
-
-				toolCall.put(FUNCTION, functionMap);
-
-				// Add tool call to output map
-				outputMap.put(TOOL_CALLS, Arrays.asList(toolCall));
-				outputMap.put(MESSAGE_CONTENT, ""); // Empty content for tool
-			} else {
-				// Regular response
-				outputMap.put(MESSAGE_CONTENT, response.getStringResponse());
-			}
-			// Update chat history
-			if (chatHistory.containsKey(insight.getInsightId())) {
-				chatHistory.get(insight.getInsightId()).add(inputMap);
-				chatHistory.get(insight.getInsightId()).add(outputMap);
-			}
-		}
-
-		return response;
-	}
-
-	@Override
-	public InstructModelEngineResponse instructCall(String task, String context, List<Map<String, Object>> projectData,
-			Insight insight, Map<String, Object> parameters) {
-		checkSocketStatus();
-
-		final String TRIPLE_QUOTE = "\"\"\"";
-		StringBuilder callMaker = new StringBuilder(varName + ".instruct(");
-
-		if (task.startsWith("\"")) {
-			task = " " + task;
-		}
-		if (task.endsWith("\"")) {
-			task = task + " ";
-		}
-		task = task.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-
-		callMaker.append("task=").append(TRIPLE_QUOTE).append(task).append(TRIPLE_QUOTE);
-		if (context != null) {
-			if (context.startsWith("\"")) {
-				context = " " + context;
-			}
-			if (context.endsWith("\"")) {
-				context = context + " ";
-			}
-			context = context.replace(TRIPLE_QUOTE, "\\\"\\\"\\\"");
-			callMaker.append(",").append("context=").append(TRIPLE_QUOTE).append(context).append(TRIPLE_QUOTE);
-		}
-
-		callMaker.append(",").append("projectData=").append(PyUtils.determineStringType(projectData));
-
-		if (parameters != null) {
-			Iterator<String> paramKeys = parameters.keySet().iterator();
-			while (paramKeys.hasNext()) {
-				String key = paramKeys.next();
-				Object value = parameters.get(key);
-				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
-			}
-		}
-
-		if (this.prefix != null) {
-			callMaker.append(", prefix='").append(prefix).append("'");
-		}
-
-		callMaker.append(")");
-		classLogger.debug("Running >>>" + callMaker.toString());
-
-		Object output = pyTranslator.runDirectPy(callMaker.toString());
-		InstructModelEngineResponse response = null;
-		try {
-			response = InstructModelEngineResponse.fromObject(output);
-		} catch (Exception e) {
-			classLogger.error("Could not create response object from output: {}", output, e);
-			throw new IllegalArgumentException(e.getMessage());
-		}
 		return response;
 	}
 
@@ -578,86 +466,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		StringSubstitutor sub = new StringSubstitutor(vars);
 		String resolvedString = sub.replace(input);
 		return resolvedString;
-	}
-
-	/**
-	 * 
-	 * @param insightId
-	 * @param userId
-	 * @return
-	 */
-	protected String getConversationHistoryFromInferenceLogs(String insightId, String userId) {
-		List<Map<String, Object>> convoHistoryFromDb = ModelInferenceLogsUtils.doRetrieveConversation(userId, insightId,
-				"ASC");
-		if (convoHistoryFromDb.size() > 0) {
-			for (Map<String, Object> record : convoHistoryFromDb) {
-				Object messageData = record.get("MESSAGE_DATA");
-				Map<String, Object> mapHistory = new HashMap<String, Object>();
-				if (record.get("MESSAGE_TYPE").equals(ModelEngineInferenceLogsWorker.RESPONSE)) {
-					mapHistory.put(ROLE, "assistant");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
-				} else {
-					mapHistory.put(ROLE, "user");
-					mapHistory.put(MESSAGE_CONTENT, messageData);
-				}
-				chatHistory.get(insightId).add(mapHistory);
-			}
-			ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
-			StringBuilder convoList = new StringBuilder("[");
-			boolean isFirstElement = true;
-			for (Map<String, Object> record : convoHistory) {
-				if (!isFirstElement) {
-					convoList.append(",");
-				} else {
-					isFirstElement = false;
-				}
-				Object priorContent = PyUtils.determineStringType(record);
-				convoList.append(priorContent);
-			}
-			convoList.append("]");
-			return convoList.toString();
-		}
-		return null;
-	}
-
-	/**
-	 * 
-	 * @param userId
-	 * @param insightId
-	 * @param keepConvoHisotry
-	 * @return
-	 */
-	protected String getConversationHistory(String userId, String insightId, boolean keepConvoHisotry) {
-		if (keepConvoHisotry) {
-			if (chatHistory.containsKey(insightId)) {
-				ArrayList<Map<String, Object>> convoHistory = chatHistory.get(insightId);
-				StringBuilder convoList = new StringBuilder("[");
-				boolean isFirstElement = true;
-				for (Map<String, Object> record : convoHistory) {
-					if (!isFirstElement) {
-						convoList.append(",");
-					} else {
-						isFirstElement = false;
-					}
-					Object priorContent = PyUtils.determineStringType(record);
-					convoList.append(priorContent);
-				}
-				convoList.append("]");
-				return convoList.toString();
-			} else {
-				// we want to start a conversation
-				ArrayList<Map<String, Object>> userNewChat = new ArrayList<Map<String, Object>>();
-				chatHistory.put(insightId, userNewChat);
-
-				String dbConversation = null;
-				if (Utility.isModelInferenceLogsEnabled()) {
-					dbConversation = getConversationHistoryFromInferenceLogs(insightId, userId);
-				}
-
-				return dbConversation;
-			}
-		}
-		return null;
 	}
 
 }

@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -51,7 +52,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	
@@ -103,7 +104,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 		accessToken.setEmail(email);
 		user.setGlobalAccessToken(accessToken);
 
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		// clear the session share table before each test
 		Connection conn = null;
 		Statement s = null;
@@ -275,7 +276,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 	// used to get a wrapper on the table to validate tests
 	// this wrapper needs to be closed after use
 	private IRawSelectWrapper getAccessKeyTableWrapper() throws Exception {
-		RDBMSNativeEngine securityDb = (RDBMSNativeEngine) Utility.getDatabase(Constants.SECURITY_DB);
+		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__" + USERID_COL));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__" + TYPE_COL));

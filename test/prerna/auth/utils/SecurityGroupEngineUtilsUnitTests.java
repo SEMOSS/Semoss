@@ -48,6 +48,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -57,7 +58,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}

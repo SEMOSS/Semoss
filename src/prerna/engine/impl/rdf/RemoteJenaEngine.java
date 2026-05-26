@@ -49,66 +49,72 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 /**
- * References the RDF source from a remote engine and uses the Jena API to query a database stored in an RDF file (.jnl file).
+ * References the RDF source from a remote engine and uses the Jena API to query
+ * a database stored in an RDF file (.jnl file).
  */
 public class RemoteJenaEngine extends AbstractDatabaseEngine {
-	
+
+	private static final Logger classLogger = LogManager.getLogger(RemoteJenaEngine.class.getName());
+
 	Model jenaModel = null;
-	static final Logger logger = LogManager.getLogger(RemoteJenaEngine.class.getName());
 	String propFile = null;
 	String serviceURI = null;
 	boolean connected = false;
 
 	/**
-	 * Closes the data base associated with the engine.  This will prevent further changes from being made in the data store and 
-	 * safely ends the active transactions and closes the engine.
-	 * @throws IOException 
+	 * Closes the data base associated with the engine. This will prevent further
+	 * changes from being made in the data store and safely ends the active
+	 * transactions and closes the engine.
+	 * 
+	 * @throws IOException
 	 */
 	@Override
 	public void close() throws IOException {
 		super.close();
 		jenaModel.close();
-		logger.info("Closing the database to the file " + Utility.cleanLogString(propFile));		
+		classLogger.info("Closing the database to the file " + Utility.cleanLogString(propFile));
 	}
 
-
 	/**
-	 * Runs the passed string query against the engine as a SELECT query.  The query passed must be in the structure of a SELECT 
-	 * SPARQL query and the result format will depend on the engine type.
-	 * @param query the string version of the SELECT query to be run against the engine
-	
-	 * @return triple query results that can be displayed as a grid */
+	 * Runs the passed string query against the engine as a SELECT query. The query
+	 * passed must be in the structure of a SELECT SPARQL query and the result
+	 * format will depend on the engine type.
+	 * 
+	 * @param query the string version of the SELECT query to be run against the
+	 *              engine
+	 * 
+	 * @return triple query results that can be displayed as a grid
+	 */
 	@Override
 	public Object execQuery(String query) {
-		Query q2 = QueryFactory.create(query); 
-		
+		Query q2 = QueryFactory.create(query);
+
 		String finalUrl = this.serviceURI;
 		String params = smssProp.getProperty(Constants.URL_PARAM);
 		StringTokenizer paramTokens = new StringTokenizer(params, ";");
-		if(paramTokens.hasMoreTokens()) {
+		if (paramTokens.hasMoreTokens()) {
 			String token = paramTokens.nextToken();
 			finalUrl += "?" + token + "=" + smssProp.getProperty(token);
 		}
-		while(paramTokens.hasMoreTokens()) {
+		while (paramTokens.hasMoreTokens()) {
 			String token = paramTokens.nextToken();
-			finalUrl += "&" + token + "=" + smssProp.getProperty(token);			
+			finalUrl += "&" + token + "=" + smssProp.getProperty(token);
 		}
-		
+
 		QueryExecution qexec = QueryExecutionHTTP.service(finalUrl).query(query).build();
-		if(q2.isSelectType()){
+		if (q2.isSelectType()) {
 			ResultSet rs = qexec.execSelect();
 			return rs;
-		} else if(q2.isConstructType()){
-			Model resultModel = qexec.execConstruct() ;
-			logger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
+		} else if (q2.isConstructType()) {
+			Model resultModel = qexec.execConstruct();
+			classLogger.info("Executing the RDF File Graph Query " + Utility.cleanLogString(query));
 			return resultModel;
-		} else if(q2.isAskType()){
-			Boolean bool = qexec.execAsk() ;
-			logger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
+		} else if (q2.isAskType()) {
+			Boolean bool = qexec.execAsk();
+			classLogger.info("Executing the RDF File ASK Query " + Utility.cleanLogString(query));
 			return bool;
 		}
 
@@ -116,15 +122,17 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 	}
 
 	/**
-	 * Runs the passed string query against the engine as an INSERT query.  The query passed must be in the structure of an INSERT 
-	 * SPARQL query or an INSERT DATA SPARQL query 
-	 * and there are no returned results.  The query will result in the specified triples getting added to the 
-	 * data store.
-	 * @param query the INSERT or INSERT DATA SPARQL query to be run against the engine
+	 * Runs the passed string query against the engine as an INSERT query. The query
+	 * passed must be in the structure of an INSERT SPARQL query or an INSERT DATA
+	 * SPARQL query and there are no returned results. The query will result in the
+	 * specified triples getting added to the data store.
+	 * 
+	 * @param query the INSERT or INSERT DATA SPARQL query to be run against the
+	 *              engine
 	 */
 	@Override
 	public void insertData(String query) {
-		// TODO Auto-generated method stub		
+		// TODO Auto-generated method stub
 	}
 
 	@Override
@@ -133,66 +141,81 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 	}
 
 	/**
-	 * Processes a SELECT query just like {@link #execSelectQuery(String)} but gets the results in the exact format that the database stores them.
-	 * This is important for things like param values so that we can take the returned value and fill the main query without needing modification
+	 * Processes a SELECT query just like {@link #execSelectQuery(String)} but gets
+	 * the results in the exact format that the database stores them. This is
+	 * important for things like param values so that we can take the returned value
+	 * and fill the main query without needing modification
+	 * 
 	 * @param sparqlQuery the SELECT SPARQL query to be run against the engine
-	 * @return the Vector of Strings representing the full uris of all of the query results */
-	public Vector<Object> getCleanSelect(String sparqlQuery)
-	{
-		// run the query 
+	 * @return the Vector of Strings representing the full uris of all of the query
+	 *         results
+	 */
+	public Vector<Object> getCleanSelect(String sparqlQuery) {
+		// run the query
 		// convert to string
 		Vector<Object> retString = new Vector<Object>();
-		ResultSet rs = (ResultSet)execQuery(sparqlQuery);
-		
+		ResultSet rs = (ResultSet) execQuery(sparqlQuery);
+
 		// gets only the first variable
 		Iterator varIterator = rs.getResultVars().iterator();
-		String varName = (String)varIterator.next();
-		while(rs.hasNext())
-		{
+		String varName = (String) varIterator.next();
+		while (rs.hasNext()) {
 			QuerySolution row = rs.next();
-			retString.addElement(row.get(varName)+"");
+			retString.addElement(row.get(varName) + "");
 		}
 		return retString;
 	}
-	
+
 	/**
-	 * Uses a type URI to get the URIs of all instances of that type. These instance URIs are returned as the Vector of Strings.
-	 * @param type The full URI of the node type that we want to get the instances of
-	 * @return the Vector of Strings representing the full uris of all of the instances of the passed in type */
-	public Vector<Object> getEntityOfType(String type)
-	{
+	 * Uses a type URI to get the URIs of all instances of that type. These instance
+	 * URIs are returned as the Vector of Strings.
+	 * 
+	 * @param type The full URI of the node type that we want to get the instances
+	 *             of
+	 * @return the Vector of Strings representing the full uris of all of the
+	 *         instances of the passed in type
+	 */
+	@Override
+	public Vector<Object> getEntityOfType(String type) {
 		// Get query from smss
 		// If the query is not there, get from RDFMap
 		// Fill query with type
 		// run through getCleanSelect()
 		String query = this.getProperty(Constants.TYPE_QUERY);
-		if(query==null){
-			query = DIHelper.getInstance().getProperty(Constants.TYPE_QUERY);
+		if (query == null) {
+			query = Utility.getDIHelperProperty(Constants.TYPE_QUERY);
 		}
 		Map<String, List<Object>> paramHash = new Hashtable<String, List<Object>>();
 		List<Object> retList = new ArrayList<Object>();
 		retList.add(type);
 		paramHash.put("entity", retList);
 		query = Utility.fillParam(query, paramHash);
-		
+
 		return getCleanSelect(query);
 	}
 
 	/**
-	 * Returns whether or not an engine is currently connected to the data store.  The connection becomes true when {@link #open(String)} 
-	 * is called and the connection becomes false when {@link #close()} is called.	
-	 * @return true if the engine is connected to its data store and false if it is not */
+	 * Returns whether or not an engine is currently connected to the data store.
+	 * The connection becomes true when {@link #open(String)} is called and the
+	 * connection becomes false when {@link #close()} is called.
+	 * 
+	 * @return true if the engine is connected to its data store and false if it is
+	 *         not
+	 */
 	@Override
 	public boolean isConnected() {
 		return connected;
 	}
 
 	/**
-	 * Opens a database as defined by its properties file.  What is included in the properties file is dependent on the type of 
-	 * engine that is being initiated.  This is the function that first initializes an engine with the property file at the very 
-	 * least defining the data store.
-	 * @param smssFilePath contains all information regarding the data store and how the engine should be instantiated.  Dependent on 
-	 * what type of engine is being instantiated.
+	 * Opens a database as defined by its properties file. What is included in the
+	 * properties file is dependent on the type of engine that is being initiated.
+	 * This is the function that first initializes an engine with the property file
+	 * at the very least defining the data store.
+	 * 
+	 * @param smssFilePath contains all information regarding the data store and how
+	 *                     the engine should be instantiated. Dependent on what type
+	 *                     of engine is being instantiated.
 	 */
 	@Override
 	public void open(String smssFilePath) {
@@ -201,24 +224,22 @@ public class RemoteJenaEngine extends AbstractDatabaseEngine {
 		this.connected = true;
 	}
 
-
 	@Override
 	public void removeData(String query) {
 		insertData(query);
-		
-	}
 
+	}
 
 	@Override
 	public void commit() {
 		// TODO Auto-generated method stub
-		
+
 	}
-	
+
 	@Override
 	public void delete() {
 		// this does nothing
-		logger.info("cannot delete remote engine");
+		classLogger.info("Cannot delete remote engine");
 	}
 
 	@Override

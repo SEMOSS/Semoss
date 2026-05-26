@@ -66,6 +66,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -77,7 +78,7 @@ public class MasterDatabaseUtility {
 	// ---------------------------------------
 
 	public static void initLocalMaster() throws Exception {
-		IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine database = SystemEngineRegistry.getLocalMasterDb();
 		LocalMasterOwlCreator owlCreator = new LocalMasterOwlCreator(database);
 		if (owlCreator.needsRemake()) {
 			owlCreator.remakeOwl();
@@ -579,7 +580,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getAllLogicalNamesFromConceptualRDBMS(String conceptualName) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOGICALNAME"));
@@ -596,7 +597,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getAllLogicalNamesFromPixelName(List<String> pixelNames) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOGICALNAME"));
@@ -614,7 +615,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getLocalConceptIdsFromLogicalName(List<String> logicalNames) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
@@ -630,7 +631,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getLocalConceptIdsFromPixelName(List<String> pixelNames) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__LOCALCONCEPTID"));
@@ -647,7 +648,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getConceptualIdsWithSimilarLogicalNames(List<String> conceptualIds) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs = new SelectQueryStruct();
@@ -669,7 +670,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Object[]> getAllTablesAndColumns(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
@@ -724,7 +725,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<Object[]> getAllTablesAndColumns(Collection<String> databaseIds) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
@@ -772,7 +773,7 @@ public class MasterDatabaseUtility {
 	}
 
 	public static List<String[]> getRelationships(Collection<String> databaseIds) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINERELATION__ENGINE"));
@@ -795,7 +796,7 @@ public class MasterDatabaseUtility {
 	 */
 	public static List<Map<String, Object>> getDatabaseConnections(List<String> localConceptIds,
 			List<String> databaseFilter) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		List<Map<String, Object>> returnData = new ArrayList<>();
 
@@ -1308,7 +1309,7 @@ public class MasterDatabaseUtility {
 	 */
 	public static Map<String, Object> getMetamodelRDBMS(String databaseId, boolean includeDataTypes) {
 		// TODO: should setup to return the physical name ids
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		// idHash - physical ID to the name of the node
 		Map<String, MetamodelVertex> nodeHash = new HashMap<>();
@@ -1471,7 +1472,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, List<String>> getConceptProperties(List<String> logicalNames, String databaseFilter) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ENGINE"));
@@ -1561,7 +1562,7 @@ public class MasterDatabaseUtility {
 		Map<String, Object[]> returnHash = new TreeMap<>();
 		Map<String, Map<String, MetamodelVertex>> queryData = new TreeMap<>();
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		{
 			// for tabular databases
 			// we grab the parent
@@ -1761,7 +1762,7 @@ public class MasterDatabaseUtility {
 		// second is the upstream
 		// third is the downstream
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		// select e.enginename, ec.engine, c.logicalname, ec.physicalnameid from concept
 		// c, engineconcept ec, engine e where c.logicalname in ('Title') and
@@ -2036,7 +2037,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getAllDatabaseIds() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ID"));
@@ -2049,7 +2050,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getDatabaseAliasForId(String id) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME"));
@@ -2063,7 +2064,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, String> getDatabaseIdToAliasMap() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ID"));
@@ -2099,7 +2100,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Set<String> getConceptsWithinDatabaseRDBMS(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
@@ -2117,7 +2118,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Collection<String> getSelectorsWithinDatabaseRDBMS(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
@@ -2164,7 +2165,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getBasicDataType(String databaseId, String pixelName, String parentPixelName) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PROPERTY_TYPE"));
@@ -2188,7 +2189,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getAdditionalDataType(String databaseId, String conceptualName, String parentConceptualName) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__ADDITIONAL_TYPE"));
@@ -2210,7 +2211,7 @@ public class MasterDatabaseUtility {
 	 */
 
 	public static Map<String, List<String>> getDatabaseLogicalNames(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		Map<String, List<String>> engineLogicalNames = new HashMap<>();
 
@@ -2265,7 +2266,7 @@ public class MasterDatabaseUtility {
 	}
 
 	public static Map<String, String> getDatabaseDescriptions(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		Map<String, String> engineDescriptions = new HashMap<>();
 
@@ -2321,7 +2322,7 @@ public class MasterDatabaseUtility {
 			throw new IllegalArgumentException("Must define a valid engine id");
 		}
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINECONCEPT__ENGINE", "==", databaseId));
@@ -2345,7 +2346,7 @@ public class MasterDatabaseUtility {
 			throw new IllegalArgumentException("Must define a valid engine id");
 		}
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PARENTSEMOSSNAME"));
@@ -2416,7 +2417,7 @@ public class MasterDatabaseUtility {
 		// + "WHERE engineconcept.engine='" + engineId + "' "
 		// + "AND concept.conceptualname='" + conceptualName + "';";
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
@@ -2435,7 +2436,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getPhysicalConceptIdFromPixelName(String databaseId, String pixelName) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__PHYSICALNAMEID"));
@@ -2469,7 +2470,7 @@ public class MasterDatabaseUtility {
 		// + "and conceptualname='" + concept + "') and " + Constants.KEY + "='" + key +
 		// "';";
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(Constants.CONCEPT_METADATA_TABLE + "__" + Constants.VALUE));
@@ -2502,7 +2503,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getDatabaseIdsForAlias(String alias) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ID"));
@@ -2518,7 +2519,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static String getDatabaseTypeForId(String id) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__TYPE"));
@@ -2553,7 +2554,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Collection<String> getAllConceptualNames(Collection<String> databaseFilters) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
@@ -2578,7 +2579,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Collection<String> getPKColumnsWithData(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINECONCEPT__SEMOSSNAME"));
@@ -2598,7 +2599,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String> getConceptualNamesFromPhysicalIds(List<String> physicalNameIds) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("CONCEPT__CONCEPTUALNAME"));
@@ -2617,7 +2618,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static List<String[]> getConceptualConnections(List<String> conceptualNames, Collection<String> dbFilters) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		List<String[]> results = new ArrayList<>();
 
@@ -2672,7 +2673,7 @@ public class MasterDatabaseUtility {
 	 */
 	public static List<String[]> getConceptualToLogicalToPhysicalModel(List<String> conceptualNames,
 			Collection<String> databaseFilters) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 
 		List<String[]> results = new ArrayList<>();
 
@@ -2730,7 +2731,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Map<String, List<String>> databaseTranslator(String sourceDB, String targetDB) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = engine.getConnection();
@@ -2807,7 +2808,7 @@ public class MasterDatabaseUtility {
 	// String localConceptID = MasterDatabaseUtility.getLocalConceptID(engineName,
 	// concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
-	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+	// SystemEngineRegistry.getLocalMasterDb();
 	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
@@ -2837,7 +2838,7 @@ public class MasterDatabaseUtility {
 	// String localConceptID =
 	// MasterDatabaseUtility.getPhysicalConceptId(engineName, concept);
 	// IRDBMSEngine engine = (IRDBMSEngine)
-	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+	// SystemEngineRegistry.getLocalMasterDb();
 	// Connection conn = engine.getConnection();
 	// Statement stmt = null;
 	// int count = 0;
@@ -2879,7 +2880,7 @@ public class MasterDatabaseUtility {
 	// public static boolean addLogicalName(String engineId, String concept, String
 	// logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
-	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+	// SystemEngineRegistry.getLocalMasterDb();
 	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
@@ -2962,7 +2963,7 @@ public class MasterDatabaseUtility {
 	// public static boolean removeLogicalName(String engineName, String concept,
 	// String logicalName) {
 	// IRDBMSEngine engine = (IRDBMSEngine)
-	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+	// SystemEngineRegistry.getLocalMasterDb();
 	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	//
@@ -2996,7 +2997,7 @@ public class MasterDatabaseUtility {
 	// List<String> logicalNames = new ArrayList<String>();
 	//
 	// IRDBMSEngine engine = (IRDBMSEngine)
-	// Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+	// SystemEngineRegistry.getLocalMasterDb();
 	// Connection masterConn = engine.getConnection();
 	// Statement stmt = null;
 	// ResultSet rs = null;
@@ -3036,7 +3037,7 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static HashMap<String, Object> getXrayConfigList() {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = engine.getConnection();
@@ -3077,7 +3078,7 @@ public class MasterDatabaseUtility {
 	 */
 
 	public static String getXrayConfigFile(String filename) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = engine.getConnection();
@@ -3121,7 +3122,7 @@ public class MasterDatabaseUtility {
 		// need to get all the concepts first
 		// get the edges next
 
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		try {
 			conn = engine.getConnection();
@@ -3257,7 +3258,7 @@ public class MasterDatabaseUtility {
 	 */
 	public static Date getEngineDate(String engineId) {
 		java.util.Date retDate = null;
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
@@ -3284,7 +3285,7 @@ public class MasterDatabaseUtility {
 	 * @param positions
 	 */
 	public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 		Connection conn = null;
 		Savepoint savepoint = null;
@@ -3364,7 +3365,7 @@ public class MasterDatabaseUtility {
 	}
 
 	public static Map<String, Object> getMetamodelPositions(String databaseId) {
-		IRDBMSEngine engine = (IRDBMSEngine) Utility.getDatabase(Constants.LOCAL_MASTER_DB);
+		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("METAMODELPOSITION__TABLENAME"));
 		qs.addSelector(new QueryColumnSelector("METAMODELPOSITION__XPOS"));

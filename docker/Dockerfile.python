@@ -79,9 +79,10 @@ COPY --from=builder /usr/lib/python /usr/lib/python
 ENV VIRTUAL_ENV="/usr/lib/python/semossvenv"
 ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
-# Install additional dependencies
-RUN apt-get update \
-    && apt-get install -y tesseract-ocr \
+# Install additional dependencies with retry for transient Ubuntu mirror issues
+RUN rm -rf /var/lib/apt/lists/* \
+    && for i in 1 2 3; do apt-get update && break || (sleep 10 && rm -rf /var/lib/apt/lists/*); done \
+    && apt-get install -y --no-install-recommends --fix-missing tesseract-ocr \
     && apt-get -y autoremove \
     && rm -rf /var/lib/apt/lists/*
 

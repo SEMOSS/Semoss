@@ -61,7 +61,7 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 		
-		List<Map<String, Object>> baseInfo = adminUtils.getAllProjectSettings(Arrays.asList(projectId), null, null, null, null);
+		List<Map<String, Object>> baseInfo = adminUtils.getAllProjectSettings(Arrays.asList(projectId), null, null, null, null, null);
 		if(baseInfo == null || baseInfo.isEmpty()) {
 			throw new IllegalArgumentException("Could not find any project data");
 		}

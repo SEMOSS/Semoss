@@ -49,7 +49,7 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 	private static final String CLASS_NAME = ResetFrameToOriginalNameReactor.class.getName();
 
 	public FrameFilterWithSQLReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_KEY.getKey() } ;
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_KEY.getKey() };
 	}
 
 	@Override
@@ -57,60 +57,58 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		ITableDataFrame frame = getFrameDefaultLast();
-		
-		if(!(frame instanceof PandasFrame) && !(frame instanceof RDataTable) 
-				&& !(frame instanceof NativeFrame) && !(frame instanceof AbstractRdbmsFrame)) {
-			return NounMetadata.getErrorNounMessage("This mehtod has only been implemneted for python, r, grid, and native frame at this point. Please convert your frame and try again");
+
+		if (!(frame instanceof PandasFrame) && !(frame instanceof RDataTable) && !(frame instanceof NativeFrame)
+				&& !(frame instanceof AbstractRdbmsFrame)) {
+			return NounMetadata.getErrorNounMessage(
+					"This mehtod has only been implemneted for python, r, grid, and native frame at this point. Please convert your frame and try again");
 		}
-		
-		String query = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[1]));
+
+		String query = this.keyValue.get(this.keysToGet[1]);
 		String newFrameName = Utility.getRandomString(6);
 		String oldFrameName = frame.getName();
-		
-		if(frame instanceof PandasFrame) {
+
+		if (frame instanceof PandasFrame) {
 			// drop the old frame and old table
 			// check to see if this is a new frame
 			// if so construct a DataFrame and see
-			PandasFrame pFrame = (PandasFrame)frame;
+			PandasFrame pFrame = (PandasFrame) frame;
 			String sqlite = pFrame.getSQLite();
-			//pd.read_sql("select * from diab1 where age > 60", conn)
-			
+			// pd.read_sql("select * from diab1 where age > 60", conn)
+
 			query = query.replace("\"", "\\\"");
 			// drop into sqlite the new name
 			String frameMaker = newFrameName + " = pd.read_sql(\"" + query + "\", " + sqlite + ")";
 			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
-			insight.getPyTranslator().runDirectPy(frameMaker); 
+			insight.getPyTranslator().runDirectPy(frameMaker);
 			// need to make the wrapper in this instance
-			insight.getPyTranslator().runScript(PandasSyntaxHelper.makeWrapper(
-					PandasSyntaxHelper.createFrameWrapperName(newFrameName), newFrameName));
-			
+			insight.getPyTranslator().runScript(PandasSyntaxHelper
+					.makeWrapper(PandasSyntaxHelper.createFrameWrapperName(newFrameName), newFrameName));
+
 			// out1.to_sql("diab1", conn, if_exists="replace", index=False)
-			String addSqlTable = newFrameName + ".to_sql('" + newFrameName + "', " + sqlite + ", if_exists='replace', index=False)";
+			String addSqlTable = newFrameName + ".to_sql('" + newFrameName + "', " + sqlite
+					+ ", if_exists='replace', index=False)";
 			insight.getPyTranslator().runScript(addSqlTable);
 
 			// remove frames
-			if(!oldFrameName.equalsIgnoreCase(frame.getOriginalName()))
-			{
-				//"SELECT name FROM sqlite_master where type='table'"
+			if (!oldFrameName.equalsIgnoreCase(frame.getOriginalName())) {
+				// "SELECT name FROM sqlite_master where type='table'"
 				String dropTable = sqlite + ".cursor().execute('DROP TABLE " + oldFrameName + "').fetchall()";
 				String delete = "del " + oldFrameName + " ," + oldFrameName + "w";
 				insight.getPyTranslator().runScript(dropTable);
-				insight.getPyTranslator().runScript(delete);				
-			}			
-		} 
-		else if(frame instanceof RDataTable){
+				insight.getPyTranslator().runScript(delete);
+			}
+		} else if (frame instanceof RDataTable) {
 			AbstractRJavaTranslator rt = insight.getRJavaTranslator(this.getClass().getName());
 			String frameMaker = newFrameName + " <- as.data.table(sqldf(\"" + query.replace("\"", "\\\"") + "\"))";
 			logger.info("Creating frame with query..  " + query + " <<>> " + frameMaker);
 			rt.runRAndReturnOutput("library(sqldf)");
-			rt.runR(frameMaker); // load the sql df			
-			if(!oldFrameName.equalsIgnoreCase(frame.getOriginalName()))
-			{
-				String delete = "rm(" + oldFrameName+ ")";
-				rt.runR(delete);				
+			rt.runR(frameMaker); // load the sql df
+			if (!oldFrameName.equalsIgnoreCase(frame.getOriginalName())) {
+				String delete = "rm(" + oldFrameName + ")";
+				rt.runR(delete);
 			}
-		}
-		else if(frame instanceof AbstractRdbmsFrame){
+		} else if (frame instanceof AbstractRdbmsFrame) {
 			String sql = "CREATE TABLE " + newFrameName + " AS " + query;
 			try {
 				((AbstractRdbmsFrame) frame).getBuilder().runQuery(sql);
@@ -118,24 +116,22 @@ public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 				logger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException("Unable to generate new frame from sql", e);
 			}
-			if(!oldFrameName.equalsIgnoreCase(frame.getOriginalName()))
-			{
+			if (!oldFrameName.equalsIgnoreCase(frame.getOriginalName())) {
 				try {
 					((AbstractRdbmsFrame) frame).getBuilder().runQuery("DROP TABLE " + oldFrameName);
 				} catch (Exception e) {
 					logger.error(Constants.STACKTRACE, e);
 				}
 			}
-		}
-		else if(frame instanceof NativeFrame) {
+		} else if (frame instanceof NativeFrame) {
 			SelectQueryStruct qs = new SelectQueryStruct();
 			qs.setCustomFrom(query);
 			qs.setCustomFromAliasName(newFrameName);
-			qs.setEngine( ((NativeFrame)frame).getOriginalQueryStruct().retrieveQueryStructEngine() );
+			qs.setEngine(((NativeFrame) frame).getOriginalQueryStruct().retrieveQueryStructEngine());
 			frame.setName(newFrameName);
-			((NativeFrame)frame).setQueryStruct(qs);
+			((NativeFrame) frame).setQueryStruct(qs);
 		}
-		
+
 		// reset the name back to the original name
 		frame.setName(newFrameName);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);

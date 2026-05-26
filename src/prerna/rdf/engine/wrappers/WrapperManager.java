@@ -50,9 +50,9 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.evaluator.QueryStructExpressionIterator;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.Constants;
-import prerna.util.SemossDefaultEngines;
+import prerna.util.SystemDefaultDatabases;
 
-public class WrapperManager {
+public final class WrapperManager {
 
 	// main job of this class is to take an engine
 	// find the type of the engine
@@ -62,10 +62,9 @@ public class WrapperManager {
 	// I will do that later
 
 	private static final Logger classLogger = LogManager.getLogger(WrapperManager.class);
-	private static WrapperManager manager = null;
 	private static List<String> ignoreDatabases = new ArrayList<>();
 	{
-		ignoreDatabases.addAll(SemossDefaultEngines.getIgnoreDatabaseOwlList());
+		ignoreDatabases.addAll(SystemDefaultDatabases.getIgnoreDatabaseOwlList());
 		// add the OWLs as well
 		ignoreDatabases.add(Constants.LOCAL_MASTER_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 		ignoreDatabases.add(Constants.SECURITY_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
@@ -74,6 +73,8 @@ public class WrapperManager {
 		ignoreDatabases.add(Constants.USER_TRACKING_DB + "_" + Constants.OWL_ENGINE_SUFFIX);
 		ignoreDatabases.add(Constants.OWL_TEMPORAL_ENGINE_META);
 	}
+
+	private static volatile WrapperManager manager = null;
 
 	private WrapperManager() {
 
@@ -292,8 +293,10 @@ public class WrapperManager {
 					if (queryT != null) {
 						queryT.setFailed();
 					}
-					;
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error(
+							"Failed to compose or execute SelectQueryStruct query for engine " + engine.getEngineId()
+									+ " (database type " + engine.getDatabaseType() + "). Generated query = " + query,
+							e);
 					error = true;
 					throw e;
 				} finally {
@@ -308,7 +311,8 @@ public class WrapperManager {
 						try {
 							returnWrapper.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close raw wrapper " + returnWrapper.getClass().getSimpleName()
+									+ " after query execution error on engine " + engine.getEngineId(), e);
 						}
 					}
 				}
@@ -449,7 +453,8 @@ public class WrapperManager {
 					queryT.setFailed();
 				}
 				;
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute raw query for engine " + engine.getEngineId() + " (database type "
+						+ engine.getDatabaseType() + "). Query = " + query, e);
 				error = true;
 				throw e;
 			} finally {
@@ -464,7 +469,8 @@ public class WrapperManager {
 					try {
 						returnWrapper.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close raw wrapper " + returnWrapper.getClass().getSimpleName()
+								+ " after raw query execution error on engine " + engine.getEngineId(), e);
 					}
 				}
 			}
@@ -522,7 +528,8 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute deprecated getSWrapper query on engine " + engine.getEngineId()
+					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
 		}
 		returnWrapper.getDisplayVariables();
 		returnWrapper.getPhysicalVariables();
@@ -563,7 +570,8 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute deprecated getCWrapper query on engine " + engine.getEngineId()
+					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
 		}
 		return returnWrapper;
 	}
@@ -603,7 +611,8 @@ public class WrapperManager {
 		try {
 			returnWrapper.execute();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute deprecated getChWrapper query on engine " + engine.getEngineId()
+					+ " (database type " + engine.getDatabaseType() + "). Query = " + query, e);
 		}
 		return returnWrapper;
 	}

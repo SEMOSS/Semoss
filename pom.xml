@@ -120,6 +120,9 @@
 										<exclude>META-INF/versions/**</exclude>
 										<exclude>META-INF/thirdparty-LICENSE</exclude>
 										<exclude>mozilla/public-suffix-list.txt</exclude>
+										<!-- Exclude any Jackson bundled by shaded artifacts (neo4j, parquet, etc.)
+										     so the declared jackson-core/databind 2.21.1 JARs are the sole source -->
+										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -127,6 +130,12 @@
 									<excludes>
 										<exclude>org/**</exclude>
 										<exclude>javax/**</exclude>
+									</excludes>
+								</filter>
+								<filter>
+									<artifact>org.neo4j:neo4j-jdbc-bolt</artifact>
+									<excludes>
+										<exclude>com/fasterxml/jackson/**</exclude>
 									</excludes>
 								</filter>
 								<filter>
@@ -362,7 +371,7 @@
 			</activation>
 			<build>
 				<plugins>
-					<!-- https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
+					<!-- Source: https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-jar-plugin -->
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-jar-plugin</artifactId>
@@ -617,13 +626,63 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.126.Final</version>
+				<version>4.1.132.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
+			</dependency>
+			<!-- GHSA-2m67-wjpj-xhg9 / CVE-2026-29062: force transitive tools.jackson.core (Jackson 3.x) from mcp-json-jackson3 up to fixed version -->
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>3.1.1</version>
+			</dependency>
+			<dependency>
+				<groupId>tools.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>3.1.1</version>
+			</dependency>
+			<!-- GHSA-72hv-8253-57qq: force transitive jackson 2.15.x/2.17.x up to fixed version -->
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>2.21.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>2.21.1</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-annotations</artifactId>
+				<version>2.21</version>
+			</dependency>
+			<!-- CVE force: CVE-2026-24400 - override transitive assertj-core version (2.4.1) -->
+			<dependency>
+				<groupId>org.assertj</groupId>
+				<artifactId>assertj-core</artifactId>
+				<version>3.27.7</version>
+			</dependency>
+			<!-- CVE force: CVE-2025-12183/CVE-2025-66566 - override transitive org.lz4:lz4-java version (1.8.0) -->
+			<dependency>
+				<groupId>org.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+				<version>1.8.1</version>
+			</dependency>
+			<!-- CVE force: CVE-2025-67030 - override transitive plexus-utils versions (3.3.0/4.0.2) -->
+			<dependency>
+				<groupId>org.codehaus.plexus</groupId>
+				<artifactId>plexus-utils</artifactId>
+				<version>4.0.3</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
+		<dependency>
+			<groupId>com.github</groupId>
+			<artifactId>copilot-sdk-java</artifactId>
+			<version>0.2.2-java.1</version>
+		</dependency>
 		<dependency>
 			<groupId>org.semoss</groupId>
 			<artifactId>semoss-jdbc</artifactId>
@@ -635,7 +694,7 @@
 			<version>3.1.0</version>
 			<scope>provided</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
+		<!-- Source: https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-runtime -->
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-runtime</artifactId>
@@ -663,7 +722,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
+		<!-- Source: https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-rio-rdfxml</artifactId>
@@ -679,7 +738,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-queryresultio-sparqljson -->
+		<!-- Source: https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-queryresultio-sparqljson -->
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-queryresultio-sparqljson</artifactId>
@@ -921,7 +980,7 @@
 		    <scope>compile</scope>
 		</dependency>
 		<!-- End Docx4J Deps --> 
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-collections4 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
@@ -960,13 +1019,13 @@
 			<artifactId>commons-collections</artifactId>
 			<version>3.2.2</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
+		<!-- Source: https://mvnrepository.com/artifact/commons-beanutils/commons-beanutils -->
 		<dependency>
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
 			<version>1.11.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
+		<!-- Source: https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>HikariCP</artifactId>
@@ -989,7 +1048,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+		<!-- Source: https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
 		<dependency>
 			<groupId>commons-fileupload</groupId>
 			<artifactId>commons-fileupload</artifactId>
@@ -1001,30 +1060,19 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+		<!-- Source: https://mvnrepository.com/artifact/commons-io/commons-io -->
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 			<version>2.21.0</version>
 		</dependency>
-		<dependency>
-			<groupId>commons-lang</groupId>
-			<artifactId>commons-lang</artifactId>
-			<version>2.6</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
-			<version>3.18.0</version>
+			<version>3.20.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/commons-logging/commons-logging -->
+		<!-- Source: https://mvnrepository.com/artifact/commons-logging/commons-logging -->
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
@@ -1036,13 +1084,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>
 			<version>3.6.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-pool2 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-pool2 -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-pool2</artifactId>
@@ -1076,7 +1124,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.tinkerpop/gremlin-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/gremlin-core -->
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
@@ -1110,13 +1158,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.checkerframework/checker-qual -->
+		<!-- Source: https://mvnrepository.com/artifact/org.checkerframework/checker-qual -->
 		<dependency>
 			<groupId>org.checkerframework</groupId>
 			<artifactId>checker-qual</artifactId>
 			<version>3.49.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.github.spullara.mustache.java/compiler -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.spullara.mustache.java/compiler -->
 		<dependency>
 			<groupId>com.github.spullara.mustache.java</groupId>
 			<artifactId>compiler</artifactId>
@@ -1133,7 +1181,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
@@ -1145,7 +1193,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
 		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
@@ -1161,7 +1209,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.javatuples/javatuples -->
+		<!-- Source: https://mvnrepository.com/artifact/org.javatuples/javatuples -->
 		<dependency>
 			<groupId>org.javatuples</groupId>
 			<artifactId>javatuples</artifactId>
@@ -1177,7 +1225,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
+		<!-- Source: https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
 		<dependency>
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>
@@ -1189,7 +1237,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-arq</artifactId>
@@ -1201,14 +1249,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.apicatalog/titanium-json-ld -->
+		<!-- Source: https://mvnrepository.com/artifact/com.apicatalog/titanium-json-ld -->
 		<!-- required for apache jena -->
 		<dependency>
 			<groupId>com.apicatalog</groupId>
 			<artifactId>titanium-json-ld</artifactId>
 			<version>1.7.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
 		<!-- required for apache jena -->
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
@@ -1221,14 +1269,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
+		<!-- Source: https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
 		<!-- required for apache jena -->
 		<dependency>
 			<groupId>org.glassfish</groupId>
 			<artifactId>jakarta.json</artifactId>
 			<version>2.0.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-base -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-base -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-base</artifactId>
@@ -1240,13 +1288,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-core -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-core</artifactId>
 			<version>5.6.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.jena/jena-tdb2 -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-tdb2 -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-tdb2</artifactId>
@@ -1263,6 +1311,18 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.commonmark/commonmark -->
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark</artifactId>
+			<version>0.28.0</version>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.commonmark/commonmark-ext-gfm-tables -->
+		<dependency>
+			<groupId>org.commonmark</groupId>
+			<artifactId>commonmark-ext-gfm-tables</artifactId>
+			<version>0.28.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.github.jsqlparser</groupId>
 			<artifactId>jsqlparser</artifactId>
@@ -1274,7 +1334,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
@@ -1286,7 +1346,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
@@ -1299,13 +1359,13 @@
 			</exclusions>
 		</dependency>
 		<!-- for async loggers -->
-		<!-- https://mvnrepository.com/artifact/com.lmax/disruptor -->
+		<!-- Source: https://mvnrepository.com/artifact/com.lmax/disruptor -->
 		<dependency>
 			<groupId>com.lmax</groupId>
 			<artifactId>disruptor</artifactId>
 			<version>3.4.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-web -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-web -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-web</artifactId>
@@ -1350,7 +1410,7 @@
 			</exclusions>
 		</dependency>
 		<!-- required for poi -->
-		<!-- https://mvnrepository.com/artifact/com.zaxxer/SparseBitSet -->
+		<!-- Source: https://mvnrepository.com/artifact/com.zaxxer/SparseBitSet -->
 		<dependency>
 			<groupId>com.zaxxer</groupId>
 			<artifactId>SparseBitSet</artifactId>
@@ -1368,14 +1428,14 @@
 			</exclusions>
 		</dependency>
 		<!-- this is required for poi-ooxml -->
-		<!-- https://mvnrepository.com/artifact/com.github.virtuald/curvesapi -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.virtuald/curvesapi -->
 		<dependency>
 			<groupId>com.github.virtuald</groupId>
 			<artifactId>curvesapi</artifactId>
 			<version>1.08</version>
 		</dependency>
 		<!-- this is required for poi-ooxml -->
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-compress -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-compress</artifactId>
@@ -1387,19 +1447,19 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-lite -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-lite -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
 			<version>5.5.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
 			<version>5.5.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
@@ -1411,7 +1471,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.sf.cssbox/jstyleparser -->
+		<!-- Source: https://mvnrepository.com/artifact/net.sf.cssbox/jstyleparser -->
 		<dependency>
 			<groupId>net.sf.cssbox</groupId>
 			<artifactId>jstyleparser</artifactId>
@@ -1424,7 +1484,7 @@
 			</exclusions>
 		</dependency>
 		<!-- streaming poi -->
-		<!-- https://mvnrepository.com/artifact/com.github.pjfanning/excel-streaming-reader -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.pjfanning/excel-streaming-reader -->
 		<dependency>
 			<groupId>com.github.pjfanning</groupId>
 			<artifactId>excel-streaming-reader</artifactId>
@@ -1436,13 +1496,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.univocity/univocity-parsers -->
+		<!-- Source: https://mvnrepository.com/artifact/com.univocity/univocity-parsers -->
 		<dependency>
 			<groupId>com.univocity</groupId>
 			<artifactId>univocity-parsers</artifactId>
 			<version>2.9.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.github.waffle/waffle-jna -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.waffle/waffle-jna -->
 		<dependency>
 			<groupId>com.github.waffle</groupId>
 			<artifactId>waffle-jna</artifactId>
@@ -1470,7 +1530,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.ben-manes.caffeine/caffeine -->
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
@@ -1486,13 +1546,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.java.dev.jna/jna -->
+		<!-- Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
 			<version>5.17.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform -->
+		<!-- Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
@@ -1509,7 +1569,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/com.microsoft.sqlserver/mssql-jdbc -->
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
@@ -1536,13 +1596,13 @@
 			<artifactId>REngine</artifactId>
 			<version>1.0-11</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.rosuda.REngine/Rserve -->
+		<!-- Source: https://mvnrepository.com/artifact/org.rosuda.REngine/Rserve -->
 		<dependency>
 			<groupId>org.rosuda.REngine</groupId>
 			<artifactId>Rserve</artifactId>
 			<version>1.8.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-repository-sail -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-repository-sail -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-repository-sail</artifactId>
@@ -1578,7 +1638,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-nativerdf -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-nativerdf -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-nativerdf</artifactId>
@@ -1589,7 +1649,7 @@
 					<artifactId>guava</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>org.lz4</groupId>
+					<groupId>at.yawk.lz4</groupId>
 	   				<artifactId>lz4-java</artifactId>
 				</exclusion>
 				<exclusion>
@@ -1602,13 +1662,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.lz4/lz4-java -->
+		<!-- Source: https://mvnrepository.com/artifact/org.lz4/lz4-java -->
+		<!-- CVE-2025-66566: migrated from org.lz4 (relocated), bumped to 1.10.4 -->
 		<dependency>
-	   		<groupId>org.lz4</groupId>
+	   		<groupId>at.yawk.lz4</groupId>
 	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.8.1</version>
+	    	<version>1.10.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-memory</artifactId>
@@ -1620,7 +1681,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-rio-rdfxml -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-rio-rdfxml -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-rdfxml</artifactId>
@@ -1632,7 +1693,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-inferencer -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-inferencer -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-inferencer</artifactId>
@@ -1648,13 +1709,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.javassist/javassist -->
+		<!-- Source: https://mvnrepository.com/artifact/org.javassist/javassist -->
 		<dependency>
 			<groupId>org.javassist</groupId>
 			<artifactId>javassist</artifactId>
 			<version>3.30.2-GA</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.quartz-scheduler/quartz -->
+		<!-- Source: https://mvnrepository.com/artifact/org.quartz-scheduler/quartz -->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
@@ -1674,7 +1735,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.quartz-scheduler/quartz-jobs -->
+		<!-- Source: https://mvnrepository.com/artifact/org.quartz-scheduler/quartz-jobs -->
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz-jobs</artifactId>
@@ -1690,13 +1751,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
+		<!-- Source: https://mvnrepository.com/artifact/com.sun.mail/jakarta.mail -->
 		<dependency>
 			<groupId>com.sun.mail</groupId>
 			<artifactId>jakarta.mail</artifactId>
 			<version>2.0.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+		<!-- Source: https://mvnrepository.com/artifact/org.postgresql/postgresql -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -1708,7 +1769,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.pgvector/pgvector -->
+		<!-- Source: https://mvnrepository.com/artifact/com.pgvector/pgvector -->
 		<dependency>
 			<groupId>com.pgvector</groupId>
 			<artifactId>pgvector</artifactId>
@@ -1720,13 +1781,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tinkerpop/neo4j-gremlin -->
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>neo4j-gremlin</artifactId>
 			<version>3.7.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/commons-validator/commons-validator -->
+		<!-- Source: https://mvnrepository.com/artifact/commons-validator/commons-validator -->
 		<dependency>
 			<groupId>commons-validator</groupId>
 			<artifactId>commons-validator</artifactId>
@@ -1738,7 +1799,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit -->
 		<dependency>
 		    <groupId>org.eclipse.jgit</groupId>
 		    <artifactId>org.eclipse.jgit</artifactId>
@@ -1754,7 +1815,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.kohsuke/github-api -->
+		<!-- Source: https://mvnrepository.com/artifact/org.kohsuke/github-api -->
 		<dependency>
 			<groupId>org.kohsuke</groupId>
 			<artifactId>github-api</artifactId>
@@ -1766,7 +1827,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.mylyn.github/org.eclipse.egit.github.core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.mylyn.github/org.eclipse.egit.github.core -->
 		<dependency>
 			<groupId>org.eclipse.mylyn.github</groupId>
 			<artifactId>org.eclipse.egit.github.core</artifactId>
@@ -1778,43 +1839,44 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.json/json -->
+		<!-- Source: https://mvnrepository.com/artifact/org.json/json -->
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
 			<version>20240205</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+		<!-- GHSA-72hv-8253-57qq: bumped from 2.20.0 -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
+		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
+		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.20</version>
+			<version>2.21</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
+		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.20.0</version>
+			<version>2.21.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
+		<!-- Source: https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
 		<dependency>
 			<groupId>com.amazon.redshift</groupId>
 			<artifactId>redshift-jdbc42</artifactId>
 			<version>2.1.0.29</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.trino/trino-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/io.trino/trino-jdbc -->
 		<dependency>
 			<groupId>io.trino</groupId>
 			<artifactId>trino-jdbc</artifactId>
@@ -1848,11 +1910,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.squareup/javapoet -->
+		<!-- Source: https://mvnrepository.com/artifact/com.squareup/javapoet -->
 		<!--
 		<dependency><groupId>com.squareup</groupId><artifactId>javapoet</artifactId><version>1.2.0</version></dependency>
 		-->
-		<!-- https://mvnrepository.com/artifact/com.github.wnameless.json/json-flattener -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.wnameless.json/json-flattener -->
 		<dependency>
 			<groupId>com.github.wnameless.json</groupId>
 			<artifactId>json-flattener</artifactId>
@@ -1868,7 +1930,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
 		<dependency>
 			<groupId>org.xerial</groupId>
 			<artifactId>sqlite-jdbc</artifactId>
@@ -1891,7 +1953,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.minidev/json-smart -->
+		<!-- Source: https://mvnrepository.com/artifact/net.minidev/json-smart -->
 		<dependency>
 			<groupId>net.minidev</groupId>
 			<artifactId>json-smart</artifactId>
@@ -1914,17 +1976,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
+		<!-- Source: https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
 		<!--
 		<dependency><groupId>au.com.bytecode</groupId><artifactId>opencsv</artifactId><version>2.4</version></dependency>
 		-->
-		<!-- https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
+		<!-- Source: https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
 		<dependency>
 			<groupId>org.semarglproject</groupId>
 			<artifactId>semargl-rdf</artifactId>
 			<version>0.6.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.semarglproject/semargl-sesame -->
+		<!-- Source: https://mvnrepository.com/artifact/org.semarglproject/semargl-sesame -->
 		<dependency>
 			<groupId>org.semarglproject</groupId>
 			<artifactId>semargl-sesame</artifactId>
@@ -1936,7 +1998,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java -->
+		<!-- Source: https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-java -->
 		<dependency>
 			<groupId>org.seleniumhq.selenium</groupId>
 			<artifactId>selenium-java</artifactId>
@@ -1952,31 +2014,31 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.opentelemetry/opentelemetry-sdk -->
+		<!-- Source: https://mvnrepository.com/artifact/io.opentelemetry/opentelemetry-sdk -->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
 			<version>1.53.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
+		<!-- Source: https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api -->
 		<dependency>
 			<groupId>javax.ws.rs</groupId>
 			<artifactId>javax.ws.rs-api</artifactId>
 			<version>2.1.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.freemarker/freemarker -->
+		<!-- Source: https://mvnrepository.com/artifact/org.freemarker/freemarker -->
 		<dependency>
 			<groupId>org.freemarker</groupId>
 			<artifactId>freemarker</artifactId>
 			<version>2.3.34</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-json -->
+		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-json -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-json</artifactId>
 			<version>1.5.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
+		<!-- Source: https://mvnrepository.com/artifact/com.microsoft.azure/msal4j -->
 		<dependency>
 			<groupId>com.microsoft.azure</groupId>
 			<artifactId>msal4j</artifactId>
@@ -2008,7 +2070,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
+		<!-- Source: https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
@@ -2020,7 +2082,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-identity -->
+		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-identity -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-identity</artifactId>
@@ -2064,7 +2126,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
+		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-security-keyvault-secrets -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-security-keyvault-secrets</artifactId>
@@ -2076,7 +2138,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-ai-formrecognizer -->
+		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-ai-formrecognizer -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-ai-formrecognizer</artifactId>
@@ -2088,7 +2150,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.azure/azure-storage-blob -->
+		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-storage-blob -->
 		<dependency>
 			<groupId>com.azure</groupId>
 			<artifactId>azure-storage-blob</artifactId>
@@ -2138,25 +2200,25 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.snowflake/snowflake-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/net.snowflake/snowflake-jdbc -->
 		<dependency>
 			<groupId>net.snowflake</groupId>
 			<artifactId>snowflake-jdbc</artifactId>
 			<version>3.22.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
 		<dependency>
 			<groupId>com.clickhouse</groupId>
 			<artifactId>clickhouse-jdbc</artifactId>
 			<version>0.6.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
+		<!-- Source: https://mvnrepository.com/artifact/io.github.classgraph/classgraph -->
 		<dependency>
 			<groupId>io.github.classgraph</groupId>
 			<artifactId>classgraph</artifactId>
 			<version>4.8.174</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.janusgraph/janusgraph-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.janusgraph/janusgraph-core -->
 		<dependency>
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-core</artifactId>
@@ -2207,12 +2269,16 @@
 					<artifactId>metrics-core</artifactId>
 				</exclusion>
 				<exclusion>
+					<groupId>org.apache.commons</groupId>
+		    		<artifactId>commons-configuration2</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.dropwizard.metrics/metrics-core -->
+		<!-- Source: https://mvnrepository.com/artifact/io.dropwizard.metrics/metrics-core -->
 		<dependency>
 			<groupId>io.dropwizard.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
@@ -2224,8 +2290,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-configuration2 -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-configuration2</artifactId>
+		    <version>2.13.0</version>
+		</dependency>
 		<!-- html to pdf -->
-		<!-- https://mvnrepository.com/artifact/org.xhtmlrenderer/flying-saucer-pdf -->
+		<!-- Source: https://mvnrepository.com/artifact/org.xhtmlrenderer/flying-saucer-pdf -->
 		<dependency>
 			<groupId>org.xhtmlrenderer</groupId>
 			<artifactId>flying-saucer-pdf</artifactId>
@@ -2249,7 +2321,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/de.ruedigermoeller/fst -->
+		<!-- Source: https://mvnrepository.com/artifact/de.ruedigermoeller/fst -->
 		<dependency>
 			<groupId>de.ruedigermoeller</groupId>
 			<artifactId>fst</artifactId>
@@ -2329,7 +2401,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.maven/maven-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.maven/maven-core -->
 		<dependency>
 			<groupId>org.apache.maven</groupId>
 			<artifactId>maven-core</artifactId>
@@ -2361,7 +2433,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.maven.shared/maven-invoker -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.maven.shared/maven-invoker -->
 		<dependency>
 			<groupId>org.apache.maven.shared</groupId>
 			<artifactId>maven-invoker</artifactId>
@@ -2373,43 +2445,38 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.osgi/org.osgi.util.function -->
+		<!-- Source: https://mvnrepository.com/artifact/org.osgi/org.osgi.util.function -->
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.util.function</artifactId>
 			<version>1.2.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.osgi/org.osgi.core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.osgi/org.osgi.core -->
 		<dependency>
 			<groupId>org.osgi</groupId>
 			<artifactId>org.osgi.core</artifactId>
 			<version>6.0.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.objenesis/objenesis -->
+		<!-- Source: https://mvnrepository.com/artifact/org.objenesis/objenesis -->
 		<dependency>
 			<groupId>org.objenesis</groupId>
 			<artifactId>objenesis</artifactId>
 			<version>3.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-utils -->
-		<dependency>
-			<groupId>org.codehaus.plexus</groupId>
-			<artifactId>plexus-utils</artifactId>
-			<version>3.3.0</version>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-classworlds -->
+
+		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-classworlds -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-classworlds</artifactId>
 			<version>2.8.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-component-annotations -->
+		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-component-annotations -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-component-annotations</artifactId>
 			<version>2.1.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-container-default -->
+		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-container-default -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-container-default</artifactId>
@@ -2429,7 +2496,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.graphstream/gs-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.graphstream/gs-core -->
 		<dependency>
 			<groupId>org.graphstream</groupId>
 			<artifactId>gs-core</artifactId>
@@ -2441,7 +2508,7 @@
 			</exclusions>
 			<version>2.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.graphstream/gs-algo -->
+		<!-- Source: https://mvnrepository.com/artifact/org.graphstream/gs-algo -->
 		<dependency>
 			<groupId>org.graphstream</groupId>
 			<artifactId>gs-algo</artifactId>
@@ -2461,7 +2528,7 @@
 			</exclusions>
 			<version>2.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.jfree/jfreechart -->
+		<!-- Source: https://mvnrepository.com/artifact/org.jfree/jfreechart -->
 		<!-- patch update and excluded from graphstream algo that used
 		org.jfree:jfreechart:jar:1.0.14-->
 		<dependency>
@@ -2469,7 +2536,7 @@
 			<artifactId>jfreechart</artifactId>
 			<version>1.0.19</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
+		<!-- Source: https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
 		<dependency>
 			<groupId>org.owasp.esapi</groupId>
 			<artifactId>esapi</artifactId>
@@ -2503,6 +2570,10 @@
 					<groupId>org.apache.httpcomponents.client5</groupId>
 					<artifactId>httpclient5</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>commons-lang</groupId>
+					<artifactId>commons-lang</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -2515,27 +2586,28 @@
 			<artifactId>re2j</artifactId>
 			<version>1.7</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-io -->
+		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-io -->
 		<!-- 
 		<dependency><groupId>org.eclipse.jetty</groupId><artifactId>jetty-io</artifactId><version>9.4.12.v20180830</version></dependency><dependency><groupId>com.github.ulisesbocchio</groupId><artifactId>jasypt-spring-boot-starter</artifactId><version>2.0.0</version></dependency>
 		-->
-		<!-- https://mvnrepository.com/artifact/org.jasypt/jasypt -->
+		<!-- Source: https://mvnrepository.com/artifact/org.jasypt/jasypt -->
 		<dependency>
 			<groupId>org.jasypt</groupId>
 			<artifactId>jasypt</artifactId>
 			<version>1.9.3</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-exec -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-exec</artifactId>
 			<version>1.5.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.zookeeper/zookeeper -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.zookeeper/zookeeper -->
+		<!-- CVE-2026-24308, CVE-2026-24281: bumped from 3.9.4 -->
 		<dependency>
 			<groupId>org.apache.zookeeper</groupId>
 			<artifactId>zookeeper</artifactId>
-			<version>3.9.4</version>
+			<version>3.9.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>ch.qos.logback</groupId>
@@ -2559,7 +2631,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.curator/curator-framework -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.curator/curator-framework -->
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-framework</artifactId>
@@ -2579,7 +2651,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.curator/curator-recipes -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.curator/curator-recipes -->
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-recipes</artifactId>
@@ -2591,7 +2663,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.elasticsearch.plugin/x-pack-sql-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/org.elasticsearch.plugin/x-pack-sql-jdbc -->
 		<dependency>
 			<groupId>org.elasticsearch.plugin</groupId>
 			<artifactId>x-pack-sql-jdbc</artifactId>
@@ -2602,7 +2674,7 @@
 			<artifactId>sql-jdbc</artifactId>
 			<version>1.1.0.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.xeustechnologies/jcl-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.xeustechnologies/jcl-core -->
 		<dependency>
 			<groupId>org.xeustechnologies</groupId>
 			<artifactId>jcl-core</artifactId>
@@ -2618,7 +2690,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.github.oshi/oshi-core -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.oshi/oshi-core -->
 		<dependency>
 			<groupId>com.github.oshi</groupId>
 			<artifactId>oshi-core</artifactId>
@@ -2638,13 +2710,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.github.jopenlibs/vault-java-driver -->
+		<!-- Source: https://mvnrepository.com/artifact/io.github.jopenlibs/vault-java-driver -->
 		<dependency>
 		    <groupId>io.github.jopenlibs</groupId>
 		    <artifactId>vault-java-driver</artifactId>
 		    <version>6.2.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox -->
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
@@ -2662,7 +2734,7 @@
 			<version>3.0.4</version>
 		</dependency>
 		<!-- https://github.com/cdarras/clamav-client -->
-		<!-- https://mvnrepository.com/artifact/xyz.capybara/clamav-client -->
+		<!-- Source: https://mvnrepository.com/artifact/xyz.capybara/clamav-client -->
 		<dependency>
 			<groupId>xyz.capybara</groupId>
 			<artifactId>clamav-client</artifactId>
@@ -2678,7 +2750,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.maxmind.geoip2/geoip2 -->
+		<!-- Source: https://mvnrepository.com/artifact/com.maxmind.geoip2/geoip2 -->
 		<dependency>
 			<groupId>com.maxmind.geoip2</groupId>
 			<artifactId>geoip2</artifactId>
@@ -2694,13 +2766,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.databricks/databricks-jdbc -->
+		<!-- Source: https://mvnrepository.com/artifact/com.databricks/databricks-jdbc -->
 		<dependency>
 			<groupId>com.databricks</groupId>
 			<artifactId>databricks-jdbc</artifactId>
 			<version>2.7.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.hierynomus/sshj -->
+		<!-- Source: https://mvnrepository.com/artifact/com.hierynomus/sshj -->
 		<dependency>
 			<groupId>com.hierynomus</groupId>
 			<artifactId>sshj</artifactId>
@@ -2712,7 +2784,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
@@ -2724,19 +2796,19 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.xlate/staedi -->
+		<!-- Source: https://mvnrepository.com/artifact/io.xlate/staedi -->
 		<dependency>
 			<groupId>io.xlate</groupId>
 			<artifactId>staedi</artifactId>
 			<version>1.22.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
+		<!-- Source: https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java -->
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>
 			<artifactId>snappy-java</artifactId>
 			<version>1.1.10.8</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
 		<dependency>
 			<groupId>org.apache.tika</groupId>
 			<artifactId>tika-core</artifactId>
@@ -2753,7 +2825,7 @@
 			</exclusions>
 		</dependency>
 		<!--  Weaviate Vector Engine -->
-		<!-- https://mvnrepository.com/artifact/io.weaviate/client -->
+		<!-- Source: https://mvnrepository.com/artifact/io.weaviate/client -->
 		<dependency>
 			<groupId>io.weaviate</groupId>
 			<artifactId>client</artifactId>
@@ -2805,7 +2877,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/jcifs/jcifs -->
+		<!-- Source: https://mvnrepository.com/artifact/jcifs/jcifs -->
 		<dependency>
 			<groupId>jcifs</groupId>
 			<artifactId>jcifs</artifactId>
@@ -2817,13 +2889,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.reactivestreams/reactive-streams -->
+		<!-- Source: https://mvnrepository.com/artifact/org.reactivestreams/reactive-streams -->
 		<dependency>
 			<groupId>org.reactivestreams</groupId>
 			<artifactId>reactive-streams</artifactId>
 			<version>1.0.4</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/s3 -->
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/s3 -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
@@ -2846,12 +2918,12 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/textract -->
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/textract -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>textract</artifactId>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/transcribe -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>transcribe</artifactId>
@@ -2862,13 +2934,13 @@
 			<artifactId>athena-jdbc-uber</artifactId>
 			<version>3.6.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+		<!-- Source: https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
 			<version>2.13.2</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.guava/guava -->
+		<!-- Source: https://mvnrepository.com/artifact/com.google.guava/guava -->
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
@@ -2884,7 +2956,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java-util -->
+		<!-- Source: https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java-util -->
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java-util</artifactId>
@@ -3089,10 +3161,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
+		<!-- CVE-2025-66021: bumped from 20240325.1 -->
 		<dependency>
 			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
 			<artifactId>owasp-java-html-sanitizer</artifactId>
-			<version>20240325.1</version>
+			<version>20260101.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jai-imageio</groupId>
@@ -3124,17 +3197,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
+		<!-- Source: https://mvnrepository.com/artifact/com.github.albfernandez/juniversalchardet -->
 		<dependency>
 			<groupId>com.github.albfernandez</groupId>
 			<artifactId>juniversalchardet</artifactId>
 			<version>2.5.0</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.modelcontextprotocol.sdk/mcp -->
+		<!-- Source: https://mvnrepository.com/artifact/io.modelcontextprotocol.sdk/mcp -->
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>0.14.1</version>
+			<version>1.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -3150,13 +3223,13 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
+		<!-- Source: https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-core</artifactId>
 			<version>3.7.8</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.fasterxml.uuid/java-uuid-generator -->
+		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.uuid/java-uuid-generator -->
 		<dependency>
 			<groupId>com.fasterxml.uuid</groupId>
 			<artifactId>java-uuid-generator</artifactId>
@@ -3168,25 +3241,25 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-commons -->
+		<!-- Source: https://mvnrepository.com/artifact/org.ow2.asm/asm-commons -->
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-commons</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
+		<!-- Source: https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-util</artifactId>
-			<version>9.2</version>
+			<version>9.9.1</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
+		<!-- Source: https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib</artifactId>
 			<version>1.9.25</version>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/io.livekit/livekit-server -->
+		<!-- Source: https://mvnrepository.com/artifact/io.livekit/livekit-server -->
 		<dependency>
 			<groupId>io.livekit</groupId>
 			<artifactId>livekit-server</artifactId>
@@ -3226,7 +3299,7 @@
 			</exclusions>
 		</dependency>
 		<!-- jars added to shade-dependencies -->
-		<!-- https://mvnrepository.com/artifact/org.apache.parquet/parquet-avro -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.parquet/parquet-avro -->
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
@@ -3250,7 +3323,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-api -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-api -->
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-client-api</artifactId>
@@ -3262,7 +3335,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-runtime -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.hadoop/hadoop-client-runtime -->
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-client-runtime</artifactId>
@@ -3286,7 +3359,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
+		<!-- Source: https://mvnrepository.com/artifact/org.neo4j/neo4j-jdbc-bolt -->
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-jdbc-bolt</artifactId>
@@ -3300,21 +3373,21 @@
 		</dependency>
 		<!--  please add jars above and not within the shade block -->
 		<!--  testing jars  -->
-		<!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+		<!-- Source: https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
 			<version>6.0.0</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite -->
+		<!-- Source: https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite -->
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-suite</artifactId>
 			<version>6.0.0</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->
+		<!-- Source: https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>testcontainers</artifactId>
@@ -3343,7 +3416,7 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/org.mockito/mockito-core -->
+		<!-- Source: https://mvnrepository.com/artifact/org.mockito/mockito-core -->
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
@@ -3360,14 +3433,14 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy -->
+		<!-- Source: https://mvnrepository.com/artifact/net.bytebuddy/byte-buddy -->
 		<dependency>
 			<groupId>net.bytebuddy</groupId>
 			<artifactId>byte-buddy</artifactId>
 			<version>1.17.6</version>
 			<scope>test</scope>
 		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
+		<!-- Source: https://mvnrepository.com/artifact/com.google.jimfs/jimfs -->
 		<dependency>
 			<groupId>com.google.jimfs</groupId>
 			<artifactId>jimfs</artifactId>

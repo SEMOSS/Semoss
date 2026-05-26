@@ -49,82 +49,75 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
-public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
+public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleFileRetrieverReactor.class);
 	private static final String CLASS_NAME = GoogleFileRetrieverReactor.class.getName();
 
-	
 	public GoogleFileRetrieverReactor() {
-		this.keysToGet = new String[] { "id", "type"};
+		this.keysToGet = new String[] { "id", "type" };
 	}
 
 	@Override
 	protected SelectQueryStruct createQueryStruct() {
 
-		//get keys
+		// get keys
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		String fileID = this.keyValue.get(this.keysToGet[0]);
 		if (fileID == null || fileID.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file id");
 		}
-		String type= this.keyValue.get(this.keysToGet[1]);
+		String type = this.keyValue.get(this.keysToGet[1]);
 		if (type == null || type.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file type");
 		}
 
-
-		//get access token
-		String accessToken=null;
+		// get access token
+		String accessToken = null;
 		User user = this.insight.getUser();
 		try {
-			if(user==null){
+			if (user == null) {
 				Map<String, Object> retMap = new HashMap<String, Object>();
 				retMap.put("type", "google");
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
-			}
-			else if (user != null) {
+			} else if (user != null) {
 				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken=msToken.getAccess_token();
+				accessToken = msToken.getAccess_token();
 			}
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<String, Object>();
 			retMap.put("type", "google");
 			retMap.put("message", "Please login to your Google account");
 			throwLoginError(retMap);
 		}
 
-		//Initialize variables
+		// Initialize variables
 		Hashtable params = new Hashtable();
 		CsvQueryStruct qs = new CsvQueryStruct();
 
-		//filepath for the download/export
-		String filePath = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
-				+ DIHelper.getInstance().getProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		// filepath for the download/export
+		String filePath = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "\\"
+				+ Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		filePath += "\\" + Utility.getRandomString(10) + ".csv";
 		filePath = filePath.replace("\\", "/");
 		String url_str = null;
-		if(type.contains("google-apps.spreadsheet")){
-			url_str = "https://www.googleapis.com/drive/v3/files/"+fileID+"/export"; 
+		if (type.contains("google-apps.spreadsheet")) {
+			url_str = "https://www.googleapis.com/drive/v3/files/" + fileID + "/export";
 			params = new Hashtable();
 			params.put("mimeType", "text/csv");
-		}
-		else if(type.contains("text/csv")){
-			url_str = "https://www.googleapis.com/drive/v3/files/"+fileID; 
+		} else if (type.contains("text/csv")) {
+			url_str = "https://www.googleapis.com/drive/v3/files/" + fileID;
 			params = new Hashtable();
 			params.put("alt", "media");
-		}
-		else{
+		} else {
 			throw new IllegalArgumentException("Illegal file type");
 		}
 		BufferedWriter target = null;
-		try{
+		try {
 			BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
 
 			// create a file
@@ -134,9 +127,7 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			target = new BufferedWriter(new FileWriter(outputFile));
 			String data = null;
 
-
-			while((data = br.readLine()) != null)
-			{
+			while ((data = br.readLine()) != null) {
 				target.write(data);
 				target.write("\n");
 				target.flush();
@@ -145,7 +136,8 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 			CSVFileHelper helper = new CSVFileHelper();
 			helper.setDelimiter(',');
 			helper.parse(filePath);
-			Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(), helper.predictTypes());
+			Map[] predictionMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(helper.getHeaders(),
+					helper.predictTypes());
 			Map<String, String> dataTypes = predictionMaps[0];
 			Map<String, String> additionalDataTypes = predictionMaps[1];
 			for (String key : dataTypes.keySet()) {
@@ -161,14 +153,14 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor{
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(target != null) {
-		          try {
-		        	  target.flush();
-		        	  target.close();
-		          } catch(IOException e) {
-		            logger.error(Constants.STACKTRACE, e);
-		          }
-		        }
+			if (target != null) {
+				try {
+					target.flush();
+					target.close();
+				} catch (IOException e) {
+					logger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return qs;

@@ -27,19 +27,15 @@
  *******************************************************************************/
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
-import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.selectors.IQuerySort;
-import prerna.query.querystruct.transform.QSFilterToTypedConverter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,18 +43,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetWorkspaceRoomsReactor extends AbstractReactor {
-
-	private static final Map<String, SemossDataType> TYPES_FOR_SUBQUERY_COLUMNS = new HashMap<>();
-
-	static {
-		TYPES_FOR_SUBQUERY_COLUMNS.put("room_id", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("room_name", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("room_context", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("model_id", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("workspace_id", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("date_created", SemossDataType.STRING);
-		TYPES_FOR_SUBQUERY_COLUMNS.put("date_updated", SemossDataType.STRING);
-	}
 
 	public GetWorkspaceRoomsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), ReactorKeysEnum.LIMIT.getKey(),
@@ -73,8 +57,8 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
 		User user = this.insight.getUser();
-		long limit = getLimit();
-		long offset = getOffset();
+		long limit = getLong(ReactorKeysEnum.LIMIT.getKey(), -1L);
+		long offset = getLong(ReactorKeysEnum.OFFSET.getKey(), -1L);
 		GenRowFilters filters = getFilters();
 		List<IQuerySort> sorts = getSorts();
 
@@ -113,13 +97,7 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
 			}
 		}
 
-		if (grf != null && !grf.isEmpty()) {
-			List<IQueryFilter> filters = QSFilterToTypedConverter.convertFilters(grf.getFilters(), "subquery",
-					TYPES_FOR_SUBQUERY_COLUMNS);
-			return new GenRowFilters(filters);
-		}
-
-		return null;
+		return grf;
 	}
 
 	private List<IQuerySort> getSorts() {
@@ -133,21 +111,4 @@ public class GetWorkspaceRoomsReactor extends AbstractReactor {
 		return null;
 	}
 
-	private long getLimit() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata limitNoun = inputsGRS.getNoun(0);
-			return ((Number) limitNoun.getValue()).longValue();
-		}
-		return -1;
-	}
-
-	private long getOffset() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata offsetNoun = inputsGRS.getNoun(0);
-			return ((Number) offsetNoun.getValue()).longValue();
-		}
-		return -1;
-	}
 }

@@ -30,6 +30,7 @@ package prerna.sablecc2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.PushbackReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +50,7 @@ import prerna.om.Insight;
 import prerna.om.Pixel;
 import prerna.om.PixelList;
 import prerna.reactor.PixelPlanner;
+import prerna.sablecc2.lexer.IPushbackReader;
 import prerna.sablecc2.lexer.Lexer;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.node.ARoutineConfiguration;
@@ -59,13 +62,17 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
+import prerna.util.Constants;
+import prerna.util.SandboxedJavaExecution;
+import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.usertracking.IUserTracker;
-import prerna.util.usertracking.UserTrackerFactory;
 
-public class PixelRunner extends Thread {
+public class PixelRunner {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
+
+	private static final String CANCELLED_MESSAGE = "The request was cancelled by the user";
+	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
 	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
@@ -97,29 +104,89 @@ public class PixelRunner extends Thread {
 	protected List<String> encodingList = new ArrayList<>();
 	protected Map<String, String> encodedTextToOriginal = new HashMap<>();
 
+	/**
+	 * Wrapper class to interrupt pushback reader
+	 */
+	private static final class InterruptiblePushbackReader implements IPushbackReader {
+		private final PushbackReader pushbackReader;
+		private final PixelRunner runner;
+
+		private InterruptiblePushbackReader(PushbackReader pushbackReader, PixelRunner runner) {
+			this.pushbackReader = pushbackReader;
+			this.runner = runner;
+		}
+
+		@Override
+		public int read() throws IOException {
+			if (runner.isCancelRequested()) {
+				throw new InterruptedIOException(CANCELLED_MESSAGE);
+			}
+			return this.pushbackReader.read();
+		}
+
+		@Override
+		public void unread(int c) throws IOException {
+			if (runner.isCancelRequested()) {
+				throw new InterruptedIOException(CANCELLED_MESSAGE);
+			}
+			this.pushbackReader.unread(c);
+		}
+	}
+
+	/**
+	 * This is the main method for parsing and executing a pixel expression
+	 * 
+	 * @param expression
+	 * @param insight
+	 */
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
-		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
-				this.encodedTextToOriginal);
-
+		throwIfCancelRequested();
 		try {
-			Parser p = new Parser(new Lexer(new PushbackReader(
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
+					this.encodedTextToOriginal);
+		} catch (SemossPixelException e) {
+			// treat this as a META so that FE doesn't record it
+			addInvalidSyntaxResult(expression, new NounMetadata(e.getMessage(), PixelDataType.INVALID_SYNTAX,
+					PixelOperationType.ERROR, PixelOperationType.INVALID_SYNTAX), false);
+			throw e;
+		}
+		throwIfCancelRequested();
+
+		final boolean USER_CHROOT = insight.getUser() != null
+				&& Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE));
+		try {
+			if (USER_CHROOT) {
+				SandboxedJavaExecution
+						.setSandboxRootForCurrentThread(insight.getUser().getUserSymlinkHelper().getUserChrootFolder());
+			} else {
+				SandboxedJavaExecution.setSandboxRootForCurrentThread(null);
+			}
+			Parser p = new Parser(new Lexer(new InterruptiblePushbackReader(new PushbackReader(
 					new InputStreamReader(new ByteArrayInputStream(expression.getBytes(StandardCharsets.UTF_8)),
 							StandardCharsets.UTF_8),
-					expression.length())));
+					expression.length()), this)));
 			translation = new GreedyTranslation(this, insight);
 
+			throwIfCancelRequested();
 			// parsing the pixel - this process also determines if expression is
 			// syntactically correct
 			Start tree = p.parse();
+			throwIfCancelRequested();
 			// apply the translation.
 			tree.apply(translation);
 		} catch (SemossPixelException e) {
-			classLogger.error("Error occurred running pixel: {} with detailed error: {}", expression, e.getMessage(),
-					e);
+			if (isCancellationException(e)) {
+				classLogger.info("Pixel execution canceled while running expression");
+			} else {
+				classLogger.error("Error occurred running pixel: {} with detailed error: {}", expression,
+						e.getMessage(), e);
+			}
 			if (!e.isContinueThreadOfExecution()) {
 				throw e;
 			}
+		} catch (InterruptedIOException e) {
+			throwCancellationException();
 		} catch (ParserException | LexerException | IOException e) {
 			// we only need to catch invalid syntax here
 			// other exceptions are caught in lazy translation
@@ -150,6 +217,9 @@ public class PixelRunner extends Thread {
 			}
 			this.encodingList.clear();
 			this.encodedTextToOriginal.clear();
+
+			// always clear the sandbox
+			SandboxedJavaExecution.clearSandboxRootForCurrentThread();
 		}
 	}
 
@@ -160,10 +230,6 @@ public class PixelRunner extends Thread {
 	 * @param ex
 	 */
 	private void trackInvalidSyntaxError(String pixel, Exception ex) {
-		IUserTracker tracker = UserTrackerFactory.getInstance();
-		if (tracker.isActive()) {
-			tracker.trackError(this.insight, pixel, "INVALID_SYNTAX", "INVALID_SYNTAX", false, ex);
-		}
 	}
 
 	/**
@@ -235,7 +301,7 @@ public class PixelRunner extends Thread {
 		pixel.setReturnedError(true);
 		pixel.setMeta(true);
 		// also set the time to run
-		if (this.translation.getPixelObj() != null) {
+		if (this.translation != null && this.translation.getPixelObj() != null) {
 			pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
 		}
 		this.returnPixelList.add(pixel);
@@ -275,6 +341,28 @@ public class PixelRunner extends Thread {
 				}
 			}
 		}
+	}
+
+	private void throwIfCancelRequested() {
+		if (isCancelRequested()) {
+			throwCancellationException();
+		}
+	}
+
+	public void cancelRequest() {
+		this.cancelRequested.set(true);
+	}
+
+	public boolean isCancelRequested() {
+		return this.cancelRequested.get() || Thread.currentThread().isInterrupted();
+	}
+
+	private void throwCancellationException() {
+		throw new SemossPixelException(CANCELLED_MESSAGE, false);
+	}
+
+	private boolean isCancellationException(SemossPixelException ex) {
+		return ex != null && !ex.isContinueThreadOfExecution() && CANCELLED_MESSAGE.equals(ex.getMessage());
 	}
 
 	public List<NounMetadata> getResults() {

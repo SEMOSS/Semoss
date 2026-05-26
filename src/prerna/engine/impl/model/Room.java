@@ -59,23 +59,26 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageIO;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.engine.impl.model.responses.AskToolModelEngineResponse;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class Room {
@@ -107,21 +110,53 @@ public class Room {
 	private String modelId;
 	private String messagesJson;
 
+	private String parentRoomId;
+
 	private Insight insight;
-//	private String systemMessage;
 	private String roomFolderPath;
 
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
+
+	/**
+	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
+	 * (containing engine metadata and original untruncated function name).
+	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
+	 * {@link #updateToolResponseMeta(ResponseMessage)}.
+	 */
+	private final Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
+
+	/**
+	 * Creates an empty room instance. Primarily used for serialization frameworks
+	 * and ad-hoc object construction.
+	 */
 	public Room() {
 	}
 
-	// Use this constructor if you want to load from JSON (as from DB)
+	/**
+	 * Creates a room from persisted ROOM-table fields.
+	 *
+	 * @param room_id       room identifier
+	 * @param userId        owning user identifier
+	 * @param roomName      display name
+	 * @param systemMessage ignored legacy parameter retained for constructor
+	 *                      compatibility
+	 * @param projectId     associated project identifier
+	 * @param shareId       share identifier, if shared
+	 * @param isActive      whether the room is active
+	 * @param createdAt     creation timestamp
+	 * @param updatedAt     last update timestamp
+	 * @param messagesJson  persisted message history JSON
+	 * @param pinned        whether the room is pinned
+	 * @param options       room options JSON
+	 * @param modelId       model/engine identifier associated to the room
+	 * @param parentRoomId  parent room identifier for sub-conversations (nullable)
+	 */
 	public Room(String room_id, String userId, String roomName, String systemMessage, String projectId, String shareId,
 			boolean isActive, Timestamp createdAt, Timestamp updatedAt, String messagesJson, boolean pinned,
-			String options, String modelId) {
+			String options, String modelId, String parentRoomId) {
 		this.room_id = room_id;
 		this.userId = userId;
 		this.roomName = roomName;
-//		this.systemMessage = systemMessage;
 		this.projectId = projectId;
 		this.shareId = shareId;
 		this.isActive = isActive;
@@ -130,6 +165,7 @@ public class Room {
 		this.pinned = pinned;
 		this.options = options;
 		this.modelId = modelId;
+		this.parentRoomId = parentRoomId;
 		this.messagesJson = messagesJson;
 		this.roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + this.room_id;
 
@@ -148,35 +184,54 @@ public class Room {
 		}
 	}
 
+	/**
+	 * Re-parses {@link #messagesJson} into the in-memory {@link #messages} list.
+	 */
 	public void parseMessages() {
 		setMessagesFromString(this.messagesJson);
 	}
 
 	/**
-	 * 
-	 * @param msg
-	 * @param systemMessage
-	 * @param modelEngine
-	 * @return
+	 * Sends an input message to the provided model engine using default parent
+	 * resolution and history persistence behavior.
+	 *
+	 * @param msg         input message to send
+	 * @param modelEngine model engine used for inference
+	 * @return assistant response message
 	 */
 	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine) {
 		return ask(msg, modelEngine, null);
 	}
 
+	/**
+	 * Sends an input message to the model engine while explicitly targeting a
+	 * parent message in the conversation tree.
+	 *
+	 * @param msg             input message to send
+	 * @param modelEngine     model engine used for inference
+	 * @param parentMessageId explicit parent message id; when null/blank the latest
+	 *                        message is used
+	 * @return assistant response message
+	 */
 	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId) {
 		Boolean appendToHistory = true;
 		return ask(msg, modelEngine, parentMessageId, appendToHistory);
 	}
 
 	/**
-	 * 
-	 * @param msg
-	 * @param systemMessage
-	 * @param modelEngine
-	 * @param parentMessageId
-	 * @return
+	 * Core room ask flow.
+	 * <p>
+	 * Builds message payload, applies tool metadata, executes model inference, and
+	 * optionally appends/persists both input and output in room history.
+	 *
+	 * @param msg             input message to send
+	 * @param modelEngine     model engine used for inference
+	 * @param parentMessageId explicit parent message id; when null/blank the latest
+	 *                        message is used
+	 * @param appendToHistory whether to append and persist messages to room history
+	 * @return assistant response message
 	 */
-	public ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+	public synchronized ResponseMessage ask(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
 			Boolean appendToHistory) {
 
 		Map<String, Object> kwArgMap = new HashMap<>(msg.getParamMap());
@@ -184,8 +239,8 @@ public class Room {
 		// if it is full prompt, process that first.
 		if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			return response;
+			applyInputUsageFromModelResponse(msg, llmResponse);
+			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 		}
 
 		// if a specific system message is sent to use, overwrite the existing in the db
@@ -194,10 +249,11 @@ public class Room {
 					this.insight.getUser().getPrimaryLoginToken().getId(), msg.getSystemPrompt());
 		}
 
-		appendToolsToParams(kwArgMap);
+		// this will modify tools if name is too large
+		appendToolsToParams(kwArgMap, modelEngine);
 
-		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
-		// string "false"
+		applyTextModelParams(kwArgMap);
+
 		boolean useHistory = true;
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
@@ -215,17 +271,8 @@ public class Room {
 			kwArgMap.put("message_json", singleMessageJson);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-
-			// set transaction id for both pieces
-			msg.setTransactionId(llmResponse.getMessageId());
-			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
-			response.setTransactionId(llmResponse.getMessageId());
-
-			response.setModel(modelEngine);
-			response.setParentMessageId(msg.getMessageId());
-			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-			return response;
+			applyInputUsageFromModelResponse(msg, llmResponse);
+			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 		}
 
 		// if we dont have to keep history. then wipe all previous messages.
@@ -254,36 +301,21 @@ public class Room {
 
 		ResponseMessage response = null;
 		try {
-			// add the message
-			// note that the message must be sent in the message_json string
-			messages.add(msg);
-
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, msg.getMessageId());
+			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, msg);
 			kwArgMap.put("message_json", messageJsonString);
 
 			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			response.setMessageId(llmResponse.getMessageId());
-
-			// set transaction id for both pieces
-			msg.setTransactionId(llmResponse.getMessageId());
-			msg.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
-			response.setTransactionId(llmResponse.getMessageId());
-
-			// Create the assistant's response message and add to history
-			response.setModel(modelEngine);
-			response.setParentMessageId(msg.getMessageId());
-			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			applyInputUsageFromModelResponse(msg, llmResponse);
+			response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			// removing the last message from the message list
-			// because otherwise the chat history is all sorts of wonky
-			messages.removeLast();
+			classLogger.error("Error running new message in room", e);
 			throw e;
 		}
-		// the response was successful
-		// so we can now add the response to the list of messages
-		messages.add(response);
+		// on success, add the message
+		if (appendToHistory) {
+			messages.add(msg);
+			messages.add(response);
+		}
 
 		// Save the old (before) roomName for comparison
 		String prevRoomName = this.roomName;
@@ -315,109 +347,33 @@ public class Room {
 				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
 						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
 			}
-		} else {
-			messages.removeLast();
-			messages.removeLast();
 		}
-
 		return response;
 	}
 
 	/**
-	 * Executes the latest message branch in the room
-	 * 
-	 * @param modelEngine
-	 * @return
+	 * Adds a tool execution result to the active tool-call context and, when all
+	 * pending tool calls are satisfied, invokes the model for the follow-up
+	 * assistant response.
+	 *
+	 * @param toolCallId            tool call identifier being fulfilled
+	 * @param toolName              tool name used for execution
+	 * @param toolExecutionResponse serialized tool output
+	 * @param toolParameterValues   parameters provided to the tool call
+	 * @param paramValuesMap        model parameter map used when continuing the
+	 *                              assistant turn
+	 * @param parentMessageId       optional parent message id anchoring the branch
+	 * @param modelEngine           model engine used for follow-up inference
+	 * @param insight               insight context used for persistence
+	 * @param toolStatus            execution status for the tool result
+	 * @return model response when all tool calls are fulfilled; otherwise
+	 *         {@code null}
+	 * @throws IllegalStateException    if no compatible tool-call context is
+	 *                                  present
+	 * @throws IllegalArgumentException if {@code toolCallId} does not match the
+	 *                                  current assistant tool-call payload
 	 */
-	public ResponseMessage executeMessages(IModelEngine modelEngine) {
-		if (messages.isEmpty()) {
-			throw new IllegalArgumentException("The room is currently empty and does not contain any messages");
-		}
-
-		AbstractMessage lastMessage = messages.getLast();
-		// if last message was a tool response
-		// input message is empty to get the final llm reasoning
-		String inputPrompt = "";
-		if (lastMessage instanceof InputMessage) {
-			inputPrompt = ((InputMessage) lastMessage).getInputPrompt();
-		}
-		String lastMessageId = lastMessage.getMessageId();
-		Map<String, Object> kwArgMap = new HashMap<>();
-		appendToolsToParams(kwArgMap);
-
-		ResponseMessage response = null;
-		try {
-			// add the message
-			// note that the message must be sent in the message_json string
-
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages, lastMessageId);
-			kwArgMap.put("message_json", messageJsonString);
-
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(inputPrompt, this, lastMessage, kwArgMap);
-			response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-			response.setMessageId(llmResponse.getMessageId());
-
-			// set transaction id for both pieces
-			lastMessage.setTransactionId(llmResponse.getMessageId());
-			lastMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
-			response.setTransactionId(llmResponse.getMessageId());
-
-			// Create the assistant's response message and add to history
-			response.setModel(modelEngine);
-			response.setParentMessageId(lastMessage.getMessageId());
-			response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw e;
-		}
-		// the response was successful
-		// so we can now add the response to the list of messages
-		messages.add(response);
-
-		// Save the old (before) roomName for comparison
-		String prevRoomName = this.roomName;
-
-		// Try to infer/set roomName if missing
-		if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-			for (AbstractMessage m : this.messages) {
-				if (m instanceof InputMessage) {
-					InputMessage im = (InputMessage) m;
-					String prompt = im.getInputUIPrompt();
-					if (prompt != null && !prompt.trim().isEmpty()) {
-						this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-						break;
-					}
-				}
-			}
-		}
-
-		// Persist message history - room name was just updated
-		if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-				&& !this.roomName.trim().isEmpty()) {
-			// Only update with room name if we just set it now!
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString(), this.roomName, modelEngine.getEngineId());
-		} else {
-			// Otherwise, regular update
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
-		}
-
-		return response;
-	}
-
-	/**
-	 * 
-	 * @param toolCallId
-	 * @param toolName
-	 * @param toolExecutionResponse
-	 * @param toolParameterValues
-	 * @param parentMessageId
-	 * @param modelEngine
-	 * @param insight
-	 * @return
-	 */
-	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
 		if (messages.isEmpty()) {
@@ -434,23 +390,20 @@ public class Room {
 		}
 
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
-		int lastToolRespIdx = -1;
 		ResponseMessage toolResponse = null;
-		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranch(messages, lastMessageId);
+		List<AbstractMessage> branchMessages = MessageUtils.getMessageBranchFromParent(messages, lastMessageId);
 		for (int i = branchMessages.size() - 1; i >= 0; --i) {
 			AbstractMessage m = branchMessages.get(i);
 			// Stop if a user or assistant non-tool-response appears
 			if (m instanceof ResponseMessage) {
-				MessageType t = ((ResponseMessage) m).getMessageType();
-				if (t == MessageType.RESPONSE_TOOL && ((ResponseMessage) m).hasToolResponses()) {
-					lastToolRespIdx = i;
+				if (((ResponseMessage) m).hasToolResponses() || m.hasToolCallPart()) {
 					toolResponse = (ResponseMessage) m;
 					break;
-				} else if (t == MessageType.RESPONSE_TEXT) {
+				} else if (m.hasTextPart()) {
 					break;
 				}
 			} else if (m instanceof InputMessage) {
-				if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+				if (m.hasToolResultPart()) {
 					continue;
 				}
 				break;
@@ -474,26 +427,46 @@ public class Room {
 			throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
 		}
 
-		// CHAIN tool executions: parent is previous INPUT_TOOL_EXEC if exists after
-		// toolResponse, else toolResponse
-		String actualParentId = toolResponse.getMessageId();
-		int startSearchIdx = lastToolRespIdx + 1;
-		// Scan for last tool exec message for chaining
-		for (int i = messages.size() - 1; i >= startSearchIdx; --i) {
+		// 3. Add tool execution result as a part to a single pending input message
+		int toolResponseIdx = -1;
+		for (int i = messages.size() - 1; i >= 0; --i) {
 			AbstractMessage m = messages.get(i);
-			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
-				actualParentId = m.getMessageId();
+			if (m != null && toolResponse.getMessageId().equals(m.getMessageId())) {
+				toolResponseIdx = i;
+				break;
+			}
+		}
+		if (toolResponseIdx < 0) {
+			throw new IllegalStateException("Unable to locate tool response message in room history.");
+		}
+
+		boolean isToolResultsInputMessage = false;
+		InputMessage toolResultsMessage = null;
+		for (int i = messages.size() - 1; i > toolResponseIdx; --i) {
+			AbstractMessage m = messages.get(i);
+			if (m instanceof ResponseMessage) {
+				break;
+			}
+			if (m instanceof InputMessage && m.hasToolResultPart()
+					&& toolResponse.getMessageId().equals(m.getParentMessageId())) {
+				toolResultsMessage = (InputMessage) m;
 				break;
 			}
 		}
 
-		// 3. Add tool execution message
-		InputMessage toolExecution = InputMessage.toolExecution(this, toolCallId, toolName, toolExecutionResponse,
-				toolParameterValues, toolStatus);
-		toolExecution.setSystemPrompt(this.getEffectiveSystemPrompt());
-		toolExecution.setParentMessageId(actualParentId);
-		toolExecution.setModel(modelEngine);
-		messages.add(toolExecution);
+		if (toolResultsMessage == null) {
+			isToolResultsInputMessage = true;
+			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
+					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
+					.withModelType(modelEngine.getModelType()).build();
+			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
+			toolResultsMessage.setModel(modelEngine);
+			toolResultsMessage.setVisibile(false);
+		} else {
+			toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+					toolExecutionResponse, toolParameterValues, toolStatus, false)));
+			toolResultsMessage.normalizeForWrite();
+		}
 
 		// 4. After the last RESPONSE_TOOL, gather all tool execution messages for that
 		// context
@@ -503,38 +476,87 @@ public class Room {
 		}
 
 		Set<String> answeredIds = new HashSet<>();
+		// add this new tool call id
+		answeredIds.add(toolCallId);
 		// scan forward from toolResponse idx+1 to the end
-		for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
+		for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
 			AbstractMessage m = messages.get(i);
-			if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
-				InputMessage inputMessage = (InputMessage) m;
-				toolCallId = inputMessage.getToolCallId();
-				if (toolCallId != null) {
-					answeredIds.add(toolCallId);
+			if (m instanceof InputMessage && m.hasToolResultPart()) {
+				for (MessagePart p : m.getParts()) {
+					if (p instanceof ToolResultMessagePart) {
+						ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+						if (tr != null && tr.getToolCallId() != null) {
+							answeredIds.add(tr.getToolCallId());
+						}
+					}
+				}
+				// legacy fallback
+				if (m instanceof InputMessage) {
+					String legacyId = ((InputMessage) m).getToolCallId();
+					if (legacyId != null) {
+						answeredIds.add(legacyId);
+					}
 				}
 			}
 		}
 
-		if (insight != null) {
+		if (isToolResultsInputMessage) {
+			// add to the messages array if it is new
+			messages.add(toolResultsMessage);
+		}
+		// 5. If all tool_call_ids fulfilled, trigger next model.ask
+		// otherwise, we add the message and save the result
+		if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
+			// persist the new message (or just the part) into the room
 			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
 					getMessagesAsString());
-		}
-
-		// 5. If all tool_call_ids fulfilled, trigger next model.ask
-		if (answeredIds.containsAll(allIds) && allIds.size() > 0) {
-			String messageJsonString = MessageUtils.getMessageHistoryFromMessageId(this.messages,
-					toolExecution.getMessageId());
+		} else {
+			// we have to add the tool results into the message history
+			// so that we can track for multiple tools
+			// so we are calling getting the current message history as the messages array
+			// already has the result
+			// as opposed to the normal
+			// getMessageHistoryWithNewMessage(List<AbstractMessage> messages,
+			// AbstractMessage newMessage) method
+			String messageJsonString = MessageUtils.getCurrentMessageHistory(this.messages);
 			if (paramValuesMap == null) {
 				paramValuesMap = new HashMap<>();
 			}
 			paramValuesMap.put("message_json", messageJsonString);
-			appendToolsToParams(paramValuesMap);
-			AskModelEngineResponse llmResponse = modelEngine.askRoom("", this, toolExecution, paramValuesMap);
+			appendToolsToParams(paramValuesMap, modelEngine);
 
-			ResponseMessage nextAssistant = createResponseMessage(llmResponse);
-			nextAssistant.setParentMessageId(toolExecution.getMessageId());
-			nextAssistant.setModel(modelEngine);
-			nextAssistant.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+			// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
+			// message row stores the actual tool output instead of null.
+			StringBuilder toolResultsForLogging = new StringBuilder();
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && tr.getOutput() != null) {
+						if (toolResultsForLogging.length() > 0) {
+							toolResultsForLogging.append("\n");
+						}
+						toolResultsForLogging.append(tr.getOutput());
+					}
+				}
+			}
+
+			AskModelEngineResponse llmResponse = null;
+			ResponseMessage nextAssistant = null;
+			try {
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
+				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
+				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
+			} catch (Exception e) {
+				// remove the entire input message since it failed
+				messages.removeLast();
+				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						e.getMessage(), e);
+				throw e;
+			}
+			// we have already added to the messages above
+			// we dont need to add again, only the response
+			// messages.add(toolResultsMessage);
 			messages.add(nextAssistant);
 
 			// --------- BEGIN TRANSACTION ID PROPAGATION ---------
@@ -547,12 +569,12 @@ public class Room {
 
 			// Find all INPUT_TOOL_EXECs after toolResponse up through nextAssistant
 			// (exclusive)
-			for (int i = lastToolRespIdx + 1; i < messages.size(); ++i) {
+			for (int i = toolResponseIdx + 1; i < messages.size(); ++i) {
 				AbstractMessage m = messages.get(i);
 				if (m == nextAssistant) {
 					break; // Stop at nextAssistant (exclusive)
 				}
-				if (m.getMessageType() == MessageType.INPUT_TOOL_EXEC) {
+				if (m == toolResultsMessage) {
 					m.setTransactionId(transactionId);
 				}
 			}
@@ -567,8 +589,112 @@ public class Room {
 		return null;
 	}
 
-	private void appendToolsToParams(Map<String, Object> params) {
-		List<Map<String, Object>> newTools = getAllToolsJsonForRoom();
+	/**
+	 * Applies prompt-side usage metadata from model output to the originating input
+	 * message.
+	 *
+	 * @param inputMessage input message that triggered the model call
+	 * @param llmResponse  model response containing prompt token count and message
+	 *                     id
+	 */
+	private void applyInputUsageFromModelResponse(InputMessage inputMessage, AskModelEngineResponse llmResponse) {
+		if (inputMessage == null || llmResponse == null) {
+			return;
+		}
+		inputMessage.setTransactionId(llmResponse.getMessageId());
+		inputMessage.setTokensInMessage(llmResponse.getNumberOfTokensInPrompt());
+	}
+
+	/**
+	 * Builds and finalizes an assistant response message from a model response with
+	 * consistent side effects.
+	 * <p>
+	 * Applies response id/transaction, model/room/parent linkage, response token
+	 * count, and persists media parts to the room folder.
+	 *
+	 * @param llmResponse   model response
+	 * @param modelEngine   model engine used for inference
+	 * @param parentMessage parent message to link as this response's parent
+	 * @return finalized assistant response message
+	 */
+	private ResponseMessage buildAssistantResponseFromModelResponse(AskModelEngineResponse llmResponse,
+			IModelEngine modelEngine, AbstractMessage parentMessage) {
+		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		String llmMessageId = llmResponse.getMessageId();
+		if (llmMessageId != null && !llmMessageId.isEmpty()) {
+			response.setMessageId(llmMessageId);
+			response.setTransactionId(llmMessageId);
+		} else if (response.getTransactionId() == null || response.getTransactionId().isEmpty()) {
+			response.setTransactionId(response.getMessageId());
+		}
+		response.setModel(modelEngine);
+		response.setRoom(this);
+		response.setParentMessageId(parentMessage == null ? null : parentMessage.getMessageId());
+		response.setTokensInMessage(llmResponse.getNumberOfTokensInResponse());
+		RoomUtils.persistMediaPartsToRoomFolder(response, this);
+		return response;
+	}
+
+	/**
+	 * Indicates whether this room can accept a new user input message at the
+	 * current point in conversation state.
+	 *
+	 * @return {@code true} when the last message is a terminal assistant response
+	 *         (text/media), {@code false} when tool-call continuation is required
+	 * @throws IllegalStateException if the room has no messages
+	 */
+	public boolean roomCanAcceptNewInputMessage() {
+		if (messages.isEmpty()) {
+			throw new IllegalStateException("No messages to match tool call context");
+		}
+
+		// get the last messsage
+		AbstractMessage lastMessage = messages.get(messages.size() - 1);
+		if (lastMessage.hasParts()) {
+			if (lastMessage.getIo() == MessageIO.OUTPUT) {
+				MessagePart lastMessagePart = lastMessage.getParts().getLast();
+				if (lastMessagePart.getType() != MessagePartType.TOOL_CALL) {
+					return true;
+				}
+			}
+		} else {
+			if (lastMessage.getMessageType() == MessageType.RESPONSE_MEDIA
+					|| lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Appends text gen model specific parameters from room options into the
+	 * provided model.
+	 * 
+	 * @param kwArgMap
+	 */
+	private void applyTextModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		if (options == null || options.isEmpty()) {
+			return;
+		}
+
+		for (String key : TEXT_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
+	}
+
+	/**
+	 * Appends room-level tools into the model invocation parameter map.
+	 *
+	 * @param params      mutable model parameter map
+	 * @param modelEngine model engine used to determine max tool name length
+	 */
+	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
+		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
 		Object existing = params.get("tools");
 		if (existing instanceof List<?>) {
 			@SuppressWarnings("unchecked")
@@ -581,55 +707,80 @@ public class Room {
 		}
 	}
 
-	
-
 	/**
-	 * 
-	 * @param
-	 * @return List<Map<String, Object>> for a single app mcp
-	 * 
+	 * Returns all tools for this room using the default max tool name length. Also
+	 * populates {@link #toolLookupByLLMName} for reverse-lookup in
+	 * {@link #updateToolResponseMeta(ResponseMessage)}.
+	 *
+	 * @return list of tool definition maps ready to pass to the LLM
 	 */
 	public List<Map<String, Object>> getAllToolsJsonForRoom() {
+		return getAllToolsJsonForRoom(Integer.MAX_VALUE);
+	}
+
+	/**
+	 * Returns all tools for this room, applying provider-specific name-length
+	 * limits. Also clears and rebuilds {@link #toolLookupByLLMName} so that
+	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
+	 * back to their original engine IDs and function names.
+	 *
+	 * @param maxLength maximum allowed tool name length (use
+	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
+	 * @return list of tool definition maps ready to pass to the LLM
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength) {
+		toolLookupByLLMName.clear();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
+		// make sure the same toolbox is not accidentally added more than once
+		Set<String> ensureUnique = new HashSet<>();
+
 		if (o.containsKey("mcp")) {
 			try {
-				@SuppressWarnings("unchecked")
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
 				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("type") && mcpMap.containsKey("id")) {
-						String type = (String) mcpMap.get("type");
-						String id = (String) mcpMap.get("id");
-						CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-						if (catalogType != null) {
-							aggregated.addAll(getToolJson(id));
+					try {
+						if (mcpMap.containsKey("id")) {
+							String id = (String) mcpMap.get("id");
+							if (!ensureUnique.contains(id)) {
+								aggregated.addAll(getToolJson(id, maxLength));
+								ensureUnique.add(id);
+							}
+						} else {
+							throw new IllegalArgumentException("Tool map must contain both type and id");
 						}
-					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from room mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'mcp' value in the options map", e);
 			}
 		}
 
 		if (o.containsKey("workspace")) {
 			try {
-				@SuppressWarnings("unchecked")
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
-					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId,
-							null);
-
-					for (Map<String, Object> tool : tools) {
-						String toolId = (String) tool.get("resource_id");
-						aggregated.addAll(getToolJson(toolId));
+					try {
+						String workspaceId = (String) workspace.get("workspace_id");
+						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+						for (Map<String, Object> tool : tools) {
+							String toolId = (String) tool.get("resource_id");
+							if (!ensureUnique.contains(toolId)) {
+								aggregated.addAll(getToolJson(toolId, maxLength));
+								ensureUnique.add(toolId);
+							}
+						}
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from workspace mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'workspace' value in the options map", e);
 			}
 		}
 
@@ -637,38 +788,92 @@ public class Room {
 	}
 
 	/**
-	 * 
-	 * @param String app id
-	 * @return List<Map<String, Object>> for a single app mcp
+	 * Returns the tool definitions for a single engine, applying the given name
+	 * length limit and populating {@link #toolLookupByLLMName} so that
+	 * {@link #updateToolResponseMeta(ResponseMessage)} can reverse-resolve
+	 * LLM-facing names.
+	 *
+	 * @param engineId  the engine/project UUID
+	 * @param maxLength maximum allowed tool name length
+	 * @return list of non-disabled tool definition maps
 	 */
-	private List<Map<String, Object>> getToolJson(String engineId) {
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
 		} catch (Exception ex) {
 			// ignore
-		}
-		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
+		if (engine == null) {
+			throw new IllegalArgumentException(
+					"Invalid MCP toolbox " + engineId + ". Please remove the toolbox from your room.");
+		}
+
 		JSONObject toolMap = MCPUtility.getAggregatedTools(engine);
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap);
+
+		// Record original tool names (before prefix is added) so we can store them in
+		// the reverse-lookup map later
+		Map<Integer, String> originalNames = new HashMap<>();
+		if (toolMap != null && toolMap.has("tools")) {
+			JSONArray toolsBefore = toolMap.getJSONArray("tools");
+			for (int i = 0; i < toolsBefore.length(); i++) {
+				JSONObject t = toolsBefore.optJSONObject(i);
+				if (t != null && t.has("name")) {
+					originalNames.put(i, t.getString("name"));
+				}
+			}
+		}
+
+		// Capture engine-level metadata for the lookup entries
+		Map<String, Object> engineMeta = new HashMap<>();
+		if (toolMap != null && toolMap.has("_meta")) {
+			engineMeta = toolMap.getJSONObject("_meta").toMap();
+		}
+
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (int i = 0; i < arr.length(); i++) {
 				JSONObject toolObj = arr.optJSONObject(i);
 				if (toolObj == null) {
-					continue; // no tool so skip
+					continue;
 				}
 
 				JSONObject meta = toolObj.optJSONObject("_meta");
-				Object executionValue = meta != null ? meta.opt("SMSS_MCP_EXECUTION") : null;
+				Object executionValue = meta != null ? meta.opt(MCPUtility.SMSS_MCP_EXECUTION) : null;
 
 				if (!MCPExecution.DISABLED.getValue().equals(executionValue)) {
-					result.add(toolObj.toMap());
-				}
+					Map<String, Object> toolMapEntry = toolObj.toMap();
+					result.add(toolMapEntry);
 
+					// Build a minimal lookup entry (only what updateToolResponseMeta reads).
+					// Engine-level fields go in first; tool-level meta overrides on top.
+					String llmFacingName = toolObj.getString("name");
+					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
+					Object rawToolMeta = toolMapEntry.get("_meta");
+					if (rawToolMeta instanceof Map) {
+						lookupMeta.putAll((Map<String, Object>) rawToolMeta);
+					}
+					// the user might already have an indirection between the tool name and function
+					// name so if this key already exists keep using that
+					if (lookupMeta.containsKey(MCPUtility.SMSS_FUNCTION_NAME)) {
+						lookupMeta.put(MCPUtility.SMSS_FUNCTION_NAME, originalNames.get(i));
+					}
+					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
+
+					Map<String, Object> lookupEntry = new HashMap<>();
+					if (toolMapEntry.containsKey("title")) {
+						lookupEntry.put("title", toolMapEntry.get("title"));
+					}
+					if (toolMapEntry.containsKey("description")) {
+						lookupEntry.put("description", toolMapEntry.get("description"));
+					}
+					lookupEntry.put("_meta", lookupMeta);
+					toolLookupByLLMName.put(llmFacingName, lookupEntry);
+				}
 			}
 			return result;
 		}
@@ -678,40 +883,61 @@ public class Room {
 	}
 
 	/**
-	 * 
-	 * @param llmResponse
-	 * @return
+	 * Updates the tool response with engine and tool metadata, using the per-call
+	 * reverse-lookup map ({@link #toolLookupByLLMName}) that was populated during
+	 * the most recent call to {@link #getAllToolsJsonForRoom(int)}. Falls back to
+	 * UUID-regex parsing for legacy full-UUID-prefix names.
+	 *
+	 * @param response the response message to enrich
 	 */
-	private ResponseMessage createResponseMessage(AskModelEngineResponse llmResponse) {
-		if (llmResponse.getMessageType().equals(AskModelEngineResponse.CHAT)) {
-			return ResponseMessage.text(llmResponse.getStringResponse());
-		} else if (llmResponse.getMessageType().equals(AskModelEngineResponse.TOOL)) {
-			AskToolModelEngineResponse toolResponse = (AskToolModelEngineResponse) llmResponse;
-			return ResponseMessage.toolResponses(toolResponse.getToolResponse());
-		}
-		// TODO: handle image, tool calls, etc.
-		return ResponseMessage.text("null");
+	public void updateToolResponseMeta(ResponseMessage response) {
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, getToolLookupByLLMName());
 	}
 
-	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream().anyMatch(
-				m -> (m.getMessageType().equals(MessageType.RESPONSE_TEXT)|| m.getMessageType().equals(MessageType.RESPONSE_TOOL))
-					&& m.getMessageId().equals(messageId));
-	}
-
-	
-	// --- System Prompt Handling ----
-	
 	/**
-	 * Returns the effective system prompt by checking options.instructions, then
-	 * workspace.system_prompt, then optionally applying an enterprise-level
-	 * template from the active admin theme.
-	 * 
-	 * @param
-	 * @return String the system prompt or null if none is defined
+	 * Returns the current per-call reverse-lookup map (LLM-facing name → enriched
+	 * tool entry). The map is rebuilt each time
+	 * {@link #getAllToolsJsonForRoom(int)} is called.
+	 *
+	 * @return unmodifiable view of the lookup map
 	 */
-	public String getEffectiveSystemPrompt() {
-		// 1. Try options.instructions
+	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
+		return Collections.unmodifiableMap(toolLookupByLLMName);
+	}
+
+	/**
+	 * Checks whether the specified message id belongs to an assistant-authored
+	 * output message in this room.
+	 *
+	 * @param messageId message id to validate
+	 * @return {@code true} when a matching assistant output message exists
+	 */
+	public boolean isMessageAuthor(String messageId) {
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
+	}
+
+	// --- System Prompt Handling ----
+
+	/**
+	 * Resolves the user-authored system prompt — the room/workspace layer, before
+	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
+	 * <ol>
+	 * <li>{@code options.instructions}</li>
+	 * <li>{@code workspace.system_prompt} (looked up via
+	 * {@code options.workspace.workspace_id})</li>
+	 * </ol>
+	 *
+	 * <p>
+	 * Use this when you need the raw user prompt as a composable layer (e.g., a
+	 * harness combining it with built-in agent instructions). Use
+	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
+	 *
+	 * @return authored prompt, or {@code null} if neither layer is set
+	 * @throws IllegalArgumentException when workspace lookup fails access or
+	 *                                  active-state checks
+	 */
+	public String getRoomOrWorkspaceSystemPrompt() {
 		String opts = getOptions();
 		JsonObject optionsObj = null;
 		if (opts != null && !opts.trim().isEmpty()) {
@@ -720,50 +946,76 @@ public class Room {
 			} catch (Exception ignore) {
 			}
 		}
-		String systemPrompt = null;
-		if (optionsObj != null) {
-			JsonElement instructionsElem = optionsObj.get("instructions");
-			if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-				systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
+		if (optionsObj == null) {
+			return null;
+		}
+
+		// 1. options.instructions
+		JsonElement instructionsElem = optionsObj.get("instructions");
+		if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
+			String fromInstructions = StringUtils.trimToNull(instructionsElem.getAsString());
+			if (fromInstructions != null) {
+				return fromInstructions;
 			}
 		}
 
-		// 2. Try workspace.system_prompt (by workspace_id in options)
-		if (systemPrompt == null && optionsObj != null) {
-			JsonElement workspaceElem = optionsObj.get("workspace");
-			String workspaceId = null;
-			if (workspaceElem != null) {
-				if (workspaceElem.isJsonPrimitive()) {
-					workspaceId = workspaceElem.getAsString();
-				} else if (workspaceElem.isJsonObject()) {
-					JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
-					if (idElem != null && idElem.isJsonPrimitive()) {
-						workspaceId = idElem.getAsString();
-					}
-				}
-			}
-			if (workspaceId != null) {
-				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-				if (workspace != null) {
-					User user = this.insight.getUser();
-					if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-						throw new IllegalArgumentException("Workspace " + workspaceId
-								+ " does not exist or user does not have access to the workspace");
-					}
-					// Check active or other validation if needed
-					Object isActive = workspace.get("is_active");
-					if (Boolean.FALSE.equals(isActive)) {
-						throw new IllegalArgumentException("Workspace is disabled by the owner");
-					}
-					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+		// 2. workspace.system_prompt (by workspace_id in options)
+		JsonElement workspaceElem = optionsObj.get("workspace");
+		String workspaceId = null;
+		if (workspaceElem != null) {
+			if (workspaceElem.isJsonPrimitive()) {
+				workspaceId = workspaceElem.getAsString();
+			} else if (workspaceElem.isJsonObject()) {
+				JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
+				if (idElem != null && idElem.isJsonPrimitive()) {
+					workspaceId = idElem.getAsString();
 				}
 			}
 		}
+		if (workspaceId == null) {
+			return null;
+		}
+		Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (workspace == null) {
+			return null;
+		}
+		User user = this.insight.getUser();
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
+		Object isActive = workspace.get("is_active");
+		if (Boolean.FALSE.equals(isActive)) {
+			throw new IllegalArgumentException("Workspace is disabled by the owner");
+		}
+		return StringUtils.trimToNull((String) workspace.get("system_prompt"));
+	}
+
+	/**
+	 * Returns the effective system prompt seen by the model: the user-authored
+	 * layer (room or workspace) wrapped by the enterprise template from the active
+	 * admin theme and with {@code {{VAR}}} placeholders expanded.
+	 *
+	 * @return resolved system prompt, or {@code null} when no prompt is configured
+	 * @throws IllegalArgumentException when workspace prompt resolution fails
+	 *                                  access or active-state checks
+	 */
+	public String getEffectiveSystemPrompt() {
+		String systemPrompt = getRoomOrWorkspaceSystemPrompt();
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
 		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
 		return expandSystemPromptVariables(merged);
 	}
 
+	/**
+	 * Merges an enterprise-wide system prompt template with the room-level prompt.
+	 *
+	 * @param enterpriseTemplate    enterprise template (may include
+	 *                              {@code {{SYSTEM_PROMPT}}})
+	 * @param effectiveSystemPrompt room/workspace prompt to merge into template
+	 * @return merged prompt string, or {@code null} when no non-blank content
+	 *         remains
+	 */
 	private static String applyEnterpriseSystemPromptTemplate(String enterpriseTemplate, String effectiveSystemPrompt) {
 		enterpriseTemplate = StringUtils.trimToNull(enterpriseTemplate);
 		effectiveSystemPrompt = StringUtils.trimToNull(effectiveSystemPrompt);
@@ -783,6 +1035,13 @@ public class Room {
 		return StringUtils.trimToNull(merged);
 	}
 
+	/**
+	 * Expands configured system-prompt variables in the given prompt string.
+	 *
+	 * @param systemPrompt prompt containing optional {@code {{VAR}}} placeholders
+	 * @return prompt with resolved variable substitutions, or {@code null} when
+	 *         input is blank
+	 */
 	private String expandSystemPromptVariables(String systemPrompt) {
 		systemPrompt = StringUtils.trimToNull(systemPrompt);
 		if (systemPrompt == null) {
@@ -816,10 +1075,22 @@ public class Room {
 		return StringUtils.trimToNull(out.toString());
 	}
 
+	/**
+	 * Resolves a configured prompt variable (and optional object path) to its
+	 * string representation.
+	 *
+	 * @param varName        configured variable name
+	 * @param path           optional dotted/indexed path off the root variable
+	 *                       value
+	 * @param configuredVars configured variable map (variable name to pixel
+	 *                       expression)
+	 * @param cache          per-resolution cache to avoid duplicate pixel execution
+	 * @return resolved string value, or {@code null} if unresolved
+	 */
 	private String resolveSystemPromptVariableToString(String varName, String path, Map<String, String> configuredVars,
 			Map<String, Object> cache) {
-		Object rootVal = cache.containsKey(varName) ? cache.get(varName) : computeSystemPromptVariable(varName,
-				configuredVars);
+		Object rootVal = cache.containsKey(varName) ? cache.get(varName)
+				: computeSystemPromptVariable(varName, configuredVars);
 		cache.put(varName, rootVal);
 		Object val = rootVal;
 		if (val != null && path != null) {
@@ -828,6 +1099,14 @@ public class Room {
 		return stringifyPromptValue(val);
 	}
 
+	/**
+	 * Computes a configured system-prompt variable by executing its configured meta
+	 * pixel.
+	 *
+	 * @param varName        configured variable name
+	 * @param configuredVars configured variable map
+	 * @return resolved variable value, or {@code null} if missing/unresolvable
+	 */
 	private Object computeSystemPromptVariable(String varName, Map<String, String> configuredVars) {
 		if (varName == null) {
 			return null;
@@ -843,6 +1122,13 @@ public class Room {
 		return null;
 	}
 
+	/**
+	 * Executes a single-statement META pixel and returns the value from the final
+	 * noun result.
+	 *
+	 * @param pixel raw pixel expression
+	 * @return extracted result value, or {@code null} on validation/exec failure
+	 */
 	private Object runMetaPixelForValue(String pixel) {
 		if (this.insight == null) {
 			return null;
@@ -864,11 +1150,18 @@ public class Room {
 			NounMetadata last = results.get(results.size() - 1);
 			return last == null ? null : last.getValue();
 		} catch (Exception e) {
-			classLogger.debug(Constants.STACKTRACE, e);
+			classLogger.debug("Failed to execute META pixel while resolving system prompt variable. Pixel={}", pixel,
+					e);
 			return null;
 		}
 	}
 
+	/**
+	 * Normalizes and validates that the supplied pixel is a safe single statement.
+	 *
+	 * @param pixel raw pixel expression
+	 * @return normalized pixel ending with {@code ;}, or {@code null} if invalid
+	 */
 	private static String normalizeAndValidateSingleStatementPixel(String pixel) {
 		pixel = StringUtils.trimToNull(pixel);
 		if (pixel == null) {
@@ -887,6 +1180,14 @@ public class Room {
 		return pixel;
 	}
 
+	/**
+	 * Resolves a dotted/indexed path (for example {@code a.b[0].c}) from the
+	 * provided root object.
+	 *
+	 * @param root root value to traverse
+	 * @param path dotted/indexed path
+	 * @return resolved object, or {@code null} when traversal fails
+	 */
 	private static Object resolvePath(Object root, String path) {
 		if (root == null || path == null || path.isBlank()) {
 			return root;
@@ -930,6 +1231,13 @@ public class Room {
 		return cur;
 	}
 
+	/**
+	 * Resolves a map/JSON-object key on the current traversal value.
+	 *
+	 * @param cur current traversal object
+	 * @param key key name to resolve
+	 * @return resolved value, or {@code null} when key/object is unsupported
+	 */
 	private static Object resolveKey(Object cur, String key) {
 		if (cur == null) {
 			return null;
@@ -958,6 +1266,13 @@ public class Room {
 		return null;
 	}
 
+	/**
+	 * Resolves a list/array index on the current traversal value.
+	 *
+	 * @param cur current traversal object
+	 * @param idx zero-based index
+	 * @return resolved value, or {@code null} when index/object is unsupported
+	 */
 	private static Object resolveIndex(Object cur, int idx) {
 		if (cur == null || idx < 0) {
 			return null;
@@ -985,6 +1300,12 @@ public class Room {
 		return null;
 	}
 
+	/**
+	 * Converts a resolved prompt variable value into a prompt-safe string.
+	 *
+	 * @param val value to stringify
+	 * @return stringified value, or {@code null} for null/blank string values
+	 */
 	private static String stringifyPromptValue(Object val) {
 		if (val == null) {
 			return null;
@@ -1004,6 +1325,11 @@ public class Room {
 		return StringUtils.trimToNull(String.valueOf(val));
 	}
 
+	/**
+	 * Reads the enterprise/global system prompt template from the active theme.
+	 *
+	 * @return enterprise prompt template, or {@code null} if unavailable
+	 */
 	private static String getEnterpriseSystemPromptTemplateFromActiveTheme() {
 		try {
 			return PlaygroundThemeUtils.getPlaygroundGlobalSystemPrompt();
@@ -1011,81 +1337,177 @@ public class Room {
 		}
 		return null;
 	}
-	
+
 	// ---- Getters and Setters ----
 
+	/**
+	 * Returns the room identifier.
+	 *
+	 * @return room id
+	 */
 	public String getId() {
 		return room_id;
 	}
 
+	/**
+	 * Sets the room identifier.
+	 *
+	 * @param id room id
+	 */
 	public void setId(String id) {
 		this.room_id = id;
 	}
 
+	/**
+	 * Returns the owning user id.
+	 *
+	 * @return user id
+	 */
 	public String getUserId() {
 		return userId;
 	}
 
+	/**
+	 * Sets the owning user id.
+	 *
+	 * @param userId user id
+	 */
 	public void setUserId(String userId) {
 		this.userId = userId;
 	}
 
+	/**
+	 * Returns the room display name.
+	 *
+	 * @return room name
+	 */
 	public String getRoomName() {
 		return roomName;
 	}
 
+	/**
+	 * Sets the room display name.
+	 *
+	 * @param roomName room name
+	 */
 	public void setRoomName(String roomName) {
 		this.roomName = roomName;
 	}
 
+	/**
+	 * Returns the room share id.
+	 *
+	 * @return share id
+	 */
 	public String getShareId() {
 		return shareId;
 	}
 
+	/**
+	 * Sets the room share id.
+	 *
+	 * @param shareId share id
+	 */
 	public void setShareId(String shareId) {
 		this.shareId = shareId;
 	}
 
+	/**
+	 * Indicates whether the room is active.
+	 *
+	 * @return {@code true} if active
+	 */
 	public boolean isActive() {
 		return isActive;
 	}
 
+	/**
+	 * Sets whether the room is active.
+	 *
+	 * @param isActive active flag
+	 */
 	public void isActive(boolean isActive) {
 		this.isActive = isActive;
 	}
 
+	/**
+	 * Returns the room creation timestamp.
+	 *
+	 * @return creation timestamp
+	 */
 	public Timestamp getCreatedAt() {
 		return createdAt;
 	}
 
+	/**
+	 * Sets the room creation timestamp.
+	 *
+	 * @param createdAt creation timestamp
+	 */
 	public void setCreatedAt(Timestamp createdAt) {
 		this.createdAt = createdAt;
 	}
 
+	/**
+	 * Returns the room last-updated timestamp.
+	 *
+	 * @return last-updated timestamp
+	 */
 	public Timestamp getUpdatedAt() {
 		return updatedAt;
 	}
 
+	/**
+	 * Sets the room last-updated timestamp.
+	 *
+	 * @param updatedAt last-updated timestamp
+	 */
 	public void setUpdatedAt(Timestamp updatedAt) {
 		this.updatedAt = updatedAt;
 	}
 
+	/**
+	 * Indicates whether the room is pinned.
+	 *
+	 * @return {@code true} if pinned
+	 */
 	public boolean isPinned() {
 		return pinned;
 	}
 
+	/**
+	 * Sets whether the room is pinned.
+	 *
+	 * @param pinned pinned flag
+	 */
 	public void setPinned(boolean pinned) {
 		this.pinned = pinned;
 	}
 
+	/**
+	 * Returns raw room options JSON.
+	 *
+	 * @return options JSON
+	 */
 	public String getOptions() {
 		return options;
 	}
 
+	/**
+	 * Sets raw room options JSON.
+	 *
+	 * @param options options JSON
+	 */
 	public void setOptions(String options) {
 		this.options = options;
 	}
 
+	/**
+	 * Returns parsed room options, lazily deserializing from {@link #options} when
+	 * needed.
+	 *
+	 * @return mutable options map (never {@code null})
+	 */
 	public Map<String, Object> getOptionsMap() {
 		if (optionsMap == null) {
 			if (options != null && !options.trim().isEmpty()) {
@@ -1102,28 +1524,66 @@ public class Room {
 		return optionsMap;
 	}
 
+	/**
+	 * Sets room options from a map and updates the serialized options JSON.
+	 *
+	 * @param map options map
+	 */
 	public void setOptionsMap(Map<String, Object> map) {
 		this.optionsMap = map;
 		this.options = map == null ? null : GSON.toJson(map);
 	}
 
+	/**
+	 * Returns the room model id.
+	 *
+	 * @return model id
+	 */
 	public String getModelId() {
 		return modelId;
 	}
 
+	/**
+	 * Sets the room model id.
+	 *
+	 * @param modelId model id
+	 */
 	public void setModelId(String modelId) {
 		this.modelId = modelId;
 	}
 
+	public String getParentRoomId() {
+		return parentRoomId;
+	}
+
+	public void setParentRoomId(String parentRoomId) {
+		this.parentRoomId = parentRoomId;
+	}
+
+	/**
+	 * Returns the room folder path used for media persistence.
+	 *
+	 * @return room folder path
+	 */
 	public String getRoomFolderPath() {
 		return roomFolderPath;
 	}
 
 	// Core message accessors
+	/**
+	 * Returns the in-memory room message list.
+	 *
+	 * @return mutable message list
+	 */
 	public List<AbstractMessage> getMessages() {
 		return this.messages;
 	}
 
+	/**
+	 * Replaces the in-memory room message list.
+	 *
+	 * @param messagesList message list to set (null clears messages)
+	 */
 	public void setMessages(List<AbstractMessage> messagesList) {
 		this.messages.clear();
 		if (messagesList != null) {
@@ -1131,17 +1591,32 @@ public class Room {
 		}
 	}
 
-	// Serializes the message history to a JSON array for DB storage
+	/**
+	 * Serializes current room messages to DB-safe JSON and updates cached
+	 * {@link #messagesJson}.
+	 *
+	 * @return serialized message JSON
+	 */
 	public String getMessagesAsString() {
-		return MessageUtils.toJsonArray(messages);
+		this.messagesJson = MessageUtils.toJsonArray(messages);
+		return this.messagesJson;
 	}
 
-	// Serializes the message history to a JSON array for python exection
+	/**
+	 * Serializes current room messages to JSON including inline image data for
+	 * model execution payloads.
+	 *
+	 * @return serialized message JSON with image data
+	 */
 	public String getMessagesWithImageDataAsString() {
 		return MessageUtils.toJsonArrayWithImageData(messages);
 	}
 
-	// Deserialize from a JSON string (DB column) and populate the list
+	/**
+	 * Deserializes persisted message JSON into the in-memory message list.
+	 *
+	 * @param messagesJson persisted message JSON from the ROOM table
+	 */
 	public void setMessagesFromString(String messagesJson) {
 		// Pull room folder - Room folder is at BASE_FOLDER/roomid
 		ClusterUtil.pullRoom(this.room_id);
@@ -1154,28 +1629,59 @@ public class Room {
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}
 
+	/**
+	 * Returns the insight context currently attached to this room.
+	 *
+	 * @return insight context
+	 */
 	public Insight getInsight() {
 		return insight;
 	}
 
+	/**
+	 * Sets the insight context for this room.
+	 *
+	 * @param insight insight context
+	 */
 	public void setInsight(Insight insight) {
 		this.insight = insight;
 	}
 
+	/**
+	 * Returns the cached serialized message JSON value.
+	 *
+	 * @return serialized messages JSON
+	 */
 	public String getMessageJson() {
 		return this.messagesJson;
 	}
 
-	// this should rarely be used. Really only if a Message object was created and
-	// then jsonified
+	/**
+	 * Sets the cached serialized message JSON value directly.
+	 * <p>
+	 * Prefer mutating {@link #messages} and using {@link #getMessagesAsString()}
+	 * unless synchronizing with externally produced JSON.
+	 *
+	 * @param messagesJson serialized messages JSON
+	 */
 	public void setMessagesJson(String messagesJson) {
 		this.messagesJson = messagesJson;
 	}
 
+	/**
+	 * Returns the associated project id.
+	 *
+	 * @return project id
+	 */
 	public String getProjectId() {
 		return projectId;
 	}
 
+	/**
+	 * Sets the associated project id.
+	 *
+	 * @param projectId project id
+	 */
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
 	}

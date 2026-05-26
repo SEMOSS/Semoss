@@ -75,6 +75,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminExportUserDatabasePermissionsReactorUnitTests {
@@ -197,13 +198,14 @@ public class AdminExportUserDatabasePermissionsReactorUnitTests {
 
 							CellStyle cs = mock(CellStyle.class);
 							when(mock.createCellStyle()).thenReturn(cs);
-						})) {
+						});
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			RDBMSNativeEngine db = mock(RDBMSNativeEngine.class);
-			utility.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 
 			WrapperManager wmmock = mock(WrapperManager.class);
 			wm.when(WrapperManager::getInstance).thenReturn(wmmock);

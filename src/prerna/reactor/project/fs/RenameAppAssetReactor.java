@@ -73,6 +73,12 @@ public class RenameAppAssetReactor extends AbstractReactor {
 
 		String currentFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
 		String newFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[2]));
+		while (currentFileName != null && currentFileName.startsWith("/")) {
+			currentFileName = currentFileName.substring(1);
+		}
+		while (newFileName != null && newFileName.startsWith("/")) {
+			newFileName = newFileName.substring(1);
+		}
 
 		if (currentFileName == null || currentFileName.trim().isEmpty() || newFileName == null
 				|| newFileName.trim().isEmpty()) {
