@@ -49,7 +49,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class SchedulerHistoryReactor extends AbstractReactor {
@@ -119,14 +118,14 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 			qs.addOrderBy(SchedulerConstants.SMSS_AUDIT_TRAIL + "__" + SchedulerConstants.EXECUTION_START,
 					QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
 		}
-		qs.setLimit(getLimit());
-		qs.setOffSet(getOffset());
+		qs.setLimit(getLong(ReactorKeysEnum.LIMIT.getKey(), -1L));
+		qs.setOffSet(getLong(ReactorKeysEnum.OFFSET.getKey(), -1L));
 
 		IRawSelectWrapper iterator = null;
 		try {
 			iterator = WrapperManager.getInstance().getRawWrapper(schedulerDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query scheduler history from SMSS_AUDIT_TRAIL: {}", e.getMessage(), e);
 			String message = e.getMessage();
 			if (message == null || message.isEmpty()) {
 				throw new IllegalArgumentException(message);
@@ -147,9 +146,16 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 	protected GenRowFilters getFilters() {
 		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			GenRowFilters filters = qs.getCombinedFilters();
+			GenRowFilters filters = null;
+			for (int i = 0; i < inputsGRS.size(); i++) {
+				NounMetadata filterNoun = inputsGRS.getNoun(i);
+				SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+				if (filters == null) {
+					filters = qs.getCombinedFilters();
+				} else {
+					filters.merge(qs.getCombinedFilters());
+				}
+			}
 			return filters;
 		}
 		return null;
@@ -164,24 +170,6 @@ public class SchedulerHistoryReactor extends AbstractReactor {
 			return orderBy;
 		}
 		return null;
-	}
-
-	protected int getLimit() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.LIMIT.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata limitNoun = inputsGRS.getNoun(0);
-			return ((Number) limitNoun.getValue()).intValue();
-		}
-		return -1;
-	}
-
-	protected int getOffset() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.OFFSET.getKey());
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			NounMetadata offsetNoun = inputsGRS.getNoun(0);
-			return ((Number) offsetNoun.getValue()).intValue();
-		}
-		return -1;
 	}
 
 	private List<String> getJobTags() {
