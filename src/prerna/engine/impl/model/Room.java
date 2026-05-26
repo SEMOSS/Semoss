@@ -115,7 +115,6 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
-	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
 	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
 
 	/**
@@ -252,8 +251,6 @@ public class Room {
 
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
-
-		applyImageModelParams(kwArgMap);
 
 		applyTextModelParams(kwArgMap);
 
@@ -678,39 +675,14 @@ public class Room {
 	}
 
 	/**
-	 * Pulls room-option values into the model invocation kwarg map for the keys
-	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
-	 * {@code kwArgMap} are preserved so per-message overrides always win over
-	 * room-level defaults.
+	 * Appends text gen model specific parameters from room options into the
+	 * provided model.
 	 * 
-	 * Param list:
-	 * <ul>
-	 * <li>imageHeight: height of the image in pixels to generate
-	 * <li>imageWidth: width of the image in pixels to generate
-	 * <li>seed: number to control randomness of each generation
-	 * </ul>
-	 *
-	 * @param kwArgMap mutable model parameter map
+	 * @param kwArgMap
 	 */
-	private void applyImageModelParams(Map<String, Object> kwArgMap) {
-		Map<String, Object> options = getOptionsMap();
-		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
-		if (options == null || options.isEmpty() || !isImageModel) {
-			return;
-		}
-
-		for (String key : IMAGE_MODEL_PARAM_KEYS) {
-			Object val = options.get(key);
-			if (val != null) {
-				kwArgMap.putIfAbsent(key, val);
-			}
-		}
-	}
-
 	private void applyTextModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
-		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
-		if (options == null || options.isEmpty() || !isTextModel) {
+		if (options == null || options.isEmpty()) {
 			return;
 		}
 

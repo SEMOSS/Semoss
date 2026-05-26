@@ -45,7 +45,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonWriter;
 
 import prerna.project.impl.notebook.INotebookBuilder;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NotebookWriter implements INotebookBuilder {
@@ -53,59 +52,69 @@ public class NotebookWriter implements INotebookBuilder {
 	private static final Logger classLogger = LogManager.getLogger(NotebookWriter.class);
 
 	private JsonObject blocksFileJson = null;
-	
+
 	@Override
 	public JsonElement getBlocksFileJson() {
 		return this.blocksFileJson;
 	}
-	
+
 	@Override
 	public void setBlocksFileJson(JsonElement blocksFileJson) {
 		try {
 			this.blocksFileJson = blocksFileJson.getAsJsonObject();
-		} catch(IllegalStateException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IllegalStateException e) {
+			classLogger.error("Failed to parse blocks file json as a JsonObject: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("The json is not of the valid format for this version.", e);
 		}
 	}
-	
+
 	@Override
 	public List<File> createNotebooks(File writeDir) {
 		List<File> notebookList = new ArrayList<>();
 		Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 
 		try {
-			FileUtils.cleanDirectory(writeDir); 
+			FileUtils.cleanDirectory(writeDir);
 
-			JsonObject blocksQueryMap = blocksFileJson.getAsJsonObject("queries");
-			for(String notebookName : blocksQueryMap.keySet()) {
+			// prefer the "notebooks" key; fall back to the legacy "queries" key when
+			// "notebooks" is missing or empty so previously-saved projects still export
+			JsonObject blocksNotebookMap = blocksFileJson.getAsJsonObject("notebooks");
+			if (blocksNotebookMap == null || blocksNotebookMap.size() == 0) {
+				blocksNotebookMap = blocksFileJson.getAsJsonObject("queries");
+			}
+			if (blocksNotebookMap == null) {
+				classLogger.warn("No 'notebooks' or 'queries' present in the blocks json; nothing to write");
+				return notebookList;
+			}
+			for (String notebookName : blocksNotebookMap.keySet()) {
 				// these are from the blocks json
-				JsonObject blocksNotebook = blocksQueryMap.getAsJsonObject(notebookName);
+				JsonObject blocksNotebook = blocksNotebookMap.getAsJsonObject(notebookName);
 				List<JsonElement> blocksCells = blocksNotebook.getAsJsonArray("cells").asList();
-				
+
 				// we now need to move the information from the blocks json
 				// into the notebook we are writing
-				File writeNotebook = new File(Utility.normalizePath(writeDir.getAbsolutePath() + "/" + notebookName + ".ipynb"));
-	
+				File writeNotebook = new File(
+						Utility.normalizePath(writeDir.getAbsolutePath() + "/" + notebookName + ".ipynb"));
+
 				JsonArray cellsArray = new JsonArray();
-				for(JsonElement blocksCell : blocksCells) {
+				for (JsonElement blocksCell : blocksCells) {
 					JsonObject blocksParam = blocksCell.getAsJsonObject().getAsJsonObject("parameters");
-					
+
 					String blockType = blocksParam.get("type").getAsString();
 					String blockValue = blocksParam.get("code").getAsString();
-					
+
 					String cell_type = null;
 					String id = Utility.getRandomString(8);
 					String source = blockValue;
-					
-					if(blockType.equalsIgnoreCase("py") || blockType.equalsIgnoreCase("r")) {
+
+					if (blockType.equalsIgnoreCase("py") || blockType.equalsIgnoreCase("r")) {
 						cell_type = "code";
-					} else if(blockType.equalsIgnoreCase("markdown")) {
+					} else if (blockType.equalsIgnoreCase("markdown")) {
 						cell_type = "raw";
 					} else {
 						cell_type = "markdown";
 					}
-					
+
 					JsonObject cellObject = new JsonObject();
 					cellObject.addProperty("cell_type", cell_type);
 					cellObject.addProperty("id", id);
@@ -114,27 +123,28 @@ public class NotebookWriter implements INotebookBuilder {
 					JsonArray sourceEle = new JsonArray();
 					sourceEle.add(source);
 					cellObject.add("source", sourceEle);
-					
+
 					// now add this to the cells array
 					cellsArray.add(cellObject);
 				}
-				
+
 				JsonObject writeJson = new JsonObject();
 				writeJson.add("cells", cellsArray);
-				
+
 				// write to the notebook file
-				try(JsonWriter writer = gson.newJsonWriter(new FileWriter(writeNotebook))){
+				try (JsonWriter writer = gson.newJsonWriter(new FileWriter(writeNotebook))) {
 					gson.toJson(writeJson, writer);
 				}
 				// add to list of notebooks
 				notebookList.add(writeNotebook);
 			}
-		} catch(IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (IOException e) {
+			classLogger.error("Failed to create notebook files in directory '{}': {}", writeDir.getAbsolutePath(),
+					e.getMessage(), e);
 			throw new IllegalArgumentException("Error occurred trying to create the notebook for this app");
 		}
 
 		return notebookList;
 	}
-	
+
 }
