@@ -59,7 +59,7 @@ public class SemossUnitTest {
     static Path firstIsTempDirTheRestAreImpostersToNotBeUsed;
 
     @BeforeAll
-    static void setup() throws IOException, NoSuchFieldException, IllegalAccessException {
+    static void setupSemossUnitTest() throws IOException, NoSuchFieldException, IllegalAccessException {
         if (!first) {
             System.out.println("Run Once");
             tempDir = firstIsTempDirTheRestAreImpostersToNotBeUsed;

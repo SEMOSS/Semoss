@@ -40,7 +40,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GoogleCalendarReadEventReactor extends AbstractReactor {
@@ -56,6 +55,9 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String id = this.keyValue.get(this.keysToGet[0]);
+		if (id == null || id.trim().isEmpty()) {
+			throw new SemossPixelException("Event ID is required.");
+		}
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
@@ -66,23 +68,23 @@ public class GoogleCalendarReadEventReactor extends AbstractReactor {
 			Map<String, Object> result = GoogleCalendarHelper.readEvent(accessToken, id, zoneId);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error while reading a Google Calendar event", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read a Google Calendar event", e);
 			throw new SemossPixelException("An error occurred reading the event. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Read event details in Google Calender";
+		return "Read Google Calendar event details by ID.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Unique identifier of the Google Calendar event to be read " + ReactorKeysEnum.ID.getKey();
+			return "Unique identifier of the Google Calendar event to read (" + ReactorKeysEnum.ID.getKey() + ").";
 		}
 		return super.getDescriptionForKey(key);
 	}

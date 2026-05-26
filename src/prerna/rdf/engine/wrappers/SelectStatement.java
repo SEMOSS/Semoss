@@ -33,83 +33,93 @@ import java.util.Map;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.ISelectStatement;
 
-public class SelectStatement  implements ISelectStatement {
-	
+public class SelectStatement implements ISelectStatement {
+
 	transient public Map propHash = new LinkedHashMap();
 	transient public Map rawPropHash = new LinkedHashMap();
 	String serialRep = null;
 
+	@Override
 	public Object getVar(Object var) {
 		Object retVal = propHash.get(var);
 		return retVal;
 	}
 
+	@Override
 	public Object getRawVar(Object var) {
 		// TODO Auto-generated method stub
 		return rawPropHash.get(var);
 	}
 
+	@Override
 	public void setPropHash(Map propHash) {
 		this.propHash = propHash;
 	}
 
+	@Override
 	public void setRPropHash(Map rawPropHash) {
 		// TODO Auto-generated method stub
 		this.rawPropHash = rawPropHash;
 	}
 
+	@Override
 	public Map getPropHash() {
 		// TODO Auto-generated method stub
 		return propHash;
 	}
 
+	@Override
 	public Map getRPropHash() {
 		// TODO Auto-generated method stub
 		return rawPropHash;
 	}
 
-	
 	@Override
 	public void setVar(Object key, Object value) {
 		propHash.put(key, value);
-		
+
 	}
 
 	@Override
 	public void setRawVar(Object key, Object value) {
-		rawPropHash.put(key, value);		
+		rawPropHash.put(key, value);
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((propHash == null) ? 0 : propHash.hashCode());
-		result = prime * result
-				+ ((rawPropHash == null) ? 0 : rawPropHash.hashCode());
+		result = prime * result + ((propHash == null) ? 0 : propHash.hashCode());
+		result = prime * result + ((rawPropHash == null) ? 0 : rawPropHash.hashCode());
 		return result;
 	}
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		SelectStatement other = (SelectStatement) obj;
 		if (propHash == null) {
-			if (other.propHash != null)
+			if (other.propHash != null) {
 				return false;
-		} else if (!propHash.equals(other.propHash))
+			}
+		} else if (!propHash.equals(other.propHash)) {
 			return false;
+		}
 		if (rawPropHash == null) {
-			if (other.rawPropHash != null)
+			if (other.rawPropHash != null) {
 				return false;
-		} else if (!rawPropHash.equals(other.rawPropHash))
+			}
+		} else if (!rawPropHash.equals(other.rawPropHash)) {
 			return false;
+		}
 		return true;
 	}
 
@@ -122,7 +132,7 @@ public class SelectStatement  implements ISelectStatement {
 	@Override
 	public String[] getHeaders() {
 		// TODO Auto-generated method stub
-		return (String[]) propHash.keySet().toArray(new String[]{});
+		return (String[]) propHash.keySet().toArray(new String[] {});
 	}
 
 	@Override
@@ -130,7 +140,7 @@ public class SelectStatement  implements ISelectStatement {
 		// TODO Auto-generated method stub
 		return propHash.values().toArray();
 	}
-	
+
 	@Override
 	public Object[] getRawValues() {
 		// TODO Auto-generated method stub
@@ -152,13 +162,13 @@ public class SelectStatement  implements ISelectStatement {
 	@Override
 	public void open() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public void addField(String fieldName, Object value) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -176,7 +186,7 @@ public class SelectStatement  implements ISelectStatement {
 	@Override
 	public void addFields(String[] addHeaders, Object[] addValues) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -188,7 +198,7 @@ public class SelectStatement  implements ISelectStatement {
 	@Override
 	public void addFields(String addHeader, Object addValues) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -198,20 +208,26 @@ public class SelectStatement  implements ISelectStatement {
 	}
 
 	@Override
-	public String getQuery(){
+	public String getQuery() {
 		return "";
 	}
 
 	@Override
 	public void setQuery(String query) {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
 	public Map<String, Object> flushRowToMap() {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void setRaw(boolean raw) {
+		// TODO Auto-generated method stub
+
 	}
 
 //	@Override

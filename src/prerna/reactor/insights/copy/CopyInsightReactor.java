@@ -55,7 +55,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
@@ -81,8 +80,8 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 
 		// get the directory to write to
 
-		String folderDirLoc = DIHelper.getInstance().getProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR
-				+ "ICache_" + Utility.getRandomString(6);
+		String folderDirLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + DIR_SEPARATOR + "ICache_"
+				+ Utility.getRandomString(6);
 
 		File folderDir = new File(folderDirLoc);
 		if (!folderDir.exists()) {
@@ -214,7 +213,6 @@ public class CopyInsightReactor extends AbstractInsightReactor {
 			List<String> recipe = new ArrayList<String>();
 			try {
 				List<String> recipeToRun = getRecipe();
-				recipeToRun = decodeRecipe(recipeToRun);
 				recipe.addAll(recipeToRun);
 			} catch (IllegalArgumentException e) {
 				// ignore

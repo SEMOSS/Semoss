@@ -41,10 +41,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class CollectReactor extends TaskBuilderReactor {
 
@@ -55,14 +53,16 @@ public class CollectReactor extends TaskBuilderReactor {
 	private static final Logger classLogger = LogManager.getLogger(CollectReactor.class);
 
 	private int limit = 0;
-	
+
 	public CollectReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.INCLUDE_META_KEY.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.LIMIT.getKey(),
+				ReactorKeysEnum.INCLUDE_META_KEY.getKey() };
 	}
-	
+
+	@Override
 	public NounMetadata execute() {
-		this.task = getTask();		
-		
+		this.task = getTask();
+
 		this.limit = getTotalToCollect();
 		this.task.setNumCollect(this.limit);
 		try {
@@ -71,29 +71,15 @@ public class CollectReactor extends TaskBuilderReactor {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new SemossPixelException(e.getMessage());
 		}
-		
-		// tracking
-		if (this.task instanceof BasicIteratorTask) {
-			try {
-				// NEW TRACKER
-				if(this.task.getTaskOptions() != null && !this.task.getTaskOptions().isEmpty()) {
-					UserTrackerFactory.getInstance().trackVizWidget(this.insight, this.task.getTaskOptions(), ((BasicIteratorTask) task).getQueryStruct());
-				} else {
-					UserTrackerFactory.getInstance().trackQueryData(this.insight, ((BasicIteratorTask) task).getQueryStruct());
-				}
-			} catch(Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
-		
+
 		PixelOperationType retOpType = PixelOperationType.TASK_DATA;
 		// this is the second place I need to change
 		TaskOptions ornamnetOptions = genOrnamentTaskOptions();
-		if(ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament()) ) {
+		if (ornamnetOptions != null || (task.getTaskOptions() != null && task.getTaskOptions().isOrnament())) {
 			this.task.setTaskOptions(ornamnetOptions);
 			retOpType = PixelOperationType.PANEL_ORNAMENT_DATA;
 		}
-		
+
 		// this is causing more confusion and breaks facet
 //		if(this.task.getTaskOptions() == null) {
 //			// I am setting the panel id on the task options and getting it from here
@@ -116,23 +102,23 @@ public class CollectReactor extends TaskBuilderReactor {
 //				}
 //			}
 //		}
-		
+
 		return new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET, retOpType);
 	}
-	
+
 	@Override
 	protected void buildTask() throws Exception {
 		// if the task was already passed in
 		// we do not need to optimize/recreate the iterator
-		if(this.task.isOptimized()) {
+		if (this.task.isOptimized()) {
 			this.task.optimizeQuery(this.limit);
 		}
 	}
-	
+
 	private TaskOptions genOrnamentTaskOptions() {
-		if(this.subAdditionalReturn != null && this.subAdditionalReturn.size() == 1) {
+		if (this.subAdditionalReturn != null && this.subAdditionalReturn.size() == 1) {
 			NounMetadata noun = this.subAdditionalReturn.get(0);
-			if(noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
+			if (noun.getNounType() == PixelDataType.ORNAMENT_MAP) {
 				// we will use this map as task options
 				TaskOptions options = new TaskOptions((Map<String, Object>) noun.getValue());
 				options.setOrnament(true);
@@ -141,36 +127,39 @@ public class CollectReactor extends TaskBuilderReactor {
 		}
 		return null;
 	}
-	
-	//returns how much do we need to collect
+
+	// returns how much do we need to collect
 	private int getTotalToCollect() {
 		// try the key
 		GenRowStruct numGrs = store.getGenRowStruct(keysToGet[1]);
-		if(numGrs != null && !numGrs.isEmpty()) {
+		if (numGrs != null && !numGrs.isEmpty()) {
 			return ((Number) numGrs.get(0)).intValue();
 		}
-		
+
 		// try the cur row
 		List<Object> allNumericInputs = this.curRow.getAllNumericColumns();
-		if(allNumericInputs != null && !allNumericInputs.isEmpty()) {
+		if (allNumericInputs != null && !allNumericInputs.isEmpty()) {
 			return ((Number) allNumericInputs.get(0)).intValue();
 		}
-		
+
 		// default to 500
 		return 500;
 	}
-	
+
 	@Override
 	public List<NounMetadata> getOutputs() {
 		List<NounMetadata> outputs = super.getOutputs();
-		if(outputs != null && !outputs.isEmpty()) return outputs;
-		
+		if (outputs != null && !outputs.isEmpty()) {
+			return outputs;
+		}
+
 		outputs = new Vector<NounMetadata>();
-		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
+		NounMetadata output = new NounMetadata(this.signature, PixelDataType.FORMATTED_DATA_SET,
+				PixelOperationType.TASK_DATA);
 		outputs.add(output);
 		return outputs;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override

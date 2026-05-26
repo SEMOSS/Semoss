@@ -49,6 +49,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -60,7 +61,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 
     @BeforeEach
     void setup() {
-        securityDb = AbstractSecurityUtils.securityDb;
+        securityDb = SystemEngineRegistry.getSecurityDb();
         assertTrue(securityDb.getOwlFilePath().contains("junit"));
         assertNotNull(this.securityDb);
 
@@ -964,7 +965,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 
     @Test
     void testGetAllProjectSettings_empty() {
-        List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null);
+        List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null);
         assertNotNull(settings);
         assertTrue(settings.isEmpty());
     }
@@ -973,7 +974,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
     void testGetAllProjectSettings_hasProjects() {
         UnitTestSecurityAuthUtils.createProject("project1", "Project One", adminUser);
 
-        List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null);
+        List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null);
         assertNotNull(settings);
         assertEquals(1, settings.size());
     }

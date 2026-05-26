@@ -33,9 +33,9 @@ import prerna.auth.User;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -68,50 +68,61 @@ public class SubmitLlmFeedbackReactor extends AbstractReactor {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
-//		boolean output = ModelInferenceLogsUtils.userIsMessageAuthor(user.getPrimaryLoginToken().getId(), messageId);
-//		if (!output) {
-//			throw new SemossPixelException("User is not the author of this message and cannot provide feedback");
-//		}
+		// boolean output =
+		// ModelInferenceLogsUtils.userIsMessageAuthor(user.getPrimaryLoginToken().getId(),
+		// messageId);
+		// if (!output) {
+		// throw new SemossPixelException("User is not the author of this message and
+		// cannot provide feedback");
+		// }
 
 		try {
-//	        Load room
+			// Load room
 			Room room = RoomUtils.getOrLoadRoom(roomId, insight);
-			
-			if (!room.isMessageAuthor(messageId)) {
-			      throw new SemossPixelException(
-			          "User is not the author of this message and cannot provide feedback");
-		    }
 
-//	        Get messages
+			if (!room.isMessageAuthor(messageId)) {
+				throw new SemossPixelException(
+						"User is not the author of this message and cannot provide feedback");
+			}
+
+			// Get messages
 			List<AbstractMessage> messagesList = room.getMessages();
 
-//	        Create feedback object
-			MessageFeedback feedback = new MessageFeedback(messageId, MessageType.RESPONSE_TEXT, feedbackText, rating);
+			// Find the target message
+			AbstractMessage targetMessage = messagesList.parallelStream()
+					.filter(msg -> msg.getMessageId().equals(messageId))
+					.findFirst()
+					.orElseThrow(() -> new SemossPixelException("Message not found with id: " + messageId));
 
-//	        Add feedback to message
-			messagesList.parallelStream().forEach(msg -> {
-				if (msg.getMessageType().equals(feedback.getMessageType())
-						&& msg.getMessageId().equals(feedback.getMessageId())) {
-					if (rating != null) {
-						msg.setFeedback(feedback);
-					} else {
-						msg.setFeedback(null);
-					}
-				}
-			});
+			// Validate the message is a response
+			if (targetMessage.getIo() != MessageIO.OUTPUT) {
+				throw new SemossPixelException("Feedback can only be submitted on response messages");
+			}
 
-//	        Flush messages to db
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+			// Create feedback object
+			MessageFeedback feedback = new MessageFeedback(messageId, feedbackText, rating);
+
+			// Add feedback to message
+			if (rating != null) {
+				targetMessage.setFeedback(feedback);
+			} else {
+				targetMessage.setFeedback(null);
+			}
+
+			// Flush messages to db
+			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+					insight.getUser().getPrimaryLoginToken().getId(),
 					room.getMessagesAsString());
 
-//	        Now can add to the feedback table. If neither true or false was parsed, remove from db
+			// Now can add to the feedback table. If neither true or false was parsed,
+			// remove from db
 			if (rating != null) {
 				ModelInferenceLogsUtils.recordFeedback(feedback);
 			} else {
 				ModelInferenceLogsUtils.removeFeedback(messageId);
 			}
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Unable to record the feedback: "+e.getMessage());
+			throw new IllegalArgumentException("Unable to record the feedback: " + e.getMessage());
 		}
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}

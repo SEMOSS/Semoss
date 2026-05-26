@@ -56,7 +56,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public final class RReactor extends AbstractRFrameReactor {
@@ -66,7 +65,7 @@ public final class RReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
 			if (Boolean.parseBoolean(disable_terminal)) {
 				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
@@ -74,7 +73,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		}
 
 		// check if r is disabled
-		String disable_r_terminal = DIHelper.getInstance().getProperty(Constants.DISABLE_R_TERMINAL);
+		String disable_r_terminal = Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL);
 		if (disable_r_terminal != null && !disable_r_terminal.isEmpty()) {
 			if (Boolean.parseBoolean(disable_r_terminal)) {
 				throw new IllegalArgumentException("R terminal has been disabled.");
@@ -103,7 +102,7 @@ public final class RReactor extends AbstractRFrameReactor {
 //		System.setSecurityManager(tempManager);
 
 		// set the code variable for the ICodeExecution interface
-		String code = Utility.decodeURIComponent(this.curRow.get(0).toString());
+		String code = this.curRow.get(0).toString();
 		logger.info("Execution r script: " + code);
 		this.addExecutedCode(code);
 
@@ -141,8 +140,9 @@ public final class RReactor extends AbstractRFrameReactor {
 		String dir = insight.getUserFolder() + "/Temp";
 		dir = dir.replaceAll("\\\\", "/");
 		File tempDir = new File(dir);
-		if (!tempDir.exists())
+		if (!tempDir.exists()) {
 			tempDir.mkdir();
+		}
 
 		ITableDataFrame frame = insight.getCurFrame();
 		NounMetadata newFrameVar = null;
@@ -181,8 +181,9 @@ public final class RReactor extends AbstractRFrameReactor {
 		boolean animate = ggplotCommand.contains("animate");
 
 		String format = "jpeg";
-		if (animate)
+		if (animate) {
 			format = "gif";
+		}
 		// now save it
 		// file name
 		String ggsaveFile = Utility.getRandomString(6);
@@ -196,10 +197,11 @@ public final class RReactor extends AbstractRFrameReactor {
 		ggplotter.append(
 				ggsaveFile + " <- " + "paste(\"" + ROOT + "\",\"/" + ggsaveFile + "." + format + "\", sep=\"\"); ");
 
-		if (!animate)
+		if (!animate) {
 			ggplotter.append("ggsave(" + ggsaveFile + ");");
-		else
+		} else {
 			ggplotter.append("anim_save(" + ggsaveFile + ", " + plotString + ");");
+		}
 
 		ggplotter.append("print(" + ggsaveFile + ")");
 
@@ -216,8 +218,9 @@ public final class RReactor extends AbstractRFrameReactor {
 
 		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; // detach(\"package:RCurl\",
 																									// unload=FALSE)";
-		if (animate)
+		if (animate) {
 			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
+		}
 
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggsaveFile);
@@ -260,15 +263,17 @@ public final class RReactor extends AbstractRFrameReactor {
 		Map<String, Object> panelMap = new HashMap<String, Object>();
 
 		int panelNum = 0;
-		if (insight.getVarStore().containsKey(panelId))
+		if (insight.getVarStore().containsKey(panelId)) {
 			panelNum = (Integer) insight.getVarStore().get(panelId).getValue();
+		}
 		panelNum++;
 		insight.getVarStore().put(panelId, new NounMetadata(panelNum, PixelDataType.CONST_INT));
 
-		if (newWindow)
+		if (newWindow) {
 			panelMap.put(panelId + panelNum, optionMap);
-		else
+		} else {
 			panelMap.put(this.insight.getLastPanelId(), optionMap);
+		}
 
 		TaskOptions options = new TaskOptions(panelMap);
 
@@ -293,8 +298,9 @@ public final class RReactor extends AbstractRFrameReactor {
 			logger.error(Constants.STACKTRACE, e);
 		}
 
-		if (animate)
+		if (animate) {
 			ggplotCommand = ggplotCommand + " + animate";
+		}
 
 		ggplotCommand = ggplotCommand.replaceAll("\"", "\\\\\"");
 		// remove the variable

@@ -60,7 +60,8 @@ public class CommandReactor extends GitBaseReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CommandReactor.class);
 
-	private static final Set<String> APPROVED_PROD_COMMANDS = new HashSet<String>(Arrays.asList("PULL", "CLONE", "RESET", "STATUS"));
+	private static final Set<String> APPROVED_PROD_COMMANDS = new HashSet<String>(
+			Arrays.asList("PULL", "CLONE", "RESET", "STATUS"));
 
 	public CommandReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COMMAND.getKey() };
@@ -73,9 +74,10 @@ public class CommandReactor extends GitBaseReactor {
 		 * Due to security, we are only allowing this when there is chroot
 		 */
 		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			return NounMetadata.getErrorNounMessage("Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
+			return NounMetadata.getErrorNounMessage(
+					"Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
 		}
-		
+
 		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
 		if (disable_terminal != null && !disable_terminal.isEmpty()) {
 			if (Boolean.parseBoolean(disable_terminal)) {
@@ -96,7 +98,7 @@ public class CommandReactor extends GitBaseReactor {
 		}
 
 		organizeKeys();
-		String command = Utility.decodeURIComponent(this.keyValue.get(keysToGet[0]));
+		String command = this.keyValue.get(keysToGet[0]);
 		User user = this.insight.getUser();
 		CmdExecUtil cmdUtil = this.insight.getCmdUtil();
 
@@ -156,7 +158,7 @@ public class CommandReactor extends GitBaseReactor {
 		if (git.equalsIgnoreCase("mkdir") && cmdUtil.getWorkingDir().endsWith("app_root")) {
 			return NounMetadata.getErrorNounMessage("You cannot make directory in app root folder");
 		}
-		
+
 		// pre process commit
 		// add user name and email
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("commit")) {
@@ -175,8 +177,7 @@ public class CommandReactor extends GitBaseReactor {
 
 		// check that it is only git pull or git clone in prod for CFG
 		// for this, trusted repo and default branch must be limited
-		if (git != null 
-				&& git.equalsIgnoreCase("git")
+		if (git != null && git.equalsIgnoreCase("git")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String trustedRepo = Utility.getDIHelperProperty(Constants.GIT_TRUSTED_REPO);
 			String defaultBranch = Utility.getDIHelperProperty(Constants.GIT_DEFAULT_BRANCH);
@@ -191,17 +192,13 @@ public class CommandReactor extends GitBaseReactor {
 			}
 		}
 
-		if (git != null 
-				&& git.equalsIgnoreCase("git") 
-				&& gitCommand.equalsIgnoreCase("pull")
+		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("pull")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			return GitPushUtils.pull(cmdUtil.getWorkingDir(), token, AuthProvider.GITLAB);
 		}
 
-		if (git != null 
-				&& git.equalsIgnoreCase("git") 
-				&& gitCommand.equalsIgnoreCase("checkout")
+		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("checkout")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String branch = commands.nextToken();
@@ -209,9 +206,7 @@ public class CommandReactor extends GitBaseReactor {
 			return GitPushUtils.checkout(cmdUtil.getWorkingDir(), branch, token, AuthProvider.GITLAB);
 		}
 
-		if (git != null 
-				&& git.equalsIgnoreCase("git") 
-				&& gitCommand.equalsIgnoreCase("clone")
+		if (git != null && git.equalsIgnoreCase("git") && gitCommand.equalsIgnoreCase("clone")
 				&& gitProvider.equalsIgnoreCase(AuthProvider.GITLAB.toString())) {
 			String token = getToken();
 			String repo = commands.nextToken();
@@ -221,9 +216,9 @@ public class CommandReactor extends GitBaseReactor {
 
 		String output = cmdUtil.executeCommand(command);
 
-		////////////////////////////////////////// 
+		//////////////////////////////////////////
 		// POST PROCESSING
-		////////////////////////////////////////// 
+		//////////////////////////////////////////
 
 		// post processing
 		if (git != null && git.equalsIgnoreCase("git") && gitCommand != null && gitCommand.equalsIgnoreCase("clone")) {
@@ -242,14 +237,13 @@ public class CommandReactor extends GitBaseReactor {
 		if (preCloneMessage != null) {
 			output = preCloneMessage + "\n" + output;
 		}
-		
+
 		if (postCloneMessage != null) {
 			output = output + "\n" + postCloneMessage;
 		}
-		
+
 		return new NounMetadata(output, PixelDataType.CONST_STRING);
 	}
-
 
 	/**
 	 * @param command
@@ -271,12 +265,12 @@ public class CommandReactor extends GitBaseReactor {
 				if (commands.hasMoreTokens()) {
 					remoteName = commands.nextToken();
 				}
-				
+
 				String branch = "master";
 				if (commands.hasMoreTokens()) {
 					branch = commands.nextToken();
 				}
-				
+
 				// need to process this further
 				// typically git push origin master
 
@@ -312,7 +306,7 @@ public class CommandReactor extends GitBaseReactor {
 				if (commands.hasMoreTokens()) {
 					repoURL = commands.nextToken();
 				}
-				
+
 				String dirName = Utility.getInstanceName(repoURL);
 
 				// see if this directory exists in base folder
@@ -331,7 +325,7 @@ public class CommandReactor extends GitBaseReactor {
 						}
 					}
 					Properties prop = Utility.loadProperties(repoFile);
-					try (FileOutputStream fos = new FileOutputStream(repoFile)){
+					try (FileOutputStream fos = new FileOutputStream(repoFile)) {
 						prop.put(dirName, repoURL);
 						prop.store(fos, "Updating");
 
@@ -354,7 +348,8 @@ public class CommandReactor extends GitBaseReactor {
 				}
 
 				else if (!cloneAllowed) {
-					File gitFolder = new File(Utility.normalizePath(workingDir) + File.separator + dirName + File.separator + ".git");
+					File gitFolder = new File(
+							Utility.normalizePath(workingDir) + File.separator + dirName + File.separator + ".git");
 					if (gitFolder.exists()) {
 						try {
 							FileUtils.deleteDirectory(gitFolder);
@@ -379,7 +374,7 @@ public class CommandReactor extends GitBaseReactor {
 			String gitOperation = commands.nextToken().trim();
 			if (gitCommand.equalsIgnoreCase("git") && gitOperation.equalsIgnoreCase("clone")) {
 				// are you part of a version folder ?
-				if(workingDir.startsWith(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT))
+				if (workingDir.startsWith(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT))
 						&& workingDir.contains("/version")) {
 					return false;
 				}

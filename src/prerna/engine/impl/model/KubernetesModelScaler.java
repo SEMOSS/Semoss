@@ -29,8 +29,8 @@ package prerna.engine.impl.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -50,22 +50,23 @@ import prerna.cluster.util.IRemoteClientServer;
 import prerna.cluster.util.RemoteClientServerZKRESTProxy;
 import prerna.cluster.util.ZKClientFactory;
 
-public class KubernetesModelScaler {
+public final class KubernetesModelScaler {
+
 	private static final Logger classLogger = LogManager.getLogger(KubernetesModelScaler.class);
-	
-	private static KubernetesModelScaler instance;
+
+	private static volatile KubernetesModelScaler instance;
 
 	private KubernetesModelScaler() {
 		classLogger.info("KubernetesModelScaler being initialized...");
 	}
-	
+
 	public static KubernetesModelScaler getInstance() {
-		if(instance != null) {
+		if (instance != null) {
 			return instance;
 		}
-		
+
 		if (instance == null) {
-			synchronized (KubernetesModelScaler.class){
+			synchronized (KubernetesModelScaler.class) {
 				if (instance == null) {
 					instance = new KubernetesModelScaler();
 					instance.init();
@@ -74,23 +75,23 @@ public class KubernetesModelScaler {
 		}
 		return instance;
 	}
-	
+
 	private IRemoteClientServer zkClient;
 	// Use this to simulate the cluster environment
 	private Boolean devPortForwarding = false;
 	// For normal development
 	private String kmsUrl = null;
-	
+
 	private void init() {
-		
+
 		// Get the appropriate ZK client implementation based on environment
 		this.zkClient = ZKClientFactory.getZKClient(this.devPortForwarding);
-		
+
 		// Check if we're using the REST proxy (for KMS_INGRESS validation)
 		boolean usingRestProxy = this.zkClient instanceof RemoteClientServerZKRESTProxy;
 		// Check if we have an ingress env var
 		String kmsIngressUrl = System.getenv("KMS_INGRESS");
-		
+
 		if (kmsIngressUrl != null && !kmsIngressUrl.isEmpty()) {
 			classLogger.info("Using KMS_INGRESS from environment: {}", kmsIngressUrl);
 			if (kmsIngressUrl.endsWith("/")) {
@@ -101,226 +102,204 @@ public class KubernetesModelScaler {
 			classLogger.info("Using devPortforwarding for KMS URL with localhost:8000/");
 			this.kmsUrl = "http://localhost:8000/";
 		} else {
-			classLogger.info("KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
-	        String zkModelScalerIp = zkClient.getModelScalerIp();
-	        
-	        if (zkModelScalerIp == null || zkModelScalerIp.trim().isEmpty()) {
-	            throw new RuntimeException("Unable to determine KMS URL: ZooKeeper returned null or empty model scaler IP");
-	        }
-	        
-	        if (!zkModelScalerIp.startsWith("http://") && !zkModelScalerIp.startsWith("https://")) {
-	            zkModelScalerIp = "http://" + zkModelScalerIp;
-	        }
-	        
-	        this.kmsUrl = zkModelScalerIp;
+			classLogger.info(
+					"KMS_INGRESS environment variable not found and devPortforwarding not set, using ZooKeeper for KMS IP resolution. This is correct for production deployments.");
+			String zkModelScalerIp = zkClient.getModelScalerIp();
+
+			if (zkModelScalerIp == null || zkModelScalerIp.trim().isEmpty()) {
+				throw new RuntimeException(
+						"Unable to determine KMS URL: ZooKeeper returned null or empty model scaler IP");
+			}
+
+			if (!zkModelScalerIp.startsWith("http://") && !zkModelScalerIp.startsWith("https://")) {
+				zkModelScalerIp = "http://" + zkModelScalerIp;
+			}
+
+			this.kmsUrl = zkModelScalerIp;
 		}
 	}
-	
+
 	public Map<String, Object> getNodePoolsInfo() throws Exception {
-	    String serviceUrl = this.kmsUrl + "/api/resources/node-pools-info";
-	    
-	    RequestConfig requestConfig = RequestConfig.custom()
-	            .setConnectTimeout(5000)
-	            .setSocketTimeout(5000)
-	            .build();
+		String serviceUrl = this.kmsUrl + "/api/resources/node-pools-info";
 
-	    try (CloseableHttpClient httpClient = HttpClients.custom()
-	            .setDefaultRequestConfig(requestConfig)
-	            .build()) {
+		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
 
-	        HttpGet httpGet = new HttpGet(serviceUrl);
-	        httpGet.setHeader("Accept", "application/json");
+		try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
 
-	        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-	            int statusCode = response.getStatusLine().getStatusCode();
-	            HttpEntity responseEntity = response.getEntity();
-	            String responseString = EntityUtils.toString(responseEntity);
+			HttpGet httpGet = new HttpGet(serviceUrl);
+			httpGet.setHeader("Accept", "application/json");
 
-	            if (statusCode == 200) {
-	                JSONObject jsonResponse = new JSONObject(responseString);
-	                
-	                Map<String, Object> result = new HashMap<>();
-	                
-	                if (jsonResponse.has("message")) {
-	                    result.put("message", jsonResponse.getString("message"));
-	                }
-	                
-	                if (jsonResponse.has("zk_info")) {
-	                    JSONObject zkInfoObj = jsonResponse.getJSONObject("zk_info");
-	                    Map<String, Object> zkInfoMap = jsonToMap(zkInfoObj);
-	                    result.put("zk_info", zkInfoMap);
-	                }
-	                
-	                if (jsonResponse.has("pools")) {
-	                    JSONArray poolsArray = jsonResponse.getJSONArray("pools");
-	                    List<Map<String, Object>> poolsList = new ArrayList<>();
-	                    
-	                    for (int i = 0; i < poolsArray.length(); i++) {
-	                        JSONObject poolObject = poolsArray.getJSONObject(i);
-	                        Map<String, Object> poolMap = jsonToMap(poolObject);
-	                        poolsList.add(poolMap);
-	                    }
-	                    
-	                    result.put("pools", poolsList);
-	                }
-	                
-	                if (jsonResponse.has("active_models_actual")) {
-	                    JSONObject activeModelsObj = jsonResponse.getJSONObject("active_models_actual");
-	                    Map<String, Object> activeModelsMap = jsonToMap(activeModelsObj);
-	                    result.put("active_models_actual", activeModelsMap);
-	                }
-	                
-	                classLogger.info("Successfully retrieved node pool information");
-	                return result;
-	            } else {
-	                classLogger.error("Error retrieving node pool information: {} (Status: {})", 
-	                    responseString, statusCode);
-	                throw new RuntimeException("Failed to retrieve node pool information: " + responseString);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error("Error making request to model scaler for node pool info: {}", e.getMessage(), e);
-	        throw new RuntimeException("Failed to retrieve node pool information", e);
-	    }
+			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+				int statusCode = response.getStatusLine().getStatusCode();
+				HttpEntity responseEntity = response.getEntity();
+				String responseString = EntityUtils.toString(responseEntity);
+
+				if (statusCode == 200) {
+					JSONObject jsonResponse = new JSONObject(responseString);
+
+					Map<String, Object> result = new HashMap<>();
+
+					if (jsonResponse.has("message")) {
+						result.put("message", jsonResponse.getString("message"));
+					}
+
+					if (jsonResponse.has("zk_info")) {
+						JSONObject zkInfoObj = jsonResponse.getJSONObject("zk_info");
+						Map<String, Object> zkInfoMap = jsonToMap(zkInfoObj);
+						result.put("zk_info", zkInfoMap);
+					}
+
+					if (jsonResponse.has("pools")) {
+						JSONArray poolsArray = jsonResponse.getJSONArray("pools");
+						List<Map<String, Object>> poolsList = new ArrayList<>();
+
+						for (int i = 0; i < poolsArray.length(); i++) {
+							JSONObject poolObject = poolsArray.getJSONObject(i);
+							Map<String, Object> poolMap = jsonToMap(poolObject);
+							poolsList.add(poolMap);
+						}
+
+						result.put("pools", poolsList);
+					}
+
+					if (jsonResponse.has("active_models_actual")) {
+						JSONObject activeModelsObj = jsonResponse.getJSONObject("active_models_actual");
+						Map<String, Object> activeModelsMap = jsonToMap(activeModelsObj);
+						result.put("active_models_actual", activeModelsMap);
+					}
+
+					classLogger.info("Successfully retrieved node pool information");
+					return result;
+				} else {
+					classLogger.error("Error retrieving node pool information: {} (Status: {})", responseString,
+							statusCode);
+					throw new RuntimeException("Failed to retrieve node pool information: " + responseString);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Error making request to model scaler for node pool info: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to retrieve node pool information", e);
+		}
 	}
 
 	private Map<String, Object> jsonToMap(JSONObject json) {
-	    Map<String, Object> map = new HashMap<>();
-	    
-	    for (String key : json.keySet()) {
-	        Object value = json.get(key);
-	        
-	        if (value instanceof JSONObject) {
-	            map.put(key, jsonToMap((JSONObject) value));
-	        } else if (value instanceof JSONArray) {
-	            JSONArray array = (JSONArray) value;
-	            List<Object> list = new ArrayList<>();
-	            
-	            for (int i = 0; i < array.length(); i++) {
-	                Object item = array.get(i);
-	                if (item instanceof JSONObject) {
-	                    list.add(jsonToMap((JSONObject) item));
-	                } else {
-	                    list.add(item);
-	                }
-	            }
-	            
-	            map.put(key, list);
-	        } else {
-	            map.put(key, value);
-	        }
-	    }
-	    
-	    return map;
+		Map<String, Object> map = new HashMap<>();
+
+		for (String key : json.keySet()) {
+			Object value = json.get(key);
+
+			if (value instanceof JSONObject) {
+				map.put(key, jsonToMap((JSONObject) value));
+			} else if (value instanceof JSONArray) {
+				JSONArray array = (JSONArray) value;
+				List<Object> list = new ArrayList<>();
+
+				for (int i = 0; i < array.length(); i++) {
+					Object item = array.get(i);
+					if (item instanceof JSONObject) {
+						list.add(jsonToMap((JSONObject) item));
+					} else {
+						list.add(item);
+					}
+				}
+
+				map.put(key, list);
+			} else {
+				map.put(key, value);
+			}
+		}
+
+		return map;
 	}
-	
+
 	/**
-	 * Retrieve the cached (or freshly re-loaded) KServe deployment configs
-	 * from the model-scaler service.
+	 * Retrieve the cached (or freshly re-loaded) KServe deployment configs from the
+	 * model-scaler service.
 	 *
-	 * @param refresh if {@code true}, tells the micro-service to reload the
-	 *                configs from GCS before returning the response.
+	 * @param refresh if {@code true}, tells the micro-service to reload the configs
+	 *                from GCS before returning the response.
 	 * @return a Map keyed by model-name, where each value is a nested Map
 	 *         representing the InferenceService spec for that model.
 	 * @throws Exception on any HTTP or parse failure.
 	 */
 	public Map<String, Object> getModelDeploymentConfigs(boolean refresh) throws Exception {
-	    // Build the URL – keep the same /api/resources prefix you use elsewhere
-	    String endpoint = "/api/resources/model-deploy-configs";
-	    String serviceUrl = this.kmsUrl + endpoint + (refresh ? "?refresh=true" : "");
+		// Build the URL – keep the same /api/resources prefix you use elsewhere
+		String endpoint = "/api/resources/model-deploy-configs";
+		String serviceUrl = this.kmsUrl + endpoint + (refresh ? "?refresh=true" : "");
 
-	    RequestConfig requestConfig = RequestConfig.custom()
-	            .setConnectTimeout(5000)
-	            .setSocketTimeout(5000)
-	            .build();
+		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
 
-	    try (CloseableHttpClient httpClient = HttpClients.custom()
-	            .setDefaultRequestConfig(requestConfig)
-	            .build()) {
+		try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
 
-	        HttpGet httpGet = new HttpGet(serviceUrl);
-	        httpGet.setHeader("Accept", "application/json");
+			HttpGet httpGet = new HttpGet(serviceUrl);
+			httpGet.setHeader("Accept", "application/json");
 
-	        try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
-	            int statusCode = response.getStatusLine().getStatusCode();
-	            String responseBody = EntityUtils.toString(response.getEntity());
+			try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+				int statusCode = response.getStatusLine().getStatusCode();
+				String responseBody = EntityUtils.toString(response.getEntity());
 
-	            if (statusCode == 200) {
-	                JSONObject jsonResponse = new JSONObject(responseBody);
-	                Map<String, Object> configs = jsonToMap(jsonResponse);
+				if (statusCode == 200) {
+					JSONObject jsonResponse = new JSONObject(responseBody);
+					Map<String, Object> configs = jsonToMap(jsonResponse);
 
-	                classLogger.info(
-	                        "Retrieved {} model deployment configs (refresh={})",
-	                        configs.size(), refresh);
-	                return configs;
-	            } else {
-	                classLogger.error(
-	                        "Failed to fetch model deployment configs: {} (status {})",
-	                        responseBody, statusCode);
-	                throw new RuntimeException(
-	                        "Failed to retrieve model deployment configs: " + responseBody);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error(
-	                "Error contacting model-scaler for deployment configs: {}", e.getMessage(), e);
-	        throw new RuntimeException("Failed to retrieve model deployment configs", e);
-	    }
+					classLogger.info("Retrieved {} model deployment configs (refresh={})", configs.size(), refresh);
+					return configs;
+				} else {
+					classLogger.error("Failed to fetch model deployment configs: {} (status {})", responseBody,
+							statusCode);
+					throw new RuntimeException("Failed to retrieve model deployment configs: " + responseBody);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Error contacting model-scaler for deployment configs: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to retrieve model deployment configs", e);
+		}
 	}
 
-	
 	public Map<String, Object> canItRun(String hfModelId) throws Exception {
-	
+
 		String serviceUrl = this.kmsUrl + "/api/can-it-run";
-		
-	    RequestConfig requestConfig = RequestConfig.custom()
-	            .setConnectTimeout(5000)
-	            .setSocketTimeout(5000)
-	            .build();
 
-	    try (CloseableHttpClient httpClient = HttpClients.custom()
-	            .setDefaultRequestConfig(requestConfig)
-	            .build()) {
+		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
 
-	        HttpPost httpPost = new HttpPost(serviceUrl);
-	        httpPost.setHeader("Content-Type", "application/json");
+		try (CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build()) {
 
-	        JSONObject requestBody = new JSONObject();
-	        requestBody.put("model_id", hfModelId);
+			HttpPost httpPost = new HttpPost(serviceUrl);
+			httpPost.setHeader("Content-Type", "application/json");
 
-	        StringEntity entity = new StringEntity(requestBody.toString());
-	        httpPost.setEntity(entity);
+			JSONObject requestBody = new JSONObject();
+			requestBody.put("model_id", hfModelId);
 
-	        try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-	            int statusCode = response.getStatusLine().getStatusCode();
-	            HttpEntity responseEntity = response.getEntity();
-	            String responseString = EntityUtils.toString(responseEntity);
+			StringEntity entity = new StringEntity(requestBody.toString());
+			httpPost.setEntity(entity);
 
-	            if (statusCode == 200) {
-	                JSONObject jsonResponse = new JSONObject(responseString);
-	                
-	                Map<String, Object> result = new HashMap<>();
-	                for (String key : jsonResponse.keySet()) {
-	                    result.put(key, jsonResponse.get(key));
-	                }
-	                
-	                classLogger.info("Successfully checked compatibility for model: {} - Can run: {}", 
-	                    hfModelId, result.get("can_run"));
-	                return result;
-	            } else {
-	                JSONObject errorResponse = new JSONObject(responseString);
-	                String errorMessage = errorResponse.getJSONObject("detail").getString("message");
-	                classLogger.error("Error checking model compatibility: {} (Status: {})", 
-	                    errorMessage, statusCode);
-	                throw new RuntimeException("Failed to check model compatibility: " + errorMessage);
-	            }
-	        }
-	    } catch (Exception e) {
-	        classLogger.error("Error making request to model scaler: {}", e.getMessage(), e);
-	        throw new RuntimeException("Failed to check model compatibility", e);
-	    }
+			try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+				int statusCode = response.getStatusLine().getStatusCode();
+				HttpEntity responseEntity = response.getEntity();
+				String responseString = EntityUtils.toString(responseEntity);
+
+				if (statusCode == 200) {
+					JSONObject jsonResponse = new JSONObject(responseString);
+
+					Map<String, Object> result = new HashMap<>();
+					for (String key : jsonResponse.keySet()) {
+						result.put(key, jsonResponse.get(key));
+					}
+
+					classLogger.info("Successfully checked compatibility for model: {} - Can run: {}", hfModelId,
+							result.get("can_run"));
+					return result;
+				} else {
+					JSONObject errorResponse = new JSONObject(responseString);
+					String errorMessage = errorResponse.getJSONObject("detail").getString("message");
+					classLogger.error("Error checking model compatibility: {} (Status: {})", errorMessage, statusCode);
+					throw new RuntimeException("Failed to check model compatibility: " + errorMessage);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Error making request to model scaler: {}", e.getMessage(), e);
+			throw new RuntimeException("Failed to check model compatibility", e);
+		}
 	}
 
 }
-	
-

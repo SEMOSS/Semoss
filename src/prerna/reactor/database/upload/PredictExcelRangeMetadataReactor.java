@@ -49,26 +49,27 @@ import prerna.util.UploadInputUtility;
 public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 
 	public static final String SHEET_RANGE = "sheetRange";
-	
+
 	public PredictExcelRangeMetadataReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(), 
-				ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE, ReactorKeysEnum.PASSWORD.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.SHEET_NAME.getKey(), SHEET_RANGE, ReactorKeysEnum.PASSWORD.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		if(!new File(filePath).exists()) {
+		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 		String sheetName = this.keyValue.get(this.keysToGet[2]);
 		String sheetRange = this.keyValue.get(this.keysToGet[3]);
 		String password = this.keyValue.get(this.keysToGet[4]);
-		
+
 		// check if file is valid
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		if (!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
@@ -77,21 +78,21 @@ public class PredictExcelRangeMetadataReactor extends AbstractReactor {
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath, password);
 		Sheet sheet = helper.getSheet(sheetName);
-		
+
 		ExcelSheetPreProcessor sheetProcessor = new ExcelSheetPreProcessor(sheet);
 		ExcelRange range = new ExcelRange(sheetRange);
 		String[] cleanedHeaders = sheetProcessor.getCleanedRangeHeaders(range);
 		String[] origHeaders = sheetProcessor.getCleanedRangeHeaders(range);
 
 		Object[][] prediction = ExcelParsing.predictTypes(sheet, sheetRange);
-		
+
 		Map<String, Object> rangeMap = new HashMap<String, Object>();
 		rangeMap.put("headers", origHeaders);
 		rangeMap.put("cleanHeaders", cleanedHeaders);
 		Map[] retMaps = FileHelperUtil.generateDataTypeMapsFromPrediction(cleanedHeaders, prediction);
 		rangeMap.put("dataTypes", retMaps[0]);
 		rangeMap.put("additionalDataTypes", retMaps[1]);
-		
+
 		return new NounMetadata(rangeMap, PixelDataType.MAP);
 	}
 

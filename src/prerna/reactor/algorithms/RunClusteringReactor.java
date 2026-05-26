@@ -48,15 +48,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunClusteringReactor extends AbstractFrameReactor {
 
 	private static final String CLASS_NAME = RunClusteringReactor.class.getName();
 
 	/**
-	 * RunClustering(instance = column, numClusters = #, columns = attributeNamesList);
+	 * RunClustering(instance = column, numClusters = #, columns =
+	 * attributeNamesList);
 	 */
 
 	private String[] attributeNames;
@@ -70,9 +69,10 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 	private int instanceIndex;
 	private boolean addToFrame = true;
 	private AlgorithmSingleColStore<Integer> results = new AlgorithmSingleColStore<>();
-	
+
 	public RunClusteringReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(),
+				ReactorKeysEnum.ATTRIBUTES.getKey() };
 	}
 
 	@Override
@@ -80,32 +80,32 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
-		
-		//get inputs
+
+		// get inputs
 		this.instanceColumn = getInstanceColumn();
 		this.instanceIndex = 0;
 		this.attributeNamesList = getColumns();
 		this.attributeNames = this.attributeNamesList.toArray(new String[0]);
 		this.numClusters = getNumClusters();
-		if(this.numClusters == -1) {
-			this.numClusters = 5; //set default in case it wasn't retrieved from the command
+		if (this.numClusters == -1) {
+			this.numClusters = 5; // set default in case it wasn't retrieved from the command
 		}
 
 		this.isNumeric = new boolean[this.attributeNames.length];
-		for(int i = 0; i < this.attributeNames.length; i++) {
+		for (int i = 0; i < this.attributeNames.length; i++) {
 			this.isNumeric[i] = dataFrame.isNumeric(this.attributeNames[i]);
 		}
 
-		if(this.distanceMeasure == null) {
+		if (this.distanceMeasure == null) {
 			distanceMeasure = new HashMap<>();
-			for(int i = 0; i < attributeNames.length; i++) {
-				if(isNumeric[i]) {
+			for (int i = 0; i < attributeNames.length; i++) {
+				if (isNumeric[i]) {
 					distanceMeasure.put(attributeNames[i], DistanceMeasure.MEAN);
 				}
 			}
 		} else {
-			for(int i = 0; i < attributeNames.length; i++) {
-				if(!distanceMeasure.containsKey(attributeNames[i])) {
+			for (int i = 0; i < attributeNames.length; i++) {
+				if (!distanceMeasure.containsKey(attributeNames[i])) {
 					distanceMeasure.put(attributeNames[i], DistanceMeasure.MEAN);
 				}
 			}
@@ -113,24 +113,25 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 
 		///////////////// basic checks
 		int numInstances = dataFrame.getUniqueInstanceCount(instanceColumn);
-		if(numInstances == 1) {
+		if (numInstances == 1) {
 			throw new IllegalArgumentException("Instance column only contains one unqiue value.");
 		}
-		if(numClusters > numInstances) {
-			throw new IllegalArgumentException("There are " + numClusters + " number of clusters while only " + numInstances + " unique instances.\nNumber of instances must be larger than number of clusters.");
+		if (numClusters > numInstances) {
+			throw new IllegalArgumentException("There are " + numClusters + " number of clusters while only "
+					+ numInstances + " unique instances.\nNumber of instances must be larger than number of clusters.");
 		}
 		///////////////// end basic checks
 
 		logger.info("Start creation of initial cluster centers...");
 		initializeClusters(dataFrame, attributeNamesList, logger);
-		logger.info("Done creation of initial cluster centers...");		
+		logger.info("Done creation of initial cluster centers...");
 
 		int maxIt = 1000;
 		boolean go = true;
 		int currIt = 0;
-		logger.info("Start iterating through dataset until convergence...");		
+		logger.info("Start iterating through dataset until convergence...");
 		while (go) {
-			logger.info("Start iteration number " + (currIt+1) + "...");		
+			logger.info("Start iteration number " + (currIt + 1) + "...");
 			go = false;
 			Configurator.setLevel(logger.getName(), Level.OFF);
 			int counter = 0;
@@ -138,7 +139,8 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				Object instanceName = instance.get(0)[instanceIndex];
-				int bestCluster = findBestClusterForInstance(instance, attributeNames, isNumeric, instanceIndex, clusters);
+				int bestCluster = findBestClusterForInstance(instance, attributeNames, isNumeric, instanceIndex,
+						clusters);
 				boolean instanceChangeCluster = isInstanceChangedCluster(results, instanceName, bestCluster);
 				if (instanceChangeCluster) {
 					go = true;
@@ -149,11 +151,12 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 						removeInstanceIndex(instance, attributeNames, isNumeric, clusters.get(currCluster));
 					}
 				}
-				
+
 				// logging
-				if(counter % 100 == 0) {
+				if (counter % 100 == 0) {
 					Configurator.setLevel(logger.getName(), Level.INFO);
-					logger.info("Finished execution for loop number = " + (currIt+1) + ", unique instance number = " + counter);
+					logger.info("Finished execution for loop number = " + (currIt + 1) + ", unique instance number = "
+							+ counter);
 					Configurator.setLevel(logger.getName(), Level.OFF);
 				}
 				counter++;
@@ -162,44 +165,37 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 			// break if taking too many iterations
 			if (currIt > maxIt) {
 				Configurator.setLevel(logger.getName(), Level.INFO);
-				logger.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");		
+				logger.info("Convergence Error ::: clustering routine did not converge after " + maxIt + " iterations");
 				go = false;
 			}
 		}
 		Configurator.setLevel(logger.getName(), Level.INFO);
-		logger.info("Done iterating ...");		
-		
-		// ughhhh... since we call this class within the 
+		logger.info("Done iterating ...");
+
+		// ughhhh... since we call this class within the
 		// multi clustering reactor
 		// need to add this so each iteration of that routine
 		// does add to the frame
-		if(addToFrame) {
+		if (addToFrame) {
 			// to avoid adding columns with same name
 			int counter = 0;
 			String[] allColNames = dataFrame.getColumnHeaders();
 			String newColName = instanceColumn + "_Cluster";
-			while(ArrayUtilityMethods.arrayContainsValue(allColNames, newColName)) {
+			while (ArrayUtilityMethods.arrayContainsValue(allColNames, newColName)) {
 				counter++;
 				newColName = instanceColumn + "_Cluster_" + counter;
 			}
 			// merge data back onto the frame
-			AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", this.results);
+			AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER",
+					this.results);
 		}
 
-		// track GA data
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Clustering");
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				dataFrame, 
-				"Clustering", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
-	public boolean isInstanceChangedCluster(AlgorithmSingleColStore<Integer> results, Object instanceName, int bestCluster) {
+	public boolean isInstanceChangedCluster(AlgorithmSingleColStore<Integer> results, Object instanceName,
+			int bestCluster) {
 		if (results.containsKey(instanceName)) {
 			if ((int) results.get(instanceName) == bestCluster) {
 				return false;
@@ -210,11 +206,13 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		return true;
 	}
 
-	public void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToAdd) {
+	public void updateInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric,
+			Cluster clusterToAdd) {
 		clusterToAdd.addToCluster(instance, attributeNames, isNumeric);
 	}
 
-	public void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, Cluster clusterToRemove) {
+	public void removeInstanceIndex(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric,
+			Cluster clusterToRemove) {
 		clusterToRemove.removeFromCluster(instance, attributeNames, isNumeric);
 	}
 
@@ -229,7 +227,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		// use columns
 		firstCluster.addToCluster(firstInstance, attributeNames, isNumeric);
 		clusters.add(firstCluster);
-	
+
 		if (firstInstance.get(0)[instanceIndex] == null) {
 			results.put(null, 0);
 		} else {
@@ -239,7 +237,7 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		numInstancesInCluster.add(1);
 
 		// create a cluster to serve as a combination of all the starting seeds
-		Cluster combinedInstances =  new Cluster(attributeNames, isNumeric);
+		Cluster combinedInstances = new Cluster(attributeNames, isNumeric);
 		combinedInstances.setDistanceMode(this.distanceMeasure);
 		combinedInstances.addToCluster(firstInstance, attributeNames, isNumeric);
 
@@ -250,33 +248,36 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 			while (it.hasNext()) {
 				List<Object[]> instance = it.next();
 				// ignore instances already used
-				if(results.containsKey(instance.get(0)[instanceIndex])) {
+				if (results.containsKey(instance.get(0)[instanceIndex])) {
 					continue;
 				}
-				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
+				double val = combinedInstances.getSimilarityForInstance(instance, attributeNames, isNumeric,
+						instanceIndex);
 				if (val < simVal) {
 					bestInstance = instance;
 				}
 				if (val == 0) {
 					break;
 				}
-				
+
 				// logging
-				if(counter % 100 == 0) {
+				if (counter % 100 == 0) {
 					Configurator.setLevel(logger.getName(), Level.INFO);
-					logger.info("Trying to determine intial point for cluster # " + i + ". Looped through " + counter + " instances trying to determine inital point");
+					logger.info("Trying to determine intial point for cluster # " + i + ". Looped through " + counter
+							+ " instances trying to determine inital point");
 					Configurator.setLevel(logger.getName(), Level.OFF);
 				}
-				
+
 				counter++;
 			}
 			Configurator.setLevel(logger.getName(), Level.INFO);
 			if (bestInstance == null) {
 				throw new NullPointerException("bestInstance should not be null here.");
 			}
-			logger.info("Found new initial instance for cluster # " + i + " with instance = " + bestInstance.get(0)[instanceIndex]);
+			logger.info("Found new initial instance for cluster # " + i + " with instance = "
+					+ bestInstance.get(0)[instanceIndex]);
 			Configurator.setLevel(logger.getName(), Level.OFF);
-			
+
 			// update combined cluster
 			combinedInstances.addToCluster(bestInstance, attributeNames, isNumeric);
 
@@ -295,12 +296,14 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		Configurator.setLevel(logger.getName(), Level.INFO);
 	}
 
-	public int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric, int instanceIndex, List<Cluster> clusters) {
+	public int findBestClusterForInstance(List<Object[]> instance, String[] attributeNames, boolean[] isNumeric,
+			int instanceIndex, List<Cluster> clusters) {
 		int bestIndex = -1;
 		double simVal = -1;
 		int i = 0;
 		for (; i < numClusters; i++) {
-			double newSimVal = clusters.get(i).getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
+			double newSimVal = clusters.get(i).getSimilarityForInstance(instance, attributeNames, isNumeric,
+					instanceIndex);
 			if (newSimVal > simVal) {
 				bestIndex = i;
 				simVal = newSimVal;
@@ -323,13 +326,13 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 	public void setAddToFrame(boolean addToFrame) {
 		this.addToFrame = addToFrame;
 	}
-	
+
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
-	//////////////////////Input Methods///////////////////////////
+	////////////////////// Input Methods///////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
-	
+
 	private String getInstanceColumn() {
 		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceCol = "";
@@ -345,18 +348,19 @@ public class RunClusteringReactor extends AbstractFrameReactor {
 		return instanceCol;
 
 	}
-	
+
 	private int getNumClusters() {
 		GenRowStruct numClustersGrs = this.store.getGenRowStruct(keysToGet[1]);
 		int numClusters = -1;
 		NounMetadata numClustersNoun;
-		if(numClustersGrs != null) {
+		if (numClustersGrs != null) {
 			numClustersNoun = numClustersGrs.getNoun(0);
-			numClusters = (int)numClustersNoun.getValue();
+			numClusters = (int) numClustersNoun.getValue();
 		} else {
-			// else, we assume it is the first index in the current row --> RunClustering(instanceIndex, numClusters, selectors);
+			// else, we assume it is the first index in the current row -->
+			// RunClustering(instanceIndex, numClusters, selectors);
 			numClustersNoun = this.curRow.getNoun(1);
-			numClusters = (int)numClustersNoun.getValue();
+			numClusters = (int) numClustersNoun.getValue();
 		}
 		return numClusters;
 

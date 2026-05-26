@@ -42,7 +42,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class MyEngineProjectReactor extends AbstractReactor {
-	
+
 	public MyEngineProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(), ReactorKeysEnum.TYPE.getKey(),
@@ -53,69 +53,69 @@ public class MyEngineProjectReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-	    organizeKeys();
-	    //Parse input params
-	    String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
-	    String limitStr = this.keyValue.getOrDefault(ReactorKeysEnum.LIMIT.getKey(), "20");
-	    String offset = this.keyValue.getOrDefault(ReactorKeysEnum.OFFSET.getKey(), "0");
-	    int totalLimit = Math.min(Integer.parseInt(limitStr), 20); // Cap at 20
-	    //Determine types to process
-	    List<String> type = this.getEngineTypes();
-	    List<String> typesToGet = (type == null || type.isEmpty())
-	            ? Arrays.asList("PROJECT", "DATABASE", "STORAGE", "FUNCTION", "MODEL", "VECTOR")
-	            : new ArrayList<>(type);
-	   
-	    
-	    //Common filters
-	    Boolean noMeta = Boolean.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())));
-	    Boolean portalsOnly = Boolean.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())));
-	    Boolean favoritesOnly = Boolean.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())));
-	    List<Integer> permissionFilters = getPermissionFilters();
-	    Map<String, Object> engineProjectMetadataFilter = getMetaMap();
-	    
-	    //Distribute limit per type
-	    int typeCount = typesToGet.size();
-	    int baseLimit = totalLimit / typeCount;
-	    int remainder = totalLimit % typeCount;
-	    //Fetch data for each type
-	    List<Map<String, Object>> combinedInfo = new ArrayList<>();
-	    
-	    for (int i = 0; i < typesToGet.size(); i++) {
-	        String currentType = typesToGet.get(i);
-	        int limitForType = baseLimit + (i < remainder ? 1 : 0); // even distribution
+		organizeKeys();
+		// Parse input params
+		String searchTerm = this.keyValue.get(ReactorKeysEnum.FILTER_WORD.getKey());
+		String limitStr = this.keyValue.getOrDefault(ReactorKeysEnum.LIMIT.getKey(), "20");
+		String offset = this.keyValue.getOrDefault(ReactorKeysEnum.OFFSET.getKey(), "0");
+		int totalLimit = Math.min(Integer.parseInt(limitStr), 20); // Cap at 20
+		// Determine types to process
+		List<String> type = this.getEngineTypes();
+		List<String> typesToGet = (type == null || type.isEmpty())
+				? Arrays.asList("PROJECT", "DATABASE", "STORAGE", "FUNCTION", "MODEL", "VECTOR")
+				: new ArrayList<>(type);
 
-	        List<Map<String, Object>> result;
-	        if ("PROJECT".equalsIgnoreCase(currentType)) {
-	        	result = getProjects(
-	        			// List.of("CODE", "BLOCKS"),
-	        			// for right now, do not apply filter on project type since it is not properly in some smss files
-	        			null, 
-		                favoritesOnly,
-		                portalsOnly,
-		                engineProjectMetadataFilter,
-		                permissionFilters,
-		                searchTerm,
-		                String.valueOf(limitForType),
-		                offset
-		        );
-	        } else {
-	        	result = getEngines(
-	        			Collections.singletonList(currentType),
-	 	                noMeta,
-	 	                engineProjectMetadataFilter,
-	 	                permissionFilters,
-	 	                searchTerm,
-	 	                String.valueOf(limitForType),
-	 	                offset
-	 	        );
-	 	        
-	        }
-	        combinedInfo.addAll(result);
-	        if (combinedInfo.size() >= totalLimit) {
-	            break; // Optional safety to ensure total results do not exceed limit
-	        }
-	    }
-	    return new NounMetadata(combinedInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
+		// Common filters
+		Boolean noMeta = Boolean.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.NO_META.getKey())));
+		Boolean portalsOnly = Boolean
+				.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_PORTALS.getKey())));
+		Boolean favoritesOnly = Boolean
+				.parseBoolean(String.valueOf(this.keyValue.get(ReactorKeysEnum.ONLY_FAVORITES.getKey())));
+		List<Integer> permissionFilters = getPermissionFilters();
+		Map<String, Object> engineProjectMetadataFilter = getMetaMap();
+
+		// Distribute limit per type
+		int typeCount = typesToGet.size();
+		int baseLimit = totalLimit / typeCount;
+		int remainder = totalLimit % typeCount;
+		// Fetch data for each type
+		List<Map<String, Object>> combinedInfo = new ArrayList<>();
+
+		for (int i = 0; i < typesToGet.size(); i++) {
+			String currentType = typesToGet.get(i);
+			int limitForType = baseLimit + (i < remainder ? 1 : 0); // even distribution
+
+			List<Map<String, Object>> result;
+			if ("PROJECT".equalsIgnoreCase(currentType)) {
+				result = getProjects(
+						// List.of("CODE", "BLOCKS"),
+						// for right now, do not apply filter on project type since it is not properly
+						// in some smss files
+						null,
+						favoritesOnly,
+						portalsOnly,
+						engineProjectMetadataFilter,
+						permissionFilters,
+						searchTerm,
+						String.valueOf(limitForType),
+						offset);
+			} else {
+				result = getEngines(
+						Collections.singletonList(currentType),
+						noMeta,
+						engineProjectMetadataFilter,
+						permissionFilters,
+						searchTerm,
+						String.valueOf(limitForType),
+						offset);
+
+			}
+			combinedInfo.addAll(result);
+			if (combinedInfo.size() >= totalLimit) {
+				break; // Optional safety to ensure total results do not exceed limit
+			}
+		}
+		return new NounMetadata(combinedInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
 	/**
@@ -130,15 +130,17 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	 * @param offSet
 	 * @return
 	 */
-	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly, boolean portalsOnly,Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
+	private List<Map<String, Object>> getProjects(List<String> projectTypes, boolean favoritesOnly, boolean portalsOnly,
+			Map<String, Object> engineProjectMetadataFilter, List<Integer> permissionFilters, String searchTerm,
 			String limit, String offSet) {
 		List<String> projectIdFilters = getProjectIdFilters();
-		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectTypes,
+		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
+				projectTypes,
 				projectIdFilters, favoritesOnly, portalsOnly, engineProjectMetadataFilter, permissionFilters,
 				searchTerm, limit, offSet);
 		return projectInfo;
 	}
-	
+
 	/**
 	 * 
 	 * @param engineTypes
@@ -159,7 +161,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 				limit, offSet);
 		return engineInfo;
 	}
-	
+
 	/**
 	 *
 	 * @return
@@ -171,7 +173,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -183,7 +185,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	/**
 	 *
 	 * @return
@@ -195,7 +197,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	/**
 	 *
 	 * @return
@@ -207,7 +209,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	/**
 	 *
 	 * @return
@@ -226,7 +228,7 @@ public class MyEngineProjectReactor extends AbstractReactor {
 		}
 		return null;
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.SORT.getKey())) {

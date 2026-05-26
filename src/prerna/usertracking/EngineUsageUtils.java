@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -42,6 +41,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -49,11 +49,13 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 
 public class EngineUsageUtils extends UserTrackingUtils {
-	
+
 	private static Logger logger = LogManager.getLogger(EngineUsageUtils.class);
 	private static String EU_TN = "ENGINE_USES";
 	private static String EU_PRE = "ENGINE_USES__";
@@ -61,10 +63,10 @@ public class EngineUsageUtils extends UserTrackingUtils {
 	public static void add(Set<String> queriedDatabaseIds, String insightId, String projectId) {
 		queriedDatabaseIds.forEach(databaseId -> add(databaseId, insightId, projectId));
 	}
-	
+
 	public static void update(Set<String> queriedDatabaseIds, String insightId, String projectId) {
 		List<String> existingDbs = get(insightId, projectId);
-		
+
 		for (String db : queriedDatabaseIds) {
 			if (existingDbs.remove(db)) {
 				// update existing
@@ -74,13 +76,13 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				add(db, insightId, projectId);
 			}
 		}
-		
+
 		for (String db : existingDbs) {
 			// remove no longer used
 			remove(db, insightId, projectId);
 		}
 	}
-	
+
 	private static List<String> get(String insightId, String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EU_PRE + "ENGINEID"));
@@ -88,20 +90,20 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "INSIGHTID", "==", insightId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "PROJECTID", "==", projectId));
 
-		return QueryExecutionUtility.flushToListString(userTrackingDb, qs);
+		return QueryExecutionUtility.flushToListString(SystemEngineRegistry.getUserTrackingDb(), qs);
 	}
 
 	private static void add(String engineId, String insightId, String projectId) {
 		add(engineId, insightId, projectId, LocalDate.now(ZoneId.of("UTC")));
 	}
-	
+
 	private static void update(String engineId, String insightId, String projectId) {
 		update(engineId, insightId, projectId, LocalDate.now(ZoneId.of("UTC")));
 	}
 
 	private static void add(String engineId, String insightId, String projectId, LocalDate date) {
 		String query = "INSERT INTO " + EU_TN + " VALUES (?, ?, ?, ?)";
-
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -118,20 +120,17 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
 
 	private static void update(String engineId, String insightId, String projectId, LocalDate date) {
-		String query = "UPDATE " + EU_TN + " SET DATE = ? WHERE ENGINEID = ? AND INSIGHTID = ? "
-				+ "AND PROJECTID = ?";
-
+		String query = "UPDATE " + EU_TN + " SET DATE = ? WHERE ENGINEID = ? AND INSIGHTID = ? " + "AND PROJECTID = ?";
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -149,19 +148,17 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
-	
+
 	private static void remove(String engineId, String insightId, String projectId) {
 		String query = "DELETE FROM " + EU_TN + " where ENGINEID = ? AND INSIGHTID = ? AND PROJECTID = ?";
-
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		PreparedStatement ps = null;
 		try {
 			ps = userTrackingDb.getPreparedStatement(query);
@@ -176,16 +173,14 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
 		} finally {
-			if (ps != null) {
-				try {
-					ps.close();
-				} catch (SQLException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
+			try {
+				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
+			} catch (SQLException e) {
+				logger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
-	
+
 	public static List<Pair<String, String>> getInInsights(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
 
@@ -193,10 +188,9 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		qs.addSelector(new QueryColumnSelector(EU_PRE + "PROJECTID", "projectid"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "ENGINEID", "==", engineId));
 
-		IRawSelectWrapper wrapper = null;
 		List<Pair<String, String>> insightids = new ArrayList<>();
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getUserTrackingDb(), qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				String insight = row.getValues()[0].toString();
@@ -205,14 +199,6 @@ public class EngineUsageUtils extends UserTrackingUtils {
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return insightids;
@@ -234,10 +220,9 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		qs.addGroupBy(new QueryColumnSelector(EU_PRE + "DATE"));
 		qs.addGroupBy(new QueryColumnSelector(EU_PRE + "INSIGHTID"));
 
-		IRawSelectWrapper wrapper = null;
 		List<Pair<String, Integer>> viewsByDate = new ArrayList<>();
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(userTrackingDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getUserTrackingDb(), qs)) {
 			while (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
 				Integer view = ((Long) row.getValues()[0]).intValue();
@@ -246,49 +231,44 @@ public class EngineUsageUtils extends UserTrackingUtils {
 			}
 		} catch (Exception e) {
 			logger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					logger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return viewsByDate;
 	}
-	
+
 	// return the most used catalog in the past month
 	// easy solution that I think provides real value.
 	// probably not the most exact/in depth solution, but I do believe its the best
-	// If we went off views, then we may trending something to people to look at and not use
-	// which would keep it stuck in the trending section, which would cause it to get viewed more
+	// If we went off views, then we may trending something to people to look at and
+	// not use
+	// which would keep it stuck in the trending section, which would cause it to
+	// get viewed more
 	// and we would never display a useful catalog.
 	public static List<String> getTrendingDatabases(int limit, List<String> accessibleDbs) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EU_PRE + "ENGINEID"));
-		
+
 		QueryFunctionSelector count = new QueryFunctionSelector();
 		count.addInnerSelector(new QueryColumnSelector(EU_PRE + "ENGINEID"));
 		count.setAlias("engine_uses");
 		count.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(count);
-		
+
 		// filter out any non viewable databases
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "ENGINEID", "==", accessibleDbs));
 
 		LocalDate now = LocalDate.now(TimeZone.getTimeZone("UTC").toZoneId());
 		LocalDate lastMonth = now.minusMonths(1);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EU_PRE + "DATE", ">", lastMonth));
-		
+
 		qs.addGroupBy(new QueryColumnSelector(EU_PRE + "ENGINEID"));
-		
+
 		qs.addOrderBy("engine_uses", "desc");
 		qs.setLimit(limit);
-		
-		
+
 		return QueryExecutionUtility.flushToListString(userTrackingDb, qs);
 	}
-	
+
 }

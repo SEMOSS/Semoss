@@ -83,7 +83,7 @@ public class AskCOTRoomReactor extends AbstractReactor {
 
 		// Required
 		String modelId = this.keyValue.get(this.keysToGet[0]);
-		String userQuery = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[3]));
+		String userQuery = this.keyValue.get(this.keysToGet[3]);
 		// Optional
 		List<String> vectorDbIds = getListString(ReactorKeysEnum.VECTORDB.getKey());
 		String roomId = this.keyValue.get(this.keysToGet[2]);
@@ -165,8 +165,8 @@ public class AskCOTRoomReactor extends AbstractReactor {
 		}
 
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputUIPrompt(userQuery).withInputPrompt(userPrompt).withModelType(modelEngine.getModelType())
-				.withParamMap(paramMap).build(); //
+				.withText(userPrompt, userQuery).withModelType(modelEngine.getModelType()).withParamMap(paramMap)
+				.build(); //
 
 		// ==== Step 4. Run LLM ====
 		ResponseMessage response = room.ask(inputMsg, modelEngine);

@@ -90,10 +90,10 @@ jobs:
   #         rm -rf semossVer
 
   build_dev:
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE != 'TRUE'  && (github.event_name =='push' || github.event_name =='pull_request')  }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,10 +118,10 @@ jobs:
       #     path: target/semoss-${{ vars.VERSION }}-SNAPSHOT.jar
 
   build_deploy:
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE != 'TRUE'  && github.event_name =='workflow_dispatch' }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -166,7 +166,7 @@ jobs:
           REF_NAME=$( echo $GITHUB_REF | sed 's|refs/heads/||')
           if [[ "$REF_NAME" != 'dev' && "$REF_NAME" != 'main' ]]; then
             mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }}-SNAPSHOT -DgenerateBackupPoms=false
-            mvn $MAVEN_CLI_OPTS clean install -DfailIfNoTests=false
+            mvn $MAVEN_CLI_OPTS clean install -Dmaven.test.skip=${{ vars.SKIP_TESTS }} -DfailIfNoTests=false
           elif [[ "$REF_NAME" == 'dev' || "$REF_NAME" == 'main' ]]; then
             mvn $MAVEN_CLI_OPTS versions:set-property -Dproperty=ci.version -DnewVersion=${{ vars.VERSION }}-SNAPSHOT -DgenerateBackupPoms=false
             mvn $MAVEN_CLI_OPTS deploy -P deploy -Dmaven.test.skip=${{ vars.SKIP_TESTS }}
@@ -188,10 +188,10 @@ jobs:
            --upload-file "$JAR_FILE" \
            "https://artifact.semoss.org/repository/semoss-hosted-repo/$REF_NAME/$(basename $JAR_FILE)"
   build_release:
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     if: ${{ vars.RELEASE == 'TRUE' && github.event_name == 'workflow_dispatch' }}
     container:
-      image: maven:3.9.9-amazoncorretto-21-debian
+      image: public.ecr.aws/docker/library/maven:3.9.9-amazoncorretto-21-debian
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

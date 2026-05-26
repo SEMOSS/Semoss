@@ -38,7 +38,7 @@ import org.quartz.impl.StdSchedulerFactory;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEmbeddedRDBMSServerEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -74,7 +74,7 @@ public class SchedulerFactorySingleton {
 
 	private void init() {
 		Properties quartzProperties = null;
-		IRDBMSEngine schedulerDb = (IRDBMSEngine) Utility.getDatabase(Constants.SCHEDULER_DB);
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		String username = queryUtil.getUsername();
 		String password = queryUtil.getPassword();
@@ -127,7 +127,7 @@ public class SchedulerFactorySingleton {
 		try {
 			scheduler = factory.getScheduler();
 		} catch (SchedulerException se) {
-			classLogger.error(Constants.STACKTRACE, se);
+			classLogger.error("Failed to retrieve Quartz scheduler from factory: {}", se.getMessage(), se);
 		}
 
 		if (scheduler == null) {
@@ -144,7 +144,7 @@ public class SchedulerFactorySingleton {
 					scheduler.shutdown(waitForJobsToComplete);
 				}
 			} catch (SchedulerException se) {
-				classLogger.error(Constants.STACKTRACE, se);
+				classLogger.error("Failed to shut down Quartz scheduler: {}", se.getMessage(), se);
 			}
 		}
 	}

@@ -37,8 +37,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ConcatenateReactor extends AbstractRFrameReactor {
 
@@ -98,12 +96,11 @@ public class ConcatenateReactor extends AbstractRFrameReactor {
 		metaData.setDataTypeToProperty(frameName + "__" + newColName, SemossDataType.STRING.toString());
 		rFrame.syncHeaders();
 
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, rFrame, "Concatenate",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
-		NounMetadata retNoun = new NounMetadata(rFrame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(rFrame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
-		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully Concatenated values into " + newColName));
+		retNoun.addAdditionalReturn(
+				NounMetadata.getSuccessNounMessage("Successfully Concatenated values into " + newColName));
 		return retNoun;
 	}
 
