@@ -105,7 +105,7 @@ public class EngineUtility {
 	 * @return
 	 */
 	public static String getSpecificEngineAppRootFolder(IEngine.CATALOG_TYPE type, String engineId, String engineName) {
-		return getSpecificEngineBaseFolder(type, SmssUtilities.getUniqueName(engineName, engineId));
+		return getSpecificEngineAppRootFolder(type, SmssUtilities.getUniqueName(engineName, engineId));
 	}
 
 	/**

@@ -76,11 +76,28 @@ public interface IEngine extends Closeable {
 
 	/**
 	 * Gets the engine name for this engine
-	 * 
+	 *
 	 * @return Name of the engine
 	 */
 	@IgnoreEngineLogging
 	String getEngineName();
+
+	/**
+	 * Sets the user-facing display name for this engine
+	 *
+	 * @param displayName - Display name of the engine
+	 */
+	@IgnoreEngineLogging
+	void setDisplayName(String displayName);
+
+	/**
+	 * Gets the user-facing display name for this engine. Falls back to
+	 * {@link #getEngineName()} if no display name has been set.
+	 *
+	 * @return Display name of the engine
+	 */
+	@IgnoreEngineLogging
+	String getDisplayName();
 
 	/**
 	 * Opens an engine as defined by its properties file. What is included in the

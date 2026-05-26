@@ -9,7 +9,6 @@ Model engines in SEMOSS serve as connectors to various machine learning models, 
 This interface defines the primary operations supported by model engines:
 
 *   `ask(String question, String context, Insight insight, Map<String, Object> parameters)`: Used for conversational AI or question-answering. Takes a user's question, optional context, the current `Insight` (for session and user information), and model-specific hyperparameters. Returns an `AskModelEngineResponse`.
-*   `instruct(String task, String context, List<Map<String, Object>> projectData, Insight insight, Map<String, Object> parameters)`: For models that follow instructions to generate structured output or perform specific tasks. `projectData` can provide additional structured input. Returns an `InstructModelEngineResponse`.
 *   `embeddings(List<String> stringsToEmbed, Insight insight, Map<String, Object> parameters)`: Generates numerical vector embeddings for a list of input texts. Returns an `EmbeddingsModelEngineResponse`.
 *   `imageEmbeddings(List<String> imagesToEmbed, Insight insight, Map<String, Object> parameters)`: Generates embeddings for a list of images (often represented as paths or URLs). Returns an `EmbeddingsModelEngineResponse`.
 *   `getModelType()`: Returns a `prerna.engine.api.ModelTypeEnum` (e.g., `OPEN_AI`, `BEDROCK`, `VERTEX_AI`, `LOCAL_PYTHON`, `TEXT_EMBEDDINGS_INFERENCE`) identifying the kind or provider of the model.
@@ -30,7 +29,6 @@ This abstract class provides a common foundation for most model engine implement
 *   **Abstract `*Call` Methods**:
     *   Defines protected abstract methods:
         *   `askCall(...)`
-        *   `instructCall(...)`
         *   `embeddingsCall(...)`
         *   `imageEmbeddingsCall(...)`
     *   Concrete subclasses must implement these methods to perform the actual, direct interaction with the model provider's API or the local model execution environment. The public-facing methods (`ask`, `instruct`, etc.) in `AbstractModelEngine` call these internal `*Call` methods after handling logging and restrictions.
@@ -42,7 +40,7 @@ To create a new `MODEL` engine for a different provider or a new type of local m
 1.  **Implement `IModelEngine`**.
 2.  **Extend `AbstractModelEngine`**: This provides the boilerplate for configuration, logging, and usage restrictions.
 3.  **Implement Core `*Call` Methods**:
-    *   Provide concrete implementations for `askCall`, `instructCall`, `embeddingsCall`, and/or `imageEmbeddingsCall` relevant to the new model's capabilities.
+    *   Provide concrete implementations for `askCall`, `embeddingsCall`, and/or `imageEmbeddingsCall` relevant to the new model's capabilities.
     *   Inside these methods:
         *   Initialize the specific API client for the model service (e.g., using REST clients, provider-specific SDKs).
         *   Retrieve necessary API keys or configurations from `this.smssProp`.
@@ -59,7 +57,7 @@ To create a new `MODEL` engine for a different provider or a new type of local m
 ### `prerna.engine.impl.model.OpenAiEngine`
 *   **Purpose**: Integrates with OpenAI's suite of models, including GPT models for text generation and chat, and embedding models like Ada.
 *   **Implementation Highlights**:
-    *   Implements `askCall`, `instructCall` (often mapping to chat completions), and `embeddingsCall`.
+    *   Implements `askCall` and `embeddingsCall`.
     *   Uses HTTP client libraries to make REST API calls to the OpenAI API endpoints (e.g., `/v1/chat/completions`, `/v1/embeddings`).
     *   Constructs JSON request bodies according to OpenAI's API specifications and parses the JSON responses.
 *   **SMSS Configuration**:

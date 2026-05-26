@@ -95,9 +95,18 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		if (pendingRequest > 0) {
 			databaseInfo.put("pending_access_request", pendingRequest);
 		}
-		// add the user+date who last updated the engine
-		databaseInfo.putAll(SecurityEngineUtils.getLatestUpdatedAuthor(engineId));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns metadata for a single engine when the user can access it or it is discoverable.
+
+				Inputs: engine, metaKeys.
+				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
+				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				""";
 	}
 
 }

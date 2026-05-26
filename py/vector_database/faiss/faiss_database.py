@@ -134,8 +134,10 @@ class FAISSDatabase:
             if indexClass in self.searchers:
                 searcher = self.searchers[indexClass]
                 try:
-                    if searcher.ds is not None and "Content" in searcher.ds.features:
-                        searcher.bm25_searcher.build_bm25_index(searcher.ds["Content"])
+                    if searcher.ds is not None and "Content" in searcher.ds.columns:
+                        searcher.bm25_searcher.build_bm25_index(
+                            list(searcher.ds["Content"])
+                        )
                         results[indexClass] = True
                     else:
                         results[indexClass] = False

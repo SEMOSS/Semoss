@@ -41,12 +41,11 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GoogleGmailGetUnreadEmailsReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailGetUnreadEmailsReactor.class);
-	
+
 	public GoogleGmailGetUnreadEmailsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
 		this.keyRequired = new int[] { 1 };
@@ -60,26 +59,33 @@ public class GoogleGmailGetUnreadEmailsReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			int limit = Integer.parseInt(limitStr);
+			if (limit <= 0) {
+				throw new SemossPixelException("The limit must be a positive integer.");
+			}
 			List<Map<String, Object>> result = GoogleGmailHelper.getUnreadEmails(accessToken, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
-		} catch(SemossPixelException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (NumberFormatException e) {
+			classLogger.error("Invalid unread Gmail limit '{}'", limitStr, e);
+			throw new SemossPixelException("The limit must be a positive integer.");
+		} catch (SemossPixelException e) {
+			classLogger.error("Error while fetching unread Gmail emails", e);
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new SemossPixelException("An error occurred getting the unread emails. Error message: " + e.getMessage());
+			classLogger.error("Failed to fetch unread Gmail emails", e);
+			throw new SemossPixelException(
+					"An error occurred getting the unread emails. Error message: " + e.getMessage());
 		}
 	}
-	
+
 	@Override
 	public String getReactorDescription() {
-		return "Get the list of unread email";
+		return "Retrieve a list of unread emails.";
 	}
-	
+
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if(key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The limit for the maximum number of unread emails";
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Maximum number of unread emails to return.";
 		}
 		return super.getDescriptionForKey(key);
 	}

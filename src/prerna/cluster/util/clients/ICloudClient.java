@@ -44,7 +44,7 @@ public interface ICloudClient {
 	 * Moving away from specific types and going to engine interface
 	 * 
 	 */
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -52,7 +52,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushEngine(String engineId) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -69,7 +69,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param engineId
@@ -78,16 +78,17 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded) throws IOException, InterruptedException;
-	
+	void pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded)
+			throws IOException, InterruptedException;
+
 	/**
 	 * Push only the smss file for a engine
 	 * 
 	 * @param engineId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pushEngineSmss(String engineId) throws IOException, InterruptedException; 
-	
+	void pushEngineSmss(String engineId) throws IOException, InterruptedException;
+
 	/**
 	 * Push only the smss file for a engine
 	 * 
@@ -96,8 +97,8 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException; 
-	
+	void pushEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
+
 	/**
 	 * Pull only the smss file for a engine
 	 * 
@@ -105,7 +106,7 @@ public interface ICloudClient {
 	 * @throws Exception
 	 */
 	void pullEngineSmss(String engineId) throws IOException, InterruptedException;
-	
+
 	/**
 	 * Pull only the smss file for a engine
 	 * 
@@ -114,17 +115,7 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException; 
-	
-	/**
-	 * 
-	 * @param engineId
-	 * @param localAbsoluteFilePath
-	 * @param storageRelativePath
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
+	void pullEngineSmss(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -134,8 +125,20 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
-	
+	void pushEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath)
+			throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param engineId
+	 * @param localAbsoluteFilePath
+	 * @param storageRelativePath
+	 * @throws IOException
+	 * @throws InterruptedException
+	 */
+	void pullEngineFolder(String engineId, String localAbsoluteFilePath, String storageRelativePath)
+			throws IOException, InterruptedException;
+
 	/**
 	 * Delete the engine from cloud storage
 	 * 
@@ -154,7 +157,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void deleteEngine(String engineId, IEngine.CATALOG_TYPE engineType) throws IOException, InterruptedException;
-	
+
 	/**
 	 * Copy the engine local file to the corresponding storage location
 	 * 
@@ -164,11 +167,12 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
+	void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath)
+			throws IOException, InterruptedException;
 
-	
 	/**
-	 * Copy engine file path to local file path, based on where the corresponding storage location should be
+	 * Copy engine file path to local file path, based on where the corresponding
+	 * storage location should be
 	 * 
 	 * @param engineId
 	 * @param engineType
@@ -177,11 +181,12 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
-	
-	
+	void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
+			throws IOException, InterruptedException;
+
 	/**
-	 * Delete where the corresponding local file path would be from the corresponding storage location
+	 * Delete where the corresponding local file path would be from the
+	 * corresponding storage location
 	 * 
 	 * @param engineId
 	 * @param engineType
@@ -189,14 +194,15 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath) throws IOException, InterruptedException;
-	
+	void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
+			throws IOException, InterruptedException;
+
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Images
 	 */
-	
+
 	/**
 	 * 
 	 * @param engineType
@@ -222,7 +228,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void deleteEngineAndProjectImage(CATALOG_TYPE engineType, String fileName) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param engineType
@@ -230,15 +236,15 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void deleteEngineAndProjectImageById(CATALOG_TYPE engineType, String engineId) throws IOException, InterruptedException;
-	
-	
+	void deleteEngineAndProjectImageById(CATALOG_TYPE engineType, String engineId)
+			throws IOException, InterruptedException;
+
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Database
 	 */
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -264,7 +270,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushOwl(String databaseId) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -281,7 +287,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pullOwl(String databaseId) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -292,11 +298,11 @@ public interface ICloudClient {
 	void pullOwl(String databaseId, WriteOWLEngine owlEngine) throws IOException, InterruptedException;
 
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Project
 	 */
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -304,7 +310,7 @@ public interface ICloudClient {
 	 * @throws InterruptedException
 	 */
 	void pushProject(String projectId) throws IOException, InterruptedException;
-	
+
 	/**
 	 * 
 	 * @param projectId
@@ -320,44 +326,44 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException; 
-	
+	void pullProject(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
+
 	/**
 	 * Push only the smss file for a project
 	 * 
 	 * @param projectId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pushProjectSmss(String projectId) throws IOException, InterruptedException; 
-	
+	void pushProjectSmss(String projectId) throws IOException, InterruptedException;
+
 	/**
 	 * Pull only the smss file for a project
 	 * 
 	 * @param projectId
 	 * @throws Exception
 	 */
-	void pullProjectSmss(String projectId) throws IOException, InterruptedException; 
-	
+	void pullProjectSmss(String projectId) throws IOException, InterruptedException;
+
 	/**
 	 * 
 	 * @param projectId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void deleteProject(String projectId) throws IOException, InterruptedException; 
-	
+	void deleteProject(String projectId) throws IOException, InterruptedException;
+
 	/**
 	 * 
 	 * @param projectId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pullInsightsDB(String projectId) throws IOException, InterruptedException; 
-	
+	void pullInsightsDB(String projectId) throws IOException, InterruptedException;
+
 	/**
 	 * 
 	 * @param projectId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pushInsightDB(String projectId) throws IOException, InterruptedException; 
+	void pushInsightDB(String projectId) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -367,7 +373,8 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
+	void pushProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath)
+			throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -377,30 +384,30 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath) throws IOException, InterruptedException;
-
+	void pullProjectFolder(String projectId, String localAbsoluteFilePath, String storageRelativePath)
+			throws IOException, InterruptedException;
 
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * Insight
 	 */
-	
-	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @throws Exception 
-	 */
-	void pushInsight(String projectId, String insightId) throws IOException, InterruptedException; 
 
 	/**
 	 * 
 	 * @param projectId
 	 * @param insightId
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pullInsight(String projectId, String insightId) throws IOException, InterruptedException; 
+	void pushInsight(String projectId, String insightId) throws IOException, InterruptedException;
+
+	/**
+	 * 
+	 * @param projectId
+	 * @param insightId
+	 * @throws Exception
+	 */
+	void pullInsight(String projectId, String insightId) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -408,35 +415,33 @@ public interface ICloudClient {
 	 * @param insightId
 	 * @param oldImageFileName
 	 * @param newImageFileName
-	 * @throws Exception 
+	 * @throws Exception
 	 */
-	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName) throws IOException, InterruptedException; 
-	
-	
+	void pushInsightImage(String projectId, String insightId, String oldImageFileName, String newImageFileName)
+			throws IOException, InterruptedException;
+
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 	/*
 	 * User
 	 */
-	
+
 	/**
 	 * 
 	 * @param projectId
-	 * @param isAsset
 	 * @param projectAlreadyLoaded
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pullUserAssetOrWorkspace(String projectId, boolean isAsset, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
-	
+	void pullUserAsset(String projectId, boolean projectAlreadyLoaded) throws IOException, InterruptedException;
+
 	/**
 	 * 
 	 * @param projectId
-	 * @param isAsset
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	void pushUserAssetOrWorkspace(String projectId, boolean isAsset) throws IOException, InterruptedException;
+	void pushUserAsset(String projectId) throws IOException, InterruptedException;
 
 	/**
 	 * 
@@ -444,17 +449,17 @@ public interface ICloudClient {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException; 
-	
+	Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException;
+
 	///////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Legacy
 	 */
-	
+
 	@Deprecated
 	// TODO: need to make sep for db and project
-	List<String> listAllBlobContainers() throws IOException, InterruptedException; 
+	List<String> listAllBlobContainers() throws IOException, InterruptedException;
 
 	/**
 	 * 

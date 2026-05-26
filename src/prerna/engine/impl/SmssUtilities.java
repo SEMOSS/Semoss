@@ -580,6 +580,7 @@ public class SmssUtilities {
 			bufferedWriter.write("#Base Properties" + newLine);
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
+			bufferedWriter.write(Constants.PROJECT_DISPLAY_NAME + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
 			bufferedWriter.write(Constants.PROJECT_ENUM_TYPE + tab + projectEnumType.name() + newLine);
 
@@ -687,6 +688,7 @@ public class SmssUtilities {
 			bufferedWriter.write("#Base Properties" + newLine);
 			bufferedWriter.write(Constants.PROJECT + tab + projectId + newLine);
 			bufferedWriter.write(Constants.PROJECT_ALIAS + tab + projectName + newLine);
+			bufferedWriter.write(Constants.PROJECT_DISPLAY_NAME + tab + projectName + newLine);
 			bufferedWriter.write(Constants.PROJECT_TYPE + tab + prerna.project.impl.Project.class.getName() + newLine);
 
 			String rdbmsTypeStr = null;

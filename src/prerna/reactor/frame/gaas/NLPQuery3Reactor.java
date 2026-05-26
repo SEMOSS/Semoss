@@ -58,7 +58,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class NLPQuery3Reactor extends AbstractFrameReactor {
@@ -121,14 +120,14 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 		}
 
 		if (engine == null) {
-			String engineId = DIHelper.getInstance().getProperty(Constants.SQL_MOOSE_MODEL);
+			String engineId = Utility.getDIHelperProperty(Constants.SQL_MOOSE_MODEL);
 			engine = (IModelEngine) Utility.getEngine(engineId);
 		}
-		
-		if(engine == null) {
+
+		if (engine == null) {
 			throw new IllegalArgumentException("Model engine ID must be passed in or added as a property");
 		}
-		
+
 		List<NounMetadata> retListForFrames = new ArrayList<>();
 
 		for (ITableDataFrame thisFrame : theseFrames) {
@@ -136,7 +135,8 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			StringBuffer finalDbString2 = new StringBuffer();
 //			StringBuffer finalQuery = new StringBuffer();
 //			finalDbString.append("Given Database Schema: ");
-			finalDbString2.append("You are tasked with generating sql to best answer a user's question given a table schema and the question. Below is both schema and the question, respond with the correct sql and ensure that the output starts and ends with ``` markdown. If user specifies any space delimeted value related to a column from dataset then make sure to replace the space with an underscore character.\n\nTABLE SCHEMA: ");
+			finalDbString2.append(
+					"You are tasked with generating sql to best answer a user's question given a table schema and the question. Below is both schema and the question, respond with the correct sql and ensure that the output starts and ends with ``` markdown. If user specifies any space delimeted value related to a column from dataset then make sure to replace the space with an underscore character.\n\nTABLE SCHEMA: ");
 			Map<String, SemossDataType> columnTypes = thisFrame.getMetaData().getHeaderToTypeMap();
 //			finalDbString.append("CREATE TABLE ").append(thisFrame.getName()).append("(");
 			finalDbString2.append("CREATE TABLE ").append(thisFrame.getName()).append("(");
@@ -147,10 +147,12 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 
 				thisColumn = thisColumn.replace(thisFrame.getOriginalName() + "__", "");
 				String colTypeString = SemossDataType.convertDataTypeToString(colType);
-				if (colType == SemossDataType.DOUBLE || colType == SemossDataType.INT)
+				if (colType == SemossDataType.DOUBLE || colType == SemossDataType.INT) {
 					colTypeString = "NUMBER";
-				if (colType == SemossDataType.STRING)
+				}
+				if (colType == SemossDataType.STRING) {
 					colTypeString = "TEXT";
+				}
 
 //				finalDbString.append(thisColumn).append("  ").append(colTypeString).append(",");
 				finalDbString2.append(thisColumn).append("  ").append(colTypeString).append(",");
@@ -161,36 +163,41 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 //			
 			finalDbString2.append(")\n\n");
 			finalDbString2.append("USER QUESTION: ").append(query);
-			finalDbString2.append("\n\nRespond with the correct sql and ensure that the output starts and ends with ``` markdown.");
-			
+			finalDbString2.append(
+					"\n\nRespond with the correct sql and ensure that the output starts and ends with ``` markdown.");
+
 //			classLogger.info(finalDbString + "");
-			classLogger.info("prompt2: "+finalDbString2 + "");
+			classLogger.info("prompt2: " + finalDbString2 + "");
 
 			Object output = null;
 			Map params = new HashMap();
 			params.put("temperature", 0.3);
 			Map<String, Object> modelOutput = engine.ask(finalDbString2 + "", null, this.insight, params).toMap();
-			String response = modelOutput.get("response")+"";
-			classLogger.info("Response: "+response);
+			String response = modelOutput.get("response") + "";
+			classLogger.info("Response: " + response);
 
 			// if it comes in with finalDBString take it out
 			response = response.replace(finalDbString2, "");
 
 			String markdown = "```";
 			int start = response.indexOf(markdown);
-			if (start >= 0)
+			if (start >= 0) {
 				response = response.substring(start + markdown.length());
+			}
 			// get the select also
 			start = response.indexOf("SELECT");
-			if (start >= 0)
+			if (start >= 0) {
 				response = response.substring(start);
+			}
 			// remove the end quotes
 			int end = response.indexOf("```");
-			if (end >= 0)
+			if (end >= 0) {
 				response = response.substring(0, end);
+			}
 			end = response.indexOf(";");
-			if (end >= 0)
+			if (end >= 0) {
 				response = response.substring(0, end);
+			}
 			classLogger.info(response);
 			output = response;
 //			}
@@ -203,8 +210,8 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			String sqlDFQuery = output.toString().trim();
 			// remove the new line
 			sqlDFQuery = sqlDFQuery.replace("\n", " ");
-			sqlDFQuery = sqlDFQuery.replaceAll("[\\t\\n\\r]+"," ");
-			classLogger.info("sql df query: "+sqlDFQuery);
+			sqlDFQuery = sqlDFQuery.replaceAll("[\\t\\n\\r]+", " ");
+			classLogger.info("sql df query: " + sqlDFQuery);
 
 			// execute sqlDF to create a frame
 			// need to check if the query is right and then feed this into sqldf
@@ -233,7 +240,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				String frameMaker = frameName + " = pd.read_sql(\"" + sqlDFQuery + "\", " + sqliteName + ")";
 				classLogger.info("Creating frame with query..  " + sqlDFQuery + " <<>> " + frameMaker);
 				insight.getPyTranslator().runEmptyPy(frameMaker);
-				String sampleOut = insight.getPyTranslator().runDirectPy(frameName + ".head(20)")+"";
+				String sampleOut = insight.getPyTranslator().runDirectPy(frameName + ".head(20)") + "";
 
 				System.err.println(sampleOut);
 				// send information
@@ -440,10 +447,12 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 					for (int newColumnIndex = 0; newColumnIndex < selects.size(); newColumnIndex++) {
 						GenExpression thisSelector = selects.get(newColumnIndex);
 						String alias = thisSelector.getLeftAlias();
-						if (alias == null)
+						if (alias == null) {
 							alias = thisSelector.getLeftExpr();
-						if (thisColumn.equalsIgnoreCase(alias))
+						}
+						if (thisColumn.equalsIgnoreCase(alias)) {
 							foundThisColumn = true;
+						}
 					}
 					sameColumns = sameColumns & foundThisColumn;
 				}
@@ -455,5 +464,5 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			sameColumns = false;
 		}
 		return sameColumns;
-	}	
+	}
 }

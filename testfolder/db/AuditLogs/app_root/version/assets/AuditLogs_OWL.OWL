@@ -1,0 +1,584 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">AUDIT_LOGS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOG_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_SUCCESS/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_SUCCESS/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/IS_SUCCESS/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:BOOLEAN"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/IS_SUCCESS/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">IS_SUCCESS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SESSION_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPAN_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SPAN_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SPAN_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SPAN_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SPAN_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INSIGHT_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECT_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">PROJECT_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ROOM_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_ID/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_ID/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_ID/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_ID/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_TYPE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_TYPE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_TYPE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_TYPE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METHOD_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METHOD_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/METHOD_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/METHOD_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">METHOD_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_SUBTYPE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_SUBTYPE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/ENGINE_SUBTYPE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/ENGINE_SUBTYPE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">ENGINE_SUBTYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INPUT_REACTOR_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INPUT_REACTOR_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/INPUT_REACTOR_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/INPUT_REACTOR_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">INPUT_REACTOR_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/OUTPUT_REACTOR_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/OUTPUT_REACTOR_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/OUTPUT_REACTOR_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/OUTPUT_REACTOR_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">OUTPUT_REACTOR_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RESPONSE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RESPONSE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RESPONSE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RESPONSE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RESPONSE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_PROMPT/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_PROMPT/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_PROMPT/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_PROMPT/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">NUMBER_OF_TOKENS_IN_PROMPT</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_RESPONSE/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_RESPONSE/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_RESPONSE/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:INT"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/NUMBER_OF_TOKENS_IN_RESPONSE/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">NUMBER_OF_TOKENS_IN_RESPONSE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_START_TIME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_START_TIME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_START_TIME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_START_TIME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_START_TIME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RESPONSE_END_TIME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RESPONSE_END_TIME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/RESPONSE_END_TIME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/RESPONSE_END_TIME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">RESPONSE_END_TIME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_LEVEL/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_LEVEL/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_LEVEL/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_LEVEL/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOG_LEVEL</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOG_TIMESTAMP</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOGGER_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/AUDIT_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/AUDIT_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/AUDIT_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/AUDIT_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/AUDIT_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOGGER_LOCATION</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<rdfs:subClassOf rdf:resource="http://semoss.org/ontologies/Concept"/>
+	<rdfs:domain>noData</rdfs:domain>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Concept/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SERVER_LOGS</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_ID/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_ID/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_ID/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_ID/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOG_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/SESSION_ID/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">SESSION_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/REQUEST_ID/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">REQUEST_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_ID/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_ID/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_ID</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/USER_TYPE/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">USER_TYPE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LEVEL/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LEVEL/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LEVEL/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(50)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LEVEL/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LEVEL</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_NAME/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOGGER_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOGGER_LOCATION/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOGGER_LOCATION</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THREAD_NAME/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THREAD_NAME/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/THREAD_NAME/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:VARCHAR(255)"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/THREAD_NAME/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">THREAD_NAME</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:TIMESTAMP"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/LOG_TIMESTAMP/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">LOG_TIMESTAMP</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE/SERVER_LOGS">
+	<rdf:type rdf:resource="http://semoss.org/ontologies/Relation/Contains"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/SERVER_LOGS">
+	<DatatypeProperty xmlns="http://www.w3.org/2002/07/owl#" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE/SERVER_LOGS"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Relation/Contains/MESSAGE/SERVER_LOGS">
+	<rdfs:Class rdf:resource="TYPE:CLOB"/>
+	<Pixel xmlns="http://semoss.org/ontologies/Relation/" rdf:resource="http://semoss.org/ontologies/Relation/Contains/MESSAGE/SERVER_LOGS"/>
+	<Conceptual xmlns="http://semoss.org/ontologies/Relation/">MESSAGE</Conceptual>
+</rdf:Description>
+
+<rdf:Description rdf:about="http://semoss.org/ontologies/Concept/TimeStamp">
+	<TIME xmlns="ENGINE:">2026:02:23 14:09:19</TIME>
+</rdf:Description>
+
+</rdf:RDF>

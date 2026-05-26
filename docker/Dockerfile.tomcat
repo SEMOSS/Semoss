@@ -13,7 +13,7 @@ ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG JDK_VERSION=21.0.7
 
 # Maven default version
-ARG MAVEN_HOME=/opt/apache-maven-3.8.5
+ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 # Tomcat default version
 #ARG TOMCAT_VERSION=9.0.102
@@ -82,19 +82,19 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x config.sh \
 	&& /bin/bash config.sh \
 	&& echo 'CATALINA_PID="$CATALINA_BASE/bin/catalina.pid"' > $TOMCAT_HOME/bin/setenv.sh \
-	&& wget https://archive.apache.org/dist/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz\
+	&& wget https://archive.apache.org/dist/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz\
 	&& tar -zxvf apache-maven-*.tar.gz \
-	&& mkdir /opt/apache-maven-3.8.5 \
-	&& mv apache-maven-3.8.5/* /opt/apache-maven-3.8.5/ \
-	&& rm -r apache-maven-3.8.5 \
-	&& rm apache-maven-3.8.5-bin.tar.gz \
+	&& mkdir /opt/apache-maven-3.9.14 \
+	&& mv apache-maven-3.9.14/* /opt/apache-maven-3.9.14/ \
+	&& rm -r apache-maven-3.9.14 \
+	&& rm apache-maven-3.9.14-bin.tar.gz \
 	&& apt-get -y install nano \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/start.sh \
 	&& echo 'exec catalina.sh run' >> $TOMCAT_HOME/bin/start.sh \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/stop.sh \
 	&& echo 'shutdown.sh -force' >> $TOMCAT_HOME/bin/stop.sh \
 	&& chmod 777 $TOMCAT_HOME/bin/*.sh \
-	&& chmod 777 /opt/apache-maven-3.8.5/bin/*.cmd \
+	&& chmod 777 /opt/apache-maven-3.9.14/bin/*.cmd \
 	&& apt-get clean all
 
 FROM scratch AS final

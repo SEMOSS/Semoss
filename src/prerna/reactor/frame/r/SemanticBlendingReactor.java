@@ -51,17 +51,17 @@ import prerna.util.Utility;
 public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor runs the semantic blending routine on a given column and flushes the results out as a table
-	 * The inputs to the reactor are: 
-	 * 1) the columns
-	 * 2) the number of results to be displayed (defaults to 3 if none is entered)
-	 * 3) the number of random values to use in the routine (defaults to 20 if none is entered)
-	 * 4) boolean indicator if we want to create an r data table, otherwise just return table of results; true indicates widget is used; defaults to false
-	 * 5) name for r data table, if one is to be created
+	 * This reactor runs the semantic blending routine on a given column and flushes
+	 * the results out as a table The inputs to the reactor are: 1) the columns 2)
+	 * the number of results to be displayed (defaults to 3 if none is entered) 3)
+	 * the number of random values to use in the routine (defaults to 20 if none is
+	 * entered) 4) boolean indicator if we want to create an r data table, otherwise
+	 * just return table of results; true indicates widget is used; defaults to
+	 * false 5) name for r data table, if one is to be created
 	 */
-	
+
 	private static final String CLASS_NAME = SemanticBlendingReactor.class.getName();
-	
+
 	// keys used to retrieve user input
 	// determine whether using semantic blending or widget
 	// default to false
@@ -69,7 +69,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	private static final String FRAME_NAME = "frameName";
 
 	public SemanticBlendingReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NUM_DISPLAY.getKey(), ReactorKeysEnum.RANDOM_VALS.getKey(), GENERATE_FRAME, FRAME_NAME };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.NUM_DISPLAY.getKey(),
+				ReactorKeysEnum.RANDOM_VALS.getKey(), GENERATE_FRAME, FRAME_NAME };
 	}
 
 	@Override
@@ -77,14 +78,15 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		// initialize the rJavaTranslator
 		init();
-		
-		// need to make sure that the WikidataR package is installed before running this method
-		String[] packages = new String[] {  "WikidataR","WikipediR", "httr", "curl", "jsonlite" };
+
+		// need to make sure that the WikidataR package is installed before running this
+		// method
+		String[] packages = new String[] { "WikidataR", "WikipediR", "httr", "curl", "jsonlite" };
 		this.rJavaTranslator.checkPackages(packages);
-				
+
 		// get frame
 		ITableDataFrame frame = getFrame();
-		
+
 		// we have an input to indicate whether semantic blending
 		// or widget is being used
 		// we generate an r data frame for the widget
@@ -115,20 +117,23 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 
 		// get the number of random values to use in the routine
 		String randomValsString = getNumRandomVals();
-		
-		// build a query struct so that we can query and limit the number of values being passed into the method
+
+		// build a query struct so that we can query and limit the number of values
+		// being passed into the method
 		// this will also keep track of the columns
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.setLimit(((Number) Double.parseDouble(randomValsString)).longValue());
 		for (int i = 0; i < columns.length; i++) {
 			qs.addSelector(new QueryColumnSelector(columns[i]));
 		}
-		
-		// create an r data frame (in r) using this querystruct and get the name of the variable
+
+		// create an r data frame (in r) using this querystruct and get the name of the
+		// variable
 		String dfName = rJavaTranslator.generateRDataTableVariable(frame, qs);
 		logger.info("Done generating random subset");
-		
-		// this will define the column numbers that we are selecting from our frame to run through the routine
+
+		// this will define the column numbers that we are selecting from our frame to
+		// run through the routine
 		// the r routine uses column numbers rather than names
 		StringBuilder colSelectSb = new StringBuilder("c(");
 
@@ -136,7 +141,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		for (int i = 0; i < columns.length; i++) {
 			colSelectSb.append((i + 1) + ",");
 		}
-		
+
 		// remove the last comma and add an end parentheses
 		int remove = colSelectSb.length() - 1;
 		String colSelectString = colSelectSb.substring(0, remove) + ")";
@@ -153,7 +158,8 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		rsb.append(sourceScript);
 		// run the function
 		// function script: PredictionTable<- concept_mgr(frame,c(1,2),1,20);
-		rsb.append( df2 + " <- concept_mgr(" + dfName + "," + colSelectString + "," + numDisplayString + "," + randomValsString + ");");
+		rsb.append(df2 + " <- concept_mgr(" + dfName + "," + colSelectString + "," + numDisplayString + ","
+				+ randomValsString + ");");
 		// results should be in a data frame
 		rsb.append(RSyntaxHelper.asDataTable(df2, df2));
 		// clean up r temp variables
@@ -168,8 +174,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// send to GA to store semantic names for predictions
 //		String[] colNamesGA = { "Original_Column", "Predicted_Concept", "Prob", "URL" };
 //		Map<String, Object> tableGA = this.rJavaTranslator.flushFrameAsTable(df2, colNamesGA);
-//		UserTrackerFactory.getInstance().addNewLogicalNames(tableGA, columns, frame);
-		
+
 		// if we are running semantic blending
 		if (!generateFrameIndicator) {
 			// these are the column names for the results
@@ -207,13 +212,13 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 			return frameNoun;
 		}
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String[] getColumns() {
 		GenRowStruct columnGrs = this.store.getGenRowStruct(ReactorKeysEnum.COLUMNS.getKey());
 		if (columnGrs.size() > 0) {
@@ -226,7 +231,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		}
 		throw new IllegalArgumentException("Need to define column to run semantic blending on");
 	}
-	
+
 	private String getNumResults() {
 		GenRowStruct numDisplayGrs = this.store.getGenRowStruct(ReactorKeysEnum.NUM_DISPLAY.getKey());
 		if (numDisplayGrs != null) {
@@ -234,10 +239,10 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 				return numDisplayGrs.get(0).toString();
 			}
 		}
-		//default to 3
+		// default to 3
 		return "3";
 	}
-	
+
 	private String getNumRandomVals() {
 		GenRowStruct randomValsGrs = this.store.getGenRowStruct(ReactorKeysEnum.RANDOM_VALS.getKey());
 		if (randomValsGrs != null) {
@@ -248,7 +253,7 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// default to 20
 		return "20";
 	}
-	
+
 	private boolean getGenerateFrameIndicator() {
 		// see if we are using semantic blending or widget
 		// true indicates to use widget
@@ -256,14 +261,15 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		GenRowStruct rGrs = this.store.getGenRowStruct(GENERATE_FRAME);
 		if (rGrs != null) {
 			if (rGrs.size() > 0) {
-				return (Boolean)rGrs.get(0);
+				return (Boolean) rGrs.get(0);
 			}
 		}
 		return false;
 	}
-	
+
 	private String getRDataTableName() {
-		// only get the RDataFrame name if we have determined that we would like to create an RDataFrame
+		// only get the RDataFrame name if we have determined that we would like to
+		// create an RDataFrame
 		GenRowStruct nameGrs = this.store.getGenRowStruct(FRAME_NAME);
 		if (nameGrs != null) {
 			if (nameGrs.size() > 0) {
@@ -273,14 +279,15 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 		// default to "predictionFrame"
 		return "predictionFrame";
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(GENERATE_FRAME)) {
 			return "Boolean indicator of whether an RDataFrame should be created - defaults to false";
-		} if (key.equals(FRAME_NAME)) {
+		}
+		if (key.equals(FRAME_NAME)) {
 			return "The name for the RDataFrame, if one is to be created";
 		} else {
 			return super.getDescriptionForKey(key);

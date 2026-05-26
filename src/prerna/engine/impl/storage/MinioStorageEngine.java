@@ -39,16 +39,16 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 		this.PROVIDER = "s3";
 		this.TRANSFER_LIMIT = "4";
 	}
-	
+
 	/**
-	 * Yes, this is the minio engine
-	 * But the keys are the same as S3 with exception of requiring endpoint
+	 * Yes, this is the minio engine But the keys are the same as S3 with exception
+	 * of requiring endpoint
 	 */
 	public static final String MINIO_REGION_KEY = "MINIO_REGION";
 	public static final String MINIO_ACCESS_KEY = "MINIO_ACCESS_KEY";
 	public static final String MINIO_SECRET_KEY = "MINIO_SECRET_KEY";
 	public static final String MINIO_ENDPOINT_KEY = "MINIO_ENDPOINT";
-	
+
 	// this is not really needed
 	public static final String MINIO_BUCKET_KEY = "MINIO_BUCKET";
 
@@ -57,25 +57,26 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 	private transient String ACCESS_KEY = null;
 	private transient String SECRET_KEY = null;
 	private transient String ENDPOINT = null;
-	
+
+	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
+
 		this.REGION = smssProp.getProperty(MINIO_REGION_KEY);
 		this.ACCESS_KEY = smssProp.getProperty(MINIO_ACCESS_KEY);
 		this.SECRET_KEY = smssProp.getProperty(MINIO_SECRET_KEY);
 		this.ENDPOINT = smssProp.getProperty(MINIO_ENDPOINT_KEY);
-		
+
 		// this is technically not required for minio
 		this.BUCKET = smssProp.getProperty(MINIO_BUCKET_KEY);
 	}
-	
+
 	@Override
 	public String createRCloneConfig() throws IOException, InterruptedException {
 		String rcloneConfig = Utility.getRandomString(10);
 
-		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id",
-				ACCESS_KEY, "secret_access_key", SECRET_KEY, "region", REGION, "endpoint", ENDPOINT);
+		runRcloneProcess(rcloneConfig, RCLONE, "config", "create", rcloneConfig, PROVIDER, "access_key_id", ACCESS_KEY,
+				"secret_access_key", SECRET_KEY, "region", REGION, "endpoint", ENDPOINT);
 
 		return rcloneConfig;
 	}
@@ -85,16 +86,10 @@ public class MinioStorageEngine extends AbstractRCloneStorageEngine {
 		return StorageTypeEnum.MINIO;
 	}
 
-	
-	
-	
-	
-	
-	
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////
-	
+
 //	public static void main(String[] args) throws Exception {
 //		// docker run -p 9000:9000 -p 9001:9001 quay.io/minio/minio server /data --console-address ":9001"
 //		// download rclone https://rclone.org/downloads/

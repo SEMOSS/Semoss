@@ -29,6 +29,8 @@ package prerna.reactor.insights.fs;
 
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
 
@@ -50,7 +52,7 @@ public class SaveInsightAssetsReactor extends AbstractSaveInsightAssetsReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Save a single or multiple files in the insight assets folder. Content is provided within <encode></encode> blocks.";
+		return "Saves one or more files to the insight assets folder and commits them to the insight's git repository.";
 	}
 
 	@Override
@@ -58,11 +60,23 @@ public class SaveInsightAssetsReactor extends AbstractSaveInsightAssetsReactor {
 		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "Names of the file(s) to save";
 		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "Contents of the file(s) to save. Content is provided within <encode></encode> blocks.";
+			return """
+					Contents of the file(s) to save. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the insight";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CONTENT.getKey()).put("description",
+				"Contents of the file(s) to save.");
+		return properties;
 	}
 
 }

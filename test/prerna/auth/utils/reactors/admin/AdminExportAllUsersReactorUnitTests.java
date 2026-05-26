@@ -60,6 +60,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminExportAllUsersReactorUnitTests {
@@ -152,13 +153,14 @@ public class AdminExportAllUsersReactorUnitTests {
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class)) {
+				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			WrapperManager wmInstance = mock(WrapperManager.class);
@@ -180,13 +182,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))
@@ -216,13 +219,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))
@@ -248,13 +252,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))
@@ -281,13 +286,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			// Capture the prefixName argument to verify it defaults to "All_Users"
@@ -315,13 +321,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))
@@ -348,13 +355,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))
@@ -380,13 +388,14 @@ public class AdminExportAllUsersReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
 				MockedStatic<WrapperManager> wm = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class)) {
+				MockedStatic<AbstractExportTxtReactor> aet = Mockito.mockStatic(AbstractExportTxtReactor.class);
+				MockedStatic<SystemEngineRegistry> ser = Mockito.mockStatic(SystemEngineRegistry.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
 			IRDBMSEngine db = mock(IRDBMSEngine.class);
-			util.when(() -> Utility.getDatabase(Constants.SECURITY_DB)).thenReturn(db);
+			ser.when(() -> SystemEngineRegistry.getSecurityDb()).thenReturn(db);
 			util.when(() -> Utility.normalizePath(any(String.class))).thenAnswer(inv -> inv.getArgument(0));
 
 			aet.when(() -> AbstractExportTxtReactor.getExportFileName(any(), any(), any()))

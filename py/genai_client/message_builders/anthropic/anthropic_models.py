@@ -9,15 +9,20 @@ class AnthropicRoles(StringEnum):
     ASSISTANT = "assistant"
 
 
-class AnthropicImageType(StringEnum):
+class AnthropicMediaType(StringEnum):
     URL = "url"
     BASE64 = "base64"
 
 
 class AnthropicMediaSourceBase64(BaseModel):
-    type: AnthropicImageType = AnthropicImageType.BASE64
+    type: AnthropicMediaType = AnthropicMediaType.BASE64
     media_type: str
     data: str
+
+
+class AnthropicURLMediaSource(BaseModel):
+    type: AnthropicMediaType = AnthropicMediaType.URL
+    url: str
 
 
 class AnthropicImageContentPart(BaseModel):
@@ -62,6 +67,17 @@ class AnthropicToolResultContentPart(BaseModel):
     content: str
 
 
+# Result block for Anthropic server-side tools (web_search,
+# code_execution, ...). Lives inside the assistant turn (unlike the regular
+# tool_result block, which only belongs in user turns). The `type` is
+# provider-specific (e.g. "web_search_tool_result") and the content is a
+# structured list of result entries rather than an opaque string.
+class AnthropicServerToolResultContentPart(BaseModel):
+    type: str
+    tool_use_id: str
+    content: Union[List[Dict[str, Any]], Dict[str, Any], str]
+
+
 # FOR CALLING TOOLS
 class AnthropicToolCall(BaseModel):
     name: str
@@ -75,9 +91,14 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheControl(BaseModel):
+    type: str = "ephemeral"
+
+
 class AnthropicTextContentPart(BaseModel):
     type: str = "text"
     text: str
+    cache_control: Optional[AnthropicCacheControl] = None
 
 
 class AnthropicMessage(BaseModel):
@@ -89,6 +110,7 @@ class AnthropicMessage(BaseModel):
                 AnthropicTextContentPart,
                 AnthropicImageContentPart,
                 AnthropicToolUseContentPart,
+                AnthropicServerToolResultContentPart,
                 AnthropicToolResultContentPart,
                 AnthropicThinkingContentPart,
                 AnthropicDocumentContentPart,
@@ -101,7 +123,8 @@ class AnthropicRequestConfig(BaseModel):
     model: str
     messages: List[Dict[str, Any]]
     betas: Optional[List[str]] = None
-    system: Optional[str] = None
+    system: Optional[Union[str, List[Dict[str, Any]]]] = None
+    cache_control: Optional[Dict[str, Any]] = None
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None

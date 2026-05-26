@@ -56,6 +56,9 @@ import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
+import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
+import prerna.reactor.model.LLMReactor;
+import prerna.reactor.qs.SqlQueryBase64Reactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
@@ -97,6 +100,13 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             	VectorDatabaseQueryReactor.class,
             	RemoveDocumentFromVectorDatabaseReactor.class,
             	VectorFileDownloadReactor.class
+            )));
+        put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
+            	GetDatabaseTableStructureReactor.class,
+            	SqlQueryBase64Reactor.class
+            )));
+        put(IEngine.CATALOG_TYPE.MODEL, new ArrayList<>(Arrays.asList(
+            	LLMReactor.class
             )));
 		}
 	};
@@ -175,6 +185,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				JSONObject engineObj = properties.getJSONObject(paramName);
 				if (engineObj != null) {
 					engineObj.put("enum", new JSONArray().put(engineId));
+					engineObj.put("default", engineId);
 				}
 			} catch (Exception e) {
 				throw new IllegalArgumentException(
@@ -192,7 +203,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			// Parse for specific known keys
 
 			// execution mode
-			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "ask");
+			String execModeInput = (String) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_EXECUTION, "auto");
 			MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
 			if (execModeEnum == null && !execModeInput.isBlank()) {
 				throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + "can only be a value of: "
@@ -201,10 +212,10 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			if (execModeEnum != null) {
 				meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
 			} else {
-				// default to ASK
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.ASK.getValue());
+				// default to AUTO
+				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 				if (execModeInput != null) {
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'ask'.",
+					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'auto'.",
 							execModeInput, reactorNames.get(i));
 				}
 			}
@@ -290,12 +301,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(eType, engineId, engineName);
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakeEngineMCP executed";
+			comment = "add: configured Engine MCP tool";
 		}
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

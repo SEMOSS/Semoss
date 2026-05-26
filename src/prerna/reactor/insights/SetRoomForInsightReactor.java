@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -73,19 +72,13 @@ public class SetRoomForInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Room not found");
 		}
 
-		// Push files in the room if any
-		boolean hasFiles = RoomUtils.hasFiles(room);
-		if (hasFiles) {
-			ClusterUtil.pushRoom(room.getId());
-		}
-
 		this.insight.setRoomForInsight(room);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Set the room for the insight. This will sync the insight folder structure to that of the room";
+		return "Set the room for the insight. File system operations on the insight will now alter/show the room files";
 	}
 
 }
