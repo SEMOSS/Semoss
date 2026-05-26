@@ -115,7 +115,6 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
-	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
 	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
 
 	/**
@@ -252,8 +251,6 @@ public class Room {
 
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
-
-		applyImageModelParams(kwArgMap);
 
 		applyTextModelParams(kwArgMap);
 
@@ -460,14 +457,14 @@ public class Room {
 		if (toolResultsMessage == null) {
 			isToolResultsInputMessage = true;
 			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
-					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)
+					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 					.withModelType(modelEngine.getModelType()).build();
 			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 			toolResultsMessage.setModel(modelEngine);
 			toolResultsMessage.setVisibile(false);
 		} else {
-			toolResultsMessage.addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)));
+			toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+					toolExecutionResponse, toolParameterValues, toolStatus, false)));
 			toolResultsMessage.normalizeForWrite();
 		}
 
@@ -670,39 +667,14 @@ public class Room {
 	}
 
 	/**
-	 * Pulls room-option values into the model invocation kwarg map for the keys
-	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
-	 * {@code kwArgMap} are preserved so per-message overrides always win over
-	 * room-level defaults.
+	 * Appends text gen model specific parameters from room options into the
+	 * provided model.
 	 * 
-	 * Param list:
-	 * <ul>
-	 * <li>imageHeight: height of the image in pixels to generate
-	 * <li>imageWidth: width of the image in pixels to generate
-	 * <li>seed: number to control randomness of each generation
-	 * </ul>
-	 *
-	 * @param kwArgMap mutable model parameter map
+	 * @param kwArgMap
 	 */
-	private void applyImageModelParams(Map<String, Object> kwArgMap) {
-		Map<String, Object> options = getOptionsMap();
-		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
-		if (options == null || options.isEmpty() || !isImageModel) {
-			return;
-		}
-
-		for (String key : IMAGE_MODEL_PARAM_KEYS) {
-			Object val = options.get(key);
-			if (val != null) {
-				kwArgMap.putIfAbsent(key, val);
-			}
-		}
-	}
-
 	private void applyTextModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
-		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
-		if (options == null || options.isEmpty() || !isTextModel) {
+		if (options == null || options.isEmpty()) {
 			return;
 		}
 
@@ -769,18 +741,22 @@ public class Room {
 			try {
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
 				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("id")) {
-						String id = (String) mcpMap.get("id");
-						if (!ensureUnique.contains(id)) {
-							aggregated.addAll(getToolJson(id, maxLength));
-							ensureUnique.add(id);
+					try {
+						if (mcpMap.containsKey("id")) {
+							String id = (String) mcpMap.get("id");
+							if (!ensureUnique.contains(id)) {
+								aggregated.addAll(getToolJson(id, maxLength));
+								ensureUnique.add(id);
+							}
+						} else {
+							throw new IllegalArgumentException("Tool map must contain both type and id");
 						}
-					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from room mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from room mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'mcp' value in the options map", e);
 			}
 		}
 
@@ -788,19 +764,23 @@ public class Room {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
-					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
-					for (Map<String, Object> tool : tools) {
-						String toolId = (String) tool.get("resource_id");
-						if (!ensureUnique.contains(toolId)) {
-							aggregated.addAll(getToolJson(toolId, maxLength));
-							ensureUnique.add(toolId);
+					try {
+						String workspaceId = (String) workspace.get("workspace_id");
+						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+						for (Map<String, Object> tool : tools) {
+							String toolId = (String) tool.get("resource_id");
+							if (!ensureUnique.contains(toolId)) {
+								aggregated.addAll(getToolJson(toolId, maxLength));
+								ensureUnique.add(toolId);
+							}
 						}
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from workspace mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from workspace mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'workspace' value in the options map", e);
 			}
 		}
 

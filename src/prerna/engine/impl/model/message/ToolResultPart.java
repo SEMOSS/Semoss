@@ -48,16 +48,20 @@ public class ToolResultPart {
 	@SerializedName(value = "toolStatus", alternate = { "tool_status" })
 	private String toolStatus;
 
+	@SerializedName(value = "serverTool", alternate = { "server_tool" })
+	private Boolean serverTool;
+
 	public ToolResultPart() {
 	}
 
 	public ToolResultPart(String toolCallId, String toolName, String output, Map<String, Object> toolParameterValues,
-			String toolStatus) {
+			String toolStatus, Boolean serverTool) {
 		this.toolCallId = toolCallId;
 		this.toolName = toolName;
 		this.output = output;
 		this.toolParameterValues = toolParameterValues;
 		this.toolStatus = toolStatus;
+		this.serverTool = serverTool;
 	}
 
 	public String getToolCallId() {
@@ -98,5 +102,13 @@ public class ToolResultPart {
 
 	public void setToolStatus(String toolStatus) {
 		this.toolStatus = toolStatus;
+	}
+
+	public Boolean getServerTool() {
+		return serverTool;
+	}
+
+	public void setServerTool(Boolean serverTool) {
+		this.serverTool = serverTool;
 	}
 }
