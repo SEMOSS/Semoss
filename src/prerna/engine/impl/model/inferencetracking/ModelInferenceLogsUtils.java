@@ -2840,7 +2840,7 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector("WORKSPACE_RESOURCE__RESOURCE_SUBTYPE", "resource_subtype"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__WORKSPACE_ID", "==", workspaceId));
-		if (resourceTypes != null && resourceTypes.isEmpty()) {
+		if (resourceTypes != null && !resourceTypes.isEmpty()) {
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("WORKSPACE_RESOURCE__RESOURCE_TYPE", "!=", resourceTypes));
 		}

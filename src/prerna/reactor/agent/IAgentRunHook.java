@@ -40,9 +40,11 @@ package prerna.reactor.agent;
  * after a successful return - all inside the workspace-overlay try-block so
  * hooks see the per-call {@code workspace_id}.
  *
- * <p>If any hook throws, subsequent hooks in the chain are skipped and the
- * exception propagates to the caller. The workspace overlay still restores in
- * a {@code finally} regardless.
+ * <p>{@link #beforeRun} throwing aborts the run and propagates to the caller
+ * (skipping subsequent hooks and the harness). {@link #afterRun} exceptions
+ * are logged and swallowed by the runner so that an observability hook failure
+ * never masks a successful agent result. The workspace overlay still restores
+ * in a {@code finally} regardless.
  *
  * <p>To add a new hook: implement this interface and register it via
  * {@link prerna.reactor.agent.hooks.AgentHookRegistry#register(String, java.util.function.Supplier)}.
@@ -55,6 +57,6 @@ public interface IAgentRunHook extends IAgentHook {
     /** Fires before {@link IAgentHarness#execute(AgentRunContext)}. Throw to abort the run. Default: no-op. */
     default void beforeRun(AgentRunContext ctx) throws Exception {}
 
-    /** Fires after a successful {@link IAgentHarness#execute(AgentRunContext)}, with the produced result. Default: no-op. */
+    /** Fires after a successful {@link IAgentHarness#execute(AgentRunContext)}, with the produced result. Exceptions are logged and swallowed by the runner — see class Javadoc. Default: no-op. */
     default void afterRun(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
 }

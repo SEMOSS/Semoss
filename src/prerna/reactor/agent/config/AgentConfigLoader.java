@@ -129,6 +129,18 @@ public final class AgentConfigLoader {
             }
         }
 
+        if (workspaceId != null && workspaceRow != null) {
+            User user = room.getInsight() != null ? room.getInsight().getUser() : null;
+            if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+                throw new IllegalArgumentException(
+                        "Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+            }
+            Object isActive = workspaceRow.get("is_active");
+            if (Boolean.FALSE.equals(isActive)) {
+                throw new IllegalArgumentException("Workspace is disabled by the owner");
+            }
+        }
+
         // Per-workspace config blob; null means fall back to legacy sources.
         JSONObject cfgJson = loadWorkspaceConfigJson(workspaceId);
 
@@ -205,7 +217,8 @@ public final class AgentConfigLoader {
         if (workspaceId != null) {
             try {
                 List<Map<String, Object>> rows = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-                        workspaceId, Collections.singletonList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+                        workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
+                                AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
                 for (Map<String, Object> row : rows) {
                     Object idObj = row.get("resource_id");
                     if (idObj == null) continue;
@@ -422,15 +435,6 @@ public final class AgentConfigLoader {
         // (b) + (c) need workspace context
         if (workspaceId == null || workspaceRow == null) {
             return null;
-        }
-        User user = room.getInsight() != null ? room.getInsight().getUser() : null;
-        if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-            throw new IllegalArgumentException(
-                    "Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
-        }
-        Object isActive = workspaceRow.get("is_active");
-        if (Boolean.FALSE.equals(isActive)) {
-            throw new IllegalArgumentException("Workspace is disabled by the owner");
         }
         // (b) CONFIG_JSON.system_prompt - new source, preferred
         if (cfgJson != null && cfgJson.has("system_prompt")) {

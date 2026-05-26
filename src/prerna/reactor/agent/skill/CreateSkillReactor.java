@@ -122,6 +122,9 @@ public class CreateSkillReactor extends AbstractReactor {
 			throw new IllegalArgumentException(
 					"name is required: provide a 'name' input, or include 'name' in the SKILL.md frontmatter");
 		}
+		if (name.contains("/") || name.contains("\\") || name.contains("..")) {
+			throw new IllegalArgumentException("Skill name must not contain path separators or '..'");
+		}
 		if (description == null) {
 			throw new IllegalArgumentException(
 					"description is required: provide a 'description' input, "
@@ -145,7 +148,7 @@ public class CreateSkillReactor extends AbstractReactor {
 			ProjectHelper.createSkillProject(skillId, name, /* global */ isPlatform,
 					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
 
-			String assetsFolder = AssetUtility.getProjectAssetsFolder(name, skillId);
+			String assetsFolder = AssetUtility.getProjectAssetsFolder(skillId);
 			File skillDir = new File(assetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
 			if (!skillDir.exists() && !skillDir.mkdirs()) {
 				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());

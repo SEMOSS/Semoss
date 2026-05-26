@@ -124,11 +124,14 @@ public class CloneSkillReactor extends AbstractReactor {
 		String newName = (nameInput != null && !nameInput.isEmpty())
 				? nameInput
 				: "Copy of " + sourceName;
+		if (newName.contains("/") || newName.contains("\\") || newName.contains("..")) {
+			throw new IllegalArgumentException("Skill name must not contain path separators or '..'");
+		}
 		String newSkillId = GUID.v7().toString();
 		String newSlug = Skill.slugify(newName);
 		String createdBy = resolveUserId(user);
 
-		String sourceAssetsFolder = AssetUtility.getProjectAssetsFolder(sourceName, sourceSkillId);
+		String sourceAssetsFolder = AssetUtility.getProjectAssetsFolder(sourceSkillId);
 		Path sourceSkillDir = new File(sourceAssetsFolder, Skill.SKILL_ASSET_SUBFOLDER).toPath();
 		if (!Files.isDirectory(sourceSkillDir)) {
 			throw new IllegalStateException(
@@ -140,7 +143,7 @@ public class CloneSkillReactor extends AbstractReactor {
 			ProjectHelper.createSkillProject(newSkillId, newName, /* global */ false,
 					/* gitProvider */ null, /* gitCloneUrl */ null, user, classLogger);
 
-			String newAssetsFolder = AssetUtility.getProjectAssetsFolder(newName, newSkillId);
+			String newAssetsFolder = AssetUtility.getProjectAssetsFolder(newSkillId);
 			File newSkillDir = new File(newAssetsFolder, Skill.SKILL_ASSET_SUBFOLDER);
 			if (!newSkillDir.exists() && !newSkillDir.mkdirs()) {
 				throw new IllegalStateException(

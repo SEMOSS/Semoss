@@ -47,6 +47,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
@@ -83,6 +84,12 @@ public final class AgentSubAgentRegistry {
 
     // rootJobId -> spawn policy + remaining-budget counter shared by the whole tree.
     private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
+
+    // childJobId -> root context snapshot for that child's tree. Populated on spawn so
+    // that descendants can find the shared budget counter even after the root harness has
+    // called unregisterRoot (e.g. "spawn now, wait later" flows where the root run returns
+    // before all children finish their own spawning).
+    private final Map<String, RootSpawnContext> rootCtxByChildJobId = new ConcurrentHashMap<>();
 
     // childJobId -> pending child-to-parent clarification. This is runtime-only
     // coordination for AskParent; nothing here is persisted to room options/history.
@@ -209,6 +216,14 @@ public final class AgentSubAgentRegistry {
                     "Missing root spawn context for subagent tree parentJobId=" + req.parentJobId);
         }
 
+        // Pixel-initiated spawns (parentMeta == null) bypass SemossAgentHarness and never
+        // call registerRoot. Auto-register defaults keyed by the caller's job ID so
+        // maxSubagentsPerRun is tracked for these callers too.
+        if (rootCtx == null && req.parentJobId != null && !req.parentJobId.isBlank()) {
+            registerRoot(req.parentJobId, policy);
+            rootCtx = lookupRootContextForJob(req.parentJobId);
+        }
+
         if (childDepth > policy.getMaxSubagentDepth()) {
             logger.warn(
                 "AgentSubAgentRegistry: spawn REJECTED — childDepth={} > maxSubagentDepth={} (parentJobId={})",
@@ -305,6 +320,9 @@ public final class AgentSubAgentRegistry {
         String harnessType = (req.harnessType != null && !req.harnessType.trim().isEmpty())
                 ? req.harnessType.trim()
                 : DEFAULT_HARNESS_TYPE;
+        if (AgentHarnessRegistry.get(harnessType) == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + harnessType);
+        }
         StringBuilder pixel = new StringBuilder();
         pixel.append("RunAgent(roomId='").append(escapeSingle(childRoomId)).append("'")
              .append(", command='<encode>").append(encodedPrompt).append("</encode>'")
@@ -337,6 +355,9 @@ public final class AgentSubAgentRegistry {
                 childJobId, req.parentJobId, req.alias, req.workspaceId, childRoomId,
                 System.currentTimeMillis(), childDepth);
         byJobId.put(childJobId, meta);
+        if (rootCtx != null) {
+            rootCtxByChildJobId.put(childJobId, rootCtx);
+        }
         if (req.parentJobId != null && !req.parentJobId.isBlank()) {
             childrenByParent
                     .computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
@@ -373,6 +394,7 @@ public final class AgentSubAgentRegistry {
         } catch (RuntimeException | Error e) {
             if (!childStarted && childJobIdForCleanup != null) {
                 byJobId.remove(childJobIdForCleanup);
+                rootCtxByChildJobId.remove(childJobIdForCleanup);
                 cleanupClarification(childJobIdForCleanup);
                 removeChildLink(req.parentJobId, childJobIdForCleanup);
             }
@@ -441,7 +463,7 @@ public final class AgentSubAgentRegistry {
     }
 
     private static String escapeSingle(String s) {
-        return s == null ? "" : s.replace("'", "\\'");
+        return s == null ? "" : s.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     // Root spawn-policy registry — called by the harness at run boundaries.
@@ -564,6 +586,9 @@ public final class AgentSubAgentRegistry {
         envelope.put("stream_type", "subagent-completed");
         envelope.put("data", data);
         PixelJobManager.getManager().addStreamOut(meta.getParentJobId(), envelope);
+        byJobId.remove(childJobId);
+        rootCtxByChildJobId.remove(childJobId);
+        removeChildLink(meta.getParentJobId(), childJobId);
     }
 
     /** Returns 0 for any jobId that has no recorded parent (root, or unregistered spawn). */
@@ -585,6 +610,10 @@ public final class AgentSubAgentRegistry {
         while (cursor != null && !cursor.isBlank()) {
             RootSpawnContext direct = rootContextByJobId.get(cursor);
             if (direct != null) return direct;
+            // Child-to-root snapshot: persists after the root harness calls unregisterRoot,
+            // so deferred spawns from still-running children resolve the shared budget.
+            RootSpawnContext snapshot = rootCtxByChildJobId.get(cursor);
+            if (snapshot != null) return snapshot;
             SubAgentMeta m = byJobId.get(cursor);
             if (m == null) return null;            // cursor is a root with no registered context
             cursor = m.getParentJobId();

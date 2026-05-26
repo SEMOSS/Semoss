@@ -36,8 +36,12 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.AgentHarnessRegistry;
+import prerna.reactor.agent.AgentRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -108,6 +112,16 @@ public class SpawnSubAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException(
                     "SpawnSubAgent requires roomId, either as a parameter or via the calling insight's current room");
         }
+        if (workspaceId != null) {
+            User user = this.insight != null ? this.insight.getUser() : null;
+            if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+                throw new IllegalArgumentException(
+                        "Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+            }
+        }
+        if (harnessType != null && AgentHarnessRegistry.get(harnessType) == null) {
+            throw new IllegalArgumentException("Unknown harnessType: " + harnessType);
+        }
 
         SpawnRequest req = new SpawnRequest();
         req.parentJobId       = ThreadStore.getJobId();
@@ -120,12 +134,14 @@ public class SpawnSubAgentReactor extends AbstractReactor {
         req.harnessType       = harnessType;
         req.callerInsight     = this.insight;
         if (inheritParentWorkdir) {
-            // Resolve the parent room's folder. The registry will pass this through
-            // as the child RunAgent's `working_dir` so both agents land in the same
-            // physical directory while still having separate roomIds.
             prerna.engine.impl.model.Room parentRoom =
                     prerna.engine.impl.model.RoomUtils.getOrLoadRoom(roomId, this.insight);
-            req.workingDirOverride = parentRoom.getRoomFolderPath();
+            Object wd = parentRoom.getOptionsMap() != null
+                    ? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
+                    : null;
+            req.workingDirOverride = (wd != null && !String.valueOf(wd).trim().isEmpty())
+                    ? String.valueOf(wd).trim()
+                    : parentRoom.getRoomFolderPath();
         }
 
         SpawnResult result = AgentSubAgentRegistry.getManager().spawn(req);
