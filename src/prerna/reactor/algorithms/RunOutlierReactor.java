@@ -49,25 +49,25 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunOutlierReactor extends AbstractFrameReactor {
-	
+
 	private static final String CLASS_NAME = RunOutlierReactor.class.getName();
 
 	private static final String NUMRUNS_KEY = "numRuns";
 	private static final String SUBSETSIZE_KEY = "subsetSize";
-	
+
 	private static Random random = new Random();
 	private Map<String, DuplicationReconciliation> dups;
-	
+
 	/**
-	 * RunOutlier(instance = column, subsetSize = [numSubsetSize], numRuns = [numRuns], columns = attributeNamesList);
-	 */ 
-	
+	 * RunOutlier(instance = column, subsetSize = [numSubsetSize], numRuns =
+	 * [numRuns], columns = attributeNamesList);
+	 */
+
 	public RunOutlierReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), SUBSETSIZE_KEY, NUMRUNS_KEY, ReactorKeysEnum.ATTRIBUTES.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), SUBSETSIZE_KEY, NUMRUNS_KEY,
+				ReactorKeysEnum.ATTRIBUTES.getKey() };
 	}
 
 	@Override
@@ -75,7 +75,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
-		
+
 		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
 		// get inputs -> assume runOutlier(FRAME_COL, numSubsetSize, numRuns,
 		// [FRAME_COL1, ... , FRAME_COLN])
@@ -86,7 +86,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		int numRuns = getNumRuns();
 		String instanceColumn = getInstanceCol();
 		List<String> attributeNamesList = getAttributeNames(instanceColumn);
-		String[] attributeNames = attributeNamesList.toArray(new String[]{});
+		String[] attributeNames = attributeNamesList.toArray(new String[] {});
 		int numAttributes = attributeNames.length;
 		int instanceIndex = attributeNamesList.indexOf(instanceColumn);
 
@@ -107,8 +107,9 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		if (dups == null) {
 			dups = new HashMap<String, DuplicationReconciliation>();
 			for (int i = 0; i < numAttributes; i++) {
-				if (isNumeric[i])
+				if (isNumeric[i]) {
 					dups.put(attributeNamesList.get(i), new DuplicationReconciliation(ReconciliationMode.MEAN));
+				}
 			}
 		}
 
@@ -153,7 +154,8 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 						if (subsetInstance.get(0)[instanceIndex].equals(instance.get(0)[instanceIndex])) {
 							continue;
 						}
-						double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric, attributeNames, dups);
+						double sim = InstanceSimilarity.getInstanceSimilarity(instance, subsetInstance, isNumeric,
+								attributeNames, dups);
 						if (maxSim < sim) {
 							maxSim = sim;
 						}
@@ -170,12 +172,12 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 					// we dont want the number of runs to increase our value
 					// so we will undo it
 					oldVal *= k;
-					double newVal = (oldVal + dissimarityValue) / (k+1);
+					double newVal = (oldVal + dissimarityValue) / (k + 1);
 					results.put(instanceName, newVal);
 				}
-				
+
 				// logging
-				if(counter % 100 == 0) {
+				if (counter % 100 == 0) {
 					Configurator.setLevel(logger.getName(), Level.INFO);
 					logger.info("Finished execution for run number = " + k + ", unique instance number = " + counter);
 					Configurator.setLevel(logger.getName(), Level.OFF);
@@ -194,29 +196,20 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, instanceColumn, newColName, "NUMBER", results);
 
-		// track GA data
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Outlier");
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				dataFrame, 
-				"OutliersAlgorithm", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
-	//////////////////////Input Methods///////////////////////////
+	////////////////////// Input Methods///////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 
 	private List<String> getAttributeNames(String instanceColumn) {
 		List<String> retList = new ArrayList<String>();
 		retList.add(instanceColumn); // always add instance column to attribute list at index 0
-		
+
 		// check if attributeList was entered with key or not
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[3]);
 		if (columnGrs != null) {
@@ -294,7 +287,7 @@ public class RunOutlierReactor extends AbstractFrameReactor {
 		}
 		return subsetSize;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override

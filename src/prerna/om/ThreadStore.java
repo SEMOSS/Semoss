@@ -85,11 +85,11 @@ public class ThreadStore {
 		Map<String, Object> map = getThreadMap();
 		map.put("jobId", jobId);
 	}
-	
+
 	public static Boolean isSchedulerMode() {
 		return (Boolean) getThreadMap().get("scheduler");
 	}
-	
+
 	public static void setSchedulerMode(Boolean scheduler) {
 		Map<String, Object> map = getThreadMap();
 		map.put("scheduler", scheduler);
@@ -106,6 +106,59 @@ public class ThreadStore {
 
 	public static User getUser() {
 		return (User) getThreadMap().get("user");
+	}
+
+	public static void setLocalHostname(String localhostname) {
+		Map<String, Object> map = getThreadMap();
+		map.put("localhostname", localhostname);
+	}
+
+	public static String getLocalHostname() {
+		return (String) getThreadMap().get("localhostname");
+	}
+
+	public static void setLocalProtocol(String localprotocol) {
+		Map<String, Object> map = getThreadMap();
+		map.put("localprotocol", localprotocol);
+	}
+
+	public static String getLocalProtocol() {
+		return (String) getThreadMap().get("localprotocol");
+	}
+
+	public static void setLocalPort(Integer localport) {
+		Map<String, Object> map = getThreadMap();
+		map.put("localport", localport);
+	}
+
+	public static Integer getLocalPort() {
+		return (Integer) getThreadMap().get("localport");
+	}
+
+	public static void setContextProjectIdOverride(String projectId) {
+		getThreadMap().put("contextProjectId", projectId);
+	}
+
+	public static String getContextProjectIdOverride() {
+		Map<String, Object> map = CURRENT.get();
+		return map != null ? (String) map.get("contextProjectId") : null;
+	}
+
+	public static void setContextProjectNameOverride(String projectName) {
+		getThreadMap().put("contextProjectName", projectName);
+	}
+
+	public static String getContextProjectNameOverride() {
+		Map<String, Object> map = CURRENT.get();
+		return map != null ? (String) map.get("contextProjectName") : null;
+	}
+
+	public static void clearContextProjectOverride() {
+		Map<String, Object> map = CURRENT.get();
+		if (map != null) {
+			map.remove("contextProjectId");
+			map.remove("contextProjectName");
+		}
 	}
 
 	public static void remove() {

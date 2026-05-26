@@ -56,14 +56,22 @@ public class MakePythonMCPReactor extends AbstractReactor {
 	public MakePythonMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
 				ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		// get the canonical key
 		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
+		if (engineId == null || engineId.isEmpty()) {
+			engineId = insight.getContextProjectId();
+			if (engineId == null || engineId.isEmpty()) {
+				engineId = insight.getProjectId();
+			}
+		}
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must provide the engine/project id or set the app context");
+		}
 
 		// get engine
 		IEngine engine = null;
@@ -181,7 +189,7 @@ public class MakePythonMCPReactor extends AbstractReactor {
 
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakePythonMCP executed";
+			comment = "add: configured Python MCP tool";
 		}
 
 		// add file to git

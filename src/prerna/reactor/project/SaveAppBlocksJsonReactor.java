@@ -29,6 +29,8 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +39,10 @@ import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -53,8 +59,17 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
+import prerna.util.gson.LocalDateTimeAdapter;
+import prerna.util.gson.ZonedDateTimeAdapter;
 
 public class SaveAppBlocksJsonReactor extends AbstractReactor {
+
+	protected static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
+			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter())
+			// we want pretty printing so git diff is readable
+			.setPrettyPrinting().create();
 
 	private static final Logger classLogger = LogManager.getLogger(SaveAppBlocksJsonReactor.class);
 
@@ -90,9 +105,6 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		}
 
 		String comment = this.keyValue.get(this.keysToGet[2]);
-		if (comment != null && !comment.isEmpty()) {
-			comment = Utility.decodeURIComponent(comment);
-		}
 
 		IProject project = Utility.getProject(projectId);
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
@@ -141,11 +153,14 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 				return (Map<String, Object>) mapInputs.get(0).getValue();
 			}
 
-			List<NounMetadata> encodedStrGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
-			if (encodedStrGrs != null && !encodedStrGrs.isEmpty()) {
-				String encodedStr = (String) encodedStrGrs.get(0).getValue();
-				String mapStr = Utility.decodeURIComponent(encodedStr);
-				return GSON.fromJson(mapStr, Map.class);
+			List<NounMetadata> strGrs = mapGrs.getNounsOfType(PixelDataType.CONST_STRING);
+			if (strGrs != null && !strGrs.isEmpty()) {
+				String jsonStr = (String) strGrs.get(0).getValue();
+
+				// validate this is actually JSON
+				GsonUtility.validateJsonString(jsonStr);
+
+				return GSON.fromJson(jsonStr, Map.class);
 			}
 		}
 		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);

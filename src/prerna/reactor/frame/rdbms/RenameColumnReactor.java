@@ -46,7 +46,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class RenameColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(RenameColumnReactor.class);
 
 	@Override
@@ -80,16 +80,17 @@ public class RenameColumnReactor extends AbstractFrameReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		ModifyHeaderNounMetadata metaNoun = new ModifyHeaderNounMetadata(frame.getName(), originalColName, newColName);
 		retNoun.addAdditionalReturn(metaNoun);
-		
+
 		// also modify the frame filters
 		Map<String, String> modMap = new HashMap<String, String>();
 		modMap.put(originalColName, newColName);
 		frame.setFrameFilters(QSRenameColumnConverter.convertGenRowFilters(frame.getFrameFilters(), modMap, false));
-		
+
 		// return the output
 		return retNoun;
 	}

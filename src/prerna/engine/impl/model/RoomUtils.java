@@ -28,14 +28,25 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -45,52 +56,66 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MediaMessagePart;
+import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageType;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * Utility methods for fetching and managing Room objects. -
- * createRoomIfNotExists: creates (if needed) and returns a Room -
- * getOrLoadRoom: looks up or loads room to memory hash, but never creates a
- * Room
+ * Utility methods for creating, loading, migrating, and querying {@link Room}
+ * instances.
+ * <p>
+ * This class centralizes room lifecycle concerns including:
+ * <ul>
+ * <li>conditional room creation in persistence</li>
+ * <li>loading from user cache and database</li>
+ * <li>legacy message backfill and schema upgrade</li>
+ * <li>message paging helpers</li>
+ * <li>room-folder file presence checks</li>
+ * </ul>
  */
 public final class RoomUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(RoomUtils.class);
 
 	/**
-	 * Overload create room
-	 * 
-	 * @param roomId
-	 * @param insight
-	 * @param modelEngine
-	 * @param question
+	 * Convenience overload that creates/loads a room with default optional values.
+	 *
+	 * @param roomId      requested room id; when null/blank the insight id is used
+	 * @param insight     active insight context
+	 * @param modelEngine model engine associated with the room
+	 * @param question    initial user question used for default room naming
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine,
 			String question) {
-		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null);
+		return createRoomIfNotExists(roomId, insight, modelEngine, question, null, null, null, null, null);
 	}
 
 	/**
 	 * Ensures a Room exists: creates it if necessary, then loads it for the given
 	 * user/insight.
-	 * 
-	 * @param roomId
-	 * @param insight
-	 * @param modelEngine
-	 * @param question
-	 * @param workspaceId
-	 * @param options
-	 * @param context
+	 *
+	 * @param roomId       requested room id; when null/blank the insight id is used
+	 * @param insight      active insight context
+	 * @param modelEngine  model engine associated with the room (optional)
+	 * @param question     initial user question used for default room naming
+	 * @param workspaceId  optional workspace id to associate with the room
+	 * @param options      optional room options payload
+	 * @param context      optional room context/system prompt
+	 * @param projectId    optional project id override
+	 * @param parentRoomId optional parent room id for sub-conversations
 	 * @return the existing or newly created Room
 	 */
 	public static Room createRoomIfNotExists(String roomId, Insight insight, IModelEngine modelEngine, String question,
-			String workspaceId, Map<String, Object> options, String context, String projectId) {
+			String workspaceId, Map<String, Object> options, String context, String projectId, String parentRoomId) {
 		// Use the passed roomId or fallback to the insightId if null/empty
 		if (roomId == null || roomId.trim().isEmpty()) {
 			roomId = insight.getInsightId();
@@ -115,16 +140,17 @@ public final class RoomUtils {
 				projectId = insight.getProjectId();
 			}
 			String projectName = null;
-			if (projectId != null) {
+			// ignore playground project id
+			if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
 				IProject project = Utility.getProject(projectId);
 				projectName = project != null ? project.getProjectName() : null;
 			}
 			String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
 			// @formatter:off
             ModelInferenceLogsUtils.doCreateNewConversation(
-            		insight.getInsightId(), 
+            		insight.getInsightId(),
                     roomId,
-                    roomName, 
+                    roomName,
                     context,
                     userToken.getId(),
                     userName,
@@ -135,7 +161,8 @@ public final class RoomUtils {
                     projectId,
                     projectName,
                     workspaceId,
-                    options
+                    options,
+                    parentRoomId
             );
     		// @formatter:on
 
@@ -149,22 +176,23 @@ public final class RoomUtils {
 
 	/**
 	 * Loads a Room from user room hash or database if present.
-	 * 
+	 *
+	 * @param roomId  room identifier
+	 * @param insight active insight context (contains user cache and user id)
+	 * @return loaded room with normalized message state
 	 * @throws IllegalArgumentException if Room does not exist.
 	 */
 	public static Room getOrLoadRoom(String roomId, Insight insight) {
 		Room room;
 		// Check in user's cache (roomHash)
-		if (insight.getUser().roomHash.containsKey(roomId)) {
+		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
-				room = (Room) insight.getUser().roomHash.get(roomId);
-				// is the message json null? if so then this is probably a legacy room
-				if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-					RoomUtils.updateRoom(room, insight);
-				}
+				room = (Room) insight.getUser().getRoomHash().get(roomId);
+				ensureRoomMessagesUpToDate(room, insight);
+				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
 			} catch (ClassCastException e) {
-				insight.getUser().roomHash.remove(roomId); // Clear corrupted cache entry
+				insight.getUser().getRoomHash().remove(roomId); // Clear corrupted cache entry
 			}
 		}
 		// else it may be in the DB
@@ -177,16 +205,14 @@ public final class RoomUtils {
 			throw new IllegalArgumentException("Room is not valid for this user");
 		}
 
-		// is the message json null? if so then this is probably a legacy room
-		if (room.getMessageJson() == null || room.getMessageJson().trim().isEmpty()) {
-			RoomUtils.updateRoom(room, insight);
-		}
+		ensureRoomMessagesUpToDate(room, insight);
 
 		// TODO: do we need this?
 		List<AbstractMessage> messages = room.getMessages();
-		if (messages.size() > 0) {
+		if (!messages.isEmpty()) {
 			// if the message id in room table does not match message ids in message table,
-			// probably needs migration
+			// probably needs migration - this is only if we never have had a message with a
+			// message_json yet!
 			boolean migratedMessageIds = ModelInferenceLogsUtils.doCheckMessageIdMigration(roomId,
 					messages.get(0).getMessageId());
 			if (!migratedMessageIds) {
@@ -198,11 +224,103 @@ public final class RoomUtils {
 		}
 
 		room.setInsight(insight);
-		room.parseMessages();
-		insight.getUser().roomHash.put(roomId, room);
+		insight.getUser().getRoomHash().put(roomId, room);
+		symlinkRoomFolderIfNeeded(room, insight);
 		return room;
 	}
 
+	/**
+	 * Message normalization lifecycle on room load: 1) If ROOM.MESSAGES is empty,
+	 * treat as legacy and backfill from MESSAGE rows. 2) Otherwise ensure in-memory
+	 * messages are parsed (cached safety-net case). 3) Run schema upgrade checks
+	 * and persist only when content actually changes.
+	 * <p>
+	 * Both cache-hit and DB-load paths call this method so legacy migration and
+	 * schema upgrades are defined in one place. Ensures room messages are loaded
+	 * and upgraded to the latest persisted schema (including pre-message_json
+	 * legacy rooms).
+	 *
+	 * @param room    room to normalize
+	 * @param insight insight context used for persistence/user checks
+	 */
+	private static void ensureRoomMessagesUpToDate(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String json = room.getMessageJson();
+		if (json == null || json.trim().isEmpty()) {
+			updateRoom(room, insight);
+			return;
+		}
+		// Messages should already be parsed by Room constructor. This is a safety net
+		// for any cached legacy/corrupted objects.
+		if (room.getMessages().isEmpty() && !"[]".equals(json.trim())) {
+			room.parseMessages();
+		}
+		upgradeRoomMessagesIfNeeded(room, insight);
+	}
+
+	/**
+	 * Ensures the room folder is symlinked into the user's chroot environment. This
+	 * is needed when an existing room is loaded after re-login, since the chroot
+	 * jail is destroyed on logout and recreated on the new session.
+	 *
+	 * @param room    room containing folder path information
+	 * @param insight insight context containing user symlink helper
+	 */
+	private static void symlinkRoomFolderIfNeeded(Room room, Insight insight) {
+		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			return;
+		}
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String roomFolderPath = room.getRoomFolderPath();
+		if (roomFolderPath == null || roomFolderPath.trim().isEmpty()) {
+			return;
+		}
+		try {
+			Path folderPath = Paths.get(roomFolderPath);
+			Files.createDirectories(folderPath);
+			insight.getUser().getUserSymlinkHelper().symlinkFolder(roomFolderPath);
+		} catch (IOException e) {
+			classLogger.warn("Failed to symlink room folder into chroot: " + roomFolderPath, e);
+		}
+	}
+
+	/**
+	 * Upgrades persisted room messages to the latest message schema when needed and
+	 * persists only if content changes.
+	 *
+	 * @param room    room whose messages should be upgraded
+	 * @param insight insight context used for persistence/user checks
+	 */
+	private static void upgradeRoomMessagesIfNeeded(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
+			return;
+		}
+		String json = room.getMessageJson();
+		boolean jsonMissingSchema = (json != null && !json.contains("\"schemaVersion\""));
+		if (!jsonMissingSchema && !MessageSchemaUpgrader.needsUpgrade(room.getMessages())) {
+			return;
+		}
+
+		boolean changed = MessageSchemaUpgrader.upgradeInPlace(room.getMessages());
+		String upgraded = room.getMessagesAsString();
+		if (!changed && upgraded.equals(json)) {
+			return;
+		}
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
+				upgraded);
+	}
+
+	/**
+	 * Migrates a legacy room (without ROOM.MESSAGES JSON) by rebuilding message
+	 * history from MESSAGE table rows and persisting normalized message JSON.
+	 *
+	 * @param room    room to migrate
+	 * @param insight insight context used for user-scoped retrieval/persistence
+	 */
 	private static void updateRoom(Room room, Insight insight) {
 		List<Map<String, Object>> output = ModelInferenceLogsUtils
 				.doRetrieveConversation(insight.getUser().getPrimaryLoginToken().getId(), room.getId(), "ASC", -1, -1);
@@ -216,17 +334,19 @@ public final class RoomUtils {
 			}
 		}
 
-		// set the messages in the room from string
-		room.setMessagesJson(MessageUtils.toJsonArray(messages));
+		// set and persist the normalized messages in one pass
 		room.setMessages(messages);
-
-		// write the message json to db
+		String messageJson = room.getMessagesAsString();
 		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				MessageUtils.toJsonArray(messages));
+				messageJson);
 	}
 
 	/**
-	 * Gets the room options map
+	 * Retrieves parsed room options for a user-scoped room.
+	 *
+	 * @param roomId room identifier
+	 * @param userId user identifier
+	 * @return room options map, or empty map when no options are stored
 	 */
 	public static Map<String, Object> getRoomOptions(String roomId, String userId) {
 		List<Map<String, Object>> roomOptions = ModelInferenceLogsUtils.getRoomOptions(roomId, userId);
@@ -237,8 +357,11 @@ public final class RoomUtils {
 	}
 
 	/**
-	 * Helper method: converts a single row map to an InputMessage or
-	 * ResponseMessage
+	 * Converts a single legacy MESSAGE-table row to an in-memory room message.
+	 *
+	 * @param room  room context used by message builders
+	 * @param entry legacy MESSAGE row
+	 * @return converted message, or {@code null} for unknown message types
 	 */
 	private static AbstractMessage convertLegacyMessage(Room room, Map<String, Object> entry) {
 		// Read type
@@ -253,8 +376,7 @@ public final class RoomUtils {
 
 		// Switch by type
 		if ("INPUT".equals(type)) {
-			InputMessage im = InputMessage.builder(room).withInputUIPrompt(data).withInputPrompt(data)
-					.withType(MessageType.INPUT_TEXT).build();
+			InputMessage im = InputMessage.builder(room).withText(data).withType(MessageType.INPUT_TEXT).build();
 			im.setDateCreated(dateCreated);
 			im.setModelId(room.getModelId());
 			return im;
@@ -317,6 +439,9 @@ public final class RoomUtils {
 	/**
 	 * Returns true if there are any non-hidden (not starting with .) files under
 	 * the room's folder, recursively.
+	 *
+	 * @param room room whose folder should be scanned
+	 * @return {@code true} when at least one visible file exists
 	 */
 	public static boolean hasFiles(Room room) {
 		if (room == null) {
@@ -330,6 +455,12 @@ public final class RoomUtils {
 		return hasVisibleFilesRecursive(folder);
 	}
 
+	/**
+	 * Recursively checks whether a directory tree contains any non-hidden file.
+	 *
+	 * @param folder folder to scan
+	 * @return {@code true} if any visible file exists beneath {@code folder}
+	 */
 	private static boolean hasVisibleFilesRecursive(File folder) {
 		if (folder == null || !folder.exists() || !folder.isDirectory()) {
 			return false;
@@ -356,33 +487,315 @@ public final class RoomUtils {
 		return false;
 	}
 
-	public static void setInsightFolderToRoom(User user, String roomId, Insight insight) {
-		String userId = user.getPrimaryLoginToken().getId();
+	// ---- Image move utilities ----
 
-		// Check if user is the owner of the active room
-		boolean isOwner = !ModelInferenceLogsUtils.getUserActiveRooms(roomId, userId).isEmpty();
-		if (!isOwner) {
-			throw new IllegalArgumentException("User is not the owner of the active room");
+	/**
+	 * Persists any FILE-based {@link MediaMessagePart} in a message to the room
+	 * folder.
+	 * <p>
+	 * This is used for model-generated media (e.g., Gemini inline images) that
+	 * arrive as base64.
+	 * <p>
+	 * This will also persist to cloud storage.
+	 *
+	 * @param message message to inspect for file-based media parts
+	 * @param room    room context used to resolve destination folder
+	 */
+	public static void persistMediaPartsToRoomFolder(AbstractMessage message, Room room) {
+		if (message == null || room == null || room.getRoomFolderPath() == null) {
+			return;
+		}
+		if (!message.hasMediaPart()) {
+			return;
 		}
 
-		// Load the Room
-		Room room = getOrLoadRoom(roomId, insight);
-		if (room == null) {
-			throw new IllegalArgumentException("Room not found");
-		}
 		String roomFolder = room.getRoomFolderPath();
-
-		// If there are non-hidden files, push them
-		if (hasFiles(room)) {
-			ClusterUtil.pushRoom(room.getId());
+		try {
+			Files.createDirectories(Paths.get(roomFolder));
+		} catch (IOException e) {
+			classLogger.warn("Unable to create room folder: " + roomFolder, e);
+			return;
 		}
 
-		// Set the insight's folder to the room's folder
-		insight.setInsightFolder(roomFolder);
+		boolean pushToCloud = false;
+		for (MessagePart part : message.getParts()) {
+			if (!(part instanceof MediaMessagePart)) {
+				continue;
+			}
+			MessageInputMedia media = ((MediaMessagePart) part).getMediaInfo();
+			if (media == null || media.getMediaInputType() == null) {
+				continue;
+			}
+			if (media.getMediaInputType() != MessageInputMedia.MEDIA_INPUT_TYPE.FILE) {
+				continue;
+			}
+
+			String base64Data = media.getBase64Data();
+			if (base64Data == null || base64Data.isEmpty()) {
+				continue;
+			}
+
+			String fileName = media.getFileName();
+			fileName = MessageInputMedia.extractFileName(fileName);
+			if (fileName == null || fileName.trim().isEmpty()) {
+				String ext = media.getFileFormat();
+				if (ext == null || ext.trim().isEmpty()) {
+					ext = "bin";
+				}
+				fileName = GUID.v7().toUUID().toString() + "." + ext;
+			}
+
+			Path target = Paths.get(roomFolder).resolve(fileName).normalize();
+			if (!target.startsWith(Paths.get(roomFolder))) {
+				classLogger.warn("Skipping unsafe media filename: " + fileName);
+				continue;
+			}
+
+			if (!Files.exists(target)) {
+				try {
+					byte[] bytes = Base64.getDecoder().decode(base64Data);
+					Files.write(target, bytes);
+					// this is meant to be relative to the room
+					media.setFileLocation(fileName);
+					pushToCloud = true;
+				} catch (Exception e) {
+					classLogger.warn("Unable to persist media part to " + target, e);
+					continue;
+				}
+			}
+
+			media.setRoomFolder(roomFolder);
+		}
+		// only at end persist entire room if necessary
+		if (pushToCloud) {
+			ClusterUtil.pushRoomAsync(room.getId());
+		}
 	}
 
-	/*
-	 * Private constructor
+	/**
+	 * Moves files from an insight folder into the room folder.
+	 *
+	 * @param relativePathToFiles paths relative to the insight folder
+	 * @param room                destination room context
+	 * @param insight             source insight context
+	 * @return absolute destination paths for files that were moved
+	 */
+	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
+		List<String> roomFilePaths = new ArrayList<>();
+		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+			classLogger.info("No file paths provided to move.");
+			return roomFilePaths;
+		}
+		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+		Path targetDir = Paths.get(roomFolder);
+		try {
+			Files.createDirectories(targetDir);
+		} catch (IOException e) {
+			classLogger.warn("Failed to create room folder: " + targetDir, e);
+			return roomFilePaths;
+		}
+		for (String relPath : relativePathToFiles) {
+			File srcFile = new File(insightFolder, relPath);
+			if (!srcFile.exists() || !srcFile.isFile()) {
+				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+				continue;
+			}
+			String fileName = srcFile.getName();
+			Path destination = targetDir.resolve(fileName);
+			try {
+				Files.move(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+			} catch (IOException e) {
+				classLogger.warn("Failed to move file: " + srcFile.getAbsolutePath() + " to " + destination, e);
+				continue;
+			}
+			roomFilePaths.add(destination.toString());
+		}
+		return roomFilePaths;
+	}
+
+	/**
+	 * Copies files (or supported base64 data URIs) into the room folder.
+	 *
+	 * @param relativePathToFiles source relative file paths or data URI strings
+	 * @param room                destination room context
+	 * @param insight             source insight context
+	 * @return destination file names for successfully copied/decoded assets
+	 */
+	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
+		List<String> copiedFileNames = new ArrayList<>();
+		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
+			return copiedFileNames;
+		}
+		classLogger.info("Need to copy file paths from the insight to the room");
+		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
+		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
+		Path targetDir = Paths.get(roomFolder);
+		try {
+			Files.createDirectories(targetDir);
+		} catch (IOException e) {
+			classLogger.warn("Failed to create room folder: " + targetDir, e);
+			return copiedFileNames;
+		}
+		for (String relPath : relativePathToFiles) {
+			if (isBase64MediaDataUri(relPath)) {
+				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
+				if (fileName != null) {
+					copiedFileNames.add(fileName);
+				}
+				continue;
+			}
+			File srcFile = new File(insightFolder, relPath);
+			if (!srcFile.exists() || !srcFile.isFile()) {
+				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+				continue;
+			}
+			String fileName = srcFile.getName();
+			Path destination = targetDir.resolve(fileName);
+			try {
+				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
+				copiedFileNames.add(fileName); // only add if copy succeeded
+			} catch (IOException e) {
+				classLogger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
+			}
+		}
+		return copiedFileNames;
+	}
+
+	/**
+	 * Checks whether a value is a supported base64 media data URI.
+	 *
+	 * @param value input string
+	 * @return {@code true} for supported image/pdf data URIs
+	 */
+	public static boolean isBase64MediaDataUri(String value) {
+		if (value == null) {
+			return false;
+		}
+		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
+		String trimmed = value.trim();
+		if (!trimmed.contains(";base64,")) {
+			return false;
+		}
+		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
+	}
+
+	/**
+	 * Decodes a base64 image/pdf data URI and writes it to the target directory.
+	 *
+	 * @param dataUri   media data URI
+	 * @param targetDir destination directory
+	 * @return written file name, or {@code null} on validation/IO/decode failure
+	 */
+	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
+		try {
+			Files.createDirectories(targetDir);
+
+			String trimmed = dataUri.trim();
+			int commaIdx = trimmed.indexOf(',');
+			if (commaIdx < 0) {
+				classLogger.info("Invalid data URI (no comma separator)");
+				return null;
+			}
+
+			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
+			String base64 = trimmed.substring(commaIdx + 1);
+			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			int colonIdx = meta.indexOf(':');
+			int semiIdx = meta.indexOf(';');
+			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
+				classLogger.info("Invalid data URI meta: " + meta);
+				return null;
+			}
+
+			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
+			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
+				classLogger.info("Unsupported data URI mime type: " + mimeType);
+				return null;
+			}
+
+			String ext = extensionFromMimeType(mimeType);
+			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
+
+			// Content-addressed name -- identical bytes dedup to the same file.
+			String fileName = "media_" + sha256Hex(decoded).substring(0, 16) + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+			if (!Files.exists(destination)) {
+				Files.write(destination, decoded);
+			}
+			return fileName;
+		} catch (IllegalArgumentException e) {
+			// base64 decoder throws IllegalArgumentException on bad input
+			classLogger.warn("Failed to decode base64 data URI image", e);
+			return null;
+		} catch (IOException e) {
+			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
+			return null;
+		}
+	}
+
+	private static String sha256Hex(byte[] data) {
+		try {
+			byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+			StringBuilder sb = new StringBuilder(hash.length * 2);
+			for (byte b : hash) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			// SHA-256 is required by the JRE spec; fall back to a UUID if it ever fails.
+			classLogger.warn("SHA-256 unavailable; falling back to random media filename", e);
+			return UUID.randomUUID().toString().replace("-", "");
+		}
+	}
+
+	/**
+	 * Resolves an output file extension from mime type.
+	 *
+	 * @param mimeType mime type string
+	 * @return normalized file extension (without dot)
+	 */
+	private static String extensionFromMimeType(String mimeType) {
+		if ("application/pdf".equals(mimeType)) {
+			return "pdf";
+		}
+		if (mimeType == null || !mimeType.startsWith("image/")) {
+			return "png";
+		}
+		switch (mimeType) {
+		case "image/jpg":
+		case "image/jpeg":
+			return "jpeg";
+		case "image/png":
+			return "png";
+		case "image/gif":
+			return "gif";
+		case "image/webp":
+			return "webp";
+		case "image/bmp":
+			return "bmp";
+		case "image/svg+xml":
+			return "svg";
+		case "image/x-icon":
+		case "image/vnd.microsoft.icon":
+			return "ico";
+		default:
+			String subtype = mimeType.substring("image/".length());
+			int plusIdx = subtype.indexOf('+');
+			if (plusIdx > 0) {
+				subtype = subtype.substring(0, plusIdx);
+			}
+			subtype = subtype.replaceAll("[^a-z0-9]", "");
+			return subtype.isEmpty() ? "png" : subtype;
+		}
+	}
+
+	/**
+	 * Utility class constructor.
 	 */
 	private RoomUtils() {
 

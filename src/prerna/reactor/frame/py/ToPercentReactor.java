@@ -35,8 +35,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToPercentReactor extends AbstractPyFrameReactor {
 
@@ -84,13 +82,6 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		script = wrapperFrameName + ".cache['data']['" + newColName + "'] = " + wrapperFrameName + ".cache['data']['"
 				+ srcCol + "'].apply(lambda row: " + "str(round(row, " + sigDigits + ") * 100) + '%' if " + by100v
 				+ " else " + "str(round(row, " + sigDigits + ") * 1) + '%' )" + ".replace(\'nan%\','null')"; // this
-																												// check
-																												// is
-																												// for
-																												// replacing
-																												// nan%
-																												// with
-																												// null
 
 		// run script
 		// converting to lambda
@@ -115,10 +106,6 @@ public class ToPercentReactor extends AbstractPyFrameReactor {
 		} else {
 			metaData.modifyDataTypeToProperty(frameName + "__" + srcCol, frameName, SemossDataType.STRING.toString());
 		}
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "ToPercent",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// return the output
 		return retNoun;

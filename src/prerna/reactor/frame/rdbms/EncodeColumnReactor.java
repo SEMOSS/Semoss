@@ -44,57 +44,49 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class EncodeColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(EncodeColumnReactor.class);
 
-    @Override
-    public NounMetadata execute() {
+	@Override
+	public NounMetadata execute() {
 
-        organizeKeys();
+		organizeKeys();
 
-        AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
-        Set<String> columnHeaders = Stream.of(frame.getColumnHeaders()).collect(Collectors.toSet());
-        List<String> columns = this.store.nounRow.get("columns").getVector().stream().map(noun -> noun.getValue().toString()).collect(Collectors.toList());
-        if (!columnHeaders.containsAll(columns)) {
-            throw new IllegalArgumentException("One or more columns could not be found: " + columnHeaders.removeAll(columns));
-        }
+		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
+		Set<String> columnHeaders = Stream.of(frame.getColumnHeaders()).collect(Collectors.toSet());
+		List<String> columns = this.store.nounRow.get("columns").getVector().stream()
+				.map(noun -> noun.getValue().toString()).collect(Collectors.toList());
+		if (!columnHeaders.containsAll(columns)) {
+			throw new IllegalArgumentException(
+					"One or more columns could not be found: " + columnHeaders.removeAll(columns));
+		}
 
-        String[] columnsToUpdate = new String[columns.size()];
-        columns.toArray(columnsToUpdate);
+		String[] columnsToUpdate = new String[columns.size()];
+		columns.toArray(columnsToUpdate);
 
-        String frameName = frame.getName();
-        PreparedStatement statement = frame.getBuilder().hashColumn(frameName, columnsToUpdate);
-        try {
-            for (int i = 0; i < columns.size(); i++) {
-                String col = columns.get(i);
-                String query = frame.getQueryUtil().modColumnType(frameName, col, "VARCHAR");
-                frame.getBuilder().runQuery(query);
-            }
-            statement.execute();
-        } catch (Exception e) {
-            classLogger.error(Constants.STACKTRACE, e);
-        }
-        
+		String frameName = frame.getName();
+		PreparedStatement statement = frame.getBuilder().hashColumn(frameName, columnsToUpdate);
+		try {
+			for (int i = 0; i < columns.size(); i++) {
+				String col = columns.get(i);
+				String query = frame.getQueryUtil().modColumnType(frameName, col, "VARCHAR");
+				frame.getBuilder().runQuery(query);
+			}
+			statement.execute();
+		} catch (Exception e) {
+			classLogger.error(Constants.STACKTRACE, e);
+		}
+
 		// upon successful execution
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
-		for(String col : columns) {
+		for (String col : columns) {
 			// set the type for all the columns to be string
 			metadata.modifyDataTypeToProperty(frameName + "__" + col, frameName, SemossDataType.STRING.toString());
 		}
 
-        // NEW TRACKING
-        UserTrackerFactory.getInstance().trackAnalyticsWidget(
-                this.insight,
-                frame,
-                "EncodeColumnReactor",
-                AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
-        NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
-        return noun;
-
-    }
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
+		return noun;
+	}
 }

@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,7 +60,6 @@ import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
-import prerna.util.Constants;
 import prerna.util.FstUtil;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -72,26 +72,32 @@ public class SocketClient implements Runnable, Closeable {
 	int PORT = -1;
 	boolean SSL = false;
 
-	Map<String, PayloadStruct> requestMap = new HashMap<>();
-	Map<String, PayloadStruct> responseMap = new HashMap<>();
-	Map<String, Set<String>> insightToEpoc = new HashMap<>();
-	Set<String> cancelledEpocs = new HashSet<>();
+	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
+	Map<String, PayloadStruct> responseMap = new ConcurrentHashMap<>();
+	Map<String, Set<String>> insightToEpoc = new ConcurrentHashMap<>();
+	Map<String, Set<String>> jobToEpoc = new ConcurrentHashMap<>();
+	Set<String> cancelledEpocs = ConcurrentHashMap.<String>newKeySet();
 
-	boolean ready = false;
-	boolean connected = false;
+	volatile boolean ready = false;
+	volatile boolean connected = false;
 	AtomicInteger count = new AtomicInteger(0);
 	long averageMillis = 200;
-	boolean killAll = false; // use this if the server is dead or it has crashed
+	// use this if the server is dead
+	volatile boolean killAll = false;
 	User user;
 
 	Map<String, String> startMdc = null;
 
 	Socket clientSocket = null;
-	InputStream is = null;
-	OutputStream os = null;
 	SocketClientHandler sch = new SocketClientHandler();
-	Gson gson = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).disableHtmlEscaping()
+
+	volatile InputStream is = null;
+	volatile OutputStream os = null;
+	final Object WRITE_LOCK = new Object();
+
+	Gson gson = new GsonBuilder().disableHtmlEscaping().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.create();
+
 	ClientProcessWrapper cpw = null;
 
 	public SocketClient() {
@@ -123,7 +129,7 @@ public class SocketClient implements Runnable, Closeable {
 			SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 		}
 
-		classLogger.info("Trying with the sleep time of " + SLEEP_TIME);
+		classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 		while (!connected && attempt < 6) // I do an attempt here too hmm..
 		{
 			try {
@@ -150,7 +156,7 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("CLIENT Connection complete !!!!!!!");
+				classLogger.info("Connected to socket server at {}:{}", this.HOST, this.PORT);
 				Thread.sleep(100); // sleep some before executing command
 				// prime it
 				// logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -162,7 +168,7 @@ public class SocketClient implements Runnable, Closeable {
 				}
 			} catch (Exception ex) {
 				attempt++;
-				classLogger.info("Attempting Number " + attempt);
+				classLogger.info("Attempting connection number {}", attempt);
 				// see if sleeping helps ?
 				try {
 					// sleeping only for 1 second here
@@ -175,7 +181,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		if (attempt >= 6) {
-			classLogger.info("CLIENT Connection Failed !!!!!!!");
+			classLogger.error("Failed to connect to socket server at {}:{} after {} attempts", this.HOST, this.PORT, attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
@@ -215,7 +221,7 @@ public class SocketClient implements Runnable, Closeable {
 			if (!ps.response) {
 				requestMap.put(id, ps);
 			}
-			classLogger.info("Outgoing epoc " + ps.epoc);
+			classLogger.info("Outgoing epoc {}", ps.epoc);
 			writePayload(ps);
 			// send the message
 
@@ -235,8 +241,7 @@ public class SocketClient implements Runnable, Closeable {
 						}
 						pollNum++;
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Interrupted while waiting for response to epoc: {}", ps.epoc, e);
 					}
 					/*
 					 * // trigger after 400 milliseconds if(pollNum == 2 && !ps.longRunning) {
@@ -244,7 +249,7 @@ public class SocketClient implements Runnable, Closeable {
 					 */
 				}
 				if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
-					classLogger.info("Timed out for epoc " + ps.epoc + " " + ps.methodName);
+					classLogger.info("Timed out waiting for epoc {} method {}", ps.epoc, ps.methodName);
 
 				}
 			}
@@ -262,9 +267,11 @@ public class SocketClient implements Runnable, Closeable {
 	private void writePayload(PayloadStruct ps) {
 		byte[] psBytes = FstUtil.packBytes(ps);
 		try {
-			os.write(psBytes);
+			synchronized (WRITE_LOCK) {
+				os.write(psBytes);
+			}
 		} catch (IOException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to write payload to socket output stream for epoc: {}", ps.epoc, ex);
 			crash();
 		}
 	}
@@ -286,7 +293,7 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newSingleThreadExecutor();
+				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 				Callable<Boolean> callableTask = () -> {
 					PayloadStruct ps = new PayloadStruct();
@@ -300,14 +307,14 @@ public class SocketClient implements Runnable, Closeable {
 				try {
 					// wait 1 minute at most
 					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = " + result);
+					classLogger.info("Stop PyServe result = {}", result);
 					return result;
 				} catch (TimeoutException e) {
 					classLogger.warn("Not able to release the payload structs within a timely fashion");
 					future.cancel(true);
 					return false;
 				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
 					return false;
 				} finally {
 					executor.shutdown();
@@ -333,20 +340,20 @@ public class SocketClient implements Runnable, Closeable {
 		// run as executor since it is synchronized
 		// and dont want to get stuck if an issue occurs and the notify never happens
 		// we will close and kill process anyway
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
 		Callable<String> callableTask = () -> {
 			try {
 				for (Object k : this.requestMap.keySet()) {
 					PayloadStruct ps = this.requestMap.get(k);
-					classLogger.debug("Releasing <" + k + "> <" + ps.methodName + ">");
+					classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
 					ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
 					synchronized (ps) {
 						ps.notifyAll();
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error releasing pending payload structs during crash", e);
 			}
 			return "Successfully released the payload structs";
 		};
@@ -360,7 +367,7 @@ public class SocketClient implements Runnable, Closeable {
 			classLogger.warn("Not able to release the payload structs within a timely fashion");
 			future.cancel(true);
 		} catch (InterruptedException | ExecutionException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error waiting for crash cleanup to complete", e);
 		} finally {
 			executor.shutdown();
 		}
@@ -381,6 +388,9 @@ public class SocketClient implements Runnable, Closeable {
 		if (this.insightToEpoc != null) {
 			this.insightToEpoc.clear();
 		}
+		if (this.jobToEpoc != null) {
+			this.jobToEpoc.clear();
+		}
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
@@ -394,13 +404,7 @@ public class SocketClient implements Runnable, Closeable {
 	 * @param epoc
 	 */
 	void addEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = null;
-		if (this.insightToEpoc.containsKey(insightId)) {
-			epocs = this.insightToEpoc.get(insightId);
-		} else {
-			epocs = new HashSet<>();
-			this.insightToEpoc.put(insightId, epocs);
-		}
+		Set<String> epocs = this.insightToEpoc.computeIfAbsent(insightId, x -> ConcurrentHashMap.<String>newKeySet());
 		epocs.add(epoc);
 	}
 
@@ -410,7 +414,27 @@ public class SocketClient implements Runnable, Closeable {
 	 * @param epoc
 	 */
 	void removeEpocForInsight(String insightId, String epoc) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
+		if (insightId != null) {
+			Set<String> epocs = this.insightToEpoc.get(insightId);
+			if (epocs != null) {
+				epocs.remove(epoc);
+			}
+		}
+	}
+
+	void addEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = this.jobToEpoc.computeIfAbsent(jobId, x -> ConcurrentHashMap.<String>newKeySet());
+		epocs.add(epoc);
+	}
+
+	void removeEpocForJob(String jobId, String epoc) {
+		if (jobId == null || epoc == null) {
+			return;
+		}
+		Set<String> epocs = this.jobToEpoc.get(jobId);
 		if (epocs != null) {
 			epocs.remove(epoc);
 		}
@@ -418,14 +442,51 @@ public class SocketClient implements Runnable, Closeable {
 
 	/**
 	 * 
-	 * @param jobId
+	 * @param insightId
 	 */
 	public void interruptInsight(String insightId) {
-		Set<String> epocs = this.insightToEpoc.get(insightId);
-		if (epocs != null) {
-			this.cancelledEpocs.addAll(epocs);
+		Set<String> epocs = new HashSet<>();
+		if (insightId != null) {
+			Set<String> insightEpocs = this.insightToEpoc.get(insightId);
+			if (insightEpocs != null) {
+				epocs.addAll(insightEpocs);
+			}
 		}
-		if (epocs != null) {
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Interrupt a specific job execution. If {@code jobId} is null/blank, this will
+	 * interrupt all jobs for the insight.
+	 * 
+	 * @param insightId
+	 * @param jobId
+	 */
+	public void interruptInsightJob(String insightId, String jobId) {
+		if (jobId == null || jobId.isBlank()) {
+			interruptInsight(insightId);
+			return;
+		}
+
+		Set<String> epocs = new HashSet<>();
+		Set<String> jobEpocs = this.jobToEpoc.get(jobId);
+		if (jobEpocs != null) {
+			epocs.addAll(jobEpocs);
+		}
+		interruptEpocs(epocs);
+	}
+
+	/**
+	 * Backward-compatible overload. Prefer
+	 * {@link #interruptInsightJob(String, String)}.
+	 */
+	public void interruptInsight(String insightId, String jobId) {
+		interruptInsightJob(insightId, jobId);
+	}
+
+	private void interruptEpocs(Set<String> epocs) {
+		if (!epocs.isEmpty()) {
+			this.cancelledEpocs.addAll(epocs);
 			for (String epoc : epocs) {
 				PayloadStruct lock = this.requestMap.remove(epoc);
 				if (lock != null) {
@@ -446,7 +507,7 @@ public class SocketClient implements Runnable, Closeable {
 			try {
 				closeThis.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing resource in socket client", e);
 			}
 		}
 	}

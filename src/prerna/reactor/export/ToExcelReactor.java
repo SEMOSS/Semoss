@@ -71,7 +71,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class ToExcelReactor extends TaskBuilderReactor {
@@ -79,33 +78,33 @@ public class ToExcelReactor extends TaskBuilderReactor {
 	private static final Logger classLogger = LogManager.getLogger(ToExcelReactor.class);
 
 	private static final String CLASS_NAME = ToExcelReactor.class.getName();
-	
+
 	protected String fileLocation = null;
 	protected Logger logger;
 	protected boolean includeLogo = true;
-	
+
 	public ToExcelReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), 
-				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.PANEL.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.PASSWORD.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		this.logger = getLogger(CLASS_NAME);
 		this.task = getTask();
-		
+
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		
+
 		// get a random file name
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
 		// grab file path to write the file
 		this.fileLocation = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
@@ -114,7 +113,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		if (this.fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
 			File f = new File(insightFolder);
-			if(!f.exists()) {
+			if (!f.exists()) {
 				f.mkdirs();
 			}
 			this.fileLocation = insightFolder + DIR_SEPARATOR + exportName;
@@ -127,7 +126,7 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		try {
 			buildTask();
 		} finally {
-			if(this.task != null) {
+			if (this.task != null) {
 				try {
 					this.task.close();
 				} catch (IOException e) {
@@ -135,16 +134,17 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				}
 			}
 		}
-		// store the insight file 
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 		return retNoun;
 	}
-	
+
 	@Override
 	protected void buildTask() {
 		SXSSFWorkbook workbook = new SXSSFWorkbook(1000);
@@ -154,10 +154,10 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		// get the panel
 		InsightPanel panel = getInsightPanel();
 		Map<String, Map<String, String>> panelFormatting = new HashMap<>();
-		// if panel is passed 
+		// if panel is passed
 		// use that for panel level formatting
 		// and for the sheet name
-		if(panel != null) {
+		if (panel != null) {
 			// panel level formatting
 			panelFormatting = panel.getPanelFormatValues();
 			// sheet name
@@ -173,12 +173,12 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				}
 			}
 		}
-		
+
 		SXSSFSheet sheet = workbook.createSheet(sheetName);
 		sheet.setRandomAccessWindowSize(100);
 		// freeze the first row
 		sheet.createFreezePane(0, 1);
-		
+
 		int i = 0;
 		int size = 0;
 		// create typesArr as an array for faster searching
@@ -186,33 +186,33 @@ public class ToExcelReactor extends TaskBuilderReactor {
 		SemossDataType[] typesArr = null;
 		String[] additionalDataTypeArr = null;
 		CellStyle[] stylingArr = null;
-		
+
 		// style dates
 		CellStyle dateCellStyle = workbook.createCellStyle();
-        dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
-        // style timestamps
-        CellStyle timeStampCellStyle = workbook.createCellStyle();
-        timeStampCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
-        
+		dateCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy"));
+		// style timestamps
+		CellStyle timeStampCellStyle = workbook.createCellStyle();
+		timeStampCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
+
 		// the excel data row
 		Row excelRow = null;
 		int excelRowCounter = 0;
-		
+
 		// we need to iterate and write the headers during the first time
-		if(this.task.hasNext()) {
+		if (this.task.hasNext()) {
 			IHeadersDataRow row = this.task.next();
 			List<Map<String, Object>> headerInfo = this.task.getHeaderInfo();
-			
+
 			// create the header row
-	        Row headerRow = sheet.createRow(excelRowCounter);
+			Row headerRow = sheet.createRow(excelRowCounter);
 			// create a Font for styling header cells
 			Font headerFont = workbook.createFont();
 			headerFont.setBold(true);
 			// create a CellStyle with the font
 			CellStyle headerCellStyle = workbook.createCellStyle();
 			headerCellStyle.setFont(headerFont);
-	        headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
-	        headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+			headerCellStyle.setAlignment(HorizontalAlignment.CENTER);
+			headerCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);
 
 			// generate the header row
 			// and define constants used throughout like size, and types
@@ -222,30 +222,31 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			typesArr = new SemossDataType[size];
 			additionalDataTypeArr = new String[size];
 			stylingArr = new CellStyle[size];
-			for(; i < size; i++) {
+			for (; i < size; i++) {
 				Cell cell = headerRow.createCell(i);
 				cell.setCellValue(headers[i]);
 				cell.setCellStyle(headerCellStyle);
-				
+
 				// grab metadata from iterator
-				if(headerInfo.get(i).containsKey("dataType")) {
+				if (headerInfo.get(i).containsKey("dataType")) {
 					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("dataType").toString());
-				} else if(headerInfo.get(i).containsKey("type")) {
+				} else if (headerInfo.get(i).containsKey("type")) {
 					typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type").toString());
 				} else {
 					typesArr[i] = SemossDataType.STRING;
 				}
-				
+
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i]));
-				} catch(Exception e) {
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i],
+							panelFormatting.get(headers[i]));
+				} catch (Exception e) {
 					// ignore
 				}
-				if(stylingArr[i] == null) {
-					if(typesArr[i] == SemossDataType.DATE) {
+				if (stylingArr[i] == null) {
+					if (typesArr[i] == SemossDataType.DATE) {
 						stylingArr[i] = dateCellStyle;
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						stylingArr[i] = timeStampCellStyle;
 					}
 				}
@@ -255,94 +256,94 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			excelRow = sheet.createRow(++excelRowCounter);
 			Object[] dataRow = row.getValues();
 			i = 0;
-			for(; i < size; i ++) {
+			for (; i < size; i++) {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
-				if(Utility.isNullValue(value)) {
+				if (Utility.isNullValue(value)) {
 					cell.setCellValue("null");
 				} else {
-					if(typesArr[i] == SemossDataType.STRING) {
+					if (typesArr[i] == SemossDataType.STRING) {
 						cell.setCellValue(value + "");
-					} else if(typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						cell.setCellValue( ((Number) value).doubleValue() ) ;
-					} else if(typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
+						cell.setCellValue(((Number) value).doubleValue());
+					} else if (typesArr[i] == SemossDataType.DATE) {
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
-					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
-						cell.setCellValue( (boolean) value);
+					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
+						cell.setCellValue((boolean) value);
 					} else {
 						cell.setCellValue(value + "");
 					}
-					
-					if(stylingArr[i] != null) {
+
+					if (stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
 		}
-		
+
 		// now iterate through all the data
-		while(this.task.hasNext()) {
+		while (this.task.hasNext()) {
 			excelRow = sheet.createRow(++excelRowCounter);
 			IHeadersDataRow row = this.task.next();
 			Object[] dataRow = row.getValues();
 			i = 0;
-			for(; i < size; i ++) {
+			for (; i < size; i++) {
 				Cell cell = excelRow.createCell(i);
 				Object value = dataRow[i];
-				if(Utility.isNullValue(value)) {
+				if (Utility.isNullValue(value)) {
 					cell.setCellValue("null");
 				} else {
-					if(typesArr[i] == SemossDataType.STRING) {
+					if (typesArr[i] == SemossDataType.STRING) {
 						cell.setCellValue(value + "");
-					} else if(typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
-						cell.setCellValue( ((Number) value).doubleValue() ) ;
-					} else if(typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
+						cell.setCellValue(((Number) value).doubleValue());
+					} else if (typesArr[i] == SemossDataType.DATE) {
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
-					} else if(typesArr[i] == SemossDataType.BOOLEAN) {
-						cell.setCellValue( (boolean) value);
+					} else if (typesArr[i] == SemossDataType.BOOLEAN) {
+						cell.setCellValue((boolean) value);
 					} else {
 						cell.setCellValue(value + "");
 					}
-					
-					if(stylingArr[i] != null) {
+
+					if (stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
 				}
 			}
 		}
-		
+
 		// fixed size at the end
 		i = 0;
-		for(; i < size; i++) {
+		for (; i < size; i++) {
 			sheet.setColumnWidth(i, 5_000);
 		}
-		
-		if(includeLogo) {
+
+		if (includeLogo) {
 			addLogo(workbook, sheet, size + 1);
 		}
-		
+
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
-		if(password != null) {
+		if (password != null) {
 			// encrypt file
 			ExcelUtility.encrypt(workbook, this.fileLocation, password);
 		} else {
@@ -350,9 +351,9 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			ExcelUtility.writeToFile(workbook, this.fileLocation);
 		}
 	}
-	
+
 	private void addLogo(SXSSFWorkbook workbook, SXSSFSheet sheet, int startCol) {
-		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		String semossLogoPath = Utility.getDIHelperProperty("EXPORT_SEMOSS_LOGO");
 		if (semossLogoPath != null) {
 			File logo = new File(semossLogoPath);
 			if (logo.exists()) {
@@ -365,10 +366,10 @@ public class ToExcelReactor extends TaskBuilderReactor {
 				} catch (IOException ioe) {
 					logger.error(Constants.STACKTRACE, ioe);
 				}
-				
+
 				// Insert image into workbook
 				int pictureIndex = workbook.addPicture(picture, Workbook.PICTURE_TYPE_PNG);
-				
+
 				// Helper returns an object that handles instantiating concrete classes
 				CreationHelper helper = workbook.getCreationHelper();
 				Drawing drawing = sheet.createDrawingPatriarch();
@@ -384,67 +385,68 @@ public class ToExcelReactor extends TaskBuilderReactor {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get the insight panel
+	 * 
 	 * @return
 	 */
 	private InsightPanel getInsightPanel() {
 		// passed in directly as panel
 		GenRowStruct genericReactorGrs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL.getKey());
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+		if (genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			PixelDataType nounType = noun.getNounType();
-			if(nounType == PixelDataType.PANEL) {
+			if (nounType == PixelDataType.PANEL) {
 				return (InsightPanel) noun.getValue();
-			} else if(nounType == PixelDataType.PANEL_CLONE_MAP) {
+			} else if (nounType == PixelDataType.PANEL_CLONE_MAP) {
 				Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
 				return cloneMap.get("clone");
-			} else if(nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING) {
+			} else if (nounType == PixelDataType.COLUMN || nounType == PixelDataType.CONST_STRING) {
 				String panelId = noun.getValue().toString();
 				return this.insight.getInsightPanel(panelId);
 			}
 		}
-		
+
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
 		List<NounMetadata> panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL);
-		if(panelNouns != null && !panelNouns.isEmpty()) {
+		if (panelNouns != null && !panelNouns.isEmpty()) {
 			return (InsightPanel) panelNouns.get(0).getValue();
 		}
-		
+
 		// see if string or column passed in
 		List<String> strInputs = this.curRow.getAllStrValues();
-		if(strInputs != null && !strInputs.isEmpty()) {
-			for(String panelId : strInputs) {
+		if (strInputs != null && !strInputs.isEmpty()) {
+			for (String panelId : strInputs) {
 				InsightPanel panel = this.insight.getInsightPanel(panelId);
-				if(panel != null) {
+				if (panel != null) {
 					return panel;
 				}
 			}
 		}
 		List<NounMetadata> strNouns = this.curRow.getNounsOfType(PixelDataType.CONST_INT);
-		if(strNouns != null && !strNouns.isEmpty()) {
+		if (strNouns != null && !strNouns.isEmpty()) {
 			return this.insight.getInsightPanel(strNouns.get(0).getValue().toString());
 		}
-		
+
 		// see if a clone map was passed
 		genericReactorGrs = this.store.getGenRowStruct(PixelDataType.PANEL_CLONE_MAP.toString());
-		if(genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
+		if (genericReactorGrs != null && !genericReactorGrs.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
 			return cloneMap.get("clone");
 		}
-		
+
 		// see if it is in the curRow
 		// if it was passed directly in as a variable
 		panelNouns = this.curRow.getNounsOfType(PixelDataType.PANEL_CLONE_MAP);
-		if(panelNouns != null && !panelNouns.isEmpty()) {
+		if (panelNouns != null && !panelNouns.isEmpty()) {
 			NounMetadata noun = genericReactorGrs.getNoun(0);
 			Map<String, InsightPanel> cloneMap = (Map<String, InsightPanel>) noun.getValue();
 			return cloneMap.get("clone");
 		}
-		
+
 		// well, you are out of luck
 		return null;
 	}

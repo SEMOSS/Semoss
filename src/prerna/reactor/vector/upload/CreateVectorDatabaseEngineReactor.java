@@ -57,7 +57,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -202,17 +201,15 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
-			DIHelper.getInstance().setEngineProperty(vectorDbId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(vectorDbId, tempSmss.getAbsolutePath());
 			vectorDb.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 			FileUtils.copyFile(tempSmss, smssFile);
 			tempSmss.delete();
 			vectorDb.setSmssFilePath(smssFile.getAbsolutePath());
-			UploadUtilities.updateDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
+			UploadUtilities.addEngineToDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
 			SecurityEngineUtils.addEngine(vectorDbId, global, user);
-
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.VECTOR, vectorDbId, vectorDbName);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
@@ -227,7 +224,8 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), vectorDbId);
-		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
+		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
+				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
 			retNoun.addAdditionalReturn(warning);
 		}

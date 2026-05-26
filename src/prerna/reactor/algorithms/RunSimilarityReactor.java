@@ -48,8 +48,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunSimilarityReactor extends AbstractFrameReactor {
 
@@ -63,10 +61,10 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 
 	/**
 	 * RunSimilarity(instance = column, columns = attributeNamesList);
-	 */ 
+	 */
 
 	public RunSimilarityReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey() };
 	}
 
 	@Override
@@ -74,16 +72,16 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 		Logger logger = this.getLogger(CLASS_NAME);
 		ITableDataFrame dataFrame = getFrame();
 		dataFrame.setLogger(logger);
-		
+
 		AlgorithmSingleColStore<Double> results = new AlgorithmSingleColStore<Double>();
 
-		//get inputs from pixel command 
+		// get inputs from pixel command
 		this.instanceColumn = getInstanceColumn();
 		this.attributeNamesList = getAttributes(instanceColumn);
 		this.attributeNames = this.attributeNamesList.toArray(new String[0]);
 		this.instanceIndex = attributeNamesList.indexOf(this.instanceColumn);
 
-		//store which attributes are numeric
+		// store which attributes are numeric
 		boolean[] isNumeric = new boolean[this.attributeNames.length];
 		for (int i = 0; i < this.attributeNames.length; i++) {
 			isNumeric[i] = dataFrame.isNumeric(this.attributeNames[i]);
@@ -130,19 +128,10 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 		}
 		// merge data back onto the frame
 		AlgorithmMergeHelper.mergeSimpleAlgResult(dataFrame, this.instanceColumn, newColName, "NUMBER", results);
-		
-		// track GA data
-//		UserTrackerFactory.getInstance().trackAnalyticsPixel(this.insight, "Similarity");
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				dataFrame, 
-				"Similarity", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		//return successful frame change to FE
-		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+
+		// return successful frame change to FE
+		return new NounMetadata(dataFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private void generateClusterCenters(ITableDataFrame dataFrame, Cluster cluster, boolean[] isNumeric) {
@@ -152,13 +141,8 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 		}
 	}
 
-	public void getSimilarityValuesForInstances(
-			ITableDataFrame dataFrame, 
-			Cluster cluster, 
-			AlgorithmSingleColStore<Double> results, 
-			boolean[] isNumeric,
-			Logger logger
-			) {
+	public void getSimilarityValuesForInstances(ITableDataFrame dataFrame, Cluster cluster,
+			AlgorithmSingleColStore<Double> results, boolean[] isNumeric, Logger logger) {
 		Configurator.setLevel(logger.getName(), Level.OFF);
 		int counter = 0;
 		Iterator<List<Object[]>> it = dataFrame.scaledUniqueIterator(attributeNames[instanceIndex], attributeNamesList);
@@ -167,10 +151,10 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 			String instanceName = (String) instance.get(0)[instanceIndex];
 			double sim = cluster.getSimilarityForInstance(instance, attributeNames, isNumeric, instanceIndex);
 
-			//add similarity output to results store
+			// add similarity output to results store
 			results.put(instanceName, sim);
-			
-			if(counter % 100 == 0) {
+
+			if (counter % 100 == 0) {
 				Configurator.setLevel(logger.getName(), Level.INFO);
 				logger.info("Finished execution for unique instance number = " + counter);
 				Configurator.setLevel(logger.getName(), Level.OFF);
@@ -182,12 +166,12 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
-	//////////////////////Input Methods///////////////////////////
+	////////////////////// Input Methods///////////////////////////
 	//////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////
 
 	private String getInstanceColumn() {
-		//check if instance column was input with the key 
+		// check if instance column was input with the key
 		GenRowStruct instanceIndexGrs = this.store.getGenRowStruct(keysToGet[0]);
 		String instanceColumn = "";
 		NounMetadata instanceColumnNoun;
@@ -195,7 +179,7 @@ public class RunSimilarityReactor extends AbstractFrameReactor {
 			instanceColumnNoun = instanceIndexGrs.getNoun(0);
 			instanceColumn = (String) instanceColumnNoun.getValue();
 		} else {
-			//else assume the column is the zero index noun in the curRow
+			// else assume the column is the zero index noun in the curRow
 			instanceColumnNoun = this.curRow.getNoun(0);
 			instanceColumn = (String) instanceColumnNoun.getValue();
 		}

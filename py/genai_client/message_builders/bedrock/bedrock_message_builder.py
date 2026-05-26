@@ -8,6 +8,7 @@ from ...utils import (
 from ..semoss_base.semoss_models import (
     SEMOSSMessage,
     SEMOSSMessageType,
+    SEMOSSMessagePartType,
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
 )
@@ -38,114 +39,268 @@ class BedrockMessageBuilder:
         system_block = None
         inference_config = None
 
-        has_tool_content = any(
-            (message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls)
-            or message.type == SEMOSSMessageType.INPUT_TOOL_EXEC
-            for message in semoss_messages
-        )
-
-        if has_tool_content:
-            for message in semoss_messages:
-                if message.param_map.get("tools"):
-                    tools = self._convert_mcp_to_bedrock_tools(
-                        message.param_map["tools"]
-                    )
-                    break
-
-            if not tools:
-                tools = self._extract_tools_from_tool_calls(semoss_messages)
-
-        i = 0
-        while i < len(semoss_messages):
-            message = semoss_messages[i]
+        for i, message in enumerate(semoss_messages):
             is_last = i == len(semoss_messages) - 1
-            role = self._message_type_to_role(message.type)
-
             content_blocks = []
 
-            if message.content and message.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
-                content_blocks.append(self._build_text_content_block(message.content))
+            if message.parts:
+                is_assistant = message.io != "INPUT"
+                assistant_media_parts = []
 
-            if message.media_content:
-                media_blocks = self._build_media_blocks(message.media_content)
-                content_blocks.extend(media_blocks)
+                for p in message.parts:
+                    if p.type == SEMOSSMessagePartType.TEXT:
+                        content_blocks.append(self._build_text_content_block(p.text))
 
-            # Handle tool calls (RESPONSE_TOOL messages)
-            if message.type == SEMOSSMessageType.RESPONSE_TOOL and message.tool_calls:
-                for tool_call in message.tool_calls:
-                    tool_use_block = self._build_tool_use_block(tool_call)
-                    content_blocks.append(tool_use_block)
+                    elif p.type == SEMOSSMessagePartType.MEDIA:
+                        if is_assistant:
+                            # Bedrock does not allow image blocks in assistant turns;
+                            # add a text placeholder and queue the image for a synthetic user message.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_blocks.append(
+                                self._build_text_content_block(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            assistant_media_parts.append(media_content)
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_blocks.append(media_content)
 
-                if content_blocks:
-                    bedrock_messages.append(
-                        BedrockMessage(
-                            role=role,
-                            content=content_blocks,
+                    elif p.type == SEMOSSMessagePartType.TOOL_CALL:
+                        tool_use_data = {
+                            "toolUseId": p.tool_call.id or "",
+                            "name": p.tool_call.function.name,
+                            "input": p.tool_call.function.parameters,
+                        }
+                        tool_use_part = BedrockToolUseContentBlock(
+                            toolUse=tool_use_data
                         )
-                    )
+                        content_blocks.append(tool_use_part)
 
-                tool_call_ids = [tc.get("id") for tc in message.tool_calls]
-                tool_results, next_i = self._collect_tool_results(
-                    semoss_messages, i + 1, tool_call_ids
+                    elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        tool_result_data = {
+                            "toolUseId": p.tool_result.id,
+                            "content": [{"text": p.tool_result.output}],
+                        }
+                        tool_result_part = BedrockToolResultContentBlock(
+                            toolResult=tool_result_data
+                        )
+                        content_blocks.append(tool_result_part)
+
+                    elif p.type == SEMOSSMessagePartType.THINKING:
+                        thinking_dict = {
+                            "type": "thinking",
+                            "thinking": p.thinking,
+                        }
+                        if self.thinking_signature:
+                            thinking_dict["signature"] = self.thinking_signature
+                        content_blocks.append(thinking_dict)
+
+                bedrock_messages.append(
+                    BedrockMessage(
+                        role=("user" if message.io == "INPUT" else "assistant"),
+                        content=content_blocks,
+                    )
                 )
 
-                if tool_results:
+                # Inject a synthetic user message with the images so the model can reference them
+                if assistant_media_parts:
+                    synthetic_content = [
+                        self._build_text_content_block("Here is the generated image:")
+                    ] + assistant_media_parts
                     bedrock_messages.append(
                         BedrockMessage(
                             role="user",
-                            content=tool_results,
+                            content=synthetic_content,
                         )
                     )
 
-                i = next_i
-                continue
+                # handle parameters update based on last message same as w/o parts
+                if is_last:
+                    system_prompt = message.param_map.pop("system_prompt", None)
+                    if system_prompt:
+                        system_block = self.build_system_block(system_prompt)
+                    elif system_prompt is None and "instructions" in message.param_map:
+                        instructions = message.param_map.pop("instructions")
+                        system_block = self.build_system_block(instructions)
+                    else:
+                        system_block = None
 
-            elif message.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
-                if content_blocks:
-                    bedrock_messages.append(
-                        BedrockMessage(
-                            role=role,
-                            content=content_blocks,
-                        )
+                    inference_config, param_map = self._build_request_parameters(
+                        message.param_map
                     )
 
-            if is_last:
-                system_prompt = message.param_map.pop("system_prompt", None)
-                if system_prompt:
-                    system_block = self.build_system_block(system_prompt)
-                elif system_prompt is None and "instructions" in message.param_map:
-                    instructions = message.param_map.pop("instructions")
-                    system_block = self.build_system_block(instructions)
-                else:
-                    system_block = None
+                    # Formatting the structured json input
+                    has_schema = param_map.get("schema", False)
+                    if has_schema:
+                        content = self._get_structured_parameters_format(**param_map)
 
-                inference_config, param_map = self._build_request_parameters(
-                    message.param_map
-                )
-
-                # Formatting the structured json input
-                has_schema = param_map.get("schema", False)
-                if has_schema:
-                    content = self._get_structured_parameters_format(**param_map)
-
-                    bedrock_messages.append(
-                        BedrockMessage(
-                            role=role,
-                            content=content,
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role=role,
+                                content=content,
+                            )
                         )
+
+                    last_message_tools = message.param_map.get("tools")
+                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
+                    tool_choice = message.param_map.pop("tool_choice", None)
+                    if last_message_tools:
+                        mcp_tools = self._convert_mcp_to_bedrock_tools(
+                            last_message_tools
+                        )
+                        if last_message_built_in_tools:
+                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            mcp_tools["tools"].extend(built_in)
+                        tools = self._build_tool_config_for_bedrock(
+                            mcp_tools, tool_choice
+                        )
+                    elif last_message_built_in_tools:
+                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        tools = self._build_tool_config_for_bedrock(
+                            {"tools": built_in}, tool_choice
+                        )
+
+                    stream = message.param_map.get("stream", True)
+
+                    param_map = self.clean_param_map(param_map)
+
+            else:
+                role = self._message_type_to_role(message.type)
+                is_assistant = role == "assistant"
+                assistant_media_blocks = []
+
+                if (
+                    message.content
+                    and message.type != SEMOSSMessageType.INPUT_TOOL_EXEC
+                ):
+                    content_blocks.append(
+                        self._build_text_content_block(message.content)
                     )
 
-                last_message_tools = message.param_map.get("tools")
-                tool_choice = message.param_map.pop("tool_choice", None)
-                if last_message_tools:
-                    mcp_tools = self._convert_mcp_to_bedrock_tools(last_message_tools)
-                    tools = self._build_tool_config_for_bedrock(mcp_tools, tool_choice)
+                if message.media_content:
+                    if is_assistant:
+                        # Bedrock does not allow image blocks in assistant turns;
+                        # add a text placeholder and queue the images for a synthetic user message.
+                        assistant_media_blocks = self._build_media_blocks(message.media_content)
+                        for media in message.media_content:
+                            file_name = getattr(media, "file_name", None) or "image"
+                            content_blocks.append(
+                                self._build_text_content_block(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                    else:
+                        media_blocks = self._build_media_blocks(message.media_content)
+                        content_blocks.extend(media_blocks)
 
-                stream = message.param_map.get("stream", True)
+                # Handle tool calls (RESPONSE_TOOL messages)
+                if (
+                    message.type == SEMOSSMessageType.RESPONSE_TOOL
+                    and message.tool_calls
+                ):
+                    for tool_call in message.tool_calls:
+                        tool_use_block = self._build_tool_use_block(tool_call)
+                        content_blocks.append(tool_use_block)
 
-                param_map = self.clean_param_map(param_map)
+                    if content_blocks:
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role=role,
+                                content=content_blocks,
+                            )
+                        )
 
-            i += 1
+                    tool_call_ids = [tc.get("id") for tc in message.tool_calls]
+                    tool_results, next_i = self._collect_tool_results(
+                        semoss_messages, i + 1, tool_call_ids
+                    )
+
+                    if tool_results:
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role="user",
+                                content=tool_results,
+                            )
+                        )
+
+                    i = next_i
+                    continue
+
+                elif message.type != SEMOSSMessageType.INPUT_TOOL_EXEC:
+                    if content_blocks:
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role=role,
+                                content=content_blocks,
+                            )
+                        )
+
+                    # Inject a synthetic user message with the images so the model can reference them
+                    if is_assistant and message.media_content and assistant_media_blocks:
+                        synthetic_content = [
+                            self._build_text_content_block("Here is the generated image:")
+                        ] + assistant_media_blocks
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role="user",
+                                content=synthetic_content,
+                            )
+                        )
+
+                if is_last:
+                    system_prompt = message.param_map.pop("system_prompt", None)
+                    if system_prompt:
+                        system_block = self.build_system_block(system_prompt)
+                    elif system_prompt is None and "instructions" in message.param_map:
+                        instructions = message.param_map.pop("instructions")
+                        system_block = self.build_system_block(instructions)
+                    else:
+                        system_block = None
+
+                    inference_config, param_map = self._build_request_parameters(
+                        message.param_map
+                    )
+
+                    # Formatting the structured json input
+                    has_schema = param_map.get("schema", False)
+                    if has_schema:
+                        content = self._get_structured_parameters_format(**param_map)
+
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role=role,
+                                content=content,
+                            )
+                        )
+
+                    last_message_tools = message.param_map.get("tools")
+                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
+                    tool_choice = message.param_map.pop("tool_choice", None)
+                    if last_message_tools:
+                        mcp_tools = self._convert_mcp_to_bedrock_tools(
+                            last_message_tools
+                        )
+                        if last_message_built_in_tools:
+                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            mcp_tools["tools"].extend(built_in)
+                        tools = self._build_tool_config_for_bedrock(
+                            mcp_tools, tool_choice
+                        )
+                    elif last_message_built_in_tools:
+                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        tools = self._build_tool_config_for_bedrock(
+                            {"tools": built_in}, tool_choice
+                        )
+
+                    stream = message.param_map.get("stream", True)
+
+                    param_map = self.clean_param_map(param_map)
 
         messages_dict = [msg.model_dump(exclude_none=True) for msg in bedrock_messages]
         system_dict = (
@@ -327,6 +482,10 @@ class BedrockMessageBuilder:
 
         return None
 
+    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+        """Convert generic built-in tool names to Bedrock systemTool format."""
+        return [{"systemTool": {"name": tool}} for tool in built_in_tools]
+
     def _convert_mcp_to_bedrock_tools(self, mcp_tools: List[Dict]) -> Dict[str, Any]:
         """Convert MCP-formatted tools to Bedrock tool configuration."""
         tools_list = []
@@ -389,6 +548,7 @@ class BedrockMessageBuilder:
         param_map.pop("image_url", None)
         param_map.pop("image_encoded", None)
         param_map.pop("tools", None)
+        param_map.pop("built_in_tools", None)
         param_map.pop("stream", None)
         param_map.pop("streaming", None)
         param_map.pop("schema", None)
@@ -423,16 +583,20 @@ class BedrockMessageBuilder:
         """Build media content blocks from SEMOSS media content."""
         bedrock_content_blocks = []
         for media in media_content:
-            if media.type == SEMOSSMediaInputType.URL:
-                content_block = self._build_url_media_content(media)
-                bedrock_content_blocks.append(content_block)
-            elif media.type == SEMOSSMediaInputType.BASE64:
-                content_block = self._build_base64_media_content(media)
-                bedrock_content_blocks.append(content_block)
-            else:
-                raise ValueError(f"Unsupported SEMOSS media type: {media.type}")
+            bedrock_content_blocks.append(self._build_media_content_single_part(media))
 
         return bedrock_content_blocks
+
+    def _build_media_content_single_part(
+        self, media: SEMOSSMediaContent = []
+    ) -> Union[BedrockImageContentBlock, BedrockDocumentContentBlock]:
+        """Build media content block from SEMOSS media content."""
+        if media.type == SEMOSSMediaInputType.URL:
+            return self._build_url_media_content(media)
+        elif media.type == SEMOSSMediaInputType.BASE64:
+            return self._build_base64_media_content(media)
+        else:
+            raise ValueError(f"Unsupported SEMOSS media type: {media.type}")
 
     def _build_url_media_content(
         self, media_content: SEMOSSMediaContent

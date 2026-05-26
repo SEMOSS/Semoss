@@ -56,8 +56,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -67,22 +65,27 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 
 	private static final Logger classLogger = LogManager.getLogger(RdbmsUploadTableDataReactor.class);
 
-	/*
-	 * There are quite a few things that we need 1) database -> name of the database
-	 * to create 1) filePath -> string containing the path of the file 2) delimiter
-	 * -> delimiter for the file 3) dataTypes -> map of the header to the type, this
-	 * will contain the original headers we send to FE 4) newHeaders -> map
-	 * containing old header to new headers for the csv file 5) additionalTypes ->
-	 * map containing header to an additional type specification additional inputs
-	 * would be {header : currency, header : date_format, ... } 6) clean -> boolean
-	 * if we should clean up the strings before insertion, default is true TODO: 7)
-	 * deduplicate -> boolean if we should remove duplicate rows in the relational
-	 * database 8) existing -> boolean if we should add to an existing database,
-	 * defualt is false
-	 */
-
 	private CSVFileHelper helper = null;
 
+	/**
+	 * Required and optional inputs:
+	 * <ul>
+	 * <li>database - name of the database to create</li>
+	 * <li>filePath - string containing the path of the file</li>
+	 * <li>delimiter - delimiter for the file</li>
+	 * <li>dataTypes - map of the header to the type (original headers sent to
+	 * FE)</li>
+	 * <li>newHeaders - map of old header to new header for the CSV file</li>
+	 * <li>additionalTypes - map of header to additional type specification, e.g.
+	 * {header: currency, header: date_format, ...}</li>
+	 * <li>clean - boolean, whether to clean up strings before insertion (default:
+	 * true)</li>
+	 * <li>deduplicate - boolean, whether to remove duplicate rows (default:
+	 * false)</li>
+	 * <li>existing - boolean, whether to add to an existing database (default:
+	 * false)</li>
+	 * </ul>
+	 */
 	public RdbmsUploadTableDataReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.DELIMITER, UploadInputUtility.DATA_TYPE_MAP,
@@ -148,10 +151,9 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -189,7 +191,7 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			sqlTypes = RdbmsUploadReactorUtility.createNewTable((IRDBMSEngine) this.database, tableName, uniqueRowId,
 					headers, types, replace);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred while creating new RDBMS table during CSV upload: {}", e.getMessage(), e);
 			throw new SemossPixelException(new NounMetadata("Error occurred during upload", PixelDataType.CONST_STRING,
 					PixelOperationType.ERROR));
 		}
@@ -269,7 +271,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 				sqlTypes = RdbmsUploadReactorUtility.createNewTable((IRDBMSEngine) this.database, tableToInsertInto,
 						uniqueRowId, headers, types, replace);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error occurred while creating new RDBMS table when adding to existing database: {}",
+						e.getMessage(), e);
 				throw new SemossPixelException(new NounMetadata("Error occurred during upload",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 			}
@@ -473,7 +476,8 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 			logger.info("Completed " + count + " number of rows");
 			ps.close();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred while bulk inserting CSV data into table '{}': {}", TABLE_NAME,
+					e.getMessage(), e);
 			String errorMessage = "";
 			if (nextRow == null) {
 				errorMessage = "Error occurred while performing insert on csv row number = " + count;

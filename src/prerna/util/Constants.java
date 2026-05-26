@@ -129,10 +129,11 @@ public class Constants {
 	public static final String TYPE_URI = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	public static final String DEFAULT_PROPERTY_CLASS = "Relation/Contains";
 
-//	public static final String DISPLAY_NAME = "DISPLAY_NAME";
-//	public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
-//	public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
-//	public static String DISPLAY_URI =  Constants.BASE_URI + Constants.DEFAULT_DISPLAY_CLASS + "/";
+	// public static final String DISPLAY_NAME = "DISPLAY_NAME";
+	// public static final String DEFAULT_DISPLAY_CLASS = "DisplayName";
+	// public static final String DEFAULT_DISPLAY_NAME = "DisplayName";
+	// public static String DISPLAY_URI = Constants.BASE_URI +
+	// Constants.DEFAULT_DISPLAY_CLASS + "/";
 
 	public static final String DEFAULT_PHYSICAL_NAME = "PhysicalName";
 
@@ -161,6 +162,7 @@ public class Constants {
 	public static final String SHOW_PLAYSHEETS_LIST = "btnShowPlaySheets";
 	public static final String ENGINE = "ENGINE";
 	public static final String ENGINE_ALIAS = "ENGINE_ALIAS";
+	public static final String ENGINE_DISPLAY_NAME = "ENGINE_DISPLAY_NAME";
 	@Deprecated
 	public static final String HIDDEN_DATABASE = "HIDDEN_DATABASE";
 	public static final String ENGINES = "ENGINES";
@@ -559,7 +561,6 @@ public class Constants {
 	// userid by adding: %{log_semoss_user_id}
 	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
-	public static final String USER_WORKSPACE_IDS = "USER_WORKSPACE_IDS";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
@@ -567,6 +568,7 @@ public class Constants {
 	@Deprecated
 	public static final String ADMIN_SET_PUBLISHER = "admin-set-publisher";
 	public static final String ADMIN_SET_EXPORTER = "admin-set-exporter";
+	public static final String PLAYWRIGHT_EXPORT = "PLAYWRIGHT_EXPORT";
 	// reduce operations to only admins
 	public static final String ADMIN_ONLY_PROJECT_ADD = "ADMIN_ONLY_PROJECT_ADD";
 	public static final String ADMIN_ONLY_PROJECT_DELETE = "ADMIN_ONLY_PROJECT_DELETE";
@@ -623,8 +625,9 @@ public class Constants {
 	public static final String PIPELINE_SOURCE_FILTER = "PIPELINE_SOURCE_FILTER";
 	@Deprecated
 	public static final String WIDGET_TAB_SHARE_EXPORT_LIST = "WIDGET_TAB_SHARE_EXPORT_LIST";
-//	@Deprecated
-//	public static final String WIDGET_TAB_EXPORT_DASHBOARD = "WIDGET_TAB_EXPORT_DASHBOARD";
+	// @Deprecated
+	// public static final String WIDGET_TAB_EXPORT_DASHBOARD =
+	// "WIDGET_TAB_EXPORT_DASHBOARD";
 
 	public static final String SESSION_ID_KEY = "SESSION_ID_KEY";
 	public static final String AUTH_WHITELIST_FILE = "whitelist";
@@ -662,13 +665,13 @@ public class Constants {
 
 	// SOLR specific
 	public static final String RELOAD_INSIGHTS = "RELOAD_INSIGHTS";
-//	public static final String SOLR_RELOAD = "SOLR_RELOAD";
-//	public static final String SOLR_EXPORT = "SOLR_EXPORT";
-//	public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
-//	public static final String SOLR_HOME_DIR = "Solr";
+	// public static final String SOLR_RELOAD = "SOLR_RELOAD";
+	// public static final String SOLR_EXPORT = "SOLR_EXPORT";
+	// public static final String SOLR_SYSTEM_VAR_KEY = "solr.solr.home";
+	// public static final String SOLR_HOME_DIR = "Solr";
 	// this is used for both the index engine and solr enigne
-//	public static final String SOLR_URL = "SOLR_BASE_URL";
-//	public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
+	// public static final String SOLR_URL = "SOLR_BASE_URL";
+	// public static final String SOLR_CORE_NAME = "SOLR_CORE_NAME";
 
 	@Deprecated
 	public static final String VALUE = "VALUE";
@@ -728,6 +731,7 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
+	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -755,14 +759,12 @@ public class Constants {
 	public static final String PIVOT_ROW_MAX = "PIVOT_ROW_MAX";
 	public static final String PIVOT_COL_MAX = "PIVOT_COL_MAX";
 
-	// tracking
-	public static final String T_ON = "T_ON";
-
 	// post message specific keys
 	public static final String PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD = "PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD";
 
 	// where google chrome is located for image capture
 	public static final String GOOGLE_CHROME_BINARY = "GOOGLE_CHROME_BINARY";
+	public static final String GITHUB_COPILOT_CLI_PATH = "GITHUB_COPILOT_CLI_PATH";
 	public static final String IMAGE_CAPTURE_TIMEOUT = "IMAGE_CAPTURE_TIMEOUT";
 
 	// cookie name of a load load balancing routing
@@ -879,11 +881,6 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
-	// Workspace
-	public static final String USER_WORKSPACE = "USER_WORKSPACE";
-	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
-	public static final String SECURE_PROMPT = "SECURE_PROMPT";
-
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -921,12 +918,14 @@ public class Constants {
 	public static final String PROJECTS = "PROJECTS";
 	public static final String PROJECT = "PROJECT";
 	public static final String PROJECT_ALIAS = "PROJECT_ALIAS";
+	public static final String PROJECT_DISPLAY_NAME = "PROJECT_DISPLAY_NAME";
 	public static final String PROJECT_TYPE = "PROJECT_TYPE";
 	public static final String PROJECT_ENUM_TYPE = "PROJECT_ENUM_TYPE";
 	public static final String PROJECT_GIT_PROVIDER = "PROJECT_GIT_PROVIDER";
 	public static final String PROJECT_GIT_CLONE = "PROJECT_GIT_CLONE";
 
 	// model
+	public static final String INIT_MODEL_ENGINE = "INIT_MODEL_ENGINE";
 	public static final String KEEP_CONVERSATION_HISTORY = "KEEP_CONVERSATION_HISTORY";
 	public static final String KEEP_INPUT_OUTPUT = "KEEP_INPUT_OUTPUT";
 
@@ -997,12 +996,6 @@ public class Constants {
 	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
 	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
 
-	// Exception Message for throttle limit
-	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
-	public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
-	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
-	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
-
 	// External Permission Management
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_ENABLED = "EXTERNAL_PERMISSION_MANAGEMENT_ENABLED";
 	public static final String EXTERNAL_PERMISSION_MANAGEMENT_URL = "EXTERNAL_PERMISSION_MANAGEMENT_URL";
@@ -1039,6 +1032,10 @@ public class Constants {
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
+
+	// notification db
+	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
+	public static final String NOTIFICATION_DB = "Notification";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

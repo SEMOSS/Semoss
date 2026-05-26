@@ -73,7 +73,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		String toolId = this.keyValue.get(this.keysToGet[index++]);
 		String toolName = this.keyValue.get(this.keysToGet[index++]);
 		Map<String, Object> toolPredictionArgs = getMap(this.keysToGet[index++]);
-		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[index++]));
+		String toolResponseRaw = this.keyValue.get(this.keysToGet[index++]);
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[index - 1] + " cannot be empty");
 		}
@@ -111,7 +111,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		{
 			String toolStatus = this.keyValue.get(this.keysToGet[index++]);
 			toolExecutionMessage = InputMessage.toolExecution(room, toolId, toolName, toolResponseRaw,
-					toolParamterValues, toolStatus);
+					toolParamterValues, toolStatus, false);
 			toolExecutionMessage.setSystemPrompt(room.getEffectiveSystemPrompt());
 			toolExecutionMessage.setModel(modelEngine);
 			toolExecutionMessage.setParentMessageId(parentMessageId);

@@ -37,19 +37,29 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Checks whether a prompt with the given title exists and is accessible to the
+ * user. Only matches prompts that are global or created by the requesting user.
+ *
+ * Pixel usage: CheckPromptTitle(promptTitle="My Prompt");
+ *
+ * Parameters: promptTitle (String, required) - The title to check
+ *
+ * Returns: BOOLEAN - true if a matching accessible prompt exists, false
+ * otherwise.
+ */
 public class CheckPromptTitleReactor extends AbstractReactor {
 
 	public CheckPromptTitleReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROMPT_TITLE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT_TITLE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create prompt", PixelDataType.CONST_STRING,
-					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create prompt",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
@@ -60,12 +70,11 @@ public class CheckPromptTitleReactor extends AbstractReactor {
 				throwAnonymousUserError();
 			}
 		}
-		
+
 		organizeKeys();
 		String promptTitle = this.keyValue.get(this.keysToGet[0]);
-		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle);
-		NounMetadata nm = new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
-		return nm;
+		Boolean promptTitleUsed = PromptUtils.checkPromptTitle(promptTitle, user);
+		return new NounMetadata(promptTitleUsed, PixelDataType.BOOLEAN);
 	}
 
 }

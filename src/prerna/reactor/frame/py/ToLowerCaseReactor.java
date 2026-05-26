@@ -37,21 +37,18 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToLowerCaseReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor changes columns to all upper case 
-	 * The inputs to the reactor are: 
+	 * This reactor changes columns to all upper case The inputs to the reactor are:
 	 * 1) the columns to update
 	 */
-	
+
 	public ToLowerCaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// get frame
@@ -72,32 +69,28 @@ public class ToLowerCaseReactor extends AbstractPyFrameReactor {
 				col = split[1];
 //				wrapperFrameName = split[0];
 			}
-		
+
 			String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// script will be of the form:
 				// wrapper.toupper(column_name)
-				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".lower('" + col + "')");
-				//insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" + col + "'] = " +
-				//		 wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)");
+				// insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".lower('" + col +
+				// "')");
+				// insight.getPyTranslator().runEmptyPy(wrapperFrameName + ".cache['data']['" +
+				// col + "'] = " +
+				// wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col +
+				// "']).lower(), axis = 1)");
 
-				commands.append(wrapperFrameName + ".cache['data']['" + col + "'] = " +
-						wrapperFrameName + ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)\n");
+				commands.append(wrapperFrameName + ".cache['data']['" + col + "'] = " + wrapperFrameName
+						+ ".cache['data'].apply(lambda x: str(x['" + col + "']).lower(), axis = 1)\n");
 			}
 		}
 		insight.getPyTranslator().runEmptyPy(commands.toString());
 		this.addExecutedCode(commands.toString());
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ToUpper", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////

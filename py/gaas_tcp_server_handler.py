@@ -7,6 +7,9 @@ import traceback as tb
 import threading
 
 import importlib
+import importlib.util
+import builtins as _builtins_mod
+
 import os
 import gc as gc
 import sys
@@ -68,6 +71,57 @@ def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     return dataframe
 
 
+from gaas_tcp_server_thread_local import (
+    _asset_thread_local,
+    _asset_ns_key,
+    smss_clear_app_imports as _smss_clear_app_imports,
+    smss_get_runtime_var as _smss_get_runtime_var,
+)
+
+
+# Capture the real __import__ before we replace it.
+_orig_import = _builtins_mod.__import__
+
+
+def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0):
+    """
+    Wraps builtins.__import__ to isolate project-local modules per asset path.
+
+    When handle_python sets _asset_thread_local.active_paths, any simple
+    (non-dotted, absolute) import whose .py file exists inside one of those
+    paths is loaded from the explicit file path and cached under a namespaced
+    sys.modules key (_smss_{hash}_{name}).  Concurrent threads with different
+    asset paths never see each other's cached copy.
+
+    All other imports (e.g. torch, numpy, stdlib) fall through to the real
+    __import__ unchanged — sys.modules is never replaced.
+    """
+    if level == 0 and "." not in name:
+        active_paths = getattr(_asset_thread_local, "active_paths", None)
+        if active_paths:
+            for path in active_paths:
+                ns_key = _asset_ns_key(path) + "_" + name
+                cached = sys.modules.get(ns_key)
+                if cached is not None:
+                    return cached
+                candidate = os.path.join(path, name + ".py")
+                if os.path.exists(candidate):
+                    spec = importlib.util.spec_from_file_location(ns_key, candidate)
+                    mod = importlib.util.module_from_spec(spec)
+                    # Register before exec so circular imports resolve correctly
+                    sys.modules[ns_key] = mod
+                    spec.loader.exec_module(mod)
+                    return mod
+    return _orig_import(name, _globals, _locals, fromlist, level)
+
+
+_builtins_mod.__import__ = _asset_aware_import
+
+
+class ExecutionCancelled(Exception):
+    """Raised when a running python execution is cancelled by a remote request."""
+
+
 class TCPServerHandler(socketserver.BaseRequestHandler):
     """
     This class is the request handler for the Native Python Server.
@@ -91,6 +145,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     # Class attribute to hold a singleton instance
     da_server = None
+    CANCELLED_MESSAGE = "The request was cancelled by the user"
 
     def log_level_mapper(self, log_level_name: str) -> int:
         """
@@ -152,12 +207,23 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.msg_index = 0
         self.residue = None
 
-        self.monitor = threading.Condition()
-
         TCPServerHandler.da_server = self
+
+        # a lock to serialise all socket writes. HuggingFace (and similar libraries)
+        # download files in parallel worker threads that all write tqdm progress to
+        # stderr → SemossConsole → send_output() → sendall(). Without this lock the
+        # concurrent sendall() calls interleave bytes on the wire, which corrupts the
+        # 4-byte size header that Java uses to frame messages. Java then tries to read
+        # an astronomically large payload, its receive buffer fills up, sendall()
+        # blocks on the Python side, and both ends deadlock.
+        self.send_lock = threading.Lock()
 
         # cache where the link between payload id and monitor is kept
         self.monitors = {}
+        # cache insight cancellation flags so a secondary request can interrupt
+        # currently running execution while keeping the process alive
+        self.insight_cancel_events = {}
+        self.insight_cancel_events_lock = threading.Lock()
 
         # add the storage
         # LLM
@@ -436,6 +502,18 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     operation=payload["operation"],
                     response=True,
                 )
+            elif command == "INTERRUPT_INSIGHT" and payload["operation"] == "INSIGHT":
+                interrupted = self.interrupt_insight_execution(payload)
+                message = (
+                    "Interrupt signal received"
+                    if interrupted
+                    else "No insight id provided for interrupt request"
+                )
+                self.send_output(
+                    message,
+                    operation=payload["operation"],
+                    response=True,
+                )
             # If this is a python payload
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
@@ -456,20 +534,22 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     response=True,
                     exception=True,
                 )
-        except Exception as e:
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
             print(f"in the exception block  {epoc}")
             output = "".join(tb.format_exception(None, e, e.__traceback__))
-            payload = {"epoc": str(epoc), "ex": [output]}
+            error_payload = {"epoc": epoc, "ex": [output]}
             # there is a possibility this is a response from the previous
-            if epoc in self.monitors:
-                condition = self.monitors[epoc]
-                self.monitors.update({epoc: payload})
-                condition.acquire()
-                condition.notifyAll()
-                condition.release()
+            condition = self.monitors.get(epoc)
+            if isinstance(condition, threading.Condition):
+                with condition:
+                    if self.monitors.get(epoc) is condition:
+                        self.monitors[epoc] = error_payload
+                        condition.notify_all()
             else:
                 # This is really the only instance where we need to set the payload outside of the normal flow
-                self.thread_local.payload = payload
+                self.thread_local.payload = error_payload
                 self.send_output(
                     output, operation="PYTHON", response=True, exception=True
                 )
@@ -619,8 +699,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         self.log_payload_details(payload, operation, response, interim)
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — acquire the lock so concurrent calls from parallel
+        # download worker threads cannot interleave bytes and corrupt the protocol
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def send_request(self, payload: dict):
         """
@@ -658,8 +740,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         )
         self.custom_dev_logger("---------- SEND REQUEST LOG - END -----------\n")
 
-        # send it out
-        self.request.sendall(ret_array)
+        # send it out — use the same lock as send_output() to prevent interleaving
+        with self.send_lock:
+            self.request.sendall(ret_array)
 
     def stop_request(self):
         """Stops the request and closes the connection."""
@@ -694,6 +777,87 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             condition.notifyAll()
             condition.release()
 
+    def _resolve_execution_cancel_keys(
+        self, payload: dict, insight_id: Optional[str] = None
+    ):
+        keys = []
+        if payload is not None:
+            payload_job_id = payload.get("jobId")
+            execution_insight_id = payload.get("executionInsightId")
+            payload_insight_id = payload.get("insightId")
+            if payload_job_id:
+                keys.append(f"job::{payload_job_id}")
+            if execution_insight_id:
+                keys.append(f"insight::{execution_insight_id}")
+            if payload_insight_id:
+                insight_key = f"insight::{payload_insight_id}"
+                if insight_key not in keys:
+                    keys.append(insight_key)
+
+        if insight_id:
+            insight_key = f"insight::{insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+
+        return keys
+
+    def _resolve_interrupt_target_keys(self, payload: dict):
+        keys = []
+        if payload is None:
+            return keys
+
+        payload_job_id = payload.get("jobId")
+        if payload_job_id:
+            return [f"job::{payload_job_id}"]
+
+        execution_insight_id = payload.get("executionInsightId")
+        payload_insight_id = payload.get("insightId")
+        if execution_insight_id:
+            keys.append(f"insight::{execution_insight_id}")
+        if payload_insight_id:
+            insight_key = f"insight::{payload_insight_id}"
+            if insight_key not in keys:
+                keys.append(insight_key)
+        return keys
+
+    def _get_or_create_cancel_event(self, insight_id: str) -> threading.Event:
+        with self.insight_cancel_events_lock:
+            event = self.insight_cancel_events.get(insight_id)
+            if event is None:
+                event = threading.Event()
+                self.insight_cancel_events[insight_id] = event
+            return event
+
+    def interrupt_insight_execution(self, payload: dict) -> bool:
+        keys = self._resolve_interrupt_target_keys(payload)
+        if not keys:
+            return False
+
+        for key in keys:
+            self._get_or_create_cancel_event(key).set()
+        return True
+
+    def _prepare_execution_cancel_events(
+        self, payload: dict, insight_id: Optional[str]
+    ) -> List[threading.Event]:
+        keys = self._resolve_execution_cancel_keys(payload, insight_id)
+        events = []
+        for key in keys:
+            event = self._get_or_create_cancel_event(key)
+            # reset any stale interrupt so new work starts cleanly
+            event.clear()
+            events.append(event)
+        return events
+
+    def _build_cancel_trace(self, cancel_events: List[threading.Event]):
+        def _cancel_trace(frame, event, arg):
+            for cancel_event in cancel_events:
+                if cancel_event.is_set():
+                    raise ExecutionCancelled(self.CANCELLED_MESSAGE)
+            return _cancel_trace
+
+        return _cancel_trace
+
     def handle_python(self, command: str, insight_id: str):
         """
         Execute python code within the proper globals object
@@ -707,6 +871,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         payload = self.thread_local.payload
         asset_paths = payload.get("asset_paths")
+        runtime_vars = payload.get("runtime_vars") or {}
+        cancel_events = self._prepare_execution_cancel_events(payload, insight_id)
+        cancel_trace = self._build_cancel_trace(cancel_events)
 
         # If asset paths are provided, prepend the logic to set the sys.path
         if asset_paths:
@@ -734,29 +901,45 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     )
                 command = path_script + command
 
+        # If legacy append_vars are provided, prepend these vars at the start of the script
+        append_vars = payload.get("append_vars") or {}
+        if append_vars:
+            append_vars_script = ""
+            # Add each variable
+            for key in append_vars:
+                append_vars_script += textwrap.dedent(
+                    f"""
+                        {key} = r'{append_vars.get(key)}'
+                        """
+                )
+            append_vars_script += "\n"
+            command = append_vars_script + command
+
         store = InsightGlobalStore()
         insight_globals = store.get_insight_globals(insight_id)
 
-        # Safety Check: If mcp_driver is already loaded, ensure it is from the correct path for this insight
-        if "mcp_driver" in sys.modules and asset_paths:
-            try:
-                mcp_module = sys.modules["mcp_driver"]
-                if hasattr(mcp_module, "__file__") and mcp_module.__file__:
-                    module_path = os.path.abspath(mcp_module.__file__)
+        # Collect the normalised asset paths for per-project module isolation.
+        # _asset_aware_import reads _asset_thread_local.active_paths to namespace
+        # any project-local .py file under a per-path key in sys.modules so
+        # concurrent threads for different projects never share helper modules.
+        _active_paths = (
+            [p for p in (asset_paths or []) if p]
+            if isinstance(asset_paths, list)
+            else ([asset_paths] if asset_paths else [])
+        )
 
-                    is_correct_path = False
-                    for p in asset_paths:
-                        if module_path.startswith(os.path.abspath(p)):
-                            is_correct_path = True
-                            break
+        # Store insight_globals in thread-local so smss_clear_app_imports()
+        # (gaas_tcp_server_thread_local) can evict __smss_mcp_* aliases at call
+        # time without needing to import this module. Injecting the same module-
+        # level function object every time means there is no closure and no race
+        # on the 'smss_clear_app_imports' key in insight_globals.
+        _asset_thread_local.insight_globals = insight_globals
+        insight_globals["smss_clear_app_imports"] = _smss_clear_app_imports
 
-                    if not is_correct_path:
-                        reload_mcp_func = insight_globals.get("reload_mcp")
-                        if reload_mcp_func:
-                            reload_mcp_func()
-            except Exception:
-                # If anything goes wrong during the check, do nothing and proceed
-                pass
+        # Store runtime vars in thread-local so they can be accessed by the smss_get_runtime_var function that is injected into the insight's globals. This is so variables can be passed from Java to Python without running into a race condition on the insight_globals when multiple threads are running for the same insight.
+        _asset_thread_local.runtime_vars = runtime_vars
+
+        insight_globals["smss_get_runtime_var"] = _smss_get_runtime_var
 
         # Define and inject the smss_stream function
         def smss_stream_func(
@@ -780,6 +963,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             # Set the function for the current thread
             set_smss_stream(smss_stream_func)
+            # Activate per-project module isolation for this thread
+            _asset_thread_local.active_paths = _active_paths if _active_paths else None
 
             # Determine the target CWD for this specific insight from its globals
             target_cwd = insight_globals.get("__smss_cwd__")
@@ -797,18 +982,26 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
             try:
                 is_exception = False
+                user_cancelled = False
                 output = None
                 with contextlib.redirect_stdout(
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
-                    output, is_exception = self.execute_and_capture(
-                        command, insight_globals
-                    )
+                    previous_trace = sys.gettrace()
+                    try:
+                        sys.settrace(cancel_trace)
+                        output, is_exception, user_cancelled = self.execute_and_capture(
+                            command, insight_globals
+                        )
+                    finally:
+                        sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
-                        operation=payload["operation"],
+                        operation=(
+                            payload["operation"] if not user_cancelled else "CANCELLED"
+                        ),
                         response=True,
                         exception=is_exception,
                     )
@@ -818,11 +1011,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         finally:
             # Always clear the function for the current thread
             clear_smss_stream()
+            _asset_thread_local.active_paths = None
+            _asset_thread_local.insight_globals = None
+            _asset_thread_local.runtime_vars = None
             # Always change back to the original process CWD
             if process_cwd is not None:
                 os.chdir(process_cwd)
 
-    def execute_and_capture(self, code: str, insight_globals: dict) -> Tuple[str, bool]:
+    def execute_and_capture(
+        self, code: str, insight_globals: dict
+    ) -> Tuple[str, bool, bool]:
         """
         Mimics a Python Jupyter kernel for executing a code block. The intended purpose of this method is to try capture the final line output
 
@@ -836,11 +1034,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             `Tuple[str, bool]`: A tuple containing the output of the last expression in the code input and a boolean if it was successfully able to execute the code.
                                 The first element is the eval output of the last expression. If last expression is not evaluable, then it will exec and return an empty string.
                                 The second element is a boolean indicating if the code was executed successfully (False) or if an exception occurred (True).
+                                The third element is a boolean indicatiing if the code was cancelled by the user (True) or not (False).
         """
         try:
             # Handle empty code
             if not code.strip():
-                return '""', False
+                return '""', False, False
 
             parsed_code = ast.parse(code)
 
@@ -861,7 +1060,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 # Evaluate print arguments to be the return value of this function
                 print_args = last_node.value.args
                 if len(print_args) == 1:
-                    return eval(ast.unparse(print_args[0]), insight_globals), False
+                    return (
+                        eval(ast.unparse(print_args[0]), insight_globals),
+                        False,
+                        False,
+                    )
                 else:
                     # Return a tuple of evaluated arguments
                     return (
@@ -869,6 +1072,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                             eval(ast.unparse(arg), insight_globals)
                             for arg in print_args
                         ),
+                        False,
                         False,
                     )
 
@@ -902,14 +1106,20 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             )
 
             if can_eval:
-                return eval(ast.unparse(last_node), insight_globals), False
+                return (eval(ast.unparse(last_node), insight_globals), False, False)
             else:
                 # It's a statement or a non-evaluatable expression, so just execute it
                 exec(ast.unparse(last_node), insight_globals)
-                return '""', False
+                return ('""', False, False)
 
-        except Exception as e:
-            # if we fail all attempts then send back the traceback
+        except ExecutionCancelled as e:
+            return (str(e), True, True)
+        except (SystemExit, KeyboardInterrupt, GeneratorExit):
+            raise
+        except BaseException as e:
+            # Catch BaseException (not just Exception) so that C-extension panics
+            # such as pyo3_runtime.PanicException are captured and returned to the
+            # caller instead of crashing the thread silently.
             traceback = sys.exc_info()[2]
             full_trace = ["Traceback (most recent call last):\n"]
             full_trace = (
@@ -918,27 +1128,39 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 + tb.format_exception_only(type(e), e)
             )
 
-            return "".join(full_trace), True
+            return ("".join(full_trace), True, False)
 
     def handle_response(self):
-        """Handles a response from the client."""
+        """
+        Handle a Java response for a previously issued Python request.
+
+        The request thread stores `epoc -> Condition` in `self.monitors` and waits
+        on that condition in `gaas_server_proxy.comm()`. When the matching response
+        arrives, this method:
+        1. Finds the waiting monitor entry by `epoc`.
+        2. Replaces `epoc -> Condition` with `epoc -> payload`.
+        3. Calls `notify_all()` to wake the waiting request thread.
+
+        Identity/type checks guard against stale or already-cleaned monitor entries.
+        """
         payload = self.thread_local.payload
-        # print("In the response block")
+        epoc = payload.get("epoc", "EPOC NOT FOUND")
+
         # this is a response coming back from a request from the java container
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - START ---------\n")
         self.custom_dev_logger(
-            f"handle_response() -- Handling response which is going to check the monitors for epoc {payload.get('epoc', 'EPOC NOT FOUND')}. Here are the monitors: {self.monitors}"
+            f"handle_response() -- Handling response which is going to check the monitors for epoc {epoc}. Here are the monitors: {self.monitors}"
         )
-        if payload["epoc"] in self.monitors:
+        if epoc in self.monitors:
             self.prod_logger(
                 f"\nhandle_response() -- Payload Response: {json.dumps(payload, ensure_ascii=False, indent=4)}"
             )
-
-            condition = self.monitors[payload["epoc"]]
-            self.monitors.update({payload["epoc"]: payload})
-            condition.acquire()
-            condition.notifyAll()
-            condition.release()
+            condition = self.monitors.get(epoc)
+            if isinstance(condition, threading.Condition):
+                with condition:
+                    if self.monitors.get(epoc) is condition:
+                        self.monitors[epoc] = payload
+                        condition.notify_all()
         self.custom_dev_logger("---------- HANDLE RESPONSE LOG - END ---------\n")
 
     def handle_shell(self):
@@ -1270,21 +1492,6 @@ class InsightGlobalStore:
 
                 return module
 
-            def reload_mcp_function(globals_dict):
-                """
-                Reloads the mcp_driver module
-                """
-                # Delete from the shared sys.modules cache to force a true reload
-                if "mcp_driver" in sys.modules:
-                    del sys.modules["mcp_driver"]
-
-                # Use the secure_import to load the module
-                mcp_module = secure_import("mcp_driver", globals=globals_dict)
-
-                # Inject the newly loaded module into the current insight's globals
-                globals_dict["mcp_driver"] = mcp_module
-                return mcp_module
-
             # First-time initialization: build the globals dict
             globals_dict = {
                 "__builtins__": {
@@ -1304,7 +1511,6 @@ class InsightGlobalStore:
                 "smssutil": smssutil,
             }
 
-            globals_dict["reload_mcp"] = lambda: reload_mcp_function(globals_dict)
             self.insight_globals[insight_id] = globals_dict
 
         return self.insight_globals[insight_id]
@@ -1324,7 +1530,6 @@ class InsightGlobalStore:
                 or k
                 in [
                     "__smss_cwd__",
-                    "reload_mcp",
                     "string",
                     "np",
                     "pd",

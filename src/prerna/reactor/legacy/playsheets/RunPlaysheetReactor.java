@@ -32,12 +32,12 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityInsightUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.insights.GlobalInsightCountUpdater;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -48,9 +48,10 @@ import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class RunPlaysheetReactor extends AbstractReactor {
-	
+
 	public RunPlaysheetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.PARAM_KEY.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.ID.getKey(),
+				ReactorKeysEnum.PARAM_KEY.getKey() };
 	}
 
 	@Override
@@ -58,7 +59,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		// TODO: ACCOUNTING FOR LEGACY PLAYSHEETS
-		if(projectId == null) {
+		if (projectId == null) {
 			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
@@ -70,7 +71,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		// set the user id into the insight
 		insightObj.setUser(this.insight.getUser());
 		Map<String, List<Object>> params = getParamMap();
-		if(!insightObj.isOldInsight()) {
+		if (!insightObj.isOldInsight()) {
 			throw new IllegalArgumentException("This is a legacy pixel that should only be used for old insights");
 		}
 		((OldInsight) insightObj).setParamHash(params);
@@ -93,8 +94,7 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		stuipdFEInsightGarabage.put("newInsights", new Object[0]);
 		stuipdFEInsightGarabage.put("pkqlData", new Object[0]);
 		insightMap.put("insights", new Object[] { stuipdFEInsightGarabage });
-		
-		
+
 		// we have some old legacy stuff...
 		// just run and return the object
 		OldInsightProcessor processor = new OldInsightProcessor((OldInsight) insightObj);
@@ -103,14 +103,14 @@ public class RunPlaysheetReactor extends AbstractReactor {
 		obj.put("recipe", new Object[0]);
 		obj.put("pkqlOutput", insightMap);
 
-		// update the solr universal view count
-		GlobalInsightCountUpdater.getInstance().addToQueue(projectId, insightId);
+		SecurityInsightUtils.updateExecutionCountAsync(projectId, insightId);
 
 		return new NounMetadata(obj, PixelDataType.MAP, PixelOperationType.OLD_INSIGHT);
 	}
 
 	/**
 	 * Get the params for the method
+	 * 
 	 * @return
 	 */
 	private Map<String, List<Object>> getParamMap() {

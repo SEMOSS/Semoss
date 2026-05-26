@@ -38,22 +38,21 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor updates row values based on a regex It replaces all portions
-	 * of the current cell value that is an exact match to the input value The
-	 * inputs to the reactor are: 1) the column to update 2) the regex to look
-	 * for 3) value to replace the regex with
+	 * This reactor updates row values based on a regex It replaces all portions of
+	 * the current cell value that is an exact match to the input value The inputs
+	 * to the reactor are: 1) the column to update 2) the regex to look for 3) value
+	 * to replace the regex with
 	 */
 
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
 	public RegexReplaceColumnValueReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.VALUE.getKey(),
+				ReactorKeysEnum.NEW_VALUE.getKey() };
 	}
 
 	@Override
@@ -83,50 +82,48 @@ public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 
 		int numColumns = columnNames.size();
 		String[] scripts = new String[columnNames.size()];
-		
+
 		// iterate through all passed columns
-		for(int i = 0; i < numColumns; i++) {
+		for (int i = 0; i < numColumns; i++) {
 			String column = columnNames.get(i);
 			SemossDataType sType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
 
 			if (sType == SemossDataType.INT || sType == SemossDataType.DOUBLE) {
 				// make sure the new value can be properly casted to a number
-				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
+				if (!NUMERIC_PATTERN.matcher(newValue).matches()) {
 					throw new IllegalArgumentException("Cannot update a numeric field to non-numeric values");
 				}
-				
+
 				// TODO: See why this is not executing properly in python!
 				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', " + regex + ", " + newValue + ")";
-			} else if(sType == SemossDataType.DATE) {
+			} else if (sType == SemossDataType.DATE) {
 				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
 //				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
 //					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
 //				}
-				
-				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
-				
-			} else if(sType == SemossDataType.TIMESTAMP) {
+
+				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', '" + regex + "' , '" + newValue
+						+ "')";
+
+			} else if (sType == SemossDataType.TIMESTAMP) {
 				// NOT VALID - WHAT IF I WANT TO UPDATE A MONTH - DAY PORTION ?
 //				if(!NUMERIC_PATTERN.matcher(newValue).matches()) {
 //					throw new IllegalArgumentException("Cannot update a date field to non-numeric values");
 //				}
-				
-				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
-				
+
+				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', '" + regex + "' , '" + newValue
+						+ "')";
+
 			} else if (sType == SemossDataType.STRING) {
-				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column +"', '" + regex + "' , '" + newValue + "')";
+				scripts[i] = wrapperFrameName + ".regex_replace_val('" + column + "', '" + regex + "' , '" + newValue
+						+ "')";
 			}
 		}
-
 		// execute all of the routines after we have done our validation
 		insight.getPyTranslator().runEmptyPy(scripts);
-		for(String script : scripts) {
+		for (String script : scripts) {
 			this.addExecutedCode(script);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "RegexReplaceColumnValue",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

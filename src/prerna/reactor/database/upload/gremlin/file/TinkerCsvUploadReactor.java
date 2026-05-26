@@ -53,7 +53,6 @@ import prerna.poi.main.helper.CSVFileHelper;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -85,8 +84,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		logger.info(stepCounter + ". Create properties file for database...");
 		this.tempSmss = UploadUtilities.createTemporaryTinkerSmss(this.databaseId, newDatabaseName, owlFile,
 				getTinkerDriverType());
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE,
-				this.tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -410,7 +408,7 @@ public class TinkerCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	}
 
 	public String getInstanceURI(String nodeType) {
-		String customBaseURI = DIHelper.getInstance().getProperty(Constants.SEMOSS_URI);
+		String customBaseURI = Utility.getDIHelperProperty(Constants.SEMOSS_URI);
 		return customBaseURI + "/" + Constants.DEFAULT_NODE_CLASS + "/" + nodeType;
 	}
 

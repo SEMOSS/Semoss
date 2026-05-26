@@ -154,7 +154,7 @@ public class MakeNotebookCellMCPReactor extends AbstractReactor {
 		String assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
 		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
 		if (comment == null) {
-			comment = "add: MakeNotebookCellMCP executed";
+			comment = "add: configured Notebook Cell MCP tool";
 		}
 
 		// add file to git

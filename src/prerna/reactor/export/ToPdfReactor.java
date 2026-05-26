@@ -31,10 +31,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -42,12 +48,30 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.io.RandomAccessReadBufferedFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.commonmark.Extension;
+import org.commonmark.ext.gfm.tables.TablesExtension;
+import org.commonmark.node.Node;
+import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.HtmlRenderer;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attributes;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.xhtmlrenderer.pdf.ITextRenderer;
+
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -58,7 +82,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.export.mustache.MustacheUtility;
 import prerna.reactor.export.pdf.PDFUtility;
 import prerna.reactor.export.pdf.PDFUtility.FormObject;
-import prerna.reactor.export.pdf.PDFUtility.RectanglePage;
 import prerna.reactor.export.pdf.PDFUtility.pageLocation;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -69,19 +92,39 @@ import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
+/**
+ * ToPdfReactor - Converts HTML content to PDF format
+ * 
+ * This reactor provides two independent PDF generation approaches: 1. Modern
+ * Playwright-based generation (default) - Better CSS support and performance 2.
+ * Legacy IText renderer - Backwards compatibility with existing features
+ * 
+ * Features: - Mustache template processing for dynamic content - Custom
+ * <semoss> tag processing with screenshot generation - PDF post-processing
+ * (signatures, page numbers) - Parallel image generation for improved
+ * performance
+ * 
+ * Code Organization: - Utility methods for common operations - HTML content
+ * processing section - PDF generation approaches section - Playwright PDF
+ * generation methods - Legacy IText PDF generation methods - Common helper
+ * methods - Reactor description methods
+ */
 public class ToPdfReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ToPdfReactor.class);
 	private static final String CLASS_NAME = ToPdfReactor.class.getName();
 
+	@SuppressWarnings("deprecation")
 	public ToPdfReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.SPACE.getKey(), ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(),
-				ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.MUSTACHE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.HTML.getKey(), ReactorKeysEnum.MARKDOWN.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
+				ReactorKeysEnum.OUTPUT_FILE_PATH.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.MUSTACHE.getKey(),
 				ReactorKeysEnum.MUSTACHE_VARMAP.getKey(), ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey(),
 				ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey(), ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey(),
 				ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey(), ReactorKeysEnum.PDF_START_PAGE_NUM.getKey(),
 				ReactorKeysEnum.IMAGE_WAIT_TIME.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -89,60 +132,178 @@ public class ToPdfReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
+
+		// Validate user export permissions
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 
-		// location for pdf resources
+		// Determine PDF generation approach
+		boolean usePlaywright = false;
+
+		String boolString = Utility.getDIHelperProperty(Constants.PLAYWRIGHT_EXPORT);
+		if (boolString != null) {
+			usePlaywright = Boolean.parseBoolean(boolString);
+		}
+
+		// Initialize common variables
 		String insightFolder = this.insight.getInsightFolder();
-		String htmlToParse = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
-		if (htmlToParse == null || (htmlToParse = htmlToParse.trim()).isEmpty()) {
-			// guessing its passed as a file
-			String htmlFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
-			File htmlFile = new File(htmlFileLocation);
-			if (!htmlFile.exists() || !htmlFile.isFile()) {
-				throw new IllegalArgumentException("No html passed in directly and could not find input file");
+		List<Path> tempPaths = new ArrayList<>();
+		Integer waitTime = getWaitTime();
+
+		// Get and process HTML content
+		String htmlToParse;
+		try {
+			htmlToParse = getHtmlContent(classLogger, tempPaths);
+
+			// Process Mustache templates if needed
+			if (getBooleanValue(ReactorKeysEnum.MUSTACHE.getKey(), false)) {
+				htmlToParse = processMustacheTemplate(htmlToParse);
 			}
-			try {
-				htmlToParse = FileUtils.readFileToString(htmlFile, "UTF-8");
-			} catch (IOException e) {
-				classLogger.error(e.getMessage());
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error reading html. See logs for details");
-			}
+		} catch (IOException e) {
+			logger.error("Failed to process HTML content", e);
+			throw new IllegalArgumentException("Failed to process HTML content: " + e.getMessage(), e);
+		}
+
+		// Execute appropriate PDF generation approach
+		if (usePlaywright) {
+			return executePlaywrightApproach(htmlToParse, insightFolder, tempPaths, waitTime, user, logger);
 		} else {
-			htmlToParse = Utility.decodeURIComponent(htmlToParse);
+			return executeLegacyApproach(htmlToParse, insightFolder, tempPaths, waitTime, user, logger);
 		}
-		// see if using mustache template format that needs modifications
-		if (Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MUSTACHE.getKey()) + "")) {
-			Map<String, Object> variables = mustacheVariables();
-			try {
-				htmlToParse = MustacheUtility.compile(htmlToParse, variables);
-			} catch (Exception e) {
-				classLogger.error(e.getMessage());
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Invalid mustache template or variables. See logs for details");
+	}
+
+	// ==================== UTILITY METHODS ====================
+
+	/**
+	 * Get boolean value from keyValue map with default fallback
+	 */
+	private boolean getBooleanValue(String key, boolean defaultValue) {
+		String value = this.keyValue.get(key);
+		return (value != null && !value.trim().isEmpty()) ? Boolean.parseBoolean(value.trim()) : defaultValue;
+	}
+
+	private List<String> getLabels() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<String> labels = grs.getAllStrValues();
+			if (labels != null && !labels.isEmpty()) {
+				return labels;
 			}
-			classLogger.error("Exporting final html as: " + htmlToParse);
+
+		}
+		return null;
+	}
+
+	// ==================== HTML CONTENT PROCESSING ====================
+
+	/**
+	 * Get HTML content from direct input, file, or markdown
+	 */
+	private String getHtmlContent(Logger logger, List<Path> tempPaths) throws IOException {
+		String htmlContent = this.keyValue.get(ReactorKeysEnum.HTML.getKey());
+		String markdownContent = this.keyValue.get(ReactorKeysEnum.MARKDOWN.getKey());
+		String htmlFilePath = this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
+
+		boolean hasHtml = htmlContent != null && !htmlContent.trim().isEmpty();
+		boolean hasMarkdown = markdownContent != null && !markdownContent.trim().isEmpty();
+
+		if (hasHtml && hasMarkdown) {
+			throw new IllegalArgumentException("Only one of 'html' or 'markdown' may be provided, not both");
 		}
 
-		Integer waitTime = null;
+		if (hasMarkdown) {
+			logger.info("Converting markdown to HTML");
+			return convertMarkdownToHtml(markdownContent);
+		}
+
+		if (htmlFilePath != null && !htmlFilePath.trim().isEmpty()) {
+			String htmlFileLocation = Utility.normalizePath(UploadInputUtility.getFilePath(this.store, this.insight));
+			Path htmlFile = Paths.get(htmlFileLocation);
+
+			if (!Files.exists(htmlFile) || !Files.isRegularFile(htmlFile)) {
+				throw new IllegalArgumentException("HTML file not found: " + htmlFileLocation);
+			}
+
+			htmlContent = Files.readString(htmlFile, StandardCharsets.UTF_8);
+			logger.info("Loaded HTML from file: {}", htmlFileLocation);
+		}
+		return htmlContent;
+	}
+
+	/**
+	 * Convert markdown content to an HTML string
+	 */
+	private String convertMarkdownToHtml(String markdown) {
+		List<Extension> extensions = Arrays.asList(TablesExtension.create());
+		Parser parser = Parser.builder().extensions(extensions).build();
+		HtmlRenderer renderer = HtmlRenderer.builder().extensions(extensions).build();
+		Node document = parser.parse(markdown);
+		String body = renderer.render(document);
+		return "<!DOCTYPE html><html><head><meta charset=\"UTF-8\">"
+				+ "<style>table { border-collapse: collapse; width: 100%; } "
+				+ "th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } "
+				+ "th { background-color: #f2f2f2; font-weight: bold; }</style>" + "</head><body>" + body
+				+ "</body></html>";
+	}
+
+	/**
+	 * Process Mustache templates
+	 */
+	private String processMustacheTemplate(String htmlContent) {
+		Map<String, Object> variables = mustacheVariables();
+		try {
+			String compiled = MustacheUtility.compile(htmlContent, variables);
+			classLogger.debug("Mustache template compiled successfully");
+			return compiled;
+		} catch (Exception e) {
+			classLogger.error("Mustache compilation failed", e);
+			throw new IllegalArgumentException("Invalid mustache template or variables", e);
+		}
+	}
+
+	/**
+	 * Get wait time for image generation
+	 */
+	private Integer getWaitTime() {
 		String waitTimeStr = this.keyValue.get(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey());
-		if (waitTimeStr != null && (waitTimeStr = waitTimeStr.trim()).isEmpty()) {
+		if (waitTimeStr != null && !waitTimeStr.trim().isEmpty()) {
 			try {
-				waitTime = Integer.parseInt(waitTimeStr);
+				return Integer.parseInt(waitTimeStr.trim());
 			} catch (NumberFormatException e) {
-				classLogger.error(e.getMessage());
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Invalid wait time option = '" + waitTimeStr + "'. See logs for details.");
+				classLogger.warn("Invalid wait time: {}, using default", waitTimeStr);
 			}
 		}
+		return 10000; // Default 10 seconds
+	}
 
-		// keep track for deleting at the end
-		List<String> tempPaths = new ArrayList<>();
+	private Map<String, Object> mustacheVariables() {
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			Object obj = grs.get(0);
+			if (!(obj instanceof Map)) {
+				throw new IllegalArgumentException(ReactorKeysEnum.MUSTACHE_VARMAP.getKey() + " must be a map object");
+			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> result = (Map<String, Object>) obj;
+			return result;
+		}
 
+		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
+		if (mapInput != null && !mapInput.isEmpty()) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> result = (Map<String, Object>) mapInput.get(0);
+			return result;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Legacy way to process custom <semoss> tags and convert to images
+	 */
+	private org.jsoup.nodes.Document processSemossTagsLegacy(String htmlToParse, String insightFolder,
+			List<Path> tempPaths, Integer waitTime) {
 		// Find semoss tags
 		org.jsoup.nodes.Document doc = Jsoup.parse(htmlToParse);
 		Elements semossElements = doc.select("semoss");
@@ -165,10 +326,10 @@ public class ToPdfReactor extends AbstractReactor {
 					imageNum++;
 					imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
 				}
-				logger.info("Generating image for PDF...");
+				classLogger.info("Generating image for PDF...");
 				this.insight.getChromeDriver().captureImage(feUrl, url, imagePath, sessionId, waitTime);
-				tempPaths.add(imagePath);
-				logger.info("Done generating image for PDF...");
+				tempPaths.add(Paths.get(imagePath));
+				classLogger.info("Done generating image for PDF...");
 
 				// Replace semoss tag with img tag
 				element.tagName("img");
@@ -178,36 +339,363 @@ public class ToPdfReactor extends AbstractReactor {
 				imageNum++;
 			}
 		}
+		return doc;
+	}
 
-		// TODO: Should we make this a parameter we pass in via the map and search for?
-		// TODO: Iterate over full tree and don't search on specific elements
+	/**
+	 * Process custom <semoss> tags and convert to images (modern approach)
+	 */
+	private String processSemossTags(String htmlContent, String insightFolder, List<Path> tempPaths, Integer waitTime) {
+		Document doc = Jsoup.parse(htmlContent);
+		Elements semossElements = doc.select("semoss");
+
+		if (semossElements.isEmpty()) {
+			return htmlContent;
+		}
+
+		String feUrl = this.keyValue.get(ReactorKeysEnum.URL.getKey());
+		if (feUrl == null || feUrl.isEmpty()) {
+			throw new IllegalArgumentException("URL required for processing <semoss> tags");
+		}
+
+		// Process semoss tags in parallel for better performance
+		List<CompletableFuture<Void>> futures = new ArrayList<>();
+		int[] imageCounter = { 1 };
+
+		for (Element element : semossElements) {
+			String url = element.attr("url");
+			int imageNum = imageCounter[0]++;
+
+			CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
+				try {
+					String imagePath = generateImagePath(insightFolder, imageNum);
+					captureScreenshot(feUrl + url, imagePath, waitTime);
+					tempPaths.add(Paths.get(imagePath));
+
+					// Replace semoss tag with img tag
+					synchronized (element) {
+						element.tagName("img");
+						element.removeAttr("url");
+						element.attr("src", "file:///" + imagePath);
+						element.attr("style", "max-width: 100%; height: auto;");
+					}
+				} catch (Exception e) {
+					classLogger.error("Failed to process semoss tag", e);
+				}
+			});
+
+			futures.add(future);
+		}
+
+		// Wait for all images to be generated
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+		return doc.html();
+	}
+
+	/**
+	 * Add signature fields to PDF
+	 */
+	private void addSignatureFields(PDDocument document) throws Exception {
+		List<String> searchLabels = getLabels();
+		if (searchLabels == null || searchLabels.isEmpty()) {
+			return;
+		}
+
+		// Use existing PDFUtility methods
+		@SuppressWarnings("unused")
+		List<pageLocation> pageLocations = PDFUtility.findWordLocation(document, searchLabels);
+
+		// Convert to form objects and add to PDF
+		// Implementation depends on your PDFUtility class
+		// TODO: Implement signature field addition using pageLocations
+	}
+
+	/**
+	 * Add signature fields to PDF (legacy approach)
+	 */
+	private void addLegacySignatureFields(PDDocument document, List<Attributes> elementAttributes) throws IOException {
+		List<String> searchLabels = getLabels();
+		if (searchLabels == null || searchLabels.isEmpty()) {
+			return;
+		}
+
+		List<pageLocation> pageLocationList = new ArrayList<>();
+		ArrayList<FormObject> formObjectList = new ArrayList<>();
+
+		pageLocationList.addAll(PDFUtility.findWordLocation(document, searchLabels));
+		formObjectList.addAll(PDFUtility.setFormObjectLocation(elementAttributes, pageLocationList));
+		PDFUtility.addPDFObjects(document, formObjectList);
+	}
+
+	/**
+	 * Add page numbers to PDF
+	 */
+	private void addPageNumbering(PDDocument document) {
+		boolean ignoreFirstPage = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
+
+		int startingNumber = 1;
+		String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
+		if (startPageInput != null && !startPageInput.trim().isEmpty()) {
+			try {
+				startingNumber = Integer.parseInt(startPageInput);
+			} catch (NumberFormatException e) {
+				classLogger.warn("Invalid starting page number, using default: 1");
+			}
+		}
+
+		// Use existing PDFUtility method or implement page numbering
+		try {
+			int pageCount = document.getNumberOfPages();
+			int currentPageNum = startingNumber;
+
+			for (int i = 0; i < pageCount; i++) {
+				if (ignoreFirstPage && i == 0) {
+					continue;
+				}
+
+				PDPage page = document.getPage(i);
+				PDPageContentStream contentStream = new PDPageContentStream(document, page,
+						PDPageContentStream.AppendMode.APPEND, true, true);
+
+				// Add page number at bottom center
+				PDRectangle mediaBox = page.getMediaBox();
+				float x = mediaBox.getWidth() / 2;
+				float y = 20; // 20 points from bottom
+
+				contentStream.beginText();
+				contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
+				contentStream.newLineAtOffset(x - 10, y); // Adjust for text width
+				contentStream.showText(String.valueOf(currentPageNum));
+				contentStream.endText();
+				contentStream.close();
+
+				currentPageNum++;
+			}
+		} catch (IOException e) {
+			classLogger.error("Error adding page numbers", e);
+		}
+	}
+
+	/**
+	 * Add page numbers to PDF (legacy approach)
+	 */
+	private void addLegacyPageNumbers(PDDocument document) throws IOException {
+		boolean ignoreFirstPage = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
+
+		int startingNumber = 1;
+		String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
+		if (startPageInput != null && !(startPageInput = startPageInput.trim()).isEmpty()) {
+			try {
+				startingNumber = Integer.parseInt(startPageInput);
+			} catch (Exception ignore) {
+				// Use default value
+			}
+		}
+
+		PDFUtility.addPageNumbers(document, startingNumber, ignoreFirstPage);
+	}
+
+	/**
+	 * Get output file path with proper naming
+	 */
+	@SuppressWarnings("deprecation")
+	private String getOutputFilePath(String insightFolder) {
+		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		String exportName = AbstractExportTxtReactor.getExportFileName(this.insight.getUser(), prefixName, "pdf");
+
+		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
+		if (outputFileLocation == null || outputFileLocation.isEmpty()) {
+			return insightFolder + DIR_SEPARATOR + exportName;
+		}
+
+		return outputFileLocation + DIR_SEPARATOR + exportName;
+	}
+
+	/**
+	 * Capture screenshot using Playwright
+	 */
+	private void captureScreenshot(String url, String outputPath, Integer waitTime) {
+		try (Playwright pw = Playwright.create()) {
+			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+			Page page = browser.newPage();
+
+			page.navigate(url);
+			page.waitForLoadState();
+
+			if (waitTime != null && waitTime > 0) {
+				page.waitForTimeout(waitTime);
+			}
+
+			Page.ScreenshotOptions options = new Page.ScreenshotOptions().setPath(Paths.get(outputPath))
+					.setFullPage(true);
+
+			page.screenshot(options);
+			browser.close();
+
+			classLogger.info("Screenshot captured: {}", outputPath);
+		}
+	}
+
+	/**
+	 * Generate unique image path
+	 */
+	private String generateImagePath(String insightFolder, int imageNum) {
+		String imagePath = insightFolder + DIR_SEPARATOR + "image" + imageNum + ".png";
+		int counter = imageNum;
+
+		while (Files.exists(Paths.get(imagePath))) {
+			counter++;
+			imagePath = insightFolder + DIR_SEPARATOR + "image" + counter + ".png";
+		}
+
+		return imagePath;
+	}
+
+	// ==================== PDF GENERATION APPROACHES ====================
+
+	/**
+	 * Complete Playwright approach (toPdf2 style) - independent execution path
+	 */
+	private NounMetadata executePlaywrightApproach(String htmlToParse, String insightFolder, List<Path> tempPaths,
+			Integer waitTime, User user, Logger logger) {
+
+		try {
+			// Process custom semoss tags
+			htmlToParse = processSemossTags(htmlToParse, insightFolder, tempPaths, waitTime);
+
+			// Generate PDF using Playwright
+			String pdfPath = generatePdfWithPlaywright(htmlToParse, insightFolder);
+			tempPaths.add(Paths.get(pdfPath));
+
+			// Post-process PDF (signatures, page numbers)
+			String finalPdfPath = postProcessPdf(pdfPath, insightFolder);
+
+			// Prepare download response
+			return prepareDownloadResponse(finalPdfPath, user);
+		} catch (Exception e) {
+			classLogger.error("Error generating PDF", e);
+			throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
+		} finally {
+			// Cleanup temp files
+			cleanupTempFiles(tempPaths);
+		}
+	}
+
+	/**
+	 * Generate PDF using Playwright's native PDF generation
+	 */
+	private String generatePdfWithPlaywright(String htmlContent, String insightFolder) throws IOException {
+		String tempHtmlPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".html";
+		Files.writeString(Paths.get(tempHtmlPath), htmlContent, StandardCharsets.UTF_8);
+
+		String pdfPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".pdf";
+
+		try (Playwright pw = Playwright.create()) {
+			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+			Page page = browser.newPage();
+
+			// Navigate to HTML file
+			page.navigate("file:///" + tempHtmlPath);
+
+			// Wait for page to be fully loaded
+			page.waitForLoadState();
+
+			// Generate PDF with options and standard margins
+			Page.PdfOptions pdfOptions = new Page.PdfOptions().setPath(Paths.get(pdfPath)).setFormat("A4")
+					.setPrintBackground(true).setPreferCSSPageSize(false);
+
+			// Set standard 1 inch margins
+			pdfOptions.setMargin(new com.microsoft.playwright.options.Margin().setTop("1in").setRight("1in")
+					.setBottom("1in").setLeft("1in"));
+
+			page.pdf(pdfOptions);
+			browser.close();
+		}
+
+		// Clean up temp HTML
+		Files.deleteIfExists(Paths.get(tempHtmlPath));
+
+		classLogger.info("PDF generated successfully: {}", pdfPath);
+		return pdfPath;
+	}
+
+	/**
+	 * Post-process PDF for signatures and page numbers
+	 */
+	private String postProcessPdf(String inputPdfPath, String insightFolder) throws Exception {
+		boolean addSignatureBlock = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
+		boolean addPageNumbers = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+
+		String outputPdfPath = getOutputFilePath(insightFolder);
+
+		if (!addSignatureBlock && !addPageNumbers) {
+			// Even if no post-processing, copy to proper filename
+			Files.copy(Paths.get(inputPdfPath), Paths.get(outputPdfPath));
+			classLogger.info("PDF copied to proper filename: {}", outputPdfPath);
+			return outputPdfPath;
+		}
+
+		try (PDDocument document = Loader.loadPDF(new RandomAccessReadBufferedFile(inputPdfPath))) {
+			if (addSignatureBlock) {
+				addSignatureFields(document);
+			}
+
+			if (addPageNumbers) {
+				addPageNumbering(document);
+			}
+			document.save(outputPdfPath);
+		}
+
+		classLogger.info("PDF post-processing completed: {}", outputPdfPath);
+		return outputPdfPath;
+	}
+
+	/**
+	 * Prepare download response
+	 */
+	private NounMetadata prepareDownloadResponse(String pdfPath, User user) {
+		String downloadKey = UUID.randomUUID().toString();
+		InsightFile insightFile = new InsightFile();
+		insightFile.setFileKey(downloadKey);
+		insightFile.setFilePath(pdfPath);
+		insightFile.setDeleteOnInsightClose(false);
+
+		this.insight.addExportFile(downloadKey, insightFile);
+
+		// Debug logging similar to original ToPdfReactor
+		classLogger.info("Generated PDF at path: {}", pdfPath);
+
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
+		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the PDF file"));
+
+		return retNoun;
+	}
+
+	/**
+	 * Complete Legacy approach (toPdf style) - independent execution path
+	 */
+	@SuppressWarnings("deprecation")
+	private NounMetadata executeLegacyApproach(String htmlToParse, String insightFolder, List<Path> tempPaths,
+			Integer waitTime, User user, Logger logger) {
+
+		// Process semoss tags using legacy Chrome driver
+		org.jsoup.nodes.Document doc = processSemossTagsLegacy(htmlToParse, insightFolder, tempPaths, waitTime);
 		Elements allElements = doc.getAllElements();
 
 		// Create array list of dimensions for each signature element
-		// OLD: List<String> widthHeightStyle = new ArrayList<String>();
 		List<Attributes> elementAttributes = new ArrayList<Attributes>();
-		Attributes elementAttrs;
-
-		// List<String> searchLabels = new ArrayList<String>();
-		// searchLabels.add("pdfsearchterm");
 
 		// Add style for each element to list
 		for (Element element : allElements) {
-			elementAttrs = element.attributes();
-			// System.out.println("Attributes: " + elementAttrs);
-
 			if (element.hasAttr("pdfobject")) {
-				elementAttrs = element.attributes();
+				Attributes elementAttrs = element.attributes();
 				elementAttributes.add(elementAttrs);
-
-				// WIP - add element text to search labels automatically
-//				if(element.text().isEmpty() || element.text() == null) {
-//					element.text("pdfsearchterm");
-//				} else {
-//					searchLabels.add(element.text());
-//					System.out.println("Element text: " + element.text());
-//				}
-
 			}
 		}
 
@@ -218,19 +706,14 @@ public class ToPdfReactor extends AbstractReactor {
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 
-		// get a random file name
+		// Get file name and location
 		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pdf");
-		// grab file path to write the file
 		String outputFileLocation = this.keyValue.get(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey());
-		// if the file location is not defined generate a random path and set
-		// location so that the front end will download
+
 		if (outputFileLocation == null || outputFileLocation.isEmpty()) {
 			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			// store it in the insight so the FE can download it
-			// only from the given insight
-			outputFileLocation = insightFolder + DIR_SEPARATOR + exportName;
-			insightFile.setDeleteOnInsightClose(true);
+			insightFile.setDeleteOnInsightClose(false);
 		} else {
 			outputFileLocation += DIR_SEPARATOR + exportName;
 			insightFile.setDeleteOnInsightClose(false);
@@ -241,123 +724,79 @@ public class ToPdfReactor extends AbstractReactor {
 		String random = Utility.getRandomString(5);
 		String tempXhtmlPath = insightFolder + DIR_SEPARATOR + random + ".html";
 		File tempXhtml = new File(tempXhtmlPath);
-
 		try {
-			try {
-				FileUtils.writeStringToFile(tempXhtml, doc.html(), Charset.forName("UTF-8"));
-				tempPaths.add(tempXhtmlPath);
-			} catch (IOException ex) {
-				classLogger.error("Error writing html file", ex.getMessage(), ex);
-				throw new IllegalArgumentException("Error saving the database metamodel as an html file", ex);
-			}
+			FileUtils.writeStringToFile(tempXhtml, doc.html(), Charset.forName("UTF-8"));
+			tempPaths.add(Paths.get(tempXhtmlPath));
+		} catch (IOException e1) {
+			logger.error("Error writing temp XHTML file", e1);
+		}
 
-			// Convert from xhtml to pdf
-			try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
-				DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
-				DocumentBuilder builder = factory.newDocumentBuilder();
-				org.w3c.dom.Document document = builder.parse(tempXhtml);
+		// Convert from xhtml to pdf using IText
+		try (FileOutputStream fos = new FileOutputStream(outputFileLocation)) {
+			DocumentBuilderFactory factory = Utility.getDocumentBuilderFactory();
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			org.w3c.dom.Document document = builder.parse(tempXhtml);
 
-				logger.info("Converting html to PDF...");
-				ITextRenderer renderer = new ITextRenderer();
-				renderer.setDocument(document);
-				renderer.layout();
-				renderer.createPDF(fos);
-				logger.info("Done converting html to PDF...");
-			} catch (Exception ex) {
-				classLogger.error("Unable to convert from html to pdf due to error {}", ex.getMessage(), ex);
-				throw new IllegalArgumentException("Error converting the database metamodel html file to pdf", ex);
-			}
+			logger.info("Converting html to PDF...");
+			ITextRenderer renderer = new ITextRenderer();
+			renderer.setDocument(document);
+			renderer.layout();
+			renderer.createPDF(fos);
+			logger.info("Done converting html to PDF...");
+		} catch (Exception ex) {
+			classLogger.error("Unable to convert from html to pdf due to error {}", ex.getMessage(), ex);
+			throw new IllegalArgumentException("Error converting the database metamodel html file to pdf", ex);
+		}
 
-			boolean addSignatureBlock = Boolean
-					.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
-			boolean addPageNumbers = Boolean
-					.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+		boolean addSignatureBlock = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
+		boolean addPageNumbers = Boolean
+				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
+		PDDocument document = null;
+		try {
+			document = PDFUtility.createDocument(outputFileLocation);
+		} catch (IOException e) {
+			classLogger.error("Error creating pdf: ", e);
+		}
+
+		if (document != null) {
 			if (addSignatureBlock || addPageNumbers) {
-				try (PDDocument document = PDFUtility.createDocument(outputFileLocation)) {
+				try {
 					if (addSignatureBlock) {
 						logger.info("Creating signature field...");
-
-//					String signatureLabel = this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
-//					if(signatureLabel != null && !(signatureLabel=signatureLabel.trim()).isEmpty()) {
-//						PDFUtility.addSignatureLabel(document, signatureLabel);
-//					}
-						// PDFUtility.addSignatureBlock(document);
-
-						List<RectanglePage> rectPageList = new ArrayList<RectanglePage>();
-
-						// Get list of labels to apply a signature field to
-						List<String> searchLabels = getLabels();
-
-						// WIP - run when we've already gotten the labels from the elements
-						// automatically
-//					try {
-//						getLabels();
-//						List<String> searchLabels2 = getLabels();
-//						
-//						for (String term : searchLabels2) {
-//							if (!searchLabels.contains(term)) {
-//								searchLabels.add(term);
-//							}
-//						}
-//					} catch (Exception e) {
-//					}
-
-						List<pageLocation> pageLocationList = new ArrayList<pageLocation>();
-						ArrayList<FormObject> formObjectList = new ArrayList<FormObject>();
-
-						pageLocationList.addAll(PDFUtility.findWordLocation(document, searchLabels));
-
-//					for (pageLocation pl : pageLocationList ) {
-//						System.out.println("Page Location: " + pl.keyword);
-//					}
-//					
-//					for (Attributes pl : elementAttributes ) {
-//						System.out.println("Attributes: " + pl);
-//					}
-
-						formObjectList.addAll(PDFUtility.setFormObjectLocation(elementAttributes, pageLocationList));
-						PDFUtility.addPDFObjects(document, formObjectList);
+						addLegacySignatureFields(document, elementAttributes);
 						logger.info("Done creating signature field...");
 					}
+
 					if (addPageNumbers) {
 						logger.info("Adding page numbers...");
-						boolean ignoreFirstPage = Boolean.parseBoolean(
-								this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey()) + "");
-						int startingNumber = 1;
-						String startPageInput = this.keyValue.get(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey());
-						if (startPageInput != null && !(startPageInput = startPageInput.trim()).isEmpty()) {
-							try {
-								startingNumber = Integer.parseInt(startPageInput);
-							} catch (Exception ignore) {
-
-							}
-						}
-						PDFUtility.addPageNumbers(document, startingNumber, ignoreFirstPage);
+						addLegacyPageNumbers(document);
 						logger.info("Done adding page numbers...");
 					}
 					document.save(outputFileLocation);
-				} catch (IOException ex) {
-					classLogger.error("Error creating signature field in pdf", ex);
-				}
-			}
-		} finally {
-			// delete temp files
-			for (String path : tempPaths) {
-				try {
-					File f = new File(Utility.normalizePath(path));
-					if (f.exists()) {
-						FileUtils.forceDelete(f);
-					}
+					logger.info("PDF post-processing completed");
 				} catch (IOException e) {
-					classLogger.error("Unable to delete temp file {}", path, e);
+					logger.error("Error during PDF post-processing", e);
+				} finally {
+					if (document != null) {
+						try {
+							document.close();
+						} catch (IOException e) {
+							logger.error("Error closing PDF document", e);
+						}
+					}
 				}
 			}
 		}
-		// store the insight file
-		// in the insight so the FE can download it
-		// only from the given insight
+
+		// Clean up temp files
+		cleanupTempFiles(tempPaths);
+
+		// Store the insight file
 		this.insight.addExportFile(downloadKey, insightFile);
 
+		// Debug logging for PDF generation
+		logger.info("Legacy PDF generated at path: {}", outputFileLocation);
 		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
 				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the pdf file"));
@@ -365,42 +804,56 @@ public class ToPdfReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Cleanup temporary files
 	 */
-	private List<String> getLabels() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PDF_SIGNATURE_LABEL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> labels = grs.getAllStrValues();
-			if (labels != null && !labels.isEmpty()) {
-				return labels;
+	private void cleanupTempFiles(List<Path> tempPaths) {
+		for (Path path : tempPaths) {
+			try {
+				Files.deleteIfExists(path);
+				classLogger.debug("Deleted temp file: {}", path);
+			} catch (IOException e) {
+				classLogger.warn("Failed to delete temp file: {}", path, e);
 			}
-
 		}
-
-		return null;
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> mustacheVariables() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MUSTACHE_VARMAP.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			Object obj = grs.get(0);
-			if (!(obj instanceof Map)) {
-				throw new IllegalArgumentException(ReactorKeysEnum.MUSTACHE_VARMAP.getKey() + " must be a map object");
-			}
-			return (Map<String, Object>) obj;
-		}
+	// ==================== REACTOR DESCRIPTION METHODS ====================
 
-		List<Object> mapInput = this.curRow.getValuesOfType(PixelDataType.MAP);
-		if (mapInput != null && !mapInput.isEmpty()) {
-			return (Map<String, Object>) mapInput.get(0);
-		}
-
-		return null;
+	@Override
+	public String getReactorDescription() {
+		return "Converts HTML content to PDF format. Returns a download key for the generated PDF file.";
 	}
 
+	@Override
+	@SuppressWarnings("deprecation")
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.HTML.getKey())) {
+			return "The HTML content to convert to PDF format - Only use if there is no html file";
+		} else if (key.equals(ReactorKeysEnum.MARKDOWN.getKey())) {
+			return "The markdown content to convert to PDF format - Only use if there is no html input";
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Path to an HTML file to convert to PDF";
+		} else if (key.equals(ReactorKeysEnum.MUSTACHE.getKey())) {
+			return "Boolean flag to enable Mustache template processing";
+		} else if (key.equals(ReactorKeysEnum.MUSTACHE_VARMAP.getKey())) {
+			return "Map containing variables for Mustache template substitution";
+		} else if (key.equals(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey())) {
+			return "Boolean flag to add interactive signature fields to the PDF";
+		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey())) {
+			return "Boolean flag to add page numbers to the PDF";
+		} else if (key.equals(ReactorKeysEnum.PDF_PAGE_NUMBERS_IGNORE_FIRST.getKey())) {
+			return "Boolean flag to skip page numbering on the first page";
+		} else if (key.equals(ReactorKeysEnum.PDF_START_PAGE_NUM.getKey())) {
+			return "Starting page number for PDF page numbering";
+		} else if (key.equals(ReactorKeysEnum.OUTPUT_FILE_PATH.getKey())) {
+			return "Output directory path where the PDF file will be saved - should be empty by default";
+		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
+			return "Custom filename for the generated PDF (without extension)";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "Frontend URL required for processing <semoss> tags";
+		} else if (key.equals(ReactorKeysEnum.IMAGE_WAIT_TIME.getKey())) {
+			return "Wait time in milliseconds for image generation from <semoss> tags";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

@@ -37,31 +37,28 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ToProperCaseReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor changes columns to all upper case 
-	 * The inputs to the reactor are: 
+	 * This reactor changes columns to all upper case The inputs to the reactor are:
 	 * 1) the columns to update
 	 */
-	
+
 	public ToProperCaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// initialize rJavaTranslator
 		init();
-		
-		this.rJavaTranslator.checkPackages(new String[] {"snakecase"});
-		
+
+		this.rJavaTranslator.checkPackages(new String[] { "snakecase" });
+
 		StringBuilder builder = new StringBuilder();
 		builder.append("library(snakecase);");
-		
+
 		// get frame
 		RDataTable frame = (RDataTable) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
@@ -79,31 +76,26 @@ public class ToProperCaseReactor extends AbstractRFrameReactor {
 				table = split[0];
 			}
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
-			if(dataType == null)
+			if (dataType == null) {
 				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			}
 
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
-				builder.append(table + "$" + col + " <- to_upper_camel_case(" + table + "$" + col + ", sep_out=\" \");");
+				builder.append(
+						table + "$" + col + " <- to_upper_camel_case(" + table + "$" + col + ", sep_out=\" \");");
 			}
 		}
-		
+
 		// execute the r script
 		// script will be of the form:
 		// FRAME$column <- stri_trans_totitle(FRAME$column)
 		this.rJavaTranslator.runR(builder.toString());
 		this.addExecutedCode(builder.toString());
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"ToProper", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////

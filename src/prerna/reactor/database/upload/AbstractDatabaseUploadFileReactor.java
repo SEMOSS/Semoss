@@ -49,6 +49,7 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
@@ -85,7 +86,8 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 		this.logger = getLogger(this.getClass().getName());
 
 		organizeKeys();
-		String databaseIdOrName = UploadInputUtility.getDatabaseNameOrId(this.store);
+		String databaseIdOrName = UploadInputUtility.getEngineNameOrId(this.store,
+				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
 		String filePath = UploadInputUtility.getFilePath(this.store, this.insight);
 		if (!new File(filePath).exists()) {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
@@ -187,19 +189,10 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				FileUtils.copyFile(this.tempSmss, this.smssFile);
 				this.tempSmss.delete();
 				this.database.setSmssFilePath(this.smssFile.getAbsolutePath());
-				UploadUtilities.updateDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
+				UploadUtilities.addEngineToDIHelper(this.databaseId, this.databaseName, this.database, this.smssFile);
 				// sync metadata
 				this.logger.info("Process database metadata to allow for traversing across databases");
 				UploadUtilities.updateMetadata(this.databaseId, user);
-
-				// adding all the git here
-				// make a version folder if one doesn't exist
-				/*
-				 * String versionFolder = AssetUtility.getAppAssetVersionFolder(databaseName,
-				 * databaseId); File file = new File(versionFolder); if(!file.exists())
-				 * file.mkdir(); // I will assume the directory is there now
-				 * GitRepoUtils.init(versionFolder);
-				 */
 
 				this.logger.info("Complete");
 			} catch (Exception e) {
@@ -228,11 +221,6 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
 			}
 		}
-
-		// if we got here
-		// no errors
-		// we can do normal clean up of files
-		// TODO:
 
 		ClusterUtil.pushEngine(this.databaseId);
 
