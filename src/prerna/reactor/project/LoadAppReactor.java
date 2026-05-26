@@ -37,11 +37,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LoadAppReactor extends AbstractReactor {
 
-	// takes in a the name and engine and mounts the engine assets as that variable
-	// name in both python and R
-	// I need to accomodate for when I should over ride
-	// for instance a user could have saved a recipe with some mapping and then
-	// later, they would like to use a different mapping
+	/**
+	 * This tells the insight where it should search for custom reactors, custom
+	 * python files, mcp tools, etc.
+	 */
 
 	public LoadAppReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
@@ -69,7 +68,7 @@ public class LoadAppReactor extends AbstractReactor {
 		boolean success = this.insight.setContext(context);
 		// attempt once to directly map it with same name
 		if (!success) {
-			return getError("User does not have access to set the context to " + context);
+			return getError("User does not have access to load the app " + context);
 		}
 
 		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING,

@@ -34,7 +34,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.frame.gaas.chat.MooseChatReactor;
 import prerna.reactor.frame.gaas.ner.FillFormReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -55,9 +54,6 @@ public class MooseReactor extends AbstractGaasBaseReactor {
 		this.keyRequired = new int[] {1, 0};
 		
 		commandReactorMap.put("text2sql", NLPQuery3Reactor.class);
-//		commandReactorMap.put("docqa", QueryQAModelReactor.class);
-		commandReactorMap.put("chat", MooseChatReactor.class);
-//		commandReactorMap.put("lfqa", QueryQAModelReactor.class);
 		commandReactorMap.put("fillform", FillFormReactor.class);
 		commandReactorMap.put("text2viz", NLPQuery3Reactor.class); // need to replace this
 	}
@@ -80,13 +76,6 @@ public class MooseReactor extends AbstractGaasBaseReactor {
 		{
 			try {
 				AbstractReactor reactor = (AbstractReactor)commandReactorMap.get(realCommand).newInstance();
-				String projectId = getProjectId();
-				if(projectId == null && realCommand.equalsIgnoreCase("docqa"))
-				{
-					// swap the reactor
-					// this is a quick fix
-					reactor = new MooseChatReactor();
-				}
 				GenRowStruct commandStruct = new GenRowStruct();
 				commandStruct.addLiteral(newCommand);
 				this.store.removeNoun(keysToGet[0]);

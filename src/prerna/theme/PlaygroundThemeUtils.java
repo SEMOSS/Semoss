@@ -39,7 +39,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 
 /**
  * Theme accessors intended to be safe for all users (read-only).
@@ -56,8 +58,8 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
-	 * Returns {@code playground.globalSystemPrompt} from the currently active theme,
-	 * or {@code null} if not defined.
+	 * Returns {@code playground.globalSystemPrompt} from the currently active
+	 * theme, or {@code null} if not defined.
 	 */
 	public static String getPlaygroundGlobalSystemPrompt() {
 		ensureCacheLoaded();
@@ -169,6 +171,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	private static Map<String, Object> getActiveTheme() {
+		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		if (themeDb == null) {
 			return new HashMap<>();
 		}

@@ -89,8 +89,20 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the unique list of 'Source' values that have been uploaded into this vector database. "
-				+ "Typically the 'Souce' represents the files that have been uploaded, but in the case of custom chunking "
-				+ "the value will be returned even if the file itself was never uploaded";
+		return """
+				Get the unique list of `Source` values that have been uploaded into this vector database. \
+				Typically `Source` represents uploaded files, but with custom chunking it may represent \
+				values that were never uploaded as standalone files.\
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to list document sources from.";
+		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
+			return "Optional engine-specific parameters (for example index/collection selectors when supported).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

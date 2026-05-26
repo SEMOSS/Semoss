@@ -29,25 +29,23 @@ package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityAPIUserUtils extends AbstractSecurityUtils {
@@ -104,6 +102,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean validCredentials(String clientId, String secretKey) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String saltedPassword = null;
 		String salt = null;
 
@@ -120,7 +119,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				salt = (String) values[1];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate API user credentials.", e);
 		}
 
 		if (saltedPassword == null || salt == null) {
@@ -137,14 +136,14 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Map<String, String> createAPIUser(String name) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String> details = new HashMap<>();
 		String salt = AbstractSecurityUtils.generateSalt();
 		String clientId = UUID.randomUUID().toString();
 		String secretKey = UUID.randomUUID().toString();
 		String hashedPassword = (AbstractSecurityUtils.hash(secretKey, salt));
 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(Utility.getApplicationTimeZoneId()));
-		java.sql.Timestamp timestamp = java.sql.Timestamp.valueOf(LocalDateTime.now());
+		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		String insertQuery = "INSERT INTO " + SMSS_USER_TABLE_NAME
 				+ " (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
@@ -163,7 +162,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, false);
 			ps.setString(parameterIndex++, hashedPassword);
 			ps.setString(parameterIndex++, salt);
-			ps.setTimestamp(parameterIndex++, timestamp, cal);
+			ps.setTimestamp(parameterIndex++, timestamp);
 			// not locked ...
 			ps.setBoolean(parameterIndex++, false);
 			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
@@ -174,7 +173,7 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create API user.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

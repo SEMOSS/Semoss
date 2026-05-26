@@ -27,10 +27,10 @@
  *******************************************************************************/
 package prerna.poi.main.helper.excel;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -48,15 +48,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetExcelFormReactor extends AbstractReactor {
 
 	public GetExcelFormReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.SHEET_NAME.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.DATABASE.getKey(),
+				ReactorKeysEnum.SHEET_NAME.getKey() };
 	}
 
+	/**
+	 * Builds insert-form metadata from Excel data validations for the requested
+	 * sheet(s).
+	 *
+	 * @return map of sheet name to generated form metadata
+	 */
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String filePath = this.keyValue.get(this.keysToGet[0]);
-		if(!ExcelParsing.isExcelFile(filePath)) {
-			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls", PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+		if (!ExcelParsing.isExcelFile(filePath)) {
+			NounMetadata error = new NounMetadata("Invalid file. Must be .xlsx, .xlsm or .xls",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 			SemossPixelException e = new SemossPixelException(error);
 			e.setContinueThreadOfExecution(false);
 			throw e;
@@ -65,7 +73,7 @@ public class GetExcelFormReactor extends AbstractReactor {
 		String databaseName = this.keyValue.get(this.keysToGet[1]);
 		ExcelWorkbookFileHelper helper = new ExcelWorkbookFileHelper();
 		helper.parse(filePath);
-		List<String> sheetNames = new Vector<>();
+		List<String> sheetNames = new ArrayList<>();
 		String sheetName = this.keyValue.get(this.keysToGet[2]);
 		// TODO get modified headers
 		Map<String, String> newHeaders = new HashMap<>();
@@ -78,7 +86,8 @@ public class GetExcelFormReactor extends AbstractReactor {
 		for (String sheet : sheetNames) {
 			Sheet excelSheet = helper.getSheet(sheet);
 			Map<String, Object> dataValidationMap = ExcelDataValidationHelper.getDataValidation(excelSheet, newHeaders);
-			Map<String, Object> form = ExcelDataValidationHelper.createInsertForm(databaseName, sheet, dataValidationMap, null);
+			Map<String, Object> form = ExcelDataValidationHelper.createInsertForm(databaseName, sheet,
+					dataValidationMap, null);
 			if (!form.isEmpty()) {
 				retMap.put(sheet, form);
 			}

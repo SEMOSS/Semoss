@@ -38,25 +38,45 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetDatabaseConceptsReactor extends AbstractReactor {
-	
+
 	public GetDatabaseConceptsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		GenRowStruct eGrs = this.store.getGenRowStruct(keysToGet[0]);
-		if(eGrs == null) {
+		if (eGrs == null) {
 			throw new IllegalArgumentException("Need to define the database to get the concepts from");
 		}
-		if(eGrs.size() > 1) {
+		if (eGrs.size() > 1) {
 			throw new IllegalArgumentException("Can only define one database within this call");
 		}
 		String engineId = eGrs.get(0).toString();
 		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-		
+
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(engineId);
-		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_CONCEPTS);
+		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE,
+				PixelOperationType.DATABASE_CONCEPTS);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns the top-level concepts available within a database.
+
+				Concept types by database type:
+				  - Relational (RDBMS): TABLE
+				  - Graph / RDF:        NODE
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
+	}
 }

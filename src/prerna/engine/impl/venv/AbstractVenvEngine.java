@@ -189,8 +189,18 @@ public abstract class AbstractVenvEngine implements IVenvEngine {
 
 	@Override
 	public Logger getEngineLogger(String loggerName) {
-		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void setDisplayName(String displayName) {
+		// no display name for engine
+
+	}
+
+	@Override
+	public String getDisplayName() {
+		return getEngineName();
 	}
 
 }

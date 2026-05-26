@@ -46,25 +46,64 @@ The `src/prerna/masterdatabase/` package contains Java classes responsible for i
 
 With the integration of GenAI capabilities, managing prompts effectively is crucial.
 
-### 3.1. Purpose and Schema (Conceptual)
+### 3.1. Purpose and Schema
 
-*   **Purpose**: To store, categorize, and manage prompts that can be used with various LLMs integrated into SEMOSS. This allows users to save, reuse, and share effective prompts.
-*   **Key Information Stored (Conceptual Tables)**:
-    *   `PROMPT`: Stores the prompt text itself, a prompt ID, name, description, creation date, creator.
-    *   `PROMPT_CATEGORY`: Allows prompts to be categorized (e.g., "Text Summarization," "Data Analysis," "Code Generation").
-    *   `PROMPT_TAGS`: For tagging prompts with relevant keywords.
-    *   `PROMPT_PARAMETERS`: If prompts are designed as templates with placeholders, this might store information about those parameters.
-    *   `PROMPT_ENGINE_ASSOCIATION`: Links prompts to specific LLM engines they are designed for or compatible with.
+*   **Purpose**: To store, categorize, and manage prompts that can be used with various LLMs integrated into SEMOSS. This allows users to save, reuse, and share effective prompts with access control via a `GLOBAL` flag.
+*   **Tables**:
+    *   `PROMPT`: Stores the core prompt data. Supports versioning — updates create a new row with an incremented `VERSION` and the previous row's `IS_LATEST` is set to `false`.
+        *   `ID` (VARCHAR) — Unique prompt identifier (UUID)
+        *   `TITLE` (VARCHAR) — Prompt name
+        *   `CONTEXT` (CLOB) — The prompt text/template
+        *   `VERSION` (INTEGER) — Version number, starting at 0
+        *   `INTENT` (VARCHAR) — Optional description of the prompt's purpose
+        *   `CREATED_BY` (VARCHAR) — User ID of the creator
+        *   `DATE_CREATED` (TIMESTAMP) — Creation timestamp
+        *   `IS_LATEST` (BOOLEAN) — Whether this is the current version
+        *   `GLOBAL` (BOOLEAN) — Whether the prompt is visible to all users. When `false`, only the creator can see it.
+    *   `PROMPTMETA`: Stores tags and arbitrary key-value metadata for prompts. Tags are stored with `METAKEY='tag'`; other metadata uses the actual key name.
+        *   `PROMPT_ID` (VARCHAR) — Foreign key to `PROMPT.ID`
+        *   `METAKEY` (VARCHAR) — The metadata category (e.g., `"tag"`, `"department"`, `"region"`)
+        *   `METAVALUE` (VARCHAR) — The metadata value
+        *   `METAORDER` (INTEGER) — Ordering within a given metakey
+    *   `PROMPTMETAKEYS`: Registry of available metadata keys, synced from the security database's `USERMETAKEYS` table on first use. Stores display configuration for each metakey.
+        *   `METAKEY` (VARCHAR) — The metadata key name
+        *   `SINGLEMULTI` (VARCHAR) — Whether the key accepts single or multiple values
+        *   `DISPLAYORDER` (INTEGER) — Display ordering
+        *   `DISPLAYOPTIONS` (VARCHAR) — Display configuration
+        *   `DEFAULTVALUES` (VARCHAR) — Default values for the key
 
-### 3.2. Java Interaction
+### 3.2. Access Control
 
-*   **`prerna.prompt.PromptUtils.java` (and related classes)**: This class (or others within `src/prerna/prompt/`) likely provides the core Java logic for interacting with the `PromptDatabase`. It would handle:
-    *   Saving new prompts and their metadata.
-    *   Retrieving prompts by ID, name, category, or tags.
-    *   Updating and deleting prompts.
-    *   Listing available prompts for a user or system-wide.
-*   **Reactors for Prompts**: Specific reactors (e.g., `SavePromptReactor`, `GetPromptReactor` - hypothetical names) would use `PromptUtils` to expose prompt management functionality via Pixel scripts. These might be located in `src/prerna/reactor/llm/` or a similar package.
-*   **GenAI Feature Integration**: Java classes that implement features utilizing LLMs (e.g., those in `py/genai_client` or Java wrappers around them) would call `PromptUtils` to fetch prompts before sending requests to the LLM engines.
+Prompt visibility and modification are governed by the `GLOBAL` flag and the `CREATED_BY` field:
+
+*   **Listing/Viewing**: Users see prompts where `GLOBAL = true` OR `CREATED_BY = <their user ID>`. This applies uniformly to regular users and admins.
+*   **Updating**: Regular users can only update prompts they created. Admins can update prompts they created or any global prompt, but cannot update another user's non-global prompt.
+*   **Deleting**: Same authorization rules as updating.
+*   **GetPromptMetaValues**: Restricted to admin users only.
+
+### 3.3. Java Interaction
+
+*   **`prerna.prompt.PromptUtils.java`**: Core utility class in `src/prerna/prompt/` providing all CRUD operations for prompts. Key methods:
+    *   `addPrompt(...)` — Creates a new prompt, inserts tags and metadata, returns the generated UUID.
+    *   `editPrompt(...)` — Versions an existing prompt (marks old as not latest, inserts new row) with authorization checks.
+    *   `deletePrompt(...)` — Removes a prompt and its metadata from `PROMPT` and `PROMPTMETA` tables after authorization.
+    *   `getPrompt(...)` — Retrieves a single prompt by ID with access control, including tags and metadata.
+    *   `getPrompts(...)` — Lists prompts with visibility filtering, optional metadata-based filtering, and pagination.
+    *   `checkPromptTitle(...)` — Checks if an accessible prompt with the given title exists.
+    *   `getAvailableMetaValues(...)` — Returns distinct metadata values with usage counts, grouped by metakey.
+    *   `updatePromptMetadata(...)` — Replaces specific metadata fields for a prompt.
+*   **`prerna.prompt.AbstractPromptUtils.java`**: Handles database initialization and schema migration, including adding new columns (e.g., `GLOBAL`) to existing tables.
+*   **`prerna.prompt.PromptOwlCreator.java`**: Defines the OWL representation of the prompt database schema.
+*   **Reactors** (in `src/prerna/reactor/prompt/`):
+    *   `AddPromptReactor` — Creates a prompt, returns the new prompt UUID.
+    *   `UpdatePromptReactor` — Updates an existing prompt with authorization.
+    *   `DeletePromptReactor` — Deletes a prompt, returns the deleted prompt UUID.
+    *   `GetPromptReactor` — Retrieves a single prompt by ID.
+    *   `ListPromptReactor` — Lists prompts with filtering and pagination.
+    *   `CheckPromptTitleReactor` — Checks title availability.
+    *   `GetPromptMetaValuesReactor` — Returns metadata value counts (admin only).
+
+See each reactor class for Pixel usage, parameters, and return types.
 
 ## 4. Database Configuration and Access
 

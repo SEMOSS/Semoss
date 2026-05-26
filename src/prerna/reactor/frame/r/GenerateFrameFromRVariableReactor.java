@@ -37,8 +37,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 
@@ -62,12 +60,14 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		colNames = this.rJavaTranslator.getColumns(varName);
 		String[] colTypes = this.rJavaTranslator.getColumnTypes(varName);
 		if (colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + varName + " exists and can be a valid data.table object");
+			throw new IllegalArgumentException(
+					"Please make sure the variable " + varName + " exists and can be a valid data.table object");
 		}
 
 		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(logger), varName);
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, varName);
-		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (overrideFrame()) {
 			this.insight.setDataMaker(newTable);
 		}
@@ -75,10 +75,6 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		if (varName != null && !varName.isEmpty()) {
 			this.insight.getVarStore().put(varName, noun);
 		}
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, null, "GenerateFrameFromRVariable",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return noun;
 	}

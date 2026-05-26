@@ -36,19 +36,17 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class AddColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
-	 * 1) the name for the new column 
-	 * 2) the new column type
+	 * This reactor adds an empty column to the frame The inputs to the reactor are:
+	 * 1) the name for the new column 2) the new column type
 	 */
-	
+
 	public AddColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
 
 	@Override
@@ -62,7 +60,7 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		if (newColName == null || newColName.isEmpty()) {
 			throw new IllegalArgumentException("Need to define the new column name");
 		}
-		
+
 		// get the column type and standardize
 		String colType = this.keyValue.get(this.keysToGet[1]);
 		if (colType == null) {
@@ -85,12 +83,12 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		// execute the r script
 		frame.executeRScript(script);
 		this.addExecutedCode(script);
-		
+
 		// update the metadata to include this new column
 		OwlTemporalEngineMeta metaData = this.getFrame().getMetaData();
 		metaData.addProperty(table, table + "__" + newColName);
 		metaData.setAliasToProperty(table + "__" + newColName, newColName);
-		if(adtlDataType != null && !adtlDataType.isEmpty()) {
+		if (adtlDataType != null && !adtlDataType.isEmpty()) {
 			metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 		}
 		// temp table used to assign a data type to the new column
@@ -131,14 +129,8 @@ public class AddColumnReactor extends AbstractRFrameReactor {
 		}
 		frame.syncHeaders();
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"AddColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(new AddHeaderNounMetadata(newColName));
 		return retNoun;
 	}

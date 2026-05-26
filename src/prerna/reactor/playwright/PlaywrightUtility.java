@@ -48,7 +48,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.util.AssetUtility;
@@ -172,12 +171,11 @@ public class PlaywrightUtility {
 			fos.write(imageBytes);
 		}
 
-		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, null, null, null, null, null);
+		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, null);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(Arrays.asList(imageName), room, insight);
 
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(Arrays.asList(imageName), room, insight);
-
-		InputMessage inputMessage = InputMessage.builder(room).withInputUIPrompt(instruction)
-				.withInputPrompt(instruction).withMediaInput(copiedImages.getFirst(), room).build();
+		InputMessage inputMessage = InputMessage.builder(room).withText(instruction)
+				.withMediaInput(copiedImages.getFirst(), room).build();
 
 		ResponseMessage response = room.ask(inputMessage, modelEngine);
 		return response.getContent();

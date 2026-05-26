@@ -38,16 +38,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RankReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor ranks the data based on a given column(s) and sort
-	 * direction. The inputs to the reactor are: 1) the column(s) to be used for
-	 * rank 2) the name of the rank column 3) the sorting order for each column
-	 * 4) the partition column's to be used for rank
+	 * This reactor ranks the data based on a given column(s) and sort direction.
+	 * The inputs to the reactor are: 1) the column(s) to be used for rank 2) the
+	 * name of the rank column 3) the sorting order for each column 4) the partition
+	 * column's to be used for rank
 	 */
 
 	private static final String PARTITION_BY_COLS = "partitionByCols";
@@ -83,7 +81,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 		}
 		// clean the column name to ensure that it is valid
 		newColName = getCleanNewColName(frame, newColName);
-		
+
 		// partition by ex.(by=\"Age_Range\")
 		// String partitionbyCol = this.keyValue.get(PARTITION_BY_COLS);
 		List<String> partitionbyCols = getCols(PARTITION_BY_COLS);
@@ -180,7 +178,7 @@ public class RankReactor extends AbstractPyFrameReactor {
 
 			// create array of columns which is passed to groupby
 			colsArrayScript.append("cols = [").append(createColsArray).append("]");
-			
+
 			script = colsArrayScript.toString();
 			frame.runScript(script);
 			this.addExecutedCode(script);
@@ -201,10 +199,10 @@ public class RankReactor extends AbstractPyFrameReactor {
 		script = dropTempRankColsScript.toString();
 		frame.runScript(script);
 		this.addExecutedCode(script);
-		
+
 		// update wrapperFrameName it will end up frame name with 'w'
-		script = wrapperFrameName + ".cache['data'][['" + newColName + "']]" 
-				+ "=" + frame.getName() + "['" + newColName + "']";
+		script = wrapperFrameName + ".cache['data'][['" + newColName + "']]" + "=" + frame.getName() + "['" + newColName
+				+ "']";
 		frame.runScript(script);
 		this.addExecutedCode(script);
 
@@ -218,10 +216,6 @@ public class RankReactor extends AbstractPyFrameReactor {
 		frame.syncHeaders();
 		// to avoid the sorting of first column by default
 		// this.insight.getPragmap().put("IMPLICIT_ORDER", false);
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Rank",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// return the output
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,

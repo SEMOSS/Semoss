@@ -109,7 +109,11 @@ public class AuditLogReportReactor extends AbstractReactor {
 		if (projectId != null && !projectId.isEmpty()) {
 			Integer userPermissionLvl = SecurityProjectUtils
 					.getUserProjectPermission(user.getPrimaryLoginToken().getId(), projectId);
-			if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+			if (userPermissionLvl == null && !SecurityProjectUtils.projectIsGlobal(projectId)) {
+				throw new IllegalArgumentException(
+						"Project id '" + projectId + "' does not exist or user does not have access");
+			}
+			if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
 				userIsOwner = true;
 			}
 		}
@@ -118,7 +122,11 @@ public class AuditLogReportReactor extends AbstractReactor {
 			if (engineId != null && !engineId.isEmpty()) {
 				Integer userPermissionLvl = SecurityEngineUtils
 						.getUserEnginePermission(user.getPrimaryLoginToken().getId(), engineId);
-				if (AccessPermissionEnum.isOwner(userPermissionLvl)) {
+				if (userPermissionLvl == null && !SecurityEngineUtils.engineIsGlobal(engineId)) {
+					throw new IllegalArgumentException(
+							"Engine id '" + engineId + "' does not exist or user does not have access");
+				}
+				if (userPermissionLvl != null && AccessPermissionEnum.isOwner(userPermissionLvl)) {
 					userIsOwner = true;
 				}
 			}
@@ -154,10 +162,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 				endDateCustom);
 		SemossDate startDate = dateTimeMap.get(SemossLogUtils.START_DATE);
 		SemossDate endDate = dateTimeMap.get(SemossLogUtils.END_DATE);
-		List<LogActivityDto> result = Collections.emptyList();
+		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
-			result = AuditLogsDbUtils.getAuditLogsTimeLineDatas(filterUserId, projectId, engineId, startDate, endDate,
+			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
 					roomId, sessionId, limit, offset);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,
@@ -253,10 +261,10 @@ public class AuditLogReportReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getString(Map<String, Object> map, String key) {
-		Object val = map.get(key);
 		if (map == null || key == null) {
 			return "";
 		}
+		Object val = map.get(key);
 		return (val != null && !StringUtils.isBlank(val.toString())) ? val.toString().trim() : "";
 	}
 

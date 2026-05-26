@@ -41,13 +41,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class ToUpperCaseReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ToUpperCaseReactor.class);
 
 	public ToUpperCaseReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		// get frame
@@ -60,7 +60,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 			for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
 				NounMetadata input = inputsGRS.getNoun(selectIndex);
 				String columnName = input.getValue() + "";
-				
+
 				String table = frame.getName();
 				String column = columnName;
 				if (columnName.contains("__")) {
@@ -68,11 +68,11 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 					table = split[0];
 					column = split[1];
 				}
-				
+
 				String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
 				if (dataType.equals("STRING")) {
 					// execute update table set column = UPPER(column);
-					update += "UPDATE " + table + " SET " + column + " = UPPER(" + column + ") ; ";			
+					update += "UPDATE " + table + " SET " + column + " = UPPER(" + column + ") ; ";
 				}
 			}
 			if (update.length() > 0) {
@@ -83,6 +83,7 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 				}
 			}
 		}
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

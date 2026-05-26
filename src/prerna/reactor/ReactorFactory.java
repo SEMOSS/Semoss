@@ -33,10 +33,8 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -256,8 +254,8 @@ import prerna.reactor.masterdatabase.GetDatabaseConnectionsReactor;
 import prerna.reactor.masterdatabase.GetDatabaseListReactor;
 import prerna.reactor.masterdatabase.GetDatabaseMetamodelReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
-import prerna.reactor.masterdatabase.GetPhysicalToLogicalMapping;
-import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMapping;
+import prerna.reactor.masterdatabase.GetPhysicalToLogicalMappingReactor;
+import prerna.reactor.masterdatabase.GetPhysicalToPhysicalMappingReactor;
 import prerna.reactor.masterdatabase.GetSpecificConceptPropertiesReactor;
 import prerna.reactor.masterdatabase.GetTraversalOptionsReactor;
 import prerna.reactor.masterdatabase.QueryTranslatorReactor;
@@ -432,11 +430,7 @@ import prerna.util.git.reactors.SyncAppFiles;
 import prerna.util.git.reactors.SyncAppFilesO;
 import prerna.util.git.reactors.SyncAppOReactor;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
-import prerna.util.usertracking.reactors.UpdateQueryDataReactor;
-import prerna.util.usertracking.reactors.UpdateSemanticDataReactor;
-import prerna.util.usertracking.reactors.WidgetTReactor;
 import prerna.util.usertracking.reactors.recommendations.DatabaseRecommendationsReactor;
-import prerna.util.usertracking.reactors.recommendations.GetDatabasesByDescriptionReactor;
 import prerna.util.usertracking.reactors.recommendations.VizRecommendationsReactor;
 
 public class ReactorFactory {
@@ -527,39 +521,6 @@ public class ReactorFactory {
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
 	}
 
-//	public static void main(String [] args)
-//	{
-//		// print the inconsistencies
-//		
-//		printInconsistency("Generic", reactorHash);
-//		printInconsistency("h2", h2FrameHash);
-//		printInconsistency("R", rFrameHash);
-//		printInconsistency("Pandas", pandasFrameHash);
-//	}
-
-	public static void printInconsistency(String mapname, Map map) {
-
-		Iterator keys = map.keySet().iterator();
-
-		System.out.println(mapname);
-		System.out.println("-----------");
-
-		while (keys.hasNext()) {
-			String key = (String) keys.next();
-			Class value = (Class) map.get(key);
-
-			String name = value.getSimpleName();
-
-			name = name.replaceAll("Reactor", "");
-			if (!name.equals(key)) {
-				System.out.println(key + " <<>> " + name);
-			}
-
-		}
-		System.out.println("-----------");
-
-	}
-
 	/**
 	 * Load reactors based on the class path
 	 * 
@@ -629,17 +590,6 @@ public class ReactorFactory {
 		}
 	}
 
-	/*
-	 * public static void writeReacFile() { if(write) { String reacFileName =
-	 * "c:/users/pkapaleeswaran/workspacej3/temp/reactornames.txt";
-	 * System.err.println("Writing file.. "); try { PrintWriter br = new
-	 * PrintWriter(new OutputStreamWriter(new FileOutputStream(reacFileName)));
-	 * Iterator rIt = reactors.keySet().iterator(); while(rIt.hasNext())
-	 * br.write(rIt.next().toString() + "\n"); { } br.flush(); br.close(); write =
-	 * false; } catch (FileNotFoundException e) { // TODO Auto-generated catch block
-	 * classLogger.error(Constants.STACKTRACE, e); } catch (IOException e) { // TODO
-	 * Auto-generated catch block classLogger.error(Constants.STACKTRACE, e); } } }
-	 */
 	// populates the frame agnostic reactors used by pixel
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
@@ -668,7 +618,6 @@ public class ReactorFactory {
 		reactorHash.put("CheckRecommendOptimization", CheckRecommendOptimizationReactor.class);
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
-		reactorHash.put("WidgetT", WidgetTReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
 
 		// Database uploading utils
@@ -1024,8 +973,8 @@ public class ReactorFactory {
 		reactorHash.put("SemanticBlending", SemanticBlendingReactor.class);
 		reactorHash.put("SemanticDescription", SemanticDescription.class);
 		// similar reactors to x-ray
-		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMapping.class);
-		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMapping.class);
+		reactorHash.put("GetPhysicalToLogicalMapping", GetPhysicalToLogicalMappingReactor.class);
+		reactorHash.put("GetPhysicalToPhysicalMapping", GetPhysicalToPhysicalMappingReactor.class);
 
 		// these algorithms return viz data to the FE
 		reactorHash.put("RunNumericalCorrelation", RunNumericalCorrelationReactor.class);
@@ -1097,14 +1046,10 @@ public class ReactorFactory {
 		reactorHash.put("PauseJobTrigger", PauseJobTriggerReactor.class);
 		reactorHash.put("ListAllJobs", ListAllJobsReactor.class);
 		reactorHash.put("ResumeJobTrigger", ResumeJobTriggerReactor.class);
-		// User Tracking
-		reactorHash.put("UpdateSemanticData", UpdateSemanticDataReactor.class);
-		reactorHash.put("UpdateQueryData", UpdateQueryDataReactor.class);
 		// Recommendations
 		reactorHash.put("DatabaseRecommendations", DatabaseRecommendationsReactor.class);
 		reactorHash.put("VizRecommendations", VizRecommendationsReactor.class);
 		reactorHash.put("PredictViz", CreateNLPVizReactor.class);
-		reactorHash.put("GetDatabasesByDescription", GetDatabasesByDescriptionReactor.class);
 		reactorHash.put("UpdateNLPHistory", UpdateNLPHistoryReactor.class);
 		reactorHash.put("NLSQueryHelper", NLSQueryHelperReactor.class);
 
@@ -1462,32 +1407,6 @@ public class ReactorFactory {
 	 */
 	public static boolean hasReactor(String reactorId) {
 		return reactorHash.containsKey(reactorId) || expressionHash.containsKey(reactorId.toUpperCase());
-	}
-
-	/**
-	 * This method takes in a prop file to build the reactorHash
-	 * 
-	 * @param propFile    - the path to the prop file with the reactor names and
-	 *                    classes
-	 * @param reactorHash - the specific reactor hash object that we are building
-	 * 
-	 */
-	public static void buildReactorHashFromPropertyFile(Map<String, Class<? extends IReactor>> hash, String propFile) {
-		// move info from the prop file into a Properties object
-		Properties properties = Utility.loadProperties(propFile);
-		// for each line in the file
-		// each line maps a reactor (operation) to a class
-		for (Object operation : properties.keySet()) {
-			try {
-				// identify the class that corresponds to each reactor
-				String reactorClass = properties.get(operation).toString();
-				Class reactor = (Class.forName(reactorClass));
-				// put the operation and the class into the reactor hash
-				hash.put(operation.toString(), reactor);
-			} catch (ClassNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-		}
 	}
 
 	/**

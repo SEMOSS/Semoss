@@ -59,7 +59,7 @@ public class ApiSemossTestUserUtils {
 	
 	private static void createUser(String userName, String email, boolean isAdmin) {
 		try {
-			ApiSemossTestEngineUtils.createUser(userName, email, "Native", isAdmin);
+			ApiSemossTestEngineUtils.createUser(userName, email, AuthProvider.NATIVE.toString(), isAdmin);
 		} catch (Exception e) {
 			System.out.println("Could not create User");
 			fail(e.toString());

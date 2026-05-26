@@ -47,45 +47,45 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunClusteringReactor extends AbstractRFrameReactor {
 
 	/**
-	 * with specific cluster #
-	 * RunClustering ( algorithm = [kmeans], multiOption = [false], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth" , "PetalLength" , 
-	 * "PetalWidth" ], numClusters = [ 3 ], uniqInstPerRow = [Yes] ) ;
+	 * with specific cluster # RunClustering ( algorithm = [kmeans], multiOption =
+	 * [false], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth"
+	 * , "PetalLength" , "PetalWidth" ], numClusters = [ 3 ], uniqInstPerRow = [Yes]
+	 * ) ;
 	 * 
-	 * with min-max range of cluster #s
-	 * RunClustering ( algorithm = [kmeans], multiOption = [true], instance = [ Species ] , attributes = [ "SepalLength" , "SepalWidth" , "PetalLength" , 
-	 * "PetalWidth" ],  minNumClusters = [2], maxNumClusters = [10] , uniqInstPerRow = [Yes]) ;
+	 * with min-max range of cluster #s RunClustering ( algorithm = [kmeans],
+	 * multiOption = [true], instance = [ Species ] , attributes = [ "SepalLength" ,
+	 * "SepalWidth" , "PetalLength" , "PetalWidth" ], minNumClusters = [2],
+	 * maxNumClusters = [10] , uniqInstPerRow = [Yes]) ;
 	 * 
-	 * Input keys: 
-	 * 		1. algorithm (optional) - kmeans (numerical data only), pam (numerical data only), pamGower (categorical/numerical data). 
-	 * 								  default = kmeans for numerical only data or pamGower for numerical and/or categorical data 
-	 * 		2. multiOption (required) - boolean (true or false)
-	 * 			if true, then multiclustering (minNumClusters/maxnNumClusters can be specified)
-	 * 			if false, then single clustering (numClusters can be specified)
-	 * 		3. instance (required)
-	 * 		4. attributes (required)
-	 * 		5. numClusters (optional) - can be specified if multioption = false. default = 5
-	 * 		6. minNumClusters (optional) - can be specified if multioption = true. default = 2
-	 *  	7. maxnNumClusters (optional) - can be specified if multioption = true. default = 20
-	 * 		8. uniqInstPerRow (optional; if not passed in, assumes no) - 
-	 * 			if yes, then will treat each row in the frame as a unique instance/record; 
-	 * 			if no, then will aggregate the data in the attributes columns by the instance column first
+	 * Input keys: 1. algorithm (optional) - kmeans (numerical data only), pam
+	 * (numerical data only), pamGower (categorical/numerical data). default =
+	 * kmeans for numerical only data or pamGower for numerical and/or categorical
+	 * data 2. multiOption (required) - boolean (true or false) if true, then
+	 * multiclustering (minNumClusters/maxnNumClusters can be specified) if false,
+	 * then single clustering (numClusters can be specified) 3. instance (required)
+	 * 4. attributes (required) 5. numClusters (optional) - can be specified if
+	 * multioption = false. default = 5 6. minNumClusters (optional) - can be
+	 * specified if multioption = true. default = 2 7. maxnNumClusters (optional) -
+	 * can be specified if multioption = true. default = 20 8. uniqInstPerRow
+	 * (optional; if not passed in, assumes no) - if yes, then will treat each row
+	 * in the frame as a unique instance/record; if no, then will aggregate the data
+	 * in the attributes columns by the instance column first
 	 */
-	
+
 	private static final String MIN_NUM_CLUSTERS = "minNumClusters";
 	private static final String MAX_NUM_CLUSTERS = "maxNumClusters";
 	private static final String MULTI_BOOLEAN = "multiOption";
 	private static final String ALGORITHM = "algorithm";
-	private static final String UNIQUE_INSTANCE_PER_ROW= "uniqInstPerRow";
-	
+	private static final String UNIQUE_INSTANCE_PER_ROW = "uniqInstPerRow";
+
 	public RunClusteringReactor() {
-		this.keysToGet = new String[]{ALGORITHM, MULTI_BOOLEAN, ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.ATTRIBUTES.getKey(), 
-				ReactorKeysEnum.CLUSTER_KEY.getKey(), MIN_NUM_CLUSTERS, MAX_NUM_CLUSTERS, UNIQUE_INSTANCE_PER_ROW};
+		this.keysToGet = new String[] { ALGORITHM, MULTI_BOOLEAN, ReactorKeysEnum.INSTANCE_KEY.getKey(),
+				ReactorKeysEnum.ATTRIBUTES.getKey(), ReactorKeysEnum.CLUSTER_KEY.getKey(), MIN_NUM_CLUSTERS,
+				MAX_NUM_CLUSTERS, UNIQUE_INSTANCE_PER_ROW };
 	}
 
 	@Override
@@ -100,23 +100,26 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		String dtNameIF = "dtFiltered" + Utility.getRandomString(6);
 		String tempKeyCol = "tempGenUUID99SM_" + Utility.getRandomString(6);
 		StringBuilder rsb = new StringBuilder();
-					
+
 		// get first set of inputs in preparation for the first R function
 		String instanceColumn = getInstanceColumn();
 		List<String> attrNamesList = getColumnsList(instanceColumn);
-		if (attrNamesList.contains(instanceColumn)) attrNamesList.remove(instanceColumn);
-		
-		// check if there are filters on the frame. if so then need to run algorithm on subsetted data and later join
-		if(!frame.getFrameFilters().isEmpty()) {
+		if (attrNamesList.contains(instanceColumn)) {
+			attrNamesList.remove(instanceColumn);
+		}
+
+		// check if there are filters on the frame. if so then need to run algorithm on
+		// subsetted data and later join
+		if (!frame.getFrameFilters().isEmpty()) {
 			// prep the original frame by adding a temporary column, serving as row index
 			addUUIDColumnToOrigFrame(dtName, meta, tempKeyCol);
-			
+
 			// create a new qs to retrieve filtered frame
 			SelectQueryStruct qs = new SelectQueryStruct();
 			List<String> selectedCols = new ArrayList<String>(attrNamesList);
 			selectedCols.add(instanceColumn);
 			selectedCols.add(tempKeyCol);
-			for(String s : selectedCols) {
+			for (String s : selectedCols) {
 				qs.addSelector(new QueryColumnSelector(s));
 			}
 			qs.setImplicitFilters(frame.getFrameFilters());
@@ -128,12 +131,12 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 			String query = interp.composeQuery();
 			this.rJavaTranslator.runR(dtNameIF + "<- {" + query + "}");
 			implicitFilter = true;
-			
-			//cleanup the temp r variable in the query var
+
+			// cleanup the temp r variable in the query var
 			this.rJavaTranslator.runR("rm(" + query.split(" <-")[0] + ");gc();");
 		}
-		
-		// set R variables to run first R function 
+
+		// set R variables to run first R function
 		String targetDt = implicitFilter ? dtNameIF : dtName;
 		String uniqInstPerRowStr = getUniqInstPerRow();
 		String uniqInstPerRow_R = "uniqInstPerRow" + Utility.getRandomString(8);
@@ -145,25 +148,27 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		String instanceColumn_R = "instanceColumn" + Utility.getRandomString(8);
 		rsb.append(instanceColumn_R + "<- \"" + instanceColumn + "\";");
 		String attrNamesList_R = "attrNamesList" + Utility.getRandomString(8);
-		rsb.append(attrNamesList_R + "<- " + RSyntaxHelper.createStringRColVec(attrNamesList.toArray())+ ";");
+		rsb.append(attrNamesList_R + "<- " + RSyntaxHelper.createStringRColVec(attrNamesList.toArray()) + ";");
 		String clusteringScriptFilePath = getBaseFolder() + "\\R\\AnalyticsRoutineScripts\\Clustering.R";
 		clusteringScriptFilePath = clusteringScriptFilePath.replace("\\", "/");
 		rsb.append("source(\"" + clusteringScriptFilePath + "\");");
 		// call first R function
 		int rsbLength = rsb.length();
 		String scaleUniqueData_R = "scaleUniqueData" + Utility.getRandomString(8);
-		rsb.append(scaleUniqueData_R + "<-scaleUniqueData(" + targetDt + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + ");");
+		rsb.append(scaleUniqueData_R + "<-scaleUniqueData(" + targetDt + "," + instanceColumn_R + "," + attrNamesList_R
+				+ "," + uniqInstPerRow_R + ");");
 		this.rJavaTranslator.runR(rsb.toString());
 		rsb.delete(rsbLength, rsb.length());
 		int nrows = this.rJavaTranslator.getInt(scaleUniqueData_R + "$dtSubset[,.N];");
-		if (nrows == 1){
+		if (nrows == 1) {
 			meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
-			this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-					dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+			this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + ","
+					+ uniqInstPerRow_R + "," + dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
 			throw new IllegalArgumentException("Instance column contains only 1 unique record.");
 		}
-		
-		// get the rest of the inputs & set R equivalent variables in preparation for second R function
+
+		// get the rest of the inputs & set R equivalent variables in preparation for
+		// second R function
 		boolean multiOption = getMultiOption();
 		int numClusters = getNumClusters(keysToGet[4]);
 		int minNumClusters = getNumClusters(keysToGet[5]);
@@ -172,31 +177,33 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		String minNumCluster_R = "minNumClusters" + Utility.getRandomString(8);
 		String maxNumCluster_R = "maxNumClusters" + Utility.getRandomString(8);
 		if (multiOption == false) {
-			if (numClusters > 0 && numClusters >= nrows){
+			if (numClusters > 0 && numClusters >= nrows) {
 				meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
-				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
-				throw new IllegalArgumentException("Number of clusters requested, " + numClusters + ", should be less than the "
-						+ "number of unique instances, " + nrows +".");
+				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R
+						+ "," + uniqInstPerRow_R + "," + dtNameIF
+						+ ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+				throw new IllegalArgumentException("Number of clusters requested, " + numClusters
+						+ ", should be less than the " + "number of unique instances, " + nrows + ".");
 			}
-			if (numClusters == -1){
+			if (numClusters == -1) {
 				numClusters = (nrows <= 5 ? (nrows - 1) : 5);
 			}
 			rsb.append(numClusters_R + "<-" + numClusters + ";");
 			rsb.append(minNumCluster_R + "<- NULL;");
 			rsb.append(maxNumCluster_R + "<- NULL;");
 		} else {
-			if ((minNumClusters > 0 && minNumClusters >= nrows) || (maxNumClusters > 0 && maxNumClusters >= nrows)){
+			if ((minNumClusters > 0 && minNumClusters >= nrows) || (maxNumClusters > 0 && maxNumClusters >= nrows)) {
 				meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
-				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R + "," + uniqInstPerRow_R + "," +
-						dtNameIF + ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
+				this.rJavaTranslator.runR("rm(" + scaleUniqueData_R + "," + instanceColumn_R + "," + attrNamesList_R
+						+ "," + uniqInstPerRow_R + "," + dtNameIF
+						+ ",getDtClusterTable,getNewColumnNam,scaleUniqueData);gc();");
 				throw new IllegalArgumentException("Number of min/max clusters requested should be less than the "
-						+ "number of unique instances, " + nrows +".");
+						+ "number of unique instances, " + nrows + ".");
 			}
-			if (minNumClusters == -1){
+			if (minNumClusters == -1) {
 				minNumClusters = 2;
 			}
-			if (maxNumClusters == -1){
+			if (maxNumClusters == -1) {
 				maxNumClusters = (nrows <= 50 ? (nrows - 1) : 50);
 			}
 			rsb.append(minNumCluster_R + "<- " + minNumClusters + ";");
@@ -221,39 +228,40 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 
 		// set call to second R function
 		rsb.append(targetDt + " <- getDtClusterTable( " + algorithm_R + "," + scaleUniqueData_R + "," + instanceColumn_R
-				+ "," + attrNamesList_R + ",numClusters=" + numClusters_R + ",minNumCluster=" + minNumCluster_R 
-				+ ",maxNumCluster=" + maxNumCluster_R + ",uniqInstPerRow=" + uniqInstPerRow_R
-				+ ",fullColNameList=" + RSyntaxHelper.createStringRColVec(frame.getColumnHeaders()) + ");");
-				
+				+ "," + attrNamesList_R + ",numClusters=" + numClusters_R + ",minNumCluster=" + minNumCluster_R
+				+ ",maxNumCluster=" + maxNumCluster_R + ",uniqInstPerRow=" + uniqInstPerRow_R + ",fullColNameList="
+				+ RSyntaxHelper.createStringRColVec(frame.getColumnHeaders()) + ");");
+
 		// execute R
 		this.rJavaTranslator.runR(rsb.toString());
-		
+
 		// retrieve new columns to add to meta
 		String[] updatedDfColumns = this.rJavaTranslator.getColumns(targetDt);
-		
-		// clean up r temp variables 
-		this.rJavaTranslator.runR("rm(" + attrNamesList_R + "," + algorithm_R + "," + instanceColumn_R + "," + numClusters_R +
-				"," + minNumCluster_R + "," + maxNumCluster_R + "," + uniqInstPerRow_R + "," + scaleUniqueData_R +
-				",getDtClusterTable,getNewColumnName,scaleUniqueData);gc();");
-		
+
+		// clean up r temp variables
+		this.rJavaTranslator.runR("rm(" + attrNamesList_R + "," + algorithm_R + "," + instanceColumn_R + ","
+				+ numClusters_R + "," + minNumCluster_R + "," + maxNumCluster_R + "," + uniqInstPerRow_R + ","
+				+ scaleUniqueData_R + ",getDtClusterTable,getNewColumnName,scaleUniqueData);gc();");
+
 		// get new cluster column of data
 		List<String> origDfCols = new ArrayList<String>(Arrays.asList(frame.getColumnHeaders()));
 		List<String> updatedDfCols = new ArrayList<String>(Arrays.asList(updatedDfColumns));
 		updatedDfCols.removeAll(origDfCols);
-		
+
 		// drop the temporary column of row index from metadata
 		meta.dropProperty(dtName + "__" + tempKeyCol, dtName);
 
 		if (!updatedDfCols.isEmpty()) {
-			// if implicitFilter == true, then need to join the resulting column to the whole frame (dtName var) 
+			// if implicitFilter == true, then need to join the resulting column to the
+			// whole frame (dtName var)
 			if (implicitFilter) {
-				this.rJavaTranslator.runR(dtName +  "<-merge(" + dtName + ", " + dtNameIF + 
-						"[,c('" + tempKeyCol + "'," + "'" + StringUtils.join(updatedDfCols,"','") + "'" +
-						"), with=FALSE],by ='" + tempKeyCol + "', all.x=TRUE);" + dtName + "[," + tempKeyCol + " := NULL] ;");
+				this.rJavaTranslator.runR(dtName + "<-merge(" + dtName + ", " + dtNameIF + "[,c('" + tempKeyCol + "',"
+						+ "'" + StringUtils.join(updatedDfCols, "','") + "'" + "), with=FALSE],by ='" + tempKeyCol
+						+ "', all.x=TRUE);" + dtName + "[," + tempKeyCol + " := NULL] ;");
 			}
 			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc();");
-			
-			// update metadata with the new column information 
+
+			// update metadata with the new column information
 			for (String newColName : updatedDfCols) {
 				meta.addProperty(dtName, dtName + "__" + newColName);
 				meta.setAliasToProperty(dtName + "__" + newColName, newColName);
@@ -264,24 +272,19 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 			this.rJavaTranslator.runR("rm(" + dtNameIF + ");gc();");
 			throw new IllegalArgumentException("Selected attributes are not valid for clustering.");
 		}
-		
+
 		String algName = multiOption ? "ClusterOptimization" : "Clustering";
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				algName, 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		// now return this object
-		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE, PixelOperationType.FRAME_DATA_CHANGE);
-		noun.addAdditionalReturn(
-				new NounMetadata(algName + " ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.", 
-						PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
+		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
+		noun.addAdditionalReturn(new NounMetadata(
+				algName + " ran succesfully! See new \"" + updatedDfCols.get(0) + "\" column in the grid.",
+				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-	
-	private void addUUIDColumnToOrigFrame(String frameName, OwlTemporalEngineMeta meta, String tempKeyCol){
+
+	private void addUUIDColumnToOrigFrame(String frameName, OwlTemporalEngineMeta meta, String tempKeyCol) {
 		this.rJavaTranslator.executeEmptyR(frameName + "$" + tempKeyCol + "<- seq.int(nrow(" + frameName + "));");
 
 		meta.addProperty(frameName, frameName + "__" + tempKeyCol);
@@ -301,12 +304,13 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		if (algorithmGrs != null) {
 			algorithm = (String) algorithmGrs.getNoun(0).getValue();
 		} else {
-			// default to kmeans; if categorical data is detected in attributes cols, then will default to pamGower
+			// default to kmeans; if categorical data is detected in attributes cols, then
+			// will default to pamGower
 			algorithm = "kmeans";
 		}
 		return algorithm;
 	}
-	
+
 	private boolean getMultiOption() {
 		GenRowStruct multiOptionGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (multiOptionGrs != null) {
@@ -315,7 +319,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 			throw new IllegalArgumentException("Specify whether single or multiple clustering is being requested");
 		}
 	}
-	
+
 	private String getInstanceColumn() {
 		GenRowStruct instanceGrs = this.store.getGenRowStruct(keysToGet[2]);
 		String instanceCol = "";
@@ -330,16 +334,15 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		return instanceCol;
 	}
 
-	
 	private int getNumClusters(String key) {
 		GenRowStruct numClustersGrs = this.store.getGenRowStruct(key);
 		int numClusters = -1;
 		if (numClustersGrs != null) {
-			return(int) numClustersGrs.getNoun(0).getValue();
+			return (int) numClustersGrs.getNoun(0).getValue();
 		}
-		return numClusters; 
+		return numClusters;
 	}
-		
+
 	private List<String> getColumnsList(String instanceColumn) {
 		// see if defined as individual key
 		List<String> retList = new ArrayList<String>();
@@ -366,7 +369,7 @@ public class RunClusteringReactor extends AbstractRFrameReactor {
 		}
 		return retList;
 	}
-	
+
 	private String getUniqInstPerRow() {
 		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getGenRowStruct(UNIQUE_INSTANCE_PER_ROW);

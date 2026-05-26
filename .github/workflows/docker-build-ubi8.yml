@@ -22,7 +22,7 @@ on:
 jobs:
   build:
 
-    runs-on: self-hosted
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container:
       image: quay.io/semoss/test-quay:ubuntu-dind # Keeping the same dind image for now
     #runs-on: ubuntu-latest
@@ -75,7 +75,7 @@ jobs:
           pull: true
           tags: |
             quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}  
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT

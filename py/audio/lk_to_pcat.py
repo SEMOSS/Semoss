@@ -5,7 +5,7 @@ logger.add("pipecat.log", encoding="utf-8", level="DEBUG")
 
 import logging, asyncio, json
 from typing import Optional
-
+import boto3
 from pipecat.audio.turn.smart_turn.base_smart_turn import SmartTurnParams
 from pipecat.audio.turn.smart_turn.local_smart_turn_v3 import LocalSmartTurnAnalyzerV3
 from pipecat.audio.vad.silero import SileroVADAnalyzer
@@ -24,12 +24,8 @@ from pipecat.frames.frames import (
     TTSAudioRawFrame,
 )
 from pipecat.processors.frame_processor import FrameProcessor, FrameDirection, Frame
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.services.openai.realtime.llm import OpenAIRealtimeLLMService
 from pipecat.processors.transcript_processor import TranscriptProcessor
-from pipecat.observers.loggers.transcription_log_observer import (
-    TranscriptionLogObserver,
-)
 from pipecat.observers.base_observer import BaseObserver, FrameProcessed, FramePushed
 from pipecat.services.openai.realtime.events import (
     AudioConfiguration,
@@ -41,6 +37,73 @@ from pipecat.services.openai.realtime.events import (
     SessionProperties,
 )
 from gaas_server_proxy import ServerProxy
+
+from pipecat.processors.aggregators.llm_context import LLMContext
+from pipecat.processors.aggregators.llm_response_universal import (
+    LLMContextAggregatorPair,
+)
+
+
+class AmazonTranslateProcessor(FrameProcessor):
+    """
+    Translates transcription frames using Amazon Translate and (optionally)
+    publishes translations to LiveKit via the provided transport.
+
+    Notes:
+    - Amazon Translate is sync HTTPS; we run it in a thread to avoid blocking the event loop.
+    """
+
+    def __init__(
+        self,
+        *,
+        region: str,
+        target_lang: str,
+        source_lang: str = "auto",
+        transport=None,
+        send_interim: bool = True,
+        max_concurrency: int = 8,
+        aws_access_key: str,
+        aws_secret_key: str,
+    ):
+        super().__init__()
+        self.client = boto3.client(
+            "translate",
+            region_name=region,
+            aws_access_key_id=aws_access_key,
+            aws_secret_access_key=aws_secret_key,
+        )
+        self.source_lang = source_lang
+        self.target_lang = target_lang
+        self.transport = transport
+        self.send_interim = send_interim
+        self.sem = asyncio.Semaphore(max_concurrency)
+
+    async def _translate(self, text: str) -> str:
+        def call():
+            return self.client.translate_text(
+                Text=text,
+                SourceLanguageCode=self.source_lang,
+                TargetLanguageCode=self.target_lang,
+            )["TranslatedText"]
+
+        async with self.sem:
+            return await asyncio.to_thread(call)
+
+    async def process_frame(self, frame: Frame, direction: FrameDirection):
+        await super().process_frame(frame, direction)
+
+        should_translate = isinstance(frame, TranscriptionFrame) or (
+            self.send_interim and isinstance(frame, InterimTranscriptionFrame)
+        )
+
+        if should_translate and getattr(frame, "text", None):
+            try:
+                translated = await self._translate(frame.text)
+                frame.text = translated  # Mutate the frame in-place
+            except Exception as e:
+                logger.error(f"Translation failed: {e}")
+
+        await self.push_frame(frame, direction)
 
 
 class FrameTapObserver(BaseObserver):
@@ -94,9 +157,11 @@ class LiveKitDataBridge(FrameProcessor):
     """Bridges Pipecat frames to LiveKit data messages."""
 
     def __init__(
-        self, transport: LiveKitTransport, send_interim: Optional[bool] = True, **kwargs
+        self,
+        transport: LiveKitTransport,
+        send_interim: Optional[bool] = True,
     ):
-        super().__init__(**kwargs)
+        super().__init__()
         self.transport = transport
         self.send_interim = send_interim
 
@@ -140,8 +205,8 @@ class LiveKitDataBridge(FrameProcessor):
 class TranscriptionLogger(FrameProcessor):
     """Logs transcription frames to a file."""
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
+        super().__init__()
         self.logger = logging.getLogger("TranscriptionLogger")
         self.logger.setLevel(logging.DEBUG)
         console_handler = logging.StreamHandler()
@@ -172,6 +237,7 @@ class LiveKitToPipecatListener(ServerProxy):
         api_key: str,
         model_url: str,
         insight_id: str,
+        param_map: dict = {},
     ):
         super().__init__()
         self.room_name = room_name
@@ -183,7 +249,8 @@ class LiveKitToPipecatListener(ServerProxy):
         self.api_key = api_key
         self.model_url = model_url
         self.insight_id = insight_id
-
+        self.param_map = param_map
+        self.voice = self.param_map.get("voice", "coral")
         self.logger = logging.getLogger("LiveKitToPipecatListener")
         self.logger.setLevel(logging.DEBUG)
 
@@ -191,10 +258,14 @@ class LiveKitToPipecatListener(ServerProxy):
             f"Initialized LiveKitToPipecatListener for room: {room_name}, url: {url}"
         )
 
-    async def run(self):
+    async def run(
+        self,
+    ):
         """Entry point for the daemon thread to start the listener based on the operation type."""
         if self.operation == "turn_based_transcription":
             await self.listen_and_transcribe()
+        elif self.operation == "turn_based_translation":
+            await self.listen_translate_and_transcribe()
         elif self.operation == "speech_to_speech_realtime":
             await self.speech_to_speech_realtime()
         else:
@@ -225,11 +296,11 @@ class LiveKitToPipecatListener(ServerProxy):
                         create_response=True, interrupt_response=True
                     ),
                     noise_reduction=InputAudioNoiseReduction(type="near_field"),
-                )
-            ),
-            # "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"
-            output=AudioOutput(
-                voice="coral",
+                ),
+                output=AudioOutput(
+                    # "alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova", "sage", "shimmer", "verse"
+                    voice=self.voice,
+                ),
             ),
             instructions="""You are a helpful and friendly AI.
 
@@ -262,23 +333,23 @@ class LiveKitToPipecatListener(ServerProxy):
 
         transcript = TranscriptProcessor()
 
-        context = OpenAILLMContext(
+        context = LLMContext(
             [{"role": "user", "content": "Say hello and greet the human participant!"}]
         )
 
-        context_aggregator = s2s.create_context_aggregator(context)
+        user_agg, assistant_agg = LLMContextAggregatorPair(context)
 
         transcript_logger = TranscriptionLogger()
 
         pipeline = Pipeline(
             [
                 transport.input(),
-                context_aggregator.user(),
+                user_agg,
                 s2s,
                 transcript.user(),
                 transport.output(),
                 transcript.assistant(),
-                context_aggregator.assistant(),
+                assistant_agg,
                 transcript_logger,
             ]
         )
@@ -289,7 +360,7 @@ class LiveKitToPipecatListener(ServerProxy):
             params=PipelineParams(enable_metrics=True, enable_usage_metrics=True),
             enable_tracing=False,
             observers=[
-                FrameTapObserver(),  # PROBABLY REMOVE THIS AFTER DEBUGGING
+                FrameTapObserver(),
             ],
         )
         self.logger.info("Started pipeline task")
@@ -349,7 +420,7 @@ class LiveKitToPipecatListener(ServerProxy):
         runner = PipelineRunner(handle_sigint=False)
         await runner.run(task)
 
-    async def listen_and_transcribe(self):
+    async def listen_translate_and_transcribe(self):
         """Sets up the LiveKit transport and Pipecat pipeline for turn-based transcription."""
         transport = LiveKitTransport(
             url=self.url,
@@ -369,6 +440,115 @@ class LiveKitToPipecatListener(ServerProxy):
             model=self.model,
             prompt="Expect conversational speech with various topics.",
             language="en",
+            temperature=0.0,
+        )
+
+        self.logger.info("STT service configured")
+
+        transcription_logger = TranscriptionLogger()
+        lk_bridge = LiveKitDataBridge(transport, send_interim=True)
+
+        logger.info(f"PARAM_MAP just before translation: {self.param_map}")
+
+        target_lang = self.param_map.get("targetLang", "es")
+        source_lang = self.param_map.get("sourceLang", "auto")
+
+        logger.info(
+            f"Using source_lang={source_lang} and target_lang={target_lang} for translation"
+        )
+
+        translate_proc = AmazonTranslateProcessor(
+            region="us-east-1",
+            source_lang=source_lang,
+            target_lang=target_lang,
+            transport=transport,
+            send_interim=True,
+            aws_access_key=self.param_map.get("aws_access_key", ""),
+            aws_secret_key=self.param_map.get("aws_secret_key", ""),
+        )
+
+        pipeline = Pipeline(
+            [
+                transport.input(),
+                stt,
+                translate_proc,
+                lk_bridge,
+                transcription_logger,
+                transport.output(),
+            ]
+        )
+        self.logger.info("Pipeline configured")
+
+        task = PipelineTask(
+            pipeline,
+            params=PipelineParams(
+                enable_metrics=True,
+                enable_usage_metrics=True,
+            ),
+            enable_tracing=True,
+        )
+        self.logger.info("Started pipeline task")
+
+        # -------------------START TRANSPORT EVENTS-------------------
+        @transport.event_handler("on_connected")
+        async def on_connected(_t):
+            self.logger.info(
+                f"TRANSPORT EVENT: Connected to LiveKit room: {self.room_name}"
+            )
+
+        @transport.event_handler("on_disconnected")
+        async def on_client_disconnected(transport, client):
+            self.logger.info(
+                f"TRANSPORT EVENT: Disconnected from LiveKit client: {client.identity}"
+            )
+
+        @transport.event_handler("on_participant_connected")
+        async def on_participant_connected(participant_id):
+            self.logger.info(
+                f"TRANSPORT EVENT: Participant connected: {participant_id}"
+            )
+
+        @transport.event_handler("on_participant_disconnected")
+        async def on_participant_disconnected(participant_id):
+            self.logger.info(
+                f"TRANSPORT EVENT: Participant disconnected: {participant_id}"
+            )
+
+        # -------------------END TRANSPORT EVENTS-------------------
+
+        # -------------------START TASK EVENTS-------------------
+        @task.event_handler("on_pipeline_started")
+        async def on_pipeline_started(task, frame):
+            self.logger.info("TASK EVENT: Pipeline started")
+
+        @task.event_handler("on_pipeline_error")
+        async def on_pipeline_error(task, frame):
+            self.logger.error(f"TASK EVENT: Pipeline error: {frame}")
+
+        # -------------------END TASK EVENTS-------------------
+
+        runner = PipelineRunner(handle_sigint=False)
+        await runner.run(task)
+
+    async def listen_and_transcribe(self):
+        """Sets up the LiveKit transport and Pipecat pipeline for turn-based transcription."""
+        transport = LiveKitTransport(
+            url=self.url,
+            token=self.token,
+            room_name=self.room_name,
+            params=LiveKitParams(
+                audio_in_enabled=True,
+                audio_out_enabled=True,
+                vad_analyzer=SileroVADAnalyzer(params=VADParams(stop_secs=0.2)),
+                turn_analyzer=LocalSmartTurnAnalyzerV3(params=SmartTurnParams()),
+            ),
+        )
+        self.logger.info("LiveKit Transport configured")
+
+        stt = OpenAISTTService(
+            api_key=self.api_key,
+            model=self.model,
+            prompt="Expect conversational speech with various topics.",
             temperature=0.0,
         )
 
@@ -450,9 +630,20 @@ def join_as_listener(
     api_key: str,
     model_url: str,
     insight_id: str,
+    aws_secret_key: str,
+    aws_access_key: str,
+    param_map: dict = {},
 ):
     """Entry point method that provides a non-blocking background thread listening to room events."""
     import threading
+
+    logger.info(
+        f"Starting LiveKit listener thread for room: {room_name}, operation: {operation}"
+    )
+    logger.info(f"PARAM_MAP: {param_map}")
+
+    param_map["aws_secret_key"] = aws_secret_key
+    param_map["aws_access_key"] = aws_access_key
 
     def background_task():
         loop = asyncio.new_event_loop()
@@ -468,6 +659,7 @@ def join_as_listener(
             api_key=api_key,
             model_url=model_url,
             insight_id=insight_id,
+            param_map=param_map,
         )
 
         async def run():
@@ -475,6 +667,10 @@ def join_as_listener(
 
         try:
             loop.run_until_complete(run())
+        except Exception as e:
+            logging.getLogger("LiveKitThread").error(
+                f"Listener thread crashed: {e}", exc_info=True
+            )
         finally:
             loop.close()
 

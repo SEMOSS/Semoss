@@ -11,8 +11,6 @@ class ServerProxy:
         """
         Initialize the ServerProxy instance.
         """
-        self.condition = threading.Condition()
-
         from gaas_tcp_server_handler import TCPServerHandler
 
         self.server = TCPServerHandler.da_server
@@ -33,13 +31,17 @@ class ServerProxy:
         operation: str = "REACTOR",
     ):
         """
-        This method in responsible for:
-            - converting the args into a PayloadStruct
-            - adds itself to the monitor block
-            - calls the server to deliver the message
-            - acquires and goes into wait
-            - once it gets the response removes it from the monitors
-            - returns the response back
+        Send a request to Java and block until the matching response arrives.
+
+        Monitor lifecycle for a single request:
+        1. Build the outbound payload with a unique `epoc`.
+        2. Store `self.server.monitors[epoc] = Condition`.
+        3. Send the request over the socket.
+        4. Wait while the monitor entry is still that same `Condition`.
+        5. `TCPServerHandler.handle_response()` swaps the entry to
+           `self.server.monitors[epoc] = response_payload` and notifies.
+        6. The wait loop exits and this method returns; callers then pop the
+           response payload from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct
@@ -51,7 +53,8 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the tomcat server engine.
+            `None`: This method only performs request/response synchronization.
+            The parsed response payload is read by caller methods.
         """
         # get the original payload from the current thread so that we can get the insight id
         # orig_payload = getattr(current_thread(), "payload", None)
@@ -86,18 +89,31 @@ class ServerProxy:
             "mdc": (orig_payload.get("mdc") if orig_payload else None),
         }
 
+        # create a per-call condition so concurrent requests don't share the same
+        # condition and accidentally wake each other up via notifyAll()
+        condition = threading.Condition()
         # adds itself to the monitor block
-        self.server.monitors.update({epoc: self.condition})
-        # acquires and goes into wait
-        self.condition.acquire()
-        self.server.send_request(payload)  # send the request
-        self.condition.wait()
-        # once it gets the response removes it from the monitors
-        self.condition.release()
+        self.server.monitors[epoc] = condition
+        try:
+            with condition:
+                self.server.send_request(payload)
+                # in case of spurious wakeups, we need to keep waiting until the server responds and removes the monitor
+                while self.server.monitors.get(epoc) is condition:
+                    condition.wait()
+        except Exception:
+            # cleanup stale unresolved entry
+            if self.server.monitors.get(epoc) is condition:
+                self.server.monitors.pop(epoc, None)
+            raise
 
     def callReactor(self, epoc: str, pixel: str, insight_id: Optional[str] = None):
         """
-        This method is responsible for initiating a pixel call communication with the server using a separate thread, which calls the `comm` method.
+        Execute a Pixel reactor call against Java and return the response payload.
+
+        This method calls `comm()` directly (no extra worker thread). `comm()`
+        blocks until `handle_response()` swaps the monitor entry for this `epoc`
+        from `Condition` to response payload. After `comm()` returns, this method
+        pops that payload struct from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -105,28 +121,23 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the Tomcat server engine.
+            `Any`: The response payload returned by the Java reactor call.
+
+        Raises:
+            Exception: If the response payload includes an `"ex"` key.
         """
-        orig_payload = getattr(self.server.thread_local, "payload", None)
+        self.comm(
+            epoc=epoc,
+            engine_type=None,
+            engine_id=None,
+            method_name=None,
+            method_args=[pixel],
+            method_arg_types=None,
+            insight_id=insight_id,
+            operation="REACTOR",
+        )
 
-        # Setting the thread-local storage for the new thread
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type=None,
-                engine_id=None,
-                method_name=None,
-                method_args=[pixel],
-                method_arg_types=None,
-                insight_id=insight_id,
-                operation="REACTOR",
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()  # start the thread
-        thread.join()  # wait for it to finish
-
+        # after comm the epoc should now return the response payload struct that the server sent back and we can pop it from the monitors using the epoc
         new_payload_struct = self.server.monitors.pop(epoc)
 
         if "ex" in new_payload_struct:
@@ -146,7 +157,12 @@ class ServerProxy:
         insight_id: Optional[str] = None,
     ):
         """
-        This method is responsible for initiating a remote engine communication with the server using a separate thread, which calls the `comm` method.
+        Execute a Java engine method call and return the response payload.
+
+        This method calls `comm()` directly (no extra worker thread). `comm()`
+        blocks until `handle_response()` swaps the monitor entry for this `epoc`
+        from `Condition` to response payload. After `comm()` returns, this method
+        pops that payload struct from `self.server.monitors`.
 
         Args:
             epoc (`str`): The epoc ID for the payload struct.
@@ -158,28 +174,23 @@ class ServerProxy:
             insight_id (`Optional[str]`): Unique identifier for the temporal worksapce where actions are being isolated
 
         Returns:
-            `List[Dict]`: A list that contains the response from the Tomcat server engine.
+            `Any`: The response payload returned by the Java engine call.
+
+        Raises:
+            Exception: If the response payload includes an `"ex"` key.
         """
-        orig_payload = getattr(self.server.thread_local, "payload", None)
+        self.comm(
+            epoc=epoc,
+            engine_type=engine_type,
+            engine_id=engine_id,
+            method_name=method_name,
+            method_args=method_args,
+            method_arg_types=method_arg_types,
+            insight_id=insight_id,
+            operation="ENGINE",
+        )
 
-        # Setting the thread-local storage for the new thread
-        def set_thread_local_payload():
-            self.server.thread_local.payload = orig_payload
-            self.comm(
-                epoc=epoc,
-                engine_type=engine_type,
-                engine_id=engine_id,
-                method_name=method_name,
-                method_args=method_args,
-                method_arg_types=method_arg_types,
-                insight_id=insight_id,
-                operation="ENGINE",
-            )
-
-        thread = threading.Thread(target=set_thread_local_payload)
-        thread.start()  # start the thread
-        thread.join()  # wait for it to finish
-
+        # after comm the epoc should now return the response payload struct that the server sent back and we can pop it from the monitors using the epoc
         new_payload_struct = self.server.monitors.pop(epoc)
 
         if "ex" in new_payload_struct:

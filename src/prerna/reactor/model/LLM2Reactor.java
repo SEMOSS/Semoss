@@ -33,14 +33,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -53,6 +51,7 @@ import prerna.util.Utility;
 @Deprecated
 public class LLM2Reactor extends AbstractReactor {
 
+	@Deprecated
 	public LLM2Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey(),
@@ -61,6 +60,7 @@ public class LLM2Reactor extends AbstractReactor {
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 
@@ -69,18 +69,14 @@ public class LLM2Reactor extends AbstractReactor {
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		User user = this.insight.getUser();
-		AccessToken userToken = user.getPrimaryLoginToken();
 
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");
 		}
 
-		String question = Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.COMMAND.getKey()));
+		String question = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
-		if (context != null) {
-			context = Utility.decodeURIComponent(context);
-		}
 
 		Map<String, Object> paramMap = getParamMap();
 		IModelEngine modelEngine = Utility.getModel(engineId);
@@ -95,12 +91,9 @@ public class LLM2Reactor extends AbstractReactor {
 		List<String> inputImageURLs = getImageURLs();
 
 		Room room = RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, question);
+		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
 
-		///// MESSAGE CREATION //////////
-
-		List<String> copiedImages = MessageUtils.copyFilesToRoomFolder(inputImages, room, insight);
-		InputMessage msg;
-		msg = InputMessage.builder(room).withSystemPrompt(context).withInputUIPrompt(question).withInputPrompt(question)
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedImages, room)
 				.withMediaUrls(inputImageURLs).build();
 
@@ -110,6 +103,7 @@ public class LLM2Reactor extends AbstractReactor {
 	}
 
 	// ----------- image/file helpers, paramMap etc. -------------
+	@Deprecated
 	public List<String> getImages() {
 		List<String> inputStrings = new ArrayList<>();
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.IMAGE.getKey());
@@ -127,6 +121,7 @@ public class LLM2Reactor extends AbstractReactor {
 		return inputStrings;
 	}
 
+	@Deprecated
 	public List<String> getImageURLs() {
 		List<String> inputStrings = new ArrayList<>();
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.URL.getKey());
@@ -164,11 +159,13 @@ public class LLM2Reactor extends AbstractReactor {
 		return null;
 	}
 
+	@Deprecated
 	@Override
 	public String getReactorDescription() {
 		return "This method is used to run an LLM text-generation call";
 	}
 
+	@Deprecated
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {

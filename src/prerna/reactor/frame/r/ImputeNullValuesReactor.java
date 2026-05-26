@@ -41,8 +41,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 
@@ -56,9 +54,8 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 	protected static final String CLASS_NAME = ImputeNullValuesReactor.class.getName();
 	private static final String HANDLE_NULL = "handleNull";
 
-	
 	public ImputeNullValuesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() , HANDLE_NULL };
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey(), HANDLE_NULL };
 	}
 
 	@Override
@@ -88,12 +85,7 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(frameName, noun);
-				
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, dataFrame, "ImputeNullValues",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		return noun;
 	}
 

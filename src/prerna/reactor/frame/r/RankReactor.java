@@ -40,16 +40,14 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RankReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor ranks the data based on a given column(s) and sort
-	 * direction. The inputs to the reactor are: 1) the column(s) to be used for
-	 * rank 2) the name of the rank column 3) the sorting order for each column
-	 * 4) the partition column's to be used for rank
+	 * This reactor ranks the data based on a given column(s) and sort direction.
+	 * The inputs to the reactor are: 1) the column(s) to be used for rank 2) the
+	 * name of the rank column 3) the sorting order for each column 4) the partition
+	 * column's to be used for rank
 	 */
 
 	private static final String PARTITION_BY_COLS = "partitionByCols";
@@ -148,10 +146,6 @@ public class RankReactor extends AbstractRFrameReactor {
 		// to avoid the sorting of first column by default
 		// this.insight.getPragmap().put("IMPLICIT_ORDER", false);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "Rank",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
 				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully performed Rank."));

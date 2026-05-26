@@ -41,30 +41,30 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
 
 public class GetDatabaseTableStructureReactor extends AbstractReactor {
-	
+
 	/*
-	 * PAYLOAD MUST MATCH THAT OF 
-	 * {@link prerna.sablecc2.reactor.frame.GetFrameTableStructureReactor}
+	 * PAYLOAD MUST MATCH THAT OF {@link
+	 * prerna.sablecc2.reactor.frame.GetFrameTableStructureReactor}
 	 */
-	
+
 	private static final String CLASS_NAME = GetDatabaseTableStructureReactor.class.getName();
-	
+
 	public GetDatabaseTableStructureReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if(engineId == null) {
+		if (engineId == null) {
 			throw new IllegalArgumentException("Need to define the database to get the structure from from");
 		}
 		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
-		
+
 		// account for security
 		// TODO: THIS WILL NEED TO ACCOUNT FOR COLUMNS AS WELL!!!
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 		}
 
@@ -72,11 +72,42 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 		logger.info("Pulling database structure for database " + engineId);
 		// if cache exists, return from there
 		List<Object[]> data = EngineSyncUtility.getDatabaseStructureCache(engineId);
-		if(data == null) {
+		if (data == null) {
 			data = MasterDatabaseUtility.getAllTablesAndColumns(engineId);
 			// store the cache for the database structure
 			EngineSyncUtility.setDatabaseStructureCache(engineId, data);
 		}
 		return new NounMetadata(data, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_TABLE_STRUCTURE);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns the complete structure of a database, including all concepts and their properties.
+
+				Each result row contains:
+				  - PARENTSEMOSSNAME   : Logical table name (RDBMS) or vertex name (Graph)
+				  - SEMOSSNAME         : Logical column name (RDBMS) or property name (Graph)
+				  - PROPERTY_TYPE      : Data type of the column or property
+				  - PK                 : Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)
+				  - PARENTPHYSICALNAME : Physical table/vertex name as stored in the database
+				  - PHYSICALNAME       : Physical column/property name as stored in the database
+
+				Notes:
+				  - Logical names (PARENTSEMOSSNAME, SEMOSSNAME) reflect the schema as modeled in SEMOSS
+				  - Physical names (PARENTPHYSICALNAME, PHYSICALNAME) reflect the actual database values
+				  - For Graph: a row where PK is true and SEMOSSNAME is empty represents the vertex itself, \
+				not a property
+				  - Results are ordered by PARENTSEMOSSNAME, PK, then SEMOSSNAME
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 }

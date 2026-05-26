@@ -28,30 +28,34 @@
 package prerna.reactor.database.upload;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.masterdatabase.util.GenerateMetamodelLayout;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
 public class ParseMetamodelReactor extends AbstractReactor {
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public ParseMetamodelReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE, UploadInputUtility.DELIMITER,
-				UploadInputUtility.ROW_COUNT, UploadInputUtility.PROP_FILE };
+		this.keysToGet = new String[] { UploadInputUtility.FILE_PATH, UploadInputUtility.SPACE,
+				UploadInputUtility.DELIMITER, UploadInputUtility.ROW_COUNT, UploadInputUtility.PROP_FILE };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String csvFilePath = UploadInputUtility.getFilePath(this.store, this.insight);
-		if(!new File(csvFilePath).exists()) {
+		if (!new File(csvFilePath).exists()) {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 		String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -84,15 +88,22 @@ public class ParseMetamodelReactor extends AbstractReactor {
 		} catch (Exception e) {
 			// just in case that fails, this shouldnt because if its a filename
 			// it should have a "."
-			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(), filePath.lastIndexOf("."));
+			file = filePath.substring(filePath.lastIndexOf(DIR_SEPARATOR) + DIR_SEPARATOR.length(),
+					filePath.lastIndexOf("."));
 		}
-		
+
 		// store file path and file name to send to FE
 		metamodel.put("fileLocation", filePath);
 		metamodel.put("fileName", file);
 		metamodel.put("headerModifications", helper.getChangedHeaders());
 		// adding an empty map for consistency
 		metamodel.put("additionalDataTypes", new HashMap<String, Object>());
+		// position tables in metamodel to be spaced and not overlap
+		Map<String, Map<String, Double>> nodePositionMap = GenerateMetamodelLayout.generateMetamodelPredictionLayout(
+				(Map<String, List<String>>) metamodel.getOrDefault("nodeProp", new HashMap<>()),
+				(List<Map<String, Object>>) metamodel.getOrDefault("relation", new ArrayList<>()));
+		metamodel.put(Constants.POSITION_PROP, nodePositionMap);
+
 		// need to close the helper
 		helper.clear();
 

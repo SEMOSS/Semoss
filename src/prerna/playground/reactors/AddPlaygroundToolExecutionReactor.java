@@ -31,8 +31,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -43,7 +47,6 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -55,6 +58,8 @@ import prerna.util.Utility;
  * tool_execution_response, tool_
  */
 public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(AddPlaygroundToolExecutionReactor.class);
 
 	@Deprecated
 	private final String tool_execution_response = "tool_execution_response";
@@ -70,7 +75,7 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), // 7
 				tool_execution_response, // 8
 				ReactorKeysEnum.MCP_TOOL_STATUS.getKey(), // 9
-			};
+		};
 		// TODO: once we remove the legacy tool_execution_response, we will make
 		// toolExecutionResponse mandatory field
 		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 };
@@ -83,9 +88,9 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(this.keysToGet[1]);
 		String toolId = this.keyValue.get(this.keysToGet[2]);
 		String toolName = this.keyValue.get(this.keysToGet[3]);
-		String toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[4]));
+		String toolResponseRaw = this.keyValue.get(this.keysToGet[4]);
 		if (toolResponseRaw == null) {
-			toolResponseRaw = Utility.decodeURIComponent(this.keyValue.get(tool_execution_response));
+			toolResponseRaw = this.keyValue.get(tool_execution_response);
 		}
 		if (toolResponseRaw == null) {
 			throw new IllegalArgumentException("Field " + this.keysToGet[4] + " cannot be empty");
@@ -118,26 +123,35 @@ public class AddPlaygroundToolExecutionReactor extends AbstractReactor {
 			throw new IllegalStateException("Room message history is empty. Cannot add tool execution results.");
 		}
 
-		AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
-				toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
-
 		Map<String, Object> pixelReturn = new HashMap<>();
-		if (response == null) {
-			pixelReturn.put("responseMessage",
-					"Tool output added successfully. Additional tool executions required to continue");
-			return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
-		} else {
-			// parse the response for code blocks
-			ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
-			if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
-				lastMessage = MessageUtils.processMarkdownCodeBlocks(lastMessage, modelEngine, room);
-				ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-						insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
-			} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta(lastMessage);
+		try {
+			AskModelEngineResponse response = room.addToolExecutionResult(toolId, toolName, toolResponseRaw,
+					toolParamterValues, paramMap, parentMessageId, modelEngine, insight, toolStatus);
+			if (response == null) {
+				pixelReturn.put("responseMessage",
+						"Tool output added successfully. Additional tool executions required to continue");
+				return new NounMetadata("Tool output added successfully", PixelDataType.CONST_STRING);
+			} else {
+				// parse the response for code blocks
+				AbstractMessage inputMessage = room.getMessages().get(room.getMessages().size() - 2);
+				ResponseMessage lastMessage = (ResponseMessage) room.getMessages().getLast();
+				if (lastMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
+					ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
+							insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+				} else if (lastMessage.getMessageType() == MessageType.RESPONSE_TOOL) {
+					room.updateToolResponseMeta(lastMessage);
+				}
+				Map<String, Object> inputMap = jsonToMap(MessageUtils.toJson(inputMessage));
+				Map<String, Object> responseMap = jsonToMap(MessageUtils.toJson(lastMessage));
+				// MessageUtils.applyLegacyResponseFields(lastMessage, responseMap);
+				pixelReturn.put("inputMessage", inputMap);
+				pixelReturn.put("responseMessage", responseMap);
+				return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
 			}
-			pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJson(lastMessage)));
-			return new NounMetadata(pixelReturn, PixelDataType.MAP, PixelOperationType.OPERATION);
+		} finally {
+			// there might be times when this is unnecessary
+			// but we dont know if a tool output generated a file in the room
+			ClusterUtil.pushRoomAsync(room.getId());
 		}
 	}
 
