@@ -251,22 +251,24 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		String currentRoomName = room.getRoomName();
 
 
-		// Grabbing room name from first input message if room name is empty and its full prompt..
-		if (fullPrompt != null && (currentRoomName == null || currentRoomName.isEmpty())) {
-			String roomName = null;
-			if (!room.getMessages().isEmpty()) {
-				AbstractMessage first = room.getMessages().get(0);
-				if (first instanceof InputMessage) {
-					String uiPrompt = ((InputMessage) first).getInputUIPrompt();
-					if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
-						roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+		if (fullPrompt != null) {
+			// Grabbing room name from first input message if room name is empty
+			if (currentRoomName == null || currentRoomName.isEmpty()) {
+				String roomName = null;
+				if (!room.getMessages().isEmpty()) {
+					AbstractMessage first = room.getMessages().get(0);
+					if (first instanceof InputMessage) {
+						String uiPrompt = ((InputMessage) first).getInputUIPrompt();
+						if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
+							roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+						}
 					}
 				}
-			}
 
-			if (roomName != null && !roomName.trim().isEmpty()) {
-				ModelInferenceLogsUtils.doSetNameForRoom(room.getInsight().getUser().getPrimaryLoginToken().getId(),
-						room.getId(), roomName);
+				if (roomName != null && !roomName.trim().isEmpty()) {
+					ModelInferenceLogsUtils.doSetNameForRoom(room.getInsight().getUser().getPrimaryLoginToken().getId(),
+							room.getId(), roomName);
+				}
 			}
 
 			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
