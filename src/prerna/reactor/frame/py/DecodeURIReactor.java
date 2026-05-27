@@ -37,15 +37,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class DecodeURIReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor decodes special characters in columns that have been changed to conform to URI standards
+	 * This reactor decodes special characters in columns that have been changed to
+	 * conform to URI standards
 	 */
-	
+
 	public DecodeURIReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMNS.getKey() };
 	}
@@ -55,10 +54,10 @@ public class DecodeURIReactor extends AbstractPyFrameReactor {
 		/** get data frame and meta data */
 		PandasFrame frame = (PandasFrame) getFrame();
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
-		
+
 		/** get the wrapper name which is the frame name with w at the end */
 		String wrapperFrameName = frame.getWrapperName();
-		
+
 		/** get column values from frame */
 		List<String> columns = getColumns();
 		for (int i = 0; i < columns.size(); i++) {
@@ -67,7 +66,7 @@ public class DecodeURIReactor extends AbstractPyFrameReactor {
 				String[] split = col.split("__");
 				col = split[1];
 			}
-		
+
 			String dataType = metaData.getHeaderTypeAsString(frame.getName() + "__" + col);
 			if (dataType.equalsIgnoreCase("STRING")) {
 				/** Run Python function */
@@ -76,14 +75,7 @@ public class DecodeURIReactor extends AbstractPyFrameReactor {
 				this.addExecutedCode(script);
 			}
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"DecodeURI", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
@@ -92,7 +84,7 @@ public class DecodeURIReactor extends AbstractPyFrameReactor {
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private List<String> getColumns() {
 		List<String> columns = new Vector<String>();
 

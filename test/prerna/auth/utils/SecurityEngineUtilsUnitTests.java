@@ -51,6 +51,7 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -60,7 +61,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}
@@ -110,6 +111,9 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals("testdb", engineList.getFirst().get("database_id"));
 		assertEquals("testdb", engineList.getFirst().get("database_name"));
 		assertEquals("DATABASE", engineList.getFirst().get("database_type"));
+		assertEquals("testdb", engineList.getFirst().get("engine_id"));
+		assertEquals("testdb", engineList.getFirst().get("engine_name"));
+		assertEquals("DATABASE", engineList.getFirst().get("engine_type"));
 
 		// change engine type to OpenAiEngine
 		Properties updateProps = UnitTestSecurityAuthUtils.getDefaultOpenAiProperties("testdb");
@@ -124,6 +128,9 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals("testdb", updateEngineList.getFirst().get("database_id"));
 		assertEquals("testdb", updateEngineList.getFirst().get("database_name"));
 		assertEquals("MODEL", updateEngineList.getFirst().get("database_type"));
+		assertEquals("testdb", updateEngineList.getFirst().get("engine_id"));
+		assertEquals("testdb", updateEngineList.getFirst().get("engine_name"));
+		assertEquals("MODEL", updateEngineList.getFirst().get("engine_type"));
 
 		// remove engine id from DIHelper
 		UnitTestSecurityAuthUtils.removeEngineStoreProp("testdb");
@@ -773,13 +780,13 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// user not editor
 		IllegalAccessException ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user2, "user3id", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 
 		assertEquals("Insufficient privileges to modify this engine's permissions.", ex.getMessage());
 
 		// user does not have permissions
 		IllegalArgumentException argEx = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(user, "admin2id", "testId", "OWNER", null, null, null, 0, 0));
+				.editEngineUserPermission(user, "admin2id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals(
 				"Attempting to modify engine permission for a user who does not currently have access to the engine",
 				argEx.getMessage());
@@ -790,18 +797,19 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		// edit user tries to edit owner user
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"adminid", "testId", "EDIT", null, null, null, 0, 0));
+				"adminid", "NATIVE", "testId", "EDIT", null, null, null, 0, 0));
 		assertEquals("The user doesn't have the high enough permissions to modify this users engine permission.",
 				ex.getMessage());
 
 		// user not owner and tries to give ownership
 		ex = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(user2,
-				"user3id", "testId", "OWNER", null, null, null, 0, 0));
+				"user3id", "NATIVE", "testId", "OWNER", null, null, null, 0, 0));
 		assertEquals("Cannot give owner level access to this engine since you are not currently an owner.",
 				ex.getMessage());
 
 		// user2 successfully changes user3 to edit as edit user
-		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "testId", "EDIT", null, null, null, 0, 0);
+		SecurityEngineUtils.editEngineUserPermission(user2, "user3id", "NATIVE", "testId", "EDIT", null, null, null, 0,
+				0);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user3, "testId"));
 
@@ -1299,27 +1307,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// getLatestUpdatedAuthor
-	///
-
-	@Test
-	void testGetLatestUpdatedAuthor() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "secondid", "testId", "EDIT");
-
-		Map<String, Object> map = SecurityEngineUtils.getLatestUpdatedAuthor("testId");
-
-		assertEquals("adminid", map.get("PERMISSIONGRANTEDBY"));
-		assertNotNull(map.get("DATEADDED"));
-
-		Map<String, Object> noId = SecurityEngineUtils.getLatestUpdatedAuthor("foobar");
-		assertNull(noId.get("PERMISSIONGRANTEDBY"));
-		assertNull(noId.get("DATEADDED"));
-	}
-
-	///
 	/// getAvailableMetaValues
 	///
 
@@ -1407,7 +1394,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		assertEquals(3, engines.size());
 
-		List<String> ids = engines.stream().map(s -> s.get("database_id").toString()).toList();
+		List<String> ids = engines.stream().map(s -> s.get("engine_id").toString()).toList();
 		assertTrue(ids.contains("testId"));
 		assertTrue(ids.contains("testId2"));
 		assertTrue(ids.contains("testId3"));
@@ -1533,6 +1520,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals(1, engineList.size());
 
 		assertEquals("testToolApp", engineList.getFirst().get("database_tool_app"));
+		assertEquals("testToolApp", engineList.getFirst().get("engine_tool_app"));
 	}
 
 }

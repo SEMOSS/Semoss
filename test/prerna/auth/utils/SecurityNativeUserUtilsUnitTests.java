@@ -49,6 +49,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 
@@ -60,7 +61,7 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}

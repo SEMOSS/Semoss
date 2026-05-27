@@ -60,16 +60,15 @@ public class CreateRoomReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		User user = insight.getUser();
 
-		organizeKeys();
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 
 		Map<String, Object> options = null;
-
 		if (workspaceId != null) {
 			if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 				throw new IllegalArgumentException("Workspace " + workspaceId
@@ -91,7 +90,7 @@ public class CreateRoomReactor extends AbstractReactor {
 		}
 
 		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId,
-				options, context, projectId);
+				options, context, projectId, null);
 
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			Path folderPath = Paths.get(room.getRoomFolderPath());

@@ -27,24 +27,14 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -66,20 +56,13 @@ import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.gson.SemossDateAdapter;
 
+/**
+ * Helper methods for message serialization/deserialization, legacy
+ * compatibility shims, prompt conversion, and room-file media handling.
+ */
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
-
-	private static final Pattern MARKDOWN_CODE_PATTERN = Pattern.compile("```" + // Opening backticks
-			"(?:([a-zA-Z0-9]+))?" + // Language (optional, group 1)
-			"(?:" + // Non-capturing group for title alternatives
-			"\\s+title=\"([^\"]+)\"" + // Either title="filename" (group 2)
-			"|\\s+([^\\s\\n]+)" + // Or direct filename (group 3)
-			")?" + // Title is optional
-			"\\s*\\n" + // Whitespace and mandatory newline
-			"(.*?)" + // Code content (group 4)
-			"```", // Closing backticks
-			Pattern.DOTALL);
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -109,6 +92,7 @@ public class MessageUtils {
 	// For DB: skips "room", "insight", "socket", and "base64Data"
 	private static final Gson GSON_FOR_DB = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -126,6 +110,7 @@ public class MessageUtils {
 	// base64Data
 	private static final Gson GSON_FOR_PY = new GsonBuilder().disableHtmlEscaping()
 			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
+			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
 				@Override
@@ -139,13 +124,101 @@ public class MessageUtils {
 				}
 			}).create();
 
+	private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
+	}.getType();
+
 	// ---- Serialization/Deserialization ----
 
 	/**
+	 * Normalize a tool-call `arguments` value into something the Python side can
+	 * deserialize without double-escaping. The provider wire format delivers
+	 * arguments as a JSON-encoded string; if we leave that string in place, Gson
+	 * escapes the inner quotes a second time and json.loads on the Python side
+	 * chokes on payloads with shell escapes, code edits, newlines, etc. Parsing to
+	 * a Map here means args ride as a dict alongside every other field. On parse
+	 * failure we return the raw string so the downstream builder can still forward
+	 * it verbatim.
+	 */
+	private static Object toolArgumentsForPy(Object argsRaw) {
+		if (argsRaw == null) {
+			return new HashMap<>();
+		}
+		if (!(argsRaw instanceof String)) {
+			// some providers deliver a structured object already; re-serialize so
+			// the shape matches the string-input path
+			return GSON_FOR_PY.toJson(argsRaw);
+		}
+		try {
+			Map<String, Object> map = GSON_FOR_PY.fromJson((String) argsRaw, MAP_TYPE);
+			return map != null ? map : argsRaw;
+		} catch (Exception e) {
+			return argsRaw;
+		}
+	}
+
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a message
+	 * JSON. This keeps FE consumers working while storage stays on parts-based
+	 * schema.
+	 *
+	 * @param msg    input message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy input fields
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyInputFields(InputMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
+		}
+		if (msg == null) {
+			return target;
+		}
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
+		}
+		String inputPrompt = msg.getInputPrompt();
+		if (inputPrompt != null) {
+			target.put("inputPrompt", inputPrompt);
+		}
+		String inputUIPrompt = msg.getInputUIPrompt();
+		if (inputUIPrompt != null) {
+			target.put("inputUIPrompt", inputUIPrompt);
+		}
+		String systemPrompt = msg.getSystemPrompt();
+		if (systemPrompt != null && !systemPrompt.isEmpty()) {
+			target.put("systemPrompt", systemPrompt);
+		}
+		String toolCallId = msg.getToolCallId();
+		if (toolCallId != null) {
+			target.put("tool_call_id", toolCallId);
+		}
+		String toolName = msg.getToolName();
+		if (toolName != null) {
+			target.put("tool_name", toolName);
+		}
+		String toolStatus = msg.getToolStatus();
+		if (toolStatus != null) {
+			target.put("tool_status", toolStatus);
+		}
+		Map<String, Object> toolParams = msg.getToolParameterValues();
+		if (toolParams != null) {
+			target.put("tool_parameter_values", toolParams);
+		}
+		List<MessageInputMedia> mediaInputs = msg.getMediaInfos();
+		if (mediaInputs == null) {
+			mediaInputs = new ArrayList<>();
+		}
+		target.put("mediaInputs", mediaInputs);
+		return target;
+	}
+
+	/**
 	 * Converts a JSON object string to a Map<String, Object>
-	 * 
+	 *
 	 * @param json The JSON string (must be a JSON object: { ... })
-	 * @return The parsed Map
+	 * @return The parsed map representation
+	 * @throws IllegalArgumentException if the input is null/blank or not a JSON
+	 *                                  object
 	 */
 	public static Map<String, Object> jsonToMapForPixelReturn(String json) {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
@@ -155,48 +228,111 @@ public class MessageUtils {
 		}.getType());
 	}
 
-	// Deserialize a single message from JSON
+	/**
+	 * Deserializes a single message JSON payload into either {@link InputMessage}
+	 * or {@link ResponseMessage}, using schema discriminators and legacy fallbacks.
+	 *
+	 * @param json message JSON string
+	 * @param room room context used during post-load normalization
+	 * @return deserialized message, or {@code null} when deserialization yields no
+	 *         message
+	 */
 	public static AbstractMessage fromJson(String json, Room room) {
 		JsonObject jsonObj = JsonParser.parseString(json).getAsJsonObject();
-		MessageType type = MessageType.valueOf(jsonObj.get("type").getAsString());
-		AbstractMessage message = null;
-		switch (type) {
-		case RESPONSE_TEXT:
-		case RESPONSE_TOOL:
-			message = GSON_FOR_DB.fromJson(json, ResponseMessage.class);
-			break;
-		case INPUT_MEDIA:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			// re-encode the base64 from file.
-			for (MessageInputMedia imageInfo : ((InputMessage) message).getMediaInfos()) {
-				imageInfo.setRoomFolder(room.getRoomFolderPath());
-				imageInfo.getBase64Data();
+
+		// Prefer explicit discriminator first (new format), then legacy type prefix.
+		MessageIO io = null;
+		if (jsonObj.has("io") && !jsonObj.get("io").isJsonNull()) {
+			try {
+				io = MessageIO.valueOf(jsonObj.get("io").getAsString());
+			} catch (IllegalArgumentException ignore) {
+				io = null;
 			}
-			break;
-		case INPUT_TEXT:
-		case INPUT_TOOL_EXEC:
-			message = GSON_FOR_DB.fromJson(json, InputMessage.class);
-			break;
-		default:
-			classLogger.error("Unhandled fromJSON for message type = " + type);
 		}
+
+		String rawType = null;
+		if (io == null && jsonObj.has("type") && !jsonObj.get("type").isJsonNull()) {
+			rawType = jsonObj.get("type").getAsString();
+			if (rawType != null) {
+				rawType = rawType.trim();
+			}
+		}
+
+		boolean isResponse = false;
+		if (io != null) {
+			isResponse = (io == MessageIO.OUTPUT);
+		} else if (rawType != null) {
+			isResponse = rawType.startsWith("RESPONSE_");
+		} else if (jsonObj.has("parts") && jsonObj.get("parts").isJsonArray()) {
+			// Minimal parts-only inference: tool calls / thinking belong to assistant
+			// outputs,
+			// tool results / system prompt belong to user inputs.
+			for (JsonElement p : jsonObj.getAsJsonArray("parts")) {
+				if (p == null || !p.isJsonObject()) {
+					continue;
+				}
+				JsonObject partObj = p.getAsJsonObject();
+				if (!partObj.has("type") || partObj.get("type").isJsonNull()) {
+					continue;
+				}
+				String partType = partObj.get("type").getAsString();
+				if ("TOOL_CALL".equals(partType) || "THINKING".equals(partType)) {
+					isResponse = true;
+					break;
+				}
+				if ("TOOL_RESULT".equals(partType) || "SYSTEM".equals(partType)) {
+					isResponse = false;
+					break;
+				}
+			}
+		} else {
+			// Legacy fallback
+			isResponse = jsonObj.has("content") || jsonObj.has("thinking") || jsonObj.has("tool_responses");
+		}
+
+		AbstractMessage message = isResponse ? GSON_FOR_DB.fromJson(json, ResponseMessage.class)
+				: GSON_FOR_DB.fromJson(json, InputMessage.class);
+
 		if (message != null) {
-			message.setRoom(room);
+			message.normalizeAfterLoad(room);
 		}
 		return message;
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for DB persistence using the DB-safe Gson profile.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJson(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_DB.toJson(msg);
 	}
 
-	// Serialize any message to JSON (for DB)
+	/**
+	 * Serializes a message for Python/model execution payloads, including image
+	 * base64 when available.
+	 *
+	 * @param msg message to serialize
+	 * @return serialized JSON
+	 */
 	public static String toJsonWithImage(AbstractMessage msg) {
+		if (msg != null) {
+			msg.normalizeForWrite();
+		}
 		return GSON_FOR_PY.toJson(msg);
 	}
 
-	// Deserialize from JSON array string to List<AbstractMessage>
+	/**
+	 * Deserializes a JSON array of messages.
+	 *
+	 * @param jsonArrayString message-array JSON
+	 * @param room            room context used during post-load normalization
+	 * @return ordered list of deserialized messages
+	 */
 	public static List<AbstractMessage> fromJsonArray(String jsonArrayString, Room room) {
 		if (jsonArrayString == null || jsonArrayString.trim().isEmpty()) {
 			return new ArrayList<>();
@@ -214,22 +350,63 @@ public class MessageUtils {
 
 	// --- Core two serialization methods ---
 
-	// For DB: JSON array string of messages, with NO base64
+	/**
+	 * Serializes a list of messages for DB persistence (without inline base64 media
+	 * payloads).
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArray(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
 		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
+		}
 		return GSON_FOR_DB.toJson(msgs);
 	}
 
-	public static String getMessageHistoryFromMessageId(List<AbstractMessage> messages, String latestMessageId) {
-		return toJsonArrayWithImageData(getMessageBranch(messages, latestMessageId));
+	/**
+	 * Builds the current branch history (root to latest message) and serializes it
+	 * for model execution payloads.
+	 *
+	 * @param messages full room message list
+	 * @return branch JSON including image data
+	 */
+	public static String getCurrentMessageHistory(List<AbstractMessage> messages) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, null));
 	}
 
-	// For Python: JSON array string WITH base64 image data in ImageInfo
+	/**
+	 * Builds the branch history ending in {@code newMessage} and serializes it for
+	 * model execution payloads.
+	 *
+	 * @param messages   full room message list
+	 * @param newMessage new leaf message to append as branch tail
+	 * @return branch JSON including image data
+	 */
+	public static String getMessageHistoryWithNewMessage(List<AbstractMessage> messages, AbstractMessage newMessage) {
+		return toJsonArrayWithImageData(getMessageBranchWithNewMessage(messages, newMessage));
+	}
+
+	/**
+	 * Serializes messages for Python/model execution and ensures image parts
+	 * contain base64 payloads.
+	 *
+	 * @param msgs messages to serialize
+	 * @return JSON array string; {@code "[]"} when empty
+	 */
 	public static String toJsonArrayWithImageData(List<AbstractMessage> msgs) {
 		if (msgs == null || msgs.isEmpty()) {
 			return "[]";
+		}
+		for (AbstractMessage msg : msgs) {
+			if (msg != null) {
+				msg.normalizeForWrite();
+			}
 		}
 		// Ensure base64Data is loaded for all images
 		for (AbstractMessage msg : msgs) {
@@ -246,7 +423,16 @@ public class MessageUtils {
 		return GSON_FOR_PY.toJson(msgs);
 	}
 
-	public static List<AbstractMessage> getMessageBranch(List<AbstractMessage> messages, String latestMessageId) {
+	/**
+	 * Returns a root-to-leaf message branch ending at {@code newMessage} (or the
+	 * current tail message when {@code newMessage} is null).
+	 *
+	 * @param messages   complete message list
+	 * @param newMessage optional branch leaf override
+	 * @return ordered branch messages from root to leaf
+	 */
+	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
+			AbstractMessage newMessage) {
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
 		for (AbstractMessage m : messages) {
@@ -256,7 +442,12 @@ public class MessageUtils {
 		}
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
-		String currentId = latestMessageId;
+		if (newMessage != null) {
+			history.add(newMessage);
+		} else {
+			history.add(messages.getLast());
+		}
+		String currentId = history.getLast().getParentMessageId();
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
@@ -274,6 +465,54 @@ public class MessageUtils {
 		return history;
 	}
 
+	/**
+	 * Returns a root-to-node branch by walking parent links from
+	 * {@code parentMessageId}.
+	 *
+	 * @param messages        complete message list
+	 * @param parentMessageId leaf message id from which to walk parent links
+	 * @return ordered branch messages from root to requested parent
+	 */
+	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
+			String parentMessageId) {
+		// 1. Build lookup map (messageId to message)
+		Map<String, AbstractMessage> idMap = new HashMap<>();
+		for (AbstractMessage m : messages) {
+			if (m.getMessageId() != null) {
+				idMap.put(m.getMessageId(), m);
+			}
+		}
+		// 2. Climb up parent chain
+		List<AbstractMessage> history = new ArrayList<>();
+		String currentId = parentMessageId;
+		while (currentId != null) {
+			AbstractMessage m = idMap.get(currentId);
+			if (m == null) {
+				break;
+			}
+			history.add(m);
+			// parentMessageId may be null/empty String
+			currentId = m.getParentMessageId();
+			if (currentId == null || currentId.isEmpty()) {
+				break;
+			}
+		}
+		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
+		Collections.reverse(history);
+		return history;
+	}
+
+	/**
+	 * Converts a mixed-format full prompt payload (Chat Completions/Responses API
+	 * style) into normalized room messages.
+	 *
+	 * @param fullPrompt  full prompt payload as JSON string or list
+	 * @param room        room context used for message construction
+	 * @param modelEngine model engine used for message model typing
+	 * @return normalized message list
+	 * @throws IllegalArgumentException when {@code fullPrompt} is neither a JSON
+	 *                                  string nor a list payload
+	 */
 	public static List<AbstractMessage> convertFullPrompt(Object fullPrompt, Room room, IModelEngine modelEngine) {
 		List<AbstractMessage> result = new ArrayList<>();
 		List<?> promptList;
@@ -288,11 +527,48 @@ public class MessageUtils {
 			throw new IllegalArgumentException("fullPrompt must be a JSON string or List<Map>.");
 		}
 
+		// accumulates consecutive function_call entries (parallel tool calls) into one
+		// RESPONSE_TOOL message
+		List<Map<String, Object>> pendingFunctionCalls = new ArrayList<>();
 		for (Object o : promptList) {
 			if (!(o instanceof Map)) {
 				continue;
 			}
 			Map<?, ?> map = (Map<?, ?>) o;
+
+			// first we will check the type because responses api returns function_call /
+			// function_call_output with no role
+			String entryType = asStringOrNull(map.get("type"));
+
+			// flush accumulated function_calls once we hit a non-function_call entry
+			if (!"function_call".equals(entryType) && !pendingFunctionCalls.isEmpty()) {
+				ResponseMessage.Builder fcBuilder = ResponseMessage.builder();
+				fcBuilder.withType(MessageType.RESPONSE_TOOL);
+				fcBuilder.withToolResponses(new ArrayList<>(pendingFunctionCalls));
+				result.add(fcBuilder.build());
+				pendingFunctionCalls.clear();
+			}
+
+			if ("function_call".equals(entryType)) {
+				String callId = asStringOrNull(map.get("call_id"));
+				String funcName = asStringOrNull(map.get("name"));
+				String arguments = asStringOrNull(map.get("arguments"));
+				Map<String, Object> flatTool = new HashMap<>();
+				flatTool.put("id", callId);
+				flatTool.put("type", "function");
+				flatTool.put("name", funcName);
+				flatTool.put("arguments", arguments);
+				pendingFunctionCalls.add(flatTool);
+				continue;
+			}
+			if ("function_call_output".equals(entryType)) {
+				String callId = asStringOrNull(map.get("call_id"));
+				String output = asStringOrNull(map.get("output"));
+				result.add(InputMessage.toolExecution(room, callId, null, output, null, null, false));
+				continue;
+			}
+
+			// this will continue the normal flow
 			String role = asStringOrNull(map.get("role"));
 			Object contentObj = map.get("content");
 			String content = parseContentMap(contentObj);
@@ -316,16 +592,20 @@ public class MessageUtils {
 						}
 						Map<?, ?> partMap = (Map<?, ?>) part;
 						String type = asStringOrNull(partMap.get("type"));
-						if ("text".equals(type)) {
+						if ("text".equals(type) || "input_text".equals(type)) {
 							textPart += asStringOrNull(partMap.get("text"));
-						} else if ("image_url".equals(type)) {
-							// e.g. { "type": "image_url", "image_url": { "url": ... } }
+						} else if ("image_url".equals(type) || "input_image".equals(type)) {
+							// Chat Completions: { "type": "image_url", "image_url": { "url": ... } }
+							// Responses API: { "type": "input_image", "image_url": "..." }
 							Object imgURLObj = partMap.get("image_url");
-							if (imgURLObj instanceof Map) {
-								String url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
-								if (url != null) {
-									mediaInputList.add(url);
-								}
+							String url = null;
+							if (imgURLObj instanceof String) {
+								url = (String) imgURLObj;
+							} else if (imgURLObj instanceof Map) {
+								url = asStringOrNull(((Map<?, ?>) imgURLObj).get("url"));
+							}
+							if (url != null) {
+								mediaInputList.add(url);
 							}
 						}
 					}
@@ -333,8 +613,8 @@ public class MessageUtils {
 					textPart = (String) contentObj;
 				}
 
-				InputMessage.Builder builder = InputMessage.builder(room).withInputUIPrompt(textPart)
-						.withInputPrompt(textPart).withModelType(modelEngine.getModelType());
+				InputMessage.Builder builder = InputMessage.builder(room).withText(textPart)
+						.withModelType(modelEngine.getModelType());
 
 				if (!mediaInputList.isEmpty()) {
 					builder.withMediaUrls(mediaInputList);
@@ -363,12 +643,17 @@ public class MessageUtils {
 							Map<String, Object> flatTool = new HashMap<>();
 							flatTool.put("id", asStringOrNull(callMap.get("id"))); // tool_call id
 							flatTool.put("type", asStringOrNull(callMap.get("type")));
+							// Vertex/Gemini extended-thinking signature, attached upstream
+							Object thoughtSig = callMap.get("thought_signature");
+							if (thoughtSig instanceof String && !((String) thoughtSig).isEmpty()) {
+								flatTool.put("thought_signature", thoughtSig);
+							}
 							// openAI: "function": {...}
 							Object functionObj = callMap.get("function");
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								flatTool.put("arguments", asStringOrNull(funcMap.get("arguments"))); // stringified JSON
+								flatTool.put("arguments", toolArgumentsForPy(funcMap.get("arguments")));
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
@@ -401,11 +686,20 @@ public class MessageUtils {
 				String toolCallId = asStringOrNull(map.get("tool_call_id"));
 
 				// Add as tool execution message (in my earlier pattern)
-				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null, null);
+				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null,
+						null, false);
 				result.add(toolExecMsg);
 				continue;
 			}
 
+		}
+
+		// Flush any function_calls that were at the tail of the list
+		if (!pendingFunctionCalls.isEmpty()) {
+			ResponseMessage.Builder fcBuilder = ResponseMessage.builder();
+			fcBuilder.withType(MessageType.RESPONSE_TOOL);
+			fcBuilder.withToolResponses(new ArrayList<>(pendingFunctionCalls));
+			result.add(fcBuilder.build());
 		}
 
 		// ------ Attach system prompt to last input message, if any ------
@@ -423,96 +717,79 @@ public class MessageUtils {
 		return result;
 	}
 
-//	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-//	    List<Map<String, Object>> mcpTools = new ArrayList<>();
-//	    for (Map<String, Object> tool : inputTools) {
-//	        // Check if already in MCP format
-//	        if (tool.containsKey("name") && tool.containsKey("description") && tool.containsKey("function")) {
-//	            // Already MCP format, clone for safety and add
-//	            mcpTools.add(new HashMap<>(tool));
-//	            continue;
-//	        }
-//	        Object functionObj = tool.get("function");
-//	        if (functionObj instanceof Map) {
-//	            @SuppressWarnings("unchecked")
-//	            Map<String, Object> functionMap = new HashMap<>((Map<String, Object>) functionObj); // copy so we can modify
-//	            Object nameObj = functionMap.remove("name");
-//	            Object descriptionObj = functionMap.remove("description");
-//	            if (nameObj != null && descriptionObj != null) {
-//	                Map<String, Object> mcpTool = new HashMap<>();
-//	                mcpTool.put("name", nameObj);
-//	                mcpTool.put("description", descriptionObj);
-//	                mcpTool.put("function", functionMap);
-//	                mcpTool.put("type", tool.getOrDefault("type", "function"));
-//	                mcpTools.add(mcpTool);
-//	                continue;
-//	            }
-//	        }
-//	        // If not recognizable, add as-is
-//	        mcpTools.add(new HashMap<>(tool));
-//	    }
-//	    return mcpTools;
-//	}
-
+	/**
+	 * Converts OpenAI-style tool definitions to MCP-compatible tool definitions.
+	 * Built-in non-function tools are passed through unchanged.
+	 *
+	 * @param inputTools tool definitions from incoming API payload
+	 * @return MCP-compatible tool definitions
+	 */
 	public static List<Map<String, Object>> convertOpenAIToMCPTools(List<Map<String, Object>> inputTools) {
-	    List<Map<String, Object>> newTools = new ArrayList<>();
-	    for (Map<String, Object> tool : inputTools) {
-	        String type = (String) tool.get("type");
+		List<Map<String, Object>> newTools = new ArrayList<>();
+		for (Map<String, Object> tool : inputTools) {
+			String type = (String) tool.get("type");
 
-	        // Built-in tools (from OpenAI) (web_search, code_interpreter, file_search, etc.)
-	        // have a non-"function" type and no nested function/inputSchema/parameters definition.
-	        // Pass these through unchanged
-	        // Maybe a better way to identify these eventually? But I have to pass these on as is..
-	        if (type != null && !"function".equals(type)
-	                && !tool.containsKey("function")
-	                && !tool.containsKey("inputSchema")
-	                && !tool.containsKey("parameters")) {
-	            newTools.add(new LinkedHashMap<>(tool));
-	            continue;
-	        }
+			// Built-in tools (from OpenAI) (web_search, code_interpreter, file_search,
+			// etc.)
+			// have a non-"function" type and no nested function/inputSchema/parameters
+			// definition.
+			// Pass these through unchanged
+			// Maybe a better way to identify these eventually? But I have to pass these on
+			// as is..
+			if (type != null && !"function".equals(type) && !tool.containsKey("function")
+					&& !tool.containsKey("inputSchema") && !tool.containsKey("parameters")) {
+				newTools.add(new LinkedHashMap<>(tool));
+				continue;
+			}
 
-	        Map<String, Object> result = new LinkedHashMap<>();
-	        String name = null, description = null, title = null;
-	        Map<String, Object> inputSchema = null;
+			Map<String, Object> result = new LinkedHashMap<>();
+			String name = null, description = null, title = null;
+			Map<String, Object> inputSchema = null;
 
-	        // Handle OpenAI style with nested "function"
-	        if (tool.containsKey("function") && tool.get("function") instanceof Map) {
-	            @SuppressWarnings("unchecked")
-	            Map<String, Object> function = (Map<String, Object>) tool.get("function");
-	            name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
-	            description = function.containsKey("description") ? (String) function.get("description")
-	                    : (String) tool.get("description");
-	            Object params = function.get("parameters");
-	            if (params instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) params);
-	            }
-	        } else {
-	            // Already MCP-style or close-to
-	            name = (String) tool.get("name");
-	            description = (String) tool.get("description");
-	            title = (String) tool.get("title");
-	            if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
-	            } else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
-	                inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
-	            }
-	        }
+			// Handle OpenAI style with nested "function"
+			if (tool.containsKey("function") && tool.get("function") instanceof Map) {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> function = (Map<String, Object>) tool.get("function");
+				name = function.containsKey("name") ? (String) function.get("name") : (String) tool.get("name");
+				description = function.containsKey("description") ? (String) function.get("description")
+						: (String) tool.get("description");
+				Object params = function.get("parameters");
+				if (params instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) params);
+				}
+			} else {
+				// Already MCP-style or close-to
+				name = (String) tool.get("name");
+				description = (String) tool.get("description");
+				title = (String) tool.get("title");
+				if (tool.containsKey("inputSchema") && tool.get("inputSchema") instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) tool.get("inputSchema"));
+				} else if (tool.containsKey("parameters") && tool.get("parameters") instanceof Map) {
+					inputSchema = new LinkedHashMap<>((Map) tool.get("parameters"));
+				}
+			}
 
-	        if (title == null || title.trim().isEmpty()) {
-	            title = MCPUtility.formatToTitleCase(name);
-	        }
+			if (title == null || title.trim().isEmpty()) {
+				title = MCPUtility.formatToTitleCase(name);
+			}
 
-	        result.put("name", name);
-	        result.put("description", description);
-	        result.put("title", title);
-	        if (inputSchema != null) {
-	            result.put("inputSchema", inputSchema);
-	        }
-	        newTools.add(result);
-	    }
-	    return newTools;
+			result.put("name", name);
+			result.put("description", description);
+			result.put("title", title);
+			if (inputSchema != null) {
+				result.put("inputSchema", inputSchema);
+			}
+			newTools.add(result);
+		}
+		return newTools;
 	}
 
+	/**
+	 * Normalizes tool-choice input (string/object) into MCP tool-choice shape.
+	 *
+	 * @param toolChoiceInput tool-choice value from caller payload
+	 * @return normalized MCP tool-choice map
+	 */
 	public static Map<String, Object> toMCPToolChoice(Object toolChoiceInput) {
 		// Handle String
 		if (toolChoiceInput instanceof String) {
@@ -569,11 +846,24 @@ public class MessageUtils {
 		return makeToolChoice(ToolChoiceType.AUTO, null);
 	}
 
-	// Utility: to get string or return null if not a string
+	/**
+	 * Returns the object as a string when the value is a {@link String}; otherwise
+	 * returns {@code null}.
+	 *
+	 * @param o value to inspect
+	 * @return string value or {@code null}
+	 */
 	private static String asStringOrNull(Object o) {
 		return (o instanceof String) ? (String) o : null;
 	}
 
+	/**
+	 * Extracts text content from mixed content payloads (plain string or list of
+	 * typed content maps).
+	 *
+	 * @param o content payload
+	 * @return concatenated text content or {@code null}
+	 */
 	private static String parseContentMap(Object o) {
 		if (o instanceof List<?>) {
 			// OpenAI-style: content is a list of dicts with type text, ignore images
@@ -584,7 +874,7 @@ public class MessageUtils {
 				}
 				Map<?, ?> partMap = (Map<?, ?>) part;
 				String type = asStringOrNull(partMap.get("type"));
-				if ("text".equals(type)) {
+				if ("text".equals(type) || "input_text".equals(type) || "output_text".equals(type)) {
 					textBuilder.append(asStringOrNull(partMap.get("text")));
 				}
 			}
@@ -597,236 +887,40 @@ public class MessageUtils {
 
 	// ---- Utility/Convenience methods (maintain if needed) ----
 
-	// These can alias to above or be retained for backwards compatibility
+	/**
+	 * Backward-compatible alias for {@link #toJsonArray(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return DB-safe message JSON
+	 */
 	public static String getMessagesForDatabase(List<AbstractMessage> msgs) {
 		return toJsonArray(msgs);
 	}
 
+	/**
+	 * Backward-compatible alias for {@link #toJsonArrayWithImageData(List)}.
+	 *
+	 * @param msgs messages to serialize
+	 * @return execution payload message JSON
+	 */
 	public static String getMessagesForPy(List<AbstractMessage> msgs) {
 		return toJsonArrayWithImageData(msgs);
 	}
 
-	// ---- Image move utilities ---- This should be used over copy
-
-	public static List<String> moveFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> roomFilePaths = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to move.");
-			return roomFilePaths;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return roomFilePaths;
-		}
-		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.move(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				classLogger.warn("Failed to move file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-				continue;
-			}
-			roomFilePaths.add(destination.toString());
-		}
-		return roomFilePaths;
-	}
-
-	// ---- Image copy utilities ----
-	public static List<String> copyFilesToRoomFolder(List<String> relativePathToFiles, Room room, Insight insight) {
-		List<String> copiedFileNames = new ArrayList<>();
-		if (relativePathToFiles == null || relativePathToFiles.isEmpty()) {
-			classLogger.info("No file paths provided to copy.");
-			return copiedFileNames;
-		}
-		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
-		try {
-			Files.createDirectories(targetDir);
-		} catch (IOException e) {
-			classLogger.warn("Failed to create room folder: " + targetDir, e);
-			return copiedFileNames;
-		}
-		for (String relPath : relativePathToFiles) {
-			if (isBase64MediaDataUri(relPath)) {
-				String fileName = writeBase64ImageDataUriToDir(relPath, targetDir);
-				if (fileName != null) {
-					copiedFileNames.add(fileName);
-				}
-				continue;
-			}
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
-				continue;
-			}
-			String fileName = srcFile.getName();
-			Path destination = targetDir.resolve(fileName);
-			try {
-				Files.copy(srcFile.toPath(), destination, StandardCopyOption.REPLACE_EXISTING);
-				copiedFileNames.add(fileName); // only add if copy succeeded
-			} catch (IOException e) {
-				classLogger.warn("Failed to copy file: " + srcFile.getAbsolutePath() + " to " + destination, e);
-			}
-		}
-		return copiedFileNames;
-	}
-
-	private static boolean isBase64MediaDataUri(String value) {
-		if (value == null) {
-			return false;
-		}
-		// e.g. data:image/jpeg;base64,/9j/4AAQ... or data:application/pdf;base64,....
-		String trimmed = value.trim();
-		if (!trimmed.contains(";base64,")) {
-			return false;
-		}
-		return trimmed.startsWith("data:image/") || trimmed.startsWith("data:application/pdf");
-	}
-
-	public static String writeBase64ImageDataUriToDir(String dataUri, Path targetDir) {
-		try {
-			Files.createDirectories(targetDir);
-			
-			String trimmed = dataUri.trim();
-			int commaIdx = trimmed.indexOf(',');
-			if (commaIdx < 0) {
-				classLogger.info("Invalid data URI (no comma separator)");
-				return null;
-			}
-
-			String meta = trimmed.substring(0, commaIdx); // data:image/jpeg;base64
-			String base64 = trimmed.substring(commaIdx + 1);
-			if (!meta.startsWith("data:") || !meta.contains(";base64")) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			int colonIdx = meta.indexOf(':');
-			int semiIdx = meta.indexOf(';');
-			if (colonIdx < 0 || semiIdx < 0 || semiIdx <= colonIdx + 1) {
-				classLogger.info("Invalid data URI meta: " + meta);
-				return null;
-			}
-
-			String mimeType = meta.substring(colonIdx + 1, semiIdx).trim().toLowerCase();
-			if (!mimeType.startsWith("image/") && !"application/pdf".equals(mimeType)) {
-				classLogger.info("Unsupported data URI mime type: " + mimeType);
-				return null;
-			}
-
-			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
-			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
-			return fileName;
-		} catch (IllegalArgumentException e) {
-			// base64 decoder throws IllegalArgumentException on bad input
-			classLogger.warn("Failed to decode base64 data URI image", e);
-			return null;
-		} catch (IOException e) {
-			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
-			return null;
-		}
-	}
-
-	private static String extensionFromMimeType(String mimeType) {
-		if ("application/pdf".equals(mimeType)) {
-			return "pdf";
-		}
-		if (mimeType == null || !mimeType.startsWith("image/")) {
-			return "png";
-		}
-		switch (mimeType) {
-		case "image/jpg":
-		case "image/jpeg":
-			return "jpeg";
-		case "image/png":
-			return "png";
-		case "image/gif":
-			return "gif";
-		case "image/webp":
-			return "webp";
-		case "image/bmp":
-			return "bmp";
-		case "image/svg+xml":
-			return "svg";
-		case "image/x-icon":
-		case "image/vnd.microsoft.icon":
-			return "ico";
-		default:
-			String subtype = mimeType.substring("image/".length());
-			int plusIdx = subtype.indexOf('+');
-			if (plusIdx > 0) {
-				subtype = subtype.substring(0, plusIdx);
-			}
-			subtype = subtype.replaceAll("[^a-z0-9]", "");
-			return subtype.isEmpty() ? "png" : subtype;
-		}
-	}
-
-	// Method to parse markdown code blocks
-	public static ResponseMessage processMarkdownCodeBlocks(ResponseMessage responseMessage, IModelEngine modelEngine,
-			Room room) {
-		String rawResponse = responseMessage.getContent();
-
-		Map<String, CodeBlock> codeBlocks = new HashMap<>();
-		Matcher matcher = MARKDOWN_CODE_PATTERN.matcher(rawResponse);
-		StringBuffer modifiedResponse = new StringBuffer();
-
-		while (matcher.find()) {
-			String language = matcher.group(1) != null ? matcher.group(1).trim() : "";
-			// Check both title formats and use the first non-null one
-			String title = matcher.group(2) != null ? matcher.group(2).trim()
-					: matcher.group(3) != null ? matcher.group(3).trim() : "";
-			String code = matcher.group(4).trim();
-
-			String uuid = UUID.randomUUID().toString();
-
-			if (title == "") {
-				HashMap<String, Object> paramMap = new HashMap<String, Object>();
-				paramMap.put("use_history", "false");
-				InputMessage msg = InputMessage.builder(room)
-						.withInputUIPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withInputPrompt(
-								"Given the following code block, give it a title: " + code + " Just give me the title")
-						.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
-
-				ResponseMessage response = room.ask(msg, modelEngine);
-				title = response.getContent();
-			}
-
-			codeBlocks.put(uuid, new CodeBlock(language, code, title));
-
-			matcher.appendReplacement(modifiedResponse,
-					Matcher.quoteReplacement("<CODEBLOCK>" + uuid + "</CODEBLOCK>"));
-		}
-		matcher.appendTail(modifiedResponse);
-
-		responseMessage.setOrnament("processedResponsed", modifiedResponse.toString());
-		responseMessage.setOrnament("codeBlocks", codeBlocks);
-
-		return responseMessage;
-	}
-
+	/**
+	 * Supported tool-choice strategy values.
+	 */
 	public enum ToolChoiceType {
 		FORCED, AUTO, REQUIRED, NONE
 	}
 
+	/**
+	 * Creates an MCP tool-choice payload.
+	 *
+	 * @param type tool-choice strategy
+	 * @param name forced tool name (used only when {@code type == FORCED})
+	 * @return tool-choice map
+	 */
 	public static Map<String, Object> makeToolChoice(ToolChoiceType type, String name) {
 		Map<String, Object> toolChoice = new HashMap<>();
 		toolChoice.put("type", type.name().toLowerCase());
@@ -836,29 +930,39 @@ public class MessageUtils {
 		return toolChoice;
 	}
 
-	// Class to represent a code block
-	private static class CodeBlock {
-		private final String language;
-		private final String code;
-		private final String title;
-
-		public CodeBlock(String language, String code, String title) {
-			this.language = language;
-			this.code = code;
-			this.title = title;
+	/**
+	 * API compatibility: add legacy flat fields into a map built from a response
+	 * JSON.
+	 *
+	 * @param msg    response message source
+	 * @param target output map to enrich (created when null)
+	 * @return enriched map containing legacy response fields
+	 */
+	@Deprecated
+	public static Map<String, Object> applyLegacyResponseFields(ResponseMessage msg, Map<String, Object> target) {
+		if (target == null) {
+			target = new LinkedHashMap<>();
 		}
-
-		public String getLanguage() {
-			return language;
+		if (msg == null) {
+			return target;
 		}
-
-		public String getCode() {
-			return code;
+		if (msg.getMessageType() != null) {
+			target.put("type", msg.getMessageType().name());
 		}
-
-		public String getTitle() {
-			return title;
+		String content = msg.getContent();
+		if (content != null) {
+			target.put("content", content);
 		}
+		String thinking = msg.getThinking();
+		if (thinking != null) {
+			target.put("thinking", thinking);
+		}
+		List<Map<String, Object>> toolResponses = msg.getToolResponses();
+		if (toolResponses == null) {
+			toolResponses = new ArrayList<>();
+		}
+		target.put("tool_responses", toolResponses);
+		return target;
 	}
 
 }

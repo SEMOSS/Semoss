@@ -38,14 +38,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class DropRowsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor drops rows based on a comparison The inputs to the reactor
-	 * are: 1) the filter comparison for dropping rows
+	 * This reactor drops rows based on a comparison The inputs to the reactor are:
+	 * 1) the filter comparison for dropping rows
 	 */
 
 	public DropRowsReactor() {
@@ -69,7 +67,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 		OwlTemporalEngineMeta frameMetadata = frame.getMetaData();
 		try {
 			grf = QSAliasToPhysicalConverter.convertGenRowFilters(grf, frameMetadata, null);
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
 		}
 		StringBuilder rFilterBuilder = new StringBuilder();
@@ -82,10 +80,6 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 		String newScript = table + "<- " + table + "[!(" + rFilterBuilder.toString() + "),]";
 		frame.executeRScript(newScript);
 		this.addExecutedCode(newScript);
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "DropRows",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

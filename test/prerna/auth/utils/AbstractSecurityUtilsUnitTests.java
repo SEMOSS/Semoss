@@ -64,6 +64,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.SystemEngineRegistry;
 
 public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -72,7 +73,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 
 	@BeforeEach
 	void setup() {
-		securityDb = AbstractSecurityUtils.securityDb;
+		securityDb = SystemEngineRegistry.getSecurityDb();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		assertNotNull(this.securityDb);
 	}
@@ -302,7 +303,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProject", "testName", user);
 
-		WorkspaceAssetUtils.registerUserAssetProject(user, AuthProvider.NATIVE, "testProject");
+		UserAssetUtils.registerUserAssetProject(user, AuthProvider.NATIVE, "testProject");
 
 		assertTrue(AbstractSecurityUtils.ignoreDatabase("testProject"));
 	}

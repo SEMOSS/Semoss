@@ -82,7 +82,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 					+ " does not exist or user does not have access to this model");
 		}
 
-		String searchStatement = Utility.decodeURIComponent(getString(ReactorKeysEnum.COMMAND.getKey()));
+		String searchStatement = getString(ReactorKeysEnum.COMMAND.getKey());
 		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), 5);
 		Map<String, Object> paramMap = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
 		if (paramMap == null) {
@@ -142,7 +142,9 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The vector database engine ID to query.";
+		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
 			return "The search query text to find similar documents for";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "The maximum number of similar documents to return. Defaults to 5 if not specified";

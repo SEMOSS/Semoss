@@ -42,6 +42,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -50,7 +51,9 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class SecurityNativeUserUtils extends AbstractSecurityUtils {
@@ -86,6 +89,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @throws IllegalArgumentException
 	 */
 	public static Boolean addNativeUser(AccessToken newUser, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// also add the max user limit check
 		String userLimitStr = Utility.getDIHelperProperty(Constants.MAX_USER_LIMIT);
 		if (userLimitStr != null && !userLimitStr.trim().isEmpty()) {
@@ -97,7 +101,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch (NumberFormatException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add native user.", e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
@@ -194,14 +198,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 
 				// need to update any other permissions that were set for this user
@@ -220,14 +219,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add native user.", e);
 						} finally {
-							if (ps != null) {
-								ps.close();
-							}
-							if (ps != null && securityDb.isConnectionPooling()) {
-								ps.getConnection().close();
-							}
+							ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 						}
 					}
 				}
@@ -314,21 +308,16 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 
 				storeUserPassword(newUser.getId(), newUser.getProvider().toString(), hashedPassword, salt, timestamp);
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add native user.", e);
 		}
 
 		return false;
@@ -347,6 +336,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	public static void storeUserPassword(String userId, String type, String hashPassword, String salt,
 			java.sql.Timestamp timestamp) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertQuery = "INSERT INTO PASSWORD_HISTORY (ID, USERID, TYPE, PASSWORD, SALT, DATE_ADDED) "
 				+ "VALUES (?,?,?,?,?,?)";
 
@@ -365,14 +355,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add native user.", e);
 		} finally {
-			if (ps != null) {
-				ps.close();
-			}
-			if (ps != null && securityDb.isConnectionPooling()) {
-				ps.getConnection().close();
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		int passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
@@ -400,7 +385,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					deleteIds.add(idToDelete);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to add native user.", e);
 			}
 
 			if (!deleteIds.isEmpty()) {
@@ -416,14 +401,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 						ps.getConnection().commit();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to add native user.", e);
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
-					if (ps != null && securityDb.isConnectionPooling()) {
-						ps.getConnection().close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		}
@@ -442,25 +422,25 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try {
 			validUsername(newUser.getUsername());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			validEmail(newUser.getEmail(), isNewUser);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			validPassword(newUser.getId(), newUser.getProvider(), password);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		try {
 			newUser.setPhone(formatPhone(newUser.getPhone()));
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate required native-user fields.", e);
 			error += e.getMessage();
 		}
 		if (!error.isEmpty()) {
@@ -487,6 +467,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	}
 
 	static String getUsernameByUserId(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT NAME FROM USER WHERE ID = '?1'"; query =
 		 * query.replace("?1", userId); IRawSelectWrapper wrapper =
@@ -501,7 +482,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve username by user ID.", e);
 		}
 		return null;
 	}
@@ -513,6 +494,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getUserId(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT ID FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -528,7 +510,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user ID.", e);
 		}
 		return null;
 
@@ -541,6 +523,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return email if it exists otherwise null
 	 */
 	public static String getUserEmail(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT EMAIL FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -555,7 +538,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user email.", e);
 		}
 		return null;
 	}
@@ -567,6 +550,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userEmailExists(String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(EMAIL_COL));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(EMAIL_COL, "==", email));
@@ -575,7 +559,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
 		return false;
@@ -588,6 +572,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return userId if it exists otherwise null
 	 */
 	public static String getNameUser(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
 		 * String query = "SELECT NAME FROM SMSS_USER WHERE USERNAME = '?1'"; query =
 		 * query.replace("?1", username); IRawSelectWrapper wrapper =
@@ -603,7 +588,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				return (String) sjss.getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user name.", e);
 		}
 
 		return null;
@@ -616,6 +601,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return User retrieved from the database otherwise null.
 	 */
 	private static Map<String, String> getUserFromDatabase(String username) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String> user = new HashMap<>();
 
 		/*
@@ -657,7 +643,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				user.put(names[10], (String) values[10]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user details from the native user store.", e);
 		}
 
 		return user;
@@ -671,6 +657,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isCurrentPassword(String userId, AuthProvider type, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String hashedPassword = null;
 		String salt = null;
 
@@ -686,7 +673,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				salt = (String) values[1];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches the current password.", e);
 		}
 
 		String typedHash = hash(password, salt);
@@ -701,11 +688,12 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean isPreviousPassword(String userId, AuthProvider type, String password) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		int passReuseCount = -1;
 		try {
 			passReuseCount = PasswordRequirements.getInstance().getPassReuseCount();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -730,7 +718,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				counter++;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the provided password matches a previous password.", e);
 		}
 
 		return false;
@@ -745,6 +733,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static String performResetPassword(String userId, String password) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure the new password is valid or throw error
 		validPassword(userId, AuthProvider.NATIVE, password);
 
@@ -768,16 +757,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to reset the user password in the native user store.", e);
 		} finally {
-			if (ps != null) {
-				ps.close();
-			}
-			if (securityDb.isConnectionPooling()) {
-				if (ps != null) {
-					ps.getConnection().close();
-				}
-			}
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return userId;

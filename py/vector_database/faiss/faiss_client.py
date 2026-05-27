@@ -1,20 +1,48 @@
-from typing import List, Dict, Union, Optional, Any, Tuple
-from datasets import Dataset, concatenate_datasets, disable_caching, Value
+from typing import List, Dict, Union, Optional, Tuple
+import atexit
 import logging
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor
 
 import pandas as pd
 import faiss
 import numpy as np
-import pickle
 import os
 import glob
 import re
 
 # CFG/SEMOSS packages
-from genai_client import HuggingfaceTokenizer
 from gaas_gpt_model import ModelEngine
 from ..constants import ENCODING_OPTIONS
 from ..utils.bm25_client import BM25Searcher
+from ._legacy_pickle_migration import migrate_pickle_to_safe
+
+# ---------------------------------------------------------------------------
+# Shared warmup pool
+# ---------------------------------------------------------------------------
+# Lazily-created process-wide thread pool used to load cold-start state
+# (today: BM25 index + JSON corpus) in the background while __init__ returns.
+# The on-disk loads are I/O bound, so two workers is enough to overlap the
+# common case of one or two engines opening at once without saturating disk.
+# Callers retrieve the value through a Future (`bm25_searcher` property), so
+# the second-through-Nth caller naturally awaits the in-flight load rather
+# than starting a duplicate.
+_WARMUP_EXECUTOR: Optional[ThreadPoolExecutor] = None
+_WARMUP_EXECUTOR_LOCK = threading.Lock()
+
+
+def _warmup_executor() -> ThreadPoolExecutor:
+    global _WARMUP_EXECUTOR
+    if _WARMUP_EXECUTOR is None:
+        with _WARMUP_EXECUTOR_LOCK:
+            if _WARMUP_EXECUTOR is None:
+                _WARMUP_EXECUTOR = ThreadPoolExecutor(
+                    max_workers=2, thread_name_prefix="faiss-warmup"
+                )
+                atexit.register(
+                    _WARMUP_EXECUTOR.shutdown, wait=False, cancel_futures=True
+                )
+    return _WARMUP_EXECUTOR
 
 
 class FAISSSearcher:
@@ -34,7 +62,9 @@ class FAISSSearcher:
         enable_hybrid_search: bool = True,
     ):
         self.class_logger = logging.getLogger(__name__)
-        self.init_device()
+
+        self._device_loaded = False
+        self._device = None
 
         self.ds = None
         self.encoded_vectors = None
@@ -46,11 +76,12 @@ class FAISSSearcher:
         self.default_sort_direction = default_sort_direction
         self.base_path = base_path
 
-        disable_caching()
+        # One-shot conversion of any legacy .pkl files to safe formats (.parquet/.npy).
+        migrate_pickle_to_safe(base_path)
 
         # Load existing files
-        master_dataset_path = os.path.join(base_path, "dataset.pkl")
-        master_vector_path = os.path.join(base_path, "vectors.pkl")
+        master_dataset_path = os.path.join(base_path, "dataset.parquet")
+        master_vector_path = os.path.join(base_path, "vectors.npy")
 
         if not os.path.exists(master_dataset_path) or not os.path.exists(
             master_vector_path
@@ -60,12 +91,19 @@ class FAISSSearcher:
             self.load_dataset(master_dataset_path)
             self.load_encoded_vectors(master_vector_path)
 
-        # BM25 components
-        self.bm25_searcher = None
+        # BM25 components are kicked off in a background warmup thread when hybrid
+        # search is enabled: the JSON corpus + bm25s file load is I/O-heavy and
+        # would otherwise dominate cold-start. Callers retrieve the searcher via
+        # the `bm25_searcher` property, which awaits the same Future — so a
+        # request that lands before the warmup finishes just blocks on it
+        # instead of starting a duplicate load. If hybrid is disabled or the
+        # background load fails we fall back to building inline on first access.
         self.enable_hybrid_search = enable_hybrid_search
+        self._bm25_searcher = None
+        self._bm25_lock = threading.Lock()
+        self._bm25_future: Optional[Future] = None
         if self.enable_hybrid_search:
-            self.bm25_searcher = BM25Searcher(base_path=base_path)
-            self.bm25_searcher.generate_and_load_bm25_index(self.ds)
+            self._bm25_future = _warmup_executor().submit(self._build_bm25_searcher)
 
         self.rerank = False
         self.reranker_model = None
@@ -79,8 +117,8 @@ class FAISSSearcher:
 
     @ds.setter
     def ds(self, value):
-        if value is not None and not isinstance(value, (pd.DataFrame, Dataset)):
-            raise TypeError("ds must be a pd.DataFrame or Dataset")
+        if value is not None and not isinstance(value, pd.DataFrame):
+            raise TypeError("ds must be a pandas.DataFrame")
         self._ds = value
 
     @property
@@ -113,41 +151,76 @@ class FAISSSearcher:
             raise TypeError("base_path must be a string")
         self._base_path = value
 
-    def _concatenate_columns(
-        self,
-        row: Dict[str, Any],
-        target_column: str,
-        columns_to_index: List[str] = None,
-        separator: str = "\n",
-    ) -> Dict[str, str]:
-        """
-        Given a set of Index Classes, find the closest match(es) using FAISSearcher.nearestNeighbor across all index classes.
+    @property
+    def bm25_searcher(self):
+        """Return the BM25 searcher, awaiting the background warmup if needed.
 
-        Args:
-            row (`Dict[str, Any]`): A row dictionary in a dataset
-            results (`Optional[Union[int, None]]`): The column name or key for the concatenated column values
-            columns_to_index (`List[str]`): A list containing the column names to be concatenated
-            separator (`str`): The value to separate the concatenated values by
-
-        Return:
-            `Dict[str, str]` A dictionary containing the new column name as the key and the concatenated columns as a the value.
+        Returns None when hybrid search is disabled. Otherwise:
+          - If `__init__` submitted a warmup Future and it's still running,
+            this blocks until the Future completes; concurrent callers all
+            await the same Future (no duplicate loads).
+          - If the warmup Future failed, falls back to an inline build under a
+            lock so subsequent reads don't keep re-raising the original error.
+          - If `__init__` never submitted a warmup (e.g. the field was reset),
+            builds inline under the lock.
+        After the first successful load the cached searcher is returned with
+        no synchronization overhead.
         """
-        text = ""
-        for col in columns_to_index:
-            text += str(row[col])
-            text += separator
+        if not self.enable_hybrid_search:
+            return None
+        if self._bm25_searcher is not None:
+            return self._bm25_searcher
+        with self._bm25_lock:
+            if self._bm25_searcher is not None:
+                return self._bm25_searcher
+            future = self._bm25_future
+            if future is not None:
+                try:
+                    self._bm25_searcher = future.result()
+                except Exception:
+                    self.class_logger.exception(
+                        "Background BM25 warmup failed; building inline"
+                    )
+                finally:
+                    self._bm25_future = None
+            if self._bm25_searcher is None:
+                self._bm25_searcher = self._build_bm25_searcher()
+            return self._bm25_searcher
 
-        return {target_column: text}
+    def _build_bm25_searcher(self) -> BM25Searcher:
+        """Construct and load the BM25 searcher. Called either by the background
+        warmup or inline from the `bm25_searcher` property as a fallback."""
+        searcher = BM25Searcher(base_path=self.base_path)
+        searcher.generate_and_load_bm25_index(self.ds)
+        return searcher
 
-    def init_device(self):
+    # ensure that device is lazy loaded to avoid heavy torch import as long as possible
+    def __getattr__(self, name):
         """
-        Utility method to determine whether or not the devie running the interpreter has a gpu
+        Called only if 'name' is not found in the normal attribute dictionary.
+        We use it to lazy-load a specific attribute.
         """
+        if name == "device":
+            if not self._device_loaded:
+                self._init_device()
+            return self._device
+        # If it's not the special attribute, raise AttributeError
+        raise AttributeError(
+            f"'{type(self).__name__}' object has no attribute '{name}'"
+        )
+
+    def _init_device(self):
+        """
+        Utility method to determine whether or not the device running the interpreter has a gpu
+        """
+        self.class_logger.info(f"Loading torch in faiss client")
         import torch
 
-        self.device = (
+        self._device = (
             torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
+        self._device_loaded = True
+        self.class_logger.info(f"Done loading torch in faiss client")
 
     def nearestNeighbor(
         self,
@@ -209,9 +282,9 @@ class FAISSSearcher:
     ):
         """Perform hybrid BM25 + vector search"""
         if columns_to_return is None:
-            columns_to_return = list(self.ds.features)
+            columns_to_return = list(self.ds.columns)
 
-        fusion_limit = max(total_limit * 2, 20)
+        fusion_limit = max(total_limit * 2, limit * 2, 20)
 
         # 1. Do vector search
         vector_results = self._vector_only_search(
@@ -225,12 +298,21 @@ class FAISSSearcher:
         )
 
         # 2. Do BM25 search
+        # BM25 index was built on full dataset, so we must use full dataset for lookup
         bm25_results = self.bm25_searcher.search_with_data(
             question,
             top_k=fusion_limit,
             columns_to_return=columns_to_return,
             ds=self.ds,
         )
+
+        # Filter BM25 results to only include documents that match the filter
+        if filter is not None:
+            filter_ids = self._filter_dataset(filter)
+            filter_ids_set = set(filter_ids)
+            bm25_results = [
+                result for result in bm25_results if result["idx"] in filter_ids_set
+            ]
 
         # 3. Combine using reciprocal rank fusion
         if bm25_results:
@@ -267,7 +349,7 @@ class FAISSSearcher:
     ) -> List[Dict]:
         """Original vector-only search logic"""
         if columns_to_return is None:
-            columns_to_return = list(self.ds.features)
+            columns_to_return = list(self.ds.columns)
 
         search_vector = self.embeddings_engine.embeddings(
             strings_to_embed=[question], insight_id=insight_id
@@ -279,7 +361,7 @@ class FAISSSearcher:
             query_vector = np.array(search_vector["response"], dtype=np.float32)
         assert query_vector.shape[0] == 1
 
-        if isinstance(self.tokenizer, HuggingfaceTokenizer):
+        if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
             faiss.normalize_L2(query_vector)
 
         if not isinstance(limit, int):
@@ -328,7 +410,7 @@ class FAISSSearcher:
         final_output = []
         for _, row in samples_df.iterrows():
             output = {"Score": row["distances"], "idx": int(row["ann"])}
-            data_row = self.ds[int(row["ann"])]
+            data_row = self.ds.iloc[int(row["ann"])]
             output.update({col: data_row[col] for col in columns_to_return})
             final_output.append(output)
 
@@ -523,7 +605,7 @@ class FAISSSearcher:
         Get the unique list of documents
         """
         if self.ds is not None:
-            return self.ds.unique("Source")
+            return self.ds["Source"].unique().tolist()
 
         return []
 
@@ -532,14 +614,14 @@ class FAISSSearcher:
         Get the list of all the records
         """
         if self.ds is not None:
-            return self.ds.sort(column_names=["Source", "Divider", "Part"]).to_list()
+            return self.ds.sort_values(by=["Source", "Divider", "Part"]).to_dict(
+                "records"
+            )
 
         return []
 
     def _filter_dataset(self, filter: str) -> List[int]:
-        filterDf = self.ds.to_pandas()
-
-        return filterDf.query(filter).index.to_list()
+        return self.ds.query(filter).index.to_list()
 
     def load_dataset(self, dataset_location: str) -> None:
         """
@@ -547,116 +629,88 @@ class FAISSSearcher:
 
         Args:
         dataset_location(`str`):
-            The file path to the stored dataset. Currently only csv and pkl file types are supported
+            The file path to the stored dataset. Supported file types are csv and parquet.
+            Legacy `.pkl` paths are transparently rewritten to `.parquet` for callers that
+            still reference the old extension.
 
         Returns:
         `None`
         """
+        if dataset_location.endswith(".pkl"):
+            self.class_logger.warning(
+                "load_dataset called with legacy .pkl path; reading the migrated .parquet file instead: %s",
+                dataset_location,
+            )
+            dataset_location = dataset_location[: -len(".pkl")] + ".parquet"
         self.ds = self._load_dataset(dataset_location=dataset_location)
 
-    def _load_dataset(self, dataset_location: str) -> Union[Dataset, pd.DataFrame]:
+    def _load_dataset(self, dataset_location: str) -> pd.DataFrame:
         """
         Internal method to load the dataset based on its file type.
 
         Args:
         dataset_location(`str`):
-            The file path to the stored dataset. Currently only csv and pkl file types are supported
+            The file path to the stored dataset. Supported file types are csv and parquet.
 
         Returns:
-        `None`
+        `pd.DataFrame`
         """
+        loaded_dataset = None
         if dataset_location.endswith(".csv"):
-            try:
-                loaded_dataset = Dataset.from_csv(
-                    path_or_paths=dataset_location,
-                    encoding="utf-8",
-                    keep_in_memory=True,
+            for encoding in tuple(ENCODING_OPTIONS):
+                try:
+                    loaded_dataset = pd.read_csv(dataset_location, encoding=encoding)
+                    break
+                except Exception:
+                    continue
+            if loaded_dataset is None:
+                raise Exception(
+                    "Unable to read the file with any of the specified encodings"
                 )
-            except:
-                for encoding in ENCODING_OPTIONS:
-                    try:
-                        temp_df = pd.read_csv(dataset_location, encoding=encoding)
-                        loaded_dataset = Dataset.from_pandas(temp_df)
-                        break
-                    except:
-                        continue
-                else:
-                    # The else clause is executed if the loop completes without encountering a break
-                    raise Exception(
-                        "Unable to read the file with any of the specified encodings"
-                    )
-
-        elif dataset_location.endswith(".pkl"):
-            with open(dataset_location, "rb") as file:
-                loaded_dataset = pickle.load(file)
+        elif dataset_location.endswith(".parquet"):
+            loaded_dataset = pd.read_parquet(dataset_location)
         else:
             raise ValueError(
                 "Dataset creation for provided file type has not been defined"
             )
 
-        assert isinstance(loaded_dataset, Dataset)
-
-        dataset_columns = list(loaded_dataset.features)
-
-        extracted_with_cfg = all(
-            col in dataset_columns
-            for col in ["Source", "Divider", "Part", "Tokens", "Content"]
-        )
-        if isinstance(loaded_dataset, Dataset) and extracted_with_cfg:
-
-            if "Modality" not in dataset_columns:
-                loaded_dataset = loaded_dataset.add_column(
-                    "Modality", ["text" for i in range(loaded_dataset.num_rows)]
-                )
-
-            # to be safe, force all columns
-            new_features = loaded_dataset.features.copy()
-            new_features["Source"] = Value(dtype="string", id=None)
-            new_features["Divider"] = Value(dtype="string", id=None)
-            new_features["Part"] = Value(dtype="string", id=None)
-            new_features["Tokens"] = Value(dtype="int64", id=None)
-            new_features["Content"] = Value(dtype="string", id=None)
-
-            try:
-                loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
-            except AttributeError:
-                # This catch is required due to a version change in the datasets package
-                # Previously, there was no attribute called _batches which is required with the new `cast` method. This is missing from the pickle file
-                # The solution is to reconstruct the dataset from a pandas frame
-                try:
-                    loaded_dataset = Dataset.from_pandas(loaded_dataset.to_pandas())
-                except AttributeError:
-                    loaded_dataset = Dataset.from_pandas(
-                        loaded_dataset.data.to_pandas()
-                    )
-                loaded_dataset = loaded_dataset.cast(new_features, keep_in_memory=True)
-
-        elif isinstance(loaded_dataset, pd.DataFrame) and extracted_with_cfg:
-            if "Modality" not in dataset_columns:
-                loaded_dataset["Modality"] = "text"
-
-            # to be safe, force all columns
-            loaded_dataset["Source"] = loaded_dataset["Source"].astype(str)
-            loaded_dataset["Divider"] = loaded_dataset["Divider"].astype(str)
-            loaded_dataset["Part"] = loaded_dataset["Part"].astype(str)
-            loaded_dataset["Tokens"] = loaded_dataset["Tokens"].astype(int)
-            loaded_dataset["Content"] = loaded_dataset["Content"].astype(str)
-
         return loaded_dataset
 
     def save_dataset(self, dataset_location: str) -> None:
         """
-        Utility method to save datasets from object onto the disk.
+        Utility method to save datasets from object onto the disk as Parquet.
 
         Args:
         dataset_location(`str`):
-            The file path to the write the dataset.
+            The file path to the write the dataset. Must end in `.parquet`.
 
         Returns:
         `None`
         """
-        with open(dataset_location, "wb") as file:
-            pickle.dump(self.ds, file)
+        if not isinstance(self.ds, pd.DataFrame):
+            raise TypeError(
+                f"save_dataset requires pandas.DataFrame, got {type(self.ds).__name__}"
+            )
+        # Normalize columns to canonical dtypes before writing. Per-source
+        # parquet files can disagree on Divider/Part dtype (legacy HF-Dataset
+        # writes used string; pandas inference from CSV can yield int), and the
+        # concatenation produces an object column with mixed Python types that
+        # pyarrow refuses to serialize.
+        self._enforce_canonical_schema(self.ds)
+        self.ds.to_parquet(dataset_location, index=False)
+
+    @staticmethod
+    def _enforce_canonical_schema(df: pd.DataFrame) -> None:
+        """Cast the standard CFG columns to their canonical dtypes in place.
+
+        Cheap when columns already have the expected dtype, so it can be called
+        at every write site without paying a noticeable cost in the common case.
+        """
+        for col in ("Source", "Divider", "Part", "Content"):
+            if col in df.columns:
+                df[col] = df[col].astype(str)
+        if "Tokens" in df.columns:
+            df["Tokens"] = df["Tokens"].astype("int64")
 
     def load_encoded_vectors(self, encoded_vectors_location: str) -> None:
         """
@@ -664,11 +718,19 @@ class FAISSSearcher:
 
         Args:
         encoded_vectors_location(`str`):
-            The file path to the stored embeddings file. Currently only npy and pkl file types are supported
+            The file path to the stored embeddings file. Supported file type is `.npy`.
+            Legacy `.pkl` paths are transparently rewritten to `.npy` for callers that
+            still reference the old extension.
 
         Returns:
         `None`
         """
+        if encoded_vectors_location.endswith(".pkl"):
+            self.class_logger.warning(
+                "load_encoded_vectors called with legacy .pkl path; reading the migrated .npy file instead: %s",
+                encoded_vectors_location,
+            )
+            encoded_vectors_location = encoded_vectors_location[: -len(".pkl")] + ".npy"
         self.encoded_vectors = self._load_encoded_vectors(
             encoded_vectors_location=encoded_vectors_location
         )
@@ -689,16 +751,19 @@ class FAISSSearcher:
 
         Args:
         encoded_vectors_location(`str`):
-            The file path to the stored embeddings file. Currently only npy and pkl file types are supported
+            The file path to the stored embeddings file. Only `.npy` files are supported.
 
         Returns:
         `None`
         """
-        if encoded_vectors_location.endswith(".npy"):
-            encoded_vectors = np.load(encoded_vectors_location)
-        else:
-            with open(encoded_vectors_location, "rb") as file:
-                encoded_vectors = pickle.load(file)
+        if not encoded_vectors_location.endswith(".npy"):
+            raise ValueError(
+                f"Encoded vectors must be loaded from a .npy file, got: {encoded_vectors_location}"
+            )
+        # allow_pickle=False ensures np.load cannot deserialize arbitrary Python objects.
+        encoded_vectors = np.load(
+            encoded_vectors_location, allow_pickle=False, mmap_mode="r"
+        )
 
         assert isinstance(encoded_vectors, np.ndarray)
 
@@ -706,33 +771,32 @@ class FAISSSearcher:
 
     def save_encoded_vectors(self, encoded_vectors_location: str) -> None:
         """
-        Utility method to save embeddings from object onto the disk.
+        Utility method to save embeddings from object onto the disk as a `.npy` file.
 
         Args:
         encoded_vectors_location(`str`):
-            The file path to the write the dataset.
+            The file path to the write the dataset. Must end in `.npy`.
 
         Returns:
         `None`
         """
-        with open(encoded_vectors_location, "wb") as file:
-            pickle.dump(self.encoded_vectors, file)
+        np.save(encoded_vectors_location, self.encoded_vectors, allow_pickle=False)
 
     def _concatenate_datasets(
         self,
-        datasets: Union[List[Dataset], List[pd.DataFrame]],
-    ) -> Union[Dataset, pd.DataFrame]:
+        datasets: List[pd.DataFrame],
+    ) -> pd.DataFrame:
         """
-        Interal utility method to concatenate datasets depending on the class type. Either pandas.DataFrame or datasets.Dataset
+        Internal utility method to concatenate a list of pandas DataFrames.
 
         Args:
-        datasets(`Union[List[Dataset], List[pd.DataFrame]]`):
-            A list of datasets where all the datasets of only of one type. Either pandas.DataFrame or datasets.Dataset
+        datasets(`List[pd.DataFrame]`):
+            A list of DataFrames to concatenate.
 
         Returns:
-        `Union[Dataset, pd.DataFrame]`
+        `pd.DataFrame`
         """
-        return concatenate_datasets(datasets)
+        return pd.concat(datasets, ignore_index=True)
 
     def addDocument(
         self,
@@ -761,20 +825,18 @@ class FAISSSearcher:
         if self.enable_hybrid_search and self.ds is not None:
             try:
                 # Extract all text content for BM25 indexing
-                if "Content" in self.ds.features:
-                    all_texts = self.ds["Content"]
+                if "Content" in self.ds.columns:
+                    all_texts = list(self.ds["Content"])
                 else:
                     # Fallback: concatenate all text fields
                     all_texts = []
                     for i in range(len(self.ds)):
-                        row = self.ds[i]
-                        text_parts = []
-                        for key, value in row.items():
-                            if isinstance(value, str):
-                                text_parts.append(value)
+                        row = self.ds.iloc[i]
+                        text_parts = [
+                            value for value in row.values if isinstance(value, str)
+                        ]
                         all_texts.append(" ".join(text_parts))
 
-                # TODO - would be good to grab ds of new records only to build
                 if self.bm25_searcher is not None:
                     self.bm25_searcher.build_bm25_index(all_texts)
 
@@ -831,39 +893,40 @@ class FAISSSearcher:
 
         # loop through and embed new docs
         for document in documentFileLocation:
-            # Create the Dataset for every file
+            # Create the DataFrame for every file
             dataset = self._load_dataset(dataset_location=document)
 
             # Change the unit of work
             # From being the document
             # To the individual source inside the document
-            sources = dataset.unique("Source")
+            sources = dataset["Source"].unique().tolist()
             for source_name in sources:
-                source_dataset = dataset.filter(
-                    lambda dataset: dataset["Source"] == source_name
+                source_dataset = dataset[dataset["Source"] == source_name].reset_index(
+                    drop=True
                 )
 
                 # Get the directory path and the base filename without extension
                 directory, base_filename = os.path.split(document)
-                new_file_extension = ".pkl"
+                dataset_extension = ".parquet"
+                vector_extension = ".npy"
 
                 if columns_to_index == None or len(columns_to_index) == 0:
-                    columns_to_index = list(source_dataset.features)
+                    columns_to_index = list(source_dataset.columns)
 
                 # save the dataset, this is for efficiency after removing docs
                 new_file_path = os.path.join(
-                    directory, source_name + "_dataset" + new_file_extension
+                    directory, source_name + "_dataset" + dataset_extension
                 )
 
                 # if applicable, create the concatenated columns
-                if source_dataset.num_rows > 0:
-                    source_dataset = source_dataset.map(
-                        self._concatenate_columns,
-                        fn_kwargs={
-                            "columns_to_index": columns_to_index,
-                            "target_column": target_column,
-                            "separator": separator,
-                        },
+                if len(source_dataset) > 0:
+                    # vectorized equivalent of mapping `_concatenate_columns`: build a
+                    # target_column whose value for each row is
+                    # `<v0><sep><v1><sep>...<vn-1><sep>` (note trailing separator,
+                    # preserved for parity with the previous Dataset.map behavior).
+                    parts = source_dataset[columns_to_index].astype(str)
+                    source_dataset[target_column] = parts.apply(
+                        lambda row: separator.join(row) + separator, axis=1
                     )
 
                     # transform chunks into keywords
@@ -873,23 +936,16 @@ class FAISSSearcher:
                     ):
                         keywords_for_target_col = (
                             self.keyword_engine.keyword_extraction(
-                                input=source_dataset[target_column],
+                                input=list(source_dataset[target_column]),
                                 insight_id=insight_id,
                                 param_dict=keyword_search_params,
                             )
                         )
-                        # source_dataset = source_dataset.add_column(target_column, keywords_for_target_col)
-                        source_dataset = source_dataset.remove_columns(
-                            column_names=target_column
-                        )
-                        source_dataset = source_dataset.add_column(
-                            target_column, keywords_for_target_col
-                        )
+                        source_dataset[target_column] = keywords_for_target_col
 
                     # get the embeddings for the document
-                    # vectors = self.embeddings_engine.get_embeddings(dataset[target_column])
                     vectors = self.embeddings_engine.embeddings(
-                        strings_to_embed=source_dataset[target_column],
+                        strings_to_embed=list(source_dataset[target_column]),
                         insight_id=insight_id,
                     )
                     vectors = np.array(vectors[0]["response"], dtype=np.float32)
@@ -897,32 +953,29 @@ class FAISSSearcher:
 
                     columns_to_remove.append(target_column)
                     columns_to_drop = list(
-                        set(columns_to_remove).intersection(
-                            set(source_dataset.features)
-                        )
+                        set(columns_to_remove).intersection(set(source_dataset.columns))
                     )
-                    source_dataset = source_dataset.remove_columns(
-                        column_names=columns_to_drop
-                    )
+                    source_dataset = source_dataset.drop(columns=columns_to_drop)
 
-                    with open(new_file_path, "wb") as file:
-                        pickle.dump(source_dataset, file)
+                    # Keep per-source files dtype-consistent so subsequent
+                    # `_validateEmbeddingFiles` concatenations don't produce
+                    # mixed-type columns that fail pyarrow serialization.
+                    self._enforce_canonical_schema(source_dataset)
+                    source_dataset.to_parquet(new_file_path, index=False)
 
                     # add the created source_dataset file path
                     createDocumentsResponse["createdDocuments"].append(new_file_path)
 
                     # normalize the vectors if using huggingface
-                    if isinstance(self.tokenizer, HuggingfaceTokenizer):
+                    if type(self.tokenizer).__name__ == "HuggingfaceTokenizer":
                         faiss.normalize_L2(vectors)
 
-                    # write out the vectors with the same file name
-                    # Change the file extension to ".pkl"
+                    # write out the vectors as a .npy file (no pickle)
                     new_file_path = os.path.join(
                         directory,
-                        source_name + "_vectors" + new_file_extension,
+                        source_name + "_vectors" + vector_extension,
                     )
-                    with open(new_file_path, "wb") as file:
-                        pickle.dump(vectors, file)
+                    np.save(new_file_path, vectors, allow_pickle=False)
 
                     # add the created embeddings file path
                     createDocumentsResponse["createdDocuments"].append(new_file_path)
@@ -989,8 +1042,12 @@ class FAISSSearcher:
         """
         indexed_files_path = os.path.join(path_to_files, "indexed_files")
 
-        # List all pdfs files in the directory
-        all_vector_files = glob.glob(os.path.join(indexed_files_path, "*_vectors.pkl"))
+        # If any legacy .pkl files remain in this subtree, convert them now so the
+        # globs below find their migrated counterparts.
+        migrate_pickle_to_safe(path_to_files)
+
+        # List all vector files in the directory
+        all_vector_files = glob.glob(os.path.join(indexed_files_path, "*_vectors.npy"))
 
         valid_datasets_and_vectors = []
         corrupted_file_sets: List[Tuple] = []
@@ -1000,8 +1057,8 @@ class FAISSSearcher:
             # get the basename of the file
             # all csvs, datasets and vectors should contain this base name
             vector_filename = os.path.basename(full_vector_path)
-            base_filename = vector_filename.split("_vectors.pkl")[0]
-            dataset_filename = base_filename + "_dataset.pkl"
+            base_filename = vector_filename.split("_vectors.npy")[0]
+            dataset_filename = base_filename + "_dataset.parquet"
 
             full_dataset_path = os.path.join(indexed_files_path, dataset_filename)
             full_vector_path = os.path.join(indexed_files_path, vector_filename)
@@ -1041,31 +1098,30 @@ class FAISSSearcher:
 
         # bind the valid datasets and vectors
         if len(valid_datasets_and_vectors) > 0:
-            self.ds = valid_datasets_and_vectors[0][0]
-            self.encoded_vectors = valid_datasets_and_vectors[0][1]
+            dfs = [d for d, _ in valid_datasets_and_vectors]
+            vecs = [v for _, v in valid_datasets_and_vectors]
+
+            self.ds = pd.concat(dfs, ignore_index=True) if len(dfs) > 1 else dfs[0]
+            self.encoded_vectors = (
+                np.concatenate(vecs, axis=0) if len(vecs) > 1 else vecs[0]
+            )
             self.vector_dimensions = self.encoded_vectors.shape
 
-            # loop through and concatenate the others if any
-            for dataset, vectors in valid_datasets_and_vectors[1:]:
-                self.ds = self._concatenate_datasets([self.ds, dataset])
-                self.encoded_vectors = np.concatenate(
-                    (self.encoded_vectors, vectors), axis=0
-                )
-
-            encoded_vectors_location = os.path.join(path_to_files, "vectors.pkl")
-            dataset_location = os.path.join(path_to_files, "dataset.pkl")
+            encoded_vectors_location = os.path.join(path_to_files, "vectors.npy")
+            dataset_location = os.path.join(path_to_files, "dataset.parquet")
             self.save_encoded_vectors(encoded_vectors_location=encoded_vectors_location)
             self.save_dataset(dataset_location=dataset_location)
             created_documents.append(encoded_vectors_location)
             created_documents.append(dataset_location)
 
-            if (self.metric_type_is_cosine_similarity) and (
-                self.vector_dimensions != None
+            if (
+                self.metric_type_is_cosine_similarity
+                and self.vector_dimensions is not None
             ):
                 self.index = faiss.index_factory(
                     self.vector_dimensions[1], "Flat", faiss.METRIC_INNER_PRODUCT
                 )
-            elif self.vector_dimensions != None:
+            elif self.vector_dimensions is not None:
                 self.index = faiss.IndexFlatL2(self.vector_dimensions[1])
 
             if self.encoded_vectors is not None:
@@ -1103,12 +1159,7 @@ class FAISSSearcher:
 
         Returns `bool`
         """
-        if (
-            (self.ds == None)
-            or (list(self.ds.features) == [])
-            or (len(list(self.ds.features)) == 0)
-            or (self.ds.num_rows == 0)
-        ):
+        if self.ds is None or len(self.ds.columns) == 0 or len(self.ds) == 0:
             return False
         else:
             return True
@@ -1132,15 +1183,15 @@ class FAISSSearcher:
         for _, row in samples_df.iterrows():
             output = {}
             output.update({"Score": row["distances"]})
-            data_row = self.ds[int(row["ann"])]
+            data_row = self.ds.iloc[int(row["ann"])]
             output.update({col: data_row[col] for col in columns_to_return})
 
             # this is not pythonic but let us try this for now
             try:
-                if "Content" in data_row.keys():
+                if "Content" in data_row.index:
                     content = data_row["Content"]
                 else:
-                    content = " ".join([str(val) for val in data_row.values()])
+                    content = " ".join([str(val) for val in data_row.values])
 
                 score = self.cross_encode([[question, content]])
                 output.update({"Rerank_Score": score})

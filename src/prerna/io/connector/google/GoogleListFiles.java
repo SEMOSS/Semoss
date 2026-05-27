@@ -39,45 +39,33 @@ import prerna.om.RemoteItem;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
-public class GoogleListFiles implements IConnectorIOp{
+public class GoogleListFiles implements IConnectorIOp {
 
 	// lists the various files for this user
-	// if the 
+	// if the
 	// name of the object to return
 	String objectName = "prerna.om.RemoteItem"; // it will fill this object and return the data
-	String [] beanProps = {"id", "name", "type"}; // add is done when you have a list
+	String[] beanProps = { "id", "name", "type" }; // add is done when you have a list
 	String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
-
-	// possible properties that can be passed
-	//https://developers.google.com/drive/v2/web/search-parameters
-	// https://developers.google.com/drive/v3/web/mime-types
-	// CSV = text/csv
-	// spreadsheet - application/x-vnd.oasis.opendocument.spreadsheet
-	// ms excel - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-	// tsv = text/tab-separated-values
-	// spreadsheet -application/vnd.google-apps.spreadsheet
-	// mimeType="text/csv" or mimeType="application/vnd.google-apps.spreadsheet"
-	
-	String url_str = "https://www.googleapis.com/drive/v3/files";
 
 	@Override
 	public Object execute(User user, Map<String, Object> params) {
-		if(params == null) {
+		if (params == null) {
 			params = new HashMap<>();
 		}
-		
+
 		// TODO Auto-generated method stub
 		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
-				
 		String accessToken = googToken.getAccess_token();
-		
+
 		// you fill what you want to send on the API call
 		params.put("access_token", accessToken);
-		
-		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, false);
-		
+
+		String url = "https://www.googleapis.com/drive/v3/files";
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
+
 		// fill the bean with the return
-		List <RemoteItem> fileList = (List)BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
+		List<RemoteItem> fileList = (List) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
 		return fileList;
 	}
 

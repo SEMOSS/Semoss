@@ -43,7 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class JoinColumnsReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(JoinColumnsReactor.class);
 
 	@Override
@@ -73,7 +73,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 			}
 			separator = "'" + separator + "'";
 
-			// update new column with concatenated values col1 + separator  col2 ...
+			// update new column with concatenated values col1 + separator col2 ...
 			String updateColumn = "UPDATE " + table + " SET " + colName + " = CONCAT (";
 			for (int i = 2; i < inputsGRS.size(); i++) {
 				String column = inputsGRS.getNoun(i).getValue() + "";
@@ -111,6 +111,7 @@ public class JoinColumnsReactor extends AbstractFrameReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 

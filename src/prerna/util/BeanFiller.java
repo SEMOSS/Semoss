@@ -48,100 +48,137 @@ public class BeanFiller {
 
 	protected static final Logger classLogger = LogManager.getLogger(BeanFiller.class);
 
-	// takes the data that is coming in from the json
-	// gets a list of properties
-	// and then fills it
+	/**
+	 * Shared JSON parser used for all BeanFiller operations.
+	 */
 	private static ObjectMapper mapper = new ObjectMapper();
+	/**
+	 * Shared JMESPath runtime for evaluating user-defined JSON extraction patterns.
+	 */
 	private static JmesPath<JsonNode> jmespath = new JacksonRuntime();
-	
+
 	private BeanFiller() {
-		
+
 	}
-	
-	// get the jsonNode for input
+
+	/**
+	 * Evaluate a JMESPath expression against a JSON payload.
+	 * 
+	 * @param json        source JSON payload
+	 * @param jsonPattern JMESPath expression used to select values
+	 * @return matched JsonNode (or null if evaluation fails)
+	 */
 	public static JsonNode getJmesResult(String json, String jsonPattern) {
 		try {
 			Expression<JsonNode> expression = jmespath.compile(jsonPattern);
 			JsonNode input = mapper.readTree(json);
 			JsonNode result = expression.search(input);
-			
+
 			return result;
-		} catch(Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+		} catch (Exception ex) {
+			classLogger.error("Failed to evaluate JMESPath pattern '{}' for BeanFiller JSON extraction", jsonPattern,
+					ex);
 		}
 		return null;
 	}
 
-	// fills a single bean
-	public static Object fillFromJson(String json, String jsonPattern, String [] beanProps, Object bean) {
+	/**
+	 * Fill a bean (or list of beans) from JSON using a dynamic mapping contract.
+	 * <p>
+	 * Behavior depends on the evaluated JMESPath result:
+	 * <ul>
+	 * <li>If the result is an array of objects, each object is mapped to a new bean
+	 * instance and a {@code List<Object>} is returned.</li>
+	 * <li>Otherwise, the result is treated as a single object/array and mapped into
+	 * the provided bean instance.</li>
+	 * </ul>
+	 * 
+	 * @param json        source JSON payload
+	 * @param jsonPattern JMESPath expression used to extract data
+	 * @param beanProps   runtime bean property mapping configuration
+	 * @param bean        target bean instance (also used as the type template when
+	 *                    creating list entries)
+	 * @return mapped bean instance or {@code List<Object>} depending on result
+	 *         shape
+	 */
+	public static Object fillFromJson(String json, String jsonPattern, String[] beanProps, Object bean) {
 		// make the class
 		Object retObject = null;
 		try {
 			Expression<JsonNode> expression = jmespath.compile(jsonPattern);
 
-			//AccessToken tok = mapper.readValue(json, AccessToken.class);
+			// AccessToken tok = mapper.readValue(json, AccessToken.class);
 			JsonNode input = mapper.readTree(json);
 			JsonNode result = expression.search(input);
-			
-			if((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) {
-				// this is a multiple value
+
+			if ((result instanceof ArrayNode) && result.get(0) instanceof ObjectNode) {
+				// array-of-object result: create one bean per object entry
 				List<Object> retList = new ArrayList<>();
-				for(int resIndex = 0; resIndex < result.size(); resIndex++) {
-					// I should possibly create a new instance everytime as well
-					Object newBean = bean.getClass().newInstance();
+				for (int resIndex = 0; resIndex < result.size(); resIndex++) {
+					Object newBean = bean.getClass().getDeclaredConstructor().newInstance();
 					Object newObject = null;
 					newObject = fillSingleObjectFromMap(result.get(resIndex), beanProps, newBean);
-					//else
-					//	System.out.println("Need to find if this is a Map.. ");
 					retList.add(newObject);
 				}
 				retObject = retList;
 			} else {
 				retObject = fillSingleObject(result, beanProps, bean);
 			}
-		} catch(Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+		} catch (Exception ex) {
+			String beanType = bean == null ? "null" : bean.getClass().getName();
+			classLogger.error("Failed to fill bean type '{}' from JSON using JMESPath pattern '{}'", beanType,
+					jsonPattern, ex);
 		}
 		return retObject;
 	}
-	
+
 	/**
+	 * Determine whether the first element of a result node is itself an array.
+	 * <p>
+	 * This is a lightweight helper used by callers that need to understand whether
+	 * the selected JMES result is nested.
 	 * 
-	 * @param node
-	 * @return
+	 * @param node result node to inspect
+	 * @return true when {@code node[0]} is an {@link ArrayNode}, otherwise false
 	 */
 	public static boolean isJsonArray(JsonNode node) {
 		boolean array = false;
 		// get the first element
-		// if it is an array then proceed with that.. 
-		if(node.size() > 0) {
+		// if it is an array then proceed with that..
+		if (node.size() > 0) {
 			JsonNode firstNode = node.get(0);
-			if(firstNode instanceof ArrayNode) {
+			if (firstNode instanceof ArrayNode) {
 				array = true;
 			}
 		}
 		return array;
 	}
-	
+
 	/**
+	 * Fill a bean from an ordered result set.
+	 * <p>
+	 * Each result value is matched by index to {@code beanProps[inputIndex]}. If a
+	 * property name starts with {@code add_}, the value is appended to a list-like
+	 * bean property. If extra values exist beyond configured properties, they are
+	 * written to the bean {@code extra} property.
 	 * 
-	 * @param result
-	 * @param beanProps
-	 * @param bean
-	 * @return
+	 * @param result    ordered values from JMES result
+	 * @param beanProps bean property names in positional order
+	 * @param bean      target bean instance
+	 * @return populated bean
 	 */
-	public static Object fillSingleObject(JsonNode result, String [] beanProps, Object bean) {
+	public static Object fillSingleObject(JsonNode result, String[] beanProps, Object bean) {
 		try {
-			for(int inputIndex = 0;result != null && inputIndex < result.size();inputIndex++) {
+			for (int inputIndex = 0; result != null && inputIndex < result.size(); inputIndex++) {
 				String thisInput = result.get(inputIndex).asText();
-				if(beanProps.length > inputIndex) {
+				if (beanProps.length > inputIndex) {
 					String beanProp = beanProps[inputIndex];
-					if(beanProp.startsWith("add_")) {
+					if (beanProp.startsWith("add_")) {
 						beanProp = beanProp.replaceAll("add_", "");
 						List thisList = null;
 						Object listObj = BeanUtils.getProperty(bean, beanProp);
-						if(listObj != null) {
-							thisList = (List)listObj;
+						if (listObj != null) {
+							thisList = (List) listObj;
 						} else {
 							thisList = new ArrayList();
 						}
@@ -150,46 +187,53 @@ public class BeanFiller {
 					} else {
 						BeanUtils.setProperty(bean, beanProp, thisInput);
 					}
-				}	
+				}
 				// add to the other data
 				else {
 					BeanUtils.setProperty(bean, "extra", thisInput);
 				}
 			}
 		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set bean property while filling ordered JSON values", e);
 		} catch (InvocationTargetException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Bean setter threw an error while filling ordered JSON values", e);
 		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} 
-		
+			classLogger.error("Bean property method not found while filling ordered JSON values", e);
+		}
+
 		return bean;
-		
+
 	}
 
 	/**
-	 * Fill an object based on a map input
-	 * @param result
-	 * @param beanProps
-	 * @param bean
-	 * @return
+	 * Fill a bean from an object-node result.
+	 * <p>
+	 * Each entry in {@code beanProps} is treated as both:
+	 * <ul>
+	 * <li>the source key to read from the JSON object node, and</li>
+	 * <li>the destination bean property name to write to.</li>
+	 * </ul>
+	 * Array values are flattened to a comma-separated string. Properties prefixed
+	 * with {@code add_} are appended to a list-like destination property.
+	 * 
+	 * @param result    object-node result from JMES evaluation
+	 * @param beanProps source/destination mapping keys
+	 * @param bean      target bean instance
+	 * @return populated bean
 	 */
-	public static Object fillSingleObjectFromMap(JsonNode result, String [] beanProps, Object bean) {
+	public static Object fillSingleObjectFromMap(JsonNode result, String[] beanProps, Object bean) {
 		try {
-			for(int inputIndex = 0;result != null && inputIndex < beanProps.length;inputIndex++) {
+			for (int inputIndex = 0; result != null && inputIndex < beanProps.length; inputIndex++) {
 				// grab the bean
 				String beanProp = beanProps[inputIndex];
-				
-				JsonNode thisInputObj = result.get(beanProp);
-				if(thisInputObj.isArray()) {
-					//TODO: i should really be doign this as an array
-					//TODO: i should really be doign this as an array
 
+				JsonNode thisInputObj = result.get(beanProp);
+				if (thisInputObj.isArray()) {
+					// Preserve existing behavior: flatten JSON arrays to a single string.
 					StringBuilder concat = new StringBuilder();
 					int innerArraySize = thisInputObj.size();
-					concat.append( thisInputObj.get(0).asText() );
-					for(int innerArrayIndex = 1; innerArrayIndex < innerArraySize; innerArrayIndex++) {
+					concat.append(thisInputObj.get(0).asText());
+					for (int innerArrayIndex = 1; innerArrayIndex < innerArraySize; innerArrayIndex++) {
 						concat.append(", ").append(thisInputObj.get(innerArrayIndex));
 					}
 					// this is adding as a string
@@ -197,45 +241,50 @@ public class BeanFiller {
 				} else {
 					// grab as string
 					String thisInput = thisInputObj.asText();
-					if(result.size() > inputIndex) {
-						// WHEN DO I WANT THIS??? WHY CAN'T I RETURN AN ARRAY VIA THE PATH
-						if(beanProp.startsWith("add_")) {
+					if (result.size() > inputIndex) {
+						if (beanProp.startsWith("add_")) {
 							beanProp = beanProp.replaceAll("add_", "");
 							List<Object> thisList = null;
 							Object listObj = BeanUtils.getProperty(bean, beanProp);
-							if(listObj != null) {
+							if (listObj != null) {
 								thisList = (List<Object>) listObj;
 							} else {
 								thisList = new ArrayList<Object>();
-							} 
+							}
 							thisList.add(thisInput);
 							BeanUtils.setProperty(bean, beanProp, listObj);
-						} 
-						// normal, just add it
+						}
+						// normal assignment
 						else {
 							BeanUtils.setProperty(bean, beanProp, thisInput);
 						}
-					}	
-					// add to the other data
+					}
+					// fallback destination for extra values
 					else {
 						BeanUtils.setProperty(bean, "extra", thisInput);
 					}
 				}
 			}
 		} catch (IllegalAccessException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to set bean property while filling object-node JSON values", e);
 		} catch (InvocationTargetException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Bean setter threw an error while filling object-node JSON values", e);
 		} catch (NoSuchMethodException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} 
-		
+			classLogger.error("Bean property method not found while filling object-node JSON values", e);
+		}
+
 		return bean;
 	}
 
-	
+	/**
+	 * Serialize an object to JSON using the shared mapper.
+	 * 
+	 * @param object object to serialize
+	 * @return JSON string
+	 * @throws Exception when serialization fails
+	 */
 	public static String getJson(Object object) throws Exception {
 		return mapper.writeValueAsString(object);
 	}
-	
+
 }

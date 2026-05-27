@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.model.message;
 
+@Deprecated
 public enum MessageType {
 
 	// @formatter:off
@@ -38,7 +39,7 @@ public enum MessageType {
     RESPONSE_MEDIA("RESPONSE_MEDIA"),
 //    SYSTEM("SYSTEM")
     ;
-	// @formatter:on
+	// @formatter:on 
 
 	private final String value;
 

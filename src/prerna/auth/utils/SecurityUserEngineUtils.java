@@ -43,6 +43,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.date.SemossDate;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -51,8 +52,8 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 class SecurityUserEngineUtils extends AbstractSecurityUtils {
@@ -67,6 +68,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static String getActualUserEnginePermission(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -81,7 +83,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's effective engine permission.", e);
 		}
 
 		// see if engine is public
@@ -93,6 +95,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	}
 
 	public static List<String> getActualGroupUserEnginePermission(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -116,7 +119,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's effective group-based engine permission.", e);
 			throw new IllegalArgumentException("Error during getting the engine permission");
 		}
 
@@ -157,6 +160,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserEnginePermission(String singleUserId, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -169,7 +173,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user engine permission.", e);
 		}
 
 		return null;
@@ -183,6 +187,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static Integer getUserEnginePermission(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -197,7 +202,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user engine permission.", e);
 		}
 
 		return null;
@@ -218,13 +223,14 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user has owner-level access.", e);
 		}
 
 		return userIsOwner(getUserFiltersQs(user), engineId);
 	}
 
 	static boolean userIsOwner(Collection<String> userIds, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -241,7 +247,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user has owner-level access.", e);
 		}
 
 		return false;
@@ -255,6 +261,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanViewEngine(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// Check to see if permission has expired
 		try {
 			boolean isExpired = enginePermissionIsExpired(Utility.inputSQLSanitizer(User.getSingleLogginName(user)),
@@ -265,7 +272,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 						engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view engine.", e);
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -283,7 +290,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can view engine.", e);
 		}
 
 		return false;
@@ -297,6 +304,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userCanEditEngine(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// Check to see if permission has expired
 		try {
 			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
@@ -305,7 +313,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit engine.", e);
 		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
@@ -324,7 +332,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user can edit engine.", e);
 		}
 
 		return false;
@@ -337,6 +345,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @param userId
 	 */
 	public static boolean enginePermissionIsExpired(String userId, String engineId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		LocalDateTime currentTime = LocalDateTime.now();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENDDATE"));
@@ -355,7 +364,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				return false;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the engine permission has expired.", e);
 			throw e;
 		}
 	}
@@ -368,6 +377,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	static int getMaxUserEnginePermission(User user, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -384,7 +394,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				return permission;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest engine permission.", e);
 		}
 		return AccessPermissionEnum.READ_ONLY.getId();
 	}
@@ -398,13 +408,14 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static boolean checkUserHasAccessToEngine(String engineId, String userId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			boolean isExpired = enginePermissionIsExpired(userId, engineId);
 			if (isExpired) {
 				SecurityProjectUtils.removeExpiredProjectUser(userId, engineId);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user has access to the engine.", e);
 			throw e;
 		}
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -416,7 +427,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user has access to the engine.", e);
 			throw e;
 		}
 	}
@@ -438,7 +449,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user engine permissions.", e);
 		}
 
 		return retMap;
@@ -453,6 +464,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static IRawSelectWrapper getUserEnginePermissionsWrapper(List<String> userIds, String engineId)
 			throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
@@ -468,6 +480,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getDisplayEngineOwnersAndEditors(String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<Map<String, Object>> users = null;
 		if (SecurityEngineUtils.engineIsGlobal(engineId)) {
 			SelectQueryStruct qs = new SelectQueryStruct();
@@ -515,6 +528,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getEngineUsers(String engineId, String searchParam, String permission,
 			long limit, long offset) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
 		boolean hasPermission = permission != null && !(permission = permission.trim()).isEmpty();
 		SelectQueryStruct qs = new SelectQueryStruct();

@@ -77,8 +77,12 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 
 		// we filtered to a single database
 		Map<String, Object> databaseInfo = baseInfo.get(0);
-		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId,
-				getListString(ReactorKeysEnum.META_KEYS.getKey()), false));
+		@SuppressWarnings("unchecked")
+		List<String> metaKeys = getList(ReactorKeysEnum.META_KEYS.getKey());
+		if (metaKeys != null && metaKeys.isEmpty()) {
+			metaKeys = null;
+		}
+		databaseInfo.putAll(SecurityEngineUtils.getAggregateEngineMetadata(engineId, metaKeys, false));
 		// append last engine update
 		{
 			Date eDate = MasterDatabaseUtility.getEngineDate(engineId);
@@ -92,9 +96,18 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		if (pendingRequest > 0) {
 			databaseInfo.put("pending_access_request", pendingRequest);
 		}
-		// add the user+date who last updated the engine
-		databaseInfo.putAll(SecurityEngineUtils.getLatestUpdatedAuthor(engineId));
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.ENGINE_INFO);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Returns metadata for a single engine when the user can access it or it is discoverable.
+
+				Inputs: engine, metaKeys.
+				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
+				Any response key prefixed with app_* or database_* is legacy and should not be used.
+				""";
 	}
 
 }

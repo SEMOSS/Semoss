@@ -29,7 +29,9 @@ package prerna.engine.impl.model.message;
 
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.github.f4b6a3.uuid.alt.GUID;
@@ -42,6 +44,30 @@ import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
 
 public abstract class AbstractMessage {
+	/**
+	 * Latest supported message JSON schema version for persisted room messages.
+	 */
+	public static final int LATEST_SCHEMA_VERSION = 2;
+
+	/**
+	 * Message JSON schema version.
+	 * <p>
+	 * Version 1 = legacy flat message fields
+	 * (type/content/imageInfos/tool_responses...). Version 2 = parts-based schema
+	 * via {@code parts}.
+	 */
+	@SerializedName("schemaVersion")
+	protected Integer schemaVersion;
+
+	/**
+	 * Discriminator to support clean deserialization into InputMessage vs
+	 * ResponseMessage without relying on legacy {@code type}.
+	 */
+	@SerializedName("io")
+	protected MessageIO io;
+
+	@SerializedName("parts")
+	protected List<MessagePart> parts = new ArrayList<>();
 
 	protected String modelId;
 	protected ModelTypeEnum modelType;
@@ -50,6 +76,13 @@ public abstract class AbstractMessage {
 	protected String parentMessageId;
 	protected MessageFeedback feedback;
 	protected int tokens;
+
+	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on response messages.
+	@SerializedName("cacheReadTokens")
+	protected Integer cacheReadTokens;
+
+	@SerializedName("cacheCreationTokens")
+	protected Integer cacheCreationTokens;
 
 	protected boolean visible = true;
 
@@ -69,6 +102,97 @@ public abstract class AbstractMessage {
 	}
 
 	public abstract MessageType getMessageType();
+
+	/**
+	 * Called after deserialization to ensure the message is internally consistent.
+	 * Subclasses should ensure parts are hydrated from legacy fields (and
+	 * vice-versa).
+	 */
+	public void normalizeAfterLoad(Room room) {
+		if (room != null) {
+			setRoom(room);
+		}
+	}
+
+	/**
+	 * Called before serialization to ensure the message writes in the latest
+	 * format.
+	 */
+	public void normalizeForWrite() {
+		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
+			schemaVersion = LATEST_SCHEMA_VERSION;
+		}
+	}
+
+	public MessageIO getIo() {
+		return io;
+	}
+
+	public void setIo(MessageIO io) {
+		this.io = io;
+	}
+
+	public Integer getSchemaVersion() {
+		return schemaVersion;
+	}
+
+	public void setSchemaVersion(Integer schemaVersion) {
+		this.schemaVersion = schemaVersion;
+	}
+
+	public List<MessagePart> getParts() {
+		return parts == null ? new ArrayList<>() : new ArrayList<>(parts);
+	}
+
+	public void setParts(List<MessagePart> parts) {
+		this.parts = (parts == null) ? new ArrayList<>() : new ArrayList<>(parts);
+	}
+
+	public void addPart(MessagePart part) {
+		if (part == null) {
+			return;
+		}
+		if (parts == null) {
+			parts = new ArrayList<>();
+		}
+		parts.add(part);
+	}
+
+	public boolean hasParts() {
+		return parts != null && !parts.isEmpty();
+	}
+
+	public boolean hasPartType(MessagePartType type) {
+		if (type == null || parts == null) {
+			return false;
+		}
+		for (MessagePart part : parts) {
+			if (part != null && type.equals(part.getType())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public boolean hasTextPart() {
+		return hasPartType(MessagePartType.TEXT);
+	}
+
+	public boolean hasMediaPart() {
+		return hasPartType(MessagePartType.MEDIA);
+	}
+
+	public boolean hasToolCallPart() {
+		return hasPartType(MessagePartType.TOOL_CALL);
+	}
+
+	public boolean hasToolResultPart() {
+		return hasPartType(MessagePartType.TOOL_RESULT);
+	}
+
+	public boolean hasThinkingPart() {
+		return hasPartType(MessagePartType.THINKING);
+	}
 
 	// this should really never be used unless we are translating old message
 	// formats
@@ -91,7 +215,7 @@ public abstract class AbstractMessage {
 	public void setModel(IModelEngine modelEngine) {
 		this.modelType = modelEngine.getModelType();
 		this.modelId = modelEngine.getEngineId();
-		setOrnament("modelName", modelEngine.getEngineName());
+		setOrnament("modelName", modelEngine.getDisplayName());
 	}
 
 	public String getModelId() {
@@ -165,6 +289,22 @@ public abstract class AbstractMessage {
 
 	public void setTokensInMessage(int tokens) {
 		this.tokens = tokens;
+	}
+
+	public Integer getCacheReadTokens() {
+		return cacheReadTokens;
+	}
+
+	public void setCacheReadTokens(Integer cacheReadTokens) {
+		this.cacheReadTokens = cacheReadTokens;
+	}
+
+	public Integer getCacheCreationTokens() {
+		return cacheCreationTokens;
+	}
+
+	public void setCacheCreationTokens(Integer cacheCreationTokens) {
+		this.cacheCreationTokens = cacheCreationTokens;
 	}
 
 	// ----------- Ornaments -----------

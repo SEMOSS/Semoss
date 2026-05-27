@@ -217,4 +217,15 @@ public class ZKEngine implements IEngine {
 		return this.curator.getZookeeperClient().getZooKeeper();
 	}
 
+	@Override
+	public void setDisplayName(String displayName) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public String getDisplayName() {
+		return this.getEngineName();
+	}
+
 }

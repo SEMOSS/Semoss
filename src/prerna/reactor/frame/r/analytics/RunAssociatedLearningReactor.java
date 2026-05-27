@@ -47,11 +47,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
-	
+
 	/**
 	 * RunAssociatedLearning(ruleSide=["Outcome"], column=["Nominated"] ,
 	 * values=["Y"] , attributes=["Genre" , "Nominated" ,"Rating"], conf =
@@ -133,19 +131,16 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		ITask taskData = ConstantTaskCreationHelper.getGridData(panelId, rulesDtColNames, data);
 		this.insight.getTaskStore().addTask(taskData);
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(this.insight, frame, "AssociatedLearning",
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
 		NounMetadata noun = new NounMetadata(taskData, PixelDataType.FORMATTED_DATA_SET, PixelOperationType.TASK_DATA);
-		
+
 		// throw message based on result
 		if (ruleslength == 0) {
-			noun.addAdditionalReturn(NounMetadata.getErrorNounMessage("Assocation Learning Algorithm ran successfully, but no results were found"));
+			noun.addAdditionalReturn(NounMetadata
+					.getErrorNounMessage("Assocation Learning Algorithm ran successfully, but no results were found"));
 		} else {
 			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Associated Learning ran successfully!"));
 		}
-		
+
 		return noun;
 	}
 
@@ -218,7 +213,8 @@ public class RunAssociatedLearningReactor extends AbstractRFrameReactor {
 		List<String> retList = new ArrayList<String>();
 
 		// check if list input was entered with key or not
-		GenRowStruct columnGrs = input.equals("0") ? this.store.getGenRowStruct(keysToGet[0]) : this.store.getGenRowStruct(input);
+		GenRowStruct columnGrs = input.equals("0") ? this.store.getGenRowStruct(keysToGet[0])
+				: this.store.getGenRowStruct(input);
 		if (columnGrs != null) {
 			for (NounMetadata noun : columnGrs.vector) {
 				retList.add(noun.getValue().toString());

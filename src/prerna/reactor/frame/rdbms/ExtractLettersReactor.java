@@ -43,9 +43,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 
 public class ExtractLettersReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ExtractLettersReactor.class);
-	
+
 	public static final String COLUMNS = "columns";
 	public static final String OVERRIDE = "override";
 	public static final String ALPHA_COLUMN_NAME = "_ALPHA";
@@ -64,7 +64,8 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 			String update = "";
 			for (int i = 0; i < columns.size(); i++) {
 				String column = columns.get(i);
-				update += "UPDATE " + table + " SET " + column + "= REGEXP_REPLACE(" + column + ", '[^a-zA-Z\\_]', ''); ";
+				update += "UPDATE " + table + " SET " + column + "= REGEXP_REPLACE(" + column
+						+ ", '[^a-zA-Z\\_]', ''); ";
 			}
 			try {
 				frame.getBuilder().runQuery(update);
@@ -80,7 +81,8 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 				// add new column
 				String update = "ALTER TABLE " + table + " ADD " + newColumn + " varchar(800);";
 				// update extract alpha characters and underscores
-				update += "UPDATE " + table + " SET " + newColumn + " = REGEXP_REPLACE(" + column + ", '[^a-zA-Z\\_]', '');";
+				update += "UPDATE " + table + " SET " + newColumn + " = REGEXP_REPLACE(" + column
+						+ ", '[^a-zA-Z\\_]', '');";
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
@@ -95,7 +97,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	private List<String> getColumns() {
 		GenRowStruct grs = this.store.getGenRowStruct(COLUMNS);
 		Vector<String> columns = new Vector<String>();
@@ -113,7 +115,7 @@ public class ExtractLettersReactor extends AbstractFrameReactor {
 		}
 		return columns;
 	}
-	
+
 	private boolean getOverride() {
 		GenRowStruct grs = this.store.getGenRowStruct(OVERRIDE);
 		boolean override = false;

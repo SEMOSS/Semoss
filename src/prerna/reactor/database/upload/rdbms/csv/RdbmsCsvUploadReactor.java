@@ -60,7 +60,6 @@ import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -113,9 +112,9 @@ public class RdbmsCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		stepCounter++;
 
 		logger.info(stepCounter + ". Create properties file for database...");
-		this.tempSmss = UploadUtilities.createTemporaryRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
+		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
-		DIHelper.getInstance().setEngineProperty(this.databaseId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
 		logger.info(stepCounter + ". Complete");
 		stepCounter++;
 
@@ -172,7 +171,7 @@ public class RdbmsCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 			// LOGGER.info("-- ********* completed processing file " + fileName
 
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Error occurred while parsing CSV file and loading data into database: {}", e.getMessage(), e);
 		} finally {
 			if (helper != null) {
 				helper.clear();

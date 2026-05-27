@@ -37,17 +37,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class TrimColumnsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor trims column values
-	 * The inputs to the reactor are: 
-	 * 1) the columns to update
+	 * This reactor trims column values The inputs to the reactor are: 1) the
+	 * columns to update
 	 */
-	
+
 	public TrimColumnsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey() };
 	}
@@ -72,8 +69,9 @@ public class TrimColumnsReactor extends AbstractRFrameReactor {
 				table = split[0];
 			}
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + col);
-			if(dataType == null)
+			if (dataType == null) {
 				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			}
 
 			if (dataType.equalsIgnoreCase("STRING")) {
 				// define the script to be executed
@@ -87,16 +85,9 @@ public class TrimColumnsReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.runR(builder.toString());
 		this.addExecutedCode(builder.toString());
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"Trim", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
