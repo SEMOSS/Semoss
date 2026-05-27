@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.theme;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -52,6 +55,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static final Object CACHE_LOCK = new Object();
 	private static volatile String cachedGlobalSystemPrompt = null;
 	private static volatile Map<String, String> cachedSystemPromptVars = null;
+	private static volatile List<Map<String, Object>> cachedDefaultTools = null;
 	private static volatile boolean cacheInitialized = false;
 
 	private PlaygroundThemeUtils() {
@@ -89,6 +93,15 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	}
 
 	/**
+	 * Returns {@code playground.defaultTools} from the currently active theme,
+	 * or an empty list if not defined.
+	 */
+	public static List<Map<String, Object>> getPlaygroundDefaultTools() {
+		ensureCacheLoaded();
+		return cachedDefaultTools == null ? Collections.emptyList() : new ArrayList<>(cachedDefaultTools);
+	}
+
+	/**
 	 * Refreshes the in-memory cache from the active theme.
 	 */
 	public static void refreshCacheFromActiveTheme() {
@@ -102,6 +115,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 		synchronized (CACHE_LOCK) {
 			cachedGlobalSystemPrompt = null;
 			cachedSystemPromptVars = null;
+			cachedDefaultTools = null;
 			cacheInitialized = false;
 		}
 	}
@@ -116,6 +130,7 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 	private static void parseThemeMap(String themeMapJson) {
 		cachedGlobalSystemPrompt = null;
 		cachedSystemPromptVars = new LinkedHashMap<>();
+		cachedDefaultTools = new ArrayList<>();
 		if (themeMapJson == null) {
 			return;
 		}
@@ -133,20 +148,36 @@ public class PlaygroundThemeUtils extends AbstractThemeUtils {
 			}
 
 			JsonElement varsElem = playground.get("systemPromptVars");
-			if (varsElem == null || !varsElem.isJsonObject()) {
-				return;
+			if (varsElem != null && varsElem.isJsonObject()) {
+				JsonObject varsObj = varsElem.getAsJsonObject();
+				for (String key : varsObj.keySet()) {
+					JsonElement valElem = varsObj.get(key);
+					if (valElem == null || !valElem.isJsonPrimitive()) {
+						continue;
+					}
+					String val = StringUtils.trimToNull(valElem.getAsString());
+					if (val == null) {
+						continue;
+					}
+					cachedSystemPromptVars.put(key, val);
+				}
 			}
-			JsonObject varsObj = varsElem.getAsJsonObject();
-			for (String key : varsObj.keySet()) {
-				JsonElement valElem = varsObj.get(key);
-				if (valElem == null || !valElem.isJsonPrimitive()) {
-					continue;
+
+			JsonElement defaultToolsElem = playground.get("defaultTools");
+			if (defaultToolsElem != null && defaultToolsElem.isJsonArray()) {
+				for (JsonElement toolElem : defaultToolsElem.getAsJsonArray()) {
+					if (!toolElem.isJsonObject()) {
+						continue;
+					}
+					Map<String, Object> tool = new LinkedHashMap<>();
+					for (Map.Entry<String, JsonElement> entry : toolElem.getAsJsonObject().entrySet()) {
+						if (entry.getValue().isJsonPrimitive()) {
+							tool.put(entry.getKey(), entry.getValue().getAsString());
+						}
+					}
+					tool.put("isDefault", true);
+					cachedDefaultTools.add(tool);
 				}
-				String val = StringUtils.trimToNull(valElem.getAsString());
-				if (val == null) {
-					continue;
-				}
-				cachedSystemPromptVars.put(key, val);
 			}
 		} catch (Exception e) {
 			classLogger.debug(Constants.STACKTRACE, e);

@@ -41,6 +41,7 @@ import java.util.UUID;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
+import prerna.theme.PlaygroundThemeUtils;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -78,14 +79,18 @@ public class CreateRoomReactor extends AbstractReactor {
 			List<String> vectorDbs = getListString(ReactorKeysEnum.VECTORDB.getKey(), Collections.emptyList());
 			List<String> tools = getListString(ReactorKeysEnum.FUNCTION.getKey(), Collections.emptyList());
 
-			if (!tools.isEmpty() || !vectorDbs.isEmpty()) {
-				options = new HashMap<>();
-				if (!tools.isEmpty()) {
-					options.put("tools", tools);
-				}
-				if (!vectorDbs.isEmpty()) {
-					options.put("vectorDbs", vectorDbs);
-				}
+			options = new HashMap<>();
+			if (!tools.isEmpty()) {
+				options.put("tools", tools);
+			}
+			if (!vectorDbs.isEmpty()) {
+				options.put("vectorDbs", vectorDbs);
+			}
+
+			// Default MCP tools from admin theme config
+			List<Map<String, Object>> defaultMcpTools = PlaygroundThemeUtils.getPlaygroundDefaultTools();
+			if (!defaultMcpTools.isEmpty()) {
+				options.put("mcp", defaultMcpTools);
 			}
 		}
 
