@@ -29,7 +29,8 @@ package prerna.reactor.scheduler;
 
 public final class SchedulerConstants {
 
-	private SchedulerConstants() {}
+	private SchedulerConstants() {
+	}
 
 	// Quartz tables
 	public static final String QRTZ_CALENDARS = "QRTZ_CALENDARS";
@@ -48,7 +49,7 @@ public final class SchedulerConstants {
 	public static final String SMSS_JOB_RECIPES = "SMSS_JOB_RECIPES";
 	public static final String SMSS_AUDIT_TRAIL = "SMSS_AUDIT_TRAIL";
 	public static final String SMSS_EXECUTION = "SMSS_EXECUTION";
-	public static final String SMSS_JOB_TAGS  = "SMSS_JOB_TAGS";
+	public static final String SMSS_JOB_TAGS = "SMSS_JOB_TAGS";
 
 	// Column Headers
 	public static final String SCHED_NAME = "SCHED_NAME";
@@ -115,7 +116,7 @@ public final class SchedulerConstants {
 	public static final String EXEC_ID = "EXEC_ID";
 	public static final String IS_LATEST = "IS_LATEST";
 	public static final String SCHEDULER_OUTPUT = "SCHEDULER_OUTPUT";
-	
+
 	// SQL data types
 	public static final String VARCHAR_8 = "VARCHAR (8)";
 	public static final String VARCHAR_16 = "VARCHAR (16)";
@@ -140,7 +141,7 @@ public final class SchedulerConstants {
 	public static final String TIMESTAMP = "TIMESTAMP";
 	public static final String BLOB = "BLOB";
 	public static final String CLOB = "CLOB";
-	
+
 	// Constraints
 	public static final String NOT_NULL = "NOT NULL";
 }
