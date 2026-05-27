@@ -206,6 +206,34 @@ public class GrepFilesReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "pattern":          return "Java regular expression to search for.";
+            case "path":             return "Relative directory or file path to search. Defaults to working directory root.";
+            case "glob":             return "Glob pattern to restrict which files are searched (e.g. *.java, **/*.ts).";
+            case "output_mode":      return "Output format: files_with_matches (default), content (file:line:text), or count (file:N).";
+            case "after_context":    return "Lines to include after each matching line (like grep -A).";
+            case "before_context":   return "Lines to include before each matching line (like grep -B).";
+            case "context":          return "Lines to include both before and after each match (like grep -C). Overrides after_context/before_context.";
+            case "case_insensitive": return "If true, match case-insensitively (like grep -i). Defaults to false.";
+            case "head_limit":       return "Maximum number of result lines to return. Defaults to 200.";
+            default:                 return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
+    protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+        switch (key) {
+            case "case_insensitive": return MCP_KEY_TYPE.BOOLEAN;
+            case "after_context":
+            case "before_context":
+            case "context":
+            case "head_limit":       return MCP_KEY_TYPE.INTEGER;
+            default:                 return super.getKeyTypeForMCP(key);
+        }
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Searches file contents with a regex. Output modes: files_with_matches (default), content, count. "
                 + "Supports after_context/before_context/context lines (grep -A/-B/-C), glob file filtering, "

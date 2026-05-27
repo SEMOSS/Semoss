@@ -98,6 +98,16 @@ public class DateTimeReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "timezone": return "IANA timezone (e.g. America/New_York, UTC). Defaults to the JVM default zone.";
+            case "format":   return "DateTimeFormatter pattern (e.g. yyyy-MM-dd HH:mm:ss). "
+                                  + "Omit to receive ISO instant, local ISO, zone id, epoch seconds, and epoch millis.";
+            default:         return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Returns the current date and time. Optional timezone (IANA zone) and format "
              + "(DateTimeFormatter pattern) arguments. Without format, returns ISO instant, local "

@@ -194,6 +194,17 @@ public class TodoWriteReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("todos".equals(key)) {
+            return "Complete replacement list of todo items. Each item must have: content (imperative, "
+                 + "e.g. 'Run tests'), activeForm (present-continuous, e.g. 'Running tests'), and "
+                 + "status (pending|in_progress|completed). At most one item may be in_progress. "
+                 + "Pass an empty list to clear.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Manages the agent's structured todo list (content, activeForm, status). "
              + "Persists to .agent/todos.json in the working directory. Enforces at most one "

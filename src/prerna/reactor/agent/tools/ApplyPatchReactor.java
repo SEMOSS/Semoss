@@ -357,6 +357,16 @@ public class ApplyPatchReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("patch".equals(key)) {
+            return "Multi-file patch in Codex apply_patch envelope format, starting with "
+                 + "'*** Begin Patch' and ending with '*** End Patch'. Supports '*** Add File:', "
+                 + "'*** Update File:' (with @@ hunks), and '*** Delete File:' operations.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Applies a Codex-style apply_patch envelope spanning multiple files. Supports "
              + "Add/Update/Delete File operations. Atomic: any hunk that fails to match uniquely "

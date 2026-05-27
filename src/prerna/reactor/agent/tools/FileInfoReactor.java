@@ -103,6 +103,14 @@ public class FileInfoReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("path".equals(key)) {
+            return "Relative path of the file or directory to inspect (within the working directory).";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Returns metadata for a path: type (file|directory|symlink|other), size, created/"
              + "modified timestamps, permission flags, and (for directories) immediate child count. "

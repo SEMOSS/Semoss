@@ -151,6 +151,16 @@ public class MultiEditReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "file_path": return "Relative path of the file to edit (within the working directory).";
+            case "edits":     return "Ordered list of {old_string, new_string, replace_all?} objects. "
+                                   + "Applied sequentially; if any edit fails the whole operation aborts.";
+            default:          return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Applies a sequence of exact-string edits to a single file atomically. "
                 + "Each edit is {old_string, new_string, replace_all?}. Aborts and leaves the file "

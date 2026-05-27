@@ -109,6 +109,23 @@ public class EditFileReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "file_path":   return "Relative path of the file to edit (within the working directory).";
+            case "old_string":  return "Exact literal string to find. Fails if absent or non-unique unless replace_all=true.";
+            case "new_string":  return "Replacement text. Pass an empty string to delete the matched text.";
+            case "replace_all": return "If true, replace every occurrence of old_string. Defaults to false.";
+            default:            return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
+    protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+        if ("replace_all".equals(key)) return MCP_KEY_TYPE.BOOLEAN;
+        return super.getKeyTypeForMCP(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Performs exact string replacement in a file. Fails if old_string is not unique "
              + "(unless replace_all=true). Prefer this over WriteFile for targeted edits.";

@@ -109,6 +109,15 @@ public class HashFileReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "path":      return "Relative path of the file to hash (within the working directory).";
+            case "algorithm": return "Hash algorithm: MD5, SHA-1, SHA-256 (default), or SHA-512.";
+            default:          return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Computes a cryptographic hash of a file. Default algorithm SHA-256; supports "
              + "MD5|SHA-1|SHA-256|SHA-512. Returns the digest as a lowercase hex string plus size.";

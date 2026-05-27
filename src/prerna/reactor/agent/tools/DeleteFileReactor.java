@@ -37,6 +37,15 @@ package prerna.reactor.agent.tools;
 public class DeleteFileReactor extends prerna.reactor.insights.fs.DeleteInsightAssetsReactor {
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("filePath".equals(key)) {
+            return "Relative path(s) of the file(s) to delete. Required — omitting this will "
+                 + "delete all files in the working directory.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Deletes one or more files in the working directory. Pass a single path or a "
              + "list of paths. Operates only inside the insight sandbox.";

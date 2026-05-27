@@ -157,6 +157,17 @@ public class AskUserQuestionReactor extends AbstractAgentToolReactor {
     }
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        switch (key) {
+            case "question":     return "The question to display to the user.";
+            case "options":      return "List of 2–4 choices. Each item is either a plain string or a {label, description?} object.";
+            case "header":       return "Short chip label shown above the question (max 12 characters).";
+            case "multi_select": return "If true, the user may select multiple options. Defaults to false.";
+            default:             return super.getDescriptionForKey(key);
+        }
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Asks the user a structured question with 2-4 multiple-choice options and pauses "
              + "until they respond. Use header for a short chip label, multi_select=true to allow "
@@ -166,9 +177,8 @@ public class AskUserQuestionReactor extends AbstractAgentToolReactor {
 
     @Override
     protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-        if ("options".equals(key)) {
-            return MCP_KEY_TYPE.ARRAY;
-        }
+        if ("options".equals(key))      return MCP_KEY_TYPE.ARRAY;
+        if ("multi_select".equals(key)) return MCP_KEY_TYPE.BOOLEAN;
         return super.getKeyTypeForMCP(key);
     }
 }

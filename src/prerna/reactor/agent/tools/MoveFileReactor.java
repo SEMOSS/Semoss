@@ -40,6 +40,16 @@ package prerna.reactor.agent.tools;
 public class MoveFileReactor extends prerna.reactor.insights.fs.RenameInsightAssetReactor {
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("filePath".equals(key)) {
+            return "Source file or directory to move (relative to the working directory).";
+        } else if ("newValue".equals(key)) {
+            return "Destination path for the move. Must not already exist; relative to the working directory.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Moves or renames a file or directory inside the working directory. "
              + "Pass filePath (source) and newValue (destination). Use this for refactors and "

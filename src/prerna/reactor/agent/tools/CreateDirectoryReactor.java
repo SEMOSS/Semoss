@@ -41,6 +41,14 @@ package prerna.reactor.agent.tools;
 public class CreateDirectoryReactor extends prerna.reactor.insights.fs.NewInsightAssetsDirectoryReactor {
 
     @Override
+    protected String getDescriptionForKey(String key) {
+        if ("filePath".equals(key)) {
+            return "Relative path of the directory to create inside the working directory.";
+        }
+        return super.getDescriptionForKey(key);
+    }
+
+    @Override
     public String getReactorDescription() {
         return "Creates an empty directory in the working directory. "
              + "WriteFile already creates missing parents implicitly, so use this only when "
