@@ -54,7 +54,7 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 
 	public static final String BASE_H2_FILE_CONNECTION = "jdbc:h2:nio:" + "@" + Constants.BASE_FOLDER + "@"
 			+ DIR_SEPARATOR + Constants.DATABASE_FOLDER + DIR_SEPARATOR + "@" + Constants.ENGINE + "@" + DIR_SEPARATOR
-			+ "database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+			+ "database;query_timeout=180000;cache_size=32768";
 
 	private boolean forceFile;
 

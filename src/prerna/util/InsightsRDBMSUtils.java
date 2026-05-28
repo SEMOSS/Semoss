@@ -225,7 +225,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+					"query_timeout=180000;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /
@@ -300,7 +300,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+					"query_timeout=180000;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /
