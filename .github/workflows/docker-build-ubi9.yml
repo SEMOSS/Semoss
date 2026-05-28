@@ -7,7 +7,7 @@ name: Semoss UBI 9 Builder
 
 on:
   push:
-    branches: [ "dev", "main", "tomcat-update-9.0.118" ]
+    branches: [ "dev", "main" ]
     paths:
       - 'docker/Dockerfile.ubi9'
       - '.github/workflows/docker-build-ubi9.yml'
@@ -70,8 +70,8 @@ jobs:
           push: true
           pull: true
           tags: |
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}-test
-            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}-test
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG }}
+            quay.io/${{ env.IMAGE_REPO }}:${{ env.IMAGE_TAG_LATEST }}
           no-cache: true
           build-args: |
             SEMOSS_VERSION=${{ vars.VERSION }}-SNAPSHOT
