@@ -10,7 +10,7 @@ ARG JAVA_HOME=/usr/lib/jvm/zulu21
 ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 
 #setting up the tomcat builder for later below. this is for env var expansion.
-FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
+FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION}-test AS tomcat_builder
 ARG COPILOT_VERSION
 
 RUN apt-get update -y \

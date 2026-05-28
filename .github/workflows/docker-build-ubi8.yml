@@ -7,7 +7,7 @@ name: Semoss UBI 8 Builder
 
 on:
   push:
-    branches: [ "dev", "main" ] #TODO: When merging to dev, main replace branch names
+    branches: [ "dev", "main", "ubi8-update-9.0.118" ] #TODO: When merging to dev, main replace branch names
     paths:
       - 'docker/Dockerfile.ubi8' # Changed path
       - '.github/workflows/docker-build-ubi8.yml' # Changed path
