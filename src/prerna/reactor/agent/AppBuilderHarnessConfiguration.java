@@ -40,12 +40,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
@@ -124,13 +122,13 @@ public class AppBuilderHarnessConfiguration {
     }
 
     private static JSONObject buildDefaultConfig() {
-        JSONObject root = new JSONObject();
-        JSONObject engines = new JSONObject();
-        for (String type : ENGINE_TYPES) {
-            engines.put(type, new JSONArray());
-        }
-        root.put(SELECTED_ENGINES, engines);
-        return root;
+        // Selected engines are no longer persisted in AGENT_CONFIG.json. The
+        // canonical store is the project-dependency table in the security DB
+        // (see SetProjectDependenciesReactor + getProjectDependencyDetails).
+        // The .claude/skills/selected-engines/SKILL.md file is regenerated
+        // from that dep list whenever dependencies change. AGENT_CONFIG.json
+        // is reserved for other agent-side config going forward.
+        return new JSONObject();
     }
 
     // Read
@@ -158,203 +156,95 @@ public class AppBuilderHarnessConfiguration {
         return getConfig(resolveProjectClientPath(projectId));
     }
 
-    /** Returns the engines list for one type as a {@link JSONArray} (never null). */
-    public static JSONArray getEngines(String clientPath, String engineType) {
-        validateEngineType(engineType);
-        JSONObject root = getConfig(clientPath);
-        JSONObject engines = root.optJSONObject(SELECTED_ENGINES);
-        if (engines == null) return new JSONArray();
-        JSONArray list = engines.optJSONArray(engineType);
-        return list != null ? list : new JSONArray();
-    }
-
-    // Mutate
+    // Skill regeneration (driven by project-dependency changes)
     /**
-     * Adds (or replaces, by id) an engine entry under {@code engineType}.
-     * Returns true on successful write.
+     * Regenerates {@code .claude/skills/selected-engines/SKILL.md} from the
+     * project's current dependency list. Call this from any reactor that
+     * mutates project dependencies so the agent-facing skill file always
+     * reflects the canonical store.
+     *
+     * <p>{@code dependencyList} entries are expected to carry at minimum
+     * {@code engine_id}, {@code engine_type}, and {@code engine_name} keys
+     * (the shape returned by
+     * {@link prerna.auth.utils.SecurityProjectUtils#getProjectDependencyDetails}).
+     * Non-engine dependency types (e.g. {@code PROJECT}) are ignored.
+     *
+     * <p>Failures are logged, never thrown — a skill-write failure must not
+     * break the dependency-write transaction the caller is wrapping.
      */
-    public static boolean addEngine(String clientPath, String engineType, String name, String id) {
-        if (id == null || id.trim().isEmpty()) {
-            throw new IllegalArgumentException("Engine id is required");
-        }
-        return updateEngineList(clientPath, engineType, list -> {
-            removeById(list, id);
-            JSONObject entry = new JSONObject();
-            entry.put(ENGINE_NAME, name != null ? name : id);
-            entry.put(ENGINE_ID, id);
-            list.put(entry);
-        });
-    }
+    public static void regenerateSelectedEnginesSkillFromDependencies(
+            String projectId,
+            List<Map<String, Object>> dependencyList) {
+        int depCount = dependencyList == null ? 0 : dependencyList.size();
+        logger.debug("regenerateSelectedEnginesSkillFromDependencies invoked: project={} depCount={}",
+                projectId, depCount);
 
-    /** Convenience: add an engine resolving {@code clientPath} from {@code projectId}. */
-    public static boolean addEngineForProject(String projectId, String engineType, String name, String id) {
-        return addEngine(resolveProjectClientPath(projectId), engineType, name, id);
-    }
-
-    /**
-     * Removes any engine entry whose id matches under {@code engineType}.
-     * Returns true on successful write.
-     */
-    public static boolean removeEngine(String clientPath, String engineType, String id) {
-        if (id == null) return false;
-        return updateEngineList(clientPath, engineType, list -> removeById(list, id));
-    }
-
-    /** Convenience: remove an engine resolving {@code clientPath} from {@code projectId}. */
-    public static boolean removeEngineForProject(String projectId, String engineType, String id) {
-        return removeEngine(resolveProjectClientPath(projectId), engineType, id);
-    }
-
-    /**
-     * Replaces the entire engine list for {@code engineType} with the provided
-     * entries. Each entry must contain {@code name} and {@code id}.
-     */
-    public static boolean setEngines(String clientPath, String engineType, List<Map<String, String>> entries) {
-        return updateEngineList(clientPath, engineType, list -> {
-            clear(list);
-            if (entries == null) return;
-            for (Map<String, String> e : entries) {
-                if (e == null) continue;
-                String id = e.get(ENGINE_ID);
-                if (id == null || id.trim().isEmpty()) continue;
-                String name = e.get(ENGINE_NAME);
-                JSONObject entry = new JSONObject();
-                entry.put(ENGINE_NAME, name != null ? name : id);
-                entry.put(ENGINE_ID, id);
-                list.put(entry);
-            }
-        });
-    }
-
-    /** Convenience: set engines resolving {@code clientPath} from {@code projectId}. */
-    public static boolean setEnginesForProject(String projectId, String engineType, List<Map<String, String>> entries) {
-        return setEngines(resolveProjectClientPath(projectId), engineType, entries);
-    }
-
-    /**
-     * Bulk-replace any subset of the four engine lists in one write. Any argument
-     * that is {@code null} leaves that engine type untouched; a non-null list
-     * (including an empty list) replaces it.
-     */
-    public static boolean setSelectedEngines(String clientPath,
-                                             List<Map<String, String>> modelEngines,
-                                             List<Map<String, String>> vectorEngines,
-                                             List<Map<String, String>> storageEngines,
-                                             List<Map<String, String>> databaseEngines) {
-        Map<String, List<Map<String, String>>> updates = new LinkedHashMap<>();
-        if (modelEngines    != null) updates.put(MODEL_ENGINES,    modelEngines);
-        if (vectorEngines   != null) updates.put(VECTOR_ENGINES,   vectorEngines);
-        if (storageEngines  != null) updates.put(STORAGE_ENGINES,  storageEngines);
-        if (databaseEngines != null) updates.put(DATABASE_ENGINES, databaseEngines);
-        return setSelectedEngines(clientPath, updates);
-    }
-
-    /** Convenience: bulk-replace resolving {@code clientPath} from {@code projectId}. */
-    public static boolean setSelectedEnginesForProject(String projectId,
-                                                      List<Map<String, String>> modelEngines,
-                                                      List<Map<String, String>> vectorEngines,
-                                                      List<Map<String, String>> storageEngines,
-                                                      List<Map<String, String>> databaseEngines) {
-        return setSelectedEngines(
-                resolveProjectClientPath(projectId),
-                modelEngines, vectorEngines, storageEngines, databaseEngines);
-    }
-
-    /**
-     * Generic bulk-replace by type list map. Validates each key and writes once.
-     */
-    public static boolean setSelectedEngines(String clientPath,
-                                             Map<String, List<Map<String, String>>> updatesByType) {
-        if (updatesByType == null || updatesByType.isEmpty()) return true;
-        for (String type : updatesByType.keySet()) {
-            validateEngineType(type);
-        }
-        ensureAgentConfig(clientPath);
-        Path configFile = Paths.get(clientPath, AGENTS_DIR, AGENT_CONFIG_FILE);
-
-        JSONObject root = getConfig(clientPath);
-        JSONObject engines = root.optJSONObject(SELECTED_ENGINES);
-        if (engines == null) {
-            engines = new JSONObject();
-            root.put(SELECTED_ENGINES, engines);
-        }
-        for (Map.Entry<String, List<Map<String, String>>> e : updatesByType.entrySet()) {
-            engines.put(e.getKey(), buildEngineArray(e.getValue()));
+        if (projectId == null || projectId.trim().isEmpty()) {
+            logger.debug("  skipping: blank projectId");
+            return;
         }
 
+        // Only Agent 47-managed projects carry a `.claude/` directory. For any
+        // other project, writing a selected-engines skill file would scatter
+        // Claude Code state into projects that have no use for it (and would
+        // create a `.claude/` tree from nothing on the first dep write). The
+        // skill exists to be consumed by Claude Code; if Claude Code can't run
+        // here, there's nothing to consume it. No-op.
+        Path clientPath;
         try {
-            writeConfig(configFile, root);
-            return true;
-        } catch (IOException ex) {
-            logger.error("Failed to write AGENT_CONFIG.json at: {}", configFile, ex);
-            return false;
+            clientPath = Paths.get(resolveProjectClientPath(projectId));
+        } catch (RuntimeException e) {
+            logger.error("  failed to resolve client path for project: {}", projectId, e);
+            return;
         }
-    }
-
-    /**
-     * Returns the engine list for {@code engineType} as a plain
-     * {@code List<Map<String, Object>>} suitable for returning from a reactor.
-     */
-    public static List<Map<String, Object>> getEnginesAsList(String clientPath, String engineType) {
-        JSONArray arr = getEngines(clientPath, engineType);
-        List<Map<String, Object>> out = new ArrayList<>(arr.length());
-        for (int i = 0; i < arr.length(); i++) {
-            JSONObject entry = arr.optJSONObject(i);
-            if (entry == null) continue;
-            Map<String, Object> m = new HashMap<>();
-            m.put(ENGINE_NAME, entry.optString(ENGINE_NAME, null));
-            m.put(ENGINE_ID,   entry.optString(ENGINE_ID,   null));
-            out.add(m);
+        Path claudePath = clientPath.resolve(CLAUDE_DIR);
+        if (!Files.isDirectory(claudePath)) {
+            logger.debug("  skipping: no .claude/ at {}", claudePath);
+            return;
         }
-        return out;
-    }
+        logger.debug("  proceeding: clientPath={} claude exists", clientPath);
 
-    /** Convenience: get one engine list resolving {@code clientPath} from {@code projectId}. */
-    public static List<Map<String, Object>> getEnginesForProject(String projectId, String engineType) {
-        return getEnginesAsList(resolveProjectClientPath(projectId), engineType);
+        Map<String, List<Map<String, String>>> enginesByType = new LinkedHashMap<>();
+        for (String type : ENGINE_TYPES) {
+            enginesByType.put(type, new ArrayList<>());
+        }
+
+        if (dependencyList != null) {
+            for (Map<String, Object> dep : dependencyList) {
+                if (dep == null) continue;
+                Object idObj = dep.get("engine_id");
+                Object typeObj = dep.get("engine_type");
+                if (idObj == null || typeObj == null) continue;
+                String id = String.valueOf(idObj);
+                String typeKey = String.valueOf(typeObj).toLowerCase() + "_engines";
+                if (!enginesByType.containsKey(typeKey)) continue; // PROJECT or other
+                Object nameObj = dep.get("engine_name");
+                String name = nameObj != null ? String.valueOf(nameObj) : id;
+                Map<String, String> entry = new LinkedHashMap<>();
+                entry.put(ENGINE_NAME, name);
+                entry.put(ENGINE_ID,   id);
+                enginesByType.get(typeKey).add(entry);
+            }
+        }
+
+        writeSelectedEnginesSkill(clientPath, enginesByType);
     }
 
     // Internals
-    private static boolean updateEngineList(String clientPath, String engineType, Consumer<JSONArray> mutator) {
-        validateEngineType(engineType);
-        ensureAgentConfig(clientPath);
-        Path configFile = Paths.get(clientPath, AGENTS_DIR, AGENT_CONFIG_FILE);
-
-        JSONObject root = getConfig(clientPath);
-        JSONObject engines = root.optJSONObject(SELECTED_ENGINES);
-        if (engines == null) {
-            engines = new JSONObject();
-            root.put(SELECTED_ENGINES, engines);
-        }
-        JSONArray list = engines.optJSONArray(engineType);
-        if (list == null) {
-            list = new JSONArray();
-            engines.put(engineType, list);
-        }
-        mutator.accept(list);
-
-        try {
-            writeConfig(configFile, root);
-            return true;
-        } catch (IOException e) {
-            logger.error("Failed to write AGENT_CONFIG.json at: {}", configFile, e);
-            return false;
-        }
-    }
-
     private static void writeConfig(Path configFile, JSONObject root) throws IOException {
         Files.write(configFile, root.toString(4).getBytes(StandardCharsets.UTF_8));
-        // configFile lives at <clientPath>/.agents/AGENT_CONFIG.json
-        Path clientPath = configFile.getParent().getParent();
-        writeSelectedEnginesSkill(clientPath, root);
+        // Note: AGENT_CONFIG.json writes no longer drive skill regeneration.
+        // The selected-engines skill is regenerated whenever project
+        // dependencies change (see regenerateSelectedEnginesSkillFromDependencies).
     }
 
     /**
      * Writes (or overwrites) {@code .claude/skills/selected-engines/SKILL.md}
-     * with the current selected-engines listing. Errors are logged, not thrown,
-     * so a skill-write failure never breaks a config write.
+     * from a map of engineType -> [{name,id},...]. Errors are logged, not thrown.
      */
-    private static void writeSelectedEnginesSkill(Path clientPath, JSONObject config) {
+    private static void writeSelectedEnginesSkill(
+            Path clientPath,
+            Map<String, List<Map<String, String>>> enginesByType) {
         Path skillDir = clientPath
                 .resolve(CLAUDE_DIR)
                 .resolve(SKILLS_DIR)
@@ -362,14 +252,15 @@ public class AppBuilderHarnessConfiguration {
         Path skillFile = skillDir.resolve(SKILL_FILE);
         try {
             Files.createDirectories(skillDir);
-            String content = buildSelectedEnginesSkill(config);
+            String content = buildSelectedEnginesSkill(enginesByType);
             Files.write(skillFile, content.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             logger.error("Failed to write selected-engines skill at: {}", skillFile, e);
         }
     }
 
-    private static String buildSelectedEnginesSkill(JSONObject config) {
+    private static String buildSelectedEnginesSkill(
+            Map<String, List<Map<String, String>>> enginesByType) {
         StringBuilder sb = new StringBuilder();
         sb.append("---\n");
         sb.append("name: ").append(SELECTED_ENGINES_SKILL_NAME).append('\n');
@@ -380,67 +271,32 @@ public class AppBuilderHarnessConfiguration {
         sb.append("When introducing a new engine call, choose one from the matching list ");
         sb.append("and use its exact `id`.\n\n");
 
-        JSONObject engines = config.optJSONObject(SELECTED_ENGINES);
         for (String[] section : ENGINE_SECTIONS) {
-            appendEngineSection(sb, section[1], engines, section[0]);
+            appendEngineSection(sb, section[1], enginesByType, section[0]);
         }
         return sb.toString();
     }
 
-    private static void appendEngineSection(StringBuilder sb, String title, JSONObject engines, String key) {
+    private static void appendEngineSection(
+            StringBuilder sb,
+            String title,
+            Map<String, List<Map<String, String>>> enginesByType,
+            String key) {
         sb.append("## ").append(title).append("\n\n");
-        JSONArray list = engines == null ? null : engines.optJSONArray(key);
-        if (list == null || list.length() == 0) {
+        List<Map<String, String>> list = enginesByType == null ? null : enginesByType.get(key);
+        if (list == null || list.isEmpty()) {
             sb.append("_None selected._\n\n");
             return;
         }
-        for (int i = 0; i < list.length(); i++) {
-            JSONObject e = list.optJSONObject(i);
+        for (Map<String, String> e : list) {
             if (e == null) continue;
-            String id = e.optString(ENGINE_ID, "");
-            String name = e.optString(ENGINE_NAME, id.isEmpty() ? "(unknown)" : id);
+            String id = e.getOrDefault(ENGINE_ID, "");
+            String name = e.getOrDefault(ENGINE_NAME, id.isEmpty() ? "(unknown)" : id);
             sb.append("- **").append(name).append("** `").append(id).append("`\n");
         }
         sb.append('\n');
     }
 
-    private static JSONArray buildEngineArray(List<Map<String, String>> entries) {
-        JSONArray arr = new JSONArray();
-        if (entries == null) return arr;
-        for (Map<String, String> e : entries) {
-            if (e == null) continue;
-            String id = e.get(ENGINE_ID);
-            if (id == null || id.trim().isEmpty()) continue;
-            String name = e.get(ENGINE_NAME);
-            JSONObject entry = new JSONObject();
-            entry.put(ENGINE_NAME, name != null ? name : id);
-            entry.put(ENGINE_ID, id);
-            arr.put(entry);
-        }
-        return arr;
-    }
-
-    private static void removeById(JSONArray list, String id) {
-        for (int i = list.length() - 1; i >= 0; i--) {
-            JSONObject e = list.optJSONObject(i);
-            if (e != null && id.equals(e.optString(ENGINE_ID, null))) {
-                list.remove(i);
-            }
-        }
-    }
-
-    private static void clear(JSONArray list) {
-        for (int i = list.length() - 1; i >= 0; i--) {
-            list.remove(i);
-        }
-    }
-
-    private static void validateEngineType(String engineType) {
-        if (!ENGINE_TYPES.contains(engineType)) {
-            throw new IllegalArgumentException(
-                    "Unknown engine type '" + engineType + "'. Expected one of: " + ENGINE_TYPES);
-        }
-    }
 
     // Path resolution
     /**
