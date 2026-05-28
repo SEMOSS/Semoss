@@ -33,9 +33,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -61,6 +61,7 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -114,8 +115,6 @@ public class ModelInferenceLogsUtils {
 		ModelInferenceLogsOwlCreator modelInfCreator = new ModelInferenceLogsOwlCreator(modelInferenceLogsDb);
 		if (modelInfCreator.needsRemake()) {
 			modelInfCreator.remakeOwl();
-			// reset the local master metadata for model engine if we remade the OWL
-			Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB);
 		}
 
 		Connection conn = null;
@@ -315,8 +314,8 @@ public class ModelInferenceLogsUtils {
 				try {
 					executeSql(conn, notNullQuery);
 				} catch (SQLException se) {
-					classLogger.error("Failed to set column '" + name
-							+ "' as NOT NULL before adding primary key on table '" + tableName + "'.", se);
+					classLogger.error("Failed to set column '{}' as NOT NULL before adding primary key on table '{}'.",
+							name, tableName, se);
 					// We can't change it to NOT NULL so probably can't create the PRIMARY KEY
 					return true;
 				}
@@ -328,8 +327,8 @@ public class ModelInferenceLogsUtils {
 				try {
 					executeSql(conn, primaryKeyQuery);
 				} catch (SQLException se) {
-					classLogger.error("Failed to add primary key constraint '" + primaryKeyConstraintName
-							+ "' on table '" + tableName + "'.", se);
+					classLogger.error("Failed to add primary key constraint '{}' on table '{}'.",
+							primaryKeyConstraintName, tableName, se);
 				}
 			} else {
 				String primaryKeyQuery = "ALTER TABLE " + tableName + " ADD CONSTRAINT " + primaryKeyConstraintName
@@ -340,8 +339,8 @@ public class ModelInferenceLogsUtils {
 						executeSql(conn, primaryKeyQuery);
 					}
 				} catch (SQLException se) {
-					classLogger.error("Failed to verify or add primary key constraint '" + primaryKeyConstraintName
-							+ "' on table '" + tableName + "'.", se);
+					classLogger.error("Failed to verify or add primary key constraint '{}' on table '{}'.",
+							primaryKeyConstraintName, tableName, se);
 				}
 			}
 		}
@@ -379,8 +378,8 @@ public class ModelInferenceLogsUtils {
 					try {
 						executeSql(conn, sqlStatement);
 					} catch (SQLException se) {
-						classLogger.error("Failed to add foreign key constraint '" + constraintName + "' on table '"
-								+ tableName + "'.", se);
+						classLogger.error("Failed to add foreign key constraint '{}' on table '{}'.", constraintName,
+								tableName, se);
 						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
 					}
 				} else {
@@ -393,8 +392,8 @@ public class ModelInferenceLogsUtils {
 							executeSql(conn, sqlStatement);
 						}
 					} catch (SQLException se) {
-						classLogger.error("Failed to verify or add foreign key constraint '" + constraintName
-								+ "' on table '" + tableName + "'.", se);
+						classLogger.error("Failed to verify or add foreign key constraint '{}' on table '{}'.",
+								constraintName, tableName, se);
 						break ATTEMPT_TO__ADD_FOREIGN_KEY; // most likely incorrect syntax
 					}
 				}
@@ -413,8 +412,8 @@ public class ModelInferenceLogsUtils {
 					.executeUpdate("UPDATE ROOM SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
 			int mCount = stmt
 					.executeUpdate("UPDATE MESSAGE SET ROOM_ID = INSIGHT_ID WHERE ROOM_ID IS NULL OR ROOM_ID = ''");
-			classLogger.info(
-					"Room/Message room_id migration updated " + rCount + " ROOM rows and " + mCount + " MESSAGE rows.");
+			classLogger.info("Room/Message room_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
+					mCount);
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy ROOM_ID fields", ex);
 		}
@@ -432,8 +431,8 @@ public class ModelInferenceLogsUtils {
 					.executeUpdate("UPDATE ROOM SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
 			int mCount = stmt
 					.executeUpdate("UPDATE MESSAGE SET MODEL_ID = AGENT_ID WHERE MODEL_ID IS NULL OR MODEL_ID = ''");
-			classLogger.info("Room/Message model_id migration updated " + rCount + " ROOM rows and " + mCount
-					+ " MESSAGE rows.");
+			classLogger.info("Room/Message model_id migration updated {} ROOM rows and {} MESSAGE rows.", rCount,
+					mCount);
 		} catch (SQLException ex) {
 			classLogger.error("Failed to migrate legacy AGENT_ID fields", ex);
 		}
@@ -451,13 +450,13 @@ public class ModelInferenceLogsUtils {
 		try {
 			executeSql(conn, dropMessageFK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist: "
-					+ ex.getMessage());
+			classLogger.warn("Tried to drop MESSAGE_INSIGHT_ID_ROOM_INSIGHT_ID_KEY but it probably does not exist: {}",
+					ex.getMessage());
 		}
 		try {
 			executeSql(conn, dropRoomPK);
 		} catch (SQLException ex) {
-			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist: " + ex.getMessage());
+			classLogger.warn("Tried to drop ROOM_KEY but it probably does not exist: {}", ex.getMessage());
 		}
 	}
 
@@ -470,7 +469,7 @@ public class ModelInferenceLogsUtils {
 	 */
 	private static void executeSql(Connection conn, String sql) throws SQLException {
 		try (Statement stmt = conn.createStatement()) {
-			classLogger.info("Running sql " + sql);
+			classLogger.info("Running sql {}", sql);
 			stmt.execute(sql);
 		}
 	}
@@ -501,9 +500,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"Failed to verify message ownership for userId '" + userId + "' and messageId '" + messageId + "'.",
-					e);
+			classLogger.error("Failed to verify message ownership for userId '{}' and messageId '{}'.", userId,
+					messageId, e);
 		}
 		return false;
 	}
@@ -545,7 +543,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to check whether feedback exists for messageId '" + messageId + "'.", e);
+			classLogger.error("Failed to check whether feedback exists for messageId '{}'.", messageId, e);
 			throw new SemossPixelException("Error while checking feedbackExists or not ." + e.getMessage());
 		}
 		return false;
@@ -573,7 +571,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to insert feedback for messageId '" + feedback.getMessageId() + "'.", e);
+			classLogger.error("Failed to insert feedback for messageId '{}'.", feedback.getMessageId(), e);
 			throw new SemossPixelException("Unable to insert feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
@@ -605,13 +603,13 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection().commit();
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to update feedback row for messageId '" + feedback.getMessageId() + "'.", e);
+				classLogger.error("Failed to update feedback row for messageId '{}'.", feedback.getMessageId(), e);
 				throw e;
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 			}
 		} catch (Exception e) {
-			classLogger.error("Feedback update flow failed for messageId '" + feedback.getMessageId() + "'.", e);
+			classLogger.error("Feedback update flow failed for messageId '{}'.", feedback.getMessageId(), e);
 		}
 	}
 
@@ -806,8 +804,8 @@ public class ModelInferenceLogsUtils {
 			String userEmail, String agentType, String agentId, Boolean isActive, String projectId,
 			String projectName) {
 		String convoId = GUID.v7().toUUID().toString();
-		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType, agentId,
-				isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(convoId, convoId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, null, null);
 		return convoId;
 	}
 
@@ -950,8 +948,8 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create conversation room record for roomId '" + roomId + "' and userId '"
-					+ userId + "'.", e);
+			classLogger.error("Failed to create conversation room record for roomId '{}' and userId '{}'.", roomId,
+					userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -980,7 +978,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to check whether room exists for roomId '" + roomId + "'.", e);
+			classLogger.error("Failed to check whether room exists for roomId '{}'.", roomId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1013,8 +1011,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to validate message migration for roomId '" + roomId + "' and messageId '"
-					+ messageId + "'.", e);
+			classLogger.error("Failed to validate message migration for roomId '{}' and messageId '{}'.", roomId,
+					messageId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1044,7 +1042,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to check whether agent is registered for agentId '" + agentId + "'.", e);
+			classLogger.error("Failed to check whether agent is registered for agentId '{}'.", agentId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1095,7 +1093,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create agent record for agentId '" + agentId + "'.", e);
+			classLogger.error("Failed to create agent record for agentId '{}'.", agentId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1121,8 +1119,8 @@ public class ModelInferenceLogsUtils {
 			Integer tokenSize, Double reponseTime, String agentId, String insightId, String sessionId, String userId,
 			String userName, String userEmail) {
 		ZonedDateTime dateCreated = ZonedDateTime.now();
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, null,
+				null, reponseTime, dateCreated, agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
 
@@ -1147,8 +1145,8 @@ public class ModelInferenceLogsUtils {
 	public static void doRecordMessage(String messageId, String messageType, String messageData, String messageMethod,
 			Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId, String insightId,
 			String sessionId, String roomId, String userId, String userName, String userEmail) {
-		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, reponseTime, dateCreated,
-				agentId, insightId, sessionId, insightId, // roomId
+		doRecordMessage(messageId, null, messageType, messageData, messageMethod, tokenSize, null, null, null, null,
+				null, reponseTime, dateCreated, agentId, insightId, sessionId, insightId, // roomId
 				userId, userName, userEmail);
 	}
 
@@ -1174,15 +1172,31 @@ public class ModelInferenceLogsUtils {
 	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
 			String messageMethod, Integer tokenSize, Double reponseTime, ZonedDateTime dateCreated, String agentId,
 			String insightId, String sessionId, String roomId, String userId, String userName, String userEmail) {
+		doRecordMessage(messageId, transactionId, messageType, messageData, messageMethod, tokenSize, null, null, null,
+				null, null, reponseTime, dateCreated, agentId, insightId, sessionId, roomId, userId, userName,
+				userEmail);
+	}
+
+	/**
+	 * Records a message row with granular, nullable per-transaction token counts.
+	 * THINKING_TOKENS is intended for the RESPONSE row only (assistant output);
+	 * pass null for the INPUT row.
+	 */
+	public static void doRecordMessage(String messageId, String transactionId, String messageType, String messageData,
+			String messageMethod, Integer tokenSize, Integer inputTokens, Integer outputTokens, Integer cacheReadTokens,
+			Integer cacheCreationTokens, Integer thinkingTokens, Double reponseTime, ZonedDateTime dateCreated,
+			String agentId, String insightId, String sessionId, String roomId, String userId, String userName,
+			String userEmail) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		// convert the time to UTC
 		ZonedDateTime dateCreatedUTC = Utility.convertZonedDateTimeToUTC(dateCreated);
 
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME,"
+		String query = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS,"
+				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
-				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1202,6 +1216,31 @@ public class ModelInferenceLogsUtils {
 			ps.setString(index++, messageMethod);
 			if (tokenSize != null) {
 				ps.setInt(index++, tokenSize);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (inputTokens != null) {
+				ps.setInt(index++, inputTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (outputTokens != null) {
+				ps.setInt(index++, outputTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheReadTokens != null) {
+				ps.setInt(index++, cacheReadTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (cacheCreationTokens != null) {
+				ps.setInt(index++, cacheCreationTokens);
+			} else {
+				ps.setNull(index++, java.sql.Types.INTEGER);
+			}
+			if (thinkingTokens != null) {
+				ps.setInt(index++, thinkingTokens);
 			} else {
 				ps.setNull(index++, java.sql.Types.INTEGER);
 			}
@@ -1227,7 +1266,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to record message '" + messageId + "' for roomId '" + roomId + "'.", e);
+			classLogger.error("Failed to record message '{}' for roomId '{}'.", messageId, roomId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1258,15 +1297,13 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection().commit();
 				}
 			} catch (Exception e) {
-				classLogger.error(
-						"Failed to set room inactive for userId '" + userId + "' and roomId '" + roomId + "'.", e);
+				classLogger.error("Failed to set room inactive for userId '{}' and roomId '{}'.", userId, roomId, e);
 				throw e;
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 			}
 		} catch (Exception e) {
-			classLogger.error("Room deactivation flow failed for userId '" + userId + "' and roomId '" + roomId + "'.",
-					e);
+			classLogger.error("Room deactivation flow failed for userId '{}' and roomId '{}'.", userId, roomId, e);
 			return false;
 		}
 		return true;
@@ -1292,8 +1329,7 @@ public class ModelInferenceLogsUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to check inactive state for roomId '" + roomId + "' and userId '" + userId + "'.",
-					e);
+			classLogger.error("Failed to check inactive state for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
 		return false;
 	}
@@ -1324,15 +1360,13 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection().commit();
 				}
 			} catch (Exception e) {
-				classLogger.error(
-						"Failed to update pinned state for roomId '" + roomId + "' and userId '" + userId + "'.", e);
+				classLogger.error("Failed to update pinned state for roomId '{}' and userId '{}'.", roomId, userId, e);
 				throw e;
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 			}
 		} catch (Exception e) {
-			classLogger.error("Room pin update flow failed for roomId '" + roomId + "' and userId '" + userId + "'.",
-					e);
+			classLogger.error("Room pin update flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 			return false;
 		}
 		return true;
@@ -1406,14 +1440,13 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection().commit();
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to update room name for roomId '" + roomId + "' and userId '" + userId + "'.",
-						e);
+				classLogger.error("Failed to update room name for roomId '{}' and userId '{}'.", roomId, userId, e);
 				throw e;
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 			}
 		} catch (Exception e) {
-			classLogger.error("Room rename flow failed for roomId '" + roomId + "' and userId '" + userId + "'.", e);
+			classLogger.error("Room rename flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 			return false;
 		}
 		return true;
@@ -1531,31 +1564,56 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Get user conversations with flexible ordering/paging.
+	 * Retrieves conversation rooms for a user with optional filtering, sorting, and
+	 * paging.
+	 * <p>
+	 * Only active rooms are returned, and each room must have at least one stored
+	 * message row with non-null message content.
+	 * </p>
 	 *
-	 * @param userId    User's ID
-	 * @param projectId Project ID for filter (nullable)
-	 * @param limit     Max results to return; if <=0 or null, returns all
-	 * @param offset    Records to skip for pagination (nullable/0 = none)
-	 * @param sortDir   ASC or DESC - default DESC
-	 * @param search    Optional keyword to search for in room name or context
-	 * @return List of conversations (maps)
+	 * @param userId    user identifier used to scope rooms
+	 * @param projectId optional project identifier to further scope rooms; when
+	 *                  {@code null}, rooms across all projects are eligible
+	 * @param limit     maximum number of rooms to return; values {@code <= 0}
+	 *                  disable limiting
+	 * @param offset    number of rows to skip before collecting results; values
+	 *                  {@code <= 0} disable offset paging
+	 * @param sortDir   sort direction for {@code DATE_CREATED}; accepted values are
+	 *                  {@code ASC} and {@code DESC} (any other value is treated as
+	 *                  {@code DESC})
+	 * @param search    optional room-name contains filter (case-insensitive
+	 *                  {@code LIKE}); {@code null}/blank disables search filtering
+	 * @param pinned    optional pinned-state filter; {@code true} returns only
+	 *                  pinned rooms, {@code false} returns unpinned rooms
+	 *                  (including {@code null} pinned values), and {@code null}
+	 *                  disables pinned filtering
+	 * @return a list of room records, where each map contains the selected room
+	 *         fields for that row:
+	 *         <ul>
+	 *         <li>{@code ROOM_ID} (or aliased header for room id)</li>
+	 *         <li>{@code ROOM_NAME} (or aliased header for room name)</li>
+	 *         <li>{@code DATE_CREATED} (or aliased header for room create
+	 *         timestamp)</li>
+	 *         <li>{@code PINNED} (or aliased header for pinned state)</li>
+	 *         <li>{@code WORKSPACE_ID} (or aliased header for workspace link)</li>
+	 *         </ul>
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
-			long offset, String sortDir, String search) {
+			long offset, String sortDir, String search, Boolean pinned) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT"));
-		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "MODEL_ID"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__PINNED"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID"));
-		qs.addSelector(new QueryColumnSelector("ROOM__OPTIONS"));
 
-		// Subquery to filter only rooms with at least 1 message and correct
-		// user/project/active
+		// Subquery to filter only rooms that are active and fit query restraints
 		SelectQueryStruct subQs = new SelectQueryStruct();
 		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
 		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
@@ -1566,12 +1624,33 @@ public class ModelInferenceLogsUtils {
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
 		// SEARCH
 		if (search != null && !search.trim().isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "?like", "%" + search + "%",
 					PixelDataType.CONST_STRING));
+		}
+
+		// ROOM OPTIONS SEARCH — free-text substring match on the OPTIONS text column.
+		// Portable across H2 and PostgreSQL since OPTIONS is stored as plain text.
+		if (roomOptionsSearch != null && !roomOptionsSearch.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__OPTIONS", "?like",
+					"%" + roomOptionsSearch.trim() + "%", PixelDataType.CONST_STRING));
+		}
+
+		// PINNED filter
+		// when pinned == true -> only rooms with PINNED == true
+		// when pinned == false -> rooms with PINNED == false OR PINNED IS NULL (treat
+		// unset as not pinned)
+		if (pinned != null) {
+			if (pinned.booleanValue()) {
+				qs.addExplicitFilter(
+						SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==", true, PixelDataType.BOOLEAN));
+			} else {
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PINNED", "==",
+						Arrays.asList(false, null), PixelDataType.BOOLEAN));
+			}
 		}
 
 		// LIMIT/OFFSET
@@ -1584,21 +1663,7 @@ public class ModelInferenceLogsUtils {
 		// SORTING
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
-
-		Set<String> mapKeys = new HashSet<>();
-		mapKeys.add("OPTIONS");
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs, mapKeys);
-	}
-
-	/**
-	 * Convenience overload for fetching all conversations for a user/project.
-	 *
-	 * @param userId    user identifier
-	 * @param projectId project identifier (nullable)
-	 * @return conversation rows
-	 */
-	public static List<Map<String, Object>> getUserConversations(String userId, String projectId) {
-		return getUserConversations(userId, projectId, -1, 0, null, null);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1678,8 +1743,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to update room options for roomId '" + roomId + "' and userId '" + userId + "'.",
-					e);
+			classLogger.error("Failed to update room options for roomId '{}' and userId '{}'.", roomId, userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1713,7 +1777,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to set workspaceId for roomId '" + roomId + "' and userId '" + userId + "'.", e);
+			classLogger.error("Failed to set workspaceId for roomId '{}' and userId '{}'.", roomId, userId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -1744,15 +1808,13 @@ public class ModelInferenceLogsUtils {
 					ps.getConnection().commit();
 				}
 			} catch (Exception e) {
-				classLogger.error(
-						"Failed to update room context for roomId '" + roomId + "' and userId '" + userId + "'.", e);
+				classLogger.error("Failed to update room context for roomId '{}' and userId '{}'.", roomId, userId, e);
 				throw e;
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"Room context update flow failed for roomId '" + roomId + "' and userId '" + userId + "'.", e);
+			classLogger.error("Room context update flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
 	}
 
@@ -1779,7 +1841,7 @@ public class ModelInferenceLogsUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete feedback entry for messageId '" + messageId + "'.", e);
+			classLogger.error("Failed to delete feedback entry for messageId '{}'.", messageId, e);
 			throw new SemossPixelException("Error while deleting feedback: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
@@ -1796,7 +1858,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        engine identifier
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
@@ -1806,21 +1868,10 @@ public class ModelInferenceLogsUtils {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
 		}
 
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equalsIgnoreCase("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equalsIgnoreCase("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			// assume they want daily
-			ZonedDateTime startOfTodayUtc = currentDateTime.toLocalDate().atStartOfDay(ZoneOffset.UTC);
-			ZonedDateTime endOfTodayUtc = startOfTodayUtc.plusDays(1);
-			dates.put("start", startOfTodayUtc);
-			dates.put("end", endOfTodayUtc);
-		}
+		// Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
@@ -1843,8 +1894,8 @@ public class ModelInferenceLogsUtils {
 			int psIndex = 1;
 			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
 			ps.setString(psIndex++, engineId);
-			ps.setDate(psIndex++, java.sql.Date.valueOf(startDate.toLocalDate()));
-			ps.setDate(psIndex++, java.sql.Date.valueOf(endDate.toLocalDate()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
 
 			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
 					ps.getConnection(), ps, query, false);
@@ -1860,9 +1911,9 @@ public class ModelInferenceLogsUtils {
 				return retNum;
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to calculate usage for userId '"
-					+ user.getAccessToken(user.getLogins().get(0)).getId() + "', engineId '" + engineId
-					+ "', restrictionMode '" + restrictionMode + "', frequency '" + frequency + "'.", e);
+			classLogger.error(
+					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
+					user.getAccessToken(user.getLogins().get(0)).getId(), engineId, restrictionMode, frequency, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
@@ -1879,7 +1930,7 @@ public class ModelInferenceLogsUtils {
 	 * @param engineId        current engine id used to derive exclusions
 	 * @param currentDateTime reference date/time
 	 * @param frequency       window frequency ({@code DAY}, {@code WEEK},
-	 *                        {@code MONTH})
+	 *                        {@code MONTH}, {@code YEAR}, {@code ALL_TIME})
 	 * @return aggregate usage value, or {@code null} if unavailable
 	 */
 	public static Number getTotalUsageForUser(String restrictionMode, User user, String engineId,
@@ -1905,19 +1956,10 @@ public class ModelInferenceLogsUtils {
 			excludePSString = excludeSB.toString();
 		}
 
-		// Step 2: Get the date range based on the frequency
-		// Initialize the date range map (start and end dates)
-		Map<String, ZonedDateTime> dates = new HashMap<>();
-		// Determine the start and end date based on the given frequency
-		if (frequency.equals("WEEK")) {
-			dates = Utility.getWeekStartEndDate(currentDateTime);
-		} else if (frequency.equals("MONTH")) {
-			// Get start and end date for the current month
-			dates = Utility.getMonthStartEndDate(currentDateTime);
-		} else {
-			dates.put("start", Utility.getCurrentZonedDateTimeUTC());
-			dates.put("end", Utility.getCurrentZonedDateTimeUTC());
-		}
+		// Step 2: Get the date range based on the frequency specification
+		// Supports: WEEK, MONTH, YEAR, ALL_TIME
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
 		// Extract start and end dates from the map
 		ZonedDateTime startDate = dates.get("start");
 		ZonedDateTime endDate = dates.get("end");
@@ -1965,9 +2007,8 @@ public class ModelInferenceLogsUtils {
 				return retNum;
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to calculate total usage for userId '"
-					+ user.getAccessToken(user.getLogins().get(0)).getId() + "', restrictionMode '" + restrictionMode
-					+ "', frequency '" + frequency + "'.", e);
+			classLogger.error("Failed to calculate total usage for userId '{}', restrictionMode '{}', frequency '{}'.",
+					user.getAccessToken(user.getLogins().get(0)).getId(), restrictionMode, frequency, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
@@ -2007,7 +2048,7 @@ public class ModelInferenceLogsUtils {
 			return rows > 0;
 
 		} catch (Exception e) {
-			classLogger.error("Error updating room messages: ", e);
+			classLogger.error("Failed to update room messages for roomId '{}' and userId '{}'.", roomId, userId, e);
 			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
@@ -2050,8 +2091,9 @@ public class ModelInferenceLogsUtils {
 				updateStmt.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to migrate message ids for transactionId '" + transactionId
-					+ "' to newMessageId '" + newMessageId + "' for messageType '" + messageType + "'.", e);
+			classLogger.error(
+					"Failed to migrate message ids for transactionId '{}' to newMessageId '{}' for messageType '{}'.",
+					transactionId, newMessageId, messageType, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
 		}
@@ -2092,7 +2134,7 @@ public class ModelInferenceLogsUtils {
 			return rows > 0;
 
 		} catch (Exception e) {
-			classLogger.error("Error updating room messages: ", e);
+			classLogger.error("Failed to update room messages for roomId '{}' and userId '{}'.", roomId, userId, e);
 			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
@@ -2122,8 +2164,8 @@ public class ModelInferenceLogsUtils {
 						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
 						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
 						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"),
-						resultSet.getString("MODEL_ID"), resultSet.getString("PARENT_ROOM_ID"));
+						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
+						resultSet.getString("PARENT_ROOM_ID"));
 			}
 		} catch (SQLException e) {
 			classLogger.error("Error retrieving room for roomId: {} and userId: {}", roomId, userId, e);
@@ -2232,8 +2274,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(
-					"Failed to create workspace '" + workspaceId + "' for owner '" + ownerId + "' with resources.", e);
+			classLogger.error("Failed to create workspace '{}' for owner '{}' with resources.", workspaceId, ownerId,
+					e);
 			throw new IllegalArgumentException("Error creating workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2303,7 +2345,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to update workspace '" + workspaceId + "' and refresh workspace resources.", e);
+			classLogger.error("Failed to update workspace '{}' and refresh workspace resources.", workspaceId, e);
 			throw new IllegalArgumentException("Error updating workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2335,7 +2377,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete workspace '" + workspaceId + "' and related room/resource links.", e);
+			classLogger.error("Failed to delete workspace '{}' and related room/resource links.", workspaceId, e);
 			throw new IllegalArgumentException("Error deleting workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2387,7 +2429,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to fetch workspace entry for workspaceId '" + workspaceId + "'.", e);
+			classLogger.error("Failed to fetch workspace entry for workspaceId '{}'.", workspaceId, e);
 		}
 		return result;
 	}
@@ -2412,56 +2454,43 @@ public class ModelInferenceLogsUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
-		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_CONTEXT", "room_context"));
 		qs.addSelector(new QueryColumnSelector("ROOM__AGENT_ID", "model_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 		qs.addSelector(new QueryColumnSelector("ROOM__UPDATED_AT", "date_updated"));
+		qs.addSelector(new QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
 
-		SelectQueryStruct subQs = new SelectQueryStruct();
-		subQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
-		subQs.addRelation("ROOM__ROOM_ID", "MESSAGE__ROOM_ID", "inner.join");
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userIds));
-		subQs.addExplicitFilter(
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userIds));
+		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
-		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "IN", subQs));
 
-		SelectQueryStruct outerQs = new SelectQueryStruct();
-		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_id", "room_id", SemossDataType.STRING));
-		outerQs.addSelector(new QueryTypedColumnSelector("subquery__room_name", "room_name", SemossDataType.STRING));
-		outerQs.addSelector(
-				new QueryTypedColumnSelector("subquery__room_context", "room_context", SemossDataType.STRING));
-		outerQs.addSelector(new QueryTypedColumnSelector("subquery__model_id", "model_id", SemossDataType.STRING));
-		outerQs.addSelector(
-				new QueryTypedColumnSelector("subquery__workspace_id", "workspace_id", SemossDataType.STRING));
-		outerQs.addSelector(
-				new QueryTypedColumnSelector("subquery__date_created", "date_created", SemossDataType.STRING));
-		outerQs.addSelector(
-				new QueryTypedColumnSelector("subquery__date_updated", "date_updated", SemossDataType.STRING));
-		outerQs.addSelector(new QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
+		// room has at least one non-null message
+		SelectQueryStruct messageExistsQs = new SelectQueryStruct();
+		messageExistsQs.addSelector(new QueryColumnSelector("MESSAGE__ROOM_ID"));
+		messageExistsQs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
+		messageExistsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
+		messageExistsQs
+				.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__WORKSPACE_ID", "==", workspaceId));
+		messageExistsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userIds));
+		messageExistsQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", messageExistsQs));
 
+		// append other filters directly in
 		if (filters != null && !filters.isEmpty()) {
-			outerQs.mergeExplicitFilters(filters);
+			qs.mergeExplicitFilters(filters);
 		}
 
-		outerQs.setLimit(limit);
-		outerQs.setOffSet(offset);
-
+		qs.setLimit(limit);
+		qs.setOffSet(offset);
 		if (sorts == null || sorts.isEmpty()) {
-			outerQs.addOrderBy("date_created", "DESC");
+			qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
 		} else {
-			outerQs.addOrderBy(sorts);
+			qs.addOrderBy(sorts);
 		}
 
-		IQueryInterpreter interpreter = modelInferenceLogsDb.getQueryInterpreter();
-		interpreter.setQueryStruct(qs);
-		String subQuery = interpreter.composeQuery();
-		outerQs.setCustomFrom(subQuery);
-		outerQs.setCustomFromAliasName("subquery");
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, outerQs)) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
 			Map<String, Object> workspaces = new HashMap<>();
 			List<Map<String, Object>> roomDetails = new ArrayList<>();
 			Long totalCount = 0L;
@@ -2486,11 +2515,11 @@ public class ModelInferenceLogsUtils {
 				}
 
 				Object totalCountObj = map.remove("total_row_count");
-				if (totalCount == 0 && totalCountObj != null) {
+				if (totalCountObj != null && totalCount == 0) {
 					if (totalCountObj instanceof Number) {
 						totalCount = ((Number) totalCountObj).longValue();
 					} else {
-						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+						classLogger.warn("Unexpected total_row_count type: {}", totalCountObj.getClass());
 					}
 				}
 				roomDetails.add(map);
@@ -2499,7 +2528,7 @@ public class ModelInferenceLogsUtils {
 			workspaces.put("rooms", roomDetails);
 			return workspaces;
 		} catch (Exception e) {
-			classLogger.error("Failed to fetch workspace rooms for workspaceId '" + workspaceId + "'.", e);
+			classLogger.error("Failed to fetch workspace rooms for workspaceId '{}'.", workspaceId, e);
 			return null;
 		}
 	}
@@ -2603,7 +2632,7 @@ public class ModelInferenceLogsUtils {
 					if (totalCountObj instanceof Number) {
 						totalCount = ((Number) totalCountObj).longValue();
 					} else {
-						classLogger.warn("Unexpected total_row_count type: " + totalCountObj.getClass());
+						classLogger.warn("Unexpected total_row_count type: {}", totalCountObj.getClass());
 					}
 				}
 				workspaceDetails.add(map);
@@ -2680,8 +2709,8 @@ public class ModelInferenceLogsUtils {
 			}
 			return results;
 		} catch (Exception e) {
-			classLogger.error("Failed to fetch workspace resources for workspaceId '" + workspaceId
-					+ "' and resourceTypes '" + resourceTypes + "'.", e);
+			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
+					workspaceId, resourceTypes, e);
 			return null;
 		}
 	}
@@ -2732,8 +2761,8 @@ public class ModelInferenceLogsUtils {
 			}
 			return results;
 		} catch (Exception e) {
-			classLogger.error("Failed to fetch workspace resources for workspaceId '" + workspaceId
-					+ "' and resourceTypes '" + resourceTypes + "'.", e);
+			classLogger.error("Failed to fetch workspace resources for workspaceId '{}' and resourceTypes '{}'.",
+					workspaceId, resourceTypes, e);
 			return null;
 		}
 	}
@@ -2768,8 +2797,8 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to create workspace resource '" + workspaceResourceId + "' for workspaceId '"
-					+ workspaceId + "'.", e);
+			classLogger.error("Failed to create workspace resource '{}' for workspaceId '{}'.", workspaceResourceId,
+					workspaceId, e);
 			throw new IllegalArgumentException("Error creating workspace resource: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2820,8 +2849,9 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error("Failed to fetch workspace resources for workspaceId '" + workspaceId
-					+ "', resourceType '" + resourceType + "', resourceSubType '" + resourceSubType + "'.", e);
+			classLogger.error(
+					"Failed to fetch workspace resources for workspaceId '{}', resourceType '{}', resourceSubType '{}'.",
+					workspaceId, resourceType, resourceSubType, e);
 			throw new IllegalArgumentException("Error fetching workspace resources: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2849,7 +2879,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to set workspace inactive for workspaceId '" + workspaceId + "'.", e);
+			classLogger.error("Failed to set workspace inactive for workspaceId '{}'.", workspaceId, e);
 			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -2876,7 +2906,7 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to set workspace active for workspaceId '" + workspaceId + "'.", e);
+			classLogger.error("Failed to set workspace active for workspaceId '{}'.", workspaceId, e);
 			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
@@ -3071,10 +3101,12 @@ public class ModelInferenceLogsUtils {
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "AGENT_ID"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "DATE_CREATED"));
 		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		qs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
 
 		// Room columns for project context
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_ID"));
 		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "PROJECT_NAME"));
+		qs.addSelector(new QueryColumnSelector(ROOM_TABLE_NAME + "WORKSPACE_ID"));
 
 		// Join FEEDBACK -> MESSAGE on MESSAGE_ID
 		qs.addRelation(FEEDBACK_TABLE_NAME + "MESSAGE_ID", MESSAGE_TABLE_NAME + "MESSAGE_ID", "inner.join");
@@ -3099,7 +3131,65 @@ public class ModelInferenceLogsUtils {
 		qs.addOrderBy(FEEDBACK_TABLE_NAME + "FEEDBACK_DATE", "DESC");
 
 		addLimitAndOffSet(qs, limit, offset);
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		List<Map<String, Object>> feedbackList = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+
+		// Ensure WORKSPACE_ID is always present in the payload (serializer drops nulls)
+		for (Map<String, Object> row : feedbackList) {
+			if (row.get("WORKSPACE_ID") == null) {
+				row.put("WORKSPACE_ID", "");
+			}
+		}
+
+		attachInputPromptsByTransactionId(modelInferenceLogsDb, feedbackList);
+		return feedbackList;
+	}
+
+	/**
+	 * For each feedback row in {@code feedbackList}, looks up the paired INPUT
+	 * message (same TRANSACTION_ID) and stamps its MESSAGE_DATA onto the row under
+	 * the {@code PROMPT} key. Rows without a matching INPUT row get a null PROMPT.
+	 */
+	private static void attachInputPromptsByTransactionId(IRDBMSEngine modelInferenceLogsDb,
+			List<Map<String, Object>> feedbackList) {
+		if (feedbackList == null || feedbackList.isEmpty()) {
+			return;
+		}
+
+		Set<String> transactionIds = new HashSet<>();
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			if (txId != null) {
+				transactionIds.add(txId.toString());
+			}
+		}
+		if (transactionIds.isEmpty()) {
+			for (Map<String, Object> row : feedbackList) {
+				row.put("PROMPT", null);
+			}
+			return;
+		}
+
+		SelectQueryStruct inputQs = new SelectQueryStruct();
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "TRANSACTION_ID"));
+		inputQs.addSelector(new QueryColumnSelector(MESSAGE_TABLE_NAME + "MESSAGE_DATA"));
+		inputQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "TRANSACTION_ID", "==",
+				new ArrayList<>(transactionIds)));
+		inputQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"));
+
+		List<Map<String, Object>> inputRows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, inputQs);
+		Map<String, Object> txIdToInputData = new HashMap<>();
+		for (Map<String, Object> inputRow : inputRows) {
+			Object txId = inputRow.get("TRANSACTION_ID");
+			if (txId != null) {
+				txIdToInputData.put(txId.toString(), inputRow.get("MESSAGE_DATA"));
+			}
+		}
+
+		for (Map<String, Object> row : feedbackList) {
+			Object txId = row.get("TRANSACTION_ID");
+			row.put("PROMPT", txId == null ? null : txIdToInputData.get(txId.toString()));
+		}
 	}
 
 	/**

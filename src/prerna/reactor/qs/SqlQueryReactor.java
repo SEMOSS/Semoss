@@ -27,26 +27,37 @@
  *******************************************************************************/
 package prerna.reactor.qs;
 
+import org.json.JSONObject;
+
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.util.Utility;
 
 /**
- * Executes query against a database. The query to be executed is expected to be
- * wrapped in <encode> </encode> blocks.
+ * Executes a SQL query against a database.
  */
 public class SqlQueryReactor extends AbstractSqlQueryReactor {
 
 	@Override
 	protected String getDecodedQuery() {
-		return Utility.decodeURIComponent(this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()));
+		return this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey());
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return "The sql query to execute. The sql query should be passed wtihin <encode> </encode> blocks for proper encoding";
+			return """
+					The sql query to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description", "The sql query to execute.");
+		return properties;
 	}
 
 }

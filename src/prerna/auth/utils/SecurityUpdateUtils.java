@@ -170,7 +170,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to add or synchronize OAuth user records.", e);
 					} finally {
 						if (ps != null) {
 							ps.close();
@@ -197,7 +197,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.getConnection().commit();
 						}
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to add or synchronize OAuth user records.", e);
 					} finally {
 						if (ps != null) {
 							ps.close();
@@ -213,7 +213,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// lets see if he exists or not
 				boolean userExists = SecurityQueryUtils.checkUserExist(newUser.getId());
 				if (userExists) {
-					classLogger.info("User " + newUser.getId() + " already exists");
+					classLogger.info("User {} already exists", newUser.getId());
 					return false;
 				}
 
@@ -233,7 +233,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 							}
 						} catch (NumberFormatException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add or synchronize OAuth user records.", e);
 							classLogger.error("User limit is not a valid numeric value");
 						}
 					}
@@ -297,7 +297,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 								ps.getConnection().commit();
 							}
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Unable to add or synchronize OAuth user records.", e);
 						} finally {
 							if (ps != null) {
 								try {
@@ -306,11 +306,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 										try {
 											ps.getConnection().close();
 										} catch (SQLException e) {
-											classLogger.error(Constants.STACKTRACE, e);
+											classLogger.error("Unable to add or synchronize OAuth user records.", e);
 										}
 									}
 								} catch (SQLException e) {
-									classLogger.error(Constants.STACKTRACE, e);
+									classLogger.error("Unable to add or synchronize OAuth user records.", e);
 								}
 							}
 						}
@@ -320,7 +320,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add or synchronize OAuth user records.", e);
 		}
 
 		return false;
@@ -370,7 +370,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			newUser.setLastPasswordReset(lastPassReset);
 
 			if (isLocked) {
-				classLogger.info("User " + newUser.getId() + " is locked");
+				classLogger.info("User {} is locked", newUser.getId());
 				return;
 			}
 
@@ -378,8 +378,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				// check to make sure user is not locked
 				ZonedDateTime currentTime = ZonedDateTime.now(ZoneId.of("UTC"));
 				if (currentTime.isAfter(lastLogin.getZonedDateTime().plusDays(daysToLock))) {
-					classLogger.info("User " + newUser.getId() + " is now locked due to not logging in for over "
-							+ daysToLock + " days");
+					classLogger.info("User {} is now locked due to not logging in for over {} days", newUser.getId(),
+							daysToLock);
 					// we should lock the account
 					SecurityUpdateUtils.lockUserAccount(true, newUser.getId(), newUser.getProvider());
 					newUser.setLocked(true);
@@ -472,21 +472,21 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update OAuth user profile information.", e);
 			return false;
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update OAuth user profile information.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update OAuth user profile information.", e);
 				}
 			}
 		}
@@ -509,20 +509,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user lock status.", e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user lock status.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user lock status.", e);
 				}
 			}
 		}
@@ -545,20 +545,20 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user last-login timestamp.", e);
 		} finally {
 			if (ps != null) {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 			if (ps != null && securityDb.isConnectionPooling()) {
 				try {
 					ps.getConnection().close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 		}
@@ -604,7 +604,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 					throw new SemossPixelException("User limit exceeded the max value of " + userLimit);
 				}
 			} catch (NumberFormatException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update the user last-login timestamp.", e);
 				classLogger.error("User limit is not a valid numeric value");
 			}
 		}
@@ -704,7 +704,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the user last-login timestamp.", e);
 		} finally {
 			if (ps != null) {
 				try {
@@ -713,7 +713,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 						ps.getConnection().close();
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to update the user last-login timestamp.", e);
 				}
 			}
 		}

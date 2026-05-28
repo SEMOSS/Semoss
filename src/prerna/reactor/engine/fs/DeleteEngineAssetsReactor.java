@@ -31,6 +31,10 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.eclipse.jgit.api.Git;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -43,10 +47,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
-import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
 
 public class DeleteEngineAssetsReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DeleteEngineAssetsReactor.class);
 
 	public DeleteEngineAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -111,7 +116,12 @@ public class DeleteEngineAssetsReactor extends AbstractReactor {
 		String email = accessToken.getEmail();
 		String author = accessToken.getUsername();
 
-		GitDestroyer.removeSpecificFiles(versionGitFolder, true, gitRelativeFilePaths);
+		// Stage the file deletions in git
+		try (Git git = Git.open(new File(versionGitFolder))) {
+			git.add().addFilepattern(".").setUpdate(true).call();
+		} catch (Exception e) {
+			classLogger.error("Error staging deleted files in git for engine {}", engineId, e);
+		}
 		// commit it
 		GitRepoUtils.commitAddedFiles(versionGitFolder, comment, author, email);
 		// handle synchronization to the cloud

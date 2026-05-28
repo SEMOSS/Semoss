@@ -62,7 +62,7 @@ public class LocalPythonCustomEmbeddingsFunctionEngine extends LocalPythonFuncti
 		StringBuilder callMaker = new StringBuilder(this.canProcessFunctionName);
 					callMaker.append("(fileToProcess=")
 						.append(PyUtils.determineStringType(fileToProcess))
-						.append("')");
+						.append(")");
 		
 		return (boolean) pyTranslator.runDirectPy(callMaker.toString());
 	}

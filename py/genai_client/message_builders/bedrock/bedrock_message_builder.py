@@ -44,15 +44,32 @@ class BedrockMessageBuilder:
             content_blocks = []
 
             if message.parts:
+                is_assistant = message.io != "INPUT"
+                assistant_media_parts = []
+
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
                         content_blocks.append(self._build_text_content_block(p.text))
 
                     elif p.type == SEMOSSMessagePartType.MEDIA:
-                        media_content = self._build_media_content_single_part(
-                            p.media_info
-                        )
-                        content_blocks.append(media_content)
+                        if is_assistant:
+                            # Bedrock does not allow image blocks in assistant turns;
+                            # add a text placeholder and queue the image for a synthetic user message.
+                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            content_blocks.append(
+                                self._build_text_content_block(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            assistant_media_parts.append(media_content)
+                        else:
+                            media_content = self._build_media_content_single_part(
+                                p.media_info
+                            )
+                            content_blocks.append(media_content)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_CALL:
                         tool_use_data = {
@@ -90,6 +107,18 @@ class BedrockMessageBuilder:
                         content=content_blocks,
                     )
                 )
+
+                # Inject a synthetic user message with the images so the model can reference them
+                if assistant_media_parts:
+                    synthetic_content = [
+                        self._build_text_content_block("Here is the generated image:")
+                    ] + assistant_media_parts
+                    bedrock_messages.append(
+                        BedrockMessage(
+                            role="user",
+                            content=synthetic_content,
+                        )
+                    )
 
                 # handle parameters update based on last message same as w/o parts
                 if is_last:
@@ -143,6 +172,8 @@ class BedrockMessageBuilder:
 
             else:
                 role = self._message_type_to_role(message.type)
+                is_assistant = role == "assistant"
+                assistant_media_blocks = []
 
                 if (
                     message.content
@@ -153,8 +184,20 @@ class BedrockMessageBuilder:
                     )
 
                 if message.media_content:
-                    media_blocks = self._build_media_blocks(message.media_content)
-                    content_blocks.extend(media_blocks)
+                    if is_assistant:
+                        # Bedrock does not allow image blocks in assistant turns;
+                        # add a text placeholder and queue the images for a synthetic user message.
+                        assistant_media_blocks = self._build_media_blocks(message.media_content)
+                        for media in message.media_content:
+                            file_name = getattr(media, "file_name", None) or "image"
+                            content_blocks.append(
+                                self._build_text_content_block(
+                                    f"[Generated image: {file_name}]"
+                                )
+                            )
+                    else:
+                        media_blocks = self._build_media_blocks(message.media_content)
+                        content_blocks.extend(media_blocks)
 
                 # Handle tool calls (RESPONSE_TOOL messages)
                 if (
@@ -195,6 +238,18 @@ class BedrockMessageBuilder:
                             BedrockMessage(
                                 role=role,
                                 content=content_blocks,
+                            )
+                        )
+
+                    # Inject a synthetic user message with the images so the model can reference them
+                    if is_assistant and message.media_content and assistant_media_blocks:
+                        synthetic_content = [
+                            self._build_text_content_block("Here is the generated image:")
+                        ] + assistant_media_blocks
+                        bedrock_messages.append(
+                            BedrockMessage(
+                                role="user",
+                                content=synthetic_content,
                             )
                         )
 

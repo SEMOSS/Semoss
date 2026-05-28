@@ -33,6 +33,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Comparator;
@@ -666,7 +668,7 @@ public final class RoomUtils {
 	 * @param value input string
 	 * @return {@code true} for supported image/pdf data URIs
 	 */
-	private static boolean isBase64MediaDataUri(String value) {
+	public static boolean isBase64MediaDataUri(String value) {
 		if (value == null) {
 			return false;
 		}
@@ -717,11 +719,14 @@ public final class RoomUtils {
 			}
 
 			String ext = extensionFromMimeType(mimeType);
-			String fileName = "media_" + UUID.randomUUID().toString() + "." + ext;
-			Path destination = targetDir.resolve(fileName);
-
 			byte[] decoded = Base64.getDecoder().decode(base64.replaceAll("\\s+", ""));
-			Files.write(destination, decoded);
+
+			// Content-addressed name -- identical bytes dedup to the same file.
+			String fileName = "media_" + sha256Hex(decoded).substring(0, 16) + "." + ext;
+			Path destination = targetDir.resolve(fileName);
+			if (!Files.exists(destination)) {
+				Files.write(destination, decoded);
+			}
 			return fileName;
 		} catch (IllegalArgumentException e) {
 			// base64 decoder throws IllegalArgumentException on bad input
@@ -730,6 +735,21 @@ public final class RoomUtils {
 		} catch (IOException e) {
 			classLogger.warn("Failed to write decoded base64 data URI image to room folder: " + targetDir, e);
 			return null;
+		}
+	}
+
+	private static String sha256Hex(byte[] data) {
+		try {
+			byte[] hash = MessageDigest.getInstance("SHA-256").digest(data);
+			StringBuilder sb = new StringBuilder(hash.length * 2);
+			for (byte b : hash) {
+				sb.append(String.format("%02x", b));
+			}
+			return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			// SHA-256 is required by the JRE spec; fall back to a UUID if it ever fails.
+			classLogger.warn("SHA-256 unavailable; falling back to random media filename", e);
+			return UUID.randomUUID().toString().replace("-", "");
 		}
 	}
 

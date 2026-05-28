@@ -69,8 +69,8 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 		User user = this.insight.getUser();
 		String assetId = user.getAssetProjectId(user.getPrimaryLogin());
 		if (assetId != null && !(assetId.isEmpty())) {
-			ClusterUtil.pullUserWorkspace(assetId, true);
-			savePath = AssetUtility.getUserAssetAndWorkspaceVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
+			ClusterUtil.pullUserAsset(assetId);
+			savePath = AssetUtility.getUserAssetVersionFolder("Asset", assetId) + DIR_SEPARATOR + "assets";
 
 			File assetDir = new File(Utility.normalizePath(savePath));
 			if (!assetDir.isDirectory() || !assetDir.exists()) {
@@ -115,7 +115,7 @@ public class LoadNLPSearchReactor extends AbstractRFrameReactor {
 
 		// push Asset folder
 		if (assetId != null && !(assetId.isEmpty())) {
-			ClusterUtil.pushUserWorkspace(assetId, true);
+			ClusterUtil.pushUserAsset(assetId);
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);

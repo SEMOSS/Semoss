@@ -74,8 +74,7 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 		String wrapperFrameName = frame.getWrapperName();
 
 		OwlTemporalEngineMeta meta = this.getFrame().getMetaData();
-		List<String> colNames = Arrays.asList(frame.getColumnHeaders()); // check if this is the same as R's
-																			// frame.getColumnNames()
+		List<String> colNames = Arrays.asList(frame.getColumnHeaders());
 		List<Object> reqList = this.curRow.getValuesOfType(PixelDataType.MAP);
 
 //		StringBuilder inputListSB = new StringBuilder();
@@ -131,7 +130,7 @@ public class DiscretizeReactor extends AbstractPyFrameReactor {
 							+ "alphabetical characters) - breaks are required if labels are provided.");
 				} else {
 					// check if labels contains whitespaces, then replace with underscore
-					labels = Utility.decodeURIComponent(labels).replaceAll("[()]", "").trim();
+					labels = labels.replaceAll("[()]", "").trim();
 					String[] labelsSplit = labels.split(",");
 					List<String> labelsList = Arrays.asList(labelsSplit);
 					for (int j = 0; j < labelsList.size(); j++) {

@@ -75,21 +75,10 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		String modifiedDate = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSSS").format(date);
 		String fileLocation = Utility.getBaseFolder() + DIR_SEPARATOR + "PastedData" + modifiedDate + ".csv";
 		File file = new File(fileLocation);
-		FileWriter fw = null;
-		try {
-			fw = new FileWriter(file);
+		try (FileWriter fw = new FileWriter(file)) {
 			fw.write(fileInfo);
 		} catch (IOException e) {
 			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (fw != null) {
-				try {
-					fw.flush();
-					fw.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// set csv qs
@@ -110,8 +99,7 @@ public class TextInputReactor extends AbstractQueryStructReactor {
 		GenRowStruct fGrs = this.store.getGenRowStruct(FILE_INFO);
 		String fileInfo = null;
 		if (fGrs != null && !fGrs.isEmpty()) {
-			String encodedString = fGrs.get(0).toString();
-			fileInfo = Utility.decodeURIComponent(encodedString);
+			fileInfo = fGrs.get(0).toString();
 		} else {
 			throw new IllegalArgumentException(
 					"Need to specify " + FILE_INFO + "=[\"<encode>fileData</encode>\"] in pixel command");

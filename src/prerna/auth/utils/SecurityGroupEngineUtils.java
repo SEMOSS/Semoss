@@ -56,7 +56,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -140,7 +139,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can view engine.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
 		}
 
@@ -218,7 +217,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can edit engine.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
 		}
 
@@ -288,7 +287,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group database permissions for user", e);
 		}
 
@@ -358,7 +357,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based engine permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing database permissions for user", e);
 		}
 
@@ -393,7 +392,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based engine permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing database permissions for user", e);
 		}
 
@@ -459,7 +458,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based engine permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -488,7 +487,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		}
 
 		return null;
@@ -566,7 +565,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -622,7 +621,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -663,7 +662,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

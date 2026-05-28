@@ -56,7 +56,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -140,7 +139,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can view project.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -219,7 +218,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user's group can edit project.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -290,7 +289,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
 		}
 
@@ -360,7 +359,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		}
 
@@ -396,7 +395,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 			throw new IllegalArgumentException("Failed to retrieve existing project permissions for user", e);
 		}
 
@@ -462,7 +461,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine the highest group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -492,7 +491,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		}
 
 		return null;
@@ -570,7 +569,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -626,7 +625,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -667,7 +666,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}

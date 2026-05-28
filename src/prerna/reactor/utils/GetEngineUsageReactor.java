@@ -61,6 +61,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
 	private static final String OPENAI_LABEL = "How to use externally with OpenAI API (with or without our Python SDK)";
 
+	private static final String SAMPLE_ENGINE_ID = "SAMPLE_ENGINE_ID";
+
 	private static class EngineSelection {
 		private final String engineId;
 		private final IEngine.CATALOG_TYPE engineType;
@@ -96,7 +98,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			if (engineTypeStr != null && !engineTypeStr.isEmpty()) {
 				try {
 					engineType = IEngine.CATALOG_TYPE.valueOf(engineTypeStr.toUpperCase());
-					engineId = "SAMPLE_ENGINE_ID";
+					engineId = SAMPLE_ENGINE_ID;
 				} catch (IllegalArgumentException e) {
 					// do nothing
 				}
@@ -147,8 +149,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						Generation with Image
 
 						```
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", url = "https://your_image_url.com");
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image", image = "myImage.png");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
 						```
 
 						Generation with ChatML
@@ -891,11 +893,17 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 	private List<Map<String, Object>> getFunctionUsage(String engineId) {
 		List<Map<String, Object>> usage = new ArrayList<>();
-		IFunctionEngine functionEngine = Utility.getFunctionEngine(engineId);
-		List<FunctionParameter> parameters = getFunctionParameters(functionEngine);
-		List<String> requiredParameters = getRequiredFunctionParameters(functionEngine);
-		List<Map<String, Object>> paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
-		String mapParams = buildFunctionMapParams(parameters);
+		List<Map<String, Object>> paramInfo = null;
+		String mapParams = null;
+		if (SAMPLE_ENGINE_ID.equals(engineId)) {
+			mapParams = "{\"function_parameter_1\":\"function_value_1\"}";
+		} else {
+			IFunctionEngine functionEngine = Utility.getFunctionEngine(engineId);
+			List<FunctionParameter> parameters = getFunctionParameters(functionEngine);
+			List<String> requiredParameters = getRequiredFunctionParameters(functionEngine);
+			paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
+			mapParams = buildFunctionMapParams(parameters);
+		}
 		String pixelMapArg = mapParams.isEmpty() ? "" : " , map=[" + mapParams + "] ";
 
 		addUsage(usage, PIXEL, PIXEL_LABEL, """

@@ -28,6 +28,7 @@ class GoogleClientConfig(BaseModel):
     region: Optional[str] = None
     project: Optional[str] = None
     api_key: Optional[str] = None
+    base_url: Optional[str] = None
 
 
 class GoogleClient:
@@ -92,12 +93,19 @@ class GoogleClient:
                 and self.config.region
                 and self.service_account_credentials
             ):
-                return GoogleGenAIClient(
-                    credentials=self.service_account_credentials,
-                    vertexai=True,
-                    location=self.config.region,
-                    project=self.config.project,
-                )
+                kwargs = {
+                    "credentials": self.service_account_credentials,
+                    "vertexai": True,
+                    "location": self.config.region,
+                    "project": self.config.project,
+                }
+                if self.config.base_url:
+                    from google.genai.types import HttpOptions
+
+                    kwargs["http_options"] = HttpOptions(
+                        base_url=self.config.base_url
+                    )
+                return GoogleGenAIClient(**kwargs)
             else:
                 raise ValueError(
                     "Either api_key or each of project, location and service account credentials must be provided."

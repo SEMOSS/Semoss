@@ -57,13 +57,11 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		this.insight.resetClassCache();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
 
 		List<String> messages = new ArrayList<>();
-
 		if (projectId != null && !projectId.isEmpty()) {
 			// make sure valid id for user
 			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {

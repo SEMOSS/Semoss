@@ -75,7 +75,7 @@ public abstract class AbstractEngine implements IEngine {
 	protected boolean keepInputOutput = true;
 	// to define custom log4j2.xml at an engine level
 	// to isolate tenant logs
-	protected LoggerContext engineSpecificLoggerCtx;
+	protected volatile LoggerContext engineSpecificLoggerCtx;
 
 	protected boolean isMCPEnabled = false;
 
@@ -173,13 +173,14 @@ public abstract class AbstractEngine implements IEngine {
 					if (!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl") && !fileName.endsWith(".sqlite")) {
 						try {
 							Path targetPath = assetsPath.resolve(item.getFileName());
-							classLogger.info("Performing asset restructure for " + item + " > " + targetPath);
+							classLogger.info("Performing asset restructure for {} > {}", item, targetPath);
 							Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to move legacy engine asset '{}' to '{}' during restructure",
+									item, assetsPath.resolve(item.getFileName()), e);
 						}
 					} else {
-						classLogger.info("Ignoring asset restructure for " + item);
+						classLogger.info("Ignoring asset restructure for {}", item);
 					}
 				});
 			}
@@ -201,7 +202,8 @@ public abstract class AbstractEngine implements IEngine {
 		try {
 			this.close();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close {} engine {} during delete", eType,
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
 		}
 
 		File engineFolder = new File(this.engineBaseFolder);
@@ -210,7 +212,7 @@ public abstract class AbstractEngine implements IEngine {
 			try {
 				FileUtils.deleteDirectory(engineFolder);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to delete {} engine folder {}", eType, engineFolder, e);
 			}
 		} else {
 			classLogger.info("{} engine folder {} does not exist", eType, engineFolder);
@@ -221,7 +223,7 @@ public abstract class AbstractEngine implements IEngine {
 		try {
 			FileUtils.forceDelete(smssFile);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete {} engine smss file {}", eType, smssFile, e);
 		}
 
 		// remove from DIHelper
@@ -326,15 +328,16 @@ public abstract class AbstractEngine implements IEngine {
 			return null;
 		}
 
-		if (this.engineSpecificLoggerCtx == null) {
-			ClassLoader isolatedLoader = new URLClassLoader(new URL[0], null);
+		if (engineSpecificLoggerCtx == null) {
 			synchronized (this) {
-				if (this.engineSpecificLoggerCtx == null) {
-					this.engineSpecificLoggerCtx = Configurator.initialize(this.engineId, isolatedLoader,
+				if (engineSpecificLoggerCtx == null) {
+					ClassLoader isolatedLoader = new URLClassLoader(new URL[0], null);
+					engineSpecificLoggerCtx = Configurator.initialize(this.engineId, isolatedLoader,
 							"file:" + log4j2.getAbsolutePath());
 				}
 			}
 		}
+
 		return this.engineSpecificLoggerCtx.getLogger(loggerName);
 	}
 

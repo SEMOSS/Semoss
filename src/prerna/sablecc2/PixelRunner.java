@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,10 +67,12 @@ import prerna.util.SandboxedJavaExecution;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
-public class PixelRunner extends Thread {
+public class PixelRunner {
 
 	private static final Logger classLogger = LogManager.getLogger(PixelRunner.class);
+
 	private static final String CANCELLED_MESSAGE = "The request was cancelled by the user";
+	private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
 	private static List<PixelOperationType> errorOpTypes = new ArrayList<>();
 	static {
@@ -139,8 +142,15 @@ public class PixelRunner extends Thread {
 	public void runPixel(String expression, Insight insight) {
 		this.insight = insight;
 		throwIfCancelRequested();
-		expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
-				this.encodedTextToOriginal);
+		try {
+			expression = PixelPreProcessor.preProcessPixel(expression.trim(), this.encodingList,
+					this.encodedTextToOriginal);
+		} catch (SemossPixelException e) {
+			// treat this as a META so that FE doesn't record it
+			addInvalidSyntaxResult(expression, new NounMetadata(e.getMessage(), PixelDataType.INVALID_SYNTAX,
+					PixelOperationType.ERROR, PixelOperationType.INVALID_SYNTAX), false);
+			throw e;
+		}
 		throwIfCancelRequested();
 
 		final boolean USER_CHROOT = insight.getUser() != null
@@ -291,7 +301,7 @@ public class PixelRunner extends Thread {
 		pixel.setReturnedError(true);
 		pixel.setMeta(true);
 		// also set the time to run
-		if (this.translation.getPixelObj() != null) {
+		if (this.translation != null && this.translation.getPixelObj() != null) {
 			pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
 		}
 		this.returnPixelList.add(pixel);
@@ -339,8 +349,12 @@ public class PixelRunner extends Thread {
 		}
 	}
 
-	private boolean isCancelRequested() {
-		return this.isInterrupted() || Thread.currentThread().isInterrupted();
+	public void cancelRequest() {
+		this.cancelRequested.set(true);
+	}
+
+	public boolean isCancelRequested() {
+		return this.cancelRequested.get() || Thread.currentThread().isInterrupted();
 	}
 
 	private void throwCancellationException() {

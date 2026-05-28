@@ -50,7 +50,6 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -146,7 +145,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate access keys and resolve the user.", e);
 		}
 
 		if (saltedSecretKey == null || salt == null) {
@@ -191,6 +190,15 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static User validateLocalUserStore(String accessKey, String secretKey) throws IllegalAccessException {
+		if (!LocalUserStore.getInstance().validate(accessKey, secretKey)) {
+			throw new IllegalAccessException("Invalid credentials");
+		}
+
+		User cachedUser = LocalUserStore.getInstance().getCachedUser(accessKey);
+		if (cachedUser != null) {
+			return cachedUser;
+		}
+
 		Object[] userStoreDetails = LocalUserStore.getInstance().getUserStoreDetails(accessKey);
 		String userId = (String) userStoreDetails[0];
 		AuthProvider provider = (AuthProvider) userStoreDetails[1];
@@ -200,6 +208,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		token.setProvider(provider);
 		token.setId(userId);
 		user.setAccessToken(token);
+		LocalUserStore.getInstance().cacheUser(accessKey, user);
 		return user;
 	}
 
@@ -249,7 +258,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to validate the local user-store configuration.", e);
 			throw e;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -285,7 +294,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update the access token last-used timestamp.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -316,7 +325,7 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			}
 			return updatedRows > 0;
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to delete user access token.", e);
 			return false;
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -383,13 +392,13 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the legacy access-key column exists.", e);
 		} finally {
 			if (securityDb.isConnectionPooling()) {
 				try {
 					conn.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Unable to determine whether the legacy access-key column exists.", e);
 				}
 			}
 		}

@@ -153,6 +153,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
@@ -2503,7 +2504,12 @@ public final class Utility {
 		return EngineProxyFactory.createGuardedProject(project);
 	}
 
-	public static IProject getUserAssetWorkspaceProject(String projectId, boolean isAsset) {
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static IProject getUserAssetProject(String projectId) {
 		IProject project = null;
 
 		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
@@ -2512,10 +2518,10 @@ public final class Utility {
 			// Acquire the lock on the engine,
 			// don't want several calls to try and load the engine at the same
 			// time
-			classLogger.info("Applying lock for user asset/workspace " + projectId);
+			classLogger.info("Applying lock for user asset project " + projectId);
 			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
 			lock.lock();
-			classLogger.info("User asset/workspace " + projectId + " is locked");
+			classLogger.info("User asset project " + projectId + " is locked");
 
 			try {
 				// Need to do a double check here,
@@ -2529,16 +2535,11 @@ public final class Utility {
 				// TODO >>>timb: need to pull sec and lmd each time. They also need
 				// correct jdbcs...
 				if (ClusterUtil.IS_CLUSTER) {
-					ClusterUtil.pullUserWorkspace(projectId, isAsset, false);
+					ClusterUtil.pullUserAsset(projectId, false);
 				}
 
 				// Now that the app has been pulled, grab the smss file
-				String folderName = null;
-				if (isAsset) {
-					folderName = "Asset";
-				} else {
-					folderName = "Workplace";
-				}
+				String folderName = UserAssetUtils.ASSET_APP_NAME;
 				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
 						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
 				// Start up the engine using the details in the smss
@@ -2546,12 +2547,12 @@ public final class Utility {
 					// actual load engine process
 					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
-					classLogger.debug("There is no SMSS File for the user asset/workspace " + projectId + "...");
+					classLogger.debug("There is no SMSS File for the user asset project " + projectId + "...");
 				}
 			} finally {
 				// Make sure to unlock now
 				lock.unlock();
-				classLogger.info("User asset/workspace " + projectId + " is unlocked");
+				classLogger.info("User asset project " + projectId + " is unlocked");
 			}
 		}
 
@@ -3620,9 +3621,20 @@ public final class Utility {
 	}
 
 	public static String decodeURIComponent(String s) {
+		return decodeURIComponent(s, true);
+	}
+
+	public static String decodeURIComponent(String s, boolean performCheck) {
 		if (s == null) {
 			return null;
 		}
+		if (performCheck) {
+			final Pattern PERCENT_ENCODED = Pattern.compile("%[0-9A-Fa-f]{2}");
+			if (!PERCENT_ENCODED.matcher(s).find()) {
+				return s; // can't be percent-encoded, return as-is
+			}
+		}
+
 		String newS = s.replaceAll("\\%20", "+").replaceAll("\\%21", "!").replaceAll("\\%27", "'")
 				.replaceAll("\\%28", "(").replaceAll("\\%29", ")").replaceAll("\\%7E", "~");
 		s = URLDecoder.decode(newS, StandardCharsets.UTF_8);

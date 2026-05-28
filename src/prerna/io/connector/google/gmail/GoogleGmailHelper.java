@@ -56,7 +56,7 @@ public final class GoogleGmailHelper {
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailHelper.class);
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).setPrettyPrinting().create();
+			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
 	private static final String SUCCESS_KEY = "success";
 	private static final String USER_ID = "me";

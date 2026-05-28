@@ -115,6 +115,8 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
+	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
+
 	/**
 	 * Per-call reverse lookup map: LLM-facing tool name to enriched tool entry
 	 * (containing engine metadata and original untruncated function name).
@@ -250,8 +252,8 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		// Determine useHistory: default true unless "use_history" is Boolean.FALSE or
-		// string "false"
+		applyTextModelParams(kwArgMap);
+
 		boolean useHistory = true;
 		Object useHistoryObj = kwArgMap.get("use_history");
 		if (useHistoryObj instanceof Boolean) {
@@ -455,14 +457,14 @@ public class Room {
 		if (toolResultsMessage == null) {
 			isToolResultsInputMessage = true;
 			toolResultsMessage = InputMessage.builder(this).withSystemPrompt(this.getEffectiveSystemPrompt())
-					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)
+					.withToolResult(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 					.withModelType(modelEngine.getModelType()).build();
 			toolResultsMessage.setParentMessageId(toolResponse.getMessageId());
 			toolResultsMessage.setModel(modelEngine);
 			toolResultsMessage.setVisibile(false);
 		} else {
-			toolResultsMessage.addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, toolName, toolExecutionResponse, toolParameterValues, toolStatus)));
+			toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+					toolExecutionResponse, toolParameterValues, toolStatus, false)));
 			toolResultsMessage.normalizeForWrite();
 		}
 
@@ -523,10 +525,26 @@ public class Room {
 			paramValuesMap.put("message_json", messageJsonString);
 			appendToolsToParams(paramValuesMap, modelEngine);
 
+			// Build a loggable string from tool result parts so the INPUT_TOOL_EXEC
+			// message row stores the actual tool output instead of null.
+			StringBuilder toolResultsForLogging = new StringBuilder();
+			for (MessagePart part : toolResultsMessage.getParts()) {
+				if (part instanceof ToolResultMessagePart) {
+					ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+					if (tr != null && tr.getOutput() != null) {
+						if (toolResultsForLogging.length() > 0) {
+							toolResultsForLogging.append("\n");
+						}
+						toolResultsForLogging.append(tr.getOutput());
+					}
+				}
+			}
+
 			AskModelEngineResponse llmResponse = null;
 			ResponseMessage nextAssistant = null;
 			try {
-				llmResponse = modelEngine.askRoom("", this, toolResultsMessage, paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
+						paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
@@ -649,6 +667,26 @@ public class Room {
 	}
 
 	/**
+	 * Appends text gen model specific parameters from room options into the
+	 * provided model.
+	 * 
+	 * @param kwArgMap
+	 */
+	private void applyTextModelParams(Map<String, Object> kwArgMap) {
+		Map<String, Object> options = getOptionsMap();
+		if (options == null || options.isEmpty()) {
+			return;
+		}
+
+		for (String key : TEXT_MODEL_PARAM_KEYS) {
+			Object val = options.get(key);
+			if (val != null) {
+				kwArgMap.putIfAbsent(key, val);
+			}
+		}
+	}
+
+	/**
 	 * Appends room-level tools into the model invocation parameter map.
 	 *
 	 * @param params      mutable model parameter map
@@ -703,18 +741,22 @@ public class Room {
 			try {
 				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
 				for (Map<String, Object> mcpMap : mapMapList) {
-					if (mcpMap.containsKey("id")) {
-						String id = (String) mcpMap.get("id");
-						if (!ensureUnique.contains(id)) {
-							aggregated.addAll(getToolJson(id, maxLength));
-							ensureUnique.add(id);
+					try {
+						if (mcpMap.containsKey("id")) {
+							String id = (String) mcpMap.get("id");
+							if (!ensureUnique.contains(id)) {
+								aggregated.addAll(getToolJson(id, maxLength));
+								ensureUnique.add(id);
+							}
+						} else {
+							throw new IllegalArgumentException("Tool map must contain both type and id");
 						}
-					} else {
-						throw new IllegalArgumentException("Tool map must contain both type and id");
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from room mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from room mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'mcp' value in the options map", e);
 			}
 		}
 
@@ -722,19 +764,23 @@ public class Room {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
-					String workspaceId = (String) workspace.get("workspace_id");
-					List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-							workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
-					for (Map<String, Object> tool : tools) {
-						String toolId = (String) tool.get("resource_id");
-						if (!ensureUnique.contains(toolId)) {
-							aggregated.addAll(getToolJson(toolId, maxLength));
-							ensureUnique.add(toolId);
+					try {
+						String workspaceId = (String) workspace.get("workspace_id");
+						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
+								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+						for (Map<String, Object> tool : tools) {
+							String toolId = (String) tool.get("resource_id");
+							if (!ensureUnique.contains(toolId)) {
+								aggregated.addAll(getToolJson(toolId, maxLength));
+								ensureUnique.add(toolId);
+							}
 						}
+					} catch (Exception e) {
+						classLogger.error("Unable to add tool map from workspace mcp", e);
 					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Unable to add tool map from workspace mcp", e);
+			} catch (ClassCastException e) {
+				classLogger.error("Malformed 'workspace' value in the options map", e);
 			}
 		}
 
@@ -845,7 +891,7 @@ public class Room {
 	 * @param response the response message to enrich
 	 */
 	public void updateToolResponseMeta(ResponseMessage response) {
-		MCPUtility.updateToolResponseWithProjectMeta(response, null, toolLookupByLLMName);
+		MCPUtility.updateToolResponseWithProjectMeta(response, null, getToolLookupByLLMName());
 	}
 
 	/**
@@ -861,31 +907,37 @@ public class Room {
 
 	/**
 	 * Checks whether the specified message id belongs to an assistant-authored
-	 * visible output message in this room.
+	 * output message in this room.
 	 *
 	 * @param messageId message id to validate
 	 * @return {@code true} when a matching assistant output message exists
 	 */
 	public boolean isMessageAuthor(String messageId) {
-		return getMessages().parallelStream()
-				.anyMatch(m -> m.getMessageId().equals(messageId)
-						&& m instanceof prerna.engine.impl.model.message.ResponseMessage
-						&& (m.hasTextPart() || m.hasToolCallPart()));
+		return getMessages().parallelStream().anyMatch(m -> m.getMessageId().equals(messageId)
+				&& m instanceof prerna.engine.impl.model.message.ResponseMessage);
 	}
 
 	// --- System Prompt Handling ----
 
 	/**
-	 * Returns the effective system prompt by checking options.instructions, then
-	 * workspace.system_prompt, then optionally applying an enterprise-level
-	 * template from the active admin theme.
+	 * Resolves the user-authored system prompt — the room/workspace layer, before
+	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
+	 * <ol>
+	 * <li>{@code options.instructions}</li>
+	 * <li>{@code workspace.system_prompt} (looked up via
+	 * {@code options.workspace.workspace_id})</li>
+	 * </ol>
 	 *
-	 * @return resolved system prompt, or {@code null} when no prompt is configured
-	 * @throws IllegalArgumentException when workspace prompt resolution fails
-	 *                                  access or active-state checks
+	 * <p>
+	 * Use this when you need the raw user prompt as a composable layer (e.g., a
+	 * harness combining it with built-in agent instructions). Use
+	 * {@link #getEffectiveSystemPrompt()} for the final string the model sees.
+	 *
+	 * @return authored prompt, or {@code null} if neither layer is set
+	 * @throws IllegalArgumentException when workspace lookup fails access or
+	 *                                  active-state checks
 	 */
-	public String getEffectiveSystemPrompt() {
-		// 1. Try options.instructions
+	public String getRoomOrWorkspaceSystemPrompt() {
 		String opts = getOptions();
 		JsonObject optionsObj = null;
 		if (opts != null && !opts.trim().isEmpty()) {
@@ -894,45 +946,62 @@ public class Room {
 			} catch (Exception ignore) {
 			}
 		}
-		String systemPrompt = null;
-		if (optionsObj != null) {
-			JsonElement instructionsElem = optionsObj.get("instructions");
-			if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-				systemPrompt = StringUtils.trimToNull(instructionsElem.getAsString());
+		if (optionsObj == null) {
+			return null;
+		}
+
+		// 1. options.instructions
+		JsonElement instructionsElem = optionsObj.get("instructions");
+		if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
+			String fromInstructions = StringUtils.trimToNull(instructionsElem.getAsString());
+			if (fromInstructions != null) {
+				return fromInstructions;
 			}
 		}
 
-		// 2. Try workspace.system_prompt (by workspace_id in options)
-		if (systemPrompt == null && optionsObj != null) {
-			JsonElement workspaceElem = optionsObj.get("workspace");
-			String workspaceId = null;
-			if (workspaceElem != null) {
-				if (workspaceElem.isJsonPrimitive()) {
-					workspaceId = workspaceElem.getAsString();
-				} else if (workspaceElem.isJsonObject()) {
-					JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
-					if (idElem != null && idElem.isJsonPrimitive()) {
-						workspaceId = idElem.getAsString();
-					}
-				}
-			}
-			if (workspaceId != null) {
-				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-				if (workspace != null) {
-					User user = this.insight.getUser();
-					if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
-						throw new IllegalArgumentException("Workspace " + workspaceId
-								+ " does not exist or user does not have access to the workspace");
-					}
-					// Check active or other validation if needed
-					Object isActive = workspace.get("is_active");
-					if (Boolean.FALSE.equals(isActive)) {
-						throw new IllegalArgumentException("Workspace is disabled by the owner");
-					}
-					systemPrompt = StringUtils.trimToNull((String) workspace.get("system_prompt"));
+		// 2. workspace.system_prompt (by workspace_id in options)
+		JsonElement workspaceElem = optionsObj.get("workspace");
+		String workspaceId = null;
+		if (workspaceElem != null) {
+			if (workspaceElem.isJsonPrimitive()) {
+				workspaceId = workspaceElem.getAsString();
+			} else if (workspaceElem.isJsonObject()) {
+				JsonElement idElem = workspaceElem.getAsJsonObject().get("workspace_id");
+				if (idElem != null && idElem.isJsonPrimitive()) {
+					workspaceId = idElem.getAsString();
 				}
 			}
 		}
+		if (workspaceId == null) {
+			return null;
+		}
+		Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (workspace == null) {
+			return null;
+		}
+		User user = this.insight.getUser();
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
+		Object isActive = workspace.get("is_active");
+		if (Boolean.FALSE.equals(isActive)) {
+			throw new IllegalArgumentException("Workspace is disabled by the owner");
+		}
+		return StringUtils.trimToNull((String) workspace.get("system_prompt"));
+	}
+
+	/**
+	 * Returns the effective system prompt seen by the model: the user-authored
+	 * layer (room or workspace) wrapped by the enterprise template from the active
+	 * admin theme and with {@code {{VAR}}} placeholders expanded.
+	 *
+	 * @return resolved system prompt, or {@code null} when no prompt is configured
+	 * @throws IllegalArgumentException when workspace prompt resolution fails
+	 *                                  access or active-state checks
+	 */
+	public String getEffectiveSystemPrompt() {
+		String systemPrompt = getRoomOrWorkspaceSystemPrompt();
 		String enterpriseTemplate = getEnterpriseSystemPromptTemplateFromActiveTheme();
 		String merged = applyEnterpriseSystemPromptTemplate(enterpriseTemplate, systemPrompt);
 		return expandSystemPromptVariables(merged);

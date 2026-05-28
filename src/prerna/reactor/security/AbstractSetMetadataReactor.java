@@ -39,7 +39,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
 /**
  * Base reactor for metadata update operations.
@@ -61,10 +60,9 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 	 * @return parsed metadata map
 	 */
 	protected Map<String, Object> getMetaMap() {
-		Boolean encoded = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.ENCODED.getKey()) + "");
 		Boolean jsonCleanup = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.JSON_CLEANUP.getKey()) + "");
 		GenRowStruct metaGrs = this.store.getGenRowStruct(META);
-		return parseMetaMap(metaGrs, this.curRow, encoded, jsonCleanup);
+		return parseMetaMap(metaGrs, this.curRow, jsonCleanup);
 	}
 
 	/**
@@ -75,36 +73,23 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 	 *
 	 * @param metaGrs     metadata noun row from the noun store
 	 * @param curRow      fallback current row
-	 * @param encoded     whether metadata is URI-encoded JSON
 	 * @param jsonCleanup legacy cleanup compatibility flag
 	 * @return parsed metadata map
 	 */
-	protected static Map<String, Object> parseMetaMap(GenRowStruct metaGrs, GenRowStruct curRow, boolean encoded,
-			boolean jsonCleanup) {
-		if (encoded) {
-			Map<String, Object> encodedMap = parseEncodedMetaMap(metaGrs);
-			if (encodedMap != null) {
-				return encodedMap;
+	protected static Map<String, Object> parseMetaMap(GenRowStruct metaGrs, GenRowStruct curRow, boolean jsonCleanup) {
+		Map<String, Object> mapValue = parseMapValue(metaGrs);
+		if (mapValue != null) {
+			if (jsonCleanup) {
+				applyLegacyJsonCleanup(mapValue);
 			}
-			encodedMap = parseEncodedMetaMap(curRow);
-			if (encodedMap != null) {
-				return encodedMap;
+			return mapValue;
+		}
+		mapValue = parseMapValue(curRow);
+		if (mapValue != null) {
+			if (jsonCleanup) {
+				applyLegacyJsonCleanup(mapValue);
 			}
-		} else {
-			Map<String, Object> mapValue = parseMapValue(metaGrs);
-			if (mapValue != null) {
-				if (jsonCleanup) {
-					applyLegacyJsonCleanup(mapValue);
-				}
-				return mapValue;
-			}
-			mapValue = parseMapValue(curRow);
-			if (mapValue != null) {
-				if (jsonCleanup) {
-					applyLegacyJsonCleanup(mapValue);
-				}
-				return mapValue;
-			}
+			return mapValue;
 		}
 
 		throw new IllegalArgumentException("Must define a metadata map");
@@ -131,9 +116,8 @@ public abstract class AbstractSetMetadataReactor extends AbstractReactor {
 		if (encodedStrInputs == null || encodedStrInputs.isEmpty()) {
 			return null;
 		}
-		String encodedStr = (String) encodedStrInputs.get(0).getValue();
-		String decodedStr = Utility.decodeURIComponent(encodedStr);
-		return GSON.fromJson(decodedStr, Map.class);
+		String str = (String) encodedStrInputs.get(0).getValue();
+		return GSON.fromJson(str, Map.class);
 	}
 
 	/**

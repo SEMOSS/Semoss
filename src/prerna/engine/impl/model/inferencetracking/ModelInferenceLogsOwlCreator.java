@@ -111,8 +111,8 @@ public class ModelInferenceLogsOwlCreator {
 //			);
 		
 		this.roomColumns = Arrays.asList(
-			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),  //insight id the room was made with
-			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
+			    Pair.with("INSIGHT_ID", "VARCHAR(50)"),
+			    Pair.with("ROOM_ID", "VARCHAR(50)"),
 			    Pair.with("ROOM_NAME", "VARCHAR(255)"),
 			    Pair.with("ROOM_CONTEXT", CLOB_DATATYPE_NAME),
 			    Pair.with("USER_ID", "VARCHAR(255)"),
@@ -122,32 +122,37 @@ public class ModelInferenceLogsOwlCreator {
 			    Pair.with("AGENT_ID", "VARCHAR(50)"),
 			    Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 			    Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
-			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),     
+			    Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
 			    Pair.with("PROJECT_ID", "VARCHAR(50)"),
 			    Pair.with("PROJECT_NAME", "VARCHAR(255)"),
-			    Pair.with("MODEL_ID", "VARCHAR(255)")    ,             // NEW
-			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),            // NEW
-			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),           // NEW
-			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),             // NEW
-			    Pair.with("SHARE_ID", "VARCHAR(255)"),               // NEW
-			    Pair.with("WORKSPACE_ID", "VARCHAR(255)"),               // NEW
-			    Pair.with("PARENT_ROOM_ID", "VARCHAR(50)")              // NEW
+			    Pair.with("MODEL_ID", "VARCHAR(255)"),
+			    Pair.with("MESSAGES", CLOB_DATATYPE_NAME),
+			    Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),
+			    Pair.with("OPTIONS", CLOB_DATATYPE_NAME),
+			    Pair.with("SHARE_ID", "VARCHAR(255)"),
+			    Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
+			    Pair.with("PARENT_ROOM_ID", "VARCHAR(50)")
 			);
-		
+
 		this.messageColumns = Arrays.asList(
 				Pair.with("MESSAGE_ID", "VARCHAR(50)"),
-				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),			// NEW
+				Pair.with("TRANSACTION_ID", "VARCHAR(50)"),
 				Pair.with("MESSAGE_TYPE", "VARCHAR(50)"),
 				Pair.with("MESSAGE_DATA", BLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("INPUT_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("OUTPUT_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("THINKING_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("CACHE_READ_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("CACHE_CREATION_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("MESSAGE_METHOD", "VARCHAR(50)"),
-				//Pair.with("MESSAGE_SEPARATOR", "VARCHAR(50)"), 
+				//Pair.with("MESSAGE_SEPARATOR", "VARCHAR(50)"),
 				Pair.with("RESPONSE_TIME", DOUBLE_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("AGENT_ID", "VARCHAR(50)"),
 				Pair.with("MODEL_ID", "VARCHAR(50)"),
 				Pair.with("INSIGHT_ID", "VARCHAR(50)"),
-			    Pair.with("ROOM_ID", "VARCHAR(50)"), 
+			    Pair.with("ROOM_ID", "VARCHAR(50)"),
 				Pair.with("SESSIONID", "VARCHAR(255)"),
 				Pair.with("USER_ID", "VARCHAR(255)"),
 				Pair.with("USER_NAME", "VARCHAR(255)"),

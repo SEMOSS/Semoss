@@ -154,7 +154,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						breakdown = PixelUtility.parsePixel(pixelString);
 						pixelList.addAll(breakdown);
 					} catch (ParserException | LexerException | IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Unable to retrieve insight.", e);
 						throw new IllegalArgumentException("Error occurred parsing the pixel expression");
 					}
 				}
@@ -166,7 +166,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return in;
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Unable to retrieve insight.", e1);
 		}
 		return null;
 	}
@@ -195,7 +195,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the insight name exists.", e);
 		}
 
 		return null;
@@ -219,7 +219,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return (String) wrapper.next().getValues()[0];
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve insight schema name.", e);
 		}
 
 		return null;
@@ -264,7 +264,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					testSchemaName = schemaName + "_" + (counter++);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to generate a unique insight schema name.", e);
 			}
 
 		} while (true);
@@ -293,7 +293,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to verify whether the insight name already exists for another insight.", e);
 		}
 
 		return false;
@@ -563,7 +563,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user insight permission.", e);
 		}
 
 		return null;
@@ -587,7 +587,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put(userId, permission);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve user insight permission.", e);
 		}
 		return retMap;
 	}
@@ -636,7 +636,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				return true;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to determine whether the insight is global.", e);
 		}
 		return false;
 	}
@@ -750,7 +750,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -884,7 +884,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the user's highest insight permission.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -923,7 +923,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add user insight creator.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -992,7 +992,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to add user insight creator.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1023,7 +1023,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight name.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1069,7 +1069,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight name.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1103,7 +1103,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight cached on.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1136,7 +1136,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1175,7 +1175,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight metadata.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1213,7 +1213,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			updateCount = ps.getUpdateCount();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight description.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1234,7 +1234,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					ps.getConnection().commit();
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to update insight description.", e);
 			} finally {
 				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
@@ -1266,7 +1266,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1293,7 +1293,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1324,7 +1324,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1350,7 +1350,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight tags.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1378,7 +1378,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight frames.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1426,7 +1426,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update insight frames.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1459,24 +1459,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param engineId
 	 * @param insightId
 	 */
-	public static void updateExecutionCount(String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
-		PreparedStatement ps = null;
-		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, insightId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
+	public static void updateExecutionCountAsync(String projectId, String insightId) {
+		Thread.ofVirtual().start(() -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(query);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.execute();
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+			} catch (SQLException e) {
+				classLogger.error("Unable to update execution count for project '{}' insight '{}'", projectId,
+						insightId, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
+		});
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1545,7 +1548,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1625,7 +1628,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -1709,7 +1712,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -1764,7 +1767,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
@@ -2483,7 +2486,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 		return wrapper;
 	}
@@ -2528,7 +2531,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		try {
 			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 		return wrapper;
 	}
@@ -2584,7 +2587,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update execution count.", e);
 		}
 
 		return retMap;
@@ -2633,7 +2636,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				retMap.put("cacheEncrypt", cacheEncrypt);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the cache details for the requested insight.", e);
 		}
 
 		return retMap;
@@ -2877,7 +2880,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertTargetAppInsightPermissionStatement.addBatch();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to generate insight search suggestions.", e);
 			throw e;
 		}
 
@@ -3016,7 +3019,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			valid = true;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to update metakey options.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3121,7 +3124,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve available metadata values.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3175,7 +3178,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve available metadata values.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3266,7 +3269,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				deletePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		} finally {
@@ -3296,7 +3299,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
@@ -3325,7 +3328,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -3379,7 +3382,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to remove expired insight user.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		} finally {
@@ -3513,7 +3516,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				updatePs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while marking old user access request with detailed message = "
 							+ e.getMessage());
@@ -3548,7 +3551,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to retrieve the insight alias for the given insight ID.", e);
 			throw new IllegalArgumentException(
 					"An error occurred while adding user access request detailed message = " + e.getMessage());
 		} finally {

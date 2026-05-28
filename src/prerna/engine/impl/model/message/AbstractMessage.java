@@ -77,6 +77,13 @@ public abstract class AbstractMessage {
 	protected MessageFeedback feedback;
 	protected int tokens;
 
+	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on response messages.
+	@SerializedName("cacheReadTokens")
+	protected Integer cacheReadTokens;
+
+	@SerializedName("cacheCreationTokens")
+	protected Integer cacheCreationTokens;
+
 	protected boolean visible = true;
 
 	@SerializedName("platform_generated")
@@ -282,6 +289,22 @@ public abstract class AbstractMessage {
 
 	public void setTokensInMessage(int tokens) {
 		this.tokens = tokens;
+	}
+
+	public Integer getCacheReadTokens() {
+		return cacheReadTokens;
+	}
+
+	public void setCacheReadTokens(Integer cacheReadTokens) {
+		this.cacheReadTokens = cacheReadTokens;
+	}
+
+	public Integer getCacheCreationTokens() {
+		return cacheCreationTokens;
+	}
+
+	public void setCacheCreationTokens(Integer cacheCreationTokens) {
+		this.cacheCreationTokens = cacheCreationTokens;
 	}
 
 	// ----------- Ornaments -----------

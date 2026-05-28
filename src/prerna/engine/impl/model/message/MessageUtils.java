@@ -124,7 +124,37 @@ public class MessageUtils {
 				}
 			}).create();
 
+	private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
+	}.getType();
+
 	// ---- Serialization/Deserialization ----
+
+	/**
+	 * Normalize a tool-call `arguments` value into something the Python side can
+	 * deserialize without double-escaping. The provider wire format delivers
+	 * arguments as a JSON-encoded string; if we leave that string in place, Gson
+	 * escapes the inner quotes a second time and json.loads on the Python side
+	 * chokes on payloads with shell escapes, code edits, newlines, etc. Parsing to
+	 * a Map here means args ride as a dict alongside every other field. On parse
+	 * failure we return the raw string so the downstream builder can still forward
+	 * it verbatim.
+	 */
+	private static Object toolArgumentsForPy(Object argsRaw) {
+		if (argsRaw == null) {
+			return new HashMap<>();
+		}
+		if (!(argsRaw instanceof String)) {
+			// some providers deliver a structured object already; re-serialize so
+			// the shape matches the string-input path
+			return GSON_FOR_PY.toJson(argsRaw);
+		}
+		try {
+			Map<String, Object> map = GSON_FOR_PY.fromJson((String) argsRaw, MAP_TYPE);
+			return map != null ? map : argsRaw;
+		} catch (Exception e) {
+			return argsRaw;
+		}
+	}
 
 	/**
 	 * API compatibility: add legacy flat fields into a map built from a message
@@ -534,7 +564,7 @@ public class MessageUtils {
 			if ("function_call_output".equals(entryType)) {
 				String callId = asStringOrNull(map.get("call_id"));
 				String output = asStringOrNull(map.get("output"));
-				result.add(InputMessage.toolExecution(room, callId, null, output, null, null));
+				result.add(InputMessage.toolExecution(room, callId, null, output, null, null, false));
 				continue;
 			}
 
@@ -613,19 +643,17 @@ public class MessageUtils {
 							Map<String, Object> flatTool = new HashMap<>();
 							flatTool.put("id", asStringOrNull(callMap.get("id"))); // tool_call id
 							flatTool.put("type", asStringOrNull(callMap.get("type")));
+							// Vertex/Gemini extended-thinking signature, attached upstream
+							Object thoughtSig = callMap.get("thought_signature");
+							if (thoughtSig instanceof String && !((String) thoughtSig).isEmpty()) {
+								flatTool.put("thought_signature", thoughtSig);
+							}
 							// openAI: "function": {...}
 							Object functionObj = callMap.get("function");
 							if ("function".equals(flatTool.get("type")) && functionObj instanceof Map) {
 								Map<?, ?> funcMap = (Map<?, ?>) functionObj;
 								flatTool.put("name", asStringOrNull(funcMap.get("name")));
-								Object argsRaw = funcMap.get("arguments");
-								if (argsRaw instanceof String) {
-									flatTool.put("arguments", argsRaw);
-								} else if (argsRaw != null) {
-									flatTool.put("arguments", GSON_FOR_PY.toJson(argsRaw));
-								} else {
-									flatTool.put("arguments", "{}");
-								}
+								flatTool.put("arguments", toolArgumentsForPy(funcMap.get("arguments")));
 							} else {
 								// For non-function tools, flatten as key-values
 								for (Map.Entry<?, ?> entry : callMap.entrySet()) {
@@ -659,7 +687,7 @@ public class MessageUtils {
 
 				// Add as tool execution message (in my earlier pattern)
 				AbstractMessage toolExecMsg = InputMessage.toolExecution(room, toolCallId, toolName, toolResult, null,
-						null);
+						null, false);
 				result.add(toolExecMsg);
 				continue;
 			}

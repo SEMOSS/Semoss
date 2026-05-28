@@ -97,6 +97,26 @@ public class PayloadStruct implements Serializable {
 	 */
 	public String[] asset_paths = null;
 
+	/**
+	 * Set runtime vars for the thread of execution (instead of globals() which can
+	 * run into race conditions). This is useful to passing ROOT, APP_ROOT,
+	 * USER_ROOT variables to the executing python. Within the executing python
+	 * code, the user can run:
+	 * <p>
+	 * smss_get_runtime_var("ROOT")
+	 * </p>
+	 * in order to get the value
+	 */
+	public Map<String, Object> runtime_vars = null;
+
+	/**
+	 * This is to support legacy code execution for variables like ROOT, APP_ROOT,
+	 * USER_ROOT. We should not use this but instead shift towards
+	 * {@link #runtime_vars}
+	 */
+	@Deprecated
+	public Map<String, Object> append_vars = null;
+
 	/*
 	 * This is really important If we have a User invoking an engine python process
 	 * The engine python process has its own unique insight for variable

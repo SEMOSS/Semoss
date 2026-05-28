@@ -239,13 +239,10 @@ class ClusterUtilUnitTests {
         @Test void testPushRoom_o() { assertDoesNotThrow(() -> ClusterUtil.pushRoom("rm2")); }
         @Test void testPullRoom() { assertDoesNotThrow(() -> ClusterUtil.pullRoom("rm")); }
         @Test void testPullRoom_o() { assertDoesNotThrow(() -> ClusterUtil.pullRoom("rm2")); }
-        @Test void testPushUW_t() { assertDoesNotThrow(() -> ClusterUtil.pushUserWorkspace("p", true)); }
-        @Test void testPushUW_f() { assertDoesNotThrow(() -> ClusterUtil.pushUserWorkspace("p", false)); }
-        @Test void testPullUW_2t() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true)); }
-        @Test void testPullUW_2f() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", false)); }
-        @Test void testPullUW_3tf() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true, false)); }
-        @Test void testPullUW_3tt() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", true, true)); }
-        @Test void testPullUW_3ff() { assertDoesNotThrow(() -> ClusterUtil.pullUserWorkspace("p", false, false)); }
+        @Test void testPushUserAsset() { assertDoesNotThrow(() -> ClusterUtil.pushUserAsset("p")); }
+        @Test void testPullUserAsset_1arg() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p")); }
+        @Test void testPullUserAsset_notAlreadyLoaded() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p", false)); }
+        @Test void testPullUserAsset_alreadyLoaded() { assertDoesNotThrow(() -> ClusterUtil.pullUserAsset("p", true)); }
     }
 
     // ── Helpers for modifying static final fields ──────────────────────────
@@ -621,33 +618,33 @@ class ClusterUtilUnitTests {
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pushUserWorkspace() throws Exception {
+        @Test void pushUserAsset() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pushUserWorkspace("p13", true);
-                verify(mock).pushUserAssetOrWorkspace("p13", true);
+                ClusterUtil.pushUserAsset("p13");
+                verify(mock).pushUserAsset("p13");
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_2arg() throws Exception {
+        @Test void pullUserAsset_1arg() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pullUserWorkspace("p14", false);
-                verify(mock).pullUserAssetOrWorkspace("p14", false, false);
+                ClusterUtil.pullUserAsset("p14");
+                verify(mock).pullUserAsset("p14", false);
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_3arg() throws Exception {
+        @Test void pullUserAsset_2arg() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                ClusterUtil.pullUserWorkspace("p15", true, true);
-                verify(mock).pullUserAssetOrWorkspace("p15", true, true);
+                ClusterUtil.pullUserAsset("p15", true);
+                verify(mock).pullUserAsset("p15", true);
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
     }
@@ -989,33 +986,33 @@ class ClusterUtilUnitTests {
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pushUserWorkspace_error() throws Exception {
+        @Test void pushUserAsset_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pushUserAssetOrWorkspace("p", true);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserWorkspace("p", true));
+                doThrow(new RuntimeException("fail")).when(mock).pushUserAsset("p");
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserAsset("p"));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_2arg_error() throws Exception {
+        @Test void pullUserAsset_1arg_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pullUserAssetOrWorkspace("p", false, false);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserWorkspace("p", false));
+                doThrow(new RuntimeException("fail")).when(mock).pullUserAsset("p", false);
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserAsset("p"));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
 
-        @Test void pullUserWorkspace_3arg_error() throws Exception {
+        @Test void pullUserAsset_2arg_error() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
                 CentralCloudStorage mock = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-                doThrow(new RuntimeException("fail")).when(mock).pullUserAssetOrWorkspace("p", true, true);
-                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserWorkspace("p", true, true));
+                doThrow(new RuntimeException("fail")).when(mock).pullUserAsset("p", true);
+                assertThrows(SemossPixelException.class, () -> ClusterUtil.pullUserAsset("p", true));
             } finally { setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false); }
         }
     }
@@ -1179,7 +1176,7 @@ class ClusterUtilUnitTests {
             }
         }
 
-        @Test void pushUserWorkspace_publishesZk() throws Exception {
+        @Test void pushUserAsset_publishesZk() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
@@ -1188,8 +1185,8 @@ class ClusterUtilUnitTests {
                 ClusterSynchronizer mockSync = mock(ClusterSynchronizer.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mockStorage);
                 zk.when(ClusterSynchronizer::getInstance).thenReturn(mockSync);
-                ClusterUtil.pushUserWorkspace("proj5", true);
-                verify(mockSync).publishProjectChange(eq("proj5"), eq("pullUserWorkspace"), eq("proj5"), eq(true));
+                ClusterUtil.pushUserAsset("proj5");
+                verify(mockSync).publishUserChange(eq("proj5"), eq("pullUserAsset"), eq("proj5"));
             } finally {
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", false);
@@ -1341,7 +1338,7 @@ class ClusterUtilUnitTests {
             }
         }
 
-        @Test void pushUserWorkspace_zkError() throws Exception {
+        @Test void pushUserAsset_zkError() throws Exception {
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", true);
             setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER_ZK", true);
             try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
@@ -1349,7 +1346,7 @@ class ClusterUtilUnitTests {
                 CentralCloudStorage mockStorage = mock(CentralCloudStorage.class);
                 ccs.when(CentralCloudStorage::getInstance).thenReturn(mockStorage);
                 zk.when(ClusterSynchronizer::getInstance).thenThrow(new RuntimeException("zk fail"));
-                SemossPixelException ex = assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserWorkspace("proj5", false));
+                SemossPixelException ex = assertThrows(SemossPixelException.class, () -> ClusterUtil.pushUserAsset("proj5"));
                 assertTrue(ex.isContinueThreadOfExecution());
             } finally {
                 setStaticFinalBoolean(ClusterUtil.class, "IS_CLUSTER", false);

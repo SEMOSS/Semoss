@@ -33,6 +33,8 @@ on:
 jobs:
   build:
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind
     env:
       PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
       COMPUTE_TYPE: ${{ github.event.inputs.compute_type || 'cpu' }}
@@ -44,13 +46,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1 # v3.0.0
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to Quay
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: quay.io
           username: ${{ secrets.QUAY_ROBOT_USERNAME }}
@@ -67,7 +69,7 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Python Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: ./docker
           file: ./docker/Dockerfile.python

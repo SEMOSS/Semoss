@@ -41,35 +41,37 @@ import prerna.util.SocialPropertiesUtil;
 public class MicrosoftTokenFiller implements IAccessTokenFiller {
 
 	public static final String MS_GRAPH_BASE_API = "https://graph.microsoft.com";
-	private static final String REFRESH_TOKEN_KEY = "refresh_token";
+	public static final String REFRESH_TOKEN_KEY = "refresh_token";
 	private static final String USER_INFO_URL = MS_GRAPH_BASE_API + "/v1.0/me/";
-	private static String [] beanProps = {"name","id","email"}; 
+	private static String[] beanProps = { "name", "id", "email" };
 	private static String jsonPattern = "[displayName,id,mail]";
-	
+
 	@Override
-	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params) {
-		if(userInfoUrl == null || (userInfoUrl=userInfoUrl.trim()).isEmpty()) {
+	public void fillAccessToken(AccessToken msAccessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params) {
+		if (userInfoUrl == null || (userInfoUrl = userInfoUrl.trim()).isEmpty()) {
 			userInfoUrl = USER_INFO_URL;
 		}
-		if(jsonPattern == null || (jsonPattern=jsonPattern.trim()).isEmpty()) {
+		if (jsonPattern == null || (jsonPattern = jsonPattern.trim()).isEmpty()) {
 			jsonPattern = MicrosoftTokenFiller.jsonPattern;
 		}
-		if(beanProps == null || beanProps.length == 0) {
+		if (beanProps == null || beanProps.length == 0) {
 			beanProps = MicrosoftTokenFiller.beanProps;
 		}
-		
-		if(params == null) {
+
+		if (params == null) {
 			params = new HashMap<>();
 		}
-		
+
 		String accessToken = msAccessToken.getAccess_token();
 		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken, params, true);
 		// fill the bean with the return
 		BeanFiller.fillFromJson(output, jsonPattern, beanProps, msAccessToken);
 	}
-	
+
 	@Override
-	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps, Map<String, Object> params, boolean sanitizeResponse) {
+	public void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
+			Map<String, Object> params, boolean sanitizeResponse) {
 		// dont need to sanitize
 		fillAccessToken(accessToken, userInfoUrl, jsonPattern, beanProps, params);
 	}
@@ -77,25 +79,25 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 	@Override
 	public AccessToken refreshAccessToken(AccessToken currentAccessToken, Map<String, Object> params) {
 		String refreshToken = getRefreshToken(currentAccessToken);
-		if(isBlank(refreshToken)) {
+		if (isBlank(refreshToken)) {
 			return null;
 		}
 
 		String clientId = SocialPropertiesUtil.getInstance().getProperty("ms_client_id");
-		if(isBlank(clientId)) {
+		if (isBlank(clientId)) {
 			clientId = SocialPropertiesUtil.getInstance().getProperty("ms_graphapi_client_id");
 		}
 		String clientSecret = SocialPropertiesUtil.getInstance().getProperty("ms_secret_key");
-		if(isBlank(clientSecret)) {
+		if (isBlank(clientSecret)) {
 			clientSecret = SocialPropertiesUtil.getInstance().getProperty("ms_graphapi_secret_key");
 		}
 		String tenantId = SocialPropertiesUtil.getInstance().getProperty("ms_tenant");
-		if(isBlank(clientId) || isBlank(tenantId)) {
+		if (isBlank(clientId) || isBlank(tenantId)) {
 			return null;
 		}
 
 		String tokenEndpoint = SocialPropertiesUtil.getInstance().getProperty("ms_token_url");
-		if(isBlank(tokenEndpoint)) {
+		if (isBlank(tokenEndpoint)) {
 			tokenEndpoint = "https://login.microsoftonline.com/" + tenantId + "/oauth2/v2.0/token";
 		}
 
@@ -103,12 +105,12 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		refreshParams.put("client_id", clientId);
 		refreshParams.put("grant_type", "refresh_token");
 		refreshParams.put("refresh_token", refreshToken);
-		if(!isBlank(clientSecret)) {
+		if (!isBlank(clientSecret)) {
 			refreshParams.put("client_secret", clientSecret);
 		}
 
 		AccessToken refreshedToken = HttpHelperUtility.getAccessToken(tokenEndpoint, refreshParams, true, true);
-		if(refreshedToken == null || isBlank(refreshedToken.getAccess_token())) {
+		if (refreshedToken == null || isBlank(refreshedToken.getAccess_token())) {
 			return null;
 		}
 
@@ -119,28 +121,28 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 		mergedToken.setStartTime(refreshedToken.getStartTime());
 
 		String updatedRefreshToken = getRefreshToken(refreshedToken);
-		if(!isBlank(updatedRefreshToken)) {
+		if (!isBlank(updatedRefreshToken)) {
 			mergedToken.addMetaValue(REFRESH_TOKEN_KEY, updatedRefreshToken);
 		} else {
 			mergedToken.addMetaValue(REFRESH_TOKEN_KEY, refreshToken);
 		}
 
-		if(mergedToken.getProvider() == null) {
+		if (mergedToken.getProvider() == null) {
 			mergedToken.setProvider(AuthProvider.MICROSOFT);
 		}
 		return mergedToken;
 	}
 
 	private String getRefreshToken(AccessToken accessToken) {
-		if(accessToken == null) {
+		if (accessToken == null) {
 			return null;
 		}
 		Collection<String> refreshTokens = accessToken.getMetaValues(REFRESH_TOKEN_KEY);
-		if(refreshTokens == null || refreshTokens.isEmpty()) {
+		if (refreshTokens == null || refreshTokens.isEmpty()) {
 			return null;
 		}
-		for(String refreshToken : refreshTokens) {
-			if(!isBlank(refreshToken)) {
+		for (String refreshToken : refreshTokens) {
+			if (!isBlank(refreshToken)) {
 				return refreshToken;
 			}
 		}
@@ -150,5 +152,5 @@ public class MicrosoftTokenFiller implements IAccessTokenFiller {
 	private boolean isBlank(String value) {
 		return value == null || value.trim().isEmpty();
 	}
-	
+
 }
