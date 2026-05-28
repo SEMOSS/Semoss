@@ -73,7 +73,7 @@ public class COTConfirmationReactor extends AbstractReactor {
 		String modelId = this.keyValue.get(this.keysToGet[index++]);
 		String roomId = this.keyValue.get(this.keysToGet[index++]);
 		// User query is not vital here, included for completeness
-		String cotPlanStr = Utility.decodeURIComponent(this.keyValue.get(this.keysToGet[index++])); // JSON string
+		String cotPlanStr = this.keyValue.get(this.keysToGet[index++]); // JSON string
 
 		User user = this.insight.getUser();
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
@@ -96,8 +96,8 @@ public class COTConfirmationReactor extends AbstractReactor {
 
 		// we will now mock the input and response
 		InputMessage inputMsg = InputMessage.builder(room).withSystemPrompt(PlaygroundUtils.COT_SYSTEM_PROMPT)
-				.withInputUIPrompt("Confirmed Plan").withInputPrompt(inputPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				.withText(inputPrompt, "Confirmed Plan").withModelType(modelEngine.getModelType())
+				.withParamMap(paramMap).build();
 		inputMsg.setParentMessageId(room.getMessages().getLast().getMessageId());
 		inputMsg.setTransactionId(inputMsg.getMessageId());
 

@@ -1794,6 +1794,88 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return true;
 	}
 
+	/**
+	 * Set the display name for a project. Only the project owner can perform this
+	 * action.
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param newDisplayName
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static boolean setProjectDisplayName(User user, String projectId, String newDisplayName)
+			throws IllegalAccessException {
+		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have the permission to change the project display name. Only the owner can perform this action.");
+		}
+		if (newDisplayName == null || newDisplayName.trim().isEmpty()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?");
+			int parameterIndex = 1;
+			ps.setString(parameterIndex++, newDisplayName);
+			ps.setString(parameterIndex++, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update project display name", e);
+			throw new IllegalArgumentException("An error occurred updating the project display name");
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Update the project dependencies and infer engine types from ids.
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngineIds
+	 */
+	@Deprecated
+	public static void updateProjectDependenciesWithoutType(User user, String projectId,
+			Collection<String> dependentEngineIds) {
+		List<Map<String, Object>> depEngines = new ArrayList<>();
+		for (String depEngineId : dependentEngineIds) {
+			Map<String, Object> depEngine = new HashMap<>();
+			depEngine.put("ENGINEID", depEngineId);
+			IEngine engine = null;
+			try {
+				engine = Utility.getEngine(depEngineId);
+				depEngine.put("ENGINETYPE", engine.getCatalogType().name());
+			} catch (Exception ex) {
+				// ignore
+			}
+			if (engine == null) {
+				engine = Utility.getProject(depEngineId);
+				depEngine.put("ENGINETYPE", IEngine.CATALOG_TYPE.PROJECT.name());
+			}
+			depEngines.add(depEngine);
+		}
+		updateEngineDependencies(user, projectId, IEngine.CATALOG_TYPE.PROJECT.name(), depEngines);
+	}
+
+	/**
+	 * Backward-compatible wrapper for project dependency updates.
+	 * 
+	 * @param user
+	 * @param projectId
+	 * @param dependentEngines
+	 */
+	@Deprecated
+	public static void updateProjectDependencies(User user, String projectId, List<Map<String, Object>> dependentEngines) {
+		updateEngineDependencies(user, projectId, IEngine.CATALOG_TYPE.PROJECT.name(), dependentEngines);
+	}
+
 
 	/**
 	 * Update the engine dependencies Will delete existing values and then perform a
@@ -4158,5 +4240,47 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+	}
+
+	/**
+	 * Get all authors for a specific project (for app-related notifications)
+	 * 
+	 * @param projectId
+	 * @return
+	 */
+	public static List<Map<String, Object>> getProjectAuthors(String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "userType"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "==", 1));
+		qs.addRelation("SMSS_USER", "PROJECTPERMISSION", "inner.join");
+
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * 
+	 * @param projectIds
+	 * @return
+	 */
+	public static Map<String, String> getProjectNamesByIds(Collection<String> projectIds) {
+		Map<String, String> projectMap = new HashMap<>();
+		if (projectIds == null || projectIds.isEmpty()) {
+			return projectMap;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "id"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME", "name"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectIds));
+
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (resultList != null) {
+			for (Map<String, Object> row : resultList) {
+				projectMap.put(String.valueOf(row.get("id")), String.valueOf(row.get("name")));
+			}
+		}
+		return projectMap;
 	}
 }

@@ -46,6 +46,10 @@ import com.github.pjfanning.xlsx.StreamingReader;
 
 import prerna.util.Utility;
 
+/**
+ * Pre-processes workbook sheets to detect table-like data ranges prior to
+ * querying.
+ */
 public class ExcelWorkbookFilePreProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(ExcelWorkbookFilePreProcessor.class);
@@ -62,11 +66,24 @@ public class ExcelWorkbookFilePreProcessor {
 
 	private Map<String, ExcelSheetPreProcessor> sheetProcessor = null;
 
+	/**
+	 * Parses an Excel workbook without password protection.
+	 *
+	 * @param fileLocation workbook path
+	 * @deprecated use {@link #parse(String, String)} to support both protected and
+	 *             unprotected files
+	 */
 	@Deprecated
 	public void parse(String fileLocation) {
 		parse(fileLocation, null);
 	}
 
+	/**
+	 * Parses an Excel workbook and prepares sheet preprocessors.
+	 *
+	 * @param fileLocation workbook path
+	 * @param password optional workbook password
+	 */
 	public void parse(String fileLocation, String password) {
 		this.fileLocation = fileLocation;
 		this.password = password;
@@ -79,16 +96,14 @@ public class ExcelWorkbookFilePreProcessor {
 	private void createParser() {
 		try {
 			sourceFile = new FileInputStream(Utility.normalizePath(fileLocation));
-			try {
-				workbook = StreamingReader.builder().rowCacheSize(10_000).bufferSize(1024 * 1024)
-						.password(this.password).open(sourceFile);
-			} catch (EncryptedDocumentException e) {
-				classLogger.error("Failed to open encrypted Excel file: {}", this.fileLocation, e);
-				throw new RuntimeException("Unable to open encrypted Excel file. Please verify the password.", e);
-			}
+			workbook = StreamingReader.builder().rowCacheSize(10_000).bufferSize(1024 * 1024).password(this.password)
+					.open(sourceFile);
 		} catch (FileNotFoundException e) {
 			classLogger.error("Excel file not found: {}", this.fileLocation, e);
 			throw new RuntimeException("Excel file not found", e);
+		} catch (EncryptedDocumentException e) {
+			classLogger.error("Failed to open encrypted Excel file: {}", this.fileLocation, e);
+			throw new RuntimeException("Unable to open encrypted Excel file. Please verify the password.", e);
 		} catch (Exception e) {
 			classLogger.error("Error reading Excel file: {}", this.fileLocation, e);
 			throw new RuntimeException("Unable to read Excel file", e);
@@ -109,8 +124,8 @@ public class ExcelWorkbookFilePreProcessor {
 
 	/**
 	 * Determine ranges in a specific sheet
-	 * 
-	 * @param sheet
+	 *
+	 * @param sheet sheet to analyze
 	 */
 	private void determineTableRanges(Sheet sheet) {
 		ExcelSheetPreProcessor sProcessor = new ExcelSheetPreProcessor(sheet);
@@ -118,6 +133,11 @@ public class ExcelWorkbookFilePreProcessor {
 		sheetProcessor.put(sheet.getSheetName(), sProcessor);
 	}
 
+	/**
+	 * Returns computed sheet preprocessors keyed by sheet name.
+	 *
+	 * @return map of sheet names to their processors
+	 */
 	public Map<String, ExcelSheetPreProcessor> getSheetProcessors() {
 		if (this.sheetProcessor == null) {
 			throw new IllegalArgumentException(
@@ -143,8 +163,8 @@ public class ExcelWorkbookFilePreProcessor {
 
 	/**
 	 * Get the sheets in order
-	 * 
-	 * @return
+	 *
+	 * @return sheet names in workbook order
 	 */
 	public List<String> getSheetNames() {
 		int numSheets = this.workbook.getNumberOfSheets();

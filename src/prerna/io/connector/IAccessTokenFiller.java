@@ -56,4 +56,18 @@ public interface IAccessTokenFiller {
 	void fillAccessToken(AccessToken accessToken, String userInfoUrl, String jsonPattern, 
 			String[] beanProps, Map<String, Object> params, boolean sanitizeResponse);
 
+	/**
+	 * Attempt to refresh the provided access token.
+	 * <p>
+	 * Default behavior is unsupported and returns {@code null}. Provider-specific
+	 * fillers can override to support delegated refresh token flows.
+	 * 
+	 * @param accessToken token to refresh
+	 * @param params      optional provider-specific parameters
+	 * @return refreshed token (or null when refresh is not supported/possible)
+	 */
+	default AccessToken refreshAccessToken(AccessToken accessToken, Map<String, Object> params) {
+		return null;
+	}
+
 }

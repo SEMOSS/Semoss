@@ -40,8 +40,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 
@@ -56,7 +54,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String column = this.keyValue.get(this.keysToGet[0]);
-		if(column == null | column.isEmpty()) {
+		if (column == null | column.isEmpty()) {
 			throw new IllegalArgumentException("Must pass in the column to run the update on");
 		}
 		String matchesTable = this.keyValue.get(this.keysToGet[1]);
@@ -73,8 +71,9 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 
 		// iterate matches and create the link frame
 		List<String> allMatches = getInputList(MATCHES);
-		if(allMatches == null || allMatches.isEmpty()) {
-			throw new IllegalArgumentException("Must pass in matches to connect the 'current value' to the 'replacement value'");
+		if (allMatches == null || allMatches.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Must pass in matches to connect the 'current value' to the 'replacement value'");
 		}
 		// add all matches
 		StringBuilder col1Builder = new StringBuilder();
@@ -86,7 +85,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 				col2Builder.append(",");
 				col3Builder.append(",");
 			}
-			String match = (String) allMatches.get(i);
+			String match = allMatches.get(i);
 			String[] matchList = match.split(" == ");
 			if (matchList.length > 2) {
 				throw new IllegalArgumentException("match seperator didnt work");
@@ -99,7 +98,7 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 		}
 		// add all matches provided
 		scripts.add(linkFrame + " = pd.DataFrame({'col1':[" + col1Builder + "], 'col2':[" + col2Builder + "]})");
-		
+
 		// make link frame unique
 		scripts.add(linkFrame + " = " + linkFrame + ".drop_duplicates()");
 
@@ -113,25 +112,18 @@ public class UpdateMatchColumnValuesReactor extends AbstractPyFrameReactor {
 		}
 
 		scripts.add(wrapperName + ".merge_match_results('" + column + "'," + linkFrame + ")");
-		
+
 		// return data type to original state
 		if (convertJoinColFromNum) {
 			scripts.add(frameName + "['" + column + "'] = pd.to_numeric(" + frameName + "['" + column + "'])");
 		}
-		
+
 		insight.getPyTranslator().runEmptyPy(scripts.toArray(new String[scripts.size()]));
-		for(String script : scripts) {
+		for (String script : scripts) {
 			this.addExecutedCode(script);
 		}
-		
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"UpdateSimilarColumnValues", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 		return retNoun;
 	}
 

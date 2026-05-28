@@ -119,6 +119,7 @@ public class ToPercentReactor extends AbstractFrameReactor {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
+
 		throw new IllegalArgumentException("Unable to generate percent column");
 	}
 

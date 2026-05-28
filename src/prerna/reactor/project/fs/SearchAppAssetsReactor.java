@@ -48,8 +48,6 @@ import prerna.util.Utility;
 
 public class SearchAppAssetsReactor extends AbstractReactor {
 
-	private DateTimeFormatter dateTimeFormatter;
-
 	public SearchAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
 				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
@@ -60,7 +58,8 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		this.dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(user.getZoneId());
+		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+				.withZone(user.getZoneId());
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
@@ -131,9 +130,9 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 			return """
 					A list of zero or more search flags to modify matching behavior.
 					       Valid values are:
-					          "case"  � perform a case-sensitive match
-					          "word"  � match only whole words
-					          "regex" � treat the search term as a full Java regular expression
+					          "case"  - perform a case-sensitive match
+					          "word"  - match only whole words
+					          "regex" - treat the search term as a full Java regular expression
 					       If omitted, defaults to a case-insensitive file search.
 					""";
 		}

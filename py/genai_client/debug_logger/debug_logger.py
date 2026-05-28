@@ -7,7 +7,7 @@ class DebugLogger:
     from ...debug_logger.debug_logger import DebugLogger
 
     logger = DebugLogger(
-        log_dir="C:\\Users\\rweiler\\Desktop\\LOG_FILES",
+        log_dir="/Users/rweiler/Desktop/LOG_FILES",
         log_file_name="semoss_message_builder.txt",
         class_name=__name__,
     ).logger

@@ -38,22 +38,18 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SplitUnpivotReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor splits columns based on a separator
-	 * The split values will be combined into a single column
-	 * The inputs to the reactor are: 
-	 * 1) the columns to split "columns"
-	 * 2) the delimiters "delimiters" 
+	 * This reactor splits columns based on a separator The split values will be
+	 * combined into a single column The inputs to the reactor are: 1) the columns
+	 * to split "columns" 2) the delimiters "delimiters"
 	 */
-	
+
 	public SplitUnpivotReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.DELIMITER.getKey() };
 	}
 
 	@Override
@@ -104,8 +100,9 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			}
 
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-			if(dataType == null)
+			if (dataType == null) {
 				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			}
 
 			// build the script to execute
 			String script = tempName + " <- cSplit(" + table + ", " + "\"" + column + "\", \"" + delimiter
@@ -144,13 +141,6 @@ public class SplitUnpivotReactor extends AbstractRFrameReactor {
 			frame.executeRScript(cleanup);
 			this.addExecutedCode(cleanup);
 		}
-
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"SplitUnpivot", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
 
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

@@ -77,7 +77,8 @@ public class AdminMyProjectsReactorUnitTests {
 		reactor.setNounStore(ns);
 		when(insight.getUser()).thenReturn(user);
 
-		// curRow is accessed by getMetaMap() — use reflection since it's protected in AbstractReactor
+		// curRow is accessed by getMetaMap() — use reflection since it's protected in
+		// AbstractReactor
 		GenRowStruct curRow = mock(GenRowStruct.class);
 		Field curRowField = AbstractReactor.class.getDeclaredField("curRow");
 		curRowField.setAccessible(true);
@@ -86,7 +87,7 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testKeysToGet() {
-		assertEquals(8, reactor.keysToGet.length);
+		assertEquals(10, reactor.keysToGet.length);
 		assertEquals(ReactorKeysEnum.FILTER_WORD.getKey(), reactor.keysToGet[0]);
 	}
 
@@ -106,7 +107,7 @@ public class AdminMyProjectsReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
@@ -119,7 +120,9 @@ public class AdminMyProjectsReactorUnitTests {
 	@Test
 	void testGetDescriptionForSortKey() {
 		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
-		assertEquals("The sort is a string value containing either 'name' or 'date' for how to sort", desc);
+		assertEquals(
+				"The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').",
+				desc);
 	}
 
 	@Test
@@ -142,7 +145,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -180,7 +183,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
@@ -213,7 +216,7 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull()))
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
 					.thenReturn(results);
 
 			// noMeta=true and includeUserT=false → skip metadata and usertracking blocks

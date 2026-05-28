@@ -38,27 +38,23 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
-import prerna.util.usertracking.AnalyticsTrackerHelper;
-import prerna.util.usertracking.UserTrackerFactory;
 
 public class SplitColumnsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor splits columns based on a separator
-	 * It replaces all portions of the current cell value that is an exact match to the input value
-	 * The inputs to the reactor are: 
-	 * 1) the separator
-	 * 2) the columns to split 
+	 * This reactor splits columns based on a separator It replaces all portions of
+	 * the current cell value that is an exact match to the input value The inputs
+	 * to the reactor are: 1) the separator 2) the columns to split
 	 */
 
 	private static final String SEARCH_TYPE = "search";
 	private static final String REGEX = "Regex";
 
 	public SplitColumnsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.COLUMNS.getKey(), ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMNS.getKey(),
+				ReactorKeysEnum.DELIMITER.getKey(), SEARCH_TYPE };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		List<String> cols = getColumns();
@@ -73,12 +69,13 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 
 		// get table name
 		String table = frame.getName();
-		
+
 		// make a temporary table name
 		// we will reassign the table to this variable
 		// then assign back to the original table name
 		String tempName = Utility.getRandomString(8);
-		// script to change the name of the table back to the original name - will be used later
+		// script to change the name of the table back to the original name - will be
+		// used later
 		String frameReplaceScript = table + " <- " + tempName + ";";
 		// false columnReplaceScript indicates that we will not drop the
 		// original column of data
@@ -97,10 +94,11 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 			if (column.contains("__")) {
 				column = column.split("__")[1];
 			}
-			
+
 			String dataType = metaData.getHeaderTypeAsString(table + "__" + column);
-			if(dataType == null)
+			if (dataType == null) {
 				return getWarning("Frame is out of sync / No Such Column. Cannot perform this operation");
+			}
 
 			// build the script to execute
 			String script = tempName + " <- cSplit(" + table + ", " + "\"" + column + "\", \"" + separator
@@ -147,24 +145,18 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 			this.addExecutedCode(cleanup);
 		}
 
-		// NEW TRACKING
-		UserTrackerFactory.getInstance().trackAnalyticsWidget(
-				this.insight, 
-				frame, 
-				"SplitColumn", 
-				AnalyticsTrackerHelper.getHashInputs(this.store, this.keysToGet));
-
 		// column header data is changing so we must recreate metadata
 		frame.recreateMeta();
-		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+				PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	///////////////////////// GET PIXEL INPUT ////////////////////////////
 	//////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////
-	
+
 	private String getSeparator() {
 		GenRowStruct separatorGrs = this.store.getGenRowStruct(keysToGet[2]);
 		if (separatorGrs == null || separatorGrs.isEmpty()) {
@@ -176,7 +168,7 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 		}
 		return separator;
 	}
-	
+
 	private boolean isRegex() {
 		GenRowStruct regexGrs = this.store.getGenRowStruct(SEARCH_TYPE);
 		if (regexGrs == null || regexGrs.isEmpty()) {
@@ -188,7 +180,7 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 		}
 		return false;
 	}
-	
+
 	private List<String> getColumns() {
 		List<String> cols = new ArrayList<String>();
 
@@ -212,7 +204,7 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 
 		throw new IllegalArgumentException("Need to define the columns to split");
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
@@ -223,5 +215,5 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
-	
+
 }

@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import prerna.util.SystemEngineRegistry;
 
 public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -53,7 +54,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
     @BeforeEach
     void setup() {
-        securityDb = AbstractSecurityUtils.securityDb;
+        securityDb = SystemEngineRegistry.getSecurityDb();
         assertTrue(securityDb.getOwlFilePath().contains("junit"));
         assertNotNull(this.securityDb);
     }
@@ -436,7 +437,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
-                SecurityProjectUtils.editProjectUserPermission(user2, "user3id", "testProjectId", "EDIT", null));
+                SecurityProjectUtils.editProjectUserPermission(user2, "user3id", "NATIVE", "testProjectId", "EDIT", null));
         assertEquals("Insufficient privileges to modify this project's permissions.", ex.getMessage());
     }
 
@@ -449,7 +450,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
         assertFalse(SecurityProjectUtils.userCanEditProject(user2, "testProjectId"));
 
-        SecurityProjectUtils.editProjectUserPermission(user, "user2id", "testProjectId", "EDIT", null);
+        SecurityProjectUtils.editProjectUserPermission(user, "user2id", "NATIVE", "testProjectId", "EDIT", null);
 
         assertTrue(SecurityProjectUtils.userCanEditProject(user2, "testProjectId"));
     }
@@ -1488,7 +1489,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
-                SecurityProjectUtils.editProjectUserPermission(user, "nonExistentUser", "testProjectId", "EDIT", null));
+                SecurityProjectUtils.editProjectUserPermission(user, "nonExistentUser", "NATIVE", "testProjectId", "EDIT", null));
         assertEquals("Attempting to modify project permission for a user who does not currently have access to the project", ex.getMessage());
     }
 
@@ -1501,7 +1502,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
         // Editor (user2) tries to edit owner's (admin) permission
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
-                SecurityProjectUtils.editProjectUserPermission(user2, "adminid", "testProjectId", "EDIT", null));
+                SecurityProjectUtils.editProjectUserPermission(user2, "adminid", "NATIVE", "testProjectId", "EDIT", null));
         assertEquals("The user doesn't have the high enough permissions to modify this users project permission.", ex.getMessage());
     }
 
@@ -1516,7 +1517,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
         // Editor (user2) tries to grant OWNER to user3
         IllegalAccessException ex = assertThrows(IllegalAccessException.class, () ->
-                SecurityProjectUtils.editProjectUserPermission(user2, "user3id", "testProjectId", "OWNER", null));
+                SecurityProjectUtils.editProjectUserPermission(user2, "user3id", "NATIVE", "testProjectId", "OWNER", null));
         assertEquals("Cannot give owner level access to this project since you are not currently an owner.", ex.getMessage());
     }
 
@@ -1527,7 +1528,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
         SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "READ_ONLY", null);
 
-        SecurityProjectUtils.editProjectUserPermission(user, "user2id", "testProjectId", "EDIT", "2099-12-31T00:00:00Z");
+        SecurityProjectUtils.editProjectUserPermission(user, "user2id", "NATIVE", "testProjectId", "EDIT", "2099-12-31T00:00:00Z");
 
         assertTrue(SecurityProjectUtils.userCanEditProject(user2, "testProjectId"));
     }
@@ -1895,7 +1896,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         User user = UnitTestSecurityAuthUtils.createUser("admin", true);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencies("testProjectId");
+        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencies("testProjectId", true);
         assertNotNull(deps);
         assertTrue(deps.isEmpty());
     }
@@ -1905,7 +1906,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
         User user = UnitTestSecurityAuthUtils.createUser("admin", true);
         UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencyDetails("testProjectId");
+        List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencyDetails("testProjectId", false);
         assertNotNull(deps);
         assertTrue(deps.isEmpty());
     }

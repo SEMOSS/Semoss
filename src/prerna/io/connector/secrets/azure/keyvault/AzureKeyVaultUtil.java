@@ -47,9 +47,8 @@ import com.google.gson.reflect.TypeToken;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.io.connector.secrets.AbstractSecrets;
-import prerna.util.Constants;
 
-public class AzureKeyVaultUtil extends AbstractSecrets {
+public final class AzureKeyVaultUtil extends AbstractSecrets {
 
 	/**
 	 * 
@@ -66,7 +65,7 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 	private static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
 	private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
 
-	private static AzureKeyVaultUtil instance;
+	private static volatile AzureKeyVaultUtil instance;
 
 	private SecretClient secretClient;
 
@@ -110,15 +109,17 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 		}
 
 		if (instance == null) {
-			synchronized (AzureKeyVaultUtil.class) {
-				if (instance == null) {
-					try {
-						instance = new AzureKeyVaultUtil();
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+				synchronized (AzureKeyVaultUtil.class) {
+					if (instance == null) {
+						try {
+							instance = new AzureKeyVaultUtil();
+						} catch (Exception e) {
+							classLogger.error(
+									"Failed to initialize AzureKeyVaultUtil singleton. Verify configuration for {} and {}.",
+									AZURE_KEYVAULT_NAME, AZURE_AUTHENTICATE_MODE, e);
+						}
 					}
 				}
-			}
 		}
 
 		return instance;
@@ -157,21 +158,25 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 			KeyVaultSecret secret = this.secretClient.getSecret(secretPath);
 			String value = secret.getValue();
 			// we assume this is a map
-			try {
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
-				}.getType());
-				return data;
-			} catch (JsonSyntaxException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Invalid format for secret storage. Must be a valid string representation of a map");
+				try {
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
+					}.getType());
+					return data;
+				} catch (JsonSyntaxException e) {
+					classLogger.error(
+							"Failed to parse engine secret payload from Azure Key Vault for secret path '{}' (engineId={}, catalogType={}). Expected a JSON object map.",
+							secretPath, engineId, eType, e);
+					throw new IllegalArgumentException(
+							"Invalid format for secret storage. Must be a valid string representation of a map");
+				}
+			} catch (Exception e) {
+				classLogger.warn(
+						"Failed to retrieve engine secrets from Azure Key Vault for secret path '{}' (engineId={}, catalogType={}). Returning empty secrets map.",
+						secretPath, engineId, eType, e);
+				return new HashMap<>();
 			}
-		} catch (Exception e) {
-			classLogger.warn(Constants.STACKTRACE, e);
-			return new HashMap<>();
 		}
-	}
 
 	@Override
 	public Map<String, Object> getInsightSecrets(String projectId, String projectName, String insightId) {
@@ -181,21 +186,25 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 			KeyVaultSecret secret = this.secretClient.getSecret(secretPath);
 			String value = secret.getValue();
 			// we assume this is a map
-			try {
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
-				}.getType());
-				return data;
-			} catch (JsonSyntaxException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Invalid format for secret storage. Must be a valid string representation of a map");
+				try {
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
+					}.getType());
+					return data;
+				} catch (JsonSyntaxException e) {
+					classLogger.error(
+							"Failed to parse insight secret payload from Azure Key Vault for secret path '{}' (projectId={}, insightId={}). Expected a JSON object map.",
+							secretPath, projectId, insightId, e);
+					throw new IllegalArgumentException(
+							"Invalid format for secret storage. Must be a valid string representation of a map");
+				}
+			} catch (Exception e) {
+				classLogger.warn(
+						"Failed to retrieve insight secrets from Azure Key Vault for secret path '{}' (projectId={}, insightId={}). Returning empty secrets map.",
+						secretPath, projectId, insightId, e);
+				return new HashMap<>();
 			}
-		} catch (Exception e) {
-			classLogger.warn(Constants.STACKTRACE, e);
-			return new HashMap<>();
 		}
-	}
 
 	@Override
 	public Map<String, Object> getInsightEncryptionSecrets(String projectId, String projectName, String insightId) {
@@ -205,21 +214,25 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 			KeyVaultSecret secret = this.secretClient.getSecret(secretPath);
 			String value = secret.getValue();
 			// we assume this is a map
-			try {
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
-				}.getType());
-				return data;
-			} catch (JsonSyntaxException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(
-						"Invalid format for secret storage. Must be a valid string representation of a map");
+				try {
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
+					}.getType());
+					return data;
+				} catch (JsonSyntaxException e) {
+					classLogger.error(
+							"Failed to parse insight encryption secret payload from Azure Key Vault for secret path '{}' (projectId={}, insightId={}). Expected a JSON object map.",
+							secretPath, projectId, insightId, e);
+					throw new IllegalArgumentException(
+							"Invalid format for secret storage. Must be a valid string representation of a map");
+				}
+			} catch (Exception e) {
+				classLogger.warn(
+						"Failed to retrieve insight encryption secrets from Azure Key Vault for secret path '{}' (projectId={}, insightId={}). Returning empty secrets map.",
+						secretPath, projectId, insightId, e);
+				return new HashMap<>();
 			}
-		} catch (Exception e) {
-			classLogger.warn(Constants.STACKTRACE, e);
-			return new HashMap<>();
 		}
-	}
 
 	@Override
 	public boolean appendEngineSecret(IEngine.CATALOG_TYPE eType, String engineId, String engineName, String key,
@@ -253,7 +266,9 @@ public class AzureKeyVaultUtil extends AbstractSecrets {
 			secretClient.beginDeleteSecret(secretPath);
 			return true;
 		} catch (Exception e) {
-			classLogger.warn(Constants.STACKTRACE, e);
+			classLogger.warn(
+					"Failed to delete engine secret from Azure Key Vault for secret path '{}' (engineId={}, catalogType={}).",
+					secretPath, engineId, eType, e);
 			return false;
 		}
 	}

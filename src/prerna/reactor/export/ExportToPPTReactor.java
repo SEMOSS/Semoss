@@ -109,13 +109,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.ChromeDriverUtility;
-import prerna.util.DIHelper;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.Constants;
 
 public class ExportToPPTReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ExportToPPTReactor.class);
 
 	private static final String GRID_ON_X = "tools.shared.editGrid.x";
@@ -132,9 +131,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 	Object driver = null;
 	ChromeDriverUtility util = null;
-	
+
 	public ExportToPPTReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.TASK.getKey(), ReactorKeysEnum.FILE_NAME.getKey(),
+				ReactorKeysEnum.FILE_PATH.getKey() };
 	}
 
 	@Override
@@ -142,26 +142,26 @@ public class ExportToPPTReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		util = this.insight.getChromeDriver();
-		
+
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
-		
+
 		// get a random file name
-		String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+		String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "pptx");
 		// grab file path to write the file
-		String fileLocation =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+		String fileLocation = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 		// if the file location is not defined generate a random path and set
 		// location so that the front end will download
 		if (fileLocation == null) {
 			String insightFolder = this.insight.getInsightFolder();
 			File f = new File(insightFolder);
-			if(!f.exists()) {
+			if (!f.exists()) {
 				f.mkdirs();
 			}
 			fileLocation = insightFolder + DIR_SEPARATOR + exportName;
@@ -171,7 +171,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			insightFile.setDeleteOnInsightClose(false);
 		}
 		insightFile.setFilePath(fileLocation);
-		
+
 		Map<String, InsightPanel> panelMap = this.insight.getInsightPanels();
 		Map<String, InsightSheet> sheetMap = this.insight.getInsightSheets();
 		// create Powerpoint slideshow
@@ -185,17 +185,17 @@ public class ExportToPPTReactor extends AbstractReactor {
 			if (!sheetToPanelMap.containsKey(sheetId)) {
 				sheetToPanelMap.put(sheetId, new ArrayList<InsightPanel>());
 			}
-			List<InsightPanel> panelList = (List<InsightPanel>) sheetToPanelMap.get(sheetId);
+			List<InsightPanel> panelList = sheetToPanelMap.get(sheetId);
 			panelList.add(panel);
 		}
 		// Process each panel and try to plot each chart
 		for (String sheetId : sheetToPanelMap.keySet()) {
-			List<InsightPanel> panelList = (List<InsightPanel>) sheetToPanelMap.get(sheetId);
+			List<InsightPanel> panelList = sheetToPanelMap.get(sheetId);
 			for (InsightPanel panel : panelList) {
 				// for each panel get the task and task options
 				SelectQueryStruct qs = panel.getLastQs();
 				TaskOptions taskOptions = panel.getLastTaskOptions();
-				if(qs == null || taskOptions == null) {
+				if (qs == null || taskOptions == null) {
 					continue;
 				}
 				IQuerySelector firstSelector = qs.getSelectors().get(0);
@@ -207,28 +207,29 @@ public class ExportToPPTReactor extends AbstractReactor {
 				ITask task = InsightUtility.constructTaskFromQs(this.insight, qs);
 				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 				task.setTaskOptions(taskOptions);
-				
+
 				processTask(user, slideshow, task, panel);
 			}
 		}
-		
+
 		// Add Semoss Logo to bottom right corner of each slide
 		addLogo(slideshow);
-		
+
 		writeToFile(slideshow, fileLocation);
-		
-		// store the insight file 
+
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the ppt file"));
 		return retNoun;
 	}
 
 	private void addLogo(XMLSlideShow slideshow) {
-		String semossLogoPath = DIHelper.getInstance().getProperty("EXPORT_SEMOSS_LOGO");
+		String semossLogoPath = Utility.getDIHelperProperty("EXPORT_SEMOSS_LOGO");
 		if (semossLogoPath != null) {
 			File logo = new File(semossLogoPath);
 			if (logo.exists()) {
@@ -247,7 +248,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 					pictureShape.setAnchor(lowerRightCornerBounds);
 				}
 			}
-		}		
+		}
 	}
 
 	private void processTask(User user, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
@@ -256,7 +257,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Map<String, Object> options = tOptions.getOptions();
 		// Insert chart if supported
 		try {
-			String plotType = (String) tOptions.getLayout(panelId);
+			String plotType = tOptions.getLayout(panelId);
 			if (plotType.equals("Line")) {
 				insertLineChart(slideshow, task, options, panel);
 			} else if (plotType.equals("Scatter")) {
@@ -271,15 +272,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 				insertRadarChart(options, slideshow, task, panel);
 			} else if (plotType.equals("Grid")) {
 				insertGridChart(options, slideshow, task, panel);
-			} else if(!plotType.equals("PivotTable")) { 
+			} else if (!plotType.equals("PivotTable")) {
 				insertImage(user, options, slideshow, task, panel);
 			}
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} finally {
-			if(driver != null && driver instanceof ChromeDriver) {
-				
-				((ChromeDriver)driver).quit();
+			if (driver != null && driver instanceof ChromeDriver) {
+
+				((ChromeDriver) driver).quit();
 			}
 			driver = null;
 		}
@@ -293,17 +294,26 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// retrieve ornaments
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.x") + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.editGrid.y") + "");
-		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
- 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		Boolean displayValues = Boolean
+				.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.displayValues") + "");
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -323,16 +333,16 @@ public class ExportToPPTReactor extends AbstractReactor {
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
 		// Add Y Axis Title
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
 		// Add X Axis Title
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -341,7 +351,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFLineChartData data = (XDDFLineChartData) chart.createData(ChartTypes.LINE, bottomAxis, leftAxis);
 
 		// Add in x vals
-		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName, 0);
 
 		// Add in y vals
 		int yCounter = 0;
@@ -352,7 +362,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			chartSeries.setTitle(yColumnNames.get(i), null);
 			// Standardize markers
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setMarkerStyle(MarkerStyle.CIRCLE);
 			XDDFShapeProperties propertiesMarker = new XDDFShapeProperties();
 			propertiesMarker.setFillProperties(fillProperties);
@@ -366,7 +376,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -380,7 +390,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 		slide.addChart(chart, bounds);
 	}
 
-	private void insertScatterChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+	private void insertScatterChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task,
+			InsightPanel panel) {
 		// Grab data for chart
 		PPTDataHandler dataHandler = new PPTDataHandler();
 		dataHandler.setData(task);
@@ -389,13 +400,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -413,15 +431,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -448,7 +466,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -468,22 +486,33 @@ public class ExportToPPTReactor extends AbstractReactor {
 		dataHandler.setData(task);
 
 		// retrieve ornaments
-		Boolean toggleStack = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
-		Boolean flipAxis = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
+		Boolean toggleStack = Boolean
+				.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.toggleStack") + "");
+		Boolean flipAxis = Boolean
+				.parseBoolean(panel.getMapInput(panel.getOrnaments(), "tools.shared.rotateAxis") + "");
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizeBarLabel.position") + "";
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
- 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizeBarLabel.position") + "";
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -502,15 +531,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -518,7 +547,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 		XDDFBarChartData data = (XDDFBarChartData) chart.createData(ChartTypes.BAR, bottomAxis, leftAxis);
 		leftAxis.setCrossBetween(AxisCrossBetween.BETWEEN);
-		
+
 		if (flipAxis) {
 			data.setBarDirection(BarDirection.BAR);
 		} else {
@@ -532,7 +561,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		// Add in x vals
-		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName,0);
+		XDDFDataSource<?> xs = dataHandler.getColumnAsXDDFDataSourceByType(xColumnName, 0);
 
 		// Add in y vals
 		int yCounter = 0;
@@ -541,14 +570,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFBarChartData.Series chartSeries = (XDDFBarChartData.Series) data.addSeries(xs, ys);
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
-            chartSeries.setFillProperties(fillProperties);
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
+			chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			yCounter++;
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -572,16 +601,24 @@ public class ExportToPPTReactor extends AbstractReactor {
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
- 		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
+		String colorName = panel.getMapInput(panel.getOrnaments(), COLOR_NAME) + "";
 		Object customColors = panel.getMapInput(panel.getOrnaments(), CUSTOM_COLOR_ARRAY);
-        Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
-        String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
+		Object colorObject = panel.getMapInput(panel.getOrnaments(), COLOR_ARRAY);
+		String[] colorArray = POIExportUtility.getHexColorCode(colorName, customColors, colorObject);
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -600,15 +637,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -626,14 +663,14 @@ public class ExportToPPTReactor extends AbstractReactor {
 			XDDFNumericalDataSource<? extends Number> ys = XDDFDataSourcesFactory.fromArray(yNumberArray);
 			XDDFAreaChartData.Series chartSeries = (XDDFAreaChartData.Series) data.addSeries(xs, ys);
 			XDDFSolidFillProperties fillProperties = new XDDFSolidFillProperties();
-			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter%colorArray.length])));
+			fillProperties.setColor(XDDFColor.from(POIExportUtility.hex2Rgb(colorArray[yCounter % colorArray.length])));
 			chartSeries.setFillProperties(fillProperties);
 			chartSeries.setTitle(yColumnName.replaceAll("_", " "), null);
 			yCounter++;
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -654,8 +691,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		// retrieve ornaments
 		Boolean displayValues = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), DISPLAY_VALUES) + "");
-		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.position") + "";
-		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(), "tools.shared.customizePieLabel.dimension");
+		String displayValuesPosition = panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizePieLabel.position") + "";
+		List<String> pieCustomDisplayValues = (List<String>) panel.getMapInput(panel.getOrnaments(),
+				"tools.shared.customizePieLabel.dimension");
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -684,7 +723,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
@@ -692,29 +731,29 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// if true, display data labels on chart
 		if (displayValues.booleanValue()) {
 			CTPieChart ctPieChart = chart.getCTChart().getPlotArea().getPieChartArray(0);
-            ctPieChart.addNewDLbls();
-            CTDLbls dLbls = ctPieChart.getDLbls();
-            if(dLbls != null) {
-            	if(pieCustomDisplayValues.contains("Percentage")) {
-                    dLbls.addNewShowPercent().setVal(true);
-            	} else {
-                    dLbls.addNewShowPercent().setVal(false);
-            	}
-            	if(pieCustomDisplayValues.contains("Value")) {
-                    dLbls.addNewShowVal().setVal(true);
-            	} else {
-                    dLbls.addNewShowVal().setVal(false);
-            	}
-            	if(pieCustomDisplayValues.contains("Name")) {
-                    dLbls.addNewShowCatName().setVal(true);
-            	} else {
-                    dLbls.addNewShowCatName().setVal(false);
-            	}
-            	dLbls.addNewShowBubbleSize().setVal(false);
-                dLbls.addNewShowLegendKey().setVal(false);
-                dLbls.addNewShowSerName().setVal(false);
-    			POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
-            }
+			ctPieChart.addNewDLbls();
+			CTDLbls dLbls = ctPieChart.getDLbls();
+			if (dLbls != null) {
+				if (pieCustomDisplayValues.contains("Percentage")) {
+					dLbls.addNewShowPercent().setVal(true);
+				} else {
+					dLbls.addNewShowPercent().setVal(false);
+				}
+				if (pieCustomDisplayValues.contains("Value")) {
+					dLbls.addNewShowVal().setVal(true);
+				} else {
+					dLbls.addNewShowVal().setVal(false);
+				}
+				if (pieCustomDisplayValues.contains("Name")) {
+					dLbls.addNewShowCatName().setVal(true);
+				} else {
+					dLbls.addNewShowCatName().setVal(false);
+				}
+				dLbls.addNewShowBubbleSize().setVal(false);
+				dLbls.addNewShowLegendKey().setVal(false);
+				dLbls.addNewShowSerName().setVal(false);
+				POIExportUtility.positionDisplayValues(ChartTypes.PIE, dLbls, displayValuesPosition);
+			}
 		}
 
 		Rectangle bounds = createStandardPowerPointChartBounds();
@@ -729,13 +768,20 @@ public class ExportToPPTReactor extends AbstractReactor {
 		// retrieve ornaments
 		Boolean gridOnX = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_X) + "");
 		Boolean gridOnY = Boolean.parseBoolean(panel.getMapInput(panel.getOrnaments(), GRID_ON_Y) + "");
-        String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
- 		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
- 		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null") ? Boolean.parseBoolean(yAxisFlag) : true;
- 		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null") ? Boolean.parseBoolean(xAxisFlag) : true;
- 		String yAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + "" : "";
- 		String xAxisTitleName = !panel.getOrnaments().isEmpty() ? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + "" : "";
-
+		String yAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_Y_AXIS_TITLE) + "";
+		String xAxisFlag = panel.getMapInput(panel.getOrnaments(), SHOW_X_AXIS_TITLE) + "";
+		Boolean showYAxisTitle = !panel.getOrnaments().isEmpty() && !yAxisFlag.isEmpty() && !yAxisFlag.equals("null")
+				? Boolean.parseBoolean(yAxisFlag)
+				: true;
+		Boolean showXAxisTitle = !panel.getOrnaments().isEmpty() && !xAxisFlag.isEmpty() && !xAxisFlag.equals("null")
+				? Boolean.parseBoolean(xAxisFlag)
+				: true;
+		String yAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), Y_AXIS_TITLE_NAME) + ""
+				: "";
+		String xAxisTitleName = !panel.getOrnaments().isEmpty()
+				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
+				: "";
 
 		// Parse input data
 		// options is guaranteed to be of length 1 so just grab the only value
@@ -754,15 +800,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		XDDFValueAxis leftAxis = chart.createValueAxis(AxisPosition.LEFT);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(AxisCrosses.AUTO_ZERO);
-		if(showYAxisTitle) {
-			if(!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
+		if (showYAxisTitle) {
+			if (!yAxisTitleName.isEmpty() && !yAxisTitleName.equals("null")) {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				leftAxis.setTitle(String.join(", ", yColumnNames).replaceAll("_", " "));
 			}
 		}
-		if(showXAxisTitle) {
-			if(!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
+		if (showXAxisTitle) {
+			if (!xAxisTitleName.isEmpty() && !xAxisTitleName.equals("null")) {
 				bottomAxis.setTitle(xAxisTitleName);
 			} else {
 				bottomAxis.setTitle(xColumnName.replaceAll("_", " "));
@@ -782,15 +828,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 
 		Object chartTitle = panel.getMapInput(panel.getOrnaments(), CHART_TITLE);
-		if(chartTitle != null) {
+		if (chartTitle != null) {
 			chart.setTitleText(chartTitle + "");
 		}
 		chart.plot(data);
-		
+
 		Rectangle bounds = createStandardPowerPointChartBounds();
 		slide.addChart(chart, bounds);
 	}
-	
+
 	private void insertGridChart(Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
 
 //		// retrieve ornaments
@@ -809,13 +855,13 @@ public class ExportToPPTReactor extends AbstractReactor {
 
 		XSLFSlide slide = slideshow.createSlide();
 		XSLFTable table = slide.createTable();
-	    table.setAnchor(new Rectangle(50, 50, 800, 800));
-	    
-	    int maxRows = 50;
-	    int counter = 0;
+		table.setAnchor(new Rectangle(50, 50, 800, 800));
+
+		int maxRows = 50;
+		int counter = 0;
 		boolean first = true;
-		MAX_TABLE_SIZE : while(task.hasNext()) {
-			if(counter++ > maxRows) {
+		MAX_TABLE_SIZE: while (task.hasNext()) {
+			if (counter++ > maxRows) {
 				try {
 					task.close();
 				} catch (IOException e) {
@@ -827,10 +873,10 @@ public class ExportToPPTReactor extends AbstractReactor {
 			Object[] dataValues = headerRow.getValues();
 
 			// add the headers in first iteration
-			if(first) {
+			if (first) {
 				String[] headers = headerRow.getHeaders();
 				XSLFTableRow tableHeader = table.addRow();
-				for(int i = 0; i < headers.length; i++) {
+				for (int i = 0; i < headers.length; i++) {
 					XSLFTableCell cell = tableHeader.addCell();
 					cell.setFillColor(new Color(52, 152, 219));
 					XSLFTextParagraph paragraph = cell.addNewTextParagraph();
@@ -852,7 +898,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 			}
 
 			XSLFTableRow tableRow = table.addRow();
-			for(int i = 0; i < dataValues.length; i++) {
+			for (int i = 0; i < dataValues.length; i++) {
 				XSLFTableCell cell = tableRow.addCell();
 				cell.setFillColor(Color.WHITE);
 				XSLFTextParagraph paragraph = cell.addNewTextParagraph();
@@ -873,7 +919,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 	}
 
-
 	private Rectangle createStandardPowerPointChartBounds() {
 		double leftOffsetInches = 0.05;
 		double rightOffsetInches = 0.05;
@@ -882,47 +927,49 @@ public class ExportToPPTReactor extends AbstractReactor {
 		double bottomOffsetInches = 0.2;
 		double slideWidthInches = 10;
 		double slideHeightInches = 7.5;
-		
+
 		double boundWidthInches = slideWidthInches - leftOffsetInches - rightOffsetInches;
 		double boundHeightInches = slideHeightInches - topOffsetInches - bottomOffsetInches;
 		double boundWidthOffsetInches = leftOffsetInches;
 		double boundHeightOffsetinches = topOffsetInches;
-		
+
 		double emuPerInch = Units.EMU_PER_CENTIMETER * 2.54;
 		int boundWidthEMU = (int) (boundWidthInches * emuPerInch);
 		int boundheightEMU = (int) (boundHeightInches * emuPerInch);
 		int boundWidthOffsetEMU = (int) (boundWidthOffsetInches * emuPerInch);
 		int boundHeightOffsetEMU = (int) (boundHeightOffsetinches * emuPerInch);
-		
-		Rectangle bounds = new java.awt.Rectangle(boundWidthOffsetEMU, boundHeightOffsetEMU, boundWidthEMU, boundheightEMU);
+
+		Rectangle bounds = new java.awt.Rectangle(boundWidthOffsetEMU, boundHeightOffsetEMU, boundWidthEMU,
+				boundheightEMU);
 		return bounds;
 	}
-	
+
 	private Rectangle createStandardPowerPointSemossLogoBounds() {
 		// PNG Powered by Semoss logo is 1478 x 214 pixels
 		// Let's put the image in the bottom right corner and maintain aspect ratio
 		// Point DPI = 72 = 1 inch
-		double dpiPerInch = (double) Units.POINT_DPI;
+		double dpiPerInch = Units.POINT_DPI;
 		double slideWidthInches = 10;
 		double slideHeightInches = 7.5;
 		double imageHeightInches = .2;
 		double imageWidthInches = imageHeightInches * (1478.0 / 214.0);
-		
+
 		double widthOffsetInches = slideWidthInches - imageWidthInches;
 		double heightOffsetInches = slideHeightInches - imageHeightInches;
-		
+
 		double widthOffsetDPI = widthOffsetInches * dpiPerInch;
 		double heightOffsetDPI = heightOffsetInches * dpiPerInch;
 		double imageHeightDPI = imageHeightInches * dpiPerInch;
 		double imageWidthDPI = imageWidthInches * dpiPerInch;
-		
+
 		// Cast coordinates to int so that they can be ingested by Rectangle
 		int widthOffsetDPIInt = (int) widthOffsetDPI;
 		int heightOffsetDPIInt = (int) heightOffsetDPI;
 		int imageHeightDPIInt = (int) imageHeightDPI;
 		int imageWidthDPIInt = (int) imageWidthDPI;
-		Rectangle bounds = new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt, imageHeightDPIInt);
-		
+		Rectangle bounds = new java.awt.Rectangle(widthOffsetDPIInt, heightOffsetDPIInt, imageWidthDPIInt,
+				imageHeightDPIInt);
+
 		return bounds;
 	}
 
@@ -937,7 +984,6 @@ public class ExportToPPTReactor extends AbstractReactor {
 		}
 	}
 
-	
 	/**
 	 * 
 	 * @param options
@@ -945,7 +991,8 @@ public class ExportToPPTReactor extends AbstractReactor {
 	 * @param task
 	 * @param panel
 	 */
-	private void insertImage(User user, Map<String, Object> options, XMLSlideShow slideshow, ITask task, InsightPanel panel) {
+	private void insertImage(User user, Map<String, Object> options, XMLSlideShow slideshow, ITask task,
+			InsightPanel panel) {
 		String baseUrl = this.insight.getBaseURL();
 		String imageUrl = this.insight.getLiveURL();
 		String panelAppender = "&panel=" + panel.getPanelId();
@@ -953,11 +1000,12 @@ public class ExportToPPTReactor extends AbstractReactor {
 		String sessionId = ThreadStore.getSessionId();
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, Utility.getRandomString(8), "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
-		if(driver == null) {
+		if (driver == null) {
 			driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 		}
-		util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId, 800);
-		
+		util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, imageLocation, sessionId,
+				800);
+
 		InputStream inputStream = null;
 		try {
 			inputStream = new FileInputStream(imageLocation);
@@ -971,15 +1019,15 @@ public class ExportToPPTReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
-			if(inputStream != null) {
+			if (inputStream != null) {
 				try {
 					inputStream.close();
 				} catch (IOException e) {
 					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
-			if(driver != null && driver instanceof ChromeDriver) {
-				((ChromeDriver)driver).quit();
+			if (driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver) driver).quit();
 			}
 		}
 	}

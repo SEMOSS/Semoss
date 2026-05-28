@@ -248,6 +248,7 @@ USER_TRACKING_METHOD	GEOIP2
 MODEL_INFERENCE_LOGS_ENABLED true
 PROMPT_DB_ENABLED true
 AUDIT_LOGS_DATABASE_ENABLED true
+NOTIFICATION_DATABASE_ENABLED true
 
 ##################################################
 ##################################################

@@ -303,6 +303,20 @@ public class UploadProjectReactor extends AbstractReactor {
 		try {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 					finalProjectSmssF.getAbsolutePath());
+
+			// ensure PROJECT_DISPLAY_NAME is present in the smss file
+			// if not present, seed it from PROJECT_ALIAS so the file stays consistent
+			Properties smssProps = Utility.loadProperties(finalProjectSmssF.getAbsolutePath());
+			String displayName = smssProps.getProperty(Constants.PROJECT_DISPLAY_NAME);
+			if (displayName == null || displayName.trim().isEmpty()) {
+				try {
+					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
+							Constants.PROJECT_DISPLAY_NAME, projectName);
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
+
 			logger.info(step + ") Grabbing project insights");
 			SecurityProjectUtils.addProject(projectId, global, user);
 

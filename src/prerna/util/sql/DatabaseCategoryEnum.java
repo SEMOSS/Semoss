@@ -32,7 +32,7 @@ package prerna.util.sql;
  */
 public enum DatabaseCategoryEnum {
 
-	SQL("SQL"), NOSQL("NoSQL"), UNKNOWN("Unknown");
+	SQL("SQL"), NOSQL("NoSQL"), RDF("RDF"), UNKNOWN("Unknown");
 
 	private final String categoryName;
 
@@ -67,7 +67,7 @@ public enum DatabaseCategoryEnum {
 			}
 		}
 
-		// Check for known NoSQL types that might not be in RdbmsTypeEnum yet
+		// Check for known NoSQL and RDF types that might not be in RdbmsTypeEnum
 		String upperRdbmsType = rdbmsType.toUpperCase().trim();
 		switch (upperRdbmsType) {
 		case "MONGODB":
@@ -75,6 +75,11 @@ public enum DatabaseCategoryEnum {
 		case "JANUSGRAPH":
 		case "TINKER":
 			return NOSQL;
+		case "JENA":
+		case "JENA_TDB":
+		case "SESAME":
+		case "RDF4J":
+			return RDF;
 		default:
 			return UNKNOWN;
 		}

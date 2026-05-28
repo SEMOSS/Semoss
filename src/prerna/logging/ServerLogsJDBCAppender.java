@@ -58,7 +58,7 @@ import com.google.gson.ToNumberPolicy;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
+import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -68,12 +68,12 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
-	private final String insertSQL;
+	private final String INSERT_SQL;
 	private final List<LogEvent> events = new ArrayList<>();
 	private int batchSize = 100;
 	private static final long FLUSH_INTERVAL_MS = 60_000; // 1 minute
 	private final AtomicLong lastAppendTime = new AtomicLong(System.currentTimeMillis());
-	private final ScheduledExecutorService scheduler;
+	private final ScheduledExecutorService SCHEDULER;
 
 	protected ServerLogsJDBCAppender(String name, Filter filter, Layout<? extends Serializable> layout,
 			boolean ignoreExceptions, int batchSize) {
@@ -81,7 +81,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		if (batchSize > 0) {
 			this.batchSize = batchSize;
 		}
-		this.insertSQL = """
+		this.INSERT_SQL = """
 				INSERT INTO SERVER_LOGS (
 					LOG_ID, REQUEST_ID, SESSION_ID, USER_ID, USER_TYPE, LEVEL, LOGGER_NAME,
 					LOGGER_LOCATION, THREAD_NAME, LOG_TIMESTAMP, MESSAGE
@@ -90,18 +90,21 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 				);
 				""";
 
-		this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+		this.SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
 			Thread t = new Thread(r, "ServerLogsJDBCAppender-Scheduler");
 			t.setDaemon(true);
 			return t;
 		});
 
-		this.scheduler.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
+		this.SCHEDULER.scheduleAtFixedRate(this::flushIfIdle, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS,
 				TimeUnit.MILLISECONDS);
 	}
 
 	@Override
 	public void append(LogEvent event) {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		if (!AuditLogsDbUtils.isInitalized()) {
 			return;
 		}
@@ -116,12 +119,18 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 	}
 
 	private void flushIfIdle() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		if (System.currentTimeMillis() - lastAppendTime.get() >= FLUSH_INTERVAL_MS) {
 			flush();
 		}
 	}
 
 	private void flush() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		List<LogEvent> processingEvents;
 		synchronized (events) {
 			if (events.isEmpty()) {
@@ -135,7 +144,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 			return;
 		}
 
-		IRDBMSEngine auditLogs = (IRDBMSEngine) Utility.getDatabase(Constants.AUDIT_LOGS_DB);
+		IRDBMSEngine auditLogs = SystemEngineRegistry.getAuditLogsDb();
 		if (auditLogs == null) {
 			LOGGER.warn("Audit logs database has not been initialized yet");
 			return;
@@ -146,7 +155,7 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 		PreparedStatement stmt = null;
 		try {
 			connection = auditLogs.getConnection();
-			stmt = connection.prepareStatement(this.insertSQL);
+			stmt = connection.prepareStatement(this.INSERT_SQL);
 			for (LogEvent event : processingEvents) {
 				ReadOnlyStringMap contextData = event.getContextData();
 
@@ -187,14 +196,17 @@ public class ServerLogsJDBCAppender extends AbstractAppender {
 
 	@Override
 	public void stop() {
+		if (!Utility.isAuditLogsDatabaseEnabled()) {
+			return;
+		}
 		flush();
-		scheduler.shutdown();
+		SCHEDULER.shutdown();
 		try {
-			if (!scheduler.awaitTermination(1, TimeUnit.MINUTES)) {
-				scheduler.shutdownNow();
+			if (!SCHEDULER.awaitTermination(1, TimeUnit.MINUTES)) {
+				SCHEDULER.shutdownNow();
 			}
 		} catch (InterruptedException e) {
-			scheduler.shutdownNow();
+			SCHEDULER.shutdownNow();
 			Thread.currentThread().interrupt();
 		}
 		super.stop();

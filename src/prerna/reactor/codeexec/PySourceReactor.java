@@ -41,7 +41,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class PySourceReactor extends AbstractPyFrameReactor {
@@ -53,91 +52,73 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		
-		String disable_terminal =  DIHelper.getInstance().getProperty(Constants.DISABLE_TERMINAL);
 
-		if(disable_terminal != null && !disable_terminal.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_terminal)) {
-					throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			 };
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+			}
 		}
-		
-		//check if script sourcing terminal is disabled
-		String disable_script_scource =  DIHelper.getInstance().getProperty(Constants.DISABLE_SCRIPT_SOURCE);
-		if(disable_script_scource != null && !disable_script_scource.isEmpty() ) {
-			 if(Boolean.parseBoolean(disable_script_scource)) {
-					throw new IllegalArgumentException("Script Sourcing has been disabled.");
-			 }
+
+		// check if script sourcing terminal is disabled
+		String disable_script_scource = Utility.getDIHelperProperty(Constants.DISABLE_SCRIPT_SOURCE);
+		if (disable_script_scource != null && !disable_script_scource.isEmpty()) {
+			if (Boolean.parseBoolean(disable_script_scource)) {
+				throw new IllegalArgumentException("Script Sourcing has been disabled.");
+			}
 		}
-		
-		
-		String relativePath =  Utility.normalizePath( this.keyValue.get(this.keysToGet[0]));
-		String path = getBaseFolder() + "/Py/" + relativePath;
+
+		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
+		// strip leading separators so we don't get a double slash after concat with
+		// assetFolder
+		while (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+			relativePath = relativePath.substring(1);
+		}
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
-		// if the file is not there try in the insight
-		// if(!file.exists())
-		path = assetFolder + "/" + relativePath;
+		String path = assetFolder + "/" + relativePath;
 		path = path.replace("\\", "/");
-		
-		//strict script source, we will check if its .r/.R or .py/.Py
-		String strict_script_source =  DIHelper.getInstance().getProperty(Constants.STRICT_SCRIPT_SOURCE);
-		if(Boolean.parseBoolean(strict_script_source)){
-			 String extension = FilenameUtils.getExtension(path);
-			 if(!extension.equalsIgnoreCase("Py")) {
-					throw new IllegalArgumentException("Only user code with extensions .py or .PY may be sourced by this reactor");
-			 }
+
+		// strict script source, we will check if its .r/.R or .py/.Py
+		String strict_script_source = Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE);
+		if (Boolean.parseBoolean(strict_script_source)) {
+			String extension = FilenameUtils.getExtension(path);
+			if (!extension.equalsIgnoreCase("Py")) {
+				throw new IllegalArgumentException(
+						"Only user code with extensions .py or .PY may be sourced by this reactor");
+			}
 		}
 
-		//if we have a chroot, mount the project for that user.
-		if (Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.CHROOT_ENABLE))) {
-			//get the app_root folder for the project
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			// get the app_root folder for the project
 			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
 		}
-		
+
 		File file = new File(path);
 		String name = file.getName();
 		name = name.replaceAll(".py", "");
 
-		String assetOutput = assetFolder + "/" +  name + ".output";
-		
-		PyTranslator pyt = this.insight.getPyTranslator();
+		String assetOutput = assetFolder + "/" + name + ".output";
 
-		System.err.println("Hello");
-		//pyt.runScript("smssutil.runwrapper(" +  path + ", " + assetOutput + ", " + assetOutput + "globals()\")");
-		//pyt.runScript(name +  " = smssutil.loadScript('smss', '" + path + "')");
-		
-		pyt.runScript("smssutil.runwrapper('" +  path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
-		
+		PyTranslator pyt = this.insight.getPyTranslator();
+		pyt.runScript("smssutil.runwrapper('" + path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
+
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null) && insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
-		if(smartSync)
-		{
+		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
+				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		if (smartSync) {
 			// if this returns true
-			if(smartSync(pyt))
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE));
+			if (smartSync(pyt)) {
+				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+						PixelOperationType.FRAME_HEADERS_CHANGE));
+			}
 		}
 
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-		//return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
-	/**
-	 * Get the base folder
-	 * 
-	 * @return
-	 */
-	protected String getBaseFolder() {
-		String baseFolder = null;
-		try {
-			baseFolder = DIHelper.getInstance().getProperty("BaseFolder");
-		} catch (Exception ignored) {
-			// logger.info("No BaseFolder detected... most likely running as
-			// test...");
-		}
-		return baseFolder;
-	}
 }

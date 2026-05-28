@@ -38,9 +38,85 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 
-public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
+public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractLdapAuthenticator.class);
+
+	/**
+	 * Escapes special characters in an LDAP search filter value per RFC 4515.
+	 * Prevents LDAP injection when user-supplied values are embedded in filter
+	 * expressions.
+	 * 
+	 * @param value
+	 * @return
+	 */
+	protected static String escapeLdapFilter(String value) {
+		if (value == null) {
+			return null;
+		}
+		StringBuilder sb = new StringBuilder(value.length());
+		for (char c : value.toCharArray()) {
+			switch (c) {
+			case '\\':
+				sb.append("\\5c");
+				break;
+			case '*':
+				sb.append("\\2a");
+				break;
+			case '(':
+				sb.append("\\28");
+				break;
+			case ')':
+				sb.append("\\29");
+				break;
+			case '\0':
+				sb.append("\\00");
+				break;
+			default:
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Escapes special characters in an LDAP DN attribute value per RFC 4514.
+	 * Prevents LDAP injection when user-supplied values are embedded in
+	 * distinguished names.
+	 */
+	protected static String escapeLdapDn(String value) {
+		if (value == null) {
+			return null;
+		}
+		if (value.isEmpty()) {
+			return value;
+		}
+		StringBuilder sb = new StringBuilder(value.length());
+		for (int i = 0; i < value.length(); i++) {
+			char c = value.charAt(i);
+			switch (c) {
+			case ',':
+			case '+':
+			case '"':
+			case '\\':
+			case '<':
+			case '>':
+			case ';':
+			case '=':
+				sb.append('\\').append(c);
+				break;
+			case '#':
+				sb.append(i == 0 ? "\\#" : "#");
+				break;
+			case ' ':
+				sb.append((i == 0 || i == value.length() - 1) ? "\\ " : " ");
+				break;
+			default:
+				sb.append(c);
+			}
+		}
+		return sb.toString();
+	}
 
 	@Override
 	public DirContext createLdapContext(String providerUrl, String principalDN, String password) throws Exception {
@@ -48,39 +124,27 @@ public abstract class AbstractLdapAuthenticator implements ILdapAuthenticator  {
 	}
 
 	@Override
-	public AccessToken generateAccessToken(Attributes attributes, 
-			String userDN,
-			String attributeIdKey,
-			String attributeNameKey,
-			String attributeEmailKey, 
-			String attributeUserNameKey,
-			String attributeLastPwdChangeKey,
-			int requirePwdChangeAfterDays
-			) throws Exception {
-		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey, 
-				attributeEmailKey, attributeUserNameKey, 
-				attributeLastPwdChangeKey, requirePwdChangeAfterDays, false);
+	public AccessToken generateAccessToken(Attributes attributes, String userDN, String attributeIdKey,
+			String attributeNameKey, String attributeEmailKey, String attributeUserNameKey,
+			String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws Exception {
+		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey,
+				attributeEmailKey, attributeUserNameKey, attributeLastPwdChangeKey, requirePwdChangeAfterDays, false);
 	}
-	
+
 	@Override
-	public AccessToken generateAccessToken(Attributes attributes, 
-			String userDN,
-			String attributeIdKey,
-			String attributeNameKey,
-			String attributeEmailKey, 
-			String attributeUserNameKey,
-			String attributeLastPwdChangeKey,
-			int requirePwdChangeAfterDays,
-			boolean ignoreLastPwdChange
-			) throws Exception {
-		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey, 
-				attributeEmailKey, attributeUserNameKey, 
-				attributeLastPwdChangeKey, requirePwdChangeAfterDays, ignoreLastPwdChange);
+	public AccessToken generateAccessToken(Attributes attributes, String userDN, String attributeIdKey,
+			String attributeNameKey, String attributeEmailKey, String attributeUserNameKey,
+			String attributeLastPwdChangeKey, int requirePwdChangeAfterDays, boolean ignoreLastPwdChange)
+			throws Exception {
+		return LDAPConnectionHelper.generateAccessToken(attributes, userDN, attributeIdKey, attributeNameKey,
+				attributeEmailKey, attributeUserNameKey, attributeLastPwdChangeKey, requirePwdChangeAfterDays,
+				ignoreLastPwdChange);
 	}
-	
-	@Override 
-	public ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey, int requirePwdChangeAfterDays) throws NamingException {
+
+	@Override
+	public ZonedDateTime getLastPwdChange(Attributes attributes, String attributeLastPwdChangeKey,
+			int requirePwdChangeAfterDays) throws NamingException {
 		return LDAPConnectionHelper.getLastPwdChange(attributes, attributeLastPwdChangeKey, requirePwdChangeAfterDays);
 	}
-	
+
 }

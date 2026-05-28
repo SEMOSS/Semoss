@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.testing;
 
-import java.util.Optional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.AfterAll;
@@ -36,6 +34,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+
+import prerna.auth.AuthProvider;
 
 public abstract class AbstractBaseSemossApiTests {
 
@@ -68,7 +68,7 @@ public abstract class AbstractBaseSemossApiTests {
 			ApiSemossTestSetupUtils.setup(false);
 
 			ApiSemossTestEngineUtils.createUser(ApiTestsSemossConstants.USER_NAME, ApiTestsSemossConstants.USER_EMAIL,
-					"Native", true);
+					AuthProvider.NATIVE.toString(), true);
 
 			
 			ApiRTestUtils.setup();

@@ -39,6 +39,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
+import prerna.util.Utility;
 
 public class DeleteInsightAssetsReactor extends AbstractReactor {
 
@@ -81,6 +82,7 @@ public class DeleteInsightAssetsReactor extends AbstractReactor {
 				filePaths.add(f.getName());
 			}
 		}
+		filePaths = Utility.normalizeFilePaths(filePaths);
 
 //		String comment = this.keyValue.get(this.keysToGet[1]);
 //		if (comment == null) {
@@ -111,7 +113,7 @@ public class DeleteInsightAssetsReactor extends AbstractReactor {
 
 		// push room to cloud storage
 		if (this.insight.getRoomId() != null) {
-			ClusterUtil.pushRoom(this.insight.getRoomId());
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");

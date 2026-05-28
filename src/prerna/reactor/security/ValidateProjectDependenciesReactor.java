@@ -66,7 +66,7 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
 		}
 		
-		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId);
+		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId, true);
 		Map<String, Object> dependencyMap = new HashMap<>();
 		for (Map<String, Object> dep : projectDependencies) {
 			String engineId = (String) dep.get("engine_id");
