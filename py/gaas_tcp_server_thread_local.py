@@ -25,13 +25,23 @@ def smss_clear_app_imports():
 
     Call this at the top of your app entry script to force Python to pick up
     any .py file changes without restarting the server.
+
+    Returns:
+        dict with keys:
+            "modules"     — list of sys.modules keys that were deleted
+            "mcp_aliases" — list of insight_globals keys that were deleted
     """
     active_paths = getattr(_asset_thread_local, "active_paths", None) or []
     ig = getattr(_asset_thread_local, "insight_globals", None)
+    cleared_modules = []
+    cleared_mcp_aliases = []
     for path in active_paths:
         pfx = _asset_ns_key(path) + "_"
         for k in [k for k in list(sys.modules.keys()) if k.startswith(pfx)]:
             del sys.modules[k]
+            cleared_modules.append(k)
     if ig is not None:
         for k in [k for k in list(ig.keys()) if k.startswith("__smss_mcp_")]:
             del ig[k]
+            cleared_mcp_aliases.append(k)
+    return {"modules": cleared_modules, "mcp_aliases": cleared_mcp_aliases}
