@@ -59,6 +59,7 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
+import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -293,6 +294,26 @@ public class User implements Serializable {
 		}
 
 		return this.assetProjectMap.get(token);
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject,
+	 * resolved via the primary login token.
+	 */
+	public IProject getAssetProject() {
+		return getAssetProject(getPrimaryLogin());
+	}
+
+	/**
+	 * Convenience wrapper that returns the user's asset project as an IProject for
+	 * the given auth provider token.
+	 */
+	public IProject getAssetProject(AuthProvider token) {
+		String projectId = getAssetProjectId(token);
+		if (projectId == null) {
+			return null;
+		}
+		return Utility.getUserAssetProject(projectId);
 	}
 
 	public Map<AuthProvider, String> getAssetEngineMap() {
