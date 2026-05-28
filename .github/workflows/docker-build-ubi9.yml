@@ -7,7 +7,7 @@ name: Semoss UBI 9 Builder
 
 on:
   push:
-    branches: [ "dev", "main", "ubi9-update-9.0.118" ]
+    branches: [ "dev", "main", "tomcat-update-9.0.118" ]
     paths:
       - 'docker/Dockerfile.ubi9'
       - '.github/workflows/docker-build-ubi9.yml'
