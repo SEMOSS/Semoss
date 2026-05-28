@@ -32,18 +32,18 @@ import java.util.List;
 public class AndQueryFilter extends AbstractListFilter {
 
 	/*
-	 * This classes used the filter list in the parent	
+	 * This class uses the filter list in the parent
 	 */
-	
+
 	public AndQueryFilter() {
 		super();
 	}
-	
+
 	public AndQueryFilter(List<IQueryFilter> filterList) {
 		super(filterList);
 	}
-	
-	public AndQueryFilter(IQueryFilter... filterList ) {
+
+	public AndQueryFilter(IQueryFilter... filterList) {
 		super(filterList);
 	}
 
@@ -57,5 +57,5 @@ public class AndQueryFilter extends AbstractListFilter {
 	public QUERY_FILTER_TYPE getQueryFilterType() {
 		return QUERY_FILTER_TYPE.AND;
 	}
-	
+
 }
