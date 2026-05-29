@@ -332,6 +332,19 @@ public final class Utility {
 		return DIHelper.getInstance().getProperty(prop);
 	}
 
+	// reads a property from DIHelper (RDF_Map.prop), falling back to the OS
+	// environment so K8s env vars take effect without a runCS.sh mapping
+	public static String getDIHelperPropertyOrEnv(String prop) {
+		String val = getDIHelperProperty(prop);
+		if (val == null || val.trim().isEmpty()) {
+			java.util.Map<String, String> env = System.getenv();
+			if (env.containsKey(prop)) {
+				val = env.get(prop);
+			}
+		}
+		return val;
+	}
+
 	public static Object getDIHelperLocalProperty(String prop) {
 		if (DIHelper.getInstance() == null) {
 			return null;
@@ -5546,7 +5559,7 @@ public final class Utility {
 
 			prefix = "p_" + Utility.getRandomString(5);
 
-			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
+			String ioRoot = Utility.getDIHelperPropertyOrEnv(Constants.SANDBOX_IO_DIR);
 			if (Strings.isNullOrEmpty(ioRoot)) {
 				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
 			}
