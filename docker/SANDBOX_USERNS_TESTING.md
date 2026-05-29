@@ -73,6 +73,20 @@ If neither userns nor `hostUsers: false` is available, in-pod cross-user
 isolation isn't achievable there — fall back to per-pod isolation or the
 seccomp-only mode (host/network protection, not user-vs-user files).
 
+### GKE Autopilot — confirmed hard limit
+
+Observed on Autopilot (`gk3-*-nap-*` nodes, `autopilot.gke.io/*` annotations):
+`seccompProfile: Unconfined` is accepted and unblocks userns *creation*, but
+`mount()` inside the userns is denied with **EACCES** by Autopilot's managed
+**AppArmor** profile. Autopilot's admission controller does not permit
+unconfined AppArmor, mount privileges, FUSE devices, or host namespaces — so
+the in-pod namespace sandbox is **not achievable on Autopilot by design**.
+
+On Autopilot the only path to real isolation is **per-pod**: one Python pod per
+user/session, host protection via GKE Sandbox (`runtimeClassName: gvisor`),
+egress via NetworkPolicy, and the file-sync requirement via a ReadWriteMany
+volume (Filestore / GCS FUSE CSI) mounting only that user's authorized paths.
+
 ## What "good" looks like
 
 After enabling, re-run `scripts/sandbox_probe.sh`. You want:
