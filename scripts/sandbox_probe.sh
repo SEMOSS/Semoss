@@ -45,6 +45,22 @@ elif unshare --user --map-root-user --mount --pid true 2>>"$TMP/userns.err"; the
 else
   record "userns: cannot create user namespace unprivileged" "$FAIL"
   note "stderr: $(tr '\n' ' ' < "$TMP/userns.err")"
+  # Diagnose WHY: kernel supports it (max_user_namespaces>0) but a seccomp
+  # filter is present -> the container's default seccomp profile is almost
+  # certainly gating unshare/clone(CLONE_NEWUSER) behind CAP_SYS_ADMIN.
+  seccmp="$(awk '/^Seccomp:/{print $2}' /proc/self/status 2>/dev/null)"
+  if [ "${maxns:-0}" != "missing" ] && [ "${maxns:-0}" -gt 0 ] 2>/dev/null && [ "${seccmp:-0}" = "2" ]; then
+    note "DIAGNOSIS: kernel allows userns (max_user_namespaces=$maxns) but a seccomp"
+    note "  filter (Seccomp mode 2) is active and you lack CAP_SYS_ADMIN. The runtime"
+    note "  default seccomp profile is gating unshare/clone(CLONE_NEWUSER)."
+    note "  FIX (pick one, no extra container privileges needed for #1/#3):"
+    note "   1. securityContext.seccompProfile = a Localhost profile = RuntimeDefault"
+    note "      minus the CAP_SYS_ADMIN gate on unshare/clone/setns (keeps host filter)."
+    note "   2. securityContext.seccompProfile.type: Unconfined (quick test; drops the"
+    note "      outer filter — we re-apply a tighter one inside the bwrap worker)."
+    note "   3. Pod-level user namespaces: spec.hostUsers: false (K8s 1.33 GA), if the"
+    note "      cluster runtime supports it."
+  fi
 fi
 
 # ---------------------------------------------------------------------------
