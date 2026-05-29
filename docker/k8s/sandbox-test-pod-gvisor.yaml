@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: semoss-sandbox-gvisor
+  namespace: semoss
+  labels: { app: semoss-sandbox-gvisor }
+spec:
+  # Run the whole pod inside a gVisor sandbox. On GKE Autopilot this is the
+  # supported way to get mount/namespace primitives: the SYS_ADMIN below is
+  # SANDBOX-PERCEIVED only and grants ZERO host privileges (gVisor always runs
+  # with zero host capabilities). This is what makes docker-in-gVisor work.
+  runtimeClassName: gvisor
+  restartPolicy: Never
+  securityContext:
+    runAsUser: 1001
+    runAsGroup: 0
+  containers:
+    - name: probe
+      image: docker.cfg.deloitte.com/kunal/semoss:2026-05-29-test
+      command: ["sleep", "infinity"]
+      securityContext:
+        # These capabilities are visible only INSIDE the gVisor sandbox; they do
+        # NOT grant anything on the host. SYS_ADMIN is what mount/unshare/
+        # pivot_root require. If Autopilot's warden rejects SYS_ADMIN, the
+        # cluster may need a workload policy (compare --workload-policies=
+        # allow-net-admin used for NET_ADMIN in the docker-in-gVisor tutorial).
+        capabilities:
+          add: ["SYS_ADMIN", "SYS_CHROOT"]
+        runAsUser: 1001
+      volumeMounts:
+        - name: work
+          mountPath: /sandbox-work    # tmpfs scratch for the PoCs' mounts
+  volumes:
+    - name: work
+      emptyDir: {}

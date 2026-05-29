@@ -87,6 +87,34 @@ user/session, host protection via GKE Sandbox (`runtimeClassName: gvisor`),
 egress via NetworkPolicy, and the file-sync requirement via a ReadWriteMany
 volume (Filestore / GCS FUSE CSI) mounting only that user's authorized paths.
 
+### GKE Autopilot via gVisor — the in-sandbox capability path
+
+Because gVisor is a userspace kernel that always runs with zero host privileges,
+Autopilot permits granting `SYS_ADMIN` *inside* a `runtimeClassName: gvisor`
+pod — and that sandbox-perceived `SYS_ADMIN` is exactly what `mount`/`unshare`/
+`pivot_root` need, with no host risk. This can re-enable our sandbox primitives
+on Autopilot. Test it with `docker/k8s/sandbox-test-pod-gvisor.yaml`:
+
+```bash
+kubectl apply -f docker/k8s/sandbox-test-pod-gvisor.yaml
+kubectl cp scripts semoss/semoss-sandbox-gvisor:/tmp/scripts
+kubectl exec -n semoss -it semoss-sandbox-gvisor -- bash    /tmp/scripts/sandbox_probe.sh
+kubectl exec -n semoss -it semoss-sandbox-gvisor -- python3 /tmp/scripts/propagation_supervisor_poc.py
+kubectl exec -n semoss -it semoss-sandbox-gvisor -- bash    /tmp/scripts/dynamic_mount_poc.sh
+```
+
+Interpretation:
+- Warden rejects `SYS_ADMIN` even under gVisor → cluster needs a workload policy
+  (or it's disallowed) — escalate to the cluster admins.
+- Probe shows `userns`/bind-mount PASS and the **propagation PoC** passes → the
+  full multi-user in-pod design works on Autopilot under gVisor.
+- Probe PASSes but the **propagation** PoC fails (gVisor lacks shared/slave mount
+  propagation) → use the **one-gVisor-pod-per-user** model, where dynamic project
+  load is a plain `mount --bind` (no propagation needed) since there are no other
+  users to hide inside the pod.
+
+Note: gVisor adds syscall overhead; measure pandas / file-I/O performance.
+
 ## What "good" looks like
 
 After enabling, re-run `scripts/sandbox_probe.sh`. You want:
