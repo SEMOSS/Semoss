@@ -69,13 +69,15 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		}
 
 		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
-		String path = Utility.getBaseFolder() + "/Py/" + relativePath;
+		// strip leading separators so we don't get a double slash after concat with
+		// assetFolder
+		while (relativePath.startsWith("/") || relativePath.startsWith("\\")) {
+			relativePath = relativePath.substring(1);
+		}
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 
-		// if the file is not there try in the insight
-		// if(!file.exists())
-		path = assetFolder + "/" + relativePath;
+		String path = assetFolder + "/" + relativePath;
 		path = path.replace("\\", "/");
 
 		// strict script source, we will check if its .r/.R or .py/.Py
@@ -101,12 +103,6 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		String assetOutput = assetFolder + "/" + name + ".output";
 
 		PyTranslator pyt = this.insight.getPyTranslator();
-
-		System.err.println("Hello");
-		// pyt.runScript("smssutil.runwrapper(" + path + ", " + assetOutput + ", " +
-		// assetOutput + "globals()\")");
-		// pyt.runScript(name + " = smssutil.loadScript('smss', '" + path + "')");
-
 		pyt.runScript("smssutil.runwrapper('" + path + "', '" + assetOutput + "', '" + assetOutput + "', globals())");
 
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
