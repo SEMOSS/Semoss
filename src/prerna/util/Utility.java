@@ -5525,19 +5525,9 @@ public final class Utility {
 
 	/**
 	 * Start the per-user Python worker inside the unprivileged namespace sandbox
-	 * (SANDBOX_MODE=NSJAIL). This is an additive launch path: it does NOT replace
-	 * {@link #startTCPServerNativePyChroot} (the legacy fakechroot path), it is an
-	 * alternative selected only when NSJAIL is configured.
+	 * (SANDBOX_MODE=NSJAIL) via py/sandbox_launcher.py. Additive alternative to
+	 * {@link #startTCPServerNativePyChroot}.
 	 *
-	 * Instead of chrooting, this runs py/sandbox_launcher.py, which builds a real
-	 * user+mount(+net) namespace jail, execs gaas_tcp_socket_server inside it over
-	 * an AF_UNIX socket, and exposes a control socket the broker uses to inject
-	 * authorized projects on demand.
-	 *
-	 * @param insightFolder relative insight/server folder (mirrors the chroot arg)
-	 * @param port          dummy TCP port (the worker actually listens on a UDS)
-	 * @param timeout       idle timeout passed to the worker
-	 * @param loggerLevel   worker log level
 	 * @return { Process, prefix, udsPath, controlSocketPath }
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
@@ -5556,9 +5546,6 @@ public final class Utility {
 
 			prefix = "p_" + Utility.getRandomString(5);
 
-			// IO dir shared between the Java broker and the sandboxed worker; it is
-			// bind-mounted into the jail so the worker's AF_UNIX data socket is
-			// reachable by Java at the same host path.
 			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
 			if (Strings.isNullOrEmpty(ioRoot)) {
 				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
@@ -5568,9 +5555,6 @@ public final class Utility {
 			udsPath = ioDir + "/worker.sock";
 			controlSocketPath = ioDir + "/control.sock";
 
-			// directory under which project app-root folders live; made a shared
-			// portal so projects granted mid-session propagate into the running
-			// interpreter
 			String projectPortal = baseFolder + "/" + Constants.PROJECT_FOLDER;
 
 			String outputFile = ioDir + "/console.txt";
@@ -5588,7 +5572,6 @@ public final class Utility {
 			commands.add(controlSocketPath);
 			commands.add("--portal-dir");
 			commands.add(projectPortal);
-			// everything after -- is passed straight through to gaas_tcp_socket_server.py
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
@@ -5609,7 +5592,6 @@ public final class Utility {
 
 			String[] commandArray = commands.toArray(new String[0]);
 
-			// reuse the same ulimit memory cap as the other launch paths
 			if (!SystemUtils.IS_OS_WINDOWS
 					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
 				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);

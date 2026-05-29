@@ -57,16 +57,9 @@ class Server(socketserver.ThreadingTCPServer):
         # set the current folder to pick up scripts from
         sys.path.append(py_folder)
 
-        # When run inside the namespace sandbox the interpreter lives in an
-        # empty network namespace (egress is killed), so TCP loopback to the
-        # Java broker is unreachable. In that mode the broker<->worker channel
-        # is an AF_UNIX socket instead. Setting address_family before the parent
-        # __init__ is exactly what socketserver.UnixStreamServer does, so the
-        # custom serve_forever / timeout / max_count logic below is unchanged.
         if self.uds_path:
             self.address_family = socket.AF_UNIX
             self.server_address = self.uds_path
-            # clear any stale socket file from a previous worker
             try:
                 if os.path.exists(self.uds_path):
                     os.unlink(self.uds_path)

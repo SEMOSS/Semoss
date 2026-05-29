@@ -104,7 +104,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 				while (!connected && attempt < 6) {
 					try {
-						// open TCP or AF_UNIX transport (populates is/os)
 						openConnection();
 						classLogger.info("CLIENT Connection complete !!!!!!!");
 						// sleep some before executing command

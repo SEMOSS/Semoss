@@ -56,17 +56,6 @@ public class SymlinkHelper {
 
 	private String userChrootFolder = null;
 
-	// --- namespace sandbox (SANDBOX_MODE=NSJAIL) -------------------------------
-	// In inject mode this helper does NO chroot file staging. The same lazy
-	// trigger points (symlinkProject / symlinkUserAsset / symlinkFolder) instead
-	// ask the running interpreter's supervisor to bind-inject the path.
-	//
-	// activeInjects is the authoritative set of paths this user has had injected
-	// (path -> read-write). It is replayed in full every time an injector is
-	// wired in: before the worker starts the injector is null (calls just record
-	// here), and on reconnect the worker is a brand-new empty jail that must have
-	// every prior inject re-applied. Replay is safe because the supervisor side
-	// is idempotent (it skips paths that are already mounted).
 	private final boolean injectMode;
 	private SandboxInjector injector;
 	private final Map<String, Boolean> activeInjects = new LinkedHashMap<>();
@@ -80,10 +69,7 @@ public class SymlinkHelper {
 		this.userChrootFolder = targetDirName;
 		this.injectMode = "NSJAIL".equalsIgnoreCase(Utility.getDIHelperProperty(Constants.SANDBOX_MODE));
 
-		// In NSJAIL mode the jail is built by py/sandbox_launcher.py; there is no
-		// chroot tree to stage, so skip all of the directory/binary copy setup.
 		if (injectMode) {
-			classLogger.info("SymlinkHelper running in NSJAIL inject mode (no chroot staging)");
 			return;
 		}
 
@@ -104,44 +90,26 @@ public class SymlinkHelper {
 		initalizeChrootFolder();
 	}
 
-	/**
-	 * Wire in the control-socket client for the running worker (NSJAIL mode) and
-	 * flush any injects that were requested before the worker existed.
-	 *
-	 * @param injector talks to the sandbox supervisor's control socket
-	 */
 	public synchronized void setInjector(SandboxInjector injector) {
 		this.injector = injector;
 		if (injector != null && !activeInjects.isEmpty()) {
-			classLogger.info("Replaying {} sandbox injects into worker", activeInjects.size());
 			for (Map.Entry<String, Boolean> entry : activeInjects.entrySet()) {
 				injector.inject(entry.getKey(), entry.getValue());
 			}
 		}
 	}
 
-	/**
-	 * @return true if this helper injects into a namespace jail rather than
-	 *         staging files into a chroot
-	 */
 	public boolean isInjectMode() {
 		return injectMode;
 	}
 
-	/**
-	 * Record the inject and apply it now if the supervisor is up; otherwise it
-	 * will be applied when an injector is wired in (worker start / reconnect).
-	 */
 	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
-		// a read-write grant supersedes a previously recorded read-only one
 		Boolean existing = activeInjects.get(absPath);
 		if (existing == null || (readWrite && !existing)) {
 			activeInjects.put(absPath, readWrite);
 		}
 		if (injector != null) {
 			injector.inject(absPath, readWrite);
-		} else {
-			classLogger.info("Recording sandbox inject (worker not started yet): " + absPath);
 		}
 	}
 
@@ -658,8 +626,6 @@ public class SymlinkHelper {
 	 * @param sourceDirName
 	 */
 	public void symlinkFolder(String sourceDirName) {
-		// NSJAIL: bind-inject the folder (read-write) into the running interpreter
-		// instead of creating a chroot symlink.
 		if (injectMode) {
 			enqueueOrInject(Utility.normalizePath(sourceDirName), true);
 			return;
@@ -739,10 +705,6 @@ public class SymlinkHelper {
 
 		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
 
-		// NSJAIL: bind-inject the project at its real path. Same authorization
-		// gate as below -- editable users get a read-write bind, read-only users
-		// get a read-only bind (file-sync still holds since it is the same backing
-		// inode in every jail).
 		if (injectMode) {
 			enqueueOrInject(Utility.normalizePath(projectAppRootFolder), canEdit);
 			return;

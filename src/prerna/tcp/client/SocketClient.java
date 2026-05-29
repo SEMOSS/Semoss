@@ -74,9 +74,6 @@ public class SocketClient implements Runnable, Closeable {
 	String HOST = null;
 	int PORT = -1;
 	boolean SSL = false;
-	// when set, the broker connects to the worker over this AF_UNIX socket path
-	// instead of TCP (used by the namespace sandbox, whose empty netns makes TCP
-	// loopback unreachable)
 	String udsPath = null;
 
 	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
@@ -128,23 +125,11 @@ public class SocketClient implements Runnable, Closeable {
 		this.SSL = SSL;
 	}
 
-	/**
-	 * Connect to the worker over an AF_UNIX socket (namespace sandbox mode).
-	 *
-	 * @param udsPath filesystem path of the worker's Unix domain socket
-	 */
 	public void connectUds(final String udsPath) {
 		this.udsPath = udsPath;
 		this.SSL = false;
 	}
 
-	/**
-	 * Open the transport and populate {@link #is} / {@link #os}. Supports both
-	 * TCP ({@link #HOST}/{@link #PORT}) and AF_UNIX ({@link #udsPath}) so the rest
-	 * of the client, which only ever touches the streams, is transport-agnostic.
-	 *
-	 * @throws IOException if the connection cannot be established
-	 */
 	protected void openConnection() throws IOException {
 		if (this.udsPath != null) {
 			UnixDomainSocketAddress address = UnixDomainSocketAddress.of(this.udsPath);
@@ -158,9 +143,6 @@ public class SocketClient implements Runnable, Closeable {
 		}
 	}
 
-	/**
-	 * @return a human-readable description of the current transport target
-	 */
 	protected String transportTarget() {
 		return this.udsPath != null ? ("unix:" + this.udsPath) : (this.HOST + ":" + this.PORT);
 	}
@@ -189,7 +171,6 @@ public class SocketClient implements Runnable, Closeable {
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 
-				// open TCP or AF_UNIX transport (populates is/os)
 				openConnection();
 				sch.setClient(this);
 				sch.setInputStream(this.is);

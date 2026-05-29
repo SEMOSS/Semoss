@@ -4,30 +4,9 @@ metadata:
   name: semoss-sandbox-test
   labels: { app: semoss-sandbox-test }
   annotations:
-    # AppArmor (legacy annotation form, pre-1.30). GKE COS applies a default
-    # containerd AppArmor profile that DENIES mount() even inside a userns
-    # (you see EACCES "Permission denied" on make-rprivate). Unconfine it.
     container.apparmor.security.beta.kubernetes.io/probe: unconfined
 spec:
   restartPolicy: Never
-  # ---------------------------------------------------------------------------
-  # THE ONE SETTING THAT MATTERS: allow unprivileged user namespaces.
-  #
-  # Option A (quick test): Unconfined drops the container's outer seccomp filter
-  # so unshare(CLONE_NEWUSER) is permitted. The sandbox we build re-applies a
-  # tighter seccomp filter to the interpreter itself, so this is for TESTING /
-  # and is an acceptable posture if paired with the in-jail filter.
-  #
-  # Option B (production, preferred): replace this with a Localhost profile that
-  # equals RuntimeDefault minus the CAP_SYS_ADMIN gate on unshare/clone/setns.
-  #   securityContext:
-  #     seccompProfile:
-  #       type: Localhost
-  #       localhostProfile: profiles/allow-userns.json
-  #
-  # Option C: pod-level user namespaces (needs cluster support, K8s 1.33 GA):
-  #   hostUsers: false        # (and remove the seccompProfile override)
-  # ---------------------------------------------------------------------------
   securityContext:
     runAsUser: 1001
     runAsGroup: 0
@@ -35,20 +14,13 @@ spec:
       type: Unconfined
   containers:
     - name: probe
-      # Use your real SEMOSS runtime image (so python/bwrap match production).
-      # For the propagation PoC you only need python + userns (no bwrap), so any
-      # python image works; for dynamic_mount_poc.sh use an image built from the
-      # updated Dockerfile (now includes bubblewrap).
       image: REPLACE_WITH_YOUR_SEMOSS_IMAGE
       command: ["sleep", "infinity"]
       securityContext:
-        allowPrivilegeEscalation: true   # needed for unshare under Unconfined
+        allowPrivilegeEscalation: true
         capabilities:
-          drop: ["ALL"]                  # NOTE: no CAP_SYS_ADMIN added — proves it works WITHOUT it
+          drop: ["ALL"]
         runAsNonRoot: true
         runAsUser: 1001
-        # AppArmor (modern form, K8s 1.30+). On GKE Autopilot the warden will
-        # very likely REJECT the pod or strip this — that rejection IS the
-        # answer: Autopilot forbids the mount primitives this sandbox needs.
         appArmorProfile:
           type: Unconfined

@@ -102,10 +102,6 @@ RUN yum install -y \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 RUN yum install -y fakechroot fakeroot
 
-# Real unprivileged sandbox tooling (bwrap jail + nsenter/unshare for the
-# in-userns mount supervisor). Requires unprivileged user namespaces enabled
-# at runtime (see docker/SANDBOX_USERNS_TESTING.md). bubblewrap is in EPEL,
-# enabled just above; util-linux provides nsenter/unshare.
 RUN yum install -y bubblewrap util-linux shadow-utils
 
 

@@ -69,9 +69,6 @@ public class ClientProcessWrapper {
 	private String venvPath;
 	private String serverDirectory;
 
-	// namespace sandbox (SANDBOX_MODE=NSJAIL): the worker listens on this AF_UNIX
-	// data socket (TCP loopback is unreachable from its empty netns) and the
-	// supervisor accepts project injects on this control socket
 	private String udsPath;
 	private String controlSocketPath;
 
@@ -138,10 +135,6 @@ public class ClientProcessWrapper {
 			if (!serverRunning) {
 				if (nativePyServer) {
 					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
-						// SANDBOX_MODE=NSJAIL: real namespace jail built by
-						// py/sandbox_launcher.py. No chroot tree; the server directory is a
-						// normal temp dir (bind-mounted into the jail) and the worker is
-						// reached over an AF_UNIX socket instead of TCP.
 						String insightCache = Utility.getDIHelperProperty(prerna.util.Constants.INSIGHT_CACHE_DIR);
 						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
 						this.serverDirectory = serverDirectoryPath.toString();
@@ -154,8 +147,6 @@ public class ClientProcessWrapper {
 						this.udsPath = (String) ret[2];
 						this.controlSocketPath = (String) ret[3];
 
-						// hand the supervisor's control socket to the symlink helper so the
-						// existing lazy symlink* trigger points become live project injects
 						this.chrootSymlinkHelper.setInjector(new SandboxInjector(this.controlSocketPath));
 					} else if (this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
@@ -232,7 +223,6 @@ public class ClientProcessWrapper {
 				}
 				this.socketClient.setCpw(this);
 				if (this.udsPath != null) {
-					// NSJAIL worker: reach it over its AF_UNIX data socket
 					this.socketClient.connectUds(this.udsPath);
 				} else {
 					this.socketClient.connect("127.0.0.1", this.port, false);

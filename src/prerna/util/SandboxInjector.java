@@ -12,14 +12,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * Thin client for the namespace sandbox supervisor's control socket (see
+ * Client for the namespace sandbox supervisor's control socket (see
  * py/sandbox_launcher.py).
- *
- * In SANDBOX_MODE=NSJAIL the broker uses this to ask the supervisor to
- * bind-inject an authorized project's real path into the already-running
- * interpreter. It replaces the "symlink the project into the chroot" staging
- * step of the legacy fakechroot path: same lazy/dynamic trigger points, same
- * read/write authorization gate, but a real mount instead of a symlink.
  */
 public class SandboxInjector {
 
@@ -31,28 +25,14 @@ public class SandboxInjector {
 		this.controlSocketPath = controlSocketPath;
 	}
 
-	/**
-	 * Inject a path into the running interpreter (appears at the same absolute
-	 * path inside the jail). Idempotent on the supervisor side.
-	 *
-	 * @param absPath   real absolute path of the project/asset folder
-	 * @param readWrite true to bind read-write, false to bind read-only
-	 * @return true if the supervisor acknowledged the injection
-	 */
 	public boolean inject(String absPath, boolean readWrite) {
 		return send("INJECT\t" + (readWrite ? "rw" : "ro") + "\t" + absPath);
 	}
 
-	/**
-	 * Remove a previously injected path from the interpreter.
-	 */
 	public boolean remove(String absPath) {
 		return send("REMOVE\t" + absPath);
 	}
 
-	/**
-	 * Liveness check against the supervisor.
-	 */
 	public boolean ping() {
 		return send("PING");
 	}
