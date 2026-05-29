@@ -27,8 +27,10 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -38,7 +40,13 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -55,9 +63,14 @@ public class SymlinkHelper {
 	private String userChrootFolder = null;
 
 	/**
-	 * This will be username__uuid - ex. /opt/kunalppatel9__a123123
-	 * 
-	 * @param targetDirName
+	 * Construct a SymlinkHelper bound to a user-specific chroot folder and run the
+	 * full initialization sequence. The chroot folder is created if missing, the
+	 * SEMOSS home folder is created inside it, and the cross-platform chroot
+	 * environment (bash, git, libraries, certs) is populated.
+	 *
+	 * @param targetDirName absolute path of the user chroot folder, conventionally
+	 *                      named {@code <username>__<uuid>} (e.g.
+	 *                      {@code /opt/kunalppatel9__a123123})
 	 */
 	public SymlinkHelper(String targetDirName) {
 		this.userChrootFolder = targetDirName;
@@ -75,42 +88,67 @@ public class SymlinkHelper {
 			userSemosshomeDir.mkdirs(); // make user home directory
 		}
 
+		long startNanos = System.nanoTime();
 		initalizeChrootFolder();
+		long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
+		classLogger.info("Chroot init completed in {} ms for: {}", elapsedMs, userChrootFolder);
 	}
 
 	/**
-	 * Initialization for cross-platform support
+	 * Run the cross-platform chroot initialization sequence: symlink configured
+	 * paths (Python base folder, insight cache, and any extras from
+	 * {@code CHROOT_SYMLINK_PATHS}), create the standard mount points
+	 * ({@code /root}, {@code /home/default}), set ownership for the default home
+	 * directory, and populate the bash and git environments inside the chroot.
 	 */
 	private void initalizeChrootFolder() {
-		String baseFolder = Utility.getBaseFolder();
-		symlinkFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
-		symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
+		timed("configured symlinks", () -> {
+			String baseFolder = Utility.getBaseFolder();
+			symlinkFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
+			symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
 
-		// Read paths from DIHelper or configuration
-		String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
-		if (pathsToSymlink != null && !pathsToSymlink.isEmpty()) {
-			String[] paths = pathsToSymlink.split(",");
-			for (String path : paths) {
-				symlinkFolder(path.trim());
+			// Read paths from DIHelper or configuration
+			String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
+			if (pathsToSymlink != null && !pathsToSymlink.isEmpty()) {
+				String[] paths = pathsToSymlink.split(",");
+				for (String path : paths) {
+					symlinkFolder(path.trim());
+				}
+			} else {
+				classLogger.warn("No paths specified for symlinking.");
 			}
-		} else {
-			classLogger.warn("No paths specified for symlinking.");
-		}
+		});
 
-		createChrootDirectory("/root");
-		createChrootDirectory("/home/default");
+		timed("/root + /home/default", () -> {
+			createChrootDirectory("/root");
+			createChrootDirectory("/home/default");
+			setDirectoryOwnership("/home/default", "1001", "1001");
+		});
 
-		// Set proper ownership for home directories
-		setDirectoryOwnership("/home/default", "1001", "1001");
-
-		// Setup basic shell environment
-		setupBashForChroot();
-		// Setup Git
-		setupGitForChroot();
+		timed("bash setup", this::setupBashForChroot);
+		timed("git setup (total)", this::setupGitForChroot);
 	}
 
 	/**
-	 * Setup minimal bash environment - only bash binary and its required libraries
+	 * Run the given phase body and log its wall-clock duration in milliseconds.
+	 * Used for per-phase profiling inside the chroot init sequence.
+	 *
+	 * @param phase     short label for the log line
+	 * @param phaseBody work to run and measure
+	 */
+	private void timed(String phase, Runnable phaseBody) {
+		long t0 = System.nanoTime();
+		phaseBody.run();
+		classLogger.debug("[timing] {} took {} ms", phase, (System.nanoTime() - t0) / 1_000_000L);
+	}
+
+	/**
+	 * Populate the chroot with a minimal bash environment: the bash and sh
+	 * binaries, common coreutils commands (ls, echo, mkdir, touch, cp, mv, rm, cat,
+	 * pwd), identity commands (whoami, id), and every shared library reported by
+	 * {@code ldd} on those binaries. Library lookups and copies are batched via
+	 * {@link #copyBinariesAndLibraries(Collection)} so each unique library is
+	 * resolved and copied exactly once.
 	 */
 	private void setupBashForChroot() {
 		try {
@@ -119,42 +157,23 @@ public class SymlinkHelper {
 			createChrootDirectory("lib");
 			createChrootDirectory("lib64");
 
-			String[] coreutilsCommands = { "/bin/bash", "/bin/sh", "/bin/ls", "/bin/echo", "/usr/bin/coreutils" };
-			for (String cmd : coreutilsCommands) {
-				copySystemBinary(cmd);
-				copyRequiredLibraries(cmd);
-			}
+			List<String> binaries = List.of("/bin/bash", "/bin/sh", "/usr/bin/coreutils", "/bin/ls", "/bin/echo",
+					"/bin/mkdir", "/bin/touch", "/bin/cp", "/bin/mv", "/bin/rm", "/bin/cat", "/bin/pwd",
+					"/usr/bin/whoami", "/usr/bin/id");
 
-			// Copy coreutils master binary
-			copySystemBinary("/usr/bin/coreutils");
-			copyRequiredLibraries("/usr/bin/coreutils");
+			copyBinariesAndLibraries(binaries);
 
-			// Copy common symlinks that point to coreutils
-			String[] coreutilsCmds = { "/bin/ls", "/bin/echo", "/bin/mkdir", "/bin/touch", "/bin/cp", "/bin/mv",
-					"/bin/rm", "/bin/cat", "/bin/pwd" };
-
-			for (String cmd : coreutilsCmds) {
-				copySystemBinary(cmd); // copies symlink
-				copyRequiredLibraries(cmd); // mostly no-op, since all point to coreutils
-			}
-
-			// Add whoami and id commands
-			String[] identityCommands = { "/usr/bin/whoami", "/usr/bin/id" };
-			for (String cmd : identityCommands) {
-				copySystemBinary(cmd);
-				copyRequiredLibraries(cmd);
-			}
-
-			classLogger.info("Bash and essential commands setup completed for chroot: " + userChrootFolder);
+			classLogger.info("Bash and essential commands setup completed for chroot: {}", userChrootFolder);
 		} catch (Exception e) {
-			classLogger.error("Error setting up bash for chroot: " + e.getMessage(), e);
+			classLogger.error("Error setting up bash for chroot: {}", e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Create a directory inside the chroot environment
-	 * 
-	 * @param relativePath
+	 * Create a directory (and any missing parents) inside the chroot. Errors are
+	 * logged and swallowed.
+	 *
+	 * @param relativePath path relative to the chroot root; may begin with a slash
 	 */
 	private void createChrootDirectory(String relativePath) {
 		try {
@@ -167,9 +186,11 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Copy a system binary to the chroot environment
-	 * 
-	 * @param binaryPath
+	 * Copy a host binary into the chroot at the same relative path and mark it
+	 * executable. Creates parent directories as needed. No-op (with a warning) if
+	 * the source does not exist.
+	 *
+	 * @param binaryPath absolute path of the host binary (e.g. {@code /bin/bash})
 	 */
 	private void copySystemBinary(String binaryPath) {
 		try {
@@ -197,19 +218,23 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Copy required shared libraries for bash using ldd command
-	 * 
-	 * @param binaryPath
+	 * Invoke {@code ldd} against a binary and parse the output into the set of
+	 * absolute library paths it depends on. Handles both the
+	 * {@code libname => /path/to/lib (0x...)} form and direct
+	 * {@code /lib...}-rooted entries (like the ELF interpreter). Returns an empty
+	 * set on failure.
+	 *
+	 * @param binaryPath absolute path of the binary to inspect
+	 * @return set of absolute library paths reported by {@code ldd}; empty if
+	 *         {@code ldd} failed or the binary has no dynamic dependencies
 	 */
-	private void copyRequiredLibraries(String binaryPath) {
+	private Set<String> resolveRequiredLibraries(String binaryPath) {
+		Set<String> libs = new HashSet<>();
 		try {
-			// Use ldd to find required libraries
 			ProcessBuilder pb = new ProcessBuilder("ldd", binaryPath);
 			Process process = pb.start();
 
-			try (java.io.BufferedReader reader = new java.io.BufferedReader(
-					new java.io.InputStreamReader(process.getInputStream()))) {
-
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 				String line;
 				while ((line = reader.readLine()) != null) {
 					// Parse ldd output to extract library paths
@@ -219,28 +244,59 @@ public class SymlinkHelper {
 						if (parts.length == 2) {
 							String libPath = parts[1].trim().split("\\s+")[0];
 							if (libPath.startsWith("/")) {
-								copyLibraryIfExists(libPath);
+								libs.add(libPath);
 							}
 						}
 					}
 					// Handle direct library paths (like /lib64/ld-linux-x86-64.so.2)
 					else if (line.trim().startsWith("/lib")) {
 						String libPath = line.trim().split("\\s+")[0];
-						copyLibraryIfExists(libPath);
+						libs.add(libPath);
 					}
 				}
 			}
 
 			process.waitFor();
 		} catch (Exception e) {
-			classLogger.error("Failed to copy required libraries for: " + binaryPath, e);
+			classLogger.error("Failed to resolve libraries for: {}", binaryPath, e);
 		}
+		return libs;
 	}
 
 	/**
-	 * Copy a single library to the chroot environment
-	 * 
-	 * @param libraryPath
+	 * Copy a batch of system binaries and every shared library they depend on into
+	 * the chroot. Binaries that do not exist on the host are dropped from the
+	 * batch. Library dependencies are resolved via {@code ldd} in parallel and
+	 * deduplicated across all binaries, so each unique library is copied exactly
+	 * once even when many binaries share it (e.g. libc, ld-linux). The binary and
+	 * library copies themselves are also performed in parallel; each destination
+	 * path is unique so writes do not collide.
+	 *
+	 * @param binaryPaths host-absolute binary paths to copy; duplicates and missing
+	 *                    entries are tolerated
+	 */
+	private void copyBinariesAndLibraries(Collection<String> binaryPaths) {
+		// Dedupe and keep only binaries that exist on the host
+		List<String> existing = new LinkedHashSet<>(binaryPaths).stream().filter(p -> Files.exists(Paths.get(p)))
+				.collect(Collectors.toList());
+
+		// Resolve libraries in parallel, dedupe across all binaries
+		Set<String> uniqueLibraries = existing.parallelStream().flatMap(b -> resolveRequiredLibraries(b).stream())
+				.collect(Collectors.toSet());
+
+		// Copy binaries and libraries in parallel; each path is unique so writes don't
+		// collide
+		existing.parallelStream().forEach(this::copySystemBinary);
+		uniqueLibraries.parallelStream().forEach(this::copyLibraryIfExists);
+	}
+
+	/**
+	 * Copy a single shared library into the chroot at the same relative path.
+	 * Silently no-ops if the source does not exist on the host, or if the target
+	 * has already been brought in by a previous call. Errors are logged at debug
+	 * and swallowed.
+	 *
+	 * @param libraryPath absolute path of the host library
 	 */
 	private void copyLibraryIfExists(String libraryPath) {
 		try {
@@ -265,41 +321,48 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup Git inside the chroot by copying the binary, its dependencies, and
-	 * required helper programs for both RHEL/UBI and Ubuntu systems.
+	 * Populate the chroot with everything needed to run {@code git} clones and
+	 * fetches: the git binary, helper programs ({@code git-core}), network/SSL
+	 * binaries (curl, ssh, wget, openssl), archive tools (tar, gzip),
+	 * cross-platform git templates, CA certificates, and working directories
+	 * ({@code /tmp}, {@code /var/tmp}, {@code /etc/git}). The git binary plus its
+	 * helper binaries are gathered into a single batch so {@code ldd} dedupes
+	 * libraries across them. Works on both RHEL/UBI and Ubuntu hosts.
 	 */
 	private void setupGitForChroot() {
 		try {
-			// Main git binary
-			copySystemBinary("/usr/bin/git");
-			copyRequiredLibraries("/usr/bin/git");
+			// Git binary + essential helper binaries: one batch, deduped ldd, deduped
+			// libraries
+			List<String> gitBinaries = List.of("/usr/bin/git", "/usr/bin/curl", // Required for git-remote-https
+					"/usr/bin/ssh", // For git@... URLs
+					"/bin/tar", // Archive operations
+					"/bin/gzip", // Compression
+					"/usr/bin/openssl", // SSL/TLS operations
+					"/usr/bin/wget"); // Alternative HTTP client
+			timed("git binaries + ldd", () -> copyBinariesAndLibraries(gitBinaries));
 
-			// Setup git helpers (handles both RHEL and Ubuntu)
-			setupGitHelpersForCrossPlatform();
-
-			// Setup essential binaries for git operations
-			setupGitEssentialBinaries();
-
-			// Setup git templates
-			setupGitTemplatesForCrossPlatform();
-
-			// Setup SSL certificates (handles both RHEL and Ubuntu)
-			setupSSLCertsForCrossPlatform();
+			timed("git-core helpers", this::setupGitHelpersForCrossPlatform);
+			timed("git-specific libs", this::copyGitSpecificLibraries);
+			timed("git templates", this::setupGitTemplatesForCrossPlatform);
+			timed("ssl certs", this::setupSSLCertsForCrossPlatform);
 
 			// Create necessary directories
 			createChrootDirectory("/tmp");
 			createChrootDirectory("/var/tmp");
 			createChrootDirectory("/etc/git");
 
-			classLogger.info("Git setup completed for chroot: " + userChrootFolder);
+			classLogger.info("Git setup completed for chroot: {}", userChrootFolder);
 
 		} catch (Exception e) {
-			classLogger.error("Error setting up git for chroot: " + e.getMessage(), e);
+			classLogger.error("Error setting up git for chroot: {}", e.getMessage(), e);
 		}
 	}
 
 	/**
-	 * Setup git helper programs for both RHEL/UBI and Ubuntu systems
+	 * Locate and copy the {@code git-core} helper directory into the chroot. Tries
+	 * the RHEL/UBI path {@code /usr/libexec/git-core} first, then the Ubuntu path
+	 * {@code /usr/lib/git-core}, and finally falls back to asking git itself via
+	 * {@link #findAndCopyGitHelpers()}.
 	 */
 	private void setupGitHelpersForCrossPlatform() {
 		try {
@@ -330,7 +393,9 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Find git helpers using git --exec-path command
+	 * Last-resort discovery of the git helpers directory by running
+	 * {@code git --exec-path} and copying whatever it reports into the chroot. Used
+	 * when neither the RHEL nor Ubuntu canonical paths exist.
 	 */
 	private void findAndCopyGitHelpers() {
 		try {
@@ -359,33 +424,11 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup essential binaries for git operations on both platforms
-	 */
-	private void setupGitEssentialBinaries() {
-		String[] essentialBinaries = { "/usr/bin/curl", // Required for git-remote-https
-				"/usr/bin/ssh", // For git@... URLs
-				"/bin/tar", // Archive operations
-				"/bin/gzip", // Compression
-				"/usr/bin/openssl", // SSL/TLS operations
-				"/usr/bin/wget" // Alternative HTTP client
-		};
-
-		for (String bin : essentialBinaries) {
-			if (Files.exists(Paths.get(bin))) {
-				copySystemBinary(bin);
-				copyRequiredLibraries(bin);
-				classLogger.debug("Copied git dependency: " + bin);
-			} else {
-				classLogger.debug("Optional git dependency not found: " + bin);
-			}
-		}
-
-		// Copy git-specific libraries that might be needed
-		copyGitSpecificLibraries();
-	}
-
-	/**
-	 * Copy git-specific libraries for both RHEL and Ubuntu
+	 * Copy git-related shared libraries (libcurl, libssl, libcrypto, libz,
+	 * libgssapi_krb5) that {@code ldd} on the git binary may not surface on every
+	 * distro (dynamically loaded by curl backends, krb5 plugins, etc.). Tries the
+	 * RHEL/UBI {@code /usr/lib64} paths first; if none are found, falls back to the
+	 * Ubuntu {@code /usr/lib/x86_64-linux-gnu} paths.
 	 */
 	private void copyGitSpecificLibraries() {
 		// RHEL/UBI library paths
@@ -414,7 +457,11 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup git templates for cross-platform compatibility
+	 * Copy the git templates directory (the source for {@code git init}'s default
+	 * hooks, info, and exclude files) into the chroot. Tries
+	 * {@code /usr/share/git-core/templates} first, then
+	 * {@code /usr/local/share/git-core/templates}, and stops at the first location
+	 * found.
 	 */
 	private void setupGitTemplatesForCrossPlatform() {
 		String[] templatePaths = { "/usr/share/git-core/templates", // Common location
@@ -437,7 +484,10 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup SSL certificates for both RHEL/UBI and Ubuntu systems
+	 * Copy the system CA certificate bundle and trust store into the chroot so git,
+	 * curl, and friends can verify HTTPS endpoints. Picks an OS-specific routine
+	 * based on {@link #isRHELBasedSystem()}, and on unexpected failure runs both
+	 * routines as a fallback.
 	 */
 	private void setupSSLCertsForCrossPlatform() {
 		try {
@@ -459,7 +509,11 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Detect if the system is RHEL-based
+	 * Heuristic check for a RHEL/UBI host. Returns true if any of
+	 * {@code /etc/redhat-release}, {@code /etc/rhel-release}, or {@code /etc/pki}
+	 * exist on the host.
+	 *
+	 * @return {@code true} if the host appears to be RHEL-based
 	 */
 	private boolean isRHELBasedSystem() {
 		// Check for RHEL-specific files/directories
@@ -468,7 +522,10 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup SSL certificates for RHEL/UBI systems
+	 * Copy the RHEL/UBI CA certificate bundle files
+	 * ({@code /etc/pki/tls/certs/ca-bundle.crt} and the extracted PEM bundle) plus
+	 * the supporting {@code /etc/pki} trust directories into the chroot. Missing
+	 * sources are logged as warnings and skipped.
 	 */
 	private void setupSSLCertsForRHEL() {
 		try {
@@ -508,7 +565,12 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Setup SSL certificates for Ubuntu systems
+	 * Copy the Ubuntu CA certificate bundle
+	 * ({@code /etc/ssl/certs/ca-certificates.crt}) and the supporting trust
+	 * directories ({@code /etc/ssl/certs}, {@code /usr/share/ca-certificates}) into
+	 * the chroot. The certificate bundle file is copied with
+	 * {@link StandardCopyOption#COPY_ATTRIBUTES} so the per-CA symlinks under
+	 * {@code /etc/ssl/certs} continue to resolve correctly.
 	 */
 	private void setupSSLCertsForUbuntu() {
 		try {
@@ -546,28 +608,39 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Set ownership of a directory in chroot (works on both platforms)
+	 * Set numeric POSIX ownership on a directory inside the chroot by shelling out
+	 * to {@code chown}. Used for paths like {@code /home/default} that must be
+	 * owned by the in-chroot UID (typically 1001) regardless of the host UID that
+	 * created them. No-op if the path does not exist; failure is logged but not
+	 * thrown.
+	 *
+	 * @param relativePath path relative to the chroot root
+	 * @param uid          numeric user ID to set
+	 * @param gid          numeric group ID to set
 	 */
 	private void setDirectoryOwnership(String relativePath, String uid, String gid) {
 		try {
 			Path chrootDir = Paths.get(userChrootFolder, relativePath);
 			if (Files.exists(chrootDir)) {
-				ProcessBuilder pb = new ProcessBuilder("chown", uid + ":" + gid, chrootDir.toString());
-				Process process = pb.start();
-				int exitCode = process.waitFor();
-				if (exitCode == 0) {
-					classLogger.debug("Set ownership " + uid + ":" + gid + " for: " + relativePath);
-				} else {
-					classLogger.warn("Could not set ownership for: " + relativePath + " (exit code: " + exitCode + ")");
-				}
+				Files.setAttribute(chrootDir, "unix:uid", Integer.parseInt(uid));
+				Files.setAttribute(chrootDir, "unix:gid", Integer.parseInt(gid));
+				classLogger.debug("Set ownership {}:{} for: {}", uid, gid, relativePath);
 			}
 		} catch (Exception e) {
-			classLogger.warn("Could not set ownership for: " + relativePath, e);
+			classLogger.warn("Could not set ownership for: {}", relativePath, e);
 		}
 	}
 
 	/**
-	 * Copy an entire directory recursively into the chroot, preserving structure.
+	 * Copy an entire directory tree from {@code source} to {@code target},
+	 * preserving relative structure. Sub-directories are recreated under the target
+	 * and files are copied with {@code REPLACE_EXISTING}. No-op if the source does
+	 * not exist. Per-file IO failures are wrapped in {@link UncheckedIOException}
+	 * so the stream pipeline can propagate them.
+	 *
+	 * @param source root directory to copy from
+	 * @param target root directory to copy into (created as needed)
+	 * @throws IOException if walking the source tree fails
 	 */
 	private void copyDirectoryRecursively(Path source, Path target) throws IOException {
 		if (source.toFile().exists()) {
@@ -587,8 +660,16 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * 
-	 * @param sourceDirName
+	 * Create a symbolic link inside the chroot that points back at a host
+	 * directory, mirroring the host path under the chroot root. For example, when
+	 * {@code sourceDirName} is {@code /opt/semoss/py}, the link is created at
+	 * {@code <chrootRoot>/opt/semoss/py} pointing to the original. The source path
+	 * is normalized first, parent directories of the link are created as needed,
+	 * and the call is idempotent (skipped if the link already exists). All errors
+	 * are logged and swallowed.
+	 *
+	 * @param sourceDirName absolute host path of the directory to expose inside the
+	 *                      chroot
 	 */
 	public void symlinkFolder(String sourceDirName) {
 		classLogger.debug("Making symlink for folder " + sourceDirName);
@@ -632,15 +713,16 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * @return the absolute path of this user's chroot folder (the value passed to
+	 *         the constructor)
 	 */
 	public String getUserChrootFolder() {
 		return this.userChrootFolder;
 	}
 
 	/**
-	 * 
+	 * Recursively delete this user's chroot folder and everything inside it. Errors
+	 * are logged and swallowed.
 	 */
 	public void removeChrootFolder() {
 		try {
@@ -651,6 +733,14 @@ public class SymlinkHelper {
 		}
 	}
 
+	/**
+	 * Symlink the given user's personal Asset project folder into the chroot so the
+	 * user's saved assets are accessible from inside the sandbox. Looks up the
+	 * user's primary login and asset project id, resolves the asset app root folder
+	 * via {@link AssetUtility}, then delegates to {@link #symlinkFolder(String)}.
+	 *
+	 * @param user the user whose asset folder should be exposed inside the chroot
+	 */
 	public void symlinkUserAsset(User user) {
 		AuthProvider provider = user.getPrimaryLogin();
 		String projectId = user.getAssetProjectId(provider);
@@ -659,6 +749,23 @@ public class SymlinkHelper {
 		symlinkFolder(assetFolder);
 	}
 
+	/**
+	 * Expose a project's app root folder inside the chroot with access mode
+	 * determined by the user's project permissions:
+	 * <ul>
+	 * <li>If the user can edit the project, the live project folder is symlinked
+	 * into the chroot (writes pass straight through to the host project).</li>
+	 * <li>Otherwise, behaviour depends on the {@code CHROOT_READ_ONLY_COPY} flag.
+	 * When enabled, a copy of the project is placed inside the chroot and every
+	 * file is chmod'd to {@code r-xr-xr-x} so the read-only user cannot modify
+	 * project state. When disabled, the project is symlinked as if the user had
+	 * edit access.</li>
+	 * </ul>
+	 * Already-copied targets are detected and skipped on repeat calls.
+	 *
+	 * @param user      the user whose chroot is being prepared
+	 * @param projectId id of the project to expose
+	 */
 	public void symlinkProject(User user, String projectId) {
 		classLogger.info("Symlinking project for projectId=" + projectId);
 
@@ -692,12 +799,27 @@ public class SymlinkHelper {
 		}
 	}
 
+	/**
+	 * Apply {@code rwxr-xr-x} POSIX permissions: owner has full access; group and
+	 * others get read and execute.
+	 *
+	 * @param dir path to chmod
+	 * @throws IOException if setting permissions fails
+	 */
 	private void setOwnerRWX(Path dir) throws IOException {
 		Files.setPosixFilePermissions(dir, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
 				PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
 				PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
 	}
 
+	/**
+	 * Apply {@code r-xr-xr-x} POSIX permissions: read and execute for owner, group,
+	 * and others; no write for anyone. Used to lock down a copied project so a
+	 * read-only user cannot modify it from inside the chroot.
+	 *
+	 * @param dir path to chmod
+	 * @throws IOException if setting permissions fails
+	 */
 	private void setOwnerRX(Path dir) throws IOException {
 		Files.setPosixFilePermissions(dir,
 				EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE,
@@ -705,6 +827,13 @@ public class SymlinkHelper {
 						PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
 	}
 
+	/**
+	 * Copy the live project app root into the chroot for a read-only user. Skips
+	 * silently if the source does not exist or the target has already been copied.
+	 * Part of the read-only-copy strategy in {@link #symlinkProject(User, String)}.
+	 *
+	 * @param projectId id of the project whose app root should be copied
+	 */
 	private void setupCopiedProject(String projectId) {
 		String sourceDirToCopy = AssetUtility.getProjectAppRootFolder(projectId);
 		sourceDirToCopy = Utility.normalizePath(sourceDirToCopy);
@@ -726,6 +855,14 @@ public class SymlinkHelper {
 		}
 	}
 
+	/**
+	 * Walk the chroot copy of the given project and apply {@code r-xr-xr-x}
+	 * permissions to every file and directory, locking the read-only user out of
+	 * modifying any project content while still allowing traversal and execution.
+	 *
+	 * @param projectId id of the project whose chroot copy should be made
+	 *                  read-only-executable
+	 */
 	public void setAllReadExecuteForProject(String projectId) {
 		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
 		projectAppRootFolder = Utility.normalizePath(projectAppRootFolder);
@@ -756,6 +893,18 @@ public class SymlinkHelper {
 		}
 	}
 
+	/**
+	 * Walk the chroot copy of the given project's asset code folders ({@code java},
+	 * {@code classes}, {@code py}) and strip the read bits, leaving only
+	 * {@code --x--x--x} permissions. The intent is to permit execution of compiled
+	 * code while preventing inspection of the source.
+	 * <p>
+	 * Currently does not work in practice — preserved for reference; see the
+	 * commented-out call in {@link #symlinkProject(User, String)}.
+	 *
+	 * @param projectId id of the project whose code folders should be made
+	 *                  execute-only
+	 */
 	public void setExecuteOnlyOnAssetCodeFolders(String projectId) {
 		String assetsFolderPath = AssetUtility.getProjectAssetsFolder(projectId);
 		assetsFolderPath = Utility.normalizePath(assetsFolderPath);
