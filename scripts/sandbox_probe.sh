@@ -29,6 +29,18 @@ note "whoami: $(id -un 2>/dev/null) ($(id 2>/dev/null))"
 note "kernel: $(uname -r)  arch: $(uname -m)"
 note "no_new_privs (proc status): $(grep -i NoNewPrivs /proc/self/status 2>/dev/null || echo n/a)"
 note "Seccomp (proc status): $(grep -i Seccomp /proc/self/status 2>/dev/null || echo n/a)"
+# Which LSM denies a mount differs by environment: AppArmor (GKE/Ubuntu) vs
+# SELinux (RHEL/UBI/DoD). Knowing this turns an EACCES into an actionable fix.
+note "LSMs active: $(cat /sys/kernel/security/lsm 2>/dev/null || echo unknown)"
+note "AppArmor ctx: $(cat /proc/self/attr/current 2>/dev/null || echo n/a)"
+if [ -e /sys/fs/selinux/enforce ]; then
+  note "SELinux: present enforce=$(cat /sys/fs/selinux/enforce 2>/dev/null) ctx=$(id -Z 2>/dev/null || echo ?)"
+else
+  note "SELinux: not present"
+fi
+# Best-effort runtime detection (gVisor reports a distinctive /proc/version).
+pv="$(cat /proc/version 2>/dev/null | head -c 160)"
+case "$pv" in *[gG]visor*|*runsc*) note "runtime: gVisor detected ($pv)";; *) note "/proc/version: $pv";; esac
 
 # ---------------------------------------------------------------------------
 hdr "1. Unprivileged user namespaces (THE LINCHPIN)"
