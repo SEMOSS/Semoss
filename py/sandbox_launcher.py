@@ -152,13 +152,10 @@ def enter_userns():
 # ---------------------------------------------------------------------------
 # minimal jail root
 # ---------------------------------------------------------------------------
-# Read-only host dirs the interpreter genuinely needs (python, shared libs, the
-# ld cache, CA certs).  Anything NOT in this allowlist -- the backing store,
-# /home, /root, other users' data -- is simply never bound in, so it cannot be
-# reached from inside the jail.
+# system dirs the interpreter needs. NOT /opt -- that holds the SEMOSS home and
+# every user's chroot/project data; it is exposed only via injected portals.
 DEFAULT_RO_PATHS = [
     "/usr", "/bin", "/sbin", "/lib", "/lib64", "/lib32", "/libx32", "/etc",
-    "/opt",
 ]
 DEV_NODES = ["null", "zero", "full", "random", "urandom", "tty"]
 
@@ -184,6 +181,15 @@ def build_jail(jail, ro_paths, rw_paths, portal_dirs):
     os.makedirs(jail, exist_ok=True)
     # new root must itself be a mount point for pivot_root
     _chk(_mount(jail, jail, "", MS_BIND), "bind jail->self")
+
+    # shared portals first, so any ro/rw bind that lands under one (py-folder,
+    # insight-folder) is inside the shared subtree and later injects there
+    # propagate into the interpreter.
+    for portal in portal_dirs:
+        tgt = jail + portal
+        os.makedirs(tgt, exist_ok=True)
+        _chk(_mount(tgt, tgt, "", MS_BIND), "bind portal->self %s" % portal)
+        _chk(_mount("none", tgt, "", MS_SHARED), "make-shared portal %s" % portal)
 
     for p in ro_paths:
         if os.path.exists(p):
@@ -211,13 +217,6 @@ def build_jail(jail, ro_paths, rw_paths, portal_dirs):
     shm = os.path.join(dev, "shm")
     os.makedirs(shm, exist_ok=True)
     _mount("tmpfs", shm, "tmpfs", 0, "mode=1777,size=64m")
-
-    # shared portals: empty in the interpreter until the supervisor injects.
-    for portal in portal_dirs:
-        tgt = jail + portal
-        os.makedirs(tgt, exist_ok=True)
-        _chk(_mount(tgt, tgt, "", MS_BIND), "bind portal->self %s" % portal)
-        _chk(_mount("none", tgt, "", MS_SHARED), "make-shared portal %s" % portal)
 
     os.makedirs(os.path.join(jail, "oldroot"), exist_ok=True)
 
@@ -702,16 +701,20 @@ def _real_mode(args):
     jail = args.jail_root or tempfile.mkdtemp(prefix="sbx-jail-")
     build_jail(jail, ro, rw, portal_dirs)
 
+    # pass-through args for the gaas server; argparse.REMAINDER keeps the "--"
+    # separator, so drop a leading one.
+    gaas_args = list(args.gaas)
+    if gaas_args and gaas_args[0] == "--":
+        gaas_args = gaas_args[1:]
+
     child_pid = os.fork()
     if child_pid == 0:
         enter_jail(jail, portal_dirs, unshare_net=not args.no_net)
         harden()
-        # hand off to the existing server, unchanged, with NO --userChrootFolder
-        # (the os.chroot legacy path stays dormant -- see gaas_tcp_socket_server).
         py = sys.executable
         cmd = [py, os.path.join(args.py_folder or "/usr/lib/semoss/py",
                                 "gaas_tcp_socket_server.py")]
-        cmd += args.gaas  # pass-through args assembled by Java
+        cmd += gaas_args
         os.execv(py, cmd)
         os._exit(127)  # unreachable
 

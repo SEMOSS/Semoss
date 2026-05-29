@@ -5555,7 +5555,9 @@ public final class Utility {
 			udsPath = ioDir + "/worker.sock";
 			controlSocketPath = ioDir + "/control.sock";
 
-			String projectPortal = baseFolder + "/" + Constants.PROJECT_FOLDER;
+			// the SEMOSS home is the shared portal: projects, user assets, and
+			// insight folders all live under it and are injected on demand
+			String projectPortal = baseFolder;
 
 			String outputFile = ioDir + "/console.txt";
 
