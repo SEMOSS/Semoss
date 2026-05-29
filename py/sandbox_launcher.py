@@ -1,44 +1,23 @@
 #!/usr/bin/env python3
 """
-sandbox_launcher.py -- real, unprivileged OS-level sandbox for the SEMOSS Python
-worker.  Replaces the bypassable `fakechroot` jail and the in-Python import hook
-with a kernel boundary built from user + mount (+ net) namespaces.
+sandbox_launcher.py -- optional, unprivileged OS-level sandbox for the SEMOSS
+Python worker, built from user + mount (+ net) namespaces. This is an additive
+launch path (SANDBOX_MODE=NSJAIL); the existing fakechroot path is unchanged.
 
-Design (proven by scripts/propagation_supervisor_poc.py -- see that file and
-docker/SANDBOX_USERNS_TESTING.md for the verification matrix):
+A supervisor keeps the backing store in its own mount view and injects
+authorized projects into shared portal dirs; a forked interpreter pivots into a
+minimal root, drops all caps + installs a seccomp filter, unshares the network,
+and execs the gaas worker. Projects injected later propagate in live, isolated,
+with REPL state intact. Needs only unprivileged user namespaces.
 
-  Java/SEMOSS (trusted, host ns, no caps)
-    | spawns this launcher; later sends "inject project P" + runs code
-    v
-  LAUNCHER  -- unshare(CLONE_NEWUSER) -> gains CAP_SYS_ADMIN *inside the userns*
-    |
-    +-- SUPERVISOR (stays here): owns the user+mount ns; keeps the per-user
-    |     backing store visible ONLY in its own mount view; /projects is a
-    |     SHARED mount.  On "inject P": bind <backing>/P -> /projects/P, which
-    |     PROPAGATES into the interpreter.  Never runs user code.
-    |
-    +-- fork() -> INTERPRETER:
-          unshare(CLONE_NEWNS); make /projects SLAVE (receives propagation);
-          pivot_root into a MINIMAL ro root (python+libs ro, tmpfs /tmp, empty
-            /projects) so the backing store and other users are invisible;
-          unshare(CLONE_NEWNET) -> empty netns kills egress;
-          DROP ALL CAPS + install a seccomp blocklist so user code cannot
-            re-mount / unshare / escape;
-          exec the existing gaas_tcp_socket_server (holds REPL state for life).
-
-Everything is UNPRIVILEGED: no root on the host, no CAP_SYS_ADMIN in the host
-ns, no privileged pod.  The only runtime prerequisite is unprivileged user
-namespaces (native on EKS / standard GKE with a seccomp patch; via
-runtimeClassName: gvisor on GKE Autopilot).
+See docker/SANDBOX_USERNS_TESTING.md (env matrix) and
+scripts/propagation_supervisor_poc.py (the proven mechanism).
 
 Run modes:
-  --self-test         Build the jail, harden, and assert the security
-                      properties end-to-end (no gaas server needed).  This is
-                      the CI/EKS gate; run it before any Java wiring.
-  (default / real)    Build the jail and exec the gaas worker inside it, while
-                      the supervisor serves an inject/remove control protocol on
-                      --control-socket.  (Wired here; exercised once Java sends
-                      the UDS-based channel -- plan steps 6c/6d.)
+  --self-test   build the jail, harden, and assert the security properties
+                end-to-end with no gaas server (the CI/EKS gate)
+  (default)     build the jail, exec the gaas worker, and serve an
+                INJECT/REMOVE control protocol on --control-socket
 """
 import argparse
 import ctypes
@@ -193,10 +172,15 @@ def _bind(src, tgt, ro):
         _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY | MS_BIND)
 
 
-def build_jail(jail, ro_paths, rw_paths):
-    """Construct the interpreter's minimal root under `jail` and return the
-    absolute path of the shared /projects portal (created + made shared so the
-    supervisor's injects propagate in)."""
+def build_jail(jail, ro_paths, rw_paths, portal_dirs):
+    """Construct the interpreter's minimal root under `jail`.
+
+    `portal_dirs` are absolute directories that the supervisor will inject
+    projects *into* after the interpreter is running; each is created and made
+    a SHARED mount so those later binds PROPAGATE across the namespace boundary.
+    Everything not bound here (the rest of the host filesystem, other users'
+    projects, the un-injected contents of the portal dirs) is invisible inside
+    the jail."""
     os.makedirs(jail, exist_ok=True)
     # new root must itself be a mount point for pivot_root
     _chk(_mount(jail, jail, "", MS_BIND), "bind jail->self")
@@ -228,22 +212,23 @@ def build_jail(jail, ro_paths, rw_paths):
     os.makedirs(shm, exist_ok=True)
     _mount("tmpfs", shm, "tmpfs", 0, "mode=1777,size=64m")
 
-    # the shared portal: empty in the interpreter until the supervisor injects.
-    portal = os.path.join(jail, "projects")
-    os.makedirs(portal, exist_ok=True)
-    _chk(_mount(portal, portal, "", MS_BIND), "bind portal->self")
-    _chk(_mount("none", portal, "", MS_SHARED), "make-shared portal")
+    # shared portals: empty in the interpreter until the supervisor injects.
+    for portal in portal_dirs:
+        tgt = jail + portal
+        os.makedirs(tgt, exist_ok=True)
+        _chk(_mount(tgt, tgt, "", MS_BIND), "bind portal->self %s" % portal)
+        _chk(_mount("none", tgt, "", MS_SHARED), "make-shared portal %s" % portal)
 
     os.makedirs(os.path.join(jail, "oldroot"), exist_ok=True)
-    return portal
 
 
-def enter_jail(jail, unshare_net):
-    """Run in the interpreter (child): own mount ns, slave portal, pivot into
+def enter_jail(jail, portal_dirs, unshare_net):
+    """Run in the interpreter (child): own mount ns, slave portals, pivot into
     the minimal root, detach the old root, optionally drop the network."""
     _chk(libc.unshare(CLONE_NEWNS), "child unshare(CLONE_NEWNS)")
-    portal = os.path.join(jail, "projects")
-    _chk(_mount("none", portal, "", MS_SLAVE), "child make-slave portal")
+    for portal in portal_dirs:
+        _chk(_mount("none", jail + portal, "", MS_SLAVE),
+             "child make-slave portal %s" % portal)
     if unshare_net:
         # empty network namespace -> no route off the box.  AF_UNIX still works
         # (it is filesystem-based), which is why the broker<->worker channel
@@ -393,25 +378,25 @@ def harden(unshare_net_already_done=True):
 # supervisor inject/remove primitives (run in the supervisor, which still holds
 # CAP_SYS_ADMIN-in-userns and can see the backing store).
 # ---------------------------------------------------------------------------
-def inject(portal, backing, project_id, mode="rw"):
-    """Bind <backing>/<project_id> into the shared portal so it propagates into
-    the interpreter.  Idempotent (mirrors today's Files.exists symlink guard)."""
-    src = os.path.join(backing, project_id)
-    tgt = os.path.join(portal, project_id)
+def inject(jail, src, dst, mode="rw"):
+    """Bind `src` to `jail + dst` so it propagates into the running interpreter
+    (where it appears at `dst`). `dst` must live under a shared portal dir.
+    Idempotent (mirrors today's Files.exists symlink guard)."""
+    tgt = jail + dst
     if os.path.ismount(tgt):
         return  # already injected
     if not os.path.isdir(src):
-        raise OSError(2, "no such project in backing store: %s" % src)
+        raise OSError(2, "no such source to inject: %s" % src)
     os.makedirs(tgt, exist_ok=True)
-    _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "inject %s" % project_id)
+    _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "inject %s" % dst)
     if mode == "ro":
         _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY)
 
 
-def remove(portal, project_id):
-    tgt = os.path.join(portal, project_id)
+def remove(jail, dst):
+    tgt = jail + dst
     if os.path.ismount(tgt):
-        _chk(_umount2(tgt, MNT_DETACH), "remove %s" % project_id)
+        _chk(_umount2(tgt, MNT_DETACH), "remove %s" % dst)
 
 
 # ===========================================================================
@@ -440,7 +425,8 @@ def _self_test():
             f.write(content)
 
     jail = os.path.join(work, "jail")
-    portal = build_jail(jail, DEFAULT_RO_PATHS, rw_paths=[])
+    portal_dirs = ["/projects"]
+    build_jail(jail, DEFAULT_RO_PATHS, rw_paths=[], portal_dirs=portal_dirs)
 
     c2p_r, c2p_w = os.pipe()
     p2c_r, p2c_w = os.pipe()
@@ -450,7 +436,7 @@ def _self_test():
     if pid == 0:
         os.close(c2p_r)
         os.close(p2c_w)
-        enter_jail(jail, unshare_net=True)
+        enter_jail(jail, portal_dirs, unshare_net=True)
         harden()
         x = 1  # in-memory REPL state; must survive every injection
 
@@ -569,13 +555,13 @@ def _self_test():
     P(recv().startswith("READ_FAIL"), "host paths outside the allowlist are hidden")
 
     print("--- lazy load: inject an authorized project (live) ---")
-    inject(portal, backing, "projectB", "rw")
+    inject(jail, os.path.join(backing, "projectB"), "/projects/projectB", "rw")
     send("READ /projects/projectB/data.csv")
     P(recv() == "READ_OK /projects/projectB/data.csv=B_DATA",
       "interpreter reads projectB live after injection")
 
     print("--- mid-session grant: inject a NEVER-staged project (live) ---")
-    inject(portal, backing, "projectC", "rw")
+    inject(jail, os.path.join(backing, "projectC"), "/projects/projectC", "rw")
     send("READ /projects/projectC/data.csv")
     P(recv() == "READ_OK /projects/projectC/data.csv=C_DATA",
       "interpreter reads newly-granted projectC without restart")
@@ -611,13 +597,15 @@ def _self_test():
 # control socket.  (Plumbing is in place; exercised once Java sends commands
 # over the UDS channel -- plan steps 6c/6d.)
 # ===========================================================================
-def _serve_control(portal, backing, control_sock, child_pid):
+def _serve_control(jail, portal_dirs, control_sock, child_pid):
     """Supervisor loop: accept line commands from Java and (un)mount projects.
     Protocol (tab-separated, newline-terminated): one reply line per command.
-        INJECT\t<rw|ro>\t<project_id>   -> OK | ERR <msg>
-        REMOVE\t<project_id>            -> OK | ERR <msg>
-        PING                            -> PONG
-    """
+        INJECT\t<rw|ro>\t<abs_path>   -> OK | ERR <msg>
+        REMOVE\t<abs_path>            -> OK | ERR <msg>
+        PING                          -> PONG
+    `abs_path` is the real project/asset path; it is bound to the same path
+    inside the jail (mirroring today's symlink) and must fall under a configured
+    portal dir so the mount propagates to the interpreter."""
     if os.path.exists(control_sock):
         os.unlink(control_sock)
     srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -642,7 +630,7 @@ def _serve_control(portal, backing, control_sock, child_pid):
                         break
                     data += chunk
                 for raw in data.decode().splitlines():
-                    conn.sendall((_handle_control(portal, backing, raw) + "\n").encode())
+                    conn.sendall((_handle_control(jail, portal_dirs, raw) + "\n").encode())
     finally:
         srv.close()
         try:
@@ -651,19 +639,33 @@ def _serve_control(portal, backing, control_sock, child_pid):
             pass
 
 
-def _handle_control(portal, backing, raw):
+def _under_portal(path, portal_dirs):
+    real = os.path.normpath(path)
+    for d in portal_dirs:
+        d = os.path.normpath(d)
+        if real == d or real.startswith(d + os.sep):
+            return True
+    return False
+
+
+def _handle_control(jail, portal_dirs, raw):
     parts = raw.split("\t")
     cmd = parts[0].strip().upper() if parts else ""
     try:
         if cmd == "PING":
             return "PONG"
         if cmd == "INJECT" and len(parts) >= 3:
-            mode = parts[1].strip().lower()
-            inject(portal, backing, parts[2].strip(),
-                   "ro" if mode == "ro" else "rw")
+            mode = "ro" if parts[1].strip().lower() == "ro" else "rw"
+            abs_path = parts[2].strip()
+            if not _under_portal(abs_path, portal_dirs):
+                return "ERR path not under a portal dir: %s" % abs_path
+            inject(jail, abs_path, abs_path, mode)
             return "OK"
         if cmd == "REMOVE" and len(parts) >= 2:
-            remove(portal, parts[1].strip())
+            abs_path = parts[1].strip()
+            if not _under_portal(abs_path, portal_dirs):
+                return "ERR path not under a portal dir: %s" % abs_path
+            remove(jail, abs_path)
             return "OK"
         return "ERR bad command"
     except OSError as e:
@@ -693,12 +695,16 @@ def _real_mode(args):
     if args.io_dir:
         rw.append(os.path.abspath(args.io_dir))
 
+    # absolute dirs under which projects/assets are injected live (made shared
+    # so mid-session grants propagate into the running interpreter)
+    portal_dirs = [p for p in args.portal_dir if p]
+
     jail = args.jail_root or tempfile.mkdtemp(prefix="sbx-jail-")
-    portal = build_jail(jail, ro, rw)
+    build_jail(jail, ro, rw, portal_dirs)
 
     child_pid = os.fork()
     if child_pid == 0:
-        enter_jail(jail, unshare_net=not args.no_net)
+        enter_jail(jail, portal_dirs, unshare_net=not args.no_net)
         harden()
         # hand off to the existing server, unchanged, with NO --userChrootFolder
         # (the os.chroot legacy path stays dormant -- see gaas_tcp_socket_server).
@@ -710,7 +716,7 @@ def _real_mode(args):
         os._exit(127)  # unreachable
 
     if args.control_socket:
-        _serve_control(portal, args.backing_root, args.control_socket, child_pid)
+        _serve_control(jail, portal_dirs, args.control_socket, child_pid)
     else:
         os.waitpid(child_pid, 0)
 
@@ -727,6 +733,10 @@ def parse_args():
                    help="where to build the minimal root (default: a tmpdir)")
     p.add_argument("--control-socket", default="",
                    help="UDS the supervisor listens on for INJECT/REMOVE")
+    p.add_argument("--portal-dir", action="append", default=[],
+                   help="absolute dir under which projects/assets are injected; "
+                        "made a shared mount so mid-session grants propagate "
+                        "into the running interpreter (repeatable)")
     p.add_argument("--py-folder", default="",
                    help="SEMOSS py/ folder (gaas server code), bound read-only")
     p.add_argument("--insight-folder", default="",

@@ -194,11 +194,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging_level)
 
-    # LEGACY (FAKECHROOT mode) ONLY. The namespace sandbox (sandbox_launcher.py)
-    # establishes a real pivot_root boundary before this process starts and does
-    # NOT pass --userChrootFolder, so this os.chroot() path stays dormant there.
-    # os.chroot() alone is not a security boundary (it is escapable and only
-    # works as root); it is retained solely for the rollback/legacy launch path.
+    # Perform chroot if userChrootFolder is specified
     if args.userChrootFolder:
         try:
             os.chroot(args.userChrootFolder)
