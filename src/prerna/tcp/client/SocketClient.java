@@ -32,6 +32,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.UnixDomainSocketAddress;
+import java.nio.channels.Channels;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -71,6 +74,10 @@ public class SocketClient implements Runnable, Closeable {
 	String HOST = null;
 	int PORT = -1;
 	boolean SSL = false;
+	// when set, the broker connects to the worker over this AF_UNIX socket path
+	// instead of TCP (used by the namespace sandbox, whose empty netns makes TCP
+	// loopback unreachable)
+	String udsPath = null;
 
 	Map<String, PayloadStruct> requestMap = new ConcurrentHashMap<>();
 	Map<String, PayloadStruct> responseMap = new ConcurrentHashMap<>();
@@ -89,6 +96,7 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, String> startMdc = null;
 
 	Socket clientSocket = null;
+	SocketChannel udsChannel = null;
 	SocketClientHandler sch = new SocketClientHandler();
 
 	volatile InputStream is = null;
@@ -120,6 +128,43 @@ public class SocketClient implements Runnable, Closeable {
 		this.SSL = SSL;
 	}
 
+	/**
+	 * Connect to the worker over an AF_UNIX socket (namespace sandbox mode).
+	 *
+	 * @param udsPath filesystem path of the worker's Unix domain socket
+	 */
+	public void connectUds(final String udsPath) {
+		this.udsPath = udsPath;
+		this.SSL = false;
+	}
+
+	/**
+	 * Open the transport and populate {@link #is} / {@link #os}. Supports both
+	 * TCP ({@link #HOST}/{@link #PORT}) and AF_UNIX ({@link #udsPath}) so the rest
+	 * of the client, which only ever touches the streams, is transport-agnostic.
+	 *
+	 * @throws IOException if the connection cannot be established
+	 */
+	protected void openConnection() throws IOException {
+		if (this.udsPath != null) {
+			UnixDomainSocketAddress address = UnixDomainSocketAddress.of(this.udsPath);
+			this.udsChannel = SocketChannel.open(address);
+			this.is = Channels.newInputStream(this.udsChannel);
+			this.os = Channels.newOutputStream(this.udsChannel);
+		} else {
+			this.clientSocket = new Socket(this.HOST, this.PORT);
+			this.is = this.clientSocket.getInputStream();
+			this.os = this.clientSocket.getOutputStream();
+		}
+	}
+
+	/**
+	 * @return a human-readable description of the current transport target
+	 */
+	protected String transportTarget() {
+		return this.udsPath != null ? ("unix:" + this.udsPath) : (this.HOST + ":" + this.PORT);
+	}
+
 	@Override
 	public void run() {
 		// Configure SSL.git
@@ -144,11 +189,8 @@ public class SocketClient implements Runnable, Closeable {
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
 
-				clientSocket = new Socket(this.HOST, this.PORT);
-
-				// pick input and output stream and start the threads
-				this.is = clientSocket.getInputStream();
-				this.os = clientSocket.getOutputStream();
+				// open TCP or AF_UNIX transport (populates is/os)
+				openConnection();
 				sch.setClient(this);
 				sch.setInputStream(this.is);
 
@@ -156,7 +198,7 @@ public class SocketClient implements Runnable, Closeable {
 				Thread readerThread = new Thread(sch);
 				readerThread.start();
 
-				classLogger.info("Connected to socket server at {}:{}", this.HOST, this.PORT);
+				classLogger.info("Connected to socket server at {}", transportTarget());
 				Thread.sleep(100); // sleep some before executing command
 				// prime it
 				// logger.info("First command.. Prime" + executeCommand("2+2"));
@@ -181,7 +223,7 @@ public class SocketClient implements Runnable, Closeable {
 		}
 
 		if (attempt >= 6) {
-			classLogger.error("Failed to connect to socket server at {}:{} after {} attempts", this.HOST, this.PORT, attempt);
+			classLogger.error("Failed to connect to socket server at {} after {} attempts", transportTarget(), attempt);
 			killAll = true;
 			connected = false;
 			ready = false;
@@ -394,6 +436,7 @@ public class SocketClient implements Runnable, Closeable {
 		closeStream(this.os);
 		closeStream(this.is);
 		closeStream(this.clientSocket);
+		closeStream(this.udsChannel);
 		this.killAll = true;
 		this.connected = false;
 	}

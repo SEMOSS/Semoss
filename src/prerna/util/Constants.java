@@ -733,6 +733,21 @@ public class Constants {
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
+	// Python execution sandbox mode. Controls how the per-user Python worker is
+	// isolated and how authorized projects are made visible to it:
+	//   OFF          - no isolation (legacy default, no chroot)
+	//   FAKECHROOT   - legacy fakechroot/chroot + per-user symlink staging
+	//                  (NOT a security boundary; retained for rollback)
+	//   NSJAIL       - real unprivileged user+mount(+net) namespace jail
+	//                  (sandbox_launcher.py); projects injected via mount
+	//                  propagation; broker<->worker over AF_UNIX
+	//   SECCOMP_ONLY - host/network hardening only, no cross-user file isolation
+	//                  (fallback where user namespaces are unavailable)
+	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	// AF_UNIX socket directory shared between the Java broker and the sandboxed
+	// worker (bind-mounted into the jail so the worker's data socket is reachable)
+	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
+
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";

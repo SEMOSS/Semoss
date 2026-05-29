@@ -30,7 +30,6 @@ package prerna.tcp.client;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -105,10 +104,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 				while (!connected && attempt < 6) {
 					try {
-						clientSocket = new Socket(this.HOST, this.PORT);
-						// pick input and output stream and start the threads
-						this.is = clientSocket.getInputStream();
-						this.os = clientSocket.getOutputStream();
+						// open TCP or AF_UNIX transport (populates is/os)
+						openConnection();
 						classLogger.info("CLIENT Connection complete !!!!!!!");
 						// sleep some before executing command
 						Thread.sleep(100);
