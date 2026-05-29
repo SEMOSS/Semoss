@@ -47,6 +47,7 @@ import prerna.engine.api.IEngine;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.CmdSandboxLauncher;
 import prerna.reactor.agent.sandbox.EnforcementMode;
+import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -120,8 +121,16 @@ public class CommandReactor extends GitBaseReactor {
 			// Layer 1: navigation confinement — cd cannot escape the room folder
 			cmdUtil.setConfinementRoot(roomFolder);
 
-			// Layer 2: kernel-level file I/O confinement when AGENT_SANDBOX_ENABLE=true
+			// Layer 2: kernel-level file I/O confinement when AGENT_SANDBOX_ENABLE=true.
+			// Fail closed if enforcement is on but the Landlock backend isn't available —
+			// silently degrading to Layer-1-only would mislead operators who expect a sandbox.
 			if (AgentSandboxConfig.resolveEnforcement() == EnforcementMode.ENFORCE) {
+				if (!SandboxLauncherRegistry.isAvailable()) {
+					return NounMetadata.getErrorNounMessage(
+							"AGENT_SANDBOX_ENABLE=true but the Landlock backend is unavailable on this host "
+									+ "(kernel must support Landlock ABI v1+; Ubuntu 22.04 / RHEL 9 / "
+									+ "AL2023 or newer). Upgrade the kernel or set AGENT_SANDBOX_ENABLE=false.");
+				}
 				SandboxPolicy policy = CmdSandboxLauncher.buildRoomCommandPolicy(
 						roomFolder, cmdUtil.getChrootPath());
 				cmdUtil.setSandboxPolicy(policy);

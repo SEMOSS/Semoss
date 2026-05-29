@@ -75,10 +75,18 @@ public final class LandlockLauncher implements SandboxLauncher {
     public boolean isAvailable() {
         int ver = Landlock.probeAbiVersion();
         if (ver < 0) {
-            logger.info("Landlock unavailable on this host (kernel < 5.13 or landlock disabled)");
+            logger.warn("Landlock unavailable on this host (kernel < 5.13 or landlock disabled); "
+                    + "Command reactor sandbox enforcement will refuse to run");
             return false;
         }
-        logger.debug("Landlock ABI v{} detected", ver);
+        if (ver < 4) {
+            // ABI 4 introduced LANDLOCK_ACCESS_NET_CONNECT_TCP / *_BIND_TCP. Below that,
+            // the network field on SandboxPolicy is advisory only.
+            logger.warn("Landlock ABI v{} detected — network restrictions are NOT enforced "
+                    + "below ABI v4 (Linux 6.7+). File-system confinement is active.", ver);
+        } else {
+            logger.info("Landlock ABI v{} detected (file + network confinement available)", ver);
+        }
         return true;
     }
 

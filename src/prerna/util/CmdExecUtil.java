@@ -30,6 +30,8 @@ package prerna.util;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -123,7 +125,7 @@ public class CmdExecUtil {
 
 	/**
 	 * Check if a directory exists, accounting for chroot
-	 * 
+	 *
 	 * @param chrootRelativePath Path relative to chroot
 	 * @return true if directory exists
 	 */
@@ -136,6 +138,35 @@ public class CmdExecUtil {
 				+ "', exists: " + exists);
 
 		return exists;
+	}
+
+	/**
+	 * Returns true when {@code candidateChrootPath} resolves (through symlinks)
+	 * to a real path outside the confinement root. {@link Utility#normalizePath}
+	 * is lexical-only, so a symlink inside the room pointing outward would pass
+	 * the existing {@code startsWith} checks; this helper closes that gap.
+	 *
+	 * <p>Fails closed on any I/O error (path missing, permission denied) — the
+	 * caller should already have validated existence via {@link #directoryExists}.
+	 */
+	private boolean escapesConfinement(String candidateChrootPath) {
+		if (this.confinementRoot == null) {
+			return false;
+		}
+		try {
+			Path targetReal = Paths.get(chrootToSystemPath(candidateChrootPath)).toRealPath();
+			Path rootReal = Paths.get(chrootToSystemPath(this.confinementRoot)).toRealPath();
+			boolean escapes = !targetReal.startsWith(rootReal);
+			if (escapes) {
+				classLogger.warn("Confinement escape blocked: '" + candidateChrootPath
+						+ "' resolves to '" + targetReal + "' (root real path: '" + rootReal + "')");
+			}
+			return escapes;
+		} catch (IOException e) {
+			classLogger.warn("toRealPath failed for '" + candidateChrootPath
+					+ "'; treating as confinement escape: " + e.getMessage());
+			return true;
+		}
 	}
 
 	/**
@@ -236,16 +267,20 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
-		// Layer 2: if a sandbox policy is active, execute via the platform-specific
-		// sandbox (Landlock on Linux, sandbox-exec on macOS). Falls back to direct
-		// execution if no backend is available on this platform.
+		// Layer 2: if a sandbox policy was attached to this session, the command MUST
+		// run through Landlock. Fail closed if the launcher reports unavailable —
+		// silently falling through to unsandboxed execution would defeat the policy.
 		if (this.sandboxPolicy != null) {
 			String[] sandboxed = CmdSandboxLauncher.execute(
 					this.sandboxPolicy, this.workingDir, command, this.chrootFolderPath);
 			if (sandboxed != null) {
 				return sandboxed;
 			}
-			classLogger.warn("Sandbox backend unavailable; executing without Layer-2 confinement");
+			classLogger.error("Sandbox policy active but Landlock backend unavailable at runtime; "
+					+ "refusing command instead of degrading to unsandboxed execution");
+			return new String[] { "false",
+					"Layer-2 sandbox unavailable on this host; command refused. "
+							+ "Either upgrade the kernel to support Landlock or set AGENT_SANDBOX_ENABLE=false." };
 		}
 
 		Map<String, String> environment = null;
@@ -395,6 +430,13 @@ public class CmdExecUtil {
 			}
 			// For chroot, we need to check if the path exists within the chroot
 			if (directoryExists(command)) {
+				// Symlink-aware Layer 1 check: reject targets whose real path is outside
+				// the confinement root (lexical startsWith above can't see through symlinks).
+				if (escapesConfinement(command)) {
+					this.workingDir = currentWorkingDir;
+					return "Access denied: target resolves outside the session root: "
+							+ this.confinementRoot;
+				}
 				this.workingDir = command;
 				classLogger.debug("Set working dir to absolute path: " + this.workingDir);
 				return this.workingDir;
@@ -471,6 +513,14 @@ public class CmdExecUtil {
 					return "Directory doesn't exist: " + newDir;
 				}
 			}
+		}
+
+		// Symlink-aware Layer 1 check on the final state: blocks `cd link` where
+		// `link` lives inside the room but resolves outside it.
+		if (escapesConfinement(this.workingDir)) {
+			this.workingDir = currentWorkingDir;
+			return "Access denied: target resolves outside the session root: "
+					+ this.confinementRoot;
 		}
 
 		classLogger.debug("Final working directory: " + this.workingDir);

@@ -57,6 +57,19 @@ public final class SandboxLauncherRegistry {
         }
     }
 
+    /**
+     * Non-throwing variant of {@link #get()} for callers that need to branch on
+     * availability before committing to a sandboxed code path.
+     */
+    public static boolean isAvailable() {
+        try {
+            get();
+            return true;
+        } catch (SandboxUnavailableException e) {
+            return false;
+        }
+    }
+
     /** For tests; clears the cached launcher so a different platform can be simulated. */
     public static synchronized void reset() {
         cached = null;
