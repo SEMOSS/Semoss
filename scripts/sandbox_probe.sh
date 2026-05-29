@@ -31,8 +31,8 @@ note "no_new_privs (proc status): $(grep -i NoNewPrivs /proc/self/status 2>/dev/
 note "Seccomp (proc status): $(grep -i Seccomp /proc/self/status 2>/dev/null || echo n/a)"
 # Which LSM denies a mount differs by environment: AppArmor (GKE/Ubuntu) vs
 # SELinux (RHEL/UBI/DoD/OpenShift). Knowing this turns an EACCES into a fix.
-note "LSMs active: $(tr -d '\000' < /sys/kernel/security/lsm 2>/dev/null || echo unknown)"
-secctx="$(tr -d '\000' < /proc/self/attr/current 2>/dev/null)"
+[ -r /sys/kernel/security/lsm ] && note "LSMs active: $(tr -d '\000' < /sys/kernel/security/lsm 2>/dev/null)" || note "LSMs active: not exposed"
+secctx=""; [ -r /proc/self/attr/current ] && secctx="$(tr -d '\000' < /proc/self/attr/current 2>/dev/null)"
 case "$secctx" in
   *:*:*:*)   # SELinux label form: user_u:role_r:type_t:level
     note "LSM: SELinux  context=$secctx"
@@ -43,9 +43,15 @@ case "$secctx" in
   "") note "security context: n/a (no AppArmor/SELinux label exposed)" ;;
   *)  note "security context: $secctx" ;;
 esac
-# Best-effort runtime detection (gVisor reports a distinctive /proc/version).
-pv="$(tr -d '\000' < /proc/version 2>/dev/null | head -c 160)"
-case "$pv" in *[gG]visor*|*runsc*) note "runtime: gVisor detected ($pv)";; *) note "/proc/version: $pv";; esac
+# Runtime detection. gVisor's Sentry reports a distinctive fake kernel
+# (commonly '4.4.0 ... 2016') and/or 'gVisor' in /proc/version.
+pv="$([ -r /proc/version ] && tr -d '\000' < /proc/version | head -c 160)"
+kr="$(uname -r)"
+case "$pv$kr" in
+  *[gG]visor*|*runsc*) note "runtime: gVisor detected" ;;
+  4.4.0*)              note "runtime: gVisor LIKELY (Sentry kernel $kr) — host kernel/LSM not in play here" ;;
+  *)                   note "/proc/version: $pv" ;;
+esac
 
 # ---------------------------------------------------------------------------
 hdr "1. Unprivileged user namespaces (THE LINCHPIN)"

@@ -44,9 +44,18 @@ except OSError as e:
     print("PREREQ NOT MET: cannot create user namespace unprivileged (%s)." % e)
     print("Flip the container seccomp profile first (see sandbox_probe.sh §1). Exiting 0.")
     sys.exit(0)
-open("/proc/self/setgroups","w").write("deny")
-open("/proc/self/gid_map","w").write("0 %d 1"%gid)
-open("/proc/self/uid_map","w").write("0 %d 1"%uid)
+# setgroups=deny is only required for an UNPRIVILEGED userns. When we already
+# hold CAP_SETGID (e.g. gVisor with sandbox-perceived SYS_ADMIN), the write is
+# unnecessary and may be rejected (EACCES) -- so make it best-effort.
+try:
+    open("/proc/self/setgroups","w").write("deny")
+except OSError:
+    pass
+for mapfile, val in (("/proc/self/gid_map","0 %d 1"%gid), ("/proc/self/uid_map","0 %d 1"%uid)):
+    try:
+        open(mapfile,"w").write(val)
+    except OSError as e:
+        print("note: could not write %s (%s) -- continuing (already mapped/privileged)" % (mapfile, e))
 chk(libc.unshare(CLONE_NEWNS),"unshare mountns(supervisor)")
 chk(mount("none","/","",MS_REC|MS_PRIVATE),"make-rprivate /")
 
