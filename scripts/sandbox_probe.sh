@@ -24,8 +24,9 @@ cleanup(){ rm -rf "$TMP" 2>/dev/null; }
 trap cleanup EXIT
 
 hdr "0. Environment"
+PY="$(command -v python3 || command -v python || true)"
 note "whoami: $(id -un 2>/dev/null) ($(id 2>/dev/null))"
-note "kernel: $(uname -r)"
+note "kernel: $(uname -r)  arch: $(uname -m)"
 note "no_new_privs (proc status): $(grep -i NoNewPrivs /proc/self/status 2>/dev/null || echo n/a)"
 note "Seccomp (proc status): $(grep -i Seccomp /proc/self/status 2>/dev/null || echo n/a)"
 
@@ -61,6 +62,53 @@ else
     note "   3. Pod-level user namespaces: spec.hostUsers: false (K8s 1.33 GA), if the"
     note "      cluster runtime supports it."
   fi
+fi
+
+# ---------------------------------------------------------------------------
+hdr "1b. Landlock (unprivileged self-sandbox — NO userns/caps/seccomp-profile change)"
+# Landlock lets a process restrict its own filesystem (and, ABI>=4, TCP) access
+# with zero privileges. It is enforced in-kernel on real syscalls, so ctypes /
+# importlib / raw open() cannot bypass it. Ideal for locked-down envs (GKE
+# Autopilot, DoD) where userns/seccomp cannot be changed.
+# Syscall numbers 444/445/446 hold on x86_64 and aarch64.
+if [ -n "${PY:-}" ]; then
+  arch="$(uname -m)"
+  if [ "$arch" = "x86_64" ] || [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then
+    "$PY" - >"$TMP/ll.out" 2>&1 <<'PYEOF'
+import ctypes, os, errno
+libc = ctypes.CDLL("libc.so.6", use_errno=True)
+NR_CREATE = 444
+LANDLOCK_CREATE_RULESET_VERSION = 1
+ctypes.set_errno(0)
+ver = libc.syscall(ctypes.c_long(NR_CREATE), ctypes.c_void_p(0),
+                   ctypes.c_size_t(0), ctypes.c_uint(LANDLOCK_CREATE_RULESET_VERSION))
+if ver < 0:
+    e = ctypes.get_errno()
+    if e == errno.ENOSYS:
+        print("RESULT=NONE kernel has no Landlock LSM (need >= 5.13)")
+    elif e in (errno.EPERM, errno.EACCES):
+        print("RESULT=BLOCKED landlock syscall blocked, likely seccomp profile (errno=%d)" % e)
+    else:
+        print("RESULT=ERR errno=%d (%s)" % (e, os.strerror(e)))
+else:
+    feats = ["fs(read/write)"]
+    if ver >= 3: feats.append("exec/truncate-restrict")
+    if ver >= 4: feats.append("net-tcp(connect/bind)")
+    print("RESULT=OK abi=%d -> %s" % (ver, ", ".join(feats)))
+PYEOF
+    res="$(cat "$TMP/ll.out" 2>/dev/null)"
+    note "$res"
+    case "$res" in
+      *RESULT=OK*)      record "landlock: USABLE unprivileged (no seccomp/userns change needed)" "$PASS";;
+      *RESULT=BLOCKED*) record "landlock: present but blocked by the container seccomp profile" "$WARN";;
+      *RESULT=NONE*)    record "landlock: kernel has no Landlock LSM (need >= 5.13)" "$FAIL";;
+      *)                record "landlock: error while probing" "$WARN";;
+    esac
+  else
+    record "landlock: skipped (syscall numbers unverified on arch '$arch')" "$WARN"
+  fi
+else
+  record "landlock: no python found to probe" "$WARN"
 fi
 
 # ---------------------------------------------------------------------------
@@ -199,6 +247,17 @@ us="$(g 'userns: full' )"; [ -z "$us" ] && us="$(g 'userns:')"
 bw="$(g 'bwrap: basic')"
 fu="$(g 'FUSE:')"
 bind="$(g 'bind-mount inside userns')"
+ll="$(g 'landlock:')"
+
+if [ "$ll" = "$PASS" ]; then
+  echo "  -> PORTABLE BASELINE AVAILABLE: Landlock (unprivileged, no infra change)."
+  echo "     Have the interpreter Landlock-restrict ITSELF at startup to the user's"
+  echo "     full AUTHORIZED path set (read/write per userCanEditProject) + python"
+  echo "     libs (read+exec) and deny exec elsewhere. Lazy-load within that set needs"
+  echo "     no restart; a brand-new mid-session grant requires an interpreter restart."
+  echo "     Works identically on GKE Autopilot / DoD. Use this as the security floor."
+  echo
+fi
 
 if [ "$us" = "$PASS" ] && [ "$bw" = "$PASS" ]; then
   echo "  -> PRIMARY PATH AVAILABLE: bwrap namespace jail (user+mount+pid+net+ipc)."
@@ -216,11 +275,15 @@ if [ "$us" = "$PASS" ] && [ "$bw" = "$PASS" ]; then
 elif [ "$us" = "$PASS" ] && [ "$bw" != "$PASS" ]; then
   echo "  -> userns works but bwrap is missing/broken: add bwrap to the image, OR"
   echo "     drive unshare(2) directly. Then proceed as PRIMARY PATH above."
+elif [ "$ll" = "$PASS" ]; then
+  echo "  -> userns/bwrap unavailable, but LANDLOCK works: ship the Landlock baseline"
+  echo "     above as the primary FS sandbox. For full network egress kill, pair with"
+  echo "     Landlock-net (abi>=4) and/or a socket-blocking seccomp filter."
 else
-  echo "  -> LINCHPIN MISSING: unprivileged user namespaces are unavailable."
-  echo "     In-pod cross-user FILESYSTEM isolation is NOT achievable here."
-  echo "     Options: (a) ask cluster admins to enable unprivileged userns, or"
-  echo "     (b) accept per-pod isolation, or (c) ship the SECCOMP-ONLY fallback"
-  echo "     (protects host/network, but NOT user-vs-user files)."
+  echo "  -> NEITHER userns NOR Landlock usable here. In-pod isolation of user code is"
+  echo "     not achievable without infra change. Options: (a) enable unprivileged"
+  echo "     userns OR unblock landlock syscalls in the seccomp profile, (b) accept"
+  echo "     per-pod isolation, or (c) ship the SECCOMP-ONLY fallback (host/network"
+  echo "     protection, but NOT user-vs-user files)."
 fi
 echo
