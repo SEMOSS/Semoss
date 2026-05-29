@@ -131,6 +131,11 @@ RUN	cd /tmp \
 
 RUN apt install -y debootstrap fakechroot fakeroot
 
+# Real unprivileged sandbox tooling (bwrap jail + nsenter/unshare for the
+# in-userns mount supervisor). Requires unprivileged user namespaces enabled
+# at runtime (see docker/SANDBOX_USERNS_TESTING.md).
+RUN apt-get install -y --no-install-recommends bubblewrap util-linux uidmap
+
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
 	-c "Default Application User" default &&                \
 	chown -R 1001:0 ${HOME}
