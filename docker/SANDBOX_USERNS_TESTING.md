@@ -63,10 +63,11 @@ securityContext:
 
 ## Per-environment expectations
 
-| Environment | Can enable userns? | Path |
+| Environment | userns | Path |
 |---|---|---|
+| **AWS EKS (Amazon Linux 2023)** | **Yes, by default** (verified: `Seccomp 0`, full userns set + propagation PoC all green; Landlock abi=6 also available) | Full in-pod sandbox, no infra change |
 | Self-managed / standard GKE | Yes — patch seccompProfile (A or B) | Full sandbox |
-| GKE Autopilot | Usually no (can't change seccomp/devices) | Per-pod isolation fallback, or request the feature |
+| GKE Autopilot | No for plain pods (managed AppArmor denies mount). Use `runtimeClassName: gvisor` + sandbox-perceived `SYS_ADMIN` | gVisor in-sandbox path, or per-pod |
 | DoD / hardened | Test per cluster; `hostUsers: false` may be available | Full sandbox if userns or hostUsers works |
 
 If neither userns nor `hostUsers: false` is available, in-pod cross-user

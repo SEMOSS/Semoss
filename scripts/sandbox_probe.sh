@@ -115,7 +115,11 @@ fi
 hdr "2. bubblewrap (bwrap)"
 if command -v bwrap >/dev/null 2>&1; then
   note "bwrap: $(bwrap --version 2>/dev/null)"
-  if bwrap --unshare-user --unshare-mount --ro-bind / / true 2>"$TMP/bwrap.err"; then
+  # NOTE: bwrap always unshares the mount ns; --unshare-mount only exists in
+  # newer releases (>=0.8). Use flags supported back to 0.6.1 so an old bwrap
+  # isn't reported as broken. (Our real engine is the ctypes launcher, not the
+  # bwrap CLI, so bwrap version is informational.)
+  if bwrap --unshare-user --unshare-pid --ro-bind / / true 2>"$TMP/bwrap.err"; then
     record "bwrap: basic unprivileged jail works" "$PASS"
   else
     record "bwrap: present but basic jail failed (needs userns?)" "$FAIL"
