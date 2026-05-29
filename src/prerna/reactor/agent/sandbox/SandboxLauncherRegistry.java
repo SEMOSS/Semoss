@@ -57,10 +57,7 @@ public final class SandboxLauncherRegistry {
         }
     }
 
-    /**
-     * Non-throwing variant of {@link #get()} for callers that need to branch on
-     * availability before committing to a sandboxed code path.
-     */
+    /** Non-throwing form of {@link #get()}. */
     public static boolean isAvailable() {
         try {
             get();

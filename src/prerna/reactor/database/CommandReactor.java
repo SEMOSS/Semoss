@@ -111,19 +111,13 @@ public class CommandReactor extends GitBaseReactor {
 			return getError("No context is set - please use SetContext(<mount point>) to set context");
 		}
 
-		// In room (MCP) context the cmdUtil starts at the chroot root ("/") because no
-		// project context is set.  Seed it to the room folder on first use so commands
-		// run relative to the room rather than the filesystem root.
+		// Room (MCP) sessions start at the chroot root — seed to the room folder and
+		// install Layer 1 (cd confinement) + Layer 2 (Landlock, when enabled).
 		if (this.insight.getRoomId() != null && "/".equals(cmdUtil.getWorkingDir())) {
 			String roomFolder = this.insight.getInsightFolder();
 			cmdUtil.setWorkingDir(roomFolder);
-
-			// Layer 1: navigation confinement — cd cannot escape the room folder
 			cmdUtil.setConfinementRoot(roomFolder);
 
-			// Layer 2: kernel-level file I/O confinement when AGENT_SANDBOX_ENABLE=true.
-			// Fail closed if enforcement is on but the Landlock backend isn't available —
-			// silently degrading to Layer-1-only would mislead operators who expect a sandbox.
 			if (AgentSandboxConfig.resolveEnforcement() == EnforcementMode.ENFORCE) {
 				if (!SandboxLauncherRegistry.isAvailable()) {
 					return NounMetadata.getErrorNounMessage(
@@ -451,6 +445,33 @@ public class CommandReactor extends GitBaseReactor {
 			newOutput = newOutput + "\n" + repos;
 		}
 		return newOutput;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Executes a shell command in the user's chroot-confined session directory. "
+				+ "In a room session, the working directory is anchored to the room folder and "
+				+ "navigation outside that folder is blocked. When AGENT_SANDBOX_ENABLE=true and the "
+				+ "host kernel supports Landlock, the command also runs under kernel-enforced "
+				+ "filesystem confinement; otherwise the command is refused.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.COMMAND.getKey().equals(key)) {
+			return "The shell command to execute (e.g., 'pwd', 'ls', 'git status'). Resolved "
+					+ "relative to the current session working directory; `cd` can move within the "
+					+ "session root but cannot escape it.";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (ReactorKeysEnum.COMMAND.getKey().equals(key)) {
+			return MCP_KEY_TYPE.STRING;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 }

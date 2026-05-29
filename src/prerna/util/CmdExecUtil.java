@@ -141,13 +141,9 @@ public class CmdExecUtil {
 	}
 
 	/**
-	 * Returns true when {@code candidateChrootPath} resolves (through symlinks)
-	 * to a real path outside the confinement root. {@link Utility#normalizePath}
-	 * is lexical-only, so a symlink inside the room pointing outward would pass
-	 * the existing {@code startsWith} checks; this helper closes that gap.
-	 *
-	 * <p>Fails closed on any I/O error (path missing, permission denied) — the
-	 * caller should already have validated existence via {@link #directoryExists}.
+	 * Symlink-aware confinement check: resolves {@code candidateChrootPath} via
+	 * {@link Path#toRealPath} and returns true if it escapes {@link #confinementRoot}.
+	 * Fails closed on I/O errors.
 	 */
 	private boolean escapesConfinement(String candidateChrootPath) {
 		if (this.confinementRoot == null) {
@@ -267,9 +263,8 @@ public class CmdExecUtil {
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
 	private String[] runCommand(String command) {
-		// Layer 2: if a sandbox policy was attached to this session, the command MUST
-		// run through Landlock. Fail closed if the launcher reports unavailable —
-		// silently falling through to unsandboxed execution would defeat the policy.
+		// Layer 2: when a policy is attached, the command MUST run through Landlock.
+		// Fail closed if the launcher reports unavailable.
 		if (this.sandboxPolicy != null) {
 			String[] sandboxed = CmdSandboxLauncher.execute(
 					this.sandboxPolicy, this.workingDir, command, this.chrootFolderPath);

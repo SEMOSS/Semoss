@@ -41,18 +41,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.reactor.agent.sandbox.linux.Landlock;
 
 /**
- * Linux {@link SandboxLauncher} backed by the landlock LSM.
- *
- * <p>Spawn plan: hand the caller a shell wrapper as {@code cliPath}. When
- * the SDK invokes it with SDK-managed flags, the wrapper re-execs through
- * a child JVM ({@link SandboxLauncherMain}) that applies landlock rules
- * (via JNA) and then {@code execvp()}s the real agent binary. Landlock
- * rules inherit across the exec and across every fork the agent performs
- * (Bash, tool subprocesses) so the allowlist is enforced for the entire
- * agent run.
- *
- * <p>~500ms extra startup per agent run from the wrapper JVM, which is
- * negligible for runs that last minutes.
+ * Linux sandbox backend (Landlock LSM, kernel 5.13+). The spawn plan hands the SDK a
+ * wrapper script that re-execs through {@link SandboxLauncherMain}, which applies the
+ * ruleset via JNA and {@code execvp()}s the target binary. Adds ~500ms startup overhead.
  */
 public final class LandlockLauncher implements SandboxLauncher {
 

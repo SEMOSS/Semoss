@@ -46,22 +46,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.util.Constants;
 
 /**
- * Executes a one-shot shell command inside a {@link SandboxPolicy}-enforced subprocess
- * for the SEMOSS Command reactor.
- *
- * <p>This path is <b>Linux + chroot only</b> — deployed instances always run Linux with
- * a fakechroot-wrapped per-user root. Dev machines (mac/windows) set
- * {@code CHROOT_ENABLE=false} and never reach this code; the Command reactor short-circuits
- * with an error before invoking Layer-2 sandboxing. There is intentionally no macOS
- * (Seatbelt / sandbox-exec) branch here — the broader agent-harness sandbox stack still
- * supports macOS for local dev, but the Command reactor does not.
- *
- * <p>Landlock restricts writes to the room folder only. Reads are permitted across the
- * chroot root (same access the chroot already provides) because Landlock's allowlist model
- * requires explicit READ_DIR grants on each ancestor directory of the room folder path for
- * kernel path traversal to succeed. The chroot already allows this read access, so there is
- * no security regression relative to the pre-Landlock state. The meaningful gain is that
- * writes outside the room folder are blocked at the kernel level.
+ * Runs a Command-reactor shell command in a Landlock-confined, fakechroot-wrapped subprocess.
+ * Linux + chroot only — non-chroot sessions are rejected by the Command reactor before
+ * reaching here. Writes are restricted to the room folder; reads span the chroot root.
  */
 public final class CmdSandboxLauncher {
 
@@ -73,18 +60,11 @@ public final class CmdSandboxLauncher {
 	}
 
 	/**
-	 * Builds a {@link SandboxPolicy} for a Linux room-session command execution.
+	 * Build a Landlock policy: RW on {@code roomFolder}, RO on the shell runtime and
+	 * every chroot ancestor required for path traversal.
 	 *
-	 * <p>Landlock is allowlist-only, so explicit RO paths are added for the shell
-	 * runtime, plus the chroot root and every ancestor of {@code roomFolder} for
-	 * Landlock path-traversal.
-	 *
-	 * @param roomFolder the room's working directory (system absolute path)
-	 * @param chrootPath the user's chroot root; must be non-empty (the Command reactor
-	 *                   enforces {@code CHROOT_ENABLE} before this is reached)
-	 * @return policy ready to pass to {@link #execute}
-	 * @throws IllegalStateException if invoked on a non-Linux platform
-	 * @throws IllegalArgumentException if {@code chrootPath} is null or empty
+	 * @throws IllegalStateException on non-Linux
+	 * @throws IllegalArgumentException if {@code chrootPath} is empty
 	 */
 	public static SandboxPolicy buildRoomCommandPolicy(String roomFolder, String chrootPath) {
 		if (Platform.current() != Platform.LINUX) {
@@ -125,22 +105,12 @@ public final class CmdSandboxLauncher {
 	}
 
 	/**
-	 * Runs {@code command} in a Landlock-confined, fakechroot-wrapped subprocess.
+	 * Execute {@code command} via {@code fakechroot fakeroot chroot --userspec=1001:1001 /bin/bash -c "cd {workingDir} && ..."}
+	 * with {@code policy} enforced by Landlock.
 	 *
-	 * <p>The effective shell invocation is:
-	 * <pre>
-	 *   fakechroot fakeroot chroot --userspec=1001:1001 {chrootPath} /bin/bash -c "cd '{workingDir}' &amp;&amp; {command}"
-	 * </pre>
-	 *
-	 * @param policy     pre-built policy (from {@link #buildRoomCommandPolicy})
-	 * @param workingDir the directory to cd into before running (system absolute path)
-	 * @param command    shell command string to execute
-	 * @param chrootPath the user's chroot root; must be non-empty
-	 * @return {@code String[2]} — {@code [0]="true"/"false"}, {@code [1]=output};
-	 *         or {@code null} if the Landlock backend is unavailable on this host
-	 *         (caller should fall back to Layer-1 navigation confinement only)
-	 * @throws IllegalStateException if invoked on a non-Linux platform
-	 * @throws IllegalArgumentException if {@code chrootPath} is null or empty
+	 * @return {@code [success?, output]}, or {@code null} if Landlock isn't available on this host
+	 * @throws IllegalStateException on non-Linux
+	 * @throws IllegalArgumentException if {@code chrootPath} is empty
 	 */
 	public static String[] execute(SandboxPolicy policy, String workingDir,
 			String command, String chrootPath) {
@@ -182,10 +152,7 @@ public final class CmdSandboxLauncher {
 		return runSandboxed(plan, targetArgs);
 	}
 
-	/**
-	 * Executes the plan, collecting stdout+stderr into a {@code String[2]} result.
-	 * The argv sent to the OS is: {@code [plan.cliPath, ...plan.cliArgs, ...targetArgs]}.
-	 */
+	/** Spawn the plan and capture combined stdout+stderr into {@code [success?, output]}. */
 	private static String[] runSandboxed(SandboxLaunchPlan plan, String[] targetArgs) {
 		String[] foutput = new String[2];
 
