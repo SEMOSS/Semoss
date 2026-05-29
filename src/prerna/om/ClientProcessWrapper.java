@@ -48,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.PortAllocator;
+import prerna.util.SandboxInjector;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
@@ -67,6 +68,12 @@ public class ClientProcessWrapper {
 	private int port;
 	private String venvPath;
 	private String serverDirectory;
+
+	// namespace sandbox (SANDBOX_MODE=NSJAIL): the worker listens on this AF_UNIX
+	// data socket (TCP loopback is unreachable from its empty netns) and the
+	// supervisor accepts project injects on this control socket
+	private String udsPath;
+	private String controlSocketPath;
 
 	private boolean nativePyServer;
 	private SymlinkHelper chrootSymlinkHelper;
@@ -130,7 +137,27 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					if (this.chrootSymlinkHelper != null) {
+					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
+						// SANDBOX_MODE=NSJAIL: real namespace jail built by
+						// py/sandbox_launcher.py. No chroot tree; the server directory is a
+						// normal temp dir (bind-mounted into the jail) and the worker is
+						// reached over an AF_UNIX socket instead of TCP.
+						String insightCache = Utility.getDIHelperProperty(prerna.util.Constants.INSIGHT_CACHE_DIR);
+						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
+						this.serverDirectory = serverDirectoryPath.toString();
+						Utility.writeLogConfigurationFile(this.serverDirectory);
+
+						Object[] ret = Utility.startTCPServerNativePySandbox(this.serverDirectory, this.port + "",
+								this.timeout, this.loggerLevel);
+						this.process = (Process) ret[0];
+						this.prefix = (String) ret[1];
+						this.udsPath = (String) ret[2];
+						this.controlSocketPath = (String) ret[3];
+
+						// hand the supervisor's control socket to the symlink helper so the
+						// existing lazy symlink* trigger points become live project injects
+						this.chrootSymlinkHelper.setInjector(new SandboxInjector(this.controlSocketPath));
+					} else if (this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
 						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
@@ -204,7 +231,12 @@ public class ClientProcessWrapper {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
 				this.socketClient.setCpw(this);
-				this.socketClient.connect("127.0.0.1", this.port, false);
+				if (this.udsPath != null) {
+					// NSJAIL worker: reach it over its AF_UNIX data socket
+					this.socketClient.connectUds(this.udsPath);
+				} else {
+					this.socketClient.connect("127.0.0.1", this.port, false);
+				}
 				Thread t = new Thread(socketClient);
 				t.start();
 				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;

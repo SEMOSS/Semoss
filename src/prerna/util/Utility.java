@@ -5524,7 +5524,125 @@ public final class Utility {
 	}
 
 	/**
-	 * 
+	 * Start the per-user Python worker inside the unprivileged namespace sandbox
+	 * (SANDBOX_MODE=NSJAIL). This is an additive launch path: it does NOT replace
+	 * {@link #startTCPServerNativePyChroot} (the legacy fakechroot path), it is an
+	 * alternative selected only when NSJAIL is configured.
+	 *
+	 * Instead of chrooting, this runs py/sandbox_launcher.py, which builds a real
+	 * user+mount(+net) namespace jail, execs gaas_tcp_socket_server inside it over
+	 * an AF_UNIX socket, and exposes a control socket the broker uses to inject
+	 * authorized projects on demand.
+	 *
+	 * @param insightFolder relative insight/server folder (mirrors the chroot arg)
+	 * @param port          dummy TCP port (the worker actually listens on a UDS)
+	 * @param timeout       idle timeout passed to the worker
+	 * @param loggerLevel   worker log level
+	 * @return { Process, prefix, udsPath, controlSocketPath }
+	 */
+	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
+			String loggerLevel) {
+		String prefix = "";
+		Process thisProcess = null;
+		String udsPath = null;
+		String controlSocketPath = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			String py = getPythonExecutable();
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
+			String launcher = pyBase + "/sandbox_launcher.py";
+
+			prefix = "p_" + Utility.getRandomString(5);
+
+			// IO dir shared between the Java broker and the sandboxed worker; it is
+			// bind-mounted into the jail so the worker's AF_UNIX data socket is
+			// reachable by Java at the same host path.
+			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
+			if (Strings.isNullOrEmpty(ioRoot)) {
+				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
+			}
+			String ioDir = ioRoot + "/" + prefix;
+			new File(Utility.normalizePath(ioDir)).mkdirs();
+			udsPath = ioDir + "/worker.sock";
+			controlSocketPath = ioDir + "/control.sock";
+
+			// directory under which project app-root folders live; made a shared
+			// portal so projects granted mid-session propagate into the running
+			// interpreter
+			String projectPortal = baseFolder + "/" + Constants.PROJECT_FOLDER;
+
+			String outputFile = ioDir + "/console.txt";
+
+			java.util.List<String> commands = new java.util.ArrayList<>();
+			commands.add(py);
+			commands.add(launcher);
+			commands.add("--py-folder");
+			commands.add(pyBase);
+			commands.add("--insight-folder");
+			commands.add(finalDir);
+			commands.add("--io-dir");
+			commands.add(ioDir);
+			commands.add("--control-socket");
+			commands.add(controlSocketPath);
+			commands.add("--portal-dir");
+			commands.add(projectPortal);
+			// everything after -- is passed straight through to gaas_tcp_socket_server.py
+			commands.add("--");
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--max_count");
+			commands.add("1");
+			commands.add("--py_folder");
+			commands.add(pyBase);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--uds-path");
+			commands.add(udsPath);
+
+			String[] commandArray = commands.toArray(new String[0]);
+
+			// reuse the same ulimit memory cap as the other launch paths
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commandArray) {
+					sb.append(str).append(" ");
+				}
+				commandArray = new String[] { "/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
+			}
+
+			classLogger.info("Starting sandboxed (NSJAIL) user process with ::: " + Arrays.toString(commandArray));
+			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			try {
+				p.waitFor(500, TimeUnit.MILLISECONDS);
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				classLogger.error(Constants.STACKTRACE, ie);
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			classLogger.error(Constants.STACKTRACE, ioe);
+		}
+
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath };
+	}
+
+	/**
+	 *
 	 * @return
 	 */
 	private static String getPythonExecutable() {
