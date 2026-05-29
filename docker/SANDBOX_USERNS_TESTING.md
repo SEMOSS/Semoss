@@ -68,7 +68,7 @@ securityContext:
 | **AWS EKS (Amazon Linux 2023)** | **Yes, by default** (verified: `Seccomp 0`, full userns set + propagation PoC all green; Landlock abi=6 also available) | Full in-pod sandbox, no infra change |
 | Self-managed / standard GKE | Yes — patch seccompProfile (A or B) | Full sandbox |
 | GKE Autopilot | No for plain pods (managed AppArmor denies mount). Use `runtimeClassName: gvisor` + sandbox-perceived `SYS_ADMIN` | gVisor in-sandbox path, or per-pod |
-| DoD / hardened | Test per cluster; `hostUsers: false` may be available | Full sandbox if userns or hostUsers works |
+| DoD (RHEL 8.10, **kernel 4.18**, SELinux/OpenShift) | No — kernel too old for Landlock; seccomp gates userns and SELinux `container_t` would deny mount even after | Per-pod isolation (SELinux MCS already isolates pods) + RWX volume |
 
 If neither userns nor `hostUsers: false` is available, in-pod cross-user
 isolation isn't achievable there — fall back to per-pod isolation or the

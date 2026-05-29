@@ -30,16 +30,21 @@ note "kernel: $(uname -r)  arch: $(uname -m)"
 note "no_new_privs (proc status): $(grep -i NoNewPrivs /proc/self/status 2>/dev/null || echo n/a)"
 note "Seccomp (proc status): $(grep -i Seccomp /proc/self/status 2>/dev/null || echo n/a)"
 # Which LSM denies a mount differs by environment: AppArmor (GKE/Ubuntu) vs
-# SELinux (RHEL/UBI/DoD). Knowing this turns an EACCES into an actionable fix.
-note "LSMs active: $(cat /sys/kernel/security/lsm 2>/dev/null || echo unknown)"
-note "AppArmor ctx: $(cat /proc/self/attr/current 2>/dev/null || echo n/a)"
-if [ -e /sys/fs/selinux/enforce ]; then
-  note "SELinux: present enforce=$(cat /sys/fs/selinux/enforce 2>/dev/null) ctx=$(id -Z 2>/dev/null || echo ?)"
-else
-  note "SELinux: not present"
-fi
+# SELinux (RHEL/UBI/DoD/OpenShift). Knowing this turns an EACCES into a fix.
+note "LSMs active: $(tr -d '\000' < /sys/kernel/security/lsm 2>/dev/null || echo unknown)"
+secctx="$(tr -d '\000' < /proc/self/attr/current 2>/dev/null)"
+case "$secctx" in
+  *:*:*:*)   # SELinux label form: user_u:role_r:type_t:level
+    note "LSM: SELinux  context=$secctx"
+    note "  (a *_t container type such as container_t typically DENIES mount even"
+    note "   inside a userns; needs an SELinux type/policy that permits it)" ;;
+  unconfined|*profile*|*apparmor*|*"/"*)
+    note "LSM: AppArmor  profile=$secctx" ;;
+  "") note "security context: n/a (no AppArmor/SELinux label exposed)" ;;
+  *)  note "security context: $secctx" ;;
+esac
 # Best-effort runtime detection (gVisor reports a distinctive /proc/version).
-pv="$(cat /proc/version 2>/dev/null | head -c 160)"
+pv="$(tr -d '\000' < /proc/version 2>/dev/null | head -c 160)"
 case "$pv" in *[gG]visor*|*runsc*) note "runtime: gVisor detected ($pv)";; *) note "/proc/version: $pv";; esac
 
 # ---------------------------------------------------------------------------
