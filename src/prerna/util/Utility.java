@@ -5528,14 +5528,19 @@ public final class Utility {
 	 * (SANDBOX_MODE=NSJAIL) via py/sandbox_launcher.py. Additive alternative to
 	 * {@link #startTCPServerNativePyChroot}.
 	 *
-	 * @return { Process, prefix, udsPath, controlSocketPath }
+	 * @param ioDirName name for this worker's io-dir / jail folder (e.g.
+	 *                  userid_sessionId so it is identifiable on disk); a random
+	 *                  name is generated when null/empty
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir }
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
-			String loggerLevel) {
+			String loggerLevel, String ioDirName) {
 		String prefix = "";
 		Process thisProcess = null;
 		String udsPath = null;
 		String controlSocketPath = null;
+		String ioDir = null;
+		String jailDir = null;
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
@@ -5550,14 +5555,21 @@ public final class Utility {
 			if (Strings.isNullOrEmpty(ioRoot)) {
 				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
 			}
-			String ioDir = ioRoot + "/" + prefix;
+			// folder named userid_sessionId (passed in) so it is clear whose it is;
+			// the jail skeleton sits in a sibling folder so both can be removed on
+			// logout (see ClientProcessWrapper.shutdown)
+			String folderName = Strings.isNullOrEmpty(ioDirName) ? prefix
+					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
+			ioDir = ioRoot + "/" + folderName;
+			jailDir = ioRoot + "/" + folderName + "__jail";
 			new File(Utility.normalizePath(ioDir)).mkdirs();
+			new File(Utility.normalizePath(jailDir)).mkdirs();
 			udsPath = ioDir + "/worker.sock";
 			controlSocketPath = ioDir + "/control.sock";
 
-			// the SEMOSS home is the shared portal: projects, user assets, and
+			// the SEMOSS home is the inject-root: projects, user assets, and
 			// insight folders all live under it and are injected on demand
-			String projectPortal = baseFolder;
+			String injectRoot = baseFolder;
 
 			String outputFile = ioDir + "/console.txt";
 
@@ -5572,8 +5584,10 @@ public final class Utility {
 			commands.add(ioDir);
 			commands.add("--control-socket");
 			commands.add(controlSocketPath);
-			commands.add("--portal-dir");
-			commands.add(projectPortal);
+			commands.add("--inject-root");
+			commands.add(injectRoot);
+			commands.add("--jail-root");
+			commands.add(jailDir);
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
@@ -5622,7 +5636,7 @@ public final class Utility {
 			classLogger.error(Constants.STACKTRACE, ioe);
 		}
 
-		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath };
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir };
 	}
 
 	/**

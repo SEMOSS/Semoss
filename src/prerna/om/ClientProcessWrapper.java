@@ -71,6 +71,10 @@ public class ClientProcessWrapper {
 
 	private String udsPath;
 	private String controlSocketPath;
+	// NSJAIL sandbox folders to remove on shutdown(true): the io-dir holds the
+	// worker/control sockets + console.txt, the jail-dir holds the throwaway root
+	private String sandboxIoDir;
+	private String sandboxJailDir;
 
 	private boolean nativePyServer;
 	private SymlinkHelper chrootSymlinkHelper;
@@ -140,12 +144,19 @@ public class ClientProcessWrapper {
 						this.serverDirectory = serverDirectoryPath.toString();
 						Utility.writeLogConfigurationFile(this.serverDirectory);
 
+						// name the sandbox folders after the user's chroot folder
+						// (userid_sessionId) so they are identifiable on disk
+						String ioDirName = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder()).getFileName()
+								.toString();
+
 						Object[] ret = Utility.startTCPServerNativePySandbox(this.serverDirectory, this.port + "",
-								this.timeout, this.loggerLevel);
+								this.timeout, this.loggerLevel, ioDirName);
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 						this.udsPath = (String) ret[2];
 						this.controlSocketPath = (String) ret[3];
+						this.sandboxIoDir = (String) ret[4];
+						this.sandboxJailDir = (String) ret[5];
 
 						this.chrootSymlinkHelper.setInjector(new SandboxInjector(this.controlSocketPath));
 					} else if (this.chrootSymlinkHelper != null) {
@@ -275,31 +286,11 @@ public class ClientProcessWrapper {
 					if (cleanUpFolder) {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");
-						int attempt = 0;
-						File serverDir = new File(this.serverDirectory);
-						while (!result && attempt < 3) {
-							try {
-								if (serverDir.exists()) {
-									FileUtils.deleteDirectory(new File(this.serverDirectory));
-									classLogger.info("Sucessfully cleaned up the directory");
-								} else {
-									classLogger.info("Server directory does not exist");
-								}
-								result = true;
-							} catch (Exception ignored) {
-								classLogger.info("Failed attempt #{} to delete the folder {}", attempt,
-										this.serverDirectory);
-								attempt++;
-								try {
-									Thread.sleep(attempt * 1000);
-								} catch (InterruptedException e1) {
-									Thread.currentThread().interrupt();
-									classLogger.error(
-											"Interrupted while waiting between cleanup retries for server directory {}",
-											this.serverDirectory, e1);
-								}
-							}
-						}
+						// remove the insight scratch dir plus, for NSJAIL, the sandbox
+						// io-dir and jail-dir (no-ops when those are null)
+						result = deleteFolderWithRetries(this.serverDirectory)
+								& deleteFolderWithRetries(this.sandboxIoDir)
+								& deleteFolderWithRetries(this.sandboxJailDir);
 					} else {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");
@@ -349,7 +340,44 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * 
+	 * Best-effort recursive delete of a folder, retrying a few times to ride out
+	 * transient locks while the process finishes exiting.
+	 *
+	 * @param folder absolute path to remove; null/empty is treated as success
+	 * @return true if the folder is gone (or never existed)
+	 */
+	private boolean deleteFolderWithRetries(String folder) {
+		if (folder == null || folder.trim().isEmpty()) {
+			return true;
+		}
+		File dir = new File(folder);
+		int attempt = 0;
+		while (attempt < 3) {
+			try {
+				if (dir.exists()) {
+					FileUtils.deleteDirectory(dir);
+					classLogger.info("Successfully cleaned up the directory {}", folder);
+				} else {
+					classLogger.info("Directory does not exist {}", folder);
+				}
+				return true;
+			} catch (Exception ignored) {
+				attempt++;
+				classLogger.info("Failed attempt #{} to delete the folder {}", attempt, folder);
+				try {
+					Thread.sleep(attempt * 1000L);
+				} catch (InterruptedException e1) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting between cleanup retries for {}", folder, e1);
+					return false;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 *
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {
