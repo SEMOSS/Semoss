@@ -36,15 +36,18 @@ import prerna.util.FileSystemUtil;
 
 public class SaveAppAssetsReactor extends AbstractSaveAppAssetsReactor {
 
+	private static final String DECODE = "decode";
+
 	public SaveAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
 	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
+		boolean decode = getBoolean(DECODE, false);
+		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents, decode);
 	}
 
 	@Override
@@ -62,19 +65,31 @@ public class SaveAppAssetsReactor extends AbstractSaveAppAssetsReactor {
 			return """
 					Contents of the file(s) to save. \
 					For convenience, instead of escaping quotes or backslashes you can wrap \
-					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					the input within "<encode>your_text</encode>" and the system will encode it for you. \
+					By default, content is written exactly as received after Pixel translation. \
+					Set decode=[true] only when content should be URL-decoded before saving.
 					""";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
 			return "Comment to add while saving the files within the git repository for the project";
+		} else if (key.equals(DECODE)) {
+			return "Boolean to URL-decode the content string before writing to the file. Default is false.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(DECODE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
 		properties.getJSONObject(ReactorKeysEnum.CONTENT.getKey()).put("description",
-				"Contents of the file(s) to save.");
+				"Contents of the file(s) to save. By default, content is written exactly as received after Pixel translation. Set decode=true only when content should be URL-decoded before saving.");
 		return properties;
 	}
 

@@ -532,6 +532,20 @@ public final class FileSystemUtil {
 	 * @param contents    A list of file contents corresponding to the filePaths.
 	 */
 	public static void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+		saveAssetFiles(assetFolder, filePaths, contents, true);
+	}
+
+	/**
+	 * Saves a list of files with their corresponding content to the asset folder.
+	 *
+	 * @param assetFolder   The base folder for the assets.
+	 * @param filePaths     A list of relative file paths.
+	 * @param contents      A list of file contents corresponding to the filePaths.
+	 * @param decodeContent Boolean if we should URL-decode content before writing
+	 *                      to the filePath.
+	 */
+	public static void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean decodeContent) {
 		// iterate each fileName/content pair
 		for (int i = 0; i < filePaths.size(); i++) {
 			String rawFileName = filePaths.get(i).trim();
@@ -545,7 +559,9 @@ public final class FileSystemUtil {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
+			if (decodeContent) {
+				content = Utility.decodeURIComponent(content);
+			}
 
 			File file = new File(filePath);
 			try {
