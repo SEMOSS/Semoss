@@ -232,11 +232,16 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
         List<AbstractMessage> messages = room.getMessages();
         String branchLeafMessageId = branch.getLast().getMessageId();
+        AbstractMessage leafToFlag = null;
         for (AbstractMessage m : messages) {
             if (m.getMessageId().equals(branchLeafMessageId)) {
-                m.setPruneToolsAbove(true);
+                leafToFlag = m;
                 break;
             }
+        }
+        boolean priorLeafFlag = leafToFlag != null && leafToFlag.getPruneToolsAbove();
+        if (leafToFlag != null) {
+            leafToFlag.setPruneToolsAbove(true);
         }
 
         // Pair the compacted input with a response message so the branch is complete
@@ -258,10 +263,26 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         messages.add(toolPruneMessage);
         messages.add(toolPruneResponse);
 
-        ModelInferenceLogsUtils.llm2_updateRoomMessages(
-                room.getId(),
-                this.insight.getUser().getPrimaryLoginToken().getId(),
-                room.getMessagesAsString());
+        try {
+            ModelInferenceLogsUtils.llm2_updateRoomMessages(
+                    room.getId(),
+                    this.insight.getUser().getPrimaryLoginToken().getId(),
+                    room.getMessagesAsString());
+        } catch (Exception e) {
+            // Roll back the in-memory mutations so the cached Room stays in sync with the DB.
+            // Room objects are process-cached (RoomUtils), so leaking dirty state here would
+            // corrupt future requests for this room until the cache is evicted.
+            messages.remove(toolPruneResponse);
+            messages.remove(toolPruneMessage);
+            if (leafToFlag != null) {
+                leafToFlag.setPruneToolsAbove(priorLeafFlag);
+            }
+            classLogger.error("Failed to persist TOOL_PRUNE compaction for room " + room.getId()
+                    + "; rolled back in-memory changes", e);
+            result.put("success", false);
+            result.put("error", "Failed to persist compaction: " + e.getMessage());
+            return result;
+        }
 
         result.put("success", true);
         result.put("inputMessage", toolPruneMessage);
@@ -417,10 +438,23 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         messages.add(compactedMessage);
         messages.add(compactedResponse);
 
-        ModelInferenceLogsUtils.llm2_updateRoomMessages(
-                room.getId(),
-                this.insight.getUser().getPrimaryLoginToken().getId(),
-                room.getMessagesAsString());
+        try {
+            ModelInferenceLogsUtils.llm2_updateRoomMessages(
+                    room.getId(),
+                    this.insight.getUser().getPrimaryLoginToken().getId(),
+                    room.getMessagesAsString());
+        } catch (Exception e) {
+            // Roll back the in-memory mutations so the cached Room stays in sync with the DB.
+            // Room objects are process-cached (RoomUtils), so leaking dirty state here would
+            // corrupt future requests for this room until the cache is evicted.
+            messages.remove(compactedResponse);
+            messages.remove(compactedMessage);
+            classLogger.error("Failed to persist SUMMARY compaction for room " + room.getId()
+                    + "; rolled back in-memory changes", e);
+            result.put("success", false);
+            result.put("error", "Failed to persist compaction: " + e.getMessage());
+            return result;
+        }
 
         result.put("success", true);
         result.put("inputMessage", compactedMessage);
