@@ -73,8 +73,10 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 
 	private String validateAdd() {
 		Map<String, Object> inputMap = makeTestObject();
-		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class, ReactorKeysEnum.DATA_TYPE_MAP.getKey(), inputMap);
-		System.out.println(pixel);
+		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class,
+				ReactorKeysEnum.NAME.getKey(), inputMap.get("name"),
+				ReactorKeysEnum.SECTION.getKey(), inputMap.get("section"),
+				ReactorKeysEnum.JSON.getKey(), inputMap.get("block_json"));
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		String outputId = nm.getValue().toString();
 
@@ -136,14 +138,12 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 //		assertEquals(new HashMap<>(), checkNm.getValue());
 		
 		String filter = ApiSemossTestUtils.buildFilter(ThemeDbTable.BLOCKS_TABLE.getThemeDbTablePrefix() + "IS_LATEST", "==", 0);
-		System.out.println(filter);
 		String checkExistsPixel = ApiSemossTestUtils.buildPixelCall(GetClientBlocksReactor.class, ReactorKeysEnum.FILTERS.getKey(), filter);
 		NounMetadata checkExistsNm = ApiSemossTestUtils.processPixel(checkExistsPixel);
-//		assertNotEquals(new HashMap<>(), checkExistsNm.getValue());
 		List<Object> output = (List<Object>) checkExistsNm.getValue();
 		assert output.size() == 1;
 		Map<String, Object> element = (Map<String, Object>) output.get(0);
-		assertEquals(outputId, element.get("ID"));
+		assertEquals(outputId, element.get("id"));
 	}
 
 	@Test

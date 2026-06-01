@@ -1,7 +1,7 @@
 #Base Properties
-ENGINE	AuditLogs
+ENGINE	Notification
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-OWL	testfolder/db/AuditLogs/AuditLogs_OWL.OWL
+OWL	Notification_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE	

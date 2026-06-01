@@ -78,23 +78,13 @@ InsightCache/*
 InsightCache/CSV_Insights/*
 !InsightCache/CSV_Insights/.gitkeep
 
-# test folder stuff
-testfolder/db/**
-testfolder/function/**
-testfolder/guardrail/**
-testfolder/model/**
-testfolder/project/**
-testfolder/storage/**
-testfolder/user/**
-testfolder/vector/**
-testfolder/InsightCache/
-testfolder/mailpit/mailpit.log
-testfolder/RDF_Map.prop
-/testfolder/py
-/testfolder/R
-
 # test resources
 test/resources/RDF_MAP.prop
+
+# Mailpit binary lives next to the README (user-installed, see fixture readme)
+test/resources/mailpit/mailpit
+test/resources/mailpit/mailpit.exe
+test/resources/mailpit/mailpit.log
 
 # Python Virtual Environments 
 venv/*
