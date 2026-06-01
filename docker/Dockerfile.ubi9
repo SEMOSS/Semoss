@@ -102,8 +102,6 @@ RUN yum install -y \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 RUN yum install -y fakechroot fakeroot
 
-RUN yum install -y bubblewrap util-linux shadow-utils
-
 
 # Create a group 'root' with GID 0 if it doesn't exist (it should by default)
 RUN groupadd -g 0 root || true
