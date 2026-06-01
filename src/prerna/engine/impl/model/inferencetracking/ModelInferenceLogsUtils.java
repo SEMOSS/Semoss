@@ -3287,5 +3287,4 @@ public class ModelInferenceLogsUtils {
 				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(andFilters);
 	}
-
 }
