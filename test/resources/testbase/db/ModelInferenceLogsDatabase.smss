@@ -1,7 +1,7 @@
 #Base Properties 
 ENGINE	ModelInferenceLogsDatabase
 ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
-OWL	testfolder/db/ModelInferenceLogsDatabase/ModelInferenceLogsDatabase_OWL.OWL
+OWL	ModelInferenceLogsDatabase_OWL.OWL
 
 RDBMS_TYPE	H2_DB
 DATABASE
