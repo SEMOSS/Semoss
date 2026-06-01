@@ -556,9 +556,32 @@ public class PixelUtility {
 		Iterator<String> iterator = encodingList.iterator();
 		while (iterator.hasNext()) {
 			String encodedText = iterator.next();
-			if (expression.contains(encodedText)) {
-				expression = expression.replaceFirst(Pattern.quote(encodedText),
-						Matcher.quoteReplacement(encodedTextToOriginal.get(encodedText)));
+			String original = encodedTextToOriginal.get(encodedText);
+			if (original == null) {
+				iterator.remove();
+				continue;
+			}
+			// URI-encoding was a no-op (inner content had no special chars), so the
+			// encoded token is byte-identical to the value the user wrote. Restoring
+			// <encode>...</encode> wrapping serves no purpose here and a positionally
+			// naive replace would corrupt the expression by matching the same chars
+			// elsewhere — e.g. "sea" inside the param name "search". Drop the block
+			// entirely; the expression already reads correctly without the wrapper.
+			if (original.contains(encodedText)) {
+				iterator.remove();
+				continue;
+			}
+			// Otherwise the encoded form contains %XX escapes (which can't appear
+			// in identifiers or grammar tokens, and never inside a quoted string
+			// boundary since URI-encoding maps " → %22). Anchor the match to a
+			// string-literal position so an unrelated coincidental occurrence of
+			// the same escape sequence elsewhere can't be picked up. Every encode
+			// block in this codebase is emitted inside "..." so anchoring is safe.
+			String quotedEncoded = "\"" + encodedText + "\"";
+			int idx = expression.indexOf(quotedEncoded);
+			if (idx >= 0) {
+				expression = expression.substring(0, idx + 1) + original
+						+ expression.substring(idx + 1 + encodedText.length());
 				iterator.remove();
 			}
 		}
