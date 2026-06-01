@@ -51,7 +51,6 @@ public class RunAgentReactor extends AbstractReactor {
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
 
     private static final String HARNESS_TYPE_KEY    = "harnessType";
-    private static final String AGENT_ID_KEY        = "agentId";
     private static final String WORKSPACE_ID_KEY    = "workspaceId";
     private static final String MAX_TURNS_KEY       = "maxTurns";
     private static final String MAX_ITERATIONS_KEY  = "maxIterations";
@@ -63,14 +62,13 @@ public class RunAgentReactor extends AbstractReactor {
                 ReactorKeysEnum.COMMAND.getKey(),
                 ReactorKeysEnum.ENGINE.getKey(),
                 HARNESS_TYPE_KEY,
-                AGENT_ID_KEY,
                 WORKSPACE_ID_KEY,
                 MAX_TURNS_KEY,
                 MAX_ITERATIONS_KEY,
                 MAX_REFLECTIONS_KEY,
                 ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
