@@ -590,16 +590,29 @@ public final class AgentRunner {
 
     /**
      * Resolves the model/engine ID using a three-tier priority:
+     *
+     * <ol>
+     *   <li>Runtime override — {@code engine=} passed explicitly to {@code RunAgent()}.
+     *   <li>Room {@code MODEL_ID} column — the room's bound engine.
+     *   <li>Room {@code options} map — legacy keys ({@code engine}, {@code model}, etc.)
+     *       used by older rooms that stored the model id in options rather than the column.
+     * </ol>
      */
     @SuppressWarnings("unchecked")
-    private static String resolveModelId(Room room, String fallback) {
-        // Tier 1: direct column
+    private static String resolveModelId(Room room, String runtimeOverride) {
+        // Tier 1: explicit runtime engine= param wins.
+        if (runtimeOverride != null && !runtimeOverride.trim().isEmpty()) {
+            logger.info("AgentRunner: using runtime engine override={}", runtimeOverride);
+            return runtimeOverride.trim();
+        }
+
+        // Tier 2: room's bound MODEL_ID column.
         String modelId = room.getModelId();
         if (modelId != null && !modelId.trim().isEmpty()) {
             return modelId.trim();
         }
 
-        // Tier 2: options map some older rooms stored it under "engine"
+        // Tier 3: legacy options map (older rooms stored it under "engine" / "model" / etc.)
         Map<String, Object> opts = room.getOptionsMap();
         if (opts != null) {
             for (String key : MODEL_ID_OPTION_KEYS) {
@@ -609,12 +622,6 @@ public final class AgentRunner {
                     return ((String) val).trim();
                 }
             }
-        }
-
-        // Tier 3: caller-supplied fallback (e.g. engine= param from reactor)
-        if (fallback != null && !fallback.trim().isEmpty()) {
-            logger.info("AgentRunner: using caller-supplied engine fallback={}", fallback);
-            return fallback.trim();
         }
 
         return null;
