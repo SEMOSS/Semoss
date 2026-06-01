@@ -179,9 +179,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					}
 				}
 			}
-			
-			fullPrompt=MessageUtils.toJsonArray(room.getMessages());
-			question=MessageUtils.toJsonArray(room.getMessages());
+
+			fullPrompt = MessageUtils.toJsonArray(room.getMessages());
+			question = MessageUtils.toJsonArray(room.getMessages());
 
 		}
 
@@ -247,9 +247,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// update current usage based on this new request
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
 				outputTime);
-		
-		String currentRoomName = room.getRoomName();
 
+		String currentRoomName = room.getRoomName();
 
 		if (fullPrompt != null) {
 			// Grabbing room name from first input message if room name is empty
