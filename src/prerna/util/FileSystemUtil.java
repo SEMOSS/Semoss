@@ -549,8 +549,9 @@ public final class FileSystemUtil {
 			}
 
 			String filePath = assetFolder + "/" + fileName;
+			// content is written as-is: the Pixel translation layer already decodes
+			// <encode> blocks (PR #2510); decoding again corrupts literal "%xx" (e.g. %02x)
 			String content = contents.get(i);
-			content = Utility.decodeURIComponent(content);
 
 			File file = new File(filePath);
 			try {
