@@ -5,7 +5,7 @@ on:
       version:
         description: 'Tomcat Version to deploy'
         required: true
-        default: '9.0.115'
+        default: '9.0.118'
   push:
     branches: [ "dev", "main" ]
     paths:
@@ -15,7 +15,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.115' }}
+      TOMCAT_VERSION: ${{ github.event.inputs.version || '9.0.118' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

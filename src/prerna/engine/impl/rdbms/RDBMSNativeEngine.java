@@ -379,7 +379,7 @@ public class RDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSE
 		dataSource.setMaximumPoolSize(this.poolMaxSize);
 		dataSource.setLeakDetectionThreshold(this.leakDetectionThresholdMilliseconds);
 		dataSource.setIdleTimeout(this.idelTimeout);
-		if (this.connectionTestQuery != null && this.connectionTestQuery.isEmpty()) {
+		if (this.connectionTestQuery != null && !this.connectionTestQuery.isEmpty()) {
 			dataSource.setConnectionTestQuery(this.connectionTestQuery);
 		}
 	}

@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project.fs;
+package prerna.reactor.user.fs;
 
 import java.io.File;
 import java.time.format.DateTimeFormatter;
@@ -35,7 +35,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -46,27 +46,31 @@ import prerna.util.AssetUtility;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
-public class SearchAppAssetsReactor extends AbstractReactor {
+public class SearchUserAssetsReactor extends AbstractReactor {
 
-	public SearchAppAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.SEARCH.getKey(), ReactorKeysEnum.OPTIONS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0 };
+	public SearchUserAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SEARCH.getKey(),
+				ReactorKeysEnum.OPTIONS.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
 		DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
 				.withZone(user.getZoneId());
 
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project " + projectId + " does not exist or user does not have access to edit assets.");
+		IProject project = user.getAssetProject();
+		if (project == null) {
+			throw new IllegalArgumentException("Unable to find user asset app");
 		}
-		IProject project = Utility.getProject(projectId);
 
 		String relativeFilePath = keyValue.get(ReactorKeysEnum.FILE_PATH.getKey());
 		// Normalize relative path
@@ -77,7 +81,7 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 			}
 		}
 
-		String filePath = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String filePath = AssetUtility.getUserAssetFolder(project.getProjectName(), project.getProjectId());
 		int baseLen = filePath.length();
 		String searchRoot = filePath + (relativeFilePath != null ? relativeFilePath : "");
 
@@ -115,15 +119,13 @@ public class SearchAppAssetsReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Recursively search files and directories within the project's assets folder, filtered by search term and optional searching flags.";
+		return "Recursively search files and directories within the user's assets folder, filtered by search term and optional searching flags.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The unique id for the project/app";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to search files from. This relative path should assume the file path till project's app_root folder and relative path should start onwards";
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The relative file path to search files from. This relative path should assume the file path till the user's asset app_root folder and relative path should start onwards";
 		} else if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
 			return "The search term used to filter file and directory names";
 		} else if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
