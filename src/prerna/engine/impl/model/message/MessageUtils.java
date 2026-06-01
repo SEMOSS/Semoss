@@ -63,6 +63,7 @@ import prerna.util.gson.SemossDateAdapter;
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
+	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -510,10 +511,18 @@ public class MessageUtils {
 			history.add(messages.getLast());
 		}
 		String currentId = history.getLast().getParentMessageId();
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -547,10 +556,18 @@ public class MessageUtils {
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
 		String currentId = parentMessageId;
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -562,6 +579,28 @@ public class MessageUtils {
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
 		return history;
+	}
+
+	private static AbstractMessage deepCopyForPruning(AbstractMessage m) {
+		String json = GSON_FOR_DB.toJson(m);
+		return GSON_FOR_DB.fromJson(json, m.getClass());
+	}
+
+	private static void pruneToolsPartFromMessage(AbstractMessage m) {
+		List<MessagePart> p = m.getParts();
+		for (MessagePart part : p) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+				if (tr != null) {
+					tr.setOutput(TOOL_CONTENT_PLACEHOLDER);
+				}
+			} else if (part instanceof ToolCallMessagePart) {
+				Map<String, Object> toolCall = ((ToolCallMessagePart) part).getToolCall();
+				if (toolCall != null) {
+					toolCall.put("arguments", "{}");
+				}
+			}
+		}
 	}
 
 	/**
@@ -857,15 +896,15 @@ public class MessageUtils {
 		if (toolChoiceInput instanceof String) {
 			String val = ((String) toolChoiceInput).trim().toLowerCase();
 			switch (val) {
-			case "auto":
-				return makeToolChoice(ToolChoiceType.AUTO, null);
-			case "none":
-				return makeToolChoice(ToolChoiceType.NONE, null);
-			case "required":
-				return makeToolChoice(ToolChoiceType.REQUIRED, null);
-			default:
-				// "any" or unknown: treat as auto
-				return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "auto":
+					return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "none":
+					return makeToolChoice(ToolChoiceType.NONE, null);
+				case "required":
+					return makeToolChoice(ToolChoiceType.REQUIRED, null);
+				default:
+					// "any" or unknown: treat as auto
+					return makeToolChoice(ToolChoiceType.AUTO, null);
 			}
 		}
 
@@ -879,28 +918,28 @@ public class MessageUtils {
 			if (typeObj instanceof String) {
 				String type = ((String) typeObj).toLowerCase();
 				switch (type) {
-				case "auto":
-				case "any": // map OpenAI "any" to MCP/AUTO
-					return makeToolChoice(ToolChoiceType.AUTO, null);
-				case "none":
-					return makeToolChoice(ToolChoiceType.NONE, null);
-				case "required":
-					return makeToolChoice(ToolChoiceType.REQUIRED, null);
-				case "forced":
-					// (assume correct MCP style)
-					Object nameF = obj.get("name");
-					return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
-				case "function":
-					// OpenAI style object: {"type":"function", "name":"..."}
-					Object forcedName = obj.get("name");
-					if (forcedName instanceof String) {
-						return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
-					}
-					// Don't handle allowed_tools for now, skip
-					break;
-				default:
-					// Fallback
-					return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "auto":
+					case "any": // map OpenAI "any" to MCP/AUTO
+						return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "none":
+						return makeToolChoice(ToolChoiceType.NONE, null);
+					case "required":
+						return makeToolChoice(ToolChoiceType.REQUIRED, null);
+					case "forced":
+						// (assume correct MCP style)
+						Object nameF = obj.get("name");
+						return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+					case "function":
+						// OpenAI style object: {"type":"function", "name":"..."}
+						Object forcedName = obj.get("name");
+						if (forcedName instanceof String) {
+							return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+						}
+						// Don't handle allowed_tools for now, skip
+						break;
+					default:
+						// Fallback
+						return makeToolChoice(ToolChoiceType.AUTO, null);
 				}
 			}
 		}

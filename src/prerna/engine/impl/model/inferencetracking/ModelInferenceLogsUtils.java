@@ -3712,5 +3712,4 @@ public class ModelInferenceLogsUtils {
 		}
 		return map;
 	}
-
 }
