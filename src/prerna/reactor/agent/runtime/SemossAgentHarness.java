@@ -115,7 +115,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
-		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
 		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root + one level; etc.
@@ -257,8 +256,6 @@ public class SemossAgentHarness implements IAgentHarness {
 
 					} else {
 						state.setFinalText(response.getContent());
-						SemossAgentStream.assistantText(SemossAgentStream.ASSISTANT_CONTENT_EVENT_ID,
-								response.getContent());
 						state.setTerminal(true);
 					}
 
@@ -284,16 +281,12 @@ public class SemossAgentHarness implements IAgentHarness {
 					logger.warn("SemossAgentHarness: unexpected MessageType {} at iteration={} - treating as terminal",
 							msgType, state.getIterations());
 					state.setFinalText(response.getContent());
-					SemossAgentStream.assistantText(SemossAgentStream.ASSISTANT_CONTENT_EVENT_ID,
-							response.getContent());
 					state.setTerminal(true);
 				}
 			}
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
-			SemossAgentStream.agentResult(room.getId(), state.getIterations(), state.getReflectionsUsed(),
-					state.getToolCallRecordsSnapshot().size());
 			if (state.getFinalText() != null) {
 				AgentSubAgentRegistry.getManager().emitSubAgentCompleted(ThreadStore.getJobId(), state.getFinalText());
 			}
