@@ -27,10 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -40,13 +38,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
-import java.util.Collection;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -76,9 +68,9 @@ public class SymlinkHelper {
 		this.userChrootFolder = targetDirName;
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
-			classLogger.info("User chroot folder doesn't exist. Making folder now at: " + userChrootFolder);
+			classLogger.info("User chroot folder doesn't exist. Making folder now at: {}", userChrootFolder);
 			boolean success = targetDir.mkdir(); // make directory
-			classLogger.info("User chroot folder creation at " + userChrootFolder + " " + success);
+			classLogger.info("User chroot folder creation at {} {}", userChrootFolder, success);
 		}
 
 		// also create the semoss home folder
@@ -98,8 +90,15 @@ public class SymlinkHelper {
 	 * Run the cross-platform chroot initialization sequence: symlink configured
 	 * paths (Python base folder, insight cache, and any extras from
 	 * {@code CHROOT_SYMLINK_PATHS}), create the standard mount points
-	 * ({@code /root}, {@code /home/default}), set ownership for the default home
-	 * directory, and populate the bash and git environments inside the chroot.
+	 * ({@code /root}, {@code /home/default}) and the per-user writable directories
+	 * ({@code /tmp}, {@code /var/tmp}, {@code /etc/git}), set ownership for the
+	 * default home directory, and link the shared bash/git template into the
+	 * chroot.
+	 * <p>
+	 * The bash and git environments are no longer copied per user - they are built
+	 * once into a shared template by {@link ChrootTemplate} and symlinked in via
+	 * {@link ChrootTemplate#linkInto(String)}, turning seconds of copying into
+	 * milliseconds of linking.
 	 */
 	private void initalizeChrootFolder() {
 		timed("configured symlinks", () -> {
@@ -125,8 +124,16 @@ public class SymlinkHelper {
 			setDirectoryOwnership("/home/default", "1001", "1001");
 		});
 
-		timed("bash setup", this::setupBashForChroot);
-		timed("git setup (total)", this::setupGitForChroot);
+		// Per-user writable directories that must NOT come from the shared (read-only)
+		// template: git scratch space and a per-user /etc that can hold /etc/git.
+		timed("writable dirs", () -> {
+			createChrootDirectory("/tmp");
+			createChrootDirectory("/var/tmp");
+			createChrootDirectory("/etc/git");
+		});
+
+		// Link the shared bash/git/cert template instead of copying it per user.
+		timed("link bash/git template", () -> ChrootTemplate.linkInto(userChrootFolder));
 	}
 
 	/**
@@ -139,34 +146,7 @@ public class SymlinkHelper {
 	private void timed(String phase, Runnable phaseBody) {
 		long t0 = System.nanoTime();
 		phaseBody.run();
-		classLogger.debug("[timing] {} took {} ms", phase, (System.nanoTime() - t0) / 1_000_000L);
-	}
-
-	/**
-	 * Populate the chroot with a minimal bash environment: the bash and sh
-	 * binaries, common coreutils commands (ls, echo, mkdir, touch, cp, mv, rm, cat,
-	 * pwd), identity commands (whoami, id), and every shared library reported by
-	 * {@code ldd} on those binaries. Library lookups and copies are batched via
-	 * {@link #copyBinariesAndLibraries(Collection)} so each unique library is
-	 * resolved and copied exactly once.
-	 */
-	private void setupBashForChroot() {
-		try {
-			// Create essential directories
-			createChrootDirectory("bin");
-			createChrootDirectory("lib");
-			createChrootDirectory("lib64");
-
-			List<String> binaries = List.of("/bin/bash", "/bin/sh", "/usr/bin/coreutils", "/bin/ls", "/bin/echo",
-					"/bin/mkdir", "/bin/touch", "/bin/cp", "/bin/mv", "/bin/rm", "/bin/cat", "/bin/pwd",
-					"/usr/bin/whoami", "/usr/bin/id");
-
-			copyBinariesAndLibraries(binaries);
-
-			classLogger.info("Bash and essential commands setup completed for chroot: {}", userChrootFolder);
-		} catch (Exception e) {
-			classLogger.error("Error setting up bash for chroot: {}", e.getMessage(), e);
-		}
+		classLogger.info("[timing] {} took {} ms", phase, (System.nanoTime() - t0) / 1_000_000L);
 	}
 
 	/**
@@ -179,431 +159,9 @@ public class SymlinkHelper {
 		try {
 			Path chrootDir = Paths.get(userChrootFolder, relativePath);
 			Files.createDirectories(chrootDir);
-			classLogger.debug("Created chroot directory: " + chrootDir);
+			classLogger.debug("Created chroot directory: {}", chrootDir);
 		} catch (IOException e) {
-			classLogger.error("Failed to create chroot directory: " + relativePath, e);
-		}
-	}
-
-	/**
-	 * Copy a host binary into the chroot at the same relative path and mark it
-	 * executable. Creates parent directories as needed. No-op (with a warning) if
-	 * the source does not exist.
-	 *
-	 * @param binaryPath absolute path of the host binary (e.g. {@code /bin/bash})
-	 */
-	private void copySystemBinary(String binaryPath) {
-		try {
-			Path sourceBinary = Paths.get(binaryPath);
-			if (!Files.exists(sourceBinary)) {
-				classLogger.warn("System binary does not exist: " + binaryPath);
-				return;
-			}
-
-			Path targetBinary = Paths.get(userChrootFolder, binaryPath.substring(1)); // Remove leading slash
-
-			// Create parent directories if they don't exist
-			Files.createDirectories(targetBinary.getParent());
-
-			// Copy the binary
-			Files.copy(sourceBinary, targetBinary, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-			// Make it executable
-			targetBinary.toFile().setExecutable(true);
-
-			classLogger.debug("Copied system binary: " + binaryPath + " to " + targetBinary);
-		} catch (IOException e) {
-			classLogger.error("Failed to copy system binary: " + binaryPath, e);
-		}
-	}
-
-	/**
-	 * Invoke {@code ldd} against a binary and parse the output into the set of
-	 * absolute library paths it depends on. Handles both the
-	 * {@code libname => /path/to/lib (0x...)} form and direct
-	 * {@code /lib...}-rooted entries (like the ELF interpreter). Returns an empty
-	 * set on failure.
-	 *
-	 * @param binaryPath absolute path of the binary to inspect
-	 * @return set of absolute library paths reported by {@code ldd}; empty if
-	 *         {@code ldd} failed or the binary has no dynamic dependencies
-	 */
-	private Set<String> resolveRequiredLibraries(String binaryPath) {
-		Set<String> libs = new HashSet<>();
-		try {
-			ProcessBuilder pb = new ProcessBuilder("ldd", binaryPath);
-			Process process = pb.start();
-
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-				String line;
-				while ((line = reader.readLine()) != null) {
-					// Parse ldd output to extract library paths
-					// Format: libname.so => /path/to/lib (0x...)
-					if (line.contains("=>") && line.contains("/")) {
-						String[] parts = line.split("=>");
-						if (parts.length == 2) {
-							String libPath = parts[1].trim().split("\\s+")[0];
-							if (libPath.startsWith("/")) {
-								libs.add(libPath);
-							}
-						}
-					}
-					// Handle direct library paths (like /lib64/ld-linux-x86-64.so.2)
-					else if (line.trim().startsWith("/lib")) {
-						String libPath = line.trim().split("\\s+")[0];
-						libs.add(libPath);
-					}
-				}
-			}
-
-			process.waitFor();
-		} catch (Exception e) {
-			classLogger.error("Failed to resolve libraries for: {}", binaryPath, e);
-		}
-		return libs;
-	}
-
-	/**
-	 * Copy a batch of system binaries and every shared library they depend on into
-	 * the chroot. Binaries that do not exist on the host are dropped from the
-	 * batch. Library dependencies are resolved via {@code ldd} in parallel and
-	 * deduplicated across all binaries, so each unique library is copied exactly
-	 * once even when many binaries share it (e.g. libc, ld-linux). The binary and
-	 * library copies themselves are also performed in parallel; each destination
-	 * path is unique so writes do not collide.
-	 *
-	 * @param binaryPaths host-absolute binary paths to copy; duplicates and missing
-	 *                    entries are tolerated
-	 */
-	private void copyBinariesAndLibraries(Collection<String> binaryPaths) {
-		// Dedupe and keep only binaries that exist on the host
-		List<String> existing = new LinkedHashSet<>(binaryPaths).stream().filter(p -> Files.exists(Paths.get(p)))
-				.collect(Collectors.toList());
-
-		// Resolve libraries in parallel, dedupe across all binaries
-		Set<String> uniqueLibraries = existing.parallelStream().flatMap(b -> resolveRequiredLibraries(b).stream())
-				.collect(Collectors.toSet());
-
-		// Copy binaries and libraries in parallel; each path is unique so writes don't
-		// collide
-		existing.parallelStream().forEach(this::copySystemBinary);
-		uniqueLibraries.parallelStream().forEach(this::copyLibraryIfExists);
-	}
-
-	/**
-	 * Copy a single shared library into the chroot at the same relative path.
-	 * Silently no-ops if the source does not exist on the host, or if the target
-	 * has already been brought in by a previous call. Errors are logged at debug
-	 * and swallowed.
-	 *
-	 * @param libraryPath absolute path of the host library
-	 */
-	private void copyLibraryIfExists(String libraryPath) {
-		try {
-			Path sourceLib = Paths.get(libraryPath);
-			if (!Files.exists(sourceLib)) {
-				return;
-			}
-
-			Path targetLib = Paths.get(userChrootFolder, libraryPath.substring(1)); // Remove leading slash
-
-			// Create parent directories if they don't exist
-			Files.createDirectories(targetLib.getParent());
-
-			// Copy the library if it doesn't already exist
-			if (!Files.exists(targetLib)) {
-				Files.copy(sourceLib, targetLib, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-				classLogger.debug("Copied library: " + libraryPath + " to " + targetLib);
-			}
-		} catch (IOException e) {
-			classLogger.debug("Could not copy library: " + libraryPath + " - " + e.getMessage());
-		}
-	}
-
-	/**
-	 * Populate the chroot with everything needed to run {@code git} clones and
-	 * fetches: the git binary, helper programs ({@code git-core}), network/SSL
-	 * binaries (curl, ssh, wget, openssl), archive tools (tar, gzip),
-	 * cross-platform git templates, CA certificates, and working directories
-	 * ({@code /tmp}, {@code /var/tmp}, {@code /etc/git}). The git binary plus its
-	 * helper binaries are gathered into a single batch so {@code ldd} dedupes
-	 * libraries across them. Works on both RHEL/UBI and Ubuntu hosts.
-	 */
-	private void setupGitForChroot() {
-		try {
-			// Git binary + essential helper binaries: one batch, deduped ldd, deduped
-			// libraries
-			List<String> gitBinaries = List.of("/usr/bin/git", "/usr/bin/curl", // Required for git-remote-https
-					"/usr/bin/ssh", // For git@... URLs
-					"/bin/tar", // Archive operations
-					"/bin/gzip", // Compression
-					"/usr/bin/openssl", // SSL/TLS operations
-					"/usr/bin/wget"); // Alternative HTTP client
-			timed("git binaries + ldd", () -> copyBinariesAndLibraries(gitBinaries));
-
-			timed("git-core helpers", this::setupGitHelpersForCrossPlatform);
-			timed("git-specific libs", this::copyGitSpecificLibraries);
-			timed("git templates", this::setupGitTemplatesForCrossPlatform);
-			timed("ssl certs", this::setupSSLCertsForCrossPlatform);
-
-			// Create necessary directories
-			createChrootDirectory("/tmp");
-			createChrootDirectory("/var/tmp");
-			createChrootDirectory("/etc/git");
-
-			classLogger.info("Git setup completed for chroot: {}", userChrootFolder);
-
-		} catch (Exception e) {
-			classLogger.error("Error setting up git for chroot: {}", e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Locate and copy the {@code git-core} helper directory into the chroot. Tries
-	 * the RHEL/UBI path {@code /usr/libexec/git-core} first, then the Ubuntu path
-	 * {@code /usr/lib/git-core}, and finally falls back to asking git itself via
-	 * {@link #findAndCopyGitHelpers()}.
-	 */
-	private void setupGitHelpersForCrossPlatform() {
-		try {
-			// Try RHEL/UBI path first
-			Path gitHelpersHost = Paths.get("/usr/libexec/git-core");
-			Path gitHelpersChroot = Paths.get(userChrootFolder).resolve("usr/libexec/git-core");
-
-			if (Files.exists(gitHelpersHost)) {
-				copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
-				classLogger.info("Copied git helpers from RHEL/UBI location: " + gitHelpersHost);
-			} else {
-				// Fallback to Ubuntu path
-				gitHelpersHost = Paths.get("/usr/lib/git-core");
-				gitHelpersChroot = Paths.get(userChrootFolder).resolve("usr/lib/git-core");
-
-				if (Files.exists(gitHelpersHost)) {
-					copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
-					classLogger.info("Copied git helpers from Ubuntu location: " + gitHelpersHost);
-				} else {
-					classLogger.warn("Git helpers directory not found at expected locations");
-					// Try to find git helpers using git itself
-					findAndCopyGitHelpers();
-				}
-			}
-		} catch (IOException e) {
-			classLogger.error("Error setting up git helpers: " + e.getMessage(), e);
-		}
-	}
-
-	/**
-	 * Last-resort discovery of the git helpers directory by running
-	 * {@code git --exec-path} and copying whatever it reports into the chroot. Used
-	 * when neither the RHEL nor Ubuntu canonical paths exist.
-	 */
-	private void findAndCopyGitHelpers() {
-		try {
-			ProcessBuilder pb = new ProcessBuilder("git", "--exec-path");
-			Process process = pb.start();
-
-			try (java.io.BufferedReader reader = new java.io.BufferedReader(
-					new java.io.InputStreamReader(process.getInputStream()))) {
-
-				String gitExecPath = reader.readLine();
-				if (gitExecPath != null && !gitExecPath.trim().isEmpty()) {
-					Path gitHelpersHost = Paths.get(gitExecPath.trim());
-					Path gitHelpersChroot = Paths.get(userChrootFolder).resolve(gitExecPath.substring(1));
-
-					if (Files.exists(gitHelpersHost)) {
-						copyDirectoryRecursively(gitHelpersHost, gitHelpersChroot);
-						classLogger.info("Found and copied git helpers from: " + gitExecPath);
-					}
-				}
-			}
-
-			process.waitFor();
-		} catch (Exception e) {
-			classLogger.warn("Could not find git helpers using git --exec-path: " + e.getMessage());
-		}
-	}
-
-	/**
-	 * Copy git-related shared libraries (libcurl, libssl, libcrypto, libz,
-	 * libgssapi_krb5) that {@code ldd} on the git binary may not surface on every
-	 * distro (dynamically loaded by curl backends, krb5 plugins, etc.). Tries the
-	 * RHEL/UBI {@code /usr/lib64} paths first; if none are found, falls back to the
-	 * Ubuntu {@code /usr/lib/x86_64-linux-gnu} paths.
-	 */
-	private void copyGitSpecificLibraries() {
-		// RHEL/UBI library paths
-		String[] rhelLibs = { "/usr/lib64/libcurl.so.4", "/usr/lib64/libssl.so.3", "/usr/lib64/libcrypto.so.3",
-				"/usr/lib64/libz.so.1", "/usr/lib64/libgssapi_krb5.so.2" };
-
-		// Ubuntu library paths
-		String[] ubuntuLibs = { "/usr/lib/x86_64-linux-gnu/libcurl.so.4", "/usr/lib/x86_64-linux-gnu/libssl.so.3",
-				"/usr/lib/x86_64-linux-gnu/libcrypto.so.3", "/usr/lib/x86_64-linux-gnu/libz.so.1" };
-
-		// Try RHEL paths first
-		boolean foundRhelLibs = false;
-		for (String lib : rhelLibs) {
-			if (Files.exists(Paths.get(lib))) {
-				copyLibraryIfExists(lib);
-				foundRhelLibs = true;
-			}
-		}
-
-		// If no RHEL libs found, try Ubuntu paths
-		if (!foundRhelLibs) {
-			for (String lib : ubuntuLibs) {
-				copyLibraryIfExists(lib);
-			}
-		}
-	}
-
-	/**
-	 * Copy the git templates directory (the source for {@code git init}'s default
-	 * hooks, info, and exclude files) into the chroot. Tries
-	 * {@code /usr/share/git-core/templates} first, then
-	 * {@code /usr/local/share/git-core/templates}, and stops at the first location
-	 * found.
-	 */
-	private void setupGitTemplatesForCrossPlatform() {
-		String[] templatePaths = { "/usr/share/git-core/templates", // Common location
-				"/usr/local/share/git-core/templates" // Alternative location
-		};
-
-		for (String templatePath : templatePaths) {
-			Path templatesSource = Paths.get(templatePath);
-			if (Files.exists(templatesSource)) {
-				Path templatesTarget = Paths.get(userChrootFolder).resolve(templatePath.substring(1));
-				try {
-					copyDirectoryRecursively(templatesSource, templatesTarget);
-					classLogger.info("Copied git templates from: " + templatePath);
-					break; // Only copy the first one found
-				} catch (IOException e) {
-					classLogger.debug("Could not copy git templates from: " + templatePath);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Copy the system CA certificate bundle and trust store into the chroot so git,
-	 * curl, and friends can verify HTTPS endpoints. Picks an OS-specific routine
-	 * based on {@link #isRHELBasedSystem()}, and on unexpected failure runs both
-	 * routines as a fallback.
-	 */
-	private void setupSSLCertsForCrossPlatform() {
-		try {
-			// Detect OS type and setup accordingly
-			boolean isRHELBased = isRHELBasedSystem();
-			if (isRHELBased) {
-				classLogger.info("Predicted OS as RHEL");
-				setupSSLCertsForRHEL();
-			} else {
-				classLogger.info("Predicted OS as Ubuntu");
-				setupSSLCertsForUbuntu();
-			}
-		} catch (Exception e) {
-			classLogger.warn("Could not setup SSL certificates: " + e.getMessage());
-			// Try both approaches as fallback
-			setupSSLCertsForRHEL();
-			setupSSLCertsForUbuntu();
-		}
-	}
-
-	/**
-	 * Heuristic check for a RHEL/UBI host. Returns true if any of
-	 * {@code /etc/redhat-release}, {@code /etc/rhel-release}, or {@code /etc/pki}
-	 * exist on the host.
-	 *
-	 * @return {@code true} if the host appears to be RHEL-based
-	 */
-	private boolean isRHELBasedSystem() {
-		// Check for RHEL-specific files/directories
-		return Files.exists(Paths.get("/etc/redhat-release")) || Files.exists(Paths.get("/etc/rhel-release"))
-				|| Files.exists(Paths.get("/etc/pki"));
-	}
-
-	/**
-	 * Copy the RHEL/UBI CA certificate bundle files
-	 * ({@code /etc/pki/tls/certs/ca-bundle.crt} and the extracted PEM bundle) plus
-	 * the supporting {@code /etc/pki} trust directories into the chroot. Missing
-	 * sources are logged as warnings and skipped.
-	 */
-	private void setupSSLCertsForRHEL() {
-		try {
-			String[] caCertFiles = { "/etc/pki/tls/certs/ca-bundle.crt",
-					"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem", "/etc/pki/tls/cert.pem" };
-
-			// Copy CA certificate files
-			for (String certPath : caCertFiles) {
-				Path sourceCerts = Paths.get(certPath);
-				if (Files.exists(sourceCerts)) {
-					Path targetCerts = Paths.get(userChrootFolder).resolve(certPath.substring(1));
-					Files.createDirectories(targetCerts.getParent());
-					Files.copy(sourceCerts, targetCerts, StandardCopyOption.REPLACE_EXISTING);
-					classLogger.info("Copied RHEL CA certificates from: " + certPath);
-				} else {
-					classLogger.warn("Could not find file at " + certPath);
-				}
-			}
-
-			// Copy certificate directories
-			String[] certDirs = { "/etc/pki/tls/certs", "/etc/pki/ca-trust/extracted", "/etc/pki/tls" };
-
-			for (String certDir : certDirs) {
-				Path sourceCertDir = Paths.get(certDir);
-				if (Files.exists(sourceCertDir)) {
-					Path targetCertDir = Paths.get(userChrootFolder).resolve(certDir.substring(1));
-					copyDirectoryRecursively(sourceCertDir, targetCertDir);
-					classLogger.debug("Copied RHEL certificate directory: " + certDir);
-				} else {
-					classLogger.warn("Could not find directory at " + certDir);
-				}
-			}
-
-		} catch (IOException e) {
-			classLogger.debug("Could not setup RHEL SSL certificates: " + e.getMessage());
-		}
-	}
-
-	/**
-	 * Copy the Ubuntu CA certificate bundle
-	 * ({@code /etc/ssl/certs/ca-certificates.crt}) and the supporting trust
-	 * directories ({@code /etc/ssl/certs}, {@code /usr/share/ca-certificates}) into
-	 * the chroot. The certificate bundle file is copied with
-	 * {@link StandardCopyOption#COPY_ATTRIBUTES} so the per-CA symlinks under
-	 * {@code /etc/ssl/certs} continue to resolve correctly.
-	 */
-	private void setupSSLCertsForUbuntu() {
-		try {
-			String[] caCertFiles = { "/etc/ssl/certs/ca-certificates.crt" };
-
-			// Copy CA certificate files
-			for (String certPath : caCertFiles) {
-				Path sourceCerts = Paths.get(certPath);
-				if (Files.exists(sourceCerts)) {
-					Path targetCerts = Paths.get(userChrootFolder).resolve(certPath.substring(1));
-					Files.createDirectories(targetCerts.getParent());
-					Files.copy(sourceCerts, targetCerts, StandardCopyOption.REPLACE_EXISTING,
-							StandardCopyOption.COPY_ATTRIBUTES);
-					classLogger.info("Copied Ubuntu CA certificates from: " + certPath);
-				} else {
-					classLogger.warn("Could not find file at " + certPath);
-				}
-			}
-
-			// Copy certificate directories with symlink preservation
-			String[] certDirs = { "/etc/ssl/certs", "/usr/share/ca-certificates" };
-			for (String certDir : certDirs) {
-				Path sourceCertDir = Paths.get(certDir);
-				if (Files.exists(sourceCertDir)) {
-					Path targetCertDir = Paths.get(userChrootFolder).resolve(certDir.substring(1));
-					copyDirectoryRecursively(sourceCertDir, targetCertDir);
-					classLogger.debug("Copied Ubuntu certificate directory (with symlinks): " + certDir);
-				} else {
-					classLogger.warn("Could not find directory at " + certDir);
-				}
-			}
-		} catch (IOException e) {
-			classLogger.debug("Could not setup Ubuntu SSL certificates: " + e.getMessage());
+			classLogger.error("Failed to create chroot directory: {}", relativePath, e);
 		}
 	}
 
@@ -672,17 +230,17 @@ public class SymlinkHelper {
 	 *                      chroot
 	 */
 	public void symlinkFolder(String sourceDirName) {
-		classLogger.debug("Making symlink for folder " + sourceDirName);
+		classLogger.debug("Making symlink for folder {}", sourceDirName);
 		// Convert the source directory and user chroot folder to Path objects
 		sourceDirName = Utility.normalizePath(sourceDirName);
 		Path sourceDir = Paths.get(sourceDirName);
 		Path userChrootPath = Paths.get(userChrootFolder);
 
-		classLogger.debug("User chroot path is " + userChrootFolder);
+		classLogger.debug("User chroot path is {}", userChrootFolder);
 
 		// Construct the path for the symbolic link
 		Path symlinkPath = userChrootPath.resolve(sourceDirName.substring(1)); // Remove leading slash
-		classLogger.debug("Full symlink path is " + symlinkPath);
+		classLogger.debug("Full symlink path is {}", symlinkPath);
 
 		try {
 			// Check if the source directory exists
@@ -695,18 +253,18 @@ public class SymlinkHelper {
 
 			// Check if the symlink already exists
 			if (Files.exists(symlinkPath)) {
-				classLogger.debug("Symbolic link already exists at: " + symlinkPath);
+				classLogger.debug("Symbolic link already exists at: {}", symlinkPath);
 				// Optionally, delete the existing symlink
 				// Files.delete(symlinkPath);
 			} else {
 				// Create the symbolic link
 				Files.createSymbolicLink(symlinkPath, sourceDir);
-				classLogger.info("Symbolic link created at: " + symlinkPath);
+				classLogger.info("Symbolic link created at: {}", symlinkPath);
 			}
 		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid argument: " + e.getMessage(), e);
+			classLogger.error("Invalid argument: {}", e.getMessage(), e);
 		} catch (IOException e) {
-			classLogger.error("Error creating symbolic link: " + e.getMessage(), e);
+			classLogger.error("Error creating symbolic link: {}", e.getMessage(), e);
 		} catch (UnsupportedOperationException e) {
 			classLogger.error("Symbolic links are not supported on this file system.", e);
 		}
@@ -727,9 +285,9 @@ public class SymlinkHelper {
 	public void removeChrootFolder() {
 		try {
 			FileUtils.deleteDirectory(new File(userChrootFolder));
-			classLogger.info(userChrootFolder + " Directory and all contents deleted successfully.");
+			classLogger.info("{} Directory and all contents deleted successfully.", userChrootFolder);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, "Error deleting directory: " + e.getMessage());
+			classLogger.error("Error deleting directory: {}", e.getMessage(), e);
 		}
 	}
 
@@ -745,7 +303,7 @@ public class SymlinkHelper {
 		AuthProvider provider = user.getPrimaryLogin();
 		String projectId = user.getAssetProjectId(provider);
 		String assetFolder = AssetUtility.getUserAssetAppRootFolder("Asset", projectId);
-		classLogger.info("Symlinking user asset folder for projectId=" + projectId);
+		classLogger.info("Symlinking user asset folder for projectId={}", projectId);
 		symlinkFolder(assetFolder);
 	}
 
@@ -767,7 +325,7 @@ public class SymlinkHelper {
 	 * @param projectId id of the project to expose
 	 */
 	public void symlinkProject(User user, String projectId) {
-		classLogger.info("Symlinking project for projectId=" + projectId);
+		classLogger.info("Symlinking project for projectId={}", projectId);
 
 		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
 
@@ -783,18 +341,19 @@ public class SymlinkHelper {
 			Path projectTarget = Paths.get(userChrootFolder)
 					.resolve(Utility.normalizePath(projectAppRootFolder).substring(1));
 			if (Files.exists(projectTarget)) {
-				classLogger.info("Chrooted project already copied for projectId=" + projectId + " at: " + projectTarget
-						+ ", skipping copy and permission patch.");
+				classLogger.info(
+						"Chrooted project already copied for projectId={} at: {}, skipping copy and permission patch.",
+						projectId, projectTarget);
 				return;
 			}
 
-			classLogger.info("Symlinking read-only copy for projectId=" + projectId);
+			classLogger.info("Symlinking read-only copy for projectId={}", projectId);
 			setupCopiedProject(projectId);
 			setAllReadExecuteForProject(projectId);
 			// below does not work - commenting out for now
 			// setExecuteOnlyOnAssetCodeFolders(projectId);
 		} else {
-			classLogger.info("Symlinking full folder for read-only user, projectId=" + projectId);
+			classLogger.info("Symlinking full folder for read-only user, projectId={}", projectId);
 			symlinkFolder(projectAppRootFolder);
 		}
 	}
@@ -839,19 +398,19 @@ public class SymlinkHelper {
 		sourceDirToCopy = Utility.normalizePath(sourceDirToCopy);
 		Path projectSource = Paths.get(sourceDirToCopy);
 		if (!Files.exists(projectSource)) {
-			classLogger.warn("Project app root does not exist for readOnlyCopyProject: " + sourceDirToCopy);
+			classLogger.warn("Project app root does not exist for readOnlyCopyProject: {}", sourceDirToCopy);
 			return;
 		}
 		Path projectTarget = Paths.get(userChrootFolder).resolve(sourceDirToCopy.substring(1));
 		if (Files.exists(projectTarget)) {
-			classLogger.info("Chrooted project already copied, skipping copy for: " + projectTarget);
+			classLogger.info("Chrooted project already copied, skipping copy for: {}", projectTarget);
 			return;
 		}
 		try {
 			copyDirectoryRecursively(projectSource, projectTarget);
-			classLogger.info("Copied project from: " + projectSource);
+			classLogger.info("Copied project from: {}", projectSource);
 		} catch (IOException e) {
-			classLogger.debug("Could not copy project from: " + projectSource);
+			classLogger.debug("Could not copy project from: {}", projectSource);
 		}
 	}
 
@@ -870,7 +429,7 @@ public class SymlinkHelper {
 				projectAppRootFolder.startsWith("/") ? projectAppRootFolder.substring(1) : projectAppRootFolder);
 
 		if (!Files.exists(chrootAppRoot)) {
-			classLogger.warn("Chrooted app root does not exist for project: " + chrootAppRoot);
+			classLogger.warn("Chrooted app root does not exist for project: {}", chrootAppRoot);
 			return;
 		}
 
@@ -889,7 +448,7 @@ public class SymlinkHelper {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to set r-x permissions on project: " + chrootAppRoot, e);
+			classLogger.error("Failed to set r-x permissions on project: {}", chrootAppRoot, e);
 		}
 	}
 
@@ -899,7 +458,7 @@ public class SymlinkHelper {
 	 * {@code --x--x--x} permissions. The intent is to permit execution of compiled
 	 * code while preventing inspection of the source.
 	 * <p>
-	 * Currently does not work in practice — preserved for reference; see the
+	 * Currently does not work in practice - preserved for reference; see the
 	 * commented-out call in {@link #symlinkProject(User, String)}.
 	 *
 	 * @param projectId id of the project whose code folders should be made
@@ -912,7 +471,7 @@ public class SymlinkHelper {
 				assetsFolderPath.startsWith("/") ? assetsFolderPath.substring(1) : assetsFolderPath);
 
 		if (!Files.exists(chrootAssetsFolder)) {
-			classLogger.warn("Chroot assets folder does not exist: " + chrootAssetsFolder);
+			classLogger.warn("Chroot assets folder does not exist: {}", chrootAssetsFolder);
 			return;
 		}
 
@@ -938,7 +497,7 @@ public class SymlinkHelper {
 						}
 					});
 				} catch (IOException e) {
-					classLogger.warn("Failed to set execute-only on: " + subDir, e);
+					classLogger.warn("Failed to set execute-only on: {}", subDir, e);
 				}
 			}
 		}
