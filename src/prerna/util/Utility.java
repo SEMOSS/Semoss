@@ -5524,14 +5524,16 @@ public final class Utility {
 	}
 
 	/**
-	 * Start the per-user Python worker inside the unprivileged namespace sandbox
-	 * (SANDBOX_MODE=NSJAIL) via py/sandbox_launcher.py. Additive alternative to
+	 * Start the per-user Python worker inside the unprivileged Linux namespace
+	 * sandbox (SANDBOX_MODE=NAMESPACE; legacy NSJAIL configs are also accepted)
+	 * via py/sandbox_launcher.py. Additive alternative to
 	 * {@link #startTCPServerNativePyChroot}.
 	 *
 	 * @param ioDirName name for this worker's io-dir / jail folder (e.g.
 	 *                  userid_sessionId so it is identifiable on disk); a random
 	 *                  name is generated when null/empty
-	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir }
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
 			String loggerLevel, String ioDirName) {
@@ -5541,6 +5543,7 @@ public final class Utility {
 		String controlSocketPath = null;
 		String ioDir = null;
 		String jailDir = null;
+		String controlDir = null;
 		String finalDir = insightFolder.replace("\\", "/");
 
 		try {
@@ -5555,17 +5558,19 @@ public final class Utility {
 			if (Strings.isNullOrEmpty(ioRoot)) {
 				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
 			}
-			// folder named userid_sessionId (passed in) so it is clear whose it is;
-			// the jail skeleton sits in a sibling folder so both can be removed on
-			// logout (see ClientProcessWrapper.shutdown)
+			// folder named userid_sessionId (passed in) so it is clear whose it is.
+			// worker IO is jail-visible; the supervisor control socket stays in a
+			// sibling host-only dir that is never bind-mounted into the sandbox.
 			String folderName = Strings.isNullOrEmpty(ioDirName) ? prefix
 					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
 			ioDir = ioRoot + "/" + folderName;
 			jailDir = ioRoot + "/" + folderName + "__jail";
+			controlDir = ioRoot + "/" + folderName + "__control";
 			new File(Utility.normalizePath(ioDir)).mkdirs();
 			new File(Utility.normalizePath(jailDir)).mkdirs();
+			new File(Utility.normalizePath(controlDir)).mkdirs();
 			udsPath = ioDir + "/worker.sock";
-			controlSocketPath = ioDir + "/control.sock";
+			controlSocketPath = controlDir + "/control.sock";
 
 			// the SEMOSS home is the inject-root: projects, user assets, and
 			// insight folders all live under it and are injected on demand
@@ -5619,24 +5624,47 @@ public final class Utility {
 						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
 			}
 
-			classLogger.info("Starting sandboxed (NSJAIL) user process with ::: " + Arrays.toString(commandArray));
+			classLogger.info("Starting namespace-sandboxed user process with ::: " + Arrays.toString(commandArray));
 			ProcessBuilder pb = new ProcessBuilder(commandArray);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			File consoleFile = new File(outputFile);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
 			pb.redirectError(redirector);
 			pb.redirectOutput(redirector);
 			Process p = pb.start();
 			try {
-				p.waitFor(500, TimeUnit.MILLISECONDS);
+				if (p.waitFor(500, TimeUnit.MILLISECONDS)) {
+					throw new IllegalStateException("Namespace sandbox exited during startup with code " + p.exitValue()
+							+ ". " + readSandboxStartupLog(consoleFile));
+				}
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
-				classLogger.error(Constants.STACKTRACE, ie);
+				throw new IllegalStateException("Interrupted while waiting for namespace sandbox startup", ie);
 			}
 			thisProcess = p;
 		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
+			throw new IllegalStateException("Failed to start namespace sandbox process", ioe);
 		}
 
-		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir };
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };
+	}
+
+	private static String readSandboxStartupLog(File consoleFile) {
+		if (consoleFile == null || !consoleFile.isFile()) {
+			return "Sandbox console log was not created.";
+		}
+		try {
+			String contents = Files.readString(consoleFile.toPath(), StandardCharsets.UTF_8).trim();
+			if (contents.isEmpty()) {
+				return "Sandbox console log is empty: " + consoleFile.getAbsolutePath();
+			}
+			int maxChars = 4_000;
+			if (contents.length() > maxChars) {
+				contents = contents.substring(contents.length() - maxChars);
+			}
+			return "Sandbox console log (" + consoleFile.getAbsolutePath() + "):\n" + contents;
+		} catch (IOException ioe) {
+			return "Could not read sandbox console log " + consoleFile.getAbsolutePath() + ": " + ioe.getMessage();
+		}
 	}
 
 	/**

@@ -733,7 +733,7 @@ public class Constants {
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
-	// OFF / FAKECHROOT / NSJAIL / SECCOMP_ONLY
+	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 

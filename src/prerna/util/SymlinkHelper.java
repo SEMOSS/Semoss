@@ -67,7 +67,8 @@ public class SymlinkHelper {
 	 */
 	public SymlinkHelper(String targetDirName) {
 		this.userChrootFolder = targetDirName;
-		this.injectMode = "NSJAIL".equalsIgnoreCase(Utility.getDIHelperProperty(Constants.SANDBOX_MODE));
+		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
 
 		if (injectMode) {
 			return;

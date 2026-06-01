@@ -71,10 +71,11 @@ public class ClientProcessWrapper {
 
 	private String udsPath;
 	private String controlSocketPath;
-	// NSJAIL sandbox folders to remove on shutdown(true): the io-dir holds the
-	// worker/control sockets + console.txt, the jail-dir holds the throwaway root
+	// Namespace sandbox folders to remove on shutdown(true). The io-dir is
+	// jail-visible for worker.sock; the control-dir is host-only for control.sock.
 	private String sandboxIoDir;
 	private String sandboxJailDir;
+	private String sandboxControlDir;
 
 	private boolean nativePyServer;
 	private SymlinkHelper chrootSymlinkHelper;
@@ -157,8 +158,13 @@ public class ClientProcessWrapper {
 						this.controlSocketPath = (String) ret[3];
 						this.sandboxIoDir = (String) ret[4];
 						this.sandboxJailDir = (String) ret[5];
+						this.sandboxControlDir = (String) ret[6];
 
-						this.chrootSymlinkHelper.setInjector(new SandboxInjector(this.controlSocketPath));
+						SandboxInjector injector = new SandboxInjector(this.controlSocketPath);
+						if (!injector.awaitReady(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS)) {
+							throw new IllegalStateException("Timed out waiting for namespace sandbox control socket");
+						}
+						this.chrootSymlinkHelper.setInjector(injector);
 					} else if (this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
 						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
@@ -286,11 +292,12 @@ public class ClientProcessWrapper {
 					if (cleanUpFolder) {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");
-						// remove the insight scratch dir plus, for NSJAIL, the sandbox
-						// io-dir and jail-dir (no-ops when those are null)
+						// remove the insight scratch dir plus namespace sandbox dirs
+						// (no-ops when those are null)
 						result = deleteFolderWithRetries(this.serverDirectory)
 								& deleteFolderWithRetries(this.sandboxIoDir)
-								& deleteFolderWithRetries(this.sandboxJailDir);
+								& deleteFolderWithRetries(this.sandboxJailDir)
+								& deleteFolderWithRetries(this.sandboxControlDir);
 					} else {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");

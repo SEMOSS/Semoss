@@ -2,9 +2,10 @@
 """
 sandbox_launcher.py -- optional, unprivileged OS-level sandbox for the SEMOSS
 Python worker, built from Linux user + mount (+ net) namespaces. This is an
-additive launch path (SANDBOX_MODE=NSJAIL); the existing fakechroot path is
-unchanged and remains the default. It needs only *unprivileged* user namespaces
-(works on GKE Autopilot under runtimeClassName: gvisor).
+additive launch path (SANDBOX_MODE=NAMESPACE; legacy NSJAIL configs are accepted
+by the Java launcher); the existing fakechroot path is unchanged and remains the
+default. It needs only *unprivileged* user namespaces (works on GKE Autopilot
+under runtimeClassName: gvisor).
 
 ----------------------------------------------------------------------------
 The two processes
@@ -234,14 +235,15 @@ def build_jail(jail, ro_paths, rw_paths, inject_roots):
     for p in ro_paths:
         if os.path.exists(p):
             _bind(p, jail + p, ro=True)
-    for p in rw_paths:
-        if p and os.path.exists(p):
-            _bind(p, jail + p, ro=False)
 
     # tmpfs /tmp (writable scratch)
     tmp = os.path.join(jail, "tmp")
     os.makedirs(tmp, exist_ok=True)
     _chk(_mount("tmpfs", tmp, "tmpfs", 0, "size=512m,mode=1777"), "tmpfs /tmp")
+
+    for p in rw_paths:
+        if p and os.path.exists(p):
+            _bind(p, jail + p, ro=False)
 
     # minimal /dev
     dev = os.path.join(jail, "dev")
@@ -644,8 +646,11 @@ def _serve_control(jail, inject_roots, control_sock, child_pid):
         REMOVE\t<abs_path>            -> OK | ERR <msg>
         PING                          -> PONG
     `abs_path` is the real project/asset path; it is bound to the same path
-    inside the jail (mirroring today's symlink) and must fall under a configured
-    inject-root so the mount propagates to the interpreter."""
+    inside the jail (mirroring today's symlink). After initialization, dynamic
+    mounts are allowed only when the canonical source resolves under a configured
+    runtime inject-root, normally the SEMOSS home."""
+    source_roots = _canonical_runtime_roots(inject_roots)
+    destination_roots = _destination_runtime_roots(inject_roots)
     if os.path.exists(control_sock):
         os.unlink(control_sock)
     srv = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -670,7 +675,8 @@ def _serve_control(jail, inject_roots, control_sock, child_pid):
                         break
                     data += chunk
                 for raw in data.decode().splitlines():
-                    conn.sendall((_handle_control(jail, inject_roots, raw) + "\n").encode())
+                    reply = _handle_control(jail, source_roots, destination_roots, raw)
+                    conn.sendall((reply + "\n").encode())
     finally:
         srv.close()
         try:
@@ -679,35 +685,75 @@ def _serve_control(jail, inject_roots, control_sock, child_pid):
             pass
 
 
-def _under_inject_root(path, inject_roots):
-    """True iff `path` is one of, or nested under, a configured inject-root.
-    This is the guard that keeps Java from asking us to bind a path that would
-    not actually propagate into the interpreter."""
-    real = os.path.normpath(path)
-    for d in inject_roots:
-        d = os.path.normpath(d)
-        if real == d or real.startswith(d + os.sep):
-            return True
+def _under_runtime_root(path, runtime_roots):
+    """True iff `path` resolves to one of, or under, a runtime inject root.
+
+    This is deliberately canonical: a path that starts with /opt/semosshome but
+    escapes through a symlink or '..' is rejected based on its real target.
+    """
+    if not os.path.isabs(path):
+        return False
+    real = os.path.realpath(path)
+    for d in runtime_roots:
+        try:
+            if os.path.commonpath([real, d]) == d:
+                return True
+        except ValueError:
+            continue
     return False
 
 
-def _handle_control(jail, inject_roots, raw):
+def _under_mount_destination_root(path, destination_roots):
+    """True iff the jail destination path stays under a runtime inject root."""
+    if not os.path.isabs(path):
+        return False
+    target = os.path.normpath(path)
+    for d in destination_roots:
+        try:
+            if os.path.commonpath([target, d]) == d:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _canonical_runtime_roots(inject_roots):
+    roots = []
+    for root in inject_roots:
+        if root:
+            roots.append(os.path.realpath(root))
+    return roots
+
+
+def _destination_runtime_roots(inject_roots):
+    roots = []
+    for root in inject_roots:
+        if root:
+            roots.append(os.path.normpath(root))
+    return roots
+
+
+def _handle_control(jail, source_roots, destination_roots, raw):
     parts = raw.split("\t")
     cmd = parts[0].strip().upper() if parts else ""
     try:
         if cmd == "PING":
             return "PONG"
+        if not source_roots or not destination_roots:
+            return "ERR no runtime inject roots configured"
         if cmd == "INJECT" and len(parts) >= 3:
             mode = "ro" if parts[1].strip().lower() == "ro" else "rw"
             abs_path = parts[2].strip()
-            if not _under_inject_root(abs_path, inject_roots):
-                return "ERR path not under an inject-root: %s" % abs_path
+            if not _under_runtime_root(abs_path, source_roots):
+                return "ERR path not under a runtime inject root: %s" % abs_path
+            if not _under_mount_destination_root(abs_path, destination_roots):
+                return "ERR destination not under a runtime inject root: %s" % abs_path
             inject(jail, abs_path, abs_path, mode)
             return "OK"
         if cmd == "REMOVE" and len(parts) >= 2:
             abs_path = parts[1].strip()
-            if not _under_inject_root(abs_path, inject_roots):
-                return "ERR path not under an inject-root: %s" % abs_path
+            if not _under_mount_destination_root(abs_path, destination_roots):
+                return "ERR destination not under a runtime inject root: %s" % abs_path
             remove(jail, abs_path)
             return "OK"
         return "ERR bad command"
@@ -784,9 +830,6 @@ def parse_args():
     p = argparse.ArgumentParser(description="SEMOSS unprivileged Python sandbox")
     p.add_argument("--self-test", action="store_true",
                    help="build the jail, harden, and assert security properties")
-    p.add_argument("--backing-root", default="",
-                   help="per-user authorized backing store the supervisor may "
-                        "inject projects from")
     p.add_argument("--jail-root", default="",
                    help="where to build the minimal root (default: a tmpdir)")
     p.add_argument("--control-socket", default="",
