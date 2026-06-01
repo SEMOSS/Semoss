@@ -29,6 +29,7 @@ package prerna.reactor;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,41 +47,52 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PixelSourceReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(PixelSourceReactor.class);
 
 	public PixelSourceReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		String relativePath = this.keyValue.get(this.keysToGet[0]);
+		// strip leading separators so we don't get a double slash after concat with
+		// assetFolder
+		while (relativePath != null && (relativePath.startsWith("/") || relativePath.startsWith("\\"))) {
+			relativePath = relativePath.substring(1);
+		}
 		String space = this.keyValue.get(this.keysToGet[1]);
 		String assetFolder = AssetUtility.getRootFolderPath(this.insight, space, false);
 		String path = assetFolder + DIR_SEPARATOR + relativePath;
+
+		// if we have a chroot, mount the project for that user.
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			// get the app_root folder for the project
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+		}
 
 		// read in the file
 		// execute it within this insight
 		// return the results
 		File file = new File(Utility.normalizePath(path));
-		if(!file.exists()) {
+		if (!file.exists()) {
 			throw new IllegalArgumentException("Could not find the file path : " + relativePath);
 		}
-		
+
 		String pixel = null;
 		try {
-			pixel = FileUtils.readFileToString(file);
+			pixel = FileUtils.readFileToString(file, StandardCharsets.UTF_8);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Issue occurred properly reading file");
+			classLogger.error("Failed to read pixel file at '{}': {}", relativePath, e.getMessage(), e);
+			throw new IllegalArgumentException("Unable to read pixel file: " + relativePath);
 		}
-		
-		if(pixel == null || (pixel = pixel.trim()).isEmpty()) {
+
+		if (pixel == null || (pixel = pixel.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Pixel file is empty");
 		}
-		
+
 		PixelRunner pixelReturn = this.insight.runPixel(pixel);
 		Map<String, Object> runnerWraper = new HashMap<String, Object>();
 		runnerWraper.put("runner", pixelReturn);

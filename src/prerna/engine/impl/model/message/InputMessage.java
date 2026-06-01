@@ -195,8 +195,8 @@ public class InputMessage extends AbstractMessage {
 
 		// ---- tool execution ----
 		if (type == MessageType.INPUT_TOOL_EXEC || toolCallId != null || toolName != null) {
-			addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, toolName, getInputPrompt(), toolParameterValues, toolStatus)));
+			addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName, getInputPrompt(),
+					toolParameterValues, toolStatus, false)));
 		}
 	}
 
@@ -481,9 +481,9 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	public static InputMessage toolExecution(Room room, String toolCallId, String toolName, String content,
-			Map<String, Object> toolParameterValues, String toolStatus) {
+			Map<String, Object> toolParameterValues, String toolStatus, boolean serverTool) {
 		InputMessage toolExecution = builder(room)
-				.withToolResult(toolCallId, toolName, content, toolParameterValues, toolStatus).build();
+				.withToolResult(toolCallId, toolName, content, toolParameterValues, toolStatus, serverTool).build();
 		toolExecution.setVisibile(false);
 		return toolExecution;
 	}
@@ -594,9 +594,9 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		public Builder withToolResult(String toolCallId, String name, String content,
-				Map<String, Object> toolParameterValues, String toolStatus) {
+				Map<String, Object> toolParameterValues, String toolStatus, boolean serverTool) {
 			message.addPart(new ToolResultMessagePart(
-					new ToolResultPart(toolCallId, name, content, toolParameterValues, toolStatus)));
+					new ToolResultPart(toolCallId, name, content, toolParameterValues, toolStatus, serverTool)));
 			return this;
 		}
 
