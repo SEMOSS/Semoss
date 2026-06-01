@@ -27,34 +27,35 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.SocketClient;
 
 /**
- * Returns the {@code selected_engines.model_engines} list from a project's
- * {@code .agents/AGENT_CONFIG.json}. Each entry is shaped
- * {@code { "name": "...", "id": "..." }}.
+ * Per-jobId registry of CLI-harness Python sidecar sockets. Populated by
+ * {@code ClaudeCodeManager} / {@code GitHubCopilotPyManager} around their
+ * blocking {@code runDirectPy} call; consulted by {@code StopPixelExecutionReactor}
+ * so cancel routes the interrupt opcode to the right socket (the CLI harness's
+ * private CPW, not the user's GAAS socket).
  */
-public class GetSelectedModelEnginesReactor extends AbstractReactor {
+public final class AgentCliSocketRegistry {
 
-    public GetSelectedModelEnginesReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
-        this.keyRequired = new int[] { 1 };
-    }
+	private static final ConcurrentHashMap<String, SocketClient> BY_JOB_ID = new ConcurrentHashMap<>();
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
-        String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+	private AgentCliSocketRegistry() {}
 
-        List<Map<String, Object>> response = AppBuilderHarnessConfiguration
-                .getEnginesForProject(projectId, AppBuilderHarnessConfiguration.MODEL_ENGINES);
-        return new NounMetadata(response, PixelDataType.VECTOR, PixelOperationType.OPERATION);
-    }
+	public static void register(String jobId, SocketClient sc) {
+		if (jobId == null || jobId.isBlank() || sc == null) return;
+		BY_JOB_ID.put(jobId, sc);
+	}
+
+	public static void unregister(String jobId) {
+		if (jobId == null || jobId.isBlank()) return;
+		BY_JOB_ID.remove(jobId);
+	}
+
+	public static SocketClient lookup(String jobId) {
+		if (jobId == null || jobId.isBlank()) return null;
+		return BY_JOB_ID.get(jobId);
+	}
 }

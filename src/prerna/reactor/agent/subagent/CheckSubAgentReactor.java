@@ -25,26 +25,42 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.agent.subagent;
+
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Thrown when the SEMOSS agent loop reaches the maximum turn cap without
- * the model producing a {@code RESPONSE_TEXT}.
+ * Platform reactor for non-blocking subagent status checks.
  *
- * <p>Callers are responsible for recording the failure and surfacing a clear error message.
+ * <h3>Pixel syntax</h3>
+ * <pre>{@code
+ * CheckSubAgent(jobId='<id>')
+ * }</pre>
+ *
+ * <p>Returns a JSON string {@code {status, jobId, alias?, workspaceId?, roomId?, spawnedAt?}}.
  */
-public class AgentMaxTurnsException extends RuntimeException {
+public class CheckSubAgentReactor extends AbstractReactor {
 
-    private final int maxTurns;
-
-    public AgentMaxTurnsException(int maxTurns) {
-        super("Agent loop exceeded max turns (" + maxTurns
-                + ") without producing a final RESPONSE_TEXT");
-        this.maxTurns = maxTurns;
+    public CheckSubAgentReactor() {
+        this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey() };
+        this.keyRequired = new int[] { 1 };
     }
 
-    /** The turn cap that was reached. */
-    public int getMaxTurns() {
-        return maxTurns;
+    @Override
+    public NounMetadata execute() {
+        organizeKeys();
+        String jobId = this.keyValue.get(ReactorKeysEnum.JOB_ID.getKey());
+        if (jobId == null || jobId.trim().isEmpty()) {
+            throw new IllegalArgumentException("jobId is required for CheckSubAgent");
+        }
+        return new NounMetadata(SubAgentDispatcher.check(jobId), PixelDataType.CONST_STRING);
+    }
+
+    @Override
+    public String getReactorDescription() {
+        return "Non-blocking subagent status check; returns a JSON string with status and meta.";
     }
 }

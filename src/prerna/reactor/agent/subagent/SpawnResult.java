@@ -25,22 +25,39 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.runtime;
+package prerna.reactor.agent.subagent;
 
 /**
- * Thrown when a cooperative cancellation signal is detected during the agent loop.
+ * Output of {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
  *
- * <p>The harness polls {@code Thread.currentThread().isInterrupted()} at the top of every
- * iteration. The interrupt is set by {@code PixelJobManager.interruptJob()} when the user
- * cancels a running job via the UI or API.
+ * <p>The {@code jobId} is the model-facing handle the parent passes to
+ * {@code WaitForSubAgent} / {@code CheckSubAgentStatus} to collect the child's final answer.
+ * Immutable.
  */
-public class AgentCancelledException extends RuntimeException {
+public final class SpawnResult {
 
-    public AgentCancelledException() {
-        super("Agent run was cancelled");
+    private final String jobId;
+    private final String roomId;
+    private final String alias;
+
+    public SpawnResult(String jobId, String roomId, String alias) {
+        this.jobId  = jobId;
+        this.roomId = roomId;
+        this.alias  = alias;
     }
 
-    public AgentCancelledException(String message) {
-        super(message);
+    /** Async pixel job id assigned to the spawned subagent run. */
+    public String getJobId() {
+        return jobId;
+    }
+
+    /** Newly created child room id. */
+    public String getRoomId() {
+        return roomId;
+    }
+
+    /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
+    public String getAlias() {
+        return alias;
     }
 }

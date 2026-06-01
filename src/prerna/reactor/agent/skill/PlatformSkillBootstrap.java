@@ -25,23 +25,33 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent;
+package prerna.reactor.agent.skill;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
- * Observer-style hook fired around a single agent message — i.e. one
- * {@link IAgentHarness#execute(AgentRunContext)} call.
+ * Disabled stub.
  *
- * <p>Hooks are returned by {@link AppBuildingHarness#getMessageHooks()} and
- * invoked in list order. {@link #beforeMessage} fires before
- * {@code doExecute}; {@link #afterMessage} fires only after a successful
- * {@code doExecute} return. If any hook throws, subsequent hooks in the
- * chain are skipped and the exception propagates to the caller.
+ * <p>The previous bootstrap scanned {@code <BASE_FOLDER>/skills/} at startup and
+ * upserted each subdirectory into a storage engine via {@code SKILL__} +
+ * {@code SKILL_VERSION__}. That model is gone: skills are now Projects of type
+ * {@code SKILL} (tagged {@code Skill_Project}), with content under
+ * {@code <project>/version/assets/skill/} and versioning handled by the
+ * project's git repo.
+ *
+ * <p>Migration of platform skills from the legacy install tree into the
+ * new Skill-Project layout will be done manually (or via a one-off importer)
+ * later; this class deliberately no-ops until then.
  */
-public interface IMessageHook {
+public final class PlatformSkillBootstrap {
 
-    /** Fires before {@code doExecute}. Throw to abort the message. Default: no-op. */
-    default void beforeMessage(AgentRunContext ctx) throws Exception {}
+	private static final Logger logger = LogManager.getLogger(PlatformSkillBootstrap.class);
 
-    /** Fires after a successful {@code doExecute}, with the produced result. Default: no-op. */
-    default void afterMessage(AgentRunContext ctx, AgentHarnessResult result) throws Exception {}
+	private PlatformSkillBootstrap() {}
+
+	public static void scan() {
+		logger.info("PlatformSkillBootstrap: skill bootstrap is disabled. Platform skills are now Skill-Projects "
+				+ "and must be migrated/seeded explicitly.");
+	}
 }

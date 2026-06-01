@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,8 +49,13 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.IToolHook;
+import prerna.reactor.agent.config.SubAgentSpec;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.subagent.SubAgentDispatcher;
+import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -93,9 +99,14 @@ final class HarnessToolExecutor {
         String jobId = ThreadStore.getJobId();
         AskModelEngineResponse<?> nextModelResp = null;
 
+        // Per-turn spawn cap — shared across the batch. Only spawn-kind calls decrement.
+        int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
+        AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
+
         if (toolCalls.size() == 1) {
             ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId);
+            ToolExecResult r  = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+                    spawnsRemainingInBatch);
             state.addToolCallRecord(r.record);
             nextModelResp = r.modelResponse;
 
@@ -109,7 +120,8 @@ final class HarnessToolExecutor {
                 for (int i = 0; i < toolCalls.size(); i++) {
                     final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
                     futures[i] = CompletableFuture.supplyAsync(
-                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId),
+                            () -> executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+                                    spawnsRemainingInBatch),
                             pool);
                 }
                 // Poll instead of allOf().join() so a cancel signal aborts the batch promptly.
@@ -148,7 +160,8 @@ final class HarnessToolExecutor {
                     }
                 }
             } finally {
-                pool.shutdown();
+                // shutdownNow so cancel interrupts still-running tool workers (f.cancel(true) doesn't always reach the Runnable)
+                pool.shutdownNow();
             }
         }
 
@@ -174,17 +187,28 @@ final class HarnessToolExecutor {
             Map<String, Object> paramMap,
             String parentMsgId,
             AgentRunContext ctx,
-            String jobId) {
+            String jobId,
+            AtomicInteger spawnsRemainingInBatch) {
 
         logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, currentIter);
         SemossAgentStream.toolInvocation(jobId, tc.toolCallId, tc.rawToolName, tc.toolParams, tc.toolCall);
 
+        // Pre-tool hooks - observer only; exceptions logged + swallowed.
+        List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
+        fireBeforeTool(toolHooks, ctx, tc, currentIter);
+
         long startMs = System.currentTimeMillis();
-        ToolExecOutcome outcome = executeToolSafely(tc.rawToolName, tc.toolParams, ctx);
+        // jobId is captured on the caller's thread (where ThreadStore is valid) and
+        // forwarded so subagent dispatch can address the parent's stream queue even
+        // when this method runs on a worker thread from the parallel-tool pool.
+        ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
         long durMs = System.currentTimeMillis() - startMs;
         SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
                 tc.toolParams, tc.toolCall);
+
+        // Post-tool hooks - fired even on failure so observability survives errors.
+        fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 
         logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}",
                 tc.rawToolName, durMs, outcome.success);
@@ -202,26 +226,212 @@ final class HarnessToolExecutor {
         return new ToolExecResult(record, modelResp);
     }
 
-    private static ToolExecOutcome executeToolSafely(
-            String rawToolName, Map<String, Object> params, AgentRunContext ctx) {
+    // Fire all configured pre-tool hooks. Each hook is isolated so a thrower does not
+    // skip the remaining hooks or abort the tool dispatch.
+    private static void fireBeforeTool(List<IToolHook> hooks, AgentRunContext ctx,
+            ParsedToolCall tc, int currentIter) {
+        if (hooks == null || hooks.isEmpty()) return;
+        for (IToolHook hook : hooks) {
+            try {
+                hook.beforeTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams, currentIter);
+            } catch (Throwable t) {
+                logger.warn("HarnessToolExecutor: tool hook {}#beforeTool threw for tool '{}': {}",
+                        hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
+            }
+        }
+    }
 
-        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(rawToolName);
-        if (parsed == null) {
-            String msg = "Tool execution error: cannot parse engine/project id from tool name '"
-                    + rawToolName + "'";
+    // Mirror of fireBeforeTool for the post-dispatch phase.
+    private static void fireAfterTool(List<IToolHook> hooks, AgentRunContext ctx,
+            ParsedToolCall tc, ToolExecOutcome outcome, long durMs, int currentIter) {
+        if (hooks == null || hooks.isEmpty()) return;
+        for (IToolHook hook : hooks) {
+            try {
+                hook.afterTool(ctx, tc.rawToolName, tc.toolCallId, tc.toolParams,
+                        outcome.content, durMs, outcome.success, currentIter);
+            } catch (Throwable t) {
+                logger.warn("HarnessToolExecutor: tool hook {}#afterTool threw for tool '{}': {}",
+                        hook.getClass().getSimpleName(), tc.rawToolName, t.toString());
+            }
+        }
+    }
+
+    private static ToolExecOutcome executeToolSafely(
+            ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
+            AtomicInteger spawnsRemainingInBatch) {
+
+        // 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
+        //    the MCP pipeline. The dispatcher returns a JSON string suitable for handing
+        //    straight back to the model.
+        java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+        if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
+            try {
+                String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
+                        spawnsRemainingInBatch);
+                return new ToolExecOutcome(result, true);
+            } catch (AgentCancelledException e) {
+                throw e;
+            } catch (Exception e) {
+                String msg = "Tool execution error: " + e.getMessage();
+                logger.warn("HarnessToolExecutor: subagent tool '{}' failed: {}",
+                        tc.rawToolName, e.getMessage(), e);
+                return new ToolExecOutcome(msg, false);
+            }
+        }
+
+        // 2. Normal MCP tool path. Prefer Room-enriched metadata so shortened
+        // provider-facing names still resolve; fall back to legacy UUID prefixes.
+        ResolvedMcpTool resolved = resolveMcpTool(tc);
+        if (resolved == null) {
+            String msg = "Tool execution error: cannot resolve engine/project id from tool name '"
+                    + tc.rawToolName + "'";
             logger.warn("HarnessToolExecutor: {}", msg);
             return new ToolExecOutcome(msg, false);
         }
         try {
-            String result = callMcpToolViaReactor(rawToolName, parsed[0], params, ctx);
+            String result = callMcpToolViaReactor(resolved.toolName, resolved.engineId, tc.toolParams, ctx);
             boolean success = result == null || !result.startsWith("Tool execution error:");
             return new ToolExecOutcome(result, success);
         } catch (Exception e) {
             String msg = "Tool execution error: " + e.getMessage();
             logger.warn("HarnessToolExecutor: uncaught exception from tool '{}': {}",
-                    rawToolName, e.getMessage(), e);
+                    tc.rawToolName, e.getMessage(), e);
             return new ToolExecOutcome(msg, false);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ResolvedMcpTool resolveMcpTool(ParsedToolCall tc) {
+        Map<String, Object> meta = null;
+        Object metaObj = tc.toolCall.get("_meta");
+        if (metaObj instanceof Map) {
+            meta = (Map<String, Object>) metaObj;
+        }
+
+        String engineId = getString(meta, MCPUtility.SMSS_ENGINE_ID);
+        if (engineId == null) {
+            engineId = getString(meta, MCPUtility.SMSS_PROJECT_ID);
+        }
+        String[] parsed = MCPUtility.parseEngineIdFromFunctionName(tc.rawToolName);
+        if (engineId == null && parsed != null) {
+            engineId = parsed[0];
+        }
+        if (engineId == null) {
+            return null;
+        }
+
+        String toolName = getString(meta, MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+        if (toolName == null) {
+            toolName = getString(tc.toolCall, "original_name");
+        }
+        if (toolName == null) {
+            toolName = parsed != null ? parsed[1] : tc.rawToolName;
+        }
+
+        return new ResolvedMcpTool(engineId, toolName);
+    }
+
+    private static String getString(Map<String, Object> map, String key) {
+        if (map == null || key == null) {
+            return null;
+        }
+        Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        String str = value.toString().trim();
+        return str.isEmpty() ? null : str;
+    }
+
+    /**
+     * Route a synthesized subagent tool call to {@link SubAgentDispatcher}. Built-in tools
+     * are matched by name; named subagent tools resolve to the matching {@link SubAgentSpec}.
+     */
+    private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params,
+            AgentRunContext ctx, java.util.List<SubAgentSpec> specs, String parentJobId,
+            AtomicInteger spawnsRemainingInBatch) {
+        Room parentRoom = ctx.getRoom();
+        if (SubAgentToolSynthesizer.TOOL_SPAWN_SUBAGENT.equals(rawToolName)) {
+            if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
+                return perTurnRejectedJson(ctx);
+            }
+            return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId);
+        }
+        if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            return SubAgentDispatcher.check(jobIdObj == null ? null : String.valueOf(jobIdObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_WAIT_SUBAGENT.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            Object timeoutObj = params == null ? null : params.get("timeoutSec");
+            int timeoutSec = SubAgentDispatcher.DEFAULT_WAIT_TIMEOUT_SEC;
+            if (timeoutObj instanceof Number) {
+                timeoutSec = ((Number) timeoutObj).intValue();
+            } else if (timeoutObj instanceof String) {
+                try { timeoutSec = Integer.parseInt(((String) timeoutObj).trim()); }
+                catch (NumberFormatException ignored) { /* keep default */ }
+            }
+            return SubAgentDispatcher.wait(jobIdObj == null ? null : String.valueOf(jobIdObj), timeoutSec);
+        }
+        if (SubAgentToolSynthesizer.TOOL_REPLY_TO_SUBAGENT_ASK.equals(rawToolName)) {
+            Object jobIdObj = params == null ? null : params.get("jobId");
+            Object requestIdObj = params == null ? null : params.get("requestId");
+            Object messageObj = params == null ? null : params.get("message");
+            return SubAgentDispatcher.replyToSubAgentAsk(
+                    parentJobId,
+                    jobIdObj == null ? null : String.valueOf(jobIdObj),
+                    requestIdObj == null ? null : String.valueOf(requestIdObj),
+                    messageObj == null ? null : String.valueOf(messageObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_NOTIFY_PARENT.equals(rawToolName)) {
+            Object messageObj = params == null ? null : params.get("message");
+            Object kindObj = params == null ? null : params.get("kind");
+            return SubAgentDispatcher.notifyParent(
+                    parentJobId,
+                    messageObj == null ? null : String.valueOf(messageObj),
+                    kindObj == null ? null : String.valueOf(kindObj));
+        }
+        if (SubAgentToolSynthesizer.TOOL_ASK_PARENT.equals(rawToolName)) {
+            Object questionObj = params == null ? null : params.get("question");
+            return SubAgentDispatcher.askParent(
+                    parentJobId,
+                    questionObj == null ? null : String.valueOf(questionObj));
+        }
+        // Named subagent tool - look up the spec and spawn.
+        SubAgentSpec spec = SubAgentToolSynthesizer.findSpec(specs, rawToolName);
+        if (spec == null) {
+            throw new IllegalStateException("Tool '" + rawToolName + "' classified as subagent but no matching spec");
+        }
+        if (!claimSpawnSlot(spawnsRemainingInBatch, ctx, rawToolName)) {
+            return perTurnRejectedJson(ctx);
+        }
+        return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId);
+    }
+
+    /** Atomic claim against the per-turn spawn budget; restores on miss. */
+    private static boolean claimSpawnSlot(AtomicInteger budget, AgentRunContext ctx, String toolName) {
+        if (budget == null) return true;
+        if (budget.decrementAndGet() < 0) {
+            budget.incrementAndGet();
+            logger.warn(
+                "HarnessToolExecutor: per-turn spawn cap reached ({}). Rejecting subagent tool '{}'.",
+                ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn(), toolName);
+            return false;
+        }
+        return true;
+    }
+
+    private static String perTurnRejectedJson(AgentRunContext ctx) {
+        int cap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
+        Map<String, Object> err = new HashMap<>();
+        err.put("error", "spawn_rejected_per_turn_cap");
+        err.put("message",
+            "Spawn rejected: this turn already has " + cap + " subagent spawn(s) in flight, "
+            + "which matches the configured maxSpawnsPerTurn. Wait for the current children to "
+            + "complete (call WaitForSubAgent) before spawning more, or split the work across "
+            + "multiple turns.");
+        err.put("maxSpawnsPerTurn", cap);
+        return GSON.toJson(err);
     }
 
     private static String callMcpToolViaReactor(
@@ -239,11 +449,14 @@ final class HarnessToolExecutor {
             functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
             reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-            if (params != null && !params.isEmpty()) {
-                GenRowStruct paramGrs = new GenRowStruct();
-                paramGrs.add(new NounMetadata(params, PixelDataType.MAP));
-                reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
-            }
+            // Always attach paramValues — RunMCPToolReactor declares it required, so no-arg
+            // tools (ListSkill, TodoRead, …) would otherwise blow up with "Required input(s)
+            // missing: paramValues". Pass an empty map when the model sent no args.
+            GenRowStruct paramGrs = new GenRowStruct();
+            paramGrs.add(new NounMetadata(
+                    params != null ? params : java.util.Collections.emptyMap(),
+                    PixelDataType.MAP));
+            reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
             NounMetadata result = reactor.execute();
             return result != null && result.getValue() != null ? result.getValue().toString() : "";
@@ -305,6 +518,16 @@ final class HarnessToolExecutor {
         ToolExecOutcome(String content, boolean success) {
             this.content = content;
             this.success = success;
+        }
+    }
+
+    private static final class ResolvedMcpTool {
+        final String engineId;
+        final String toolName;
+
+        ResolvedMcpTool(String engineId, String toolName) {
+            this.engineId = engineId;
+            this.toolName = toolName;
         }
     }
 }

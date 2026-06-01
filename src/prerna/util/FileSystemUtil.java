@@ -101,7 +101,8 @@ public final class FileSystemUtil {
 			retObj.add(fileMap);
 		}
 
-		// Sort directories first, then files, each group sorted by name case-insensitively
+		// Sort directories first, then files, each group sorted by name
+		// case-insensitively
 		Collections.sort(retObj, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
@@ -132,7 +133,8 @@ public final class FileSystemUtil {
 		List<Map<String, Object>> results = new ArrayList<>();
 		searchRecursive(dir, pattern, baseLen, results, dateTimeFormatter);
 
-		// Sort directories first, then files, each group sorted by name case-insensitively
+		// Sort directories first, then files, each group sorted by name
+		// case-insensitively
 		Collections.sort(results, new Comparator<Map<String, Object>>() {
 			@Override
 			public int compare(Map<String, Object> o1, Map<String, Object> o2) {
@@ -368,7 +370,8 @@ public final class FileSystemUtil {
 		File directory = new File(assetFolder + "/" + filePath);
 
 		if (directory.exists() && directory.isDirectory()) {
-			throw new IllegalArgumentException("Folder already exists");
+			classLogger.warn("Folder already exists: {}. Skipping creation.", filePath);
+			return;
 		}
 
 		try {
@@ -460,9 +463,10 @@ public final class FileSystemUtil {
 	/**
 	 * Copies a file or directory within the asset folder.
 	 * 
-	 * @param assetFolder     The base folder for the assets.
-	 * @param sourceFileName  The current relative path of the file/directory to copy.
-	 * @param destFileName    The destination relative path for the copy.
+	 * @param assetFolder    The base folder for the assets.
+	 * @param sourceFileName The current relative path of the file/directory to
+	 *                       copy.
+	 * @param destFileName   The destination relative path for the copy.
 	 */
 	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
 		while (sourceFileName.startsWith("/")) {
@@ -480,7 +484,8 @@ public final class FileSystemUtil {
 			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
 		}
 		if (destFile.exists()) {
-			throw new IllegalArgumentException("A file or directory already exists at the destination: " + destFileName);
+			throw new IllegalArgumentException(
+					"A file or directory already exists at the destination: " + destFileName);
 		}
 
 		try {

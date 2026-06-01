@@ -346,7 +346,69 @@ public class MessageUtils {
 				result.add(message);
 			}
 		}
-		return result;
+		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
+		return sanitizeOrphanToolCalls(result, room);
+	}
+
+	/**
+	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
+	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
+	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 */
+	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
+		if (messages == null || messages.size() < 2) {
+			return messages != null ? messages : new ArrayList<>();
+		}
+		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
+		List<int[]> toolCallSlots = new ArrayList<>();
+		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
+		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
+		for (int i = 0; i < messages.size(); i++) {
+			AbstractMessage m = messages.get(i);
+			if (m == null) continue;
+			for (MessagePart part : m.getParts()) {
+				if (part instanceof ToolCallMessagePart tcp) {
+					Map<String, Object> tc = tcp.getToolCall();
+					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+					if (id != null && !id.isBlank()) {
+						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
+							toolCallSlots.add(new int[] { i });
+							toolCallIdsPerSlot.add(new ArrayList<>());
+						}
+						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
+					}
+				} else if (part instanceof ToolResultMessagePart trp) {
+					ToolResultPart tr = trp.getToolResult();
+					String id = tr != null ? tr.getToolCallId() : null;
+					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+				}
+			}
+		}
+		if (toolCallSlots.isEmpty()) return messages;
+
+		// pass 2: first slot with any unanswered id is the truncation point
+		int truncateAt = -1;
+		List<String> orphanIds = null;
+		for (int s = 0; s < toolCallSlots.size(); s++) {
+			List<String> unmatched = null;
+			for (String id : toolCallIdsPerSlot.get(s)) {
+				if (!resultIdsSeen.contains(id)) {
+					if (unmatched == null) unmatched = new ArrayList<>();
+					unmatched.add(id);
+				}
+			}
+			if (unmatched != null && !unmatched.isEmpty()) {
+				truncateAt = toolCallSlots.get(s)[0];
+				orphanIds = unmatched;
+				break;
+			}
+		}
+		if (truncateAt < 0) return messages;
+
+		String roomId = room != null ? room.getId() : "<unknown>";
+		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
+				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
+		return new ArrayList<>(messages.subList(0, truncateAt));
 	}
 
 	// --- Core two serialization methods ---

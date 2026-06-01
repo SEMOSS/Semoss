@@ -25,28 +25,21 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.runtime;
+package prerna.reactor.agent.exceptions;
 
-/**
- * Thrown when a run-level budget (wall-clock time, token count, cost) is exceeded.
- *
- * <p>Distinct from {@link AgentMaxTurnsException} (which guards the tool-call iteration cap)
- * so callers can apply different handling per budget type. The {@link #getBudgetKind()} field
- * identifies which limit was crossed.
- */
-public class AgentBudgetException extends RuntimeException {
+/** Thrown when a spawn would exceed {@code SubAgentSpawnPolicy.maxSubagentDepth}. */
+public class AgentMaxSpawnDepthException extends RuntimeException {
 
-    public enum BudgetKind { RUN_TIME, INPUT_TOKENS, TOTAL_TOKENS }
+    private final int attemptedDepth;
+    private final int maxDepth;
 
-    private final BudgetKind budgetKind;
-
-    public AgentBudgetException(BudgetKind kind, String message) {
-        super(message);
-        this.budgetKind = kind;
+    public AgentMaxSpawnDepthException(int attemptedDepth, int maxDepth) {
+        super("Subagent spawn rejected: would create depth " + attemptedDepth
+                + " which exceeds the configured maxSubagentDepth=" + maxDepth);
+        this.attemptedDepth = attemptedDepth;
+        this.maxDepth = maxDepth;
     }
 
-    /** Which budget limit was exceeded. */
-    public BudgetKind getBudgetKind() {
-        return budgetKind;
-    }
+    public int getAttemptedDepth() { return attemptedDepth; }
+    public int getMaxDepth()       { return maxDepth; }
 }

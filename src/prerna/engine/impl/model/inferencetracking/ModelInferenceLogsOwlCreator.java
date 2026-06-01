@@ -47,6 +47,7 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> feedbackColumns = null;
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
+	private List<Pair<String, String>> skillColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -66,6 +67,7 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("FEEDBACK");
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
+		conceptsRequired.add("SKILL");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -167,12 +169,17 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RATING", BOOLEAN_DATATYPE_NAME)
 			);
 		
+		// CONFIG_JSON holds the full AgentConfig serialization for this workspace —
+		// system_prompt mirror, mcps, budgets, hooks. See AgentConfigLoader for the
+		// read order (CONFIG_JSON-first with legacy column/WORKSPACE_RESOURCE fallback)
+		// and the workspace setter reactors (SetWorkspaceHooks etc.) for the write path.
 		this.workspaceColumns = Arrays.asList(
 				Pair.with("WORKSPACE_ID", "VARCHAR(255)"),
 				Pair.with("OWNER", "VARCHAR(255)"),
 				Pair.with("NAME", "VARCHAR(255)"),
 				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
 				Pair.with("SYSTEM_PROMPT", CLOB_DATATYPE_NAME),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
@@ -185,14 +192,32 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESOURCE_TYPE", "VARCHAR(255)"),
 				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
 			);
-		
+
+		// Skill registry. SKILL_ID == the underlying Project ID (skills are projects
+		// of type SKILL, identified via PROJECTMETA tag = Skill_Project). The Project
+		// owns content, versioning (git in version/), and permissions. This table only
+		// holds the skill-specific metadata used for fast listing and the platform-vs-user
+		// ORIGIN distinction.
+		this.skillColumns = Arrays.asList(
+				Pair.with("SKILL_ID", "VARCHAR(50)"),
+				Pair.with("SLUG", "VARCHAR(255)"),
+				Pair.with("NAME", "VARCHAR(255)"),
+				Pair.with("DESCRIPTION", CLOB_DATATYPE_NAME),
+				Pair.with("CREATED_BY", "VARCHAR(255)"),
+				Pair.with("ORIGIN", "VARCHAR(50)"),
+				Pair.with("CONFIG_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)
+			);
+
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
+				Pair.with("SKILL", skillColumns)
 			);
 	}
 	
