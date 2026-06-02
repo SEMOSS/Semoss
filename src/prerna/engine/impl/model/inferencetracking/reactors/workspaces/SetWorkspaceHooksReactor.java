@@ -144,14 +144,23 @@ public class SetWorkspaceHooksReactor extends AbstractWorkspaceReactor {
                 throw new IllegalArgumentException("hooks[" + i + "] unknown kind '" + kind
                         + "'. Known kinds: " + AgentHookRegistry.knownKinds());
             }
-            JSONObject spec = new JSONObject();
-            spec.put("kind", kind);
-            // Pass through optional params blob untouched (loader-internal today).
-            Object params = entry.get("params");
-            if (params instanceof Map) {
-                spec.put("params", new JSONObject((Map<?, ?>) params));
+
+            // Kind-specific validation. The loader's hook.configure(spec)
+            // also validates at run time, but we catch obvious errors here
+            // so the FE gets a synchronous error rather than discovering
+            // the misconfiguration on the next agent run.
+            if (AgentHookRegistry.PIXEL.equals(kind)) {
+                Object pixelObj = entry.get("pixel");
+                if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
+                }
             }
-            out.put(spec);
+
+            // Persist the whole entry as-is so kind-specific fields
+            // (pixel, events, params, future additions) round-trip
+            // through the config and reach the loader's configure() call.
+            out.put(new JSONObject(entry));
         }
         return out;
     }
