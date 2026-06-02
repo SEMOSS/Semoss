@@ -5558,19 +5558,20 @@ public final class Utility {
 			if (Strings.isNullOrEmpty(ioRoot)) {
 				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
 			}
-			// folder named userid_sessionId (passed in) so it is clear whose it is.
-			// worker IO is jail-visible; the supervisor control socket stays in a
-			// sibling host-only dir that is never bind-mounted into the sandbox.
-			String folderName = Strings.isNullOrEmpty(ioDirName) ? prefix
+			// AF_UNIX socket paths are limited by sockaddr_un.sun_path (commonly
+			// 108 bytes), so keep runtime folder/socket names short even when the
+			// user chroot folder name is long and human-readable.
+			String sourceName = Strings.isNullOrEmpty(ioDirName) ? prefix
 					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
+			String folderName = prefix + "_" + Integer.toUnsignedString(sourceName.hashCode(), 36);
 			ioDir = ioRoot + "/" + folderName;
-			jailDir = ioRoot + "/" + folderName + "__jail";
-			controlDir = ioRoot + "/" + folderName + "__control";
+			jailDir = ioRoot + "/" + folderName + "_j";
+			controlDir = ioRoot + "/" + folderName + "_c";
 			new File(Utility.normalizePath(ioDir)).mkdirs();
 			new File(Utility.normalizePath(jailDir)).mkdirs();
 			new File(Utility.normalizePath(controlDir)).mkdirs();
-			udsPath = ioDir + "/worker.sock";
-			controlSocketPath = controlDir + "/control.sock";
+			udsPath = ioDir + "/w.sock";
+			controlSocketPath = controlDir + "/c.sock";
 
 			// the SEMOSS home is the inject-root: projects, user assets, and
 			// insight folders all live under it and are injected on demand
