@@ -59,7 +59,6 @@ import prerna.engine.impl.r.RRemoteRserve;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.CopyObject;
 import prerna.om.LocalUserStore;
-import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
@@ -672,15 +671,7 @@ public class User implements Serializable {
 
 			synchronized (this) {
 				if (symlinkHelper == null) {
-					// folder is named <userid>_<sessionId> so per-user sandbox/chroot
-					// folders are identifiable on disk (falls back to a uuid if the
-					// session id is unavailable on this thread)
-					String sessionId = ThreadStore.getSessionId();
-					if (sessionId == null || sessionId.trim().isEmpty()) {
-						sessionId = UUID.randomUUID().toString();
-					}
-					String uniqueUserName = (getSingleLogginName(this) + "_" + sessionId)
-							.replaceAll("[^a-zA-Z0-9._-]", "_");
+					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
 					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
 					symlinkHelper = new SymlinkHelper(chrootPath);
