@@ -1,15 +1,11 @@
 from typing import Dict, List, Any, Optional, Union, Tuple
-
 import sys
 import socketserver
-
 import traceback as tb
 import threading
-
 import importlib
 import importlib.util
 import builtins as _builtins_mod
-
 import os
 import gc as gc
 import sys
@@ -25,19 +21,29 @@ import socket
 import string
 import random
 import datetime
-from clean import PyFrame
-import gaas_server_proxy as gsp
 import logging
 import smssutil
-
-import jsonpickle as jp
 import json as json
 import math
-import numpy as np
-import pandas as pd
-
 import contextlib
 import semoss_console as console
+
+
+def _lazy_import(name):
+    """Bind the module now but defer its import cost to first attribute access."""
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.find_spec(name)
+    spec.loader = importlib.util.LazyLoader(spec.loader)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+pd = _lazy_import("pandas")
+np = _lazy_import("numpy")
+jp = _lazy_import("jsonpickle")
 
 from typing import TYPE_CHECKING
 
@@ -60,6 +66,8 @@ def custom_tostr_handler(value: Any) -> str:
 
 def custom_pandas_handler(dataframe: Any) -> Union[Any, Dict]:
     """Custom handler to stringify values in pandas DataFrame"""
+    import pandas as pd
+
     if isinstance(dataframe, pd.DataFrame):
         data_dict = dataframe.to_dict(orient="split")
         for col_name, col_data in data_dict["data"].items():
@@ -77,7 +85,6 @@ from gaas_tcp_server_thread_local import (
     smss_clear_app_imports as _smss_clear_app_imports,
     smss_get_runtime_var as _smss_get_runtime_var,
 )
-
 
 # Capture the real __import__ before we replace it.
 _orig_import = _builtins_mod.__import__
@@ -256,6 +263,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         # experimental
         if self.try_jp:
+            import numpy as np
+            import pandas as pd
+
             jp.handlers.register(float, custom_nan_handler)
             jp.handlers.register(np.datetime64, custom_tostr_handler)
             jp.handlers.register(pd.DataFrame, custom_pandas_handler)
@@ -888,8 +898,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 for asset_path in reversed(asset_paths):
                     if not asset_path:
                         continue
-                    path_script += textwrap.dedent(
-                        f"""
+                    path_script += textwrap.dedent(f"""
                         import sys
                         asset_path = r'{asset_path}'
                         if asset_path in sys.path:
@@ -897,8 +906,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                         sys.path.insert(0, asset_path)
                         del asset_path
 
-                        """
-                    )
+                        """)
                 command = path_script + command
 
         # If legacy append_vars are provided, prepend these vars at the start of the script
@@ -907,11 +915,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             append_vars_script = ""
             # Add each variable
             for key in append_vars:
-                append_vars_script += textwrap.dedent(
-                    f"""
+                append_vars_script += textwrap.dedent(f"""
                         {key} = r'{append_vars.get(key)}'
-                        """
-                )
+                        """)
             append_vars_script += "\n"
             command = append_vars_script + command
 
@@ -1507,7 +1513,6 @@ class InsightGlobalStore:
                 "json": json,
                 "jsonpickle": jp,
                 "math": math,
-                "PyFrame": PyFrame,
                 "smssutil": smssutil,
             }
 
@@ -1538,7 +1543,6 @@ class InsightGlobalStore:
                     "json",
                     "jsonpickle",
                     "math",
-                    "PyFrame",
                     "smssutil",
                 ]
             }
