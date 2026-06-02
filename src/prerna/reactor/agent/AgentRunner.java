@@ -219,17 +219,46 @@ public final class AgentRunner {
         WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
         AgentHarnessResult result = null;
         try {
+            // Lifecycle: onRoomCreation — observation-only, exceptions swallowed
+            for (IAgentRunHook h : hooks) {
+                try {
+                    h.onRoomCreation(ctx);
+                } catch (Exception hookEx) {
+                    logger.warn("AgentRunner: onRoomCreation hook {} threw — logging and continuing",
+                            h.getClass().getSimpleName(), hookEx);
+                }
+            }
+            // Lifecycle: beforeRun — veto point, exceptions abort the run
             for (IAgentRunHook h : hooks) {
                 h.beforeRun(ctx);
+            }
+            // Lifecycle: afterAgentInit — observation-only, exceptions swallowed
+            for (IAgentRunHook h : hooks) {
+                try {
+                    h.afterAgentInit(ctx);
+                } catch (Exception hookEx) {
+                    logger.warn("AgentRunner: afterAgentInit hook {} threw — logging and continuing",
+                            h.getClass().getSimpleName(), hookEx);
+                }
             }
             result = harness.execute(ctx);
         } finally {
             AgentHarnessResult finalResult = result;
+            // Lifecycle: afterRun — observation-only, exceptions swallowed
             for (IAgentRunHook h : hooks) {
                 try {
                     h.afterRun(ctx, finalResult);
                 } catch (Exception hookEx) {
                     logger.warn("AgentRunner: afterRun hook {} threw — logging and continuing",
+                            h.getClass().getSimpleName(), hookEx);
+                }
+            }
+            // Lifecycle: beforeAgentDeInit — last chance before overlay is restored
+            for (IAgentRunHook h : hooks) {
+                try {
+                    h.beforeAgentDeInit(ctx, finalResult);
+                } catch (Exception hookEx) {
+                    logger.warn("AgentRunner: beforeAgentDeInit hook {} threw — logging and continuing",
                             h.getClass().getSimpleName(), hookEx);
                 }
             }
