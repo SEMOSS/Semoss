@@ -272,7 +272,7 @@ public class SymlinkHelper {
 	private void createChrootSymlink(String sourceDirName) {
 		classLogger.debug("Making symlink for folder {}", sourceDirName);
 		// Convert the source directory and user chroot folder to Path objects
-		Path sourceDir = Paths.get(sourceDirName);
+		Path sourceDir = Paths.get(Utility.normalizePath(sourceDirName));
 		Path userChrootPath = Paths.get(userChrootFolder);
 
 		classLogger.debug("User chroot path is {}", userChrootFolder);
