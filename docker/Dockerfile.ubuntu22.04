@@ -131,6 +131,11 @@ RUN	cd /tmp \
 
 RUN apt install -y debootstrap fakechroot fakeroot
 
+# Bake the shared chroot template at build time (as root) so the running
+# container never builds it. Writes /opt/chroot/.template/.ready, which makes
+# ChrootTemplate.awaitReady() a no-op at startup. Auto-detects Ubuntu/RHEL paths.
+RUN bash /opt/semoss-artifacts/artifacts/scripts/build_chroot_template.sh /opt/chroot
+
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
 	-c "Default Application User" default &&                \
 	chown -R 1001:0 ${HOME}
