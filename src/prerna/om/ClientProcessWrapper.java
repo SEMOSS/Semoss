@@ -145,8 +145,8 @@ public class ClientProcessWrapper {
 						this.serverDirectory = serverDirectoryPath.toString();
 						Utility.writeLogConfigurationFile(this.serverDirectory);
 
-						// name the sandbox folders after the user's chroot folder
-						// (userid_sessionId) so they are identifiable on disk
+						// Use the user's chroot folder name as the source identity; the
+						// sandbox launcher shortens it to keep AF_UNIX socket paths valid.
 						String ioDirName = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder()).getFileName()
 								.toString();
 
