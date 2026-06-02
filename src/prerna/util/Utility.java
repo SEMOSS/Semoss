@@ -91,6 +91,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -202,6 +203,7 @@ public final class Utility {
 	public static int id = 0;
 
 	private static final Logger classLogger = LogManager.getLogger(Utility.class);
+	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
 
@@ -5319,6 +5321,29 @@ public final class Utility {
 		return thisProcess;
 	}
 
+	private static Thread startPyGobbler(InputStream stream, boolean isError, List<String> capturedLines) {
+		Thread t = new Thread(() -> {
+			try (BufferedReader r = new BufferedReader(new InputStreamReader(stream))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					if (capturedLines != null) {
+						capturedLines.add(line);
+					}
+					if (isError) {
+						pyLogger.error(line);
+					} else {
+						pyLogger.info(line);
+					}
+				}
+			} catch (IOException e) {
+				// stream closed when process exits
+			}
+		});
+		t.setDaemon(true);
+		t.start();
+		return t;
+	}
+
 	/**
 	 * 
 	 * @param insightFolder
@@ -5394,10 +5419,21 @@ public final class Utility {
 
 			classLogger.info("Starting user/engine process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
-			Process p = pb.start();
+			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
+			List<String> capturedLines = null;
+			Thread stdoutGobbler = null;
+			Thread stderrGobbler = null;
+			if (!pyLogCapture) {
+				ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+				pb.redirectError(redirector);
+				pb.redirectOutput(redirector);
+			}
+ 			Process p = pb.start();
+			if (pyLogCapture) {
+				capturedLines = new CopyOnWriteArrayList<>();
+				stdoutGobbler = startPyGobbler(p.getInputStream(), false, capturedLines);
+				stderrGobbler = startPyGobbler(p.getErrorStream(), true, capturedLines);
+			}
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
@@ -5406,23 +5442,37 @@ public final class Utility {
 			}
 			classLogger.info("Finished waiting for user/engine process");
 			if (!p.isAlive()) {
-				// if it crashed here, then the outputFile will contain the error. Read file and
-				// send error back
-				// it should not contain anything else since we are trying to start the server
-				// here
-				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
-				String line;
-				while ((line = reader.readLine()) != null) {
-					// get the runtime error
-					if (line.startsWith("Traceback")) {
-						errorMsg.append(line).append("\n");
-						while ((line = reader.readLine()) != null) {
+				if (pyLogCapture) {
+					try {
+						if (stdoutGobbler != null) { stdoutGobbler.join(200); }
+						if (stderrGobbler != null) { stderrGobbler.join(200); }
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+					}
+					boolean inTraceback = false;
+					for (String line : capturedLines) {
+						if (line.startsWith("Traceback")) { inTraceback = true; }
+						if (inTraceback) { errorMsg.append(line).append("\n"); }
+					}
+				} else {
+					// if it crashed here, then the outputFile will contain the error. Read file and
+					// send error back
+					// it should not contain anything else since we are trying to start the server
+					// here
+					BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+					String line;
+					while ((line = reader.readLine()) != null) {
+						// get the runtime error
+						if (line.startsWith("Traceback")) {
 							errorMsg.append(line).append("\n");
+							while ((line = reader.readLine()) != null) {
+								errorMsg.append(line).append("\n");
+							}
 						}
 					}
-				}
-				reader.close();
+					reader.close();
+ 				}
 				if (!errorMsg.toString().isEmpty()) {
 					throw new IllegalStateException(errorMsg.toString());
 				}
@@ -5497,10 +5547,17 @@ public final class Utility {
 
 			classLogger.info("Starting user process with ::: " + Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
+			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
+			if (!pyLogCapture) {
+				ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+				pb.redirectError(redirector);
+				pb.redirectOutput(redirector);
+			}
 			Process p = pb.start();
+			if (pyLogCapture) {
+				startPyGobbler(p.getInputStream(), false, null);
+				startPyGobbler(p.getErrorStream(), true, null);
+			}
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {

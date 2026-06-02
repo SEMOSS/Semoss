@@ -122,6 +122,26 @@ class ExecutionCancelled(Exception):
     """Raised when a running python execution is cancelled by a remote request."""
 
 
+class SemossLogHandler(logging.Handler):
+    """Routes Python log records back to Java via the LOG operation.
+    LOG payloads are forwarded to the py.native Log4j2 logger only.
+    They do not appear in the frontend job output."""
+
+    def __init__(self, socket_handler: "TCPServerHandler"):
+        super().__init__()
+        self.socket_handler = socket_handler
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            msg = self.format(record)
+            self.socket_handler.send_output(msg, operation="LOG")
+        except OSError:
+            # Socket was closed (normal during shutdown); discard silently.
+            pass
+        except Exception:
+            self.handleError(record)
+
+
 class TCPServerHandler(socketserver.BaseRequestHandler):
     """
     This class is the request handler for the Native Python Server.
@@ -170,23 +190,29 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """Configures logging with environment-based log levels."""
         try:
             log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
+            log_level = self.log_level_mapper(log_level_name)
+            fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
-            logging.basicConfig(
-                filename=f"{self.insight_folder}/log.txt",
-                level=self.log_level_mapper(log_level_name),
-                format="%(asctime)s - %(levelname)s - %(message)s",
-                filemode="a",
-                force=True,
-            )
-
-            # Create a logger and apply a filter to log only the exact level
             self.logger = logging.getLogger("TCPServerHandler")
-            log_level = getattr(
-                logging, log_level_name, self.log_level_mapper(log_level_name)
+            self.logger.setLevel(log_level)
+            self.logger.handlers.clear()
+            self.logger.propagate = False
+
+            # File handler writes only the exact
+            # configured level to log.txt (not >= level, only ==).
+            file_handler = logging.FileHandler(
+                f"{self.insight_folder}/log.txt", mode="a"
             )
-            self.logger.addFilter(
-                lambda record: record.levelno == log_level
-            )  # Logs only the selected level
+            file_handler.setFormatter(fmt)
+            file_handler.addFilter(lambda record: record.levelno == log_level)
+            self.logger.addHandler(file_handler)
+
+            # Socket handler forwards all records at >= configured level to Java's
+            # py.native logger with standard severity behaviour.
+            socket_handler = SemossLogHandler(self)
+            socket_handler.setFormatter(fmt)
+            self.logger.addHandler(socket_handler)
+
             self.logger.info("Logging Setup Completed")
         except Exception as e:
             self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
@@ -370,6 +396,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             except socket.timeout:
                 self.logger.warning("Client connection timed out. Closing this socket.")
                 self.stop_request()
+            except (ConnectionAbortedError, ConnectionResetError):
+                # Client disconnected cleanly; shut down without logging through the socket.
+                self.stop_request()
+            except RuntimeError as e:
+                if "No data received or connection closed" in str(e):
+                    # recv() returned empty -- client closed the connection normally.
+                    self.stop_request()
+                else:
+                    self.logger.warning(f"An unexpected error occurred: {e}")
+                    self.logger.warning("Closing this socket due to an unexpected error.")
+                    self.stop_request()
             except Exception as e:
                 self.logger.warning(f"An unexpected error occurred: {e}")
                 self.logger.warning("Closing this socket due to an unexpected error.")
@@ -660,7 +697,7 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
         orig_payload = getattr(self.thread_local, "payload", None)
         payload = {
-            "epoc": (orig_payload.get("epoc") if orig_payload else None),
+            "epoc": (orig_payload.get("epoc") if orig_payload else ("py_" + "".join(random.choice(string.digits) for _ in range(17)))),
             "response": response,
             "interim": interim,
             "payload": [output],

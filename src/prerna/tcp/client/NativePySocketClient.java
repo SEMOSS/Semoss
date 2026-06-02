@@ -52,6 +52,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
 import prerna.auth.User;
+import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -63,11 +64,13 @@ import prerna.sablecc2.comm.PixelJobStatus;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
 
 	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
+	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
@@ -83,6 +86,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	@Override
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
+			
+			startCtx.put(SemossLogUtils.SPAN_ID, this.cpw == null ? "UNK_"+Utility.getRandomString(5) : cpw.getPrefix());
+			
 			// there is 2 portions to the run
 			// one is before connect
 			// one is after. The reason this is done is to avoid an extra handler for
@@ -192,13 +198,19 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							if (ps.operation == PayloadStruct.OPERATION.CANCELLED) {
 								classLogger.debug("User cancelled request for epoc: {}", ps.epoc);
 							}
-							// std out no questions
+							// std out
 							else if (ps.operation == PayloadStruct.OPERATION.STDOUT && ps.payload != null
 									&& !ps.response) {
 								String logMessage = (String) ps.payload[0];
 								if (lock != null) {
 									exposeLog(logMessage, lock.jobId);
 								}
+							}
+							// explicit log output goes to py logger
+							else if (ps.operation == PayloadStruct.OPERATION.LOG && ps.payload != null
+									&& !ps.response) {
+								String logMessage = (String) ps.payload[0];
+								pyLogger.info(logMessage);
 							}
 
 							else if (ps.operation == PayloadStruct.OPERATION.STRUCTURED_STREAM) {
@@ -453,6 +465,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	private void exposeLog(String data, String jobId) {
 		classLogger.debug("Exposing log to jobId = '{}' with data = {}", jobId, data);
 		if (jobId != null && data != null) {
+			pyLogger.info(data);
 			PixelJobManager.getManager().addStdOut(jobId, data);
 		} else {
 			// 2025-07-08

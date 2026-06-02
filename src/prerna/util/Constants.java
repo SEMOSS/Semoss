@@ -727,6 +727,8 @@ public class Constants {
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
 	public static final String NETTY_PYTHON = "NETTY_PYTHON";
+	public static final String PY_LOG_CAPTURE_ENABLED = "PY_LOG_CAPTURE_ENABLED";
+	public static final String PY_LOGGER_NAME = "py.native";
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
