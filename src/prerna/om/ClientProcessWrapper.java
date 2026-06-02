@@ -33,14 +33,18 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,6 +73,7 @@ import prerna.util.Utility;
 public class ClientProcessWrapper {
 
 	private static final Logger classLogger = LogManager.getLogger(ClientProcessWrapper.class);
+	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	// After spawning a python server process, poll briefly to catch an immediate
 	// crash (import / syntax errors surface within a few ms) without blocking long
@@ -777,6 +782,29 @@ public class ClientProcessWrapper {
 	 * @return a two-element array: { the spawned {@link Process} (or null on
 	 *         failure), the process prefix string }
 	 */
+	private static Thread startPyGobbler(InputStream stream, boolean isError, List<String> capturedLines) {
+		Thread t = new Thread(() -> {
+			try (BufferedReader r = new BufferedReader(new InputStreamReader(stream))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					if (capturedLines != null) {
+						capturedLines.add(line);
+					}
+					if (isError) {
+						pyLogger.error(line);
+					} else {
+						pyLogger.info(line);
+					}
+				}
+			} catch (IOException e) {
+				// stream closed when process exits
+			}
+		});
+		t.setDaemon(true);
+		t.start();
+		return t;
+	}
+
 	public static Object[] startTCPServerNativePy(String insightFolder, String port, String py, String timeout,
 			String loggerLevel) {
 		String prefix = "";
@@ -835,10 +863,21 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting user/engine process with ::: {}", Arrays.toString(commands));
 			ProcessBuilder pb = new ProcessBuilder(commands);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
+			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
+			List<String> capturedLines = null;
+			Thread stdoutGobbler = null;
+			Thread stderrGobbler = null;
+			if (!pyLogCapture) {
+				ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+				pb.redirectError(redirector);
+				pb.redirectOutput(redirector);
+			}
 			Process p = pb.start();
+			if (pyLogCapture) {
+				capturedLines = new CopyOnWriteArrayList<>();
+				stdoutGobbler = startPyGobbler(p.getInputStream(), false, capturedLines);
+				stderrGobbler = startPyGobbler(p.getErrorStream(), true, capturedLines);
+			}
 			// Poll at short intervals for an immediate crash (import / syntax errors
 			// surface within a few ms). A healthy process keeps running, so cap the
 			// total wait small and return early the moment it exits; the socket
@@ -857,23 +896,34 @@ public class ClientProcessWrapper {
 			}
 			classLogger.info("Finished waiting for user/engine process");
 			if (!p.isAlive()) {
-				// if it crashed here, then the outputFile will contain the error. Read file and
-				// send error back
-				// it should not contain anything else since we are trying to start the server
-				// here
-				BufferedReader reader = new BufferedReader(new FileReader(outputFile));
 				StringBuilder errorMsg = new StringBuilder();
-				String line;
-				while ((line = reader.readLine()) != null) {
-					// get the runtime error
-					if (line.startsWith("Traceback")) {
-						errorMsg.append(line).append("\n");
-						while ((line = reader.readLine()) != null) {
+				if (pyLogCapture) {
+					try {
+						if (stdoutGobbler != null) { stdoutGobbler.join(200); }
+						if (stderrGobbler != null) { stderrGobbler.join(200); }
+					} catch (InterruptedException ie) {
+						Thread.currentThread().interrupt();
+					}
+					boolean inTraceback = false;
+					for (String line : capturedLines) {
+						if (line.startsWith("Traceback")) { inTraceback = true; }
+						if (inTraceback) { errorMsg.append(line).append("\n"); }
+					}
+				} else {
+					// if it crashed here, then the outputFile will contain the error. Read file and
+					// send error back
+					BufferedReader reader = new BufferedReader(new FileReader(outputFile));
+					String line;
+					while ((line = reader.readLine()) != null) {
+						if (line.startsWith("Traceback")) {
 							errorMsg.append(line).append("\n");
+							while ((line = reader.readLine()) != null) {
+								errorMsg.append(line).append("\n");
+							}
 						}
 					}
+					reader.close();
 				}
-				reader.close();
 				if (!errorMsg.toString().isEmpty()) {
 					throw new IllegalStateException(errorMsg.toString());
 				}
@@ -1065,15 +1115,38 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed user process with ::: {}", Arrays.toString(commandArray));
 			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
 			File consoleFile = new File(outputFile);
-			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
-			pb.redirectError(redirector);
-			pb.redirectOutput(redirector);
+			List<String> capturedLines = null;
+			Thread stdoutGobbler = null;
+			Thread stderrGobbler = null;
+			if (!pyLogCapture) {
+				ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
+				pb.redirectError(redirector);
+				pb.redirectOutput(redirector);
+			}
 			Process p = pb.start();
+			if (pyLogCapture) {
+				capturedLines = new CopyOnWriteArrayList<>();
+				stdoutGobbler = startPyGobbler(p.getInputStream(), false, capturedLines);
+				stderrGobbler = startPyGobbler(p.getErrorStream(), true, capturedLines);
+			}
 			try {
 				if (p.waitFor(500, TimeUnit.MILLISECONDS)) {
+					String startupLog;
+					if (pyLogCapture) {
+						try {
+							if (stdoutGobbler != null) { stdoutGobbler.join(200); }
+							if (stderrGobbler != null) { stderrGobbler.join(200); }
+						} catch (InterruptedException ie2) {
+							Thread.currentThread().interrupt();
+						}
+						startupLog = String.join("\n", capturedLines);
+					} else {
+						startupLog = readSandboxStartupLog(consoleFile);
+					}
 					throw new IllegalStateException("Namespace sandbox exited during startup with code " + p.exitValue()
-							+ ". " + readSandboxStartupLog(consoleFile));
+							+ ". " + startupLog);
 				}
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
