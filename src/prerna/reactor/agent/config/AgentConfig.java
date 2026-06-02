@@ -61,6 +61,9 @@ public final class AgentConfig {
     // Model
     private final String modelId;
     private final Map<String, Object> modelParams;
+   
+    // Agent specific params
+    private final Map<String, Object> agentParams;
 
     // Filesystem
     private final String workingDir;
@@ -98,6 +101,9 @@ public final class AgentConfig {
         this.modelParams     = b.modelParams != null
                 ? Collections.unmodifiableMap(new HashMap<>(b.modelParams))
                 : Collections.emptyMap();
+        this.agentParams     = b.agentParams != null
+        		? Collections.unmodifiableMap(new HashMap<>(b.agentParams))
+        		: Collections.emptyMap();
         this.workingDir      = b.workingDir;
         this.mcps            = b.mcps != null
                 ? Collections.unmodifiableList(new ArrayList<>(b.mcps))
@@ -198,6 +204,14 @@ public final class AgentConfig {
     public Map<String, Object> getModelParams() {
         return modelParams;
     }
+    
+    /**
+     * Parameters for the agent.. Useful for passing parameters to hooks
+     * Never {@code null}; always an unmodifiable view.
+     */
+    public Map<String, Object> getAgentParams() {
+    	return agentParams;
+    }
 
     // Filesystem
     /**
@@ -281,6 +295,7 @@ public final class AgentConfig {
         private String workdirAgentsMd;
         private String modelId;
         private Map<String, Object> modelParams;
+        private Map<String, Object> agentParams;
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
@@ -298,6 +313,7 @@ public final class AgentConfig {
         public Builder workdirAgentsMd(String v)     { this.workdirAgentsMd = v;     return this; }
         public Builder modelId(String v)             { this.modelId = v;             return this; }
         public Builder modelParams(Map<String, Object> v) { this.modelParams = v;    return this; }
+        public Builder agentParams(Map<String, Object> v) { this.agentParams = v;    return this; }
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }

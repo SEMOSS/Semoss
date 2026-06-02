@@ -92,6 +92,7 @@ public final class AgentConfigLoader {
             String workingDir,
             String modelId,
             Map<String, Object> paramMap,
+            Map<String, Object> agentParams,
             int maxTurns,
             int maxReflections,
             String explicitWorkspaceId) {
@@ -154,6 +155,7 @@ public final class AgentConfigLoader {
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
         b.modelParams(paramMap);
+        b.agentParams(agentParams);
 
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));
