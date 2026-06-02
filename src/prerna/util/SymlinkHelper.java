@@ -99,7 +99,11 @@ public class SymlinkHelper {
 		this.injector = injector;
 		if (injector != null && !activeInjects.isEmpty()) {
 			for (Map.Entry<String, Boolean> entry : activeInjects.entrySet()) {
-				injector.inject(entry.getKey(), entry.getValue());
+				try {
+					injector.inject(entry.getKey(), entry.getValue());
+				} catch (RuntimeException e) {
+					classLogger.warn("Skipping namespace injection for {}", entry.getKey(), e);
+				}
 			}
 		}
 	}
@@ -109,12 +113,46 @@ public class SymlinkHelper {
 	}
 
 	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
+		if (!isNamespaceInjectablePath(absPath)) {
+			classLogger.warn("Skipping namespace injection for path outside SEMOSS home: {}", absPath);
+			return;
+		}
 		Boolean existing = activeInjects.get(absPath);
 		if (existing == null || (readWrite && !existing)) {
 			activeInjects.put(absPath, readWrite);
 		}
 		if (injector != null) {
-			injector.inject(absPath, readWrite);
+			try {
+				injector.inject(absPath, readWrite);
+			} catch (RuntimeException e) {
+				classLogger.warn("Skipping namespace injection for {}", absPath, e);
+			}
+		}
+	}
+
+	private boolean isNamespaceInjectablePath(String absPath) {
+		if (absPath == null || absPath.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			Path injectRoot = Paths.get(Utility.getBaseFolder()).toAbsolutePath().normalize();
+			Path path = Paths.get(absPath).toAbsolutePath().normalize();
+			try {
+				injectRoot = injectRoot.toRealPath();
+			} catch (IOException ignored) {
+				// Fall back to the normalized configured root.
+			}
+			try {
+				if (Files.exists(path)) {
+					path = path.toRealPath();
+				}
+			} catch (IOException ignored) {
+				// Fall back to the normalized requested path.
+			}
+			return path.startsWith(injectRoot);
+		} catch (Exception e) {
+			classLogger.debug("Unable to determine if path is namespace injectable: {}", absPath, e);
+			return false;
 		}
 	}
 
