@@ -88,6 +88,15 @@ public class PayloadStruct implements Serializable {
 	// set the job id
 	public String jobId = null;
 
+	/**
+	 * When true, the python server must NOT install the per-execution cancel trace
+	 * (sys.settrace) for this command. Engine-owned python processes never surface
+	 * their jobId / insightId to the user, so their executions can never be
+	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
+	 * import-heavy init / ask scripts.
+	 */
+	public boolean disableCancelTrace = false;
+
 	// set the session id
 	public String sessionId = null;
 

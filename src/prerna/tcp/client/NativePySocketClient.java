@@ -69,6 +69,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 	private static final Logger classLogger = LogManager.getLogger(NativePySocketClient.class);
 
+	// Connection polling: try frequently at first so a fast machine connects almost
+	// immediately, easing off with a capped backoff, and keep trying until a
+	// generous deadline so a slow / loaded machine still succeeds.
+	private static final int CONNECT_INITIAL_INTERVAL_MS = 100;
+	private static final int CONNECT_MAX_INTERVAL_MS = 500;
+	private static final long CONNECT_TIMEOUT_MS = 30_000L;
+
 	public NativePySocketClient() {
 		this.startMdc = new HashMap<>();
 	}
@@ -90,25 +97,30 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 
 			// Configure SSL.git
 			if (!connected && !killAll) {
-				int attempt = 1;
-				int SLEEP_TIME = 800;
+				// Poll at a short interval so a fast machine connects almost immediately,
+				// then ease off with a capped backoff, and keep trying until a generous
+				// deadline so a slow / loaded machine still succeeds. SLEEP_TIME (if set)
+				// overrides the initial interval for backwards compatibility.
+				int intervalMs = CONNECT_INITIAL_INTERVAL_MS;
 				if (Utility.getDIHelperProperty("SLEEP_TIME") != null) {
 					try {
-						SLEEP_TIME = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
+						intervalMs = Integer.parseInt(Utility.getDIHelperProperty("SLEEP_TIME"));
 					} catch (NumberFormatException e) {
 						classLogger.error("Invalid SLEEP_TIME property value: {}",
 								Utility.getDIHelperProperty("SLEEP_TIME"), e);
 					}
 				}
+				int curIntervalMs = intervalMs;
+				long deadline = System.currentTimeMillis() + CONNECT_TIMEOUT_MS;
 
-				classLogger.info("Trying with sleep time {}", SLEEP_TIME);
-				while (!connected && attempt < 6) {
+				classLogger.info("Connecting to python server: polling every {}ms (cap {}ms) for up to {}ms",
+						intervalMs, CONNECT_MAX_INTERVAL_MS, CONNECT_TIMEOUT_MS);
+				int attempt = 0;
+				while (!connected && !killAll && System.currentTimeMillis() < deadline) {
+					attempt++;
 					try {
 						openConnection();
-						classLogger.info("CLIENT Connection complete !!!!!!!");
-						// sleep some before executing command
-						Thread.sleep(100);
-
+						classLogger.info("CLIENT Connection complete after {} attempt(s) !!!!!!!", attempt);
 						connected = true;
 						ready = true;
 						killAll = false;
@@ -116,22 +128,29 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							this.notifyAll();
 						}
 					} catch (Exception ex) {
-						attempt++;
-						classLogger.info("Attempting connection number {}", attempt);
-						// see if sleeping helps ?
-						try {
-							// sleeping only for 1 second here
-							// but the py executor sleeps in 2 second increments
-							Thread.sleep(attempt * SLEEP_TIME);
-						} catch (Exception ex2) {
-							// ignored
+						// fail fast if the process already died - no point waiting out the
+						// deadline, and it lets the caller surface the real startup error
+						Process proc = (this.cpw != null) ? this.cpw.getProcess() : null;
+						if (proc != null && !proc.isAlive()) {
+							classLogger.error("Python process exited before accepting a connection (attempt {})",
+									attempt);
+							break;
 						}
+						try {
+							Thread.sleep(curIntervalMs);
+						} catch (InterruptedException ex2) {
+							Thread.currentThread().interrupt();
+							break;
+						}
+						// gentle capped backoff: stay responsive but ease off if it drags
+						curIntervalMs = Math.min(curIntervalMs * 2, CONNECT_MAX_INTERVAL_MS);
 					}
 				}
 
-				if (attempt >= 6) {
-					classLogger.error("CLIENT Connection Failed !!!!!!!");
+				if (!connected) {
+					classLogger.error("CLIENT Connection Failed after {} attempt(s) !!!!!!!", attempt);
 					ready = false;
+					killAll = true;
 					synchronized (this) {
 						this.notifyAll();
 					}

@@ -145,7 +145,8 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 		}
 
 		String script = "model.predict_entities(\"\"\"" + prompt + "\"\"\", " + new Gson().toJson(labels) + ")";
-		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator.runDirectPy(script);
+		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator
+				.runDirectPyNoCancelTrace(script);
 		boolean pass = true;
 		for (Map<String, Object> category : predictions) {
 			// account if the type is return
@@ -225,8 +226,9 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 		}
 
 		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-										// python
+		// it has to be -- don't change this unless you can send engine calls from
+		// python
+		boolean nativePyServer = true;
 		try {
 			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
 					debug, timeout, loggerLevel);
@@ -244,7 +246,7 @@ public class GLiNERGuardrailEngine extends AbstractGuardrailReactorFunctionEngin
 			String execCommand = "from gliner import GLiNER\n" + "model = GLiNER.from_pretrained(\"" + this.modelName
 					+ "\")";
 
-			this.pyTranslator.runScript(execCommand);
+			this.pyTranslator.runScriptNoCancelTrace(execCommand);
 
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
