@@ -36,7 +36,7 @@ public enum Platform {
     /** macOS with {@code sandbox-exec} (Seatbelt). */
     MACOS,
 
-    /** Windows or other — no sandbox backend in phase 1. */
+    /** Windows or other - no sandbox backend in phase 1. */
     OTHER;
 
     public static Platform current() {

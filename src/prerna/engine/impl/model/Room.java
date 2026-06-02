@@ -115,7 +115,6 @@ public class Room {
 	private Insight insight;
 	private String roomFolderPath;
 
-	public static final List<String> IMAGE_MODEL_PARAM_KEYS = List.of("imageHeight", "imageWidth", "seed");
 	public static final List<String> TEXT_MODEL_PARAM_KEYS = List.of("temperature");
 
 	/**
@@ -253,8 +252,6 @@ public class Room {
 		// this will modify tools if name is too large
 		appendToolsToParams(kwArgMap, modelEngine);
 
-		applyImageModelParams(kwArgMap);
-
 		applyTextModelParams(kwArgMap);
 
 		boolean useHistory = true;
@@ -281,6 +278,14 @@ public class Room {
 		// if we dont have to keep history. then wipe all previous messages.
 		if (!modelEngine.keepsConversationHistory()) {
 			messages.clear();
+		}
+
+		// drop orphan tool_use (cancel mid-tool, crash) before building the outbound branch
+		// — providers reject unpaired tool_use, and the cached in-memory list may have one
+		// even though sanitize on rehydration covers cold loads
+		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(this.messages, this);
+		if (sanitized != this.messages) {
+			setMessages(sanitized);
 		}
 
 		// Set model type and add message to history
@@ -670,39 +675,14 @@ public class Room {
 	}
 
 	/**
-	 * Pulls room-option values into the model invocation kwarg map for the keys
-	 * declared in {@link Constants#IMAGE_MODEL_PARAM_KEYS}. Existing entries in
-	 * {@code kwArgMap} are preserved so per-message overrides always win over
-	 * room-level defaults.
+	 * Appends text gen model specific parameters from room options into the
+	 * provided model.
 	 * 
-	 * Param list:
-	 * <ul>
-	 * <li>imageHeight: height of the image in pixels to generate
-	 * <li>imageWidth: width of the image in pixels to generate
-	 * <li>seed: number to control randomness of each generation
-	 * </ul>
-	 *
-	 * @param kwArgMap mutable model parameter map
+	 * @param kwArgMap
 	 */
-	private void applyImageModelParams(Map<String, Object> kwArgMap) {
-		Map<String, Object> options = getOptionsMap();
-		Boolean isImageModel = Boolean.TRUE.equals(options.get("image-generation"));
-		if (options == null || options.isEmpty() || !isImageModel) {
-			return;
-		}
-
-		for (String key : IMAGE_MODEL_PARAM_KEYS) {
-			Object val = options.get(key);
-			if (val != null) {
-				kwArgMap.putIfAbsent(key, val);
-			}
-		}
-	}
-
 	private void applyTextModelParams(Map<String, Object> kwArgMap) {
 		Map<String, Object> options = getOptionsMap();
-		Boolean isTextModel = Boolean.TRUE.equals(options.get("text-generation"));
-		if (options == null || options.isEmpty() || !isTextModel) {
+		if (options == null || options.isEmpty()) {
 			return;
 		}
 
@@ -752,6 +732,25 @@ public class Room {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
 	 * back to their original engine IDs and function names.
 	 *
+	 * <p><b>In-process LLM path.</b> This is the resolution used by the
+	 * {@code semoss} harness (and the playground COT reactors). It reads
+	 * {@code room.options.mcp[]} plus the {@code WORKSPACE_RESOURCE} rows for
+	 * {@code room.options.workspace.workspace_id}, resolves each engine through
+	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and
+	 * returns full tool definition maps for the LLM call.
+	 *
+	 * <p>External-CLI harnesses ({@code claude_code}, {@code github_copilot},
+	 * {@code github_copilot_py}) take a sibling path:
+	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
+	 * the same two sources, but returning engine refs ({@code id}/{@code name})
+	 * rather than resolved tool defs - the external CLI does its own MCP
+	 * handshake to discover tools.
+	 *
+	 * <p>Both paths honor {@code room.options.workspace.workspace_id}, so the
+	 * {@code workspaceId} arg on {@code RunAgent} (applied via
+	 * {@code AgentRunner}'s workspace overlay) yields the same MCP set in either
+	 * harness style.
+	 *
 	 * @param maxLength maximum allowed tool name length (use
 	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
 	 * @return list of tool definition maps ready to pass to the LLM
@@ -792,10 +791,13 @@ public class Room {
 			try {
 				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
 				if (workspace != null && workspace.containsKey("workspace_id")) {
+					String workspaceId = (String) workspace.get("workspace_id");
+
+					// legacy: workspace_resource rows
 					try {
-						String workspaceId = (String) workspace.get("workspace_id");
 						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
-								workspaceId, List.of(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE));
+								workspaceId, Arrays.asList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
+										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
 							if (!ensureUnique.contains(toolId)) {
@@ -805,6 +807,26 @@ public class Room {
 						}
 					} catch (Exception e) {
 						classLogger.error("Unable to add tool map from workspace mcp", e);
+					}
+
+					// new: CONFIG_JSON.mcps (additive, deduped against legacy by id)
+					try {
+						JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+						JSONArray arr = cfg != null ? cfg.optJSONArray("mcps") : null;
+						if (arr != null) {
+							for (int i = 0; i < arr.length(); i++) {
+								JSONObject mcp = arr.optJSONObject(i);
+								if (mcp == null) continue;
+								String toolId = mcp.optString("id", null);
+								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
+									aggregated.addAll(getToolJson(toolId, maxLength));
+									ensureUnique.add(toolId);
+								}
+							}
+						}
+					} catch (Exception e) {
+						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}",
+								workspaceId, e.getMessage());
 					}
 				}
 			} catch (ClassCastException e) {
@@ -948,7 +970,7 @@ public class Room {
 	// --- System Prompt Handling ----
 
 	/**
-	 * Resolves the user-authored system prompt — the room/workspace layer, before
+	 * Resolves the user-authored system prompt - the room/workspace layer, before
 	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
 	 * <ol>
 	 * <li>{@code options.instructions}</li>

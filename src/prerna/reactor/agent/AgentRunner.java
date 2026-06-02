@@ -28,8 +28,12 @@
 package prerna.reactor.agent;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,23 +42,63 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
+import prerna.reactor.agent.config.AgentConfig;
+import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
+import prerna.reactor.agent.skill.SkillStager;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-/**
- * High-level orchestrator for the generic agent loop.
- *
- */
+/** High-level entry point for resolving context and executing an agent harness. */
 public final class AgentRunner {
 
     private static final Logger logger = LogManager.getLogger(AgentRunner.class);
 
-    /** Key under which {@code filePath} is injected into {@code paramMap}. */
+    /** Key under which the resolved working directory is injected into {@code paramMap}. */
     public static final String FILE_PATH_PARAM_KEY = "file_path";
+
+    /**
+     * paramMap key for an explicit workspace id (agent identity) that overrides
+     * whatever {@code room.options.workspace.workspace_id} carries. Stripped from
+     * paramMap by {@link #extractExplicitWorkspaceId(Map)} before the model engine call.
+     */
+    public static final String PARAM_WORKSPACE_ID = "workspace_id";
+
+    /**
+     * paramMap key: target SEMOSS project (workspace) the agent should operate inside.
+     * Resolves to that project's {@code assets/} folder. Mutually preferred over the
+     * default (current room's folder).
+     */
+    public static final String PARAM_PROJECT = "project";
+
+    /**
+     * paramMap key: relative subfolder inside the resolved container (room or project).
+     * Must be relative (no leading {@code /}, {@code \}, or {@code ~}) and must not
+     * contain {@code ..} segments. The resolved path is canonical-checked to stay
+     * under the container.
+     */
+    public static final String PARAM_SUBDIR = "subdir";
+
+    /**
+     * paramMap key: legacy absolute working-dir path. <b>Deprecated.</b> Callers
+     * should use {@link #PARAM_PROJECT} + {@link #PARAM_SUBDIR}. Logged + ignored.
+     */
+    public static final String PARAM_FILE_PATH_LEGACY = "filePath";
+
+    /**
+     * Room option for an absolute working-dir override.
+     *
+     * <p>Used mainly by spawned child rooms that should operate inside the
+     * parent's workdir. The resolved path must stay under
+     * {@code Utility.getBaseFolder()}.
+     */
+    public static final String ROOM_OPTION_WORKING_DIR = "working_dir";
 
     /** Options-map keys checked (in order) when room.getModelId() is not set. */
     private static final String[] MODEL_ID_OPTION_KEYS = {"engine", "model", "modelId", "engineId"};
@@ -66,6 +110,8 @@ public final class AgentRunner {
     public static final String PARAM_SANDBOX_WRITES  = "sandbox_writes";
     /** Override enforcement mode per-run: {@code ENFORCE} | {@code DISABLED}. */
     public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
+
+    private static final Set<String> ACTIVE_ROOMS = ConcurrentHashMap.newKeySet();
 
     private AgentRunner() { /* static utility */ }
 
@@ -100,6 +146,10 @@ public final class AgentRunner {
         if (input == null || input.trim().isEmpty()) {
             throw new IllegalArgumentException("input is required");
         }
+        if (!ACTIVE_ROOMS.add(roomId)) {
+            throw new IllegalStateException("Agent run already in progress for room: " + roomId);
+        }
+        try {
 
         Room room = RoomUtils.getOrLoadRoom(roomId, insight);
 
@@ -120,48 +170,71 @@ public final class AgentRunner {
 
         insight.setRoomForInsight(room);
 
-        String filePath = "";
-        if (paramMap.containsKey("project")) {
-        	String projectId = paramMap.get("project").toString();
-        	filePath = AssetUtility.getProjectAssetsFolder(projectId);
-        	logger.info("Using project ID {} to set agent working directory..", projectId);
-        } else if(paramMap.containsKey("filePath")){
-        	filePath = paramMap.remove("filePath").toString();
-        	insight.setInsightFolder(filePath.trim());
-        } else {
-            String roomFolderPath = room.getRoomFolderPath();
-            File roomFolder = new File(roomFolderPath);
-            if (!roomFolder.exists()) {
-                roomFolder.mkdirs();
-            }
-            logger.info("AgentRunner: agentInsight folder set to room folder={}", roomFolderPath);
-        }
-        
-
-        
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+
+        // Resolve and strip any per-run workspace override before working-dir lookup.
+        String explicitWorkspaceId = extractExplicitWorkspaceId(params);
+        String effectiveWorkspaceId = explicitWorkspaceId != null
+                ? explicitWorkspaceId
+                : extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
+
+        String filePath = resolveWorkingDir(room, params, effectiveWorkspaceId);
         if (filePath != null && !filePath.trim().isEmpty()) {
             params.put(FILE_PATH_PARAM_KEY, filePath);
         }
 
         SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
 
+        // Resolve the shared agent config once for all harnesses.
+        AgentConfig agentConfig = AgentConfigLoader.load(
+                room, filePath, modelId, params, maxTurns, maxReflections, explicitWorkspaceId);
+
+        // Best-effort skill staging for harnesses that discover local skills from disk.
+        try {
+            SkillStager.stage(filePath, agentConfig.getSkills());
+        } catch (Exception e) {
+            logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+        }
+
         AgentRunContext ctx = AgentRunContext.builder()
                 .room(room)
                 .modelEngine(modelEngine)
                 .insight(insight)
                 .userId(room.getUserId())
-                .filePath(filePath)
                 .input(input)
-                .paramMap(params)
-                .maxTurns(maxTurns)
-                .maxReflections(maxReflections)
                 .sandboxPolicy(sandboxPolicy)
+                // Root runs are not registered as subagents and resolve to depth 0.
+                // Child runs are recorded by AgentSubAgentRegistry before their
+                // virtual thread starts, so this lookup can classify the run without
+                // storing transient spawn state on the durable room options.
+                .spawnDepth(resolveSpawnDepth())
+                .agentConfig(agentConfig)
                 .build();
 
         IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
         logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-        AgentHarnessResult result = harness.execute(ctx);
+
+        // Apply a temporary workspace overlay so room-based lookups match AgentConfig.
+        List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
+        WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
+        AgentHarnessResult result = null;
+        try {
+            for (IAgentRunHook h : hooks) {
+                h.beforeRun(ctx);
+            }
+            result = harness.execute(ctx);
+        } finally {
+            AgentHarnessResult finalResult = result;
+            for (IAgentRunHook h : hooks) {
+                try {
+                    h.afterRun(ctx, finalResult);
+                } catch (Exception hookEx) {
+                    logger.warn("AgentRunner: afterRun hook {} threw — logging and continuing",
+                            h.getClass().getSimpleName(), hookEx);
+                }
+            }
+            restoreWorkspaceOverlay(room, wsOverlay);
+        }
 
         if (ClusterUtil.IS_CLUSTER) {
             try {
@@ -172,6 +245,306 @@ public final class AgentRunner {
         }
 
         return result;
+        } finally {
+            ACTIVE_ROOMS.remove(roomId);
+        }
+    }
+
+    // workspace_id overlay helpers
+
+    /**
+     * Captured state needed to restore {@code room.options.workspace} to its
+     * pre-overlay shape. Returned from {@link #applyWorkspaceOverlay} and
+     * consumed by {@link #restoreWorkspaceOverlay}. Immutable.
+     */
+    private static final class WorkspaceOverlay {
+        private final Room    room;
+        private final boolean hadField;
+        private final Object  originalWorkspace;
+
+        WorkspaceOverlay(Room room, boolean hadField, Object originalWorkspace) {
+            this.room              = room;
+            this.hadField          = hadField;
+            this.originalWorkspace = originalWorkspace;
+        }
+    }
+
+    /**
+     * Applies an in-memory workspace override for one run when needed.
+     */
+    private static WorkspaceOverlay applyWorkspaceOverlay(Room room, String explicitWorkspaceId) {
+        if (explicitWorkspaceId == null || explicitWorkspaceId.trim().isEmpty()) {
+            return null;
+        }
+        Map<String, Object> opts = room.getOptionsMap();
+        boolean hadField = opts.containsKey("workspace");
+        Object originalWorkspace = opts.get("workspace");
+
+        // No-op when the room already points at this workspace_id.
+        String currentId = extractWorkspaceIdFromOptionField(originalWorkspace);
+        if (explicitWorkspaceId.equals(currentId)) {
+            return null;
+        }
+
+        Map<String, Object> newWorkspace = new HashMap<>();
+        newWorkspace.put("workspace_id", explicitWorkspaceId);
+        // Best-effort name lookup keeps the options shape familiar to callers.
+        try {
+            Map<String, Object> ws = ModelInferenceLogsUtils.getWorkspaceEntry(explicitWorkspaceId);
+            if (ws != null && ws.get("name") != null) {
+                newWorkspace.put("name", String.valueOf(ws.get("name")));
+            }
+        } catch (Exception ignore) {
+            // best-effort; absence of name doesn't affect resolution
+        }
+        opts.put("workspace", newWorkspace);
+        room.setOptionsMap(opts);
+
+        logger.info("AgentRunner: workspace overlay applied (explicit='{}' for run; original={})",
+                explicitWorkspaceId, currentId == null ? "<unset>" : currentId);
+        return new WorkspaceOverlay(room, hadField, originalWorkspace);
+    }
+
+    /**
+     * Restore the room's {@code options.workspace} field to the value captured
+     * before the overlay was applied. No-op when {@code overlay} is null.
+     */
+    private static void restoreWorkspaceOverlay(Room room, WorkspaceOverlay overlay) {
+        if (overlay == null) {
+            return;
+        }
+        Map<String, Object> opts = overlay.room.getOptionsMap();
+        if (overlay.hadField) {
+            opts.put("workspace", overlay.originalWorkspace);
+        } else {
+            opts.remove("workspace");
+        }
+        overlay.room.setOptionsMap(opts);
+        logger.debug("AgentRunner: workspace overlay restored");
+    }
+
+    /**
+     * Extract the {@code workspace_id} from an {@code options.workspace} field
+     * which may be (a) absent, (b) a primitive id string, or
+     * (c) a {@code {workspace_id, name}} map.
+     */
+    @SuppressWarnings("unchecked")
+    private static String extractWorkspaceIdFromOptionField(Object workspaceField) {
+        if (workspaceField == null) return null;
+        if (workspaceField instanceof String) {
+            String s = ((String) workspaceField).trim();
+            return s.isEmpty() ? null : s;
+        }
+        if (workspaceField instanceof Map) {
+            Object id = ((Map<String, Object>) workspaceField).get("workspace_id");
+            if (id == null) return null;
+            String s = String.valueOf(id).trim();
+            return s.isEmpty() ? null : s;
+        }
+        return null;
+    }
+
+    /**
+     * Extract and strip the {@link #PARAM_WORKSPACE_ID} key from {@code params}.
+     * Returns {@code null} when absent or blank.
+     */
+    private static String extractExplicitWorkspaceId(Map<String, Object> params) {
+        Object raw = params.remove(PARAM_WORKSPACE_ID);
+        if (raw == null) {
+            return null;
+        }
+        String s = String.valueOf(raw).trim();
+        return s.isEmpty() ? null : s;
+    }
+
+    /**
+     * Resolve this run's position in the subagent tree from the current async job id.
+     *
+     * <p>The current policy is root-only spawning: a normal {@code RunAgent} call has no
+     * {@link prerna.reactor.agent.subagent.SubAgentMeta} entry and resolves to depth 0,
+     * while spawned child jobs resolve to the depth recorded by
+     * {@link AgentSubAgentRegistry#spawn}. The harness uses this value to decide whether
+     * to expose spawn tools.
+     */
+    private static int resolveSpawnDepth() {
+        String jobId = ThreadStore.getJobId();
+        if (jobId == null || jobId.isBlank()) {
+            return AgentRunContext.ROOT_SPAWN_DEPTH;
+        }
+        return AgentSubAgentRegistry.getManager().getDepthForJob(jobId);
+    }
+
+    /**
+     * Resolves the working directory from room state plus {@code project} and
+     * {@code subdir} params.
+     *
+     * <p>{@code filePath} is deprecated and ignored. {@code project} stays in
+     * the param map because downstream hooks still read it.
+     *
+     * @param effectiveWorkspaceId resolved workspace id (explicit override or
+     *                             {@code room.options.workspace.workspace_id});
+     *                             {@code null} when the room has no workspace binding.
+     *                             Used only for the {@code CONFIG_JSON.subdir} fallback.
+     *
+     * @throws IllegalArgumentException for unresolvable project, illegal subdir, or
+     *                                  containment failure
+     */
+    private static String resolveWorkingDir(Room room, Map<String, Object> params, String effectiveWorkspaceId) {
+        // Legacy filePath - strip + warn, never honor.
+        Object legacyFilePath = params.remove(PARAM_FILE_PATH_LEGACY);
+        if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
+            logger.warn("AgentRunner: '{}' is deprecated and ignored - use '{}' + '{}' instead. value='{}'",
+                    PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
+        }
+
+        // Room-level override wins when present, mainly for inherited subagent runs.
+        Object roomLevelOverride = room.getOptionsMap() == null ? null
+                : room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR);
+        if (roomLevelOverride != null) {
+            String raw = String.valueOf(roomLevelOverride).trim();
+            if (!raw.isEmpty()) {
+                String canonical;
+                try {
+                    canonical = new File(raw).getCanonicalPath();
+                } catch (IOException ioe) {
+                    throw new IllegalArgumentException(
+                            "AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+                                    + " could not be canonicalized: " + raw);
+                }
+                String baseCanonical;
+                try {
+                    baseCanonical = new File(Utility.getBaseFolder()).getCanonicalPath();
+                } catch (IOException ioe) {
+                    throw new IllegalStateException(
+                            "AgentRunner: could not canonicalize SEMOSS base folder", ioe);
+                }
+                if (!canonical.equals(baseCanonical) && !canonical.startsWith(baseCanonical + File.separator)) {
+                    throw new IllegalArgumentException(
+                            "AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+                                    + " must be under SEMOSS base folder. value='" + raw
+                                    + "' resolvedTo='" + canonical + "' baseFolder='" + baseCanonical + "'");
+                }
+                File f = new File(canonical);
+                if (!f.exists()) {
+                    f.mkdirs();
+                }
+                logger.info("AgentRunner: working dir overridden by room.options.{}='{}' (room={})",
+                        ROOM_OPTION_WORKING_DIR, canonical, room.getId());
+                // Subdir is intentionally ignored when an absolute override is supplied -
+                // the room option already names the final path.
+                params.remove(PARAM_SUBDIR);
+                return canonical;
+            }
+        }
+
+        // 1. Container.
+        //    Peek at PARAM_PROJECT (don't remove) - downstream consumers including
+        //    GitCommitAgentHook.afterRun rely on params["project"] to know
+        //    which project's git folder to commit against. The model engine
+        //    treats unknown keys as no-ops, so leaving the project id in the
+        //    map is safe.
+        String container;
+        String containerLabel;
+        Object projectObj = params.get(PARAM_PROJECT);
+        if (projectObj != null && !String.valueOf(projectObj).trim().isEmpty()) {
+            String projectId = String.valueOf(projectObj).trim();
+            container = AssetUtility.getProjectAssetsFolder(projectId);
+            if (container == null || container.trim().isEmpty()) {
+                throw new IllegalArgumentException(
+                        "AgentRunner: could not resolve assets folder for project='" + projectId + "'");
+            }
+            containerLabel = "project=" + projectId;
+            logger.info("AgentRunner: container resolved from project='{}' -> '{}'", projectId, container);
+        } else {
+            container = room.getRoomFolderPath();
+            File roomFolder = new File(container);
+            if (!roomFolder.exists()) {
+                roomFolder.mkdirs();
+            }
+            containerLabel = "room=" + room.getId();
+            logger.info("AgentRunner: container defaulted to room folder='{}' (room={})",
+                    container, room.getId());
+        }
+
+        // 2. Subdir: paramMap override first, then CONFIG_JSON.subdir for the workspace.
+        Object subdirObj = params.remove(PARAM_SUBDIR);
+        String subdir = subdirObj == null ? null : String.valueOf(subdirObj).trim();
+        if (subdir == null || subdir.isEmpty()) {
+            subdir = resolveSubdirFromConfigJson(effectiveWorkspaceId);
+            if (subdir != null) {
+                logger.info("AgentRunner: subdir='{}' resolved from CONFIG_JSON for workspaceId='{}'",
+                        subdir, effectiveWorkspaceId);
+            }
+        }
+        if (subdir == null || subdir.isEmpty()) {
+            return container;
+        }
+        return joinSubdir(container, subdir, containerLabel);
+    }
+
+    /**
+     * Pull {@code CONFIG_JSON.subdir} for the given workspace, or {@code null} when
+     * the workspace has no row / no CONFIG_JSON / no {@code subdir} key. Errors
+     * are logged warn and treated as null so a CONFIG_JSON outage never blocks a run.
+     */
+    private static String resolveSubdirFromConfigJson(String workspaceId) {
+        if (workspaceId == null || workspaceId.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            org.json.JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+            if (cfg == null) {
+                return null;
+            }
+            String v = cfg.optString("subdir", null);
+            if (v == null) {
+                return null;
+            }
+            v = v.trim();
+            return v.isEmpty() ? null : v;
+        } catch (Exception e) {
+            logger.warn("AgentRunner: CONFIG_JSON.subdir read failed for workspaceId='{}': {}",
+                    workspaceId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Join {@code subdir} under {@code container}, validating that the result stays
+     * inside the container after canonicalisation. Rejects absolute paths and
+     * {@code ..} escape.
+     */
+    private static String joinSubdir(String container, String subdir, String containerLabel) {
+        if (subdir.startsWith("/") || subdir.startsWith("\\") || subdir.startsWith("~")) {
+            throw new IllegalArgumentException(
+                    "subdir must be relative (no leading '/', '\\', or '~'); got '" + subdir
+                    + "' under " + containerLabel);
+        }
+        if (subdir.contains("..")) {
+            throw new IllegalArgumentException(
+                    "subdir must not contain '..' segments; got '" + subdir + "' under " + containerLabel);
+        }
+        File containerFile = new File(container);
+        File joined = new File(containerFile, subdir);
+        String containerCanonical;
+        String joinedCanonical;
+        try {
+            containerCanonical = containerFile.getCanonicalPath();
+            joinedCanonical    = joined.getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalArgumentException(
+                    "Could not canonicalize working dir for " + containerLabel + " + '" + subdir + "': "
+                    + e.getMessage(), e);
+        }
+        // Allow equality (subdir resolves to container itself) or strict-subdir relationship.
+        if (!joinedCanonical.equals(containerCanonical)
+                && !joinedCanonical.startsWith(containerCanonical + File.separator)) {
+            throw new IllegalArgumentException(
+                    "subdir '" + subdir + "' escapes container (" + containerLabel + "): "
+                    + joinedCanonical + " is outside " + containerCanonical);
+        }
+        logger.info("AgentRunner: subdir='{}' joined to container -> '{}'", subdir, joinedCanonical);
+        return joinedCanonical;
     }
 
     /**
@@ -209,7 +582,7 @@ public final class AgentRunner {
             try {
                 b.withEnforcement(EnforcementMode.valueOf(((String) enforceObj).trim().toUpperCase()));
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid sandbox_enforce value '{}' — keeping default", enforceObj);
+                logger.warn("Invalid sandbox_enforce value '{}' - keeping default", enforceObj);
             }
         }
         return b.build();
@@ -217,16 +590,29 @@ public final class AgentRunner {
 
     /**
      * Resolves the model/engine ID using a three-tier priority:
+     *
+     * <ol>
+     *   <li>Runtime override — {@code engine=} passed explicitly to {@code RunAgent()}.
+     *   <li>Room {@code MODEL_ID} column — the room's bound engine.
+     *   <li>Room {@code options} map — legacy keys ({@code engine}, {@code model}, etc.)
+     *       used by older rooms that stored the model id in options rather than the column.
+     * </ol>
      */
     @SuppressWarnings("unchecked")
-    private static String resolveModelId(Room room, String fallback) {
-        // Tier 1: direct column
+    private static String resolveModelId(Room room, String runtimeOverride) {
+        // Tier 1: explicit runtime engine= param wins.
+        if (runtimeOverride != null && !runtimeOverride.trim().isEmpty()) {
+            logger.info("AgentRunner: using runtime engine override={}", runtimeOverride);
+            return runtimeOverride.trim();
+        }
+
+        // Tier 2: room's bound MODEL_ID column.
         String modelId = room.getModelId();
         if (modelId != null && !modelId.trim().isEmpty()) {
             return modelId.trim();
         }
 
-        // Tier 2: options map some older rooms stored it under "engine"
+        // Tier 3: legacy options map (older rooms stored it under "engine" / "model" / etc.)
         Map<String, Object> opts = room.getOptionsMap();
         if (opts != null) {
             for (String key : MODEL_ID_OPTION_KEYS) {
@@ -236,12 +622,6 @@ public final class AgentRunner {
                     return ((String) val).trim();
                 }
             }
-        }
-
-        // Tier 3: caller-supplied fallback (e.g. engine= param from reactor)
-        if (fallback != null && !fallback.trim().isEmpty()) {
-            logger.info("AgentRunner: using caller-supplied engine fallback={}", fallback);
-            return fallback.trim();
         }
 
         return null;

@@ -118,7 +118,7 @@ public final class SandboxPolicyBuilder {
             throw new IllegalArgumentException("sandbox path must not be null");
         }
         Path abs = path.toAbsolutePath().normalize();
-        // RW wins over RO — a later RO request must not downgrade an existing RW.
+        // RW wins over RO - a later RO request must not downgrade an existing RW.
         if (paths.get(abs) == AccessMode.RW) {
             return;
         }
