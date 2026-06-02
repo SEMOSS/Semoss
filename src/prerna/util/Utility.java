@@ -5524,7 +5524,151 @@ public final class Utility {
 	}
 
 	/**
-	 * 
+	 * Start the per-user Python worker inside the unprivileged Linux namespace
+	 * sandbox (SANDBOX_MODE=NAMESPACE; legacy NSJAIL configs are also accepted)
+	 * via py/sandbox_launcher.py. Additive alternative to
+	 * {@link #startTCPServerNativePyChroot}.
+	 *
+	 * @param ioDirName name for this worker's io-dir / jail folder (e.g.
+	 *                  userid_sessionId so it is identifiable on disk); a random
+	 *                  name is generated when null/empty
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName) {
+		String prefix = "";
+		Process thisProcess = null;
+		String udsPath = null;
+		String controlSocketPath = null;
+		String ioDir = null;
+		String jailDir = null;
+		String controlDir = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			String py = getPythonExecutable();
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
+			String launcher = pyBase + "/sandbox_launcher.py";
+
+			prefix = "p_" + Utility.getRandomString(5);
+
+			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
+			if (Strings.isNullOrEmpty(ioRoot)) {
+				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
+			}
+			// folder named userid_sessionId (passed in) so it is clear whose it is.
+			// worker IO is jail-visible; the supervisor control socket stays in a
+			// sibling host-only dir that is never bind-mounted into the sandbox.
+			String folderName = Strings.isNullOrEmpty(ioDirName) ? prefix
+					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
+			ioDir = ioRoot + "/" + folderName;
+			jailDir = ioRoot + "/" + folderName + "__jail";
+			controlDir = ioRoot + "/" + folderName + "__control";
+			new File(Utility.normalizePath(ioDir)).mkdirs();
+			new File(Utility.normalizePath(jailDir)).mkdirs();
+			new File(Utility.normalizePath(controlDir)).mkdirs();
+			udsPath = ioDir + "/worker.sock";
+			controlSocketPath = controlDir + "/control.sock";
+
+			// the SEMOSS home is the inject-root: projects, user assets, and
+			// insight folders all live under it and are injected on demand
+			String injectRoot = baseFolder;
+
+			String outputFile = ioDir + "/console.txt";
+
+			java.util.List<String> commands = new java.util.ArrayList<>();
+			commands.add(py);
+			commands.add(launcher);
+			commands.add("--py-folder");
+			commands.add(pyBase);
+			commands.add("--insight-folder");
+			commands.add(finalDir);
+			commands.add("--io-dir");
+			commands.add(ioDir);
+			commands.add("--control-socket");
+			commands.add(controlSocketPath);
+			commands.add("--inject-root");
+			commands.add(injectRoot);
+			commands.add("--jail-root");
+			commands.add(jailDir);
+			commands.add("--");
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--max_count");
+			commands.add("1");
+			commands.add("--py_folder");
+			commands.add(pyBase);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--uds-path");
+			commands.add(udsPath);
+
+			String[] commandArray = commands.toArray(new String[0]);
+
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commandArray) {
+					sb.append(str).append(" ");
+				}
+				commandArray = new String[] { "/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
+			}
+
+			classLogger.info("Starting namespace-sandboxed user process with ::: " + Arrays.toString(commandArray));
+			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			File consoleFile = new File(outputFile);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			try {
+				if (p.waitFor(500, TimeUnit.MILLISECONDS)) {
+					throw new IllegalStateException("Namespace sandbox exited during startup with code " + p.exitValue()
+							+ ". " + readSandboxStartupLog(consoleFile));
+				}
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Interrupted while waiting for namespace sandbox startup", ie);
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			throw new IllegalStateException("Failed to start namespace sandbox process", ioe);
+		}
+
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };
+	}
+
+	private static String readSandboxStartupLog(File consoleFile) {
+		if (consoleFile == null || !consoleFile.isFile()) {
+			return "Sandbox console log was not created.";
+		}
+		try {
+			String contents = Files.readString(consoleFile.toPath(), StandardCharsets.UTF_8).trim();
+			if (contents.isEmpty()) {
+				return "Sandbox console log is empty: " + consoleFile.getAbsolutePath();
+			}
+			int maxChars = 4_000;
+			if (contents.length() > maxChars) {
+				contents = contents.substring(contents.length() - maxChars);
+			}
+			return "Sandbox console log (" + consoleFile.getAbsolutePath() + "):\n" + contents;
+		} catch (IOException ioe) {
+			return "Could not read sandbox console log " + consoleFile.getAbsolutePath() + ": " + ioe.getMessage();
+		}
+	}
+
+	/**
+	 *
 	 * @return
 	 */
 	private static String getPythonExecutable() {

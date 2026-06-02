@@ -39,6 +39,8 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -54,6 +56,10 @@ public class SymlinkHelper {
 
 	private String userChrootFolder = null;
 
+	private final boolean injectMode;
+	private SandboxInjector injector;
+	private final Map<String, Boolean> activeInjects = new LinkedHashMap<>();
+
 	/**
 	 * Construct a SymlinkHelper bound to a user-specific chroot folder and run the
 	 * full initialization sequence. The chroot folder is created if missing, the
@@ -66,6 +72,9 @@ public class SymlinkHelper {
 	 */
 	public SymlinkHelper(String targetDirName) {
 		this.userChrootFolder = targetDirName;
+		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
+
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
 			classLogger.info("User chroot folder doesn't exist. Making folder now at: {}", userChrootFolder);
@@ -84,6 +93,29 @@ public class SymlinkHelper {
 		initalizeChrootFolder();
 		long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
 		classLogger.info("Chroot init completed in {} ms for: {}", elapsedMs, userChrootFolder);
+	}
+
+	public synchronized void setInjector(SandboxInjector injector) {
+		this.injector = injector;
+		if (injector != null && !activeInjects.isEmpty()) {
+			for (Map.Entry<String, Boolean> entry : activeInjects.entrySet()) {
+				injector.inject(entry.getKey(), entry.getValue());
+			}
+		}
+	}
+
+	public boolean isInjectMode() {
+		return injectMode;
+	}
+
+	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
+		Boolean existing = activeInjects.get(absPath);
+		if (existing == null || (readWrite && !existing)) {
+			activeInjects.put(absPath, readWrite);
+		}
+		if (injector != null) {
+			injector.inject(absPath, readWrite);
+		}
 	}
 
 	/**
@@ -230,10 +262,17 @@ public class SymlinkHelper {
 	 *                      chroot
 	 */
 	public void symlinkFolder(String sourceDirName) {
+		sourceDirName = Utility.normalizePath(sourceDirName);
+		if (injectMode) {
+			enqueueOrInject(sourceDirName, true);
+		}
+		createChrootSymlink(sourceDirName);
+	}
+
+	private void createChrootSymlink(String sourceDirName) {
 		classLogger.debug("Making symlink for folder {}", sourceDirName);
 		// Convert the source directory and user chroot folder to Path objects
-		sourceDirName = Utility.normalizePath(sourceDirName);
-		Path sourceDir = Paths.get(sourceDirName);
+		Path sourceDir = Paths.get(Utility.normalizePath(sourceDirName));
 		Path userChrootPath = Paths.get(userChrootFolder);
 
 		classLogger.debug("User chroot path is {}", userChrootFolder);
@@ -329,8 +368,14 @@ public class SymlinkHelper {
 
 		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
 
-		if (SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			symlinkFolder(projectAppRootFolder);
+		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
+
+		if (injectMode) {
+			enqueueOrInject(Utility.normalizePath(projectAppRootFolder), canEdit);
+		}
+
+		if (canEdit) {
+			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
 			return;
 		}
 
@@ -354,7 +399,7 @@ public class SymlinkHelper {
 			// setExecuteOnlyOnAssetCodeFolders(projectId);
 		} else {
 			classLogger.info("Symlinking full folder for read-only user, projectId={}", projectId);
-			symlinkFolder(projectAppRootFolder);
+			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
 		}
 	}
 
