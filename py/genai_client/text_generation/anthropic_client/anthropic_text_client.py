@@ -351,6 +351,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         cache_creation_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
+        # preamble text blocks the model emitted alongside the tool_use blocks
+        preamble_text = ""
         for content in response.content:
             if content.type == "tool_use":
                 tool_use = {
@@ -360,6 +362,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     "type": "function",
                 }
                 tools_result.append(tool_use)
+            elif content.type == "text":
+                preamble_text += getattr(content, "text", "") or ""
 
         if self.has_schema:
             is_schema, json_str = self._flatten_schema_tool(tools_result, "return_json")
@@ -377,6 +381,10 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     messageType="CHAT",
                 )
 
+        text_parts = (
+            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        )
+
         return AskModelEngineResponse2(
             response=tools_result,
             response_tokens=response_tokens,
@@ -385,7 +393,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             cache_creation_tokens=cache_creation_tokens,
             schemaVersion=2,
             io="OUTPUT",
-            parts=[{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
+            parts=text_parts
+            + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
             messageType="TOOL",
         )
 
