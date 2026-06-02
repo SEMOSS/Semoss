@@ -129,7 +129,7 @@ RUN	cd /tmp \
 	&& ./install_Playwright_linux_dependencies.sh \
 	&& rm -rf /root/.m2
 
-RUN apt install -y debootstrap fakechroot fakeroot
+RUN apt install -y debootstrap fakechroot fakeroot uidmap util-linux
 
 # Bake the shared chroot template at build time (as root) so the running
 # container never builds it. Writes /opt/chroot/.template/.ready, which makes

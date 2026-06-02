@@ -100,7 +100,7 @@ RUN yum update -y \
 #FAKECHROOT and FAKEROOT
 RUN yum install -y \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
-RUN yum install -y fakechroot fakeroot
+RUN yum install -y fakechroot fakeroot shadow-utils util-linux
 
 # Bake the shared chroot template at build time (as root) so the running
 # container never builds it. Writes /opt/chroot/.template/.ready, which makes
