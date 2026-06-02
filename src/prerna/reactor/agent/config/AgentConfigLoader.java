@@ -518,12 +518,15 @@ public final class AgentConfigLoader {
     }
 
     /**
-     * Build the run budgets. {@code CONFIG_JSON.budgets} wins per-field when
-     * present; missing fields fall through to caller args and {@code paramMap}.
+     * Build the run budgets.
+     *
+     * <p>{@code CONFIG_JSON.budgets} sets hard caps per field. The runtime
+     * values (caller args and {@code paramMap}) are honored as-is when no cap
+     * is configured, but are clamped to the cap when one is present — callers
+     * can always request less, never more.
      *
      * <p>Recognized {@code CONFIG_JSON.budgets} keys: {@code max_turns},
-     * {@code max_reflections}, {@code max_seconds}. Any zero / negative value
-     * (except {@code max_turns} which must be {@code > 0}) is ignored.
+     * {@code max_reflections}, {@code max_seconds}.
      */
     private static AgentConfig.Budgets resolveBudgets(JSONObject cfgJson, Map<String, Object> paramMap,
             int callerMaxTurns, int callerMaxReflections) {
@@ -534,12 +537,14 @@ public final class AgentConfigLoader {
         if (cfgJson != null && cfgJson.has("budgets")) {
             JSONObject bj = cfgJson.optJSONObject("budgets");
             if (bj != null) {
-                int t = bj.optInt("max_turns",       -1);
-                int r = bj.optInt("max_reflections", -1);
-                int s = bj.optInt("max_seconds",     -1);
-                if (t > 0)  maxTurns       = t;
-                if (r >= 0) maxReflections = r;
-                if (s >= 0) maxSeconds     = s;
+                int capTurns   = bj.optInt("max_turns",       -1);
+                int capRefl    = bj.optInt("max_reflections", -1);
+                int capSeconds = bj.optInt("max_seconds",     -1);
+                // Clamp runtime values to the configured caps — runtime can go lower, never higher.
+                if (capTurns   > 0)  maxTurns       = Math.min(maxTurns, capTurns);
+                if (capRefl    >= 0) maxReflections = Math.min(maxReflections, capRefl);
+                if (capSeconds >= 0) maxSeconds     = (maxSeconds <= 0) ? capSeconds
+                                                        : Math.min(maxSeconds, capSeconds);
             }
         }
         return AgentConfig.Budgets.of(maxTurns, maxReflections, maxSeconds);

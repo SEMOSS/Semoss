@@ -48,6 +48,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.PortAllocator;
+import prerna.util.SandboxInjector;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
@@ -67,6 +68,14 @@ public class ClientProcessWrapper {
 	private int port;
 	private String venvPath;
 	private String serverDirectory;
+
+	private String udsPath;
+	private String controlSocketPath;
+	// Namespace sandbox folders to remove on shutdown(true). The io-dir is
+	// jail-visible for worker.sock; the control-dir is host-only for control.sock.
+	private String sandboxIoDir;
+	private String sandboxJailDir;
+	private String sandboxControlDir;
 
 	private boolean nativePyServer;
 	private SymlinkHelper chrootSymlinkHelper;
@@ -130,7 +139,33 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					if (this.chrootSymlinkHelper != null) {
+					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
+						String insightCache = Utility.getDIHelperProperty(prerna.util.Constants.INSIGHT_CACHE_DIR);
+						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
+						this.serverDirectory = serverDirectoryPath.toString();
+						Utility.writeLogConfigurationFile(this.serverDirectory);
+
+						// Use the user's chroot folder name as the source identity; the
+						// sandbox launcher shortens it to keep AF_UNIX socket paths valid.
+						String ioDirName = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder()).getFileName()
+								.toString();
+
+						Object[] ret = Utility.startTCPServerNativePySandbox(this.serverDirectory, this.port + "",
+								this.timeout, this.loggerLevel, ioDirName);
+						this.process = (Process) ret[0];
+						this.prefix = (String) ret[1];
+						this.udsPath = (String) ret[2];
+						this.controlSocketPath = (String) ret[3];
+						this.sandboxIoDir = (String) ret[4];
+						this.sandboxJailDir = (String) ret[5];
+						this.sandboxControlDir = (String) ret[6];
+
+						SandboxInjector injector = new SandboxInjector(this.controlSocketPath);
+						if (!injector.awaitReady(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS)) {
+							throw new IllegalStateException("Timed out waiting for namespace sandbox control socket");
+						}
+						this.chrootSymlinkHelper.setInjector(injector);
+					} else if (this.chrootSymlinkHelper != null) {
 						// for a user process - this will be something like /opt/user_id_randomid/
 						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
 						// we will be creating a fake semoss home in the chrooted directory
@@ -204,7 +239,11 @@ public class ClientProcessWrapper {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
 				this.socketClient.setCpw(this);
-				this.socketClient.connect("127.0.0.1", this.port, false);
+				if (this.udsPath != null) {
+					this.socketClient.connectUds(this.udsPath);
+				} else {
+					this.socketClient.connect("127.0.0.1", this.port, false);
+				}
 				Thread t = new Thread(socketClient);
 				t.start();
 				long waitDeadline = System.currentTimeMillis() + SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS;
@@ -253,31 +292,12 @@ public class ClientProcessWrapper {
 					if (cleanUpFolder) {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");
-						int attempt = 0;
-						File serverDir = new File(this.serverDirectory);
-						while (!result && attempt < 3) {
-							try {
-								if (serverDir.exists()) {
-									FileUtils.deleteDirectory(new File(this.serverDirectory));
-									classLogger.info("Sucessfully cleaned up the directory");
-								} else {
-									classLogger.info("Server directory does not exist");
-								}
-								result = true;
-							} catch (Exception ignored) {
-								classLogger.info("Failed attempt #{} to delete the folder {}", attempt,
-										this.serverDirectory);
-								attempt++;
-								try {
-									Thread.sleep(attempt * 1000);
-								} catch (InterruptedException e1) {
-									Thread.currentThread().interrupt();
-									classLogger.error(
-											"Interrupted while waiting between cleanup retries for server directory {}",
-											this.serverDirectory, e1);
-								}
-							}
-						}
+						// remove the insight scratch dir plus namespace sandbox dirs
+						// (no-ops when those are null)
+						result = deleteFolderWithRetries(this.serverDirectory)
+								& deleteFolderWithRetries(this.sandboxIoDir)
+								& deleteFolderWithRetries(this.sandboxJailDir)
+								& deleteFolderWithRetries(this.sandboxControlDir);
 					} else {
 						this.socketClient.stopServer();
 						classLogger.info("Sucessfully stopped the process");
@@ -327,7 +347,44 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * 
+	 * Best-effort recursive delete of a folder, retrying a few times to ride out
+	 * transient locks while the process finishes exiting.
+	 *
+	 * @param folder absolute path to remove; null/empty is treated as success
+	 * @return true if the folder is gone (or never existed)
+	 */
+	private boolean deleteFolderWithRetries(String folder) {
+		if (folder == null || folder.trim().isEmpty()) {
+			return true;
+		}
+		File dir = new File(folder);
+		int attempt = 0;
+		while (attempt < 3) {
+			try {
+				if (dir.exists()) {
+					FileUtils.deleteDirectory(dir);
+					classLogger.info("Successfully cleaned up the directory {}", folder);
+				} else {
+					classLogger.info("Directory does not exist {}", folder);
+				}
+				return true;
+			} catch (Exception ignored) {
+				attempt++;
+				classLogger.info("Failed attempt #{} to delete the folder {}", attempt, folder);
+				try {
+					Thread.sleep(attempt * 1000L);
+				} catch (InterruptedException e1) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while waiting between cleanup retries for {}", folder, e1);
+					return false;
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 *
 	 * @throws Exception
 	 */
 	public void reconnect() throws Exception {

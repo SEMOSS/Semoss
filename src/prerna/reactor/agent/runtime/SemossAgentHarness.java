@@ -57,34 +57,19 @@ import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
  * SEMOSS-native agent harness - the canonical replacement for
  * {@link prerna.reactor.agent.RoomAgentHarness}.
  *
- * <p>
- * Implements a single unified loop with explicit {@link AgentLoopState} so
- * future additions (hooks, compaction, memory, observability) have clear
- * injection points without restructuring the loop itself.
- *
- * <p>
- * Current capabilities (v1 - this PR):
+ * <p>Capabilities:
  * <ul>
  * <li>Multi-turn tool loop with parallel tool execution
  * <li>Configurable reflection rounds
  * <li>Cooperative cancellation via {@code Thread.isInterrupted()}
  * <li>Run-time budget via {@code max_seconds} paramMap key (0 = unlimited)
- * <li>Turn cap from {@link AgentRunContext#getMaxTurns()}
+ * <li>Turn cap, reflection cap, and spawn depth from {@link AgentRunContext#getAgentConfig()}
+ * <li>Subagent spawning with per-run and per-turn spawn caps
+ * <li>Pre/post tool hooks and run lifecycle hooks via {@link prerna.reactor.agent.IAgentRunHook}
  * </ul>
  *
- * <p>
- * Planned (separate PRs):
- * <ul>
- * <li>Hooks / HookBus (pre/post lifecycle interceptors)
- * <li>Context compaction
- * <li>Memory and plan layer
- * <li>Observability spans
- * <li>WorkspaceConfigV2 loading
- * </ul>
- *
- * <p>
- * Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
- * to {@code RunAgent()} or when a workspace has {@code CONFIG_VERSION >= 2}.
+ * <p>Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
+ * to {@code RunAgent()}.
  */
 public class SemossAgentHarness implements IAgentHarness {
 
@@ -115,7 +100,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		int maxSeconds = resolveMaxSeconds(paramMap);
 		stripHarnessOnlyParams(paramMap);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
-		SemossAgentStream.userPrompt(room.getId(), ctx.getInput());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
 		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root + one level; etc.
@@ -257,8 +241,6 @@ public class SemossAgentHarness implements IAgentHarness {
 
 					} else {
 						state.setFinalText(response.getContent());
-						SemossAgentStream.assistantText(SemossAgentStream.ASSISTANT_CONTENT_EVENT_ID,
-								response.getContent());
 						state.setTerminal(true);
 					}
 
@@ -284,16 +266,12 @@ public class SemossAgentHarness implements IAgentHarness {
 					logger.warn("SemossAgentHarness: unexpected MessageType {} at iteration={} - treating as terminal",
 							msgType, state.getIterations());
 					state.setFinalText(response.getContent());
-					SemossAgentStream.assistantText(SemossAgentStream.ASSISTANT_CONTENT_EVENT_ID,
-							response.getContent());
 					state.setTerminal(true);
 				}
 			}
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
-			SemossAgentStream.agentResult(room.getId(), state.getIterations(), state.getReflectionsUsed(),
-					state.getToolCallRecordsSnapshot().size());
 			if (state.getFinalText() != null) {
 				AgentSubAgentRegistry.getManager().emitSubAgentCompleted(ThreadStore.getJobId(), state.getFinalText());
 			}

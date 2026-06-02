@@ -16,17 +16,24 @@ ARG MAVEN_HOME=/opt/apache-maven-3.9.14
 FROM quay.io/semoss/tomcat-builder:${TOMCAT_VERSION} AS tomcat_builder
 ARG CODEX_VERSION
 ARG COPILOT_VERSION
+# Provided automatically by buildx (amd64/arm64). Defaults to amd64 when building
+# without buildx (TARGETARCH unset). codex uses x86_64/aarch64; copilot uses x64/arm64.
+ARG TARGETARCH
 RUN apt-get update -y \
 	&& apt-get install -y --no-install-recommends ca-certificates curl tar \
 	&& rm -rf /var/lib/apt/lists/* \
+	&& case "${TARGETARCH:-amd64}" in \
+		arm64) codex_arch="aarch64"; copilot_arch="arm64" ;; \
+		*)     codex_arch="x86_64";  copilot_arch="x64" ;; \
+	   esac \
 	&& tmp="$(mktemp -d)" \
 	&& case "${COPILOT_VERSION}" in \
-		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-x64.tar.gz" ;; \
-		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-x64.tar.gz" ;; \
+		latest) copilot_url="https://github.com/github/copilot-cli/releases/latest/download/copilot-linux-${copilot_arch}.tar.gz" ;; \
+		*) copilot_url="https://github.com/github/copilot-cli/releases/download/${COPILOT_VERSION}/copilot-linux-${copilot_arch}.tar.gz" ;; \
 	   esac \
-	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-x86_64-unknown-linux-musl.tar.gz" \
+	&& curl -fsSL -o "$tmp/codex.tgz" "https://github.com/openai/codex/releases/download/rust-v${CODEX_VERSION}/codex-${codex_arch}-unknown-linux-musl.tar.gz" \
 	&& tar -xzf "$tmp/codex.tgz" -C "$tmp" \
-	&& install -m 0755 "$tmp/codex-x86_64-unknown-linux-musl" /usr/local/bin/codex \
+	&& install -m 0755 "$tmp/codex-${codex_arch}-unknown-linux-musl" /usr/local/bin/codex \
 	&& curl -fsSL -o "$tmp/copilot.tgz" "$copilot_url" \
 	&& tar -xzf "$tmp/copilot.tgz" -C "$tmp" \
 	&& install -m 0755 "$tmp/copilot" /usr/local/bin/copilot \
@@ -129,7 +136,12 @@ RUN	cd /tmp \
 	&& ./install_Playwright_linux_dependencies.sh \
 	&& rm -rf /root/.m2
 
-RUN apt install -y debootstrap fakechroot fakeroot
+RUN apt install -y debootstrap fakechroot fakeroot uidmap util-linux
+
+# Bake the shared chroot template at build time (as root) so the running
+# container never builds it. Writes /opt/chroot/.template/.ready, which makes
+# ChrootTemplate.awaitReady() a no-op at startup. Auto-detects Ubuntu/RHEL paths.
+RUN bash /opt/semoss-artifacts/artifacts/scripts/build_chroot_template.sh /opt/chroot
 
 RUN useradd -u 1001 -r -g 0 -d ${HOME} -s /bin/bash         \
 	-c "Default Application User" default &&                \

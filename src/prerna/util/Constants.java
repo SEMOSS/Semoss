@@ -733,6 +733,10 @@ public class Constants {
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
+	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
+
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
 	public static final String R_CONNECTION_JRI = "R_CONNECTION_JRI";

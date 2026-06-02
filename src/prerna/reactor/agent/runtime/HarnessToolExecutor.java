@@ -192,7 +192,6 @@ final class HarnessToolExecutor {
 
         logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}",
                 tc.rawToolName, tc.toolCallId, currentIter);
-        SemossAgentStream.toolInvocation(jobId, tc.toolCallId, tc.rawToolName, tc.toolParams, tc.toolCall);
 
         // Pre-tool hooks - observer only; exceptions logged + swallowed.
         List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
@@ -204,8 +203,6 @@ final class HarnessToolExecutor {
         // when this method runs on a worker thread from the parallel-tool pool.
         ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
         long durMs = System.currentTimeMillis() - startMs;
-        SemossAgentStream.toolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.success, durMs, outcome.content,
-                tc.toolParams, tc.toolCall);
 
         // Post-tool hooks - fired even on failure so observability survives errors.
         fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
