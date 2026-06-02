@@ -10,11 +10,6 @@ if TYPE_CHECKING:
 
 from smss_thread_local import get_smss_stream
 from pydantic import BaseModel
-from ...clients.google_clients import (
-    GoogleClient,
-    GoogleClientConfig,
-    GoogleClientType,
-)
 from ...message_builders.anthropic.anthropic_models import AnthropicRequestConfig
 from ...constants import (
     AskModelEngineResponse2,
@@ -26,7 +21,6 @@ from ...message_builders.anthropic.anthropic_message_builder import (
     AnthropicMessageBuilder,
 )
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
-from anthropic import Anthropic, AnthropicBedrock, AnthropicFoundry
 from ..model_engine_exception import (
     ModelEngineException,
     AnthropicRefusalError,
@@ -81,7 +75,17 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         self.thinking_signature = None
 
     def _get_client(self, **kwargs):
+        # Provider-specific SDKs are imported lazily so a client only pays for
+        # the backend it actually uses. In particular the Google clients pull in
+        # google / google.auth / google.genai (~0.85s) that direct-Anthropic,
+        # Bedrock and Azure providers never need.
         if self.provider == "google":
+            from ...clients.google_clients import (
+                GoogleClient,
+                GoogleClientConfig,
+                GoogleClientType,
+            )
+
             self.client_config = GoogleClientConfig(
                 type=GoogleClientType.ANTHROPIC,
                 service_account_credentials=kwargs.pop(
@@ -94,17 +98,23 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             )
             return GoogleClient(config=self.client_config).client
         elif self.provider == "bedrock":
+            from anthropic import AnthropicBedrock
+
             return AnthropicBedrock(
                 aws_region=kwargs.pop("aws_region", None),
                 aws_access_key=kwargs.pop("aws_access_key", None),
                 aws_secret_key=kwargs.pop("aws_secret_key", None),
             )
         elif self.provider == "azure":
+            from anthropic import AnthropicFoundry
+
             return AnthropicFoundry(
                 base_url=kwargs.pop("endpoint", None),
                 api_key=kwargs.pop("api_key", None),
             )
         elif self.provider == "anthropic":
+            from anthropic import Anthropic
+
             return Anthropic(
                 api_key=kwargs.pop("api_key", None),
             )
@@ -381,9 +391,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     messageType="CHAT",
                 )
 
-        text_parts = (
-            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
-        )
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
 
         return AskModelEngineResponse2(
             response=tools_result,

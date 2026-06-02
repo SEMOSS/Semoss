@@ -51,10 +51,10 @@ public class PandasSyntaxHelper {
 		OPERATOR_LIST.add("==");
 		OPERATOR_LIST.add("!=");
 	}
-	
-	private static final String NAN_VALUES = "[\"\",\"#N/A\",\"#N/A N/A\",\"#NA\",\"-1.#IND\",\"<NA>\",\"N/A\",\"NULL\"" 
+
+	private static final String NAN_VALUES = "[\"\",\"#N/A\",\"#N/A N/A\",\"#NA\",\"-1.#IND\",\"<NA>\",\"N/A\",\"NULL\""
 			+ "\"n/a\",\"null\",\"-1.#QNAN\",\"-NaN\",\"-nan\",\"1.#IND\",\"1.#Q.#NAN\",\"NA\",\"NaN\",\"nan\"]";
-	
+
 	private static final String EQUAL = "==";
 	private static final String NOT_EQUAL = "!=";
 
@@ -70,9 +70,9 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String makeWrapper(String wrapper, String tableName) {
-		return wrapper + " = PyFrame.makefm(" + tableName + ")";
+		return "from clean import PyFrame\n" + wrapper + " = PyFrame.makefm(" + tableName + ")";
 	}
-	
+
 	/**
 	 * Get the name of the wrapper variable to be used
 	 * 
@@ -102,7 +102,8 @@ public class PandasSyntaxHelper {
 	 * @param tableName
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName) {
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName) {
 		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, null, null, null);
 	}
 
@@ -118,24 +119,25 @@ public class PandasSyntaxHelper {
 	 * @param escapeChar
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
 			String tableName, String sep, String quoteChar, String escapeChar) {
 		if (sep == null || sep.isEmpty()) {
 			sep = ",";
 		}
 		// default to double quote
-		if(quoteChar == null) {
+		if (quoteChar == null) {
 			quoteChar = "\"";
 		}
 		// default to \\ in python
-		if(escapeChar == null) {
+		if (escapeChar == null) {
 			escapeChar = "\\\\";
 		}
-		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar, null);
+		return getCsvFileRead(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar,
+				null);
 	}
 
 	/**
-	 * Get the syntax to load a CSV file that preserves leading zeros. 
+	 * Get the syntax to load a CSV file that preserves leading zeros.
 	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
@@ -147,19 +149,22 @@ public class PandasSyntaxHelper {
 	 * @param encoding
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, 
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
 			String tableName, String sep, String quoteChar, String escapeChar, String encoding) {
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = "utf-8";
 		}
-		
-		StringBuffer readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar, encoding);
+
+		StringBuffer readCsv = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar,
+				escapeChar, encoding);
 		return readCsv.toString();
 	}
-	
+
 	/**
-	 * Builds the script to read in a CSV file to a pandas data frame. Code preserves leading zeros of integers. Returned data frame can have mixed 
-	 * columns of floats and ints, but if there is a string present, the column type is returned as an object. 
+	 * Builds the script to read in a CSV file to a pandas data frame. Code
+	 * preserves leading zeros of integers. Returned data frame can have mixed
+	 * columns of floats and ints, but if there is a string present, the column type
+	 * is returned as an object.
 	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
@@ -171,24 +176,24 @@ public class PandasSyntaxHelper {
 	 * @param encoding
 	 * @return
 	 */
-	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
+	public static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation,
 			String tableName, String sep, String quoteChar, String escapeChar, String encoding) {
 		StringBuffer script = new StringBuffer();
 		StringBuffer replace = new StringBuffer(".replace(");
 		StringBuffer converter = new StringBuffer("converters={i: lambda x: x.strip() if (isinstance(");
 		StringBuffer numeric = new StringBuffer("");
-		
+
 		numeric.append(pandasImportVar).append(".to_numeric(x,errors='ignore')");
 		replace.append(NAN_VALUES).append(",").append(numpyImportVar).append(".nan)");
-		converter.append(numeric).append(",").append(numpyImportVar).append(".integer) and x.strip()[0] == '0' and len(x.strip()) > 1) else ")
-				 .append(numeric).append(" for i in range(" + numberOfColumns(fileLocation) + ")}");
-		
-		
-		script.append(tableName).append(" =").append(pandasImportVar).append(".read_csv('").append(fileLocation.replaceAll("\\\\+", "/"))
-			  .append("',sep='" + sep + "',encoding='" + encoding + "',")
-			  .append(converter + ")").append(replace)
-			  .append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
-		
+		converter.append(numeric).append(",").append(numpyImportVar)
+				.append(".integer) and x.strip()[0] == '0' and len(x.strip()) > 1) else ").append(numeric)
+				.append(" for i in range(" + numberOfColumns(fileLocation) + ")}");
+
+		script.append(tableName).append(" =").append(pandasImportVar).append(".read_csv('")
+				.append(fileLocation.replaceAll("\\\\+", "/"))
+				.append("',sep='" + sep + "',encoding='" + encoding + "',").append(converter + ")").append(replace)
+				.append(".apply(lambda x: x.astype(str) if (any(x.map(type) == str)) else x)").append(replace);
+
 		return script;
 	}
 
@@ -203,9 +208,10 @@ public class PandasSyntaxHelper {
 		csv.parse(filePath);
 		return csv.getHeaders().length;
 	}
-	
+
 	/**
-	 * Reads a CSV using pandas. less greedy / dynamic version. 
+	 * Reads a CSV using pandas. less greedy / dynamic version.
+	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
@@ -215,59 +221,64 @@ public class PandasSyntaxHelper {
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, String sep,
-			String quoteChar, String escapeChar, String encoding, Map<String, ?> dataTypeMaps, long limit) {
-		fileLocation=fileLocation.replaceAll("\\\\+", "/");
+	public static String getCsvFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName, String sep, String quoteChar, String escapeChar, String encoding,
+			Map<String, ?> dataTypeMaps, long limit) {
+		fileLocation = fileLocation.replaceAll("\\\\+", "/");
 		StringBuffer script = new StringBuffer();
 		if (encoding == null || encoding.isEmpty()) {
 			encoding = ",encoding='utf-8',encoding_errors='backslashreplace'";
 		} else {
 			// we will wrap this
-			encoding = ",encoding='"+encoding+"',encoding_errors='backslashreplace'";
+			encoding = ",encoding='" + encoding + "',encoding_errors='backslashreplace'";
 		}
-		
+
 		if (dataTypeMaps == null || dataTypeMaps.isEmpty()) {
 			String nrows = "";
-			if(limit > 0) {
-				nrows = ",nrows="+limit;
+			if (limit > 0) {
+				nrows = ",nrows=" + limit;
 			}
 			script.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation)
-			  .append("',sep='"+sep+"',quotechar='"+quoteChar+"',escapechar='"+escapeChar+"'"+encoding+nrows+")");
+					.append("',sep='" + sep + "',quotechar='" + quoteChar + "',escapechar='" + escapeChar + "'"
+							+ encoding + nrows + ")");
 		} else {
-			script = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, 
-					sep, quoteChar, escapeChar, encoding, dataTypeMaps, limit);
+			script = buildReadCsv(pandasImportVar, numpyImportVar, fileLocation, tableName, sep, quoteChar, escapeChar,
+					encoding, dataTypeMaps, limit);
 		}
 		return script.toString();
 	}
-	
+
 	/**
-	 * Builds the pandas CSV read method. Less greedy approach that accounts for date parsing. 
+	 * Builds the pandas CSV read method. Less greedy approach that accounts for
+	 * date parsing.
 	 * https://pandas.pydata.org/pandas-docs/version/0.15.1/generated/pandas.read_csv.html
+	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
-	 * @param quoteChar		
+	 * @param quoteChar
 	 * @param escapeChar
 	 * @param encoding
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	private static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation, 
-			String tableName, String sep, String quoteChar, String escapeChar, String encoding, Map<String, ?> dataTypeMaps, long limit) {
+	private static StringBuffer buildReadCsv(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName, String sep, String quoteChar, String escapeChar, String encoding,
+			Map<String, ?> dataTypeMaps, long limit) {
 		StringBuffer dataMap = new StringBuffer();
 		StringBuffer dateList = new StringBuffer();
 
 		for (String column : dataTypeMaps.keySet()) {
 			Object inputType = dataTypeMaps.get(column);
 			SemossDataType dataType = null;
-			if(inputType instanceof SemossDataType) {
+			if (inputType instanceof SemossDataType) {
 				dataType = (SemossDataType) inputType;
 			} else {
 				dataType = SemossDataType.convertStringToDataType(inputType + "");
 			}
-			
+
 			if (dataType == null) {
 				continue;
 			}
@@ -285,24 +296,26 @@ public class PandasSyntaxHelper {
 		}
 		dataMap = new StringBuffer("{").append(dataMap).append("}");
 		dateList = new StringBuffer("[").append(dateList).append("]");
-		
+
 		String nrows = "";
-		if(limit > 0) {
-			nrows = ",nrows="+limit;
+		if (limit > 0) {
+			nrows = ",nrows=" + limit;
 		}
 		// we assume file location is already clean in this method
 		StringBuffer sb = new StringBuffer();
 		sb.append(tableName).append("=").append(pandasImportVar).append(".read_csv('").append(fileLocation)
-		  .append("',sep='"+sep+"',quotechar='"+quoteChar+"',escapechar='"+escapeChar+"',dtype="
-				  + dataMap.toString()).append(",parse_dates=").append(dateList)
-			// note, we assume encoding is the actual ,encoding='value' format
-		  .append(",infer_datetime_format=True"+encoding+nrows+")");
-		
+				.append("',sep='" + sep + "',quotechar='" + quoteChar + "',escapechar='" + escapeChar + "',dtype="
+						+ dataMap.toString())
+				.append(",parse_dates=").append(dateList)
+				// note, we assume encoding is the actual ,encoding='value' format
+				.append(",infer_datetime_format=True" + encoding + nrows + ")");
+
 		return sb;
 	}
-	
+
 	/**
-	 * Reads a JSON using pandas. less greedy / dynamic version. 
+	 * Reads a JSON using pandas. less greedy / dynamic version.
+	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
@@ -310,31 +323,36 @@ public class PandasSyntaxHelper {
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	public static String getJsonFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, Map<String, ?> dataTypeMaps) {
+	public static String getJsonFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName, Map<String, ?> dataTypeMaps) {
 		StringBuffer script = new StringBuffer();
 		if (dataTypeMaps == null || dataTypeMaps.isEmpty()) {
-			script.append(tableName).append("=").append(pandasImportVar).append(".read_json('").append(fileLocation.replaceAll("\\\\+", "/"));
+			script.append(tableName).append("=").append(pandasImportVar).append(".read_json('")
+					.append(fileLocation.replaceAll("\\\\+", "/"));
 		} else {
 			script = buildReadJson(pandasImportVar, numpyImportVar, fileLocation, tableName, dataTypeMaps);
 		}
 		return script.toString();
 	}
-	
+
 	/**
-	 * Builds the pandas JSON read method. Less greedy approach that accounts for date parsing. 
+	 * Builds the pandas JSON read method. Less greedy approach that accounts for
+	 * date parsing.
 	 * https://pandas.pydata.org/pandas-docs/version/0.15.1/generated/pandas.read_csv.html
+	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
 	 * @param tableName
 	 * @param sep
-	 * @param quoteChar		
+	 * @param quoteChar
 	 * @param escapeChar
 	 * @param encoding
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	public static StringBuffer buildReadJson(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName, Map<String, ?> dataTypeMaps) {
+	public static StringBuffer buildReadJson(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName, Map<String, ?> dataTypeMaps) {
 		StringBuffer sb = new StringBuffer();
 		StringBuffer dataMap = new StringBuffer();
 		StringBuffer dateList = new StringBuffer();
@@ -342,12 +360,12 @@ public class PandasSyntaxHelper {
 		for (String column : dataTypeMaps.keySet()) {
 			Object inputType = dataTypeMaps.get(column);
 			SemossDataType dataType = null;
-			if(inputType instanceof SemossDataType) {
+			if (inputType instanceof SemossDataType) {
 				dataType = (SemossDataType) inputType;
 			} else {
 				dataType = SemossDataType.convertStringToDataType(inputType + "");
 			}
-			
+
 			if (dataType == null) {
 				continue;
 			}
@@ -365,15 +383,17 @@ public class PandasSyntaxHelper {
 		}
 		dataMap = new StringBuffer("{").append(dataMap).append("}");
 		dateList = new StringBuffer("[").append(dateList).append("]");
-		
-		sb.append(tableName).append("=").append(pandasImportVar).append(".read_json('").append(fileLocation.replaceAll("\\\\+", "/"))
-		  .append("',dtype="+ dataMap.toString()).append(",convert_dates=").append(dateList).append(")");
-		
+
+		sb.append(tableName).append("=").append(pandasImportVar).append(".read_json('")
+				.append(fileLocation.replaceAll("\\\\+", "/")).append("',dtype=" + dataMap.toString())
+				.append(",convert_dates=").append(dateList).append(")");
+
 		return sb;
 	}
-	
+
 	/**
-	 * Maps Semoss data types to Pandas / Numpy data types. 
+	 * Maps Semoss data types to Pandas / Numpy data types.
+	 * 
 	 * @param numpyImportVar
 	 * @param type
 	 * @return
@@ -381,24 +401,25 @@ public class PandasSyntaxHelper {
 	public static String convertSemossDataType(String numpyImportVar, Object inputType) {
 		// account for string or enum type
 		SemossDataType type = null;
-		if(inputType instanceof SemossDataType) {
+		if (inputType instanceof SemossDataType) {
 			type = (SemossDataType) inputType;
 		} else {
 			type = SemossDataType.convertStringToDataType(inputType + "");
 		}
-		
+
 		if (type == SemossDataType.INT) {
 			return numpyImportVar + ".float64";
 		} else if (type == SemossDataType.DOUBLE) {
 			return numpyImportVar + ".float64";
-		} else if(type == SemossDataType.BOOLEAN) {
+		} else if (type == SemossDataType.BOOLEAN) {
 			return "object";
 //			return numpyImportVar + ".bool";
-		} if (type == SemossDataType.DATE) {
+		}
+		if (type == SemossDataType.DATE) {
 			return "object";
-			//return numpyImportVar + ".datetime64";
+			// return numpyImportVar + ".datetime64";
 		} else if (type == SemossDataType.TIMESTAMP) {
-			//return numpyImportVar + ".datetime64";
+			// return numpyImportVar + ".datetime64";
 			return "object";
 		} else {
 			return "object";
@@ -465,16 +486,19 @@ public class PandasSyntaxHelper {
 	}
 
 	public static String getWritePandasToPickle(String pickleVarName, String tableName, String fileLocation) {
-		return pickleVarName + ".dump(" + tableName + ", open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
+		return pickleVarName + ".dump(" + tableName + ", open(\"" + fileLocation.replaceAll("\\\\+", "/")
+				+ "\", \"wb\"))";
 	}
 
 	public static String getReadPickleToPandas(String pandasImportVar, String fileLocation, String tableName) {
 		return tableName + " = " + pandasImportVar + ".read_pickle(\"" + fileLocation.replaceAll("\\\\+", "/") + "\")";
-		//		return tableName + " = " + pickleVarName + ".load(open(\"" + fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
+		// return tableName + " = " + pickleVarName + ".load(open(\"" +
+		// fileLocation.replaceAll("\\\\+", "/") + "\", \"wb\"))";
 	}
-	
- 	/**
-	 * Reads a Parquet File using pandas. less greedy / dynamic version. 
+
+	/**
+	 * Reads a Parquet File using pandas. less greedy / dynamic version.
+	 * 
 	 * @param pandasImportVar
 	 * @param numpyImportVar
 	 * @param fileLocation
@@ -482,14 +506,17 @@ public class PandasSyntaxHelper {
 	 * @param dataTypeMaps
 	 * @return
 	 */
-	public static String getParquetFileRead(String pandasImportVar, String numpyImportVar, String fileLocation, String tableName) {
+	public static String getParquetFileRead(String pandasImportVar, String numpyImportVar, String fileLocation,
+			String tableName) {
 		StringBuffer script = new StringBuffer();
-		script.append(tableName).append("=").append(pandasImportVar).append(".read_parquet('").append(fileLocation.replaceAll("\\\\+", "/"))
-		  .append("')");
+		script.append(tableName).append("=").append(pandasImportVar).append(".read_parquet('")
+				.append(fileLocation.replaceAll("\\\\+", "/")).append("')");
 		return script.toString();
 	}
 
-	/** Merges two dataframes. if nonEqui is true, implicitly performs a join by taking the cross product. 
+	/**
+	 * Merges two dataframes. if nonEqui is true, implicitly performs a join by
+	 * taking the cross product.
 	 * 
 	 * @param leftTableName
 	 * @param rightTableName
@@ -498,17 +525,17 @@ public class PandasSyntaxHelper {
 	 * @return
 	 */
 	public static String getMergeSyntax(String pandasFrameVar, String returnTable, String leftTableName,
-			String rightTableName, String joinType, List<Map<String, String>> joinCols,boolean nonEqui) {
+			String rightTableName, String joinType, List<Map<String, String>> joinCols, boolean nonEqui) {
 		/*
 		 * joinCols = [ {leftTable.Title -> rightTable.Movie} , {leftTable.Genre ->,
 		 * rightTable.Genre} ]
 		 */
 
 		StringBuffer builder = new StringBuffer();
-		
+
 		if (!nonEqui) {
 			builder.append(returnTable).append(" = ").append(pandasFrameVar).append(".merge(").append(leftTableName)
-			.append(", ").append(rightTableName).append(", left_on=[");
+					.append(", ").append(rightTableName).append(", left_on=[");
 			getMergeColsSyntax(builder, joinCols, true);
 			builder.append("], right_on=[");
 			getMergeColsSyntax(builder, joinCols, false);
@@ -523,16 +550,18 @@ public class PandasSyntaxHelper {
 				builder.append("], how=\"outer\")");
 			}
 		} else {
-			builder.append(returnTable).append("=").append(pandasFrameVar).append(".merge(").append(leftTableName).append(".assign(key=0),")
-				   .append(rightTableName).append(".assign(key=0),on='key').drop('key',axis=1)");
+			builder.append(returnTable).append("=").append(pandasFrameVar).append(".merge(").append(leftTableName)
+					.append(".assign(key=0),").append(rightTableName)
+					.append(".assign(key=0),on='key').drop('key',axis=1)");
 		}
 		return builder.toString();
 	}
-	
-	public static String getMergeFilterSyntax(String tableName, List<Map<String, String>> joinCols, List<String> joinComparators) {
+
+	public static String getMergeFilterSyntax(String tableName, List<Map<String, String>> joinCols,
+			List<String> joinComparators) {
 		StringBuffer builder = new StringBuffer();
 		StringBuffer dropSyntax = new StringBuffer();
-		
+
 		for (int i = 0; i < joinCols.size(); i++) {
 			if (builder.length() > 0) {
 				builder.append(" & ");
@@ -544,13 +573,14 @@ public class PandasSyntaxHelper {
 			for (String lColumn : joinMap.keySet()) {
 				String rColumn = joinMap.get(lColumn);
 				builder.append("(").append(tableName).append("['").append(lColumn).append("']")
-					   .append(joinComparators.get(i)).append(tableName).append("['").append(rColumn).append("'])");
+						.append(joinComparators.get(i)).append(tableName).append("['").append(rColumn).append("'])");
 				if (rColumn.equals(lColumn + "_CTD")) {
 					dropSyntax.append("'" + rColumn + "'");
 				}
 			}
 		}
-		builder = new StringBuffer(tableName).append("=").append(tableName).append(".loc[(").append(builder).append(")]");
+		builder = new StringBuffer(tableName).append("=").append(tableName).append(".loc[(").append(builder)
+				.append(")]");
 		if (dropSyntax.length() > 0) {
 			builder.append(".drop([").append(dropSyntax).append("],axis=1)");
 		}
@@ -603,17 +633,17 @@ public class PandasSyntaxHelper {
 	public static String alterColumnName(String tableName, String oldHeader, String newHeader) {
 		return tableName + ".rename(columns={'" + oldHeader + "':'" + newHeader + "'}, inplace=True)";
 	}
-	
+
 	public static String alterColumnNames(String tableName, String[] oldHeaders, String[] newHeaders) {
 		// create loop to generate key value pair
 		Map<String, String> headerMapping = new HashMap<>();
-		for(int i = 0; i < oldHeaders.length; i++) {
+		for (int i = 0; i < oldHeaders.length; i++) {
 			headerMapping.put(oldHeaders[i], newHeaders[i]);
 		}
 		return alterColumnNames(tableName, headerMapping);
 	}
-	
-	public static String alterColumnNames(String tableName, Map<String, String>  oldNewHeaders) {
+
+	public static String alterColumnNames(String tableName, Map<String, String> oldNewHeaders) {
 		// create loop to generate key value pair
 		int numRenames = oldNewHeaders.size();
 		StringBuilder keyValues = new StringBuilder();
@@ -699,13 +729,16 @@ public class PandasSyntaxHelper {
 				command.append(",");
 			}
 
-			//			if(newColType == SemossDataType.DOUBLE) {
-			//				command.append(newColSyntax).append(" <- as.numeric(").append(newColSyntax).append(");");
-			//			} else if(newColType == SemossDataType.INT) {
-			//				command.append(newColSyntax).append(" <- as.integer(").append(newColSyntax).append(");");
-			//			} else {
-			//				command.append(newColSyntax).append(" <- as.character(").append(newColSyntax).append(");");
-			//			}
+			// if(newColType == SemossDataType.DOUBLE) {
+			// command.append(newColSyntax).append(" <-
+			// as.numeric(").append(newColSyntax).append(");");
+			// } else if(newColType == SemossDataType.INT) {
+			// command.append(newColSyntax).append(" <-
+			// as.integer(").append(newColSyntax).append(");");
+			// } else {
+			// command.append(newColSyntax).append(" <-
+			// as.character(").append(newColSyntax).append(");");
+			// }
 		}
 
 		command.append("])");
@@ -863,8 +896,9 @@ public class PandasSyntaxHelper {
 		return headerS;
 	}
 
-	/** 
+	/**
 	 * Filters a data frame on specified columns.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param columns
@@ -891,15 +925,16 @@ public class PandasSyntaxHelper {
 		return script;
 	}
 
-	/** 
-	 * Filters a data frame by taking a slice based on index values. 
+	/**
+	 * Filters a data frame by taking a slice based on index values.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param rowEnd
 	 * @param rowStart
 	 * @return
 	 */
-	public static String filterRowBySlice(String tableName, String newTableName, Object indexEnd, Object indexStart)  {
+	public static String filterRowBySlice(String tableName, String newTableName, Object indexEnd, Object indexStart) {
 		boolean nullPassed = false;
 		try {
 			if (indexStart == null) {
@@ -911,18 +946,18 @@ public class PandasSyntaxHelper {
 
 			String script = newTableName + " = " + tableName + ".iloc[" + indexStart + ":" + indexEnd + "]";
 			return script;
-		} 
-		catch (NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			if (nullPassed) {
 				throw new IllegalArgumentException("Incorrect input of 'null' when filtering by label.");
 			}
 			String script = newTableName + " = " + tableName + ".loc['" + indexStart + "':'" + indexEnd + "']";
 			return script;
-		} 
+		}
 	}
 
-	/** 
+	/**
 	 * Filters data frame by rows, either numeric or label.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param rowIndex
@@ -943,8 +978,7 @@ public class PandasSyntaxHelper {
 				sb.append(rowIndex.get(0) + "]");
 				String script = newTableName + " = " + tableName + ".iloc[" + sb.toString() + "]";
 				return script;
-			}
-			else {
+			} else {
 				for (int i = 0; i < rowIndex.size() - 1; i++) {
 					Integer.parseInt(rowIndex.get(i));
 					sb.append(rowIndex.get(i) + ", ");
@@ -954,16 +988,14 @@ public class PandasSyntaxHelper {
 				String script = newTableName + " = " + tableName + ".iloc[" + sb.toString() + "]";
 				return script;
 			}
-		}
-		catch (NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			sb.delete(0, sb.length());
 			sb.append("['");
 			if (rowIndex.size() == 1) {
 				sb.append(rowIndex.get(0) + "']");
 				String script = newTableName + " = " + tableName + ".loc[" + sb.toString() + "]";
 				return script;
-			}
-			else {
+			} else {
 				for (int i = 0; i < rowIndex.size() - 1; i++) {
 					sb.append(rowIndex.get(i) + "', '");
 				}
@@ -972,10 +1004,12 @@ public class PandasSyntaxHelper {
 				return script;
 			}
 		}
-	} 
+	}
 
-	/** 
-	 * Filter pandas data frame by specified value and operator. Handles both numeric and object value types. 
+	/**
+	 * Filter pandas data frame by specified value and operator. Handles both
+	 * numeric and object value types.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param columnName
@@ -983,41 +1017,43 @@ public class PandasSyntaxHelper {
 	 * @param value
 	 * @return
 	 */
-	public static String filterBySingleValue(String tableName, String newTableName, String columnName, String operator, Object value) {
+	public static String filterBySingleValue(String tableName, String newTableName, String columnName, String operator,
+			Object value) {
 		try {
 			Double.parseDouble((String) value);
 
 			// check to ensure valid operator
 			if (!OPERATOR_LIST.contains(operator.trim())) {
 				throw new IllegalArgumentException("Operator " + operator.trim() + " is not a valid operator.");
-			} 
+			}
 
 			String script = newTableName + " = " + tableName + "[" + tableName + "['" + columnName + "']"
 					+ operator.trim() + value + "]";
 			return script;
 
-		} 
-		catch (NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			if (!(operator.trim().equals(EQUAL) || operator.trim().equals(NOT_EQUAL))) {
 				throw new IllegalArgumentException("Operator " + operator.trim() + " is not a valid operator.");
 			}
 			String script = newTableName + " = " + tableName + "[" + tableName + "['" + columnName + "']"
-					+ operator.trim() + "'" +  value + "']";
+					+ operator.trim() + "'" + value + "']";
 			return script;
-		} 
+		}
 	}
 
-	/** 
-	 * Filters a data frame using boolean expressions on multiple values in a single column. 
+	/**
+	 * Filters a data frame using boolean expressions on multiple values in a single
+	 * column.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param columnName
 	 * @param values
-	 * @param negation -- default to null
+	 * @param negation     -- default to null
 	 * @return
 	 */
-	public static String filterByMultipleValues(String tableName, String newTableName, String columnName, List<String> values,
-			Object negation) {
+	public static String filterByMultipleValues(String tableName, String newTableName, String columnName,
+			List<String> values, Object negation) {
 		if (negation == null) {
 			negation = "";
 		}
@@ -1032,32 +1068,29 @@ public class PandasSyntaxHelper {
 			if (values.size() == 1) {
 				Double.parseDouble(values.get(0));
 				sb.append(values.get(0) + "]");
-				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName 
+				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName
 						+ "'].isin(" + sb.toString() + ")]";
 				return script;
-			}
-			else {
+			} else {
 				for (int i = 0; i < values.size() - 1; i++) {
 					Double.parseDouble(values.get(i));
 					sb.append(values.get(i) + ", ");
 				}
 				Double.parseDouble(values.get(values.size() - 1));
 				sb.append(values.get(values.size() - 1) + "]");
-				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName 
+				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName
 						+ "'].isin(" + sb.toString() + ")]";
 				return script;
 			}
-		}
-		catch (NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			sb.delete(0, sb.length());
 			sb.append("['");
 			if (values.size() == 1) {
 				sb.append(values.get(0) + "']");
-				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName 
+				String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName
 						+ "'].isin(" + sb.toString() + ")]";
 				return script;
-			}
-			else {
+			} else {
 				for (int i = 0; i < values.size() - 1; i++) {
 					sb.append(values.get(i) + "', '");
 				}
@@ -1070,15 +1103,17 @@ public class PandasSyntaxHelper {
 	}
 
 	/**
-	 * Filters a data frame by whether a specified column contains an expression. Requirements are that columnType is object.
+	 * Filters a data frame by whether a specified column contains an expression.
+	 * Requirements are that columnType is object.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param columnName
 	 * @param expression
-	 * @param negation -- default to null
+	 * @param negation     -- default to null
 	 * @return
 	 */
-	public static String filterByExpression(String tableName, String newTableName, String columnName, Object expression, 
+	public static String filterByExpression(String tableName, String newTableName, String columnName, Object expression,
 			Object negation) {
 		if (negation == null) {
 			negation = "";
@@ -1088,22 +1123,23 @@ public class PandasSyntaxHelper {
 		return script;
 	}
 
-	/** 
-	 * Filters a data frame by selecting all rows between 2 values. 
+	/**
+	 * Filters a data frame by selecting all rows between 2 values.
+	 * 
 	 * @param tableName
 	 * @param newTableName
 	 * @param columnName
 	 * @param floor
 	 * @param ceiling
-	 * @param negation -- default to null
+	 * @param negation     -- default to null
 	 * @return
 	 */
-	public static String filterBetweenNumbers(String tableName, String newTableName, String columnName, Object floor, 
+	public static String filterBetweenNumbers(String tableName, String newTableName, String columnName, Object floor,
 			Object ceiling, Object negation) {
 		if (negation == null) {
 			negation = "";
 		}
-		String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName 
+		String script = newTableName + " = " + tableName + "[" + negation + tableName + "['" + columnName
 				+ "'].between(" + floor.toString() + ", " + ceiling.toString() + ")]";
 		return script;
 	}

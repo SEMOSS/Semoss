@@ -1,6 +1,12 @@
 from typing import Any, Dict, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
+    # Tokenizers are imported lazily inside _get_tokenizer() to keep heavy
+    # dependencies (e.g. transformers, pulled in by HuggingfaceTokenizer) off
+    # the client-construction path. These TYPE_CHECKING imports keep the type
+    # hints valid without paying the runtime import cost.
+    from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+    from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
@@ -16,10 +22,6 @@ from ...message_builders.openai.openai_message_builder import OpenAIMessageBuild
 from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
-from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-from ...tokenizers.tgi_tokenizer import TGITokenizer
-from ...tokenizers.openai_tokenizer import OpenAiTokenizer
-from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 from ..model_engine_exception import ModelEngineException, ErrorDetails
 from ...utils import string_to_bool
 
@@ -83,19 +85,29 @@ class OpenAiClient(AbstractTextGenerationClient):
 
     def _get_tokenizer(
         self, init_args: Dict = {}
-    ) -> Union[VLLMTokenizer, OpenAiTokenizer]:
+    ) -> "Union[VLLMTokenizer, OpenAiTokenizer]":
+        # Tokenizers are imported lazily so that constructing an OpenAI/Azure
+        # client does not pull in heavy deps it never uses. In particular
+        # HuggingfaceTokenizer imports `transformers` (~2.5s warm / much more
+        # cold), which the default OpenAiTokenizer (tiktoken) path never needs.
         if not self.is_azure and self.endpoint and self.endpoint.strip():
             if self.deployment_type == "vllm":
+                from ...tokenizers.vllm_tokenizer import VLLMTokenizer
+
                 return VLLMTokenizer(
                     model_name=self.model_settings.model_name,
                     endpoint=self.endpoint,
                     api_key=init_args.get("api_key", "EMPTY"),
                 )
             elif self.deployment_type == "tgi":
+                from ...tokenizers.tgi_tokenizer import TGITokenizer
+
                 return TGITokenizer(
                     endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
                 )
             else:
+                from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
+
                 return HuggingfaceTokenizer(
                     encoder_name=init_args.get("tokenizer_name", None)
                     or self.model_settings.model_name,
@@ -104,6 +116,8 @@ class OpenAiClient(AbstractTextGenerationClient):
                     context_window=self.model_settings.context_window,
                     max_completion_tokens=self.model_settings.max_completion_tokens,
                 )
+        from ...tokenizers.openai_tokenizer import OpenAiTokenizer
+
         return OpenAiTokenizer(
             encoder_name=init_args.get("tokenizer_name", None)
             or self.model_settings.model_name,
@@ -702,9 +716,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         elif self.chat_type == "responses":
             preamble_text = getattr(response, "output_text", None)
 
-        text_parts = (
-            [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
-        )
+        text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
 
         return AskModelEngineResponse2(
             response=tools_result,
