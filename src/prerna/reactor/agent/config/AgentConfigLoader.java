@@ -680,7 +680,7 @@ public final class AgentConfigLoader {
      * both, and register it via
      * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}
      * (built-ins live in the registry's static init block). The registry is
-     * the same source of truth {@code SetWorkspaceHooksReactor} validates
+     * the same source of truth {@code SetAgentHooksReactor} validates
      * against on write.
      *
      * @return new hook instance, or {@code null} for an unknown kind (logged warn)
