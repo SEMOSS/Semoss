@@ -994,14 +994,21 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                     self.console
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
+                    # Engine-owned python processes (model / vector / etc.) set
+                    # disableCancelTrace because their executions can never be
+                    # cancelled by a user. Skipping sys.settrace avoids its large
+                    # overhead on import-heavy init / ask scripts.
+                    disable_cancel_trace = bool(payload.get("disableCancelTrace"))
                     previous_trace = sys.gettrace()
                     try:
-                        sys.settrace(cancel_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(cancel_trace)
                         output, is_exception, user_cancelled = self.execute_and_capture(
                             command, insight_globals
                         )
                     finally:
-                        sys.settrace(previous_trace)
+                        if not disable_cancel_trace:
+                            sys.settrace(previous_trace)
 
                     self.send_output(
                         output if type(output) is not type(None) else '""',
