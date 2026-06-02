@@ -74,7 +74,7 @@ public final class AgentConfig {
     // Budgets (nested)
     private final Budgets budgets;
 
-    // Subagent-spawn policy (nested) — depth + spawn-count caps
+    // Subagent-spawn policy (nested) depth + spawn-count caps
     private final SubAgentSpawnPolicy spawnPolicy;
 
     // Run hooks (resolved instances; never null, empty when none configured)

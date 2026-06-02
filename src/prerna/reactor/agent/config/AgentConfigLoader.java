@@ -147,7 +147,7 @@ public final class AgentConfigLoader {
         // Room instructions win, then CONFIG_JSON.system_prompt, then workspace.system_prompt.
         b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
-        // Workdir AGENTS.md / CLAUDE.md — exact-dir lookup only (no walk-up). Loader
+        // Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
         // tolerates null workingDir.
         b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
 
