@@ -43,7 +43,7 @@ import com.sun.jna.StringArray;
  * {@link #ENV_POLICY_FILE}, apply landlock rules derived from it, then
  * replace this JVM with the real agent binary via {@code execvp(2)}.
  *
- * <p>Does nothing on non-Linux hosts — Mac uses {@link SandboxExecLauncher}
+ * <p>Does nothing on non-Linux hosts - Mac uses {@link SandboxExecLauncher}
  * at a level above this, so this main should not be invoked on Mac.
  *
  * <p>Invocation convention (set by {@link LandlockLauncher#plan}):
@@ -122,7 +122,7 @@ public final class SandboxLauncherMain {
         int rc = applyLandlock(policy);
         if (rc != 0) {
             if (policy.getEnforcement() == EnforcementMode.ENFORCE) {
-                System.err.println("SandboxLauncherMain: landlock apply failed under ENFORCE — aborting spawn");
+                System.err.println("SandboxLauncherMain: landlock apply failed under ENFORCE - aborting spawn");
                 System.exit(77); // EX_NOPERM
                 return;
             }
@@ -131,7 +131,7 @@ public final class SandboxLauncherMain {
                     + policy.getEnforcement() + ")");
         }
 
-        // Hand off — execvp replaces this JVM with the target binary, preserving
+        // Hand off - execvp replaces this JVM with the target binary, preserving
         // stdio fds. Landlock rules are inherited across exec.
         int ev = LibCExec.INSTANCE.execvp(target, new StringArray(targetArgv));
         // If we get here, execvp failed.
@@ -195,7 +195,7 @@ public final class SandboxLauncherMain {
         Path p = ap.getPath();
         int parentFd = Landlock.openPath(p);
         if (parentFd < 0) {
-            // Missing directories are tolerated — they simply can't be accessed.
+            // Missing directories are tolerated - they simply can't be accessed.
             // Log to stderr but don't fail the whole apply.
             System.err.println("SandboxLauncherMain: could not open " + p + " for landlock; skipping ("
                     + Landlock.errnoString() + ")");

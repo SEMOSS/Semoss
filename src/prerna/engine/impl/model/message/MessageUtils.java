@@ -63,6 +63,7 @@ import prerna.util.gson.SemossDateAdapter;
 public class MessageUtils {
 
 	private static Logger classLogger = LogManager.getLogger(MessageUtils.class);
+	private static final String TOOL_CONTENT_PLACEHOLDER = "[tool output pruned]";
 
 	private static final ExclusionStrategy NO_ROOM_INSIGHT_SOCKET_EXCLUSION = new ExclusionStrategy() {
 		@Override
@@ -345,7 +346,69 @@ public class MessageUtils {
 				result.add(message);
 			}
 		}
-		return result;
+		// drop orphan tool_use (cancel mid-tool, crash) so the next turn doesn't get rejected by the provider
+		return sanitizeOrphanToolCalls(result, room);
+	}
+
+	/**
+	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a matching TOOL_RESULT.
+	 * Providers reject unpaired tool_use, so this rewinds in-memory to the last clean turn boundary.
+	 * Pure read-side; persisted JSON is untouched until the next normal turn rewrites it.
+	 */
+	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
+		if (messages == null || messages.size() < 2) {
+			return messages != null ? messages : new ArrayList<>();
+		}
+		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and the full set of TOOL_RESULT ids
+		List<int[]> toolCallSlots = new ArrayList<>();
+		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
+		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
+		for (int i = 0; i < messages.size(); i++) {
+			AbstractMessage m = messages.get(i);
+			if (m == null) continue;
+			for (MessagePart part : m.getParts()) {
+				if (part instanceof ToolCallMessagePart tcp) {
+					Map<String, Object> tc = tcp.getToolCall();
+					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+					if (id != null && !id.isBlank()) {
+						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
+							toolCallSlots.add(new int[] { i });
+							toolCallIdsPerSlot.add(new ArrayList<>());
+						}
+						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
+					}
+				} else if (part instanceof ToolResultMessagePart trp) {
+					ToolResultPart tr = trp.getToolResult();
+					String id = tr != null ? tr.getToolCallId() : null;
+					if (id != null && !id.isBlank()) resultIdsSeen.add(id);
+				}
+			}
+		}
+		if (toolCallSlots.isEmpty()) return messages;
+
+		// pass 2: first slot with any unanswered id is the truncation point
+		int truncateAt = -1;
+		List<String> orphanIds = null;
+		for (int s = 0; s < toolCallSlots.size(); s++) {
+			List<String> unmatched = null;
+			for (String id : toolCallIdsPerSlot.get(s)) {
+				if (!resultIdsSeen.contains(id)) {
+					if (unmatched == null) unmatched = new ArrayList<>();
+					unmatched.add(id);
+				}
+			}
+			if (unmatched != null && !unmatched.isEmpty()) {
+				truncateAt = toolCallSlots.get(s)[0];
+				orphanIds = unmatched;
+				break;
+			}
+		}
+		if (truncateAt < 0) return messages;
+
+		String roomId = room != null ? room.getId() : "<unknown>";
+		classLogger.warn("sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
+				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
+		return new ArrayList<>(messages.subList(0, truncateAt));
 	}
 
 	// --- Core two serialization methods ---
@@ -448,10 +511,18 @@ public class MessageUtils {
 			history.add(messages.getLast());
 		}
 		String currentId = history.getLast().getParentMessageId();
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -485,10 +556,18 @@ public class MessageUtils {
 		// 2. Climb up parent chain
 		List<AbstractMessage> history = new ArrayList<>();
 		String currentId = parentMessageId;
+		boolean shouldPruneTools = false;
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
 			if (m == null) {
 				break;
+			}
+			if (m.getPruneToolsAbove()) {
+				shouldPruneTools = true;
+			}
+			if (shouldPruneTools) {
+				m = deepCopyForPruning(m);
+				pruneToolsPartFromMessage(m);
 			}
 			history.add(m);
 			// parentMessageId may be null/empty String
@@ -500,6 +579,28 @@ public class MessageUtils {
 		// 3. Messages are from newest-to-oldest; reverse to get root-to-leaf
 		Collections.reverse(history);
 		return history;
+	}
+
+	private static AbstractMessage deepCopyForPruning(AbstractMessage m) {
+		String json = GSON_FOR_DB.toJson(m);
+		return GSON_FOR_DB.fromJson(json, m.getClass());
+	}
+
+	private static void pruneToolsPartFromMessage(AbstractMessage m) {
+		List<MessagePart> p = m.getParts();
+		for (MessagePart part : p) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
+				if (tr != null) {
+					tr.setOutput(TOOL_CONTENT_PLACEHOLDER);
+				}
+			} else if (part instanceof ToolCallMessagePart) {
+				Map<String, Object> toolCall = ((ToolCallMessagePart) part).getToolCall();
+				if (toolCall != null) {
+					toolCall.put("arguments", "{}");
+				}
+			}
+		}
 	}
 
 	/**
@@ -795,15 +896,15 @@ public class MessageUtils {
 		if (toolChoiceInput instanceof String) {
 			String val = ((String) toolChoiceInput).trim().toLowerCase();
 			switch (val) {
-			case "auto":
-				return makeToolChoice(ToolChoiceType.AUTO, null);
-			case "none":
-				return makeToolChoice(ToolChoiceType.NONE, null);
-			case "required":
-				return makeToolChoice(ToolChoiceType.REQUIRED, null);
-			default:
-				// "any" or unknown: treat as auto
-				return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "auto":
+					return makeToolChoice(ToolChoiceType.AUTO, null);
+				case "none":
+					return makeToolChoice(ToolChoiceType.NONE, null);
+				case "required":
+					return makeToolChoice(ToolChoiceType.REQUIRED, null);
+				default:
+					// "any" or unknown: treat as auto
+					return makeToolChoice(ToolChoiceType.AUTO, null);
 			}
 		}
 
@@ -817,28 +918,28 @@ public class MessageUtils {
 			if (typeObj instanceof String) {
 				String type = ((String) typeObj).toLowerCase();
 				switch (type) {
-				case "auto":
-				case "any": // map OpenAI "any" to MCP/AUTO
-					return makeToolChoice(ToolChoiceType.AUTO, null);
-				case "none":
-					return makeToolChoice(ToolChoiceType.NONE, null);
-				case "required":
-					return makeToolChoice(ToolChoiceType.REQUIRED, null);
-				case "forced":
-					// (assume correct MCP style)
-					Object nameF = obj.get("name");
-					return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
-				case "function":
-					// OpenAI style object: {"type":"function", "name":"..."}
-					Object forcedName = obj.get("name");
-					if (forcedName instanceof String) {
-						return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
-					}
-					// Don't handle allowed_tools for now, skip
-					break;
-				default:
-					// Fallback
-					return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "auto":
+					case "any": // map OpenAI "any" to MCP/AUTO
+						return makeToolChoice(ToolChoiceType.AUTO, null);
+					case "none":
+						return makeToolChoice(ToolChoiceType.NONE, null);
+					case "required":
+						return makeToolChoice(ToolChoiceType.REQUIRED, null);
+					case "forced":
+						// (assume correct MCP style)
+						Object nameF = obj.get("name");
+						return makeToolChoice(ToolChoiceType.FORCED, nameF != null ? nameF.toString() : null);
+					case "function":
+						// OpenAI style object: {"type":"function", "name":"..."}
+						Object forcedName = obj.get("name");
+						if (forcedName instanceof String) {
+							return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
+						}
+						// Don't handle allowed_tools for now, skip
+						break;
+					default:
+						// Fallback
+						return makeToolChoice(ToolChoiceType.AUTO, null);
 				}
 			}
 		}

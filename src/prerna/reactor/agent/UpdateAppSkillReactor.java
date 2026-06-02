@@ -54,7 +54,7 @@ public class UpdateAppSkillReactor extends AbstractReactor {
 		String skillContent = this.keyValue.get("skillContent");
 
 		User user = this.insight.getUser();
-		Boolean response = AppBuildingHarness.updateSkill(user, projectId, skillName, skillContent);
+		Boolean response = AppBuilderHarnessConfiguration.updateSkill(user, projectId, skillName, skillContent);
 		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 }
