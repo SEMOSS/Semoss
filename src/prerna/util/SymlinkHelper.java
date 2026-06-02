@@ -75,10 +75,6 @@ public class SymlinkHelper {
 		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
 		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
 
-		if (injectMode) {
-			return;
-		}
-
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
 			classLogger.info("User chroot folder doesn't exist. Making folder now at: {}", userChrootFolder);
@@ -266,13 +262,16 @@ public class SymlinkHelper {
 	 *                      chroot
 	 */
 	public void symlinkFolder(String sourceDirName) {
+		sourceDirName = Utility.normalizePath(sourceDirName);
 		if (injectMode) {
-			enqueueOrInject(Utility.normalizePath(sourceDirName), true);
-			return;
+			enqueueOrInject(sourceDirName, true);
 		}
+		createChrootSymlink(sourceDirName);
+	}
+
+	private void createChrootSymlink(String sourceDirName) {
 		classLogger.debug("Making symlink for folder {}", sourceDirName);
 		// Convert the source directory and user chroot folder to Path objects
-		sourceDirName = Utility.normalizePath(sourceDirName);
 		Path sourceDir = Paths.get(sourceDirName);
 		Path userChrootPath = Paths.get(userChrootFolder);
 
@@ -373,11 +372,10 @@ public class SymlinkHelper {
 
 		if (injectMode) {
 			enqueueOrInject(Utility.normalizePath(projectAppRootFolder), canEdit);
-			return;
 		}
 
 		if (canEdit) {
-			symlinkFolder(projectAppRootFolder);
+			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
 			return;
 		}
 
@@ -401,7 +399,7 @@ public class SymlinkHelper {
 			// setExecuteOnlyOnAssetCodeFolders(projectId);
 		} else {
 			classLogger.info("Symlinking full folder for read-only user, projectId={}", projectId);
-			symlinkFolder(projectAppRootFolder);
+			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
 		}
 	}
 
