@@ -92,6 +92,7 @@ public final class AgentConfigLoader {
             String workingDir,
             String modelId,
             Map<String, Object> paramMap,
+            Map<String, Object> agentParams,
             int maxTurns,
             int maxReflections,
             String explicitWorkspaceId) {
@@ -147,13 +148,14 @@ public final class AgentConfigLoader {
         // Room instructions win, then CONFIG_JSON.system_prompt, then workspace.system_prompt.
         b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
-        // Workdir AGENTS.md / CLAUDE.md — exact-dir lookup only (no walk-up). Loader
+        // Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
         // tolerates null workingDir.
         b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
 
         // 5. Model
         b.modelId(StringUtils.trimToNull(modelId));
         b.modelParams(paramMap);
+        b.agentParams(agentParams);
 
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));

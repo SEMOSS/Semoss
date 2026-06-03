@@ -1008,7 +1008,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				String resolvedString = substitutor.replace(commands[commandIndex]);
 				commands[commandIndex] = resolvedString;
 			}
-			pyTranslator.runEmptyPy(commands);
+			pyTranslator.runEmptyPyNoCancelTrace(commands);
 
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
@@ -1212,7 +1212,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 								.append(tokenOverlapBetweenChunks).append(", chunking_strategy = ")
 								.append(chunkingStrategy).append(", cfg_tokenizer = cfg_tokenizer)");
 
-						pyTranslator.runScript(splitTextCommand.toString());
+						pyTranslator.runScriptNoCancelTrace(splitTextCommand.toString());
 					}
 
 					extractedFiles.add(extractedFile);
