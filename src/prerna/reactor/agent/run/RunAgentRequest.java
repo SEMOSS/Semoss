@@ -43,10 +43,12 @@ public final class RunAgentRequest {
 	private final int maxTurns;
 	private final int maxReflections;
 	private final Map<String, Object> paramMap;
+	private final Map<String, Object> agentParamMap;
 	private final Insight insight;
 
 	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
-			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap, Insight insight) {
+			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
+			Map<String, Object> agentParamMap, Insight insight) {
 		this.roomId = roomId;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -55,6 +57,7 @@ public final class RunAgentRequest {
 		this.maxTurns = maxTurns;
 		this.maxReflections = maxReflections;
 		this.paramMap = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+		this.agentParamMap = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
 		if (workspaceId != null && !workspaceId.trim().isEmpty()) {
 			this.paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, workspaceId);
 		}
@@ -91,6 +94,10 @@ public final class RunAgentRequest {
 
 	public Map<String, Object> getParamMap() {
 		return new HashMap<>(paramMap);
+	}
+
+	public Map<String, Object> getAgentParamMap() {
+		return new HashMap<>(agentParamMap);
 	}
 
 	public Insight getInsight() {

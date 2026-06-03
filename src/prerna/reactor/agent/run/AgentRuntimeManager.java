@@ -67,6 +67,7 @@ public final class AgentRuntimeManager {
 					request.getMaxTurns(),
 					request.getMaxReflections(),
 					request.getParamMap(),
+					request.getAgentParamMap(),
 					request.getInsight());
 
 			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
