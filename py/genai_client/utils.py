@@ -10,6 +10,27 @@ from pathlib import Path
 from functools import wraps
 
 
+def deprecated(reason: str = "", version: str = ""):
+    """Lightweight marker decorator, akin to Java's @Deprecated.
+
+    Records the reason/version on the decorated function or class for
+    documentation and introspection but has no runtime behavior (no warning,
+    no wrapping). Avoids pulling in the third-party ``deprecated``/``wrapt``
+    packages.
+    """
+
+    def _decorator(obj):
+        try:
+            obj.__deprecated__ = {"reason": reason, "version": version}
+        except (AttributeError, TypeError):
+            # Some objects (e.g. certain built-ins) disallow attribute set;
+            # the marker is best-effort, so ignore and return unchanged.
+            pass
+        return obj
+
+    return _decorator
+
+
 class StringEnum(Enum):
     """Base enum that can be compared directly with strings"""
 
