@@ -53,7 +53,6 @@ public final class JdocFileConvertHook implements IAgentRunHook {
 		try {
 			File pdf = uno.convertToFile(source, "pdf", target.getAbsolutePath());
 			classLogger.info("Converted " + source.getAbsolutePath() + " -> " + pdf.getAbsolutePath());
-			// push the new file to cloud storage so it persists in clustered deployments (no-op locally)
 			ClusterUtil.pushRoomAsync(room.getId());
 		} catch (RuntimeException e) {
 			classLogger.error("Failed to convert " + source.getAbsolutePath() + " to PDF via unoserver", e);
