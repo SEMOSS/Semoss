@@ -47,6 +47,7 @@ import javax.ws.rs.core.StreamingOutput;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -94,7 +95,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	public void run() {
 		try (var startCtx = org.apache.logging.log4j.CloseableThreadContext.putAll(startMdc)) {
 			
-			startCtx.put(SemossLogUtils.SPAN_ID, this.cpw == null ? "UNK_"+Utility.getRandomString(5) : cpw.getPrefix());
+			// if we aren't already running in some span context, add one to correlate events on this thread
+			if (!ThreadContext.containsKey(SemossLogUtils.SPAN_ID)) {
+				startCtx.put(SemossLogUtils.SPAN_ID, this.cpw == null ? "UNK_"+Utility.getRandomString(5) :
+					cpw.getPrefix());
+			}
 			
 			// there is 2 portions to the run
 			// one is before connect
