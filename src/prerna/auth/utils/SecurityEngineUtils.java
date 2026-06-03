@@ -3580,6 +3580,41 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get the model-usage restriction fields configured directly on the user.
+	 *
+	 * @param user the user
+	 * @return a single map of user model-usage settings, or {@code null}
+	 */
+	public static Map<String, Object> getUserModelUsageMap(User user) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (user == null) {
+			return null;
+		}
+
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION", Constants.USER_USAGE_RESTRICTION_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY", Constants.USER_MODEL_USAGE_FREQUENCY_KEY));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", Constants.USER_MODEL_MAX_TOKEN_KEY));
+		qs.addSelector(
+				new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userDetails.getValue0()));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userDetails.getValue1()));
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		if (rows == null || rows.isEmpty()) {
+			return null;
+		}
+		return rows.get(0);
+	}
+
+	/**
 	 * Get a list of engine IDs where USAGERESTRICTION is set (not empty or null)
 	 * 
 	 * @param user

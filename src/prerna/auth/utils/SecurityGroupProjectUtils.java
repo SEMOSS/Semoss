@@ -30,6 +30,7 @@ package prerna.auth.utils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -425,6 +426,13 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String permission, String endDate) throws IllegalAccessException {
+		addProjectGroupPermission(user, groupId, groupType, projectId, permission, endDate, null, null, null, null,
+				null, null);
+	}
+
+	public static void addProjectGroupPermission(User user, String groupId, String groupType, String projectId,
+			String permission, String endDate, String usageRestriction, String usageFrequency, Integer maxTokens,
+			Double maxResponseTime, Integer maxInputTokens, Integer maxOutputTokens) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
@@ -442,11 +450,14 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
+		String resolvedUsageRestriction = resolveUsageRestriction(usageRestriction, maxTokens, maxInputTokens,
+				maxOutputTokens, maxResponseTime);
+		String resolvedUsageFrequency = resolvedUsageRestriction == null ? null : usageFrequency;
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
+					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
 			int parameterIndex = 1;
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
@@ -456,6 +467,12 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
+			bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
+			bindNullableString(ps, parameterIndex++, resolvedUsageFrequency);
+			bindNullableInteger(ps, parameterIndex++, maxTokens);
+			bindNullableDouble(ps, parameterIndex++, maxResponseTime);
+			bindNullableInteger(ps, parameterIndex++, maxInputTokens);
+			bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
@@ -510,6 +527,13 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void editProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String newPermission, String endDate) throws IllegalAccessException {
+		editProjectGroupPermission(user, groupId, groupType, projectId, newPermission, endDate, null, null, null,
+				null, null, null);
+	}
+
+	public static void editProjectGroupPermission(User user, String groupId, String groupType, String projectId,
+			String newPermission, String endDate, String usageRestriction, String usageFrequency, Integer maxTokens,
+			Double maxResponseTime, Integer maxInputTokens, Integer maxOutputTokens) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the project
 		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
@@ -550,17 +574,26 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		if (endDate != null) {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
+		String resolvedUsageRestriction = resolveUsageRestriction(usageRestriction, maxTokens, maxInputTokens,
+				maxOutputTokens, maxResponseTime);
+		String resolvedUsageFrequency = resolvedUsageRestriction == null ? null : usageFrequency;
 
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(
-					"UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=?");
+					"UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE ID=? AND TYPE=? AND PROJECTID=?");
 			int parameterIndex = 1;
 			ps.setInt(parameterIndex++, newPermissionLvl);
 			ps.setTimestamp(parameterIndex++, startDate);
 			ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			ps.setString(parameterIndex++, userDetails.getValue0());
 			ps.setString(parameterIndex++, userDetails.getValue1());
+			bindNullableString(ps, parameterIndex++, resolvedUsageRestriction);
+			bindNullableString(ps, parameterIndex++, resolvedUsageFrequency);
+			bindNullableInteger(ps, parameterIndex++, maxTokens);
+			bindNullableDouble(ps, parameterIndex++, maxResponseTime);
+			bindNullableInteger(ps, parameterIndex++, maxInputTokens);
+			bindNullableInteger(ps, parameterIndex++, maxOutputTokens);
 			ps.setString(parameterIndex++, groupId);
 			ps.setString(parameterIndex++, groupType);
 			ps.setString(parameterIndex++, projectId);
@@ -698,6 +731,41 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushToListString(securityDb, qs);
 	}
 
+	public static List<Map<String, Object>> getApplicableGroupProjectUsagePermissions(User user, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (user == null || projectId == null || projectId.trim().isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		OrQueryFilter orFilter = buildUserGroupAccessFilter(user, "GROUPPROJECTPERMISSION__ID",
+				"GROUPPROJECTPERMISSION__TYPE");
+		if (orFilter.getFilterList().isEmpty()) {
+			return new ArrayList<>();
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID", "groupId"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE", "groupType"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__USAGERESTRICTION",
+				Constants.PROJECT_USAGE_RESTRICTION_KEY));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__USAGEFREQUENCY",
+				Constants.PROJECT_USAGE_FREQUENCY_KEY));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAXTOKENS", Constants.PROJECT_MAX_TOKEN_KEY));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAXRESPONSETIME",
+				Constants.PROJECT_MAX_RESPONSE_TIME_KEY));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAX_INPUT_TOKENS",
+				Constants.PROJECT_MAX_INPUT_TOKEN_KEY));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAX_OUTPUT_TOKENS",
+				Constants.PROJECT_MAX_OUTPUT_TOKEN_KEY));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
 	/**
 	 * Get groups that have access to a project
 	 * 
@@ -718,6 +786,12 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__DATEADDED"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__USAGERESTRICTION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__USAGEFREQUENCY"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAXTOKENS"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAXRESPONSETIME"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAX_INPUT_TOKENS"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__MAX_OUTPUT_TOKENS"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPPROJECTPERMISSION__ID"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
@@ -750,5 +824,67 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	private static OrQueryFilter buildUserGroupAccessFilter(User user, String idColumn, String typeColumn) {
+		OrQueryFilter orFilter = new OrQueryFilter();
+		List<AuthProvider> logins = user.getLogins();
+		for (AuthProvider login : logins) {
+			AccessToken accessToken = user.getAccessToken(login);
+			Collection<String> userGroups = accessToken.getUserGroups();
+			Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
+			if (!userCustomGroups.isEmpty()) {
+				AndQueryFilter customAndFilter = new AndQueryFilter();
+				customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(typeColumn, "==", "CUSTOM"));
+				customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(idColumn, "==", userCustomGroups));
+				orFilter.addFilter(customAndFilter);
+			}
+			if (!userGroups.isEmpty()) {
+				AndQueryFilter andFilter = new AndQueryFilter();
+				andFilter.addFilter(
+						SimpleQueryFilter.makeColToValFilter(typeColumn, "==", accessToken.getUserGroupType()));
+				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(idColumn, "==", userGroups));
+				orFilter.addFilter(andFilter);
+			}
+		}
+		return orFilter;
+	}
+
+	private static String resolveUsageRestriction(String usageRestriction, Integer maxTokens, Integer maxInputTokens,
+			Integer maxOutputTokens, Double maxResponseTime) {
+		if (usageRestriction != null && !(usageRestriction = usageRestriction.trim()).isEmpty()) {
+			return usageRestriction;
+		}
+		if (maxTokens != null || maxInputTokens != null || maxOutputTokens != null) {
+			return Constants.MODEL_TOKEN_RESTRICTION_VALUE;
+		}
+		if (maxResponseTime != null) {
+			return Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE;
+		}
+		return null;
+	}
+
+	private static void bindNullableString(PreparedStatement ps, int index, String value) throws SQLException {
+		if (value == null || value.trim().isEmpty()) {
+			ps.setNull(index, java.sql.Types.VARCHAR);
+		} else {
+			ps.setString(index, value);
+		}
+	}
+
+	private static void bindNullableInteger(PreparedStatement ps, int index, Integer value) throws SQLException {
+		if (value == null) {
+			ps.setNull(index, java.sql.Types.INTEGER);
+		} else {
+			ps.setInt(index, value.intValue());
+		}
+	}
+
+	private static void bindNullableDouble(PreparedStatement ps, int index, Double value) throws SQLException {
+		if (value == null) {
+			ps.setNull(index, java.sql.Types.DOUBLE);
+		} else {
+			ps.setDouble(index, value.doubleValue());
+		}
 	}
 }

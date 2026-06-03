@@ -1650,9 +1650,12 @@ public abstract class AbstractSecurityUtils {
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned
 			// at group lvl
 			colNames = new String[] { "ID", "TYPE", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "USAGERESTRICTION", "USAGEFREQUENCY",
+					"MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAXRESPONSETIME" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
+					INTEGER_DATATYPE_NAME, "DOUBLE" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("GROUPENGINEPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1685,9 +1688,12 @@ public abstract class AbstractSecurityUtils {
 			// TODO::: look into how we want to allow user hiding of projects that are
 			// assigned at group lvl
 			colNames = new String[] { "ID", "TYPE", "PROJECTID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "USAGERESTRICTION", "USAGEFREQUENCY",
+					"MAXTOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAXRESPONSETIME" };
 			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)" };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, "VARCHAR(255)", "VARCHAR(255)",
+					"VARCHAR(255)", "VARCHAR(255)", INTEGER_DATATYPE_NAME, INTEGER_DATATYPE_NAME,
+					INTEGER_DATATYPE_NAME, "DOUBLE" };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("GROUPPROJECTPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -2337,6 +2343,79 @@ public abstract class AbstractSecurityUtils {
 					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
 						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
 						String addColumnSql = queryUtil.alterTableAddColumn("SERVICENOW_CONNECTIONS", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ENTITYDEFAULTTOKENLIMIT
+			colNames = new String[] { "ENTITY_TYPE", "ENTITY_ID", "USAGE_RESTRICTION", "USAGE_FREQUENCY",
+					"MAX_TOKENS", "MAX_INPUT_TOKENS", "MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME", "IS_ACTIVE",
+					"CREATED_BY", "CREATED_BY_TYPE", "DATE_CREATED", "DATE_MODIFIED", "RESTRICT_PER_MODEL" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "BIGINT",
+					"BIGINT", "BIGINT", "DOUBLE", "BOOLEAN", "VARCHAR(255)", "VARCHAR(255)", "TIMESTAMP",
+					"TIMESTAMP", "BOOLEAN" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENTITYDEFAULTTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENTITYDEFAULTTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENTITYDEFAULTTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENTITYDEFAULTTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENTITYDEFAULTTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// ENTITYDEFAULTTEAMTOKENLIMIT
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("ENTITYDEFAULTTEAMTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "ENTITYDEFAULTTEAMTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("ENTITYDEFAULTTEAMTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "ENTITYDEFAULTTEAMTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("ENTITYDEFAULTTEAMTOKENLIMIT", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
+			// MODELTOKENLIMIT
+			colNames = new String[] { "ENGINE_ID", "USAGE_FREQUENCY", "MAX_TOKENS", "MAX_INPUT_TOKENS",
+					"MAX_OUTPUT_TOKENS", "MAX_RESPONSE_TIME", "IS_ACTIVE", "CREATED_BY", "DATE_CREATED",
+					"DATE_MODIFIED" };
+			types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "BIGINT", "BIGINT", "BIGINT", "DOUBLE",
+					"BOOLEAN", "VARCHAR(255)", "TIMESTAMP", "TIMESTAMP" };
+
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MODELTOKENLIMIT", colNames, types));
+			} else {
+				if (!queryUtil.tableExists(conn, "MODELTOKENLIMIT", database, schema)) {
+					securityDb.insertData(queryUtil.createTable("MODELTOKENLIMIT", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELTOKENLIMIT", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELTOKENLIMIT", col, types[i]);
 						securityDb.insertData(addColumnSql);
 					}
 				}

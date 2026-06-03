@@ -1949,6 +1949,77 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Calculate total usage for an engine across the entire platform, optionally
+	 * filtered by message type.
+	 *
+	 * @param restrictionMode usage mode
+	 * @param engineId        engine id
+	 * @param currentDateTime reference date/time
+	 * @param frequency       window frequency
+	 * @param messageType     optional filter: "INPUT" or "RESPONSE"; null for combined
+	 * @return aggregate usage value, or {@code null} if unavailable
+	 */
+	public static Number getTotalTokensForEngine(String restrictionMode, String engineId,
+			ZonedDateTime currentDateTime, String frequency, String messageType) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		if (restrictionMode == null) {
+			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
+		ZonedDateTime startDate = dates.get("start");
+		ZonedDateTime endDate = dates.get("end");
+
+		String sumColumn = null;
+		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_INPUT_TOKEN_RESTRICTION_VALUE)
+				|| restrictionMode.equalsIgnoreCase(Constants.MODEL_OUTPUT_TOKEN_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(MESSAGE_TOKENS) ";
+		} else if (restrictionMode.equalsIgnoreCase(Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE)) {
+			sumColumn = " SUM(RESPONSE_TIME) ";
+		}
+
+		StringBuilder queryBuilder = new StringBuilder();
+		queryBuilder.append("SELECT ").append(sumColumn)
+				.append(" AS \"current_usage\" FROM MESSAGE WHERE AGENT_ID=? AND DATE_CREATED BETWEEN ? AND ?");
+		if (messageType != null && !messageType.trim().isEmpty()) {
+			queryBuilder.append(" AND MESSAGE_TYPE=?");
+		}
+
+		String query = queryBuilder.toString();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int psIndex = 1;
+			ps.setString(psIndex++, engineId);
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
+			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
+			if (messageType != null && !messageType.trim().isEmpty()) {
+				ps.setString(psIndex++, messageType);
+			}
+
+			RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.directExecutionPreparedStatement(modelInferenceLogsDb,
+					ps.getConnection(), ps, query, false);
+
+			if (wrapper.hasNext()) {
+				Number retNum = (Number) wrapper.next().getValues()[0];
+				if (retNum == null) {
+					return 0;
+				}
+				return retNum;
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to calculate platform usage for engineId '{}', restrictionMode '{}', frequency '{}'.",
+					engineId, restrictionMode, frequency, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return null;
+	}
+
+	/**
 	 * Calculate total token usage for a user within a project, optionally scoped
 	 * to a specific engine (per-model mode) and filtered by message type.
 	 *
