@@ -87,6 +87,7 @@ public class SecurityOwlCreator {
 
 		// room token limits
 		conceptsRequired.add("ROOMTOKENLIMIT");
+		conceptsRequired.add("MODELTOKENLIMIT");
 	}
 
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
@@ -641,6 +642,21 @@ public class SecurityOwlCreator {
 		owler.addProp("ROOMTOKENLIMIT", "DATE_MODIFIED", "TIMESTAMP");
 
 		owler.addRelation("SMSS_USER", "ROOMTOKENLIMIT", "SMSS_USER.ID.ROOMTOKENLIMIT.USERID");
+
+		// MODELTOKENLIMIT — platform-wide model limits by frequency
+		owler.addConcept("MODELTOKENLIMIT", null, null);
+		owler.addProp("MODELTOKENLIMIT", "ENGINEID", "VARCHAR(255)");
+		owler.addProp("MODELTOKENLIMIT", "USAGE_FREQUENCY", "VARCHAR(255)");
+		owler.addProp("MODELTOKENLIMIT", "MAX_TOKENS", "BIGINT");
+		owler.addProp("MODELTOKENLIMIT", "MAX_INPUT_TOKENS", "BIGINT");
+		owler.addProp("MODELTOKENLIMIT", "MAX_OUTPUT_TOKENS", "BIGINT");
+		owler.addProp("MODELTOKENLIMIT", "MAX_RESPONSE_TIME", "DOUBLE");
+		owler.addProp("MODELTOKENLIMIT", "IS_ACTIVE", "BOOLEAN");
+		owler.addProp("MODELTOKENLIMIT", "CREATED_BY", "VARCHAR(255)");
+		owler.addProp("MODELTOKENLIMIT", "DATE_CREATED", "TIMESTAMP");
+		owler.addProp("MODELTOKENLIMIT", "DATE_MODIFIED", "TIMESTAMP");
+
+		owler.addRelation("ENGINE", "MODELTOKENLIMIT", "ENGINE.ENGINEID.MODELTOKENLIMIT.ENGINEID");
 
 		owler.addRelation("SMSS_USER", "CUSTOMGROUPASSIGNMENT", "SMSS_USER.ID.CUSTOMGROUPASSIGNMENT.USERID");
 		owler.addRelation("SMSS_GROUP", "CUSTOMGROUPASSIGNMENT", "SMSS_GROUP.ID.CUSTOMGROUPASSIGNMENT.GROUPID");

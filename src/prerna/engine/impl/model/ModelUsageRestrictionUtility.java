@@ -40,6 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEntityDefaultTokenUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityRoomTokenUtils;
@@ -131,6 +132,17 @@ public final class ModelUsageRestrictionUtility {
 					.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
 			Number engineLvlMaxInputTokens = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_INPUT_TOKEN_KEY);
 			Number engineLvlMaxOutputTokens = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_OUTPUT_TOKEN_KEY);
+
+			if (engineLvlModelUsageRestriction == null || engineLvlModelUsageRestriction.trim().isEmpty()) {
+				Map<String, Object> engineDefaultLimit = SecurityEntityDefaultTokenUtils.getEngineDefaultTokenLimit(engineId);
+				if (engineDefaultLimit != null) {
+					engineLvlModelUsageRestriction = (String) engineDefaultLimit.get("usageRestriction");
+					engineLvlModelUsageFrequency = (String) engineDefaultLimit.get("usageFrequency");
+					engineLvlModelUsageMaxTokens = (Number) engineDefaultLimit.get("maxTokens");
+					engineLvlMaxInputTokens = (Number) engineDefaultLimit.get("maxInputTokens");
+					engineLvlMaxOutputTokens = (Number) engineDefaultLimit.get("maxOutputTokens");
+				}
+			}
 
 			ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
 
@@ -264,13 +276,33 @@ public final class ModelUsageRestrictionUtility {
 	private static void checkProjectLevelRestriction(User user, String engineId, String projectId,
 			ZonedDateTime currentDateTime, Map<String, Object> userRestrictionMap) {
 		List<Map<String, Object>> projectPermission = SecurityProjectUtils.getProjectUsagePermissionMap(user, projectId);
-		if (projectPermission == null || projectPermission.isEmpty()) {
-			return;
+		Map<String, Object> projMap = null;
+		if (projectPermission != null && !projectPermission.isEmpty()) {
+			projMap = projectPermission.get(0);
 		}
-		Map<String, Object> projMap = projectPermission.get(0);
+		if (projMap == null) {
+			projMap = SecurityEntityDefaultTokenUtils.getProjectDefaultTokenLimit(projectId);
+			if (projMap == null) {
+				return;
+			}
+		}
 		String projRestriction = (String) projMap.get(Constants.PROJECT_USAGE_RESTRICTION_KEY);
+		if (projRestriction == null) {
+			projRestriction = (String) projMap.get("usageRestriction");
+		}
 		if (projRestriction == null || projRestriction.trim().isEmpty()) {
-			return;
+			Map<String, Object> projDefaultMap = SecurityEntityDefaultTokenUtils.getProjectDefaultTokenLimit(projectId);
+			if (projDefaultMap == null) {
+				return;
+			}
+			projMap = projDefaultMap;
+			projRestriction = (String) projMap.get(Constants.PROJECT_USAGE_RESTRICTION_KEY);
+			if (projRestriction == null) {
+				projRestriction = (String) projMap.get("usageRestriction");
+			}
+			if (projRestriction == null || projRestriction.trim().isEmpty()) {
+				return;
+			}
 		}
 
 		if (!Utility.isModelInferenceLogsEnabled()) {
@@ -279,11 +311,29 @@ public final class ModelUsageRestrictionUtility {
 		}
 
 		String projFrequency = (String) projMap.get(Constants.PROJECT_USAGE_FREQUENCY_KEY);
+		if (projFrequency == null) {
+			projFrequency = (String) projMap.get("usageFrequency");
+		}
 		Number projMaxTokens = (Number) projMap.get(Constants.PROJECT_MAX_TOKEN_KEY);
+		if (projMaxTokens == null) {
+			projMaxTokens = (Number) projMap.get("maxTokens");
+		}
 		Number projMaxInputTokens = (Number) projMap.get(Constants.PROJECT_MAX_INPUT_TOKEN_KEY);
+		if (projMaxInputTokens == null) {
+			projMaxInputTokens = (Number) projMap.get("maxInputTokens");
+		}
 		Number projMaxOutputTokens = (Number) projMap.get(Constants.PROJECT_MAX_OUTPUT_TOKEN_KEY);
+		if (projMaxOutputTokens == null) {
+			projMaxOutputTokens = (Number) projMap.get("maxOutputTokens");
+		}
 		Number projMaxResponseTime = (Number) projMap.get(Constants.PROJECT_MAX_RESPONSE_TIME_KEY);
+		if (projMaxResponseTime == null) {
+			projMaxResponseTime = (Number) projMap.get("maxResponseTime");
+		}
 		Object restrictPerModelObj = projMap.get(Constants.PROJECT_RESTRICT_PER_MODEL_KEY);
+		if (restrictPerModelObj == null) {
+			restrictPerModelObj = projMap.get("restrictPerModel");
+		}
 		boolean restrictPerModel = restrictPerModelObj != null && Boolean.TRUE.equals(restrictPerModelObj);
 
 		String scopedEngineId = restrictPerModel ? engineId : null;
