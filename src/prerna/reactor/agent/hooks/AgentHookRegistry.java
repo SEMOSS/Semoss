@@ -70,11 +70,14 @@ public final class AgentHookRegistry {
 
     /** JSON {@code kind} value for {@link LoggingToolHook}. */
     public static final String LOG_TOOLS = "log_tools";
+    
+    public static final String PPT_TO_PDF = "ppt_to_pdf";
 
     static {
         Map<String, Supplier<? extends IAgentHook>> m = new HashMap<>();
         m.put(GIT_COMMIT, GitCommitAgentHook::new);
         m.put(LOG_TOOLS,  LoggingToolHook::new);
+        m.put(PPT_TO_PDF, JdocFileConvertHook::new);
         REGISTRY = Collections.synchronizedMap(m);
     }
 

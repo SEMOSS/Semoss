@@ -69,9 +69,10 @@ public class RunAgentReactor extends AbstractReactor {
                 MAX_TURNS_KEY,
                 MAX_ITERATIONS_KEY,
                 MAX_REFLECTIONS_KEY,
-                ReactorKeysEnum.PARAM_VALUES_MAP.getKey()
+                ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
+                ReactorKeysEnum.AGENT_PARAMS.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -82,6 +83,7 @@ public class RunAgentReactor extends AbstractReactor {
         String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
         String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
+       
 
         // FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
         // forwarding to the harness so the prompt reaches the model intact.
@@ -103,7 +105,8 @@ public class RunAgentReactor extends AbstractReactor {
         int maxReflections = parseIntAtLeast(
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
-        Map<String, Object> paramMap = getMap();
+        Map<String, Object> paramMap = getMap("paramMap");
+        Map<String, Object> agentParams = getMap("agentParams");
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -125,6 +128,7 @@ public class RunAgentReactor extends AbstractReactor {
                     maxTurns,
                     maxReflections,
                     paramMap,
+                    agentParams,
                     this.insight);
             RunAgentResult handle = AgentRuntimeManager.get().run(request);
             AgentHarnessResult result = handle.getResult();
@@ -152,12 +156,32 @@ public class RunAgentReactor extends AbstractReactor {
     // Helpers
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> getMap() {
-        GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
+	protected Map<String, Object> getMap(String identifier) {
+    	String key = ReactorKeysEnum.PARAM_VALUES_MAP.getKey();
+    	if ("agentParams".equals(identifier)){
+    			key = ReactorKeysEnum.AGENT_PARAMS.getKey();
+    	}
+    	;
+        GenRowStruct mapGrs = this.store.getGenRowStruct(key);
         if (mapGrs != null && !mapGrs.isEmpty()) {
             List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
             if (mapInputs != null && !mapInputs.isEmpty()) {
                 return (Map<String, Object>) mapInputs.get(0).getValue();
+            }
+        }
+        // Support the list-wrapped form: agentParams=[{...}]. The `[ ]` brackets make a
+        // VECTOR noun (see VectorReactor); unwrap it and return the first map inside.
+        if (mapGrs != null && !mapGrs.isEmpty()) {
+            for (NounMetadata vecNoun : mapGrs.getNounsOfType(PixelDataType.VECTOR)) {
+                Object vecVal = vecNoun.getValue();
+                if (vecVal instanceof List) {
+                    for (Object el : (List<?>) vecVal) {
+                        Object inner = (el instanceof NounMetadata) ? ((NounMetadata) el).getValue() : el;
+                        if (inner instanceof Map) {
+                            return (Map<String, Object>) inner;
+                        }
+                    }
+                }
             }
         }
         List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
@@ -166,7 +190,7 @@ public class RunAgentReactor extends AbstractReactor {
         }
         return new HashMap<>();
     }
-
+    
     /**
      * Parse {@code value} as an int, falling back to {@code defaultValue} when null,
      * blank, non-numeric, or below {@code minInclusive}.
