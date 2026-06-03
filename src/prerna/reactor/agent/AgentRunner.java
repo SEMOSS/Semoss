@@ -137,6 +137,7 @@ public final class AgentRunner {
             int maxTurns,
             int maxReflections,
             Map<String, Object> paramMap,
+            Map<String, Object> agentParamMap,
             Insight insight
             ) throws Exception {
 
@@ -171,6 +172,7 @@ public final class AgentRunner {
         insight.setRoomForInsight(room);
 
         Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
+        Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
 
         // Resolve and strip any per-run workspace override before working-dir lookup.
         String explicitWorkspaceId = extractExplicitWorkspaceId(params);
@@ -187,7 +189,7 @@ public final class AgentRunner {
 
         // Resolve the shared agent config once for all harnesses.
         AgentConfig agentConfig = AgentConfigLoader.load(
-                room, filePath, modelId, params, maxTurns, maxReflections, explicitWorkspaceId);
+                room, filePath, modelId, params, agentParams, maxTurns, maxReflections, explicitWorkspaceId);
 
         // Best-effort skill staging for harnesses that discover local skills from disk.
         try {

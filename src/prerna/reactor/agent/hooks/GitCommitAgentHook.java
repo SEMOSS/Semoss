@@ -64,16 +64,16 @@ public final class GitCommitAgentHook implements IAgentRunHook {
 	
     @Override
     public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
-    	Map<String, Object> paramMap = ctx.getParamMap();
+    	Map<String, Object> paramMap = ctx.getAgentConfig().getModelParams();
     	String projectId = Objects.toString(paramMap.get("project"), null);
     	if (projectId == null || projectId.trim().isEmpty()) {
-    		classLogger.error("GitCommitAgentHook: missing project id — skipping git commit");
+    		classLogger.error("GitCommitAgentHook: missing project id skipping git commit");
     		return;
     	}
     	try {
 	    	IEngine projectEngine = Utility.getProject(projectId.trim());
 	    	if (projectEngine == null) {
-	    		classLogger.error("GitCommitAgentHook: project not found for id={} — skipping git commit", projectId);
+	    		classLogger.error("GitCommitAgentHook: project not found for id={} skipping git commit", projectId);
 	    		return;
 	    	}
 	    	String projectName = projectEngine.getEngineName();
