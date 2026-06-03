@@ -39,6 +39,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.RunAgentRequest;
+import prerna.reactor.agent.run.RunAgentResult;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -101,9 +104,6 @@ public class RunAgentReactor extends AbstractReactor {
                 this.keyValue.get(MAX_REFLECTIONS_KEY),
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
         Map<String, Object> paramMap = getMap();
-        if (explicitWorkspaceId != null) {
-            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
-        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -116,18 +116,22 @@ public class RunAgentReactor extends AbstractReactor {
                 roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
 
         try {
-            AgentHarnessResult result = AgentRunner.run(
+            RunAgentRequest request = new RunAgentRequest(
                     roomId,
                     input,
                     engineIdFallback,
                     harnessType,
+                    explicitWorkspaceId,
                     maxTurns,
                     maxReflections,
                     paramMap,
                     this.insight);
+            RunAgentResult handle = AgentRuntimeManager.get().run(request);
+            AgentHarnessResult result = handle.getResult();
 
-            logger.info("RunAgentReactor: completed iterations={} reflections={} tools={}",
-                    result.getIterations(), result.getReflectionsUsed(), result.getToolCallRecords().size());
+            logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
+                    handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
+                    result.getToolCallRecords().size());
 
             return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
                     PixelOperationType.OPERATION);
