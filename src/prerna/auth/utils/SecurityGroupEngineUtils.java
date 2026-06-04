@@ -634,9 +634,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 
 		String resolvedUsageRestriction = resolveUsageRestriction(Constants.MODEL_TOKEN_RESTRICTION_VALUE, maxTokens,
 				maxInputTokens, maxOutputTokens, maxResponseTime);
-		if (resolvedUsageRestriction == null) {
-			throw new IllegalArgumentException("At least one usage limit must be provided");
-		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
