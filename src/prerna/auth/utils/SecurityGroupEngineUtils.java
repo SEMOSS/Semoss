@@ -425,7 +425,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
 		addEngineGroupPermission(user, groupId, groupType, engineId, permission, endDate, null, null, null, null,
-				null);
+				null, null);
 	}
 
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,

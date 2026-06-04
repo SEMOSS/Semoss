@@ -29,6 +29,7 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -1372,11 +1373,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
 
 		String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-		// update user permissions in bulk
-		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION = ?, USAGEFREQUENCY = ?, MAXTOKENS = ?, MAXRESPONSETIME = ?, MAX_INPUT_TOKENS = ?, MAX_OUTPUT_TOKENS = ? WHERE USERID = ? AND ENGINEID = ?";
-		PreparedStatement ps = null;
+		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID = ? AND ENGINEID = ?";
+		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		PreparedStatement deletePs = null;
+		PreparedStatement insertPs = null;
 		try {
-			ps = securityDb.getPreparedStatement(updateQ);
+			deletePs = securityDb.getPreparedStatement(deleteQ);
+			insertPs = securityDb.getPreparedStatement(insertQ);
+			Set<String> deletedUserIds = new HashSet<String>();
 			for (int i = 0; i < permission.size(); i++) {
 				Map<String, Object> thisPermissionMap = permission.get(i);
 
@@ -1384,60 +1388,65 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 				String newUserId = (String) thisPermissionMap.get("userid");
 				String newUserType = (String) thisPermissionMap.get("type");
+				boolean visibility = getExistingUserEngineVisibility(newUserId, engineId);
 				String existingPermission = AccessPermissionEnum
 						.getPermissionValueById(getUserEnginePermission(newUserId, engineId));
-				// SET
-				ps.setInt(parameterIndex++,
+
+				if (deletedUserIds.add(newUserId)) {
+					deletePs.setString(1, newUserId);
+					deletePs.setString(2, engineId);
+					deletePs.execute();
+				}
+
+				insertPs.setString(parameterIndex++, newUserId);
+				insertPs.setString(parameterIndex++, engineId);
+				insertPs.setInt(parameterIndex++,
 						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				// end date for this user
+				insertPs.setBoolean(parameterIndex++, visibility);
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, startDate);
 				Timestamp verifiedEndDate = null;
 				if (thisPermissionMap.get("endDate") != null) {
 					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					insertPs.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				}
 
-				// engine usage restrictions
 				if (thisPermissionMap.get("usageRestriction") != null
 						&& !((String) thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
-					ps.setString(parameterIndex++, ((String) thisPermissionMap.get("usageRestriction")).trim());
+					insertPs.setString(parameterIndex++, ((String) thisPermissionMap.get("usageRestriction")).trim());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					insertPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				if (thisPermissionMap.get("usageRestriction") != null
+				if (thisPermissionMap.get("usageFrequency") != null
 						&& !((String) thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
-					ps.setString(parameterIndex++, ((String) thisPermissionMap.get("usageFrequency")).trim());
+					insertPs.setString(parameterIndex++, ((String) thisPermissionMap.get("usageFrequency")).trim());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					insertPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
-					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+					insertPs.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+					insertPs.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}
 				if (thisPermissionMap.get("maxInputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
+					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 				if (thisPermissionMap.get("maxOutputTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
+					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				// WHERE
-				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
-				ps.setString(parameterIndex++, engineId);
-				ps.addBatch();
+				insertPs.execute();
 
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
@@ -1447,9 +1456,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 							(String) thisPermissionMap.get("permission"));
 				}
 			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
+			if (!insertPs.getConnection().getAutoCommit()) {
+				insertPs.getConnection().commit();
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
@@ -1457,8 +1465,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, deletePs, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, insertPs, null);
 		}
+	}
+
+	private static boolean getExistingUserEngineVisibility(String userId, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = securityDb.getPreparedStatement(
+					"SELECT VISIBILITY FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?");
+			ps.setString(1, userId);
+			ps.setString(2, engineId);
+			rs = ps.executeQuery();
+			if (rs.next()) {
+				return rs.getBoolean("VISIBILITY");
+			}
+		} catch (SQLException e) {
+			classLogger.error("Failed to retrieve engine permission visibility", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, rs);
+		}
+		return true;
 	}
 
 	/**
