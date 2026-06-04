@@ -325,7 +325,8 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			statement.setNull(index, java.sql.Types.BLOB);
+			// blob data type name is BYTEA. so, need Types.BINARY here instead of Types.BLOB
+			statement.setNull(index, java.sql.Types.BINARY);
 		} else {
 			statement.setBytes(index, object.getBytes("UTF-8"));
 		}
