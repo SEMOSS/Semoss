@@ -216,6 +216,44 @@ public class AuditLogsDbUtils {
 		}
 	}
 
+	public static List<String> fetchUserIds(SemossDate startDate) {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__USER_ID", "USER_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__LOG_TIMESTAMP", ">=", startDate));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ENGINE_TYPE", "==", "MODEL"));
+		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__USER_ID"));
+
+		List<String> userIds = new ArrayList<>();
+		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(auditLogsDb, qs)) {
+			String userId = (String) row.get("USER_ID");
+			if (userId != null) {
+				userIds.add(userId);
+			}
+		}
+		return userIds;
+	}
+
+	public static List<String> fetchRoomIds(SemossDate startDate, String userId) {
+		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ROOM_ID", "ROOM_ID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__LOG_TIMESTAMP", ">=", startDate));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__ENGINE_TYPE", "==", "MODEL"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AUDIT_LOGS__USER_ID", "==", userId));
+		qs.addGroupBy(new QueryColumnSelector("AUDIT_LOGS__ROOM_ID"));
+		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "DESC");
+
+		List<String> roomIds = new ArrayList<>();
+		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(auditLogsDb, qs)) {
+			String roomId = (String) row.get("ROOM_ID");
+			if (roomId != null) {
+				roomIds.add(roomId);
+			}
+		}
+		return roomIds;
+	}
+
 	/**
 	 * 
 	 * @param userId

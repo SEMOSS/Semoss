@@ -47,6 +47,7 @@ public class ModelInferenceLogsOwlCreator {
 	private List<Pair<String, String>> feedbackColumns = null;
 	private List<Pair<String, String>> workspaceColumns = null;
 	private List<Pair<String, String>> workspaceResourceColumns = null;
+	private List<Pair<String, String>> toolFailureDirectiveColumns = null;
 
 	// pairs table name with table's primary keys 
 	private List<Pair<String, Pair<List<String>, List<String>>>> primaryKeys = null;
@@ -66,6 +67,7 @@ public class ModelInferenceLogsOwlCreator {
 		conceptsRequired.add("FEEDBACK");
 		conceptsRequired.add("WORKSPACE");
 		conceptsRequired.add("WORKSPACE_RESOURCE");
+		conceptsRequired.add("TOOL_FAILURE_DIRECTIVE");
 	}
 	
 	private IRDBMSEngine modelInferenceDb;
@@ -186,13 +188,23 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("RESOURCE_SUBTYPE", "VARCHAR(255)")
 			);
 		
+		this.toolFailureDirectiveColumns = Arrays.asList(
+				Pair.with("DIRECTIVE_ID", "VARCHAR(50)"),
+				Pair.with("TOOL_NAME", "VARCHAR(255)"),
+				Pair.with("DIRECTIVE", CLOB_DATATYPE_NAME),
+				Pair.with("DIRECTIVE_EMBEDDING", CLOB_DATATYPE_NAME),
+				Pair.with("OCCURRENCE_COUNT", INTEGER_DATATYPE_NAME),
+				Pair.with("STATUS", "VARCHAR(50)")
+			);
+		
 		this.allSchemas = Arrays.asList(
 				Pair.with("AGENT", agentColumns),
 				Pair.with("ROOM", roomColumns),
 				Pair.with("MESSAGE", messageColumns),
 				Pair.with("FEEDBACK", feedbackColumns),
 				Pair.with("WORKSPACE", workspaceColumns),
-				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns)
+				Pair.with("WORKSPACE_RESOURCE", workspaceResourceColumns),
+				Pair.with("TOOL_FAILURE_DIRECTIVE", toolFailureDirectiveColumns)
 			);
 	}
 	

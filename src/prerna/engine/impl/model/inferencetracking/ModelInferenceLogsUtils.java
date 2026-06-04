@@ -40,6 +40,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,6 +104,7 @@ public class ModelInferenceLogsUtils {
 	private static final String AGENT_TABLE_NAME = "AGENT__";
 	private static final String ROOM_TABLE_NAME = "ROOM__";
 	private static final String FEEDBACK_TABLE_NAME = "FEEDBACK__";
+	private static final String TOOL_FAILURE_DIRECTIVE_TABLE_NAME = "TOOL_FAILURE_DIRECTIVE";
 	static boolean initialized = false;
 
 	/**
@@ -241,6 +243,12 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
 			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("TFD_TOOL_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, "TOOL_NAME");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("TFD_PROMOTED_LOOKUP_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, "STATUS");
+			executeSql(conn, sql);
 		} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
@@ -284,6 +292,16 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "WORKSPACE_OWNER_INDEX", "WORKSPACE", database, schema)) {
 				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "TFD_TOOL_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, database, schema)) {
+				String sql = queryUtil.createIndex("TFD_TOOL_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, "TOOL_NAME");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "TFD_PROMOTED_LOOKUP_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, database, schema)) {
+				String sql = queryUtil.createIndex("TFD_PROMOTED_LOOKUP_INDEX", TOOL_FAILURE_DIRECTIVE_TABLE_NAME, "STATUS");
 				executeSql(conn, sql);
 			}
 		}
@@ -3286,6 +3304,244 @@ public class ModelInferenceLogsUtils {
 		andFilters.addFilter(
 				SimpleQueryFilter.makeColToValFilter(castSelector, "<=", endDate, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(andFilters);
+	}
+
+	/**
+	 * Returns all stored directives for a tool to support semantic deduplication.
+	 *
+	 * @param toolName tool name
+	 * @return list of rows: directive_id, failure_pattern, occurrence_count, status
+	 */
+	public static List<Map<String, Object>> getDirectivesForTool(String toolName) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		List<Map<String, Object>> result = new ArrayList<>();
+		String sql = "SELECT DIRECTIVE_ID, DIRECTIVE, DIRECTIVE_EMBEDDING, OCCURRENCE_COUNT, STATUS "
+				+ "FROM TOOL_FAILURE_DIRECTIVE WHERE TOOL_NAME = ?";
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(sql);
+			ps.setString(1, toolName);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				Map<String, Object> row = new HashMap<>();
+				row.put("directive_id", rs.getString("DIRECTIVE_ID"));
+				row.put("directive", rs.getString("DIRECTIVE"));
+				row.put("directive_embedding", rs.getString("DIRECTIVE_EMBEDDING"));
+				row.put("occurrence_count", rs.getInt("OCCURRENCE_COUNT"));
+				row.put("status", rs.getString("STATUS"));
+				result.add(row);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to fetch directives for tool '{}'", toolName, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return result;
+	}
+
+	/**
+	 * Inserts a new tool failure directive with occurrence count 1 and PENDING status.
+	 *
+	 * @param toolName       tool name
+	 * @param failurePattern model-generated failure pattern
+	 * @param directive      model-generated directive
+	 * @return true if the row was inserted
+	 */
+	public static boolean insertToolFailureDirective(String toolName, String directive, String embeddingJson) {
+		if (directive == null || directive.isBlank()) {
+			return false;
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String insertSql = "INSERT INTO TOOL_FAILURE_DIRECTIVE (DIRECTIVE_ID, TOOL_NAME, "
+				+ "DIRECTIVE, DIRECTIVE_EMBEDDING, OCCURRENCE_COUNT, STATUS) "
+				+ "VALUES (?, ?, ?, ?, ?, ?)";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(insertSql);
+			int idx = 1;
+			ps.setString(idx++, GUID.v7().toUUID().toString());
+			ps.setString(idx++, toolName);
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, directive, idx++, GSON);
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, embeddingJson, idx++, GSON);
+			ps.setInt(idx++, 1);
+			ps.setString(idx++, "PENDING");
+			ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return true;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to insert tool failure directive", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+	}
+
+	/**
+	 * Increments the occurrence count for an existing directive and promotes it once the threshold is reached.
+	 *
+	 * @param directiveId    directive row id
+	 * @param failurePattern updated failure pattern text
+	 * @param directive      updated directive text
+	 * @return true if the row was updated
+	 */
+	public static boolean incrementToolFailureDirective(String directiveId, String directive, String embeddingJson) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String selectSql = "SELECT OCCURRENCE_COUNT FROM TOOL_FAILURE_DIRECTIVE WHERE DIRECTIVE_ID = ?";
+		String updateSql = "UPDATE TOOL_FAILURE_DIRECTIVE SET DIRECTIVE = ?, DIRECTIVE_EMBEDDING = ?, "
+				+ "OCCURRENCE_COUNT = ?, STATUS = ? WHERE DIRECTIVE_ID = ?";
+		PreparedStatement selectPs = null;
+		ResultSet rs = null;
+		PreparedStatement updatePs = null;
+		try {
+			selectPs = modelInferenceLogsDb.getPreparedStatement(selectSql);
+			selectPs.setString(1, directiveId);
+			rs = selectPs.executeQuery();
+			if (!rs.next()) {
+				return false;
+			}
+			int occurrenceCount = rs.getInt("OCCURRENCE_COUNT") + 1;
+			String status = occurrenceCount >= 5 ? "PROMOTED" : "PENDING";
+			updatePs = modelInferenceLogsDb.getPreparedStatement(updateSql);
+			int idx = 1;
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(updatePs, directive, idx++, GSON);
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(updatePs, embeddingJson, idx++, GSON);
+			updatePs.setInt(idx++, occurrenceCount);
+			updatePs.setString(idx++, status);
+			updatePs.setString(idx++, directiveId);
+			updatePs.executeUpdate();
+			if (!updatePs.getConnection().getAutoCommit()) {
+				updatePs.getConnection().commit();
+			}
+			return true;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to increment tool failure directive", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, selectPs, rs);
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updatePs, null);
+		}
+	}
+
+	/**
+	 * Atomically replaces all directives for a tool with a consolidated set.
+	 * Deletes all existing rows for the tool and inserts the consolidated rows
+	 * in a single transaction. Status is re-derived from occurrence_count.
+	 *
+	 * @param toolName     tool name whose directives are being replaced
+	 * @param consolidated consolidated directive rows, each with failure_pattern,
+	 *                     directive, and occurrence_count
+	 */
+	public static void replaceDirectivesForTool(String toolName, List<Map<String, Object>> consolidated) {
+		if (toolName == null || toolName.isBlank() || consolidated == null || consolidated.isEmpty()) {
+			return;
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection conn = null;
+		try {
+			conn = modelInferenceLogsDb.getConnection();
+			PreparedStatement deletePs = conn.prepareStatement(
+					"DELETE FROM TOOL_FAILURE_DIRECTIVE WHERE TOOL_NAME = ?");
+			try {
+				deletePs.setString(1, toolName);
+				deletePs.executeUpdate();
+			} finally {
+				try { deletePs.close(); } catch (Exception ignored) {}
+			}
+			String insertSql = "INSERT INTO TOOL_FAILURE_DIRECTIVE "
+					+ "(DIRECTIVE_ID, TOOL_NAME, DIRECTIVE, DIRECTIVE_EMBEDDING, OCCURRENCE_COUNT, STATUS) "
+					+ "VALUES (?, ?, ?, ?, ?, ?)";
+			for (Map<String, Object> row : consolidated) {
+				String directive = (String) row.get("directive");
+				String embeddingJson = (String) row.get("directive_embedding");
+				if (directive == null) {
+					continue;
+				}
+				int count = row.get("occurrence_count") instanceof Number
+						? ((Number) row.get("occurrence_count")).intValue() : 1;
+				String status = count >= 5 ? "PROMOTED" : "PENDING";
+				PreparedStatement insertPs = conn.prepareStatement(insertSql);
+				try {
+					int idx = 1;
+					insertPs.setString(idx++, GUID.v7().toUUID().toString());
+					insertPs.setString(idx++, toolName);
+					modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(insertPs, directive, idx++, GSON);
+					modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(insertPs,
+							embeddingJson != null ? embeddingJson : "[]", idx++, GSON);
+					insertPs.setInt(idx++, count);
+					insertPs.setString(idx, status);
+					insertPs.executeUpdate();
+				} finally {
+					try { insertPs.close(); } catch (Exception ignored) {}
+				}
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			if (conn != null) {
+				try { conn.rollback(); } catch (Exception ignored) {}
+			}
+			throw new IllegalStateException("Failed to replace directives for tool: " + toolName, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, conn, null, null);
+		}
+	}
+
+	/**
+	 * Fetches promoted global learned directives for tool-call-time injection.
+	 *
+	 * @param toolNames tool names
+	 * @return map of tool name to promoted directive text
+	 */
+	public static Map<String, String> getPromotedToolFailureDirectives(Set<String> toolNames) {
+		Map<String, String> result = new HashMap<>();
+		if (toolNames == null || toolNames.isEmpty()) {
+			return result;
+		}
+		List<String> cleanToolNames = new ArrayList<>();
+		for (String toolName : toolNames) {
+			if (toolName != null && !toolName.isBlank()) {
+				cleanToolNames.add(toolName.trim());
+			}
+		}
+		if (cleanToolNames.isEmpty()) {
+			return result;
+		}
+		StringBuilder sql = new StringBuilder(
+				"SELECT TOOL_NAME, DIRECTIVE FROM TOOL_FAILURE_DIRECTIVE " + "WHERE STATUS = ? AND TOOL_NAME IN (");
+		for (int i = 0; i < cleanToolNames.size(); i++) {
+			sql.append('?');
+			if (i < cleanToolNames.size() - 1) {
+				sql.append(", ");
+			}
+		}
+		sql.append(')');
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(sql.toString());
+			int idx = 1;
+			ps.setString(idx++, "PROMOTED");
+			for (String toolName : cleanToolNames) {
+				ps.setString(idx++, toolName);
+			}
+
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				String toolName = rs.getString("TOOL_NAME");
+				String directive = rs.getString("DIRECTIVE");
+				if (toolName != null && directive != null && !directive.isBlank()) {
+					result.merge(toolName, directive.trim(), (existing, incoming) -> existing + " " + incoming);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to fetch promoted tool failure directives", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
+		}
+		return result;
 	}
 
 }
