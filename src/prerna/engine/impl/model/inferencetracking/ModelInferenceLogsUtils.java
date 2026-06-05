@@ -47,6 +47,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
@@ -2318,7 +2319,9 @@ public class ModelInferenceLogsUtils {
 				}
 			}
 
-			try (PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
+
+			try (PreparedStatement ps = con.prepareStatement(
+					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_TYPE != 'SKILL'")) {
 				int index = 1;
 				ps.setString(index++, workspaceId);
 				ps.execute();
@@ -2510,6 +2513,97 @@ public class ModelInferenceLogsUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
+	}
+
+	/**
+	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring the
+	 * authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in sync - the
+	 * same dual-write pattern MCPs use ({@code EditWorkspaceReactor.mirrorCoreFieldsIntoConfigJson}).
+	 * Idempotent: a skill already present (matched by {@code skill_id}) is left untouched
+	 * and no write is issued.
+	 *
+	 * <p>The entry shape matches what {@code AgentConfigLoader.resolveSkills} reads:
+	 * {@code { "skill_id": <id>, "pinned_version": <optional> }}. Note the key is
+	 * {@code skill_id} - NOT {@code id} as the MCP mirror uses.
+	 *
+	 * @param workspaceId   workspace identifier
+	 * @param skillId       skill identifier to add
+	 * @param pinnedVersion optional pinned version; the key is omitted when null/empty
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void addSkillToWorkspaceConfigJson(String workspaceId, String skillId, String pinnedVersion)
+			throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (skillId == null || skillId.isEmpty()) {
+			throw new IllegalArgumentException("skillId is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		JSONArray skills = cfg.optJSONArray("skills");
+		if (skills == null) {
+			skills = new JSONArray();
+		}
+		// Dedup by skill_id - keep the mirror idempotent like the attach reactor itself.
+		for (int i = 0; i < skills.length(); i++) {
+			JSONObject s = skills.optJSONObject(i);
+			if (s != null && skillId.equals(s.optString("skill_id", null))) {
+				return;
+			}
+		}
+		JSONObject entry = new JSONObject();
+		entry.put("skill_id", skillId);
+		if (pinnedVersion != null && !pinnedVersion.isEmpty()) {
+			entry.put("pinned_version", pinnedVersion);
+		}
+		skills.put(entry);
+		cfg.put("skills", skills);
+		updateWorkspaceConfigJson(workspaceId, cfg);
+	}
+
+	/**
+	 * Removes a skill reference from {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
+	 * deletion of the {@code WORKSPACE_RESOURCE} row. No-op (no write) when the workspace
+	 * has no CONFIG_JSON, no {@code skills} array, or the skill is not present.
+	 *
+	 * @param workspaceId workspace identifier
+	 * @param skillId     skill identifier to remove
+	 * @throws SQLException if the CONFIG_JSON write fails
+	 */
+	public static void removeSkillFromWorkspaceConfigJson(String workspaceId, String skillId) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (skillId == null || skillId.isEmpty()) {
+			throw new IllegalArgumentException("skillId is required");
+		}
+		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
+		if (cfg == null) {
+			return;
+		}
+		JSONArray skills = cfg.optJSONArray("skills");
+		if (skills == null || skills.length() == 0) {
+			return;
+		}
+		JSONArray kept = new JSONArray();
+		boolean removed = false;
+		for (int i = 0; i < skills.length(); i++) {
+			JSONObject s = skills.optJSONObject(i);
+			if (s != null && skillId.equals(s.optString("skill_id", null))) {
+				removed = true;
+				continue;
+			}
+			kept.put(skills.get(i));
+		}
+		if (!removed) {
+			return;
+		}
+		cfg.put("skills", kept);
+		updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
 	/**
