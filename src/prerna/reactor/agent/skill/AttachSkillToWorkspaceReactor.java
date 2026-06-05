@@ -121,6 +121,15 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			response.put("workspace_id", workspaceId);
 			response.put("skill_id", skillId);
 			response.put("created", created);
+
+			try {
+				ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson(workspaceId, skillId, null);
+			} catch (Exception mirrorEx) {
+				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to mirror into CONFIG_JSON.skills",
+						skillId, workspaceId, mirrorEx);
+				response.put("warning", "Skill attached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
+			}
+
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
