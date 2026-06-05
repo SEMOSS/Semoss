@@ -143,13 +143,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
 		// Capture realEngine in a closure - not accessible via reflection
-		this.engineInvoker = (method, args) -> {
-			try {
-				return method.invoke(realEngine, args);
-			} catch (InvocationTargetException e) {
-				throw e.getTargetException();
-			}
-		};
+		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
 		this.engineType = realEngine.getCatalogType().name();
