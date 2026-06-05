@@ -60,6 +60,18 @@ import prerna.forms.UpdateFormReactor;
 import prerna.io.connector.surveymonkey.SurveyMonkeyListSurveysReactor;
 import prerna.om.Insight;
 import prerna.poi.main.helper.excel.GetExcelFormReactor;
+import prerna.auth.utils.reactors.GetEngineTeamTokenLimitsReactor;
+import prerna.auth.utils.reactors.GetEngineUserTokenLimitsReactor;
+import prerna.auth.utils.reactors.GetProjectTeamTokenLimitsReactor;
+import prerna.auth.utils.reactors.GetProjectUserTokenLimitsReactor;
+import prerna.auth.utils.reactors.RemoveEngineTeamTokenLimitReactor;
+import prerna.auth.utils.reactors.RemoveEngineUserTokenLimitReactor;
+import prerna.auth.utils.reactors.RemoveProjectTeamTokenLimitReactor;
+import prerna.auth.utils.reactors.RemoveProjectUserTokenLimitReactor;
+import prerna.auth.utils.reactors.SetEngineTeamTokenLimitReactor;
+import prerna.auth.utils.reactors.SetEngineUserTokenLimitReactor;
+import prerna.auth.utils.reactors.SetProjectTeamTokenLimitReactor;
+import prerna.auth.utils.reactors.SetProjectUserTokenLimitReactor;
 import prerna.query.querystruct.delete.DeleteReactor;
 import prerna.query.querystruct.update.reactors.UpdateReactor;
 import prerna.reactor.algorithms.CreateNLPVizReactor;
@@ -619,6 +631,18 @@ public class ReactorFactory {
 		reactorHash.put("PredictExcelRangeMetadata", PredictExcelRangeMetadataReactor.class);
 		reactorHash.put("DeleteInsightCache", DeleteInsightCacheReactor.class);
 		reactorHash.put("GetUserInfo", GetUserInfoReactor.class);
+		reactorHash.put("GetEngineUserTokenLimits", GetEngineUserTokenLimitsReactor.class);
+		reactorHash.put("SetEngineUserTokenLimit", SetEngineUserTokenLimitReactor.class);
+		reactorHash.put("RemoveEngineUserTokenLimit", RemoveEngineUserTokenLimitReactor.class);
+		reactorHash.put("GetEngineTeamTokenLimits", GetEngineTeamTokenLimitsReactor.class);
+		reactorHash.put("SetEngineTeamTokenLimit", SetEngineTeamTokenLimitReactor.class);
+		reactorHash.put("RemoveEngineTeamTokenLimit", RemoveEngineTeamTokenLimitReactor.class);
+		reactorHash.put("GetProjectUserTokenLimits", GetProjectUserTokenLimitsReactor.class);
+		reactorHash.put("SetProjectUserTokenLimit", SetProjectUserTokenLimitReactor.class);
+		reactorHash.put("RemoveProjectUserTokenLimit", RemoveProjectUserTokenLimitReactor.class);
+		reactorHash.put("GetProjectTeamTokenLimits", GetProjectTeamTokenLimitsReactor.class);
+		reactorHash.put("SetProjectTeamTokenLimit", SetProjectTeamTokenLimitReactor.class);
+		reactorHash.put("RemoveProjectTeamTokenLimit", RemoveProjectTeamTokenLimitReactor.class);
 
 		// Database uploading utils
 		reactorHash.put("CheckHeaders", CheckHeadersReactor.class);

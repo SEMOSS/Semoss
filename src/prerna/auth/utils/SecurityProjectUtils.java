@@ -1580,8 +1580,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// get userid of all requests
 		List<String> existingUserIds = new ArrayList<String>();
+		Set<String> uniqueUserIds = new HashSet<String>();
 		for (Map<String, Object> i : requests) {
-			existingUserIds.add((String) i.get("userid"));
+			String userId = (String) i.get("userid");
+			if (!uniqueUserIds.add(userId)) {
+				throw new IllegalArgumentException("Duplicate user permission update requested for user: " + userId);
+			}
+			existingUserIds.add(userId);
 		}
 
 		// get user permissions to edit
@@ -1620,74 +1625,61 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
 		}
 
-		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID = ? AND PROJECTID = ?";
-		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-		PreparedStatement deletePs = null;
-		PreparedStatement insertPs = null;
+		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=?, MAX_INPUT_TOKENS=?, MAX_OUTPUT_TOKENS=? WHERE USERID = ? AND PROJECTID = ?";
+		PreparedStatement ps = null;
 		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			insertPs = securityDb.getPreparedStatement(insertQ);
-			Set<String> deletedUserIds = new HashSet<String>();
+			ps = securityDb.getPreparedStatement(updateQ);
 			for (int i = 0; i < requests.size(); i++) {
 				Map<String, Object> thisPermissionMap = requests.get(i);
 				int parameterIndex = 1;
 
 				String newUserId = (String) thisPermissionMap.get("userid");
 				String newUserType = (String) thisPermissionMap.get("type");
-				boolean visibility = getExistingUserProjectVisibility(newUserId, projectId);
 				String existingPermission = AccessPermissionEnum
 						.getPermissionValueById(getUserProjectPermission(newUserId, projectId));
 
-				if (deletedUserIds.add(newUserId)) {
-					deletePs.setString(1, newUserId);
-					deletePs.setString(2, projectId);
-					deletePs.execute();
-				}
-
-				insertPs.setString(parameterIndex++, newUserId);
-				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setInt(parameterIndex++,
+				ps.setInt(parameterIndex++,
 						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-				insertPs.setBoolean(parameterIndex++, visibility);
-				insertPs.setString(parameterIndex++, userDetails.getValue0());
-				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, startDate);
-				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 
 				if (thisPermissionMap.get("usageRestriction") != null
 						&& !((String) thisPermissionMap.get("usageRestriction")).trim().isEmpty()) {
-					insertPs.setString(parameterIndex++, ((String) thisPermissionMap.get("usageRestriction")).trim());
+					ps.setString(parameterIndex++, ((String) thisPermissionMap.get("usageRestriction")).trim());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("usageFrequency") != null
 						&& !((String) thisPermissionMap.get("usageFrequency")).trim().isEmpty()) {
-					insertPs.setString(parameterIndex++, ((String) thisPermissionMap.get("usageFrequency")).trim());
+					ps.setString(parameterIndex++, ((String) thisPermissionMap.get("usageFrequency")).trim());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("maxTokens") != null) {
-					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
-					insertPs.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 				}
 				if (thisPermissionMap.get("maxInputTokens") != null) {
-					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
+					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxInputTokens")).intValue());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
 				if (thisPermissionMap.get("maxOutputTokens") != null) {
-					insertPs.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
+					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxOutputTokens")).intValue());
 				} else {
-					insertPs.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-
-				insertPs.execute();
+				ps.setString(parameterIndex++, newUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.addBatch();
 
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
@@ -1697,14 +1689,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							(String) thisPermissionMap.get("permission"));
 				}
 			}
-			if (!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
+			ps.executeBatch();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update project user permissions", e);
+			throw new IllegalArgumentException(
+					"An error occurred updating the user permissions for this project. Detailed error message = "
+							+ e.getMessage());
 		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, deletePs, null);
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, insertPs, null);
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
