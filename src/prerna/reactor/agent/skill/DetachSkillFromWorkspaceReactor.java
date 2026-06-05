@@ -30,6 +30,9 @@ package prerna.reactor.agent.skill;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -56,6 +59,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * detaching is always allowed for someone who can edit the workspace.
  */
 public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(DetachSkillFromWorkspaceReactor.class);
 
 	private static final String SKILL_ID = "skillId";
 
@@ -91,6 +96,16 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 		response.put("workspace_id", workspaceId);
 		response.put("skill_id", skillId);
 		response.put("removed", deleted > 0);
+
+
+		try {
+			ModelInferenceLogsUtils.removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
+		} catch (Exception mirrorEx) {
+			classLogger.warn("Detached skill '{}' from workspace '{}' but failed to mirror removal out of CONFIG_JSON.skills",
+					skillId, workspaceId, mirrorEx);
+			response.put("warning", "Skill detached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
+		}
+
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
