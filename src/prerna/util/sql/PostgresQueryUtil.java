@@ -325,7 +325,8 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	public void handleInsertionOfBlob(Connection conn, PreparedStatement statement, String object, int index)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			statement.setNull(index, java.sql.Types.BLOB);
+			// blob data type name is BYTEA. so, need Types.BINARY here instead of Types.BLOB
+			statement.setNull(index, java.sql.Types.BINARY);
 		} else {
 			statement.setBytes(index, object.getBytes("UTF-8"));
 		}
@@ -364,12 +365,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 
 	@Override
 	public String handleBlobRetrieval(ResultSet result, String key) throws SQLException, IOException {
-		return new String(result.getBytes(key));
+		byte[] bytes = result.getBytes(key);
+		return bytes != null ? new String(bytes) : null;
 	}
 
 	@Override
 	public String handleBlobRetrieval(ResultSet result, int index) throws SQLException, IOException {
-		return new String(result.getBytes(index));
+		byte[] bytes = result.getBytes(index);
+		return bytes != null ? new String(bytes) : null;
 	}
 
 	@Override

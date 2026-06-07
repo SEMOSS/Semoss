@@ -46,24 +46,22 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
-	
+
 	private static final String SMSS_USER_ACCESS_KEYS_TABLE_NAME = "SMSS_USER_ACCESS_KEYS";
 	private static final String USERID_COL = "USERID";
 	private static final String TYPE_COL = "TYPE";
 	private static final String ACCESS_KEY_COL = "ACCESSKEY";
 	private static final String SECRET_KEY_COL = "SECRETKEY";
-	private static final String SECRET_KEY_SALT_COL =  "SECRETSALT";
-	private static final String DATE_CREATED_COL =  "DATECREATED";
-	private static final String LAST_USED_COL =  "LASTUSED";
+	private static final String SECRET_KEY_SALT_COL = "SECRETSALT";
+	private static final String DATE_CREATED_COL = "DATECREATED";
+	private static final String LAST_USED_COL = "LASTUSED";
 
 	private static final String TOKEN_NAME_COL = "TOKENNAME";
 	private static final String TOKEN_DESCRIPTION_COL = "TOKENDESCRIPTION";
@@ -73,7 +71,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 	private static final String NAME_COL = SMSS_USER_TABLE_NAME + "__NAME";
 	private static final String USERNAME_COL = SMSS_USER_TABLE_NAME + "__USERNAME";
 	private static final String EMAIL_COL = SMSS_USER_TABLE_NAME + "__EMAIL";
-	
+
 	private User user;
 	private String id = "test user id";
 	private String email = "test123@test.com";
@@ -104,7 +102,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 		accessToken.setEmail(email);
 		user.setGlobalAccessToken(accessToken);
 
-		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// clear the session share table before each test
 		Connection conn = null;
 		Statement s = null;
@@ -127,12 +125,13 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 				modelMaxResponseTime);
 		assertTrue(success, "Insertion of new user was not successful");
 	}
-	
+
 	@Test
 	void testCreateUserAccessToken() throws Exception {
 		String tokenName = "test token name";
 		String tokenDescription = "test token description";
-		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName, tokenDescription);
+		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName,
+				tokenDescription);
 		assertNotNull(accessTokenMap);
 		assertFalse(accessTokenMap.isEmpty());
 		try (IRawSelectWrapper wrapper = getAccessKeyTableWrapper()) {
@@ -151,16 +150,17 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 
 		}
 	}
-	
+
 	@Test
 	void testUpdateAccessTokenLastUsed() throws Exception {
 		String tokenName = "test token name";
 		String tokenDescription = "test token description";
 		// add access token to table
-		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName, tokenDescription);
+		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName,
+				tokenDescription);
 		assertNotNull(accessTokenMap);
 		assertFalse(accessTokenMap.isEmpty());
-		String accessKey = (String)accessTokenMap.get(ACCESS_KEY_COL);
+		String accessKey = accessTokenMap.get(ACCESS_KEY_COL);
 		assertNotNull(accessKey); // verify valid access was retrieved
 		assertFalse(accessKey.equals(""));
 		// update lastUsed
@@ -174,13 +174,14 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertNotNull(data.get(LAST_USED_COL));
 		}
 	}
-	
+
 	@Test
 	void testValidateKeysAndReturnUser() throws Exception {
 		String tokenName = "test token name";
 		String tokenDescription = "test token description";
 		// add access token to table
-		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName, tokenDescription);
+		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName,
+				tokenDescription);
 		assertNotNull(accessTokenMap);
 		assertFalse(accessTokenMap.isEmpty());
 		/// verify user was added to table
@@ -198,10 +199,9 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertEquals(tokenName, data.get(TOKEN_NAME_COL));
 			assertEquals(tokenDescription, data.get(TOKEN_DESCRIPTION_COL));
 		}
-		String accessKey = (String)accessTokenMap.get(ACCESS_KEY_COL);
-		String secretKey = (String)accessTokenMap.get(SECRET_KEY_COL);
-		User returnedUser = SecurityUserAccessKeyUtils.validateKeysAndReturnUser(accessKey, secretKey);
-		AccessToken returnedAccessToken = returnedUser.getAccessToken(prerna.auth.AuthProvider.GOOGLE);
+		String accessKey = accessTokenMap.get(ACCESS_KEY_COL);
+		String secretKey = accessTokenMap.get(SECRET_KEY_COL);
+		AccessToken returnedAccessToken = SecurityUserAccessKeyUtils.validateKeysAndReturnToken(accessKey, secretKey);
 		assertNotNull(returnedAccessToken);
 		assertEquals(accessToken.getProvider(), returnedAccessToken.getProvider());
 		assertEquals(accessToken.getId(), returnedAccessToken.getId());
@@ -209,14 +209,15 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertEquals(accessToken.getUsername(), returnedAccessToken.getUsername());
 		assertEquals(accessToken.getEmail(), returnedAccessToken.getEmail());
 	}
-	
+
 	@Test
 	void testDeleteUserAccessToken() throws Exception {
 		/// add user and create user access token
 		String tokenName = "test token name";
 		String tokenDescription = "test token description";
 		// add access token to table
-		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName, tokenDescription);
+		Map<String, String> accessTokenMap = SecurityUserAccessKeyUtils.createUserAccessToken(accessToken, tokenName,
+				tokenDescription);
 		assertNotNull(accessTokenMap);
 		assertFalse(accessTokenMap.isEmpty());
 		/// verify user was added to table
@@ -225,10 +226,9 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertTrue(wrapper.hasNext());
 			assertEquals(1, wrapper.getNumRows());
 		}
-		String accessKey = (String) accessTokenMap.get(ACCESS_KEY_COL);
-		String secretKey = (String) accessTokenMap.get(SECRET_KEY_COL);
-		User returnedUser = SecurityUserAccessKeyUtils.validateKeysAndReturnUser(accessKey, secretKey);
-		AccessToken returnedAccessToken = returnedUser.getAccessToken(prerna.auth.AuthProvider.GOOGLE);
+		String accessKey = accessTokenMap.get(ACCESS_KEY_COL);
+		String secretKey = accessTokenMap.get(SECRET_KEY_COL);
+		AccessToken returnedAccessToken = SecurityUserAccessKeyUtils.validateKeysAndReturnToken(accessKey, secretKey);
 		assertNotNull(returnedAccessToken);
 		/// delete user from table
 		SecurityUserAccessKeyUtils.deleteUserAccessToken(returnedAccessToken, accessKey);
@@ -239,7 +239,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertEquals(0, wrapper.getNumRows());
 		}
 	}
-	
+
 	@Test
 	void testGetUserAccessKeyInfo() throws Exception {
 		/// add user and create user access token
@@ -256,13 +256,13 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 			assertTrue(wrapper.hasNext());
 			assertEquals(1, wrapper.getNumRows());
 		}
-		String accessKey = (String) accessTokenMap.get(ACCESS_KEY_COL);
-		String secretKey = (String) accessTokenMap.get(SECRET_KEY_COL);
-		User returnedUser = SecurityUserAccessKeyUtils.validateKeysAndReturnUser(accessKey, secretKey);
-		AccessToken returnedAccessToken = returnedUser.getAccessToken(prerna.auth.AuthProvider.GOOGLE);
+		String accessKey = accessTokenMap.get(ACCESS_KEY_COL);
+		String secretKey = accessTokenMap.get(SECRET_KEY_COL);
+		AccessToken returnedAccessToken = SecurityUserAccessKeyUtils.validateKeysAndReturnToken(accessKey, secretKey);
 		assertNotNull(returnedAccessToken);
 		/// retrieve user access key info
-		List<Map<String, Object>> retrievedUserAccessKeyInfoMap = SecurityUserAccessKeyUtils.getUserAccessKeyInfo(returnedAccessToken, accessKey);
+		List<Map<String, Object>> retrievedUserAccessKeyInfoMap = SecurityUserAccessKeyUtils
+				.getUserAccessKeyInfo(returnedAccessToken, accessKey);
 		assertNotNull(retrievedUserAccessKeyInfoMap);
 		assertEquals(1, retrievedUserAccessKeyInfoMap.size());
 		Map<String, Object> retrievedUserAccessKeyMap = retrievedUserAccessKeyInfoMap.get(0);
@@ -276,7 +276,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 	// used to get a wrapper on the table to validate tests
 	// this wrapper needs to be closed after use
 	private IRawSelectWrapper getAccessKeyTableWrapper() throws Exception {
-		IRDBMSEngine securityDb = (IRDBMSEngine) SystemEngineRegistry.getSecurityDb();
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__" + USERID_COL));
 		qs.addSelector(new QueryColumnSelector(SMSS_USER_ACCESS_KEYS_TABLE_NAME + "__" + TYPE_COL));
