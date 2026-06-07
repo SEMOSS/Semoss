@@ -36,11 +36,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -388,7 +388,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (userId == null || userId.trim().isEmpty()) {
 			return;
 		}
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), userId, room.getMessagesAsString());
+		RoomMessageStore.persist(room, userId);
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {

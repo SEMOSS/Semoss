@@ -40,6 +40,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
@@ -113,8 +114,7 @@ public class AskPlaygroundReactor extends AbstractReactor {
 
 		// parse the response for code blocks
 		if (response.getMessageType() == MessageType.RESPONSE_TEXT) {
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					insight.getUser().getPrimaryLoginToken().getId(), room.getMessagesAsString());
+			RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 		} else if (response.getMessageType() == MessageType.RESPONSE_TOOL) {
 			room.updateToolResponseMeta(response);
 		}

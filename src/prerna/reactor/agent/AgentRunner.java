@@ -154,9 +154,21 @@ public final class AgentRunner {
         }
         try {
 
-        Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+        IModelEngine modelEngine = null;
+        String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
+        if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+            modelEngine = Utility.getModel(runtimeModelId);
+            if (modelEngine == null) {
+                throw new IllegalArgumentException(
+                        "Could not load model engine '" + runtimeModelId + "' for room '" + roomId + "'");
+            }
+        }
 
-        String modelId = resolveModelId(room, engineIdFallback);
+        Room room = modelEngine != null
+                ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+                : RoomUtils.getOrLoadRoom(roomId, insight);
+
+        String modelId = resolveModelId(room, runtimeModelId);
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "No model engine found for room '" + roomId + "'. "
@@ -164,7 +176,9 @@ public final class AgentRunner {
         }
         logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
 
-        IModelEngine modelEngine = Utility.getModel(modelId);
+        if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
+            modelEngine = Utility.getModel(modelId);
+        }
         if (modelEngine == null) {
             throw new IllegalArgumentException(
                     "Could not load model engine '" + modelId + "' for room '" + roomId + "'");

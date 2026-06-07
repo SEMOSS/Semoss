@@ -42,6 +42,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -264,10 +265,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         messages.add(toolPruneResponse);
 
         try {
-            ModelInferenceLogsUtils.llm2_updateRoomMessages(
-                    room.getId(),
-                    this.insight.getUser().getPrimaryLoginToken().getId(),
-                    room.getMessagesAsString());
+            RoomMessageStore.persist(room, this.insight.getUser().getPrimaryLoginToken().getId());
         } catch (Exception e) {
             // Roll back the in-memory mutations so the cached Room stays in sync with the DB.
             // Room objects are process-cached (RoomUtils), so leaking dirty state here would
@@ -439,10 +437,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
         messages.add(compactedResponse);
 
         try {
-            ModelInferenceLogsUtils.llm2_updateRoomMessages(
-                    room.getId(),
-                    this.insight.getUser().getPrimaryLoginToken().getId(),
-                    room.getMessagesAsString());
+            RoomMessageStore.persist(room, this.insight.getUser().getPrimaryLoginToken().getId());
         } catch (Exception e) {
             // Roll back the in-memory mutations so the cached Room stays in sync with the DB.
             // Room objects are process-cached (RoomUtils), so leaking dirty state here would
