@@ -46,8 +46,9 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		try {
 			String query = "INSERT INTO AGENT_RUN (RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, "
-					+ "STATUS, INPUT, FINAL_OUTPUT, ERROR_MESSAGE, DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "STATUS, INPUT, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
+					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID) "
+					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = db.getPreparedStatement(query);
 			int idx = 1;
 			ps.setString(idx++, runId);
@@ -58,7 +59,9 @@ public final class AgentRunStore {
 			ps.setNull(idx++, Types.VARCHAR);
 			ps.setString(idx++, AgentRunStatus.CREATED.name());
 			setClob(db, ps, idx++, request.getInput());
+			ps.setNull(idx++, Types.VARCHAR);
 			ps.setNull(idx++, Types.NULL);
+			ps.setNull(idx++, Types.VARCHAR);
 			ps.setNull(idx++, Types.NULL);
 			ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
 			ps.setNull(idx++, Types.TIMESTAMP);
@@ -75,6 +78,14 @@ public final class AgentRunStore {
 
 	public void markRunning(String runId, String jobId) {
 		updateStatus(runId, AgentRunStatus.RUNNING, jobId, null, null, true, false);
+	}
+
+	public void markInputMessage(String runId, String messageId) {
+		updateMessageId(runId, "INPUT_MESSAGE_ID", messageId);
+	}
+
+	public void markFinalOutputMessage(String runId, String messageId) {
+		updateMessageId(runId, "FINAL_OUTPUT_MESSAGE_ID", messageId);
 	}
 
 	public void markCompleted(String runId, String jobId, String finalOutput) {
@@ -130,6 +141,23 @@ public final class AgentRunStore {
 			commitIfNeeded(ps);
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to update AGENT_RUN status for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	private void updateMessageId(String runId, String columnName, String messageId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE AGENT_RUN SET " + columnName + " = ? WHERE RUN_ID = ?";
+			ps = db.getPreparedStatement(query);
+			setNullableString(ps, 1, messageId);
+			ps.setString(2, runId);
+			ps.executeUpdate();
+			commitIfNeeded(ps);
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to update AGENT_RUN " + columnName + " for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
 		}

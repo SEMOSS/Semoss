@@ -36,6 +36,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -87,6 +88,10 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_PERMISSION_MODE_SNAKE = "permission_mode";
 	private static final String PARAM_PROJECT = "project";
 	private static final String PARAM_SUBDIR = "subdir";
+	private static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
+	private static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
+	private static final String RUN_ROLE_INPUT = "input";
+	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
 
 	@Override
 	public String getName() {
@@ -176,9 +181,13 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			// Start the clock BEFORE the first model call so it counts against max_seconds.
 			AgentLoopState state = new AgentLoopState();
+			String inputMessageId = null;
+			String finalOutputMessageId = null;
 
 			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
 					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+			inputMessageId = firstMsg.getMessageId();
 
 			logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
 					ctx.getModelEngine().getEngineId(), ctx.getInput().length());
@@ -237,10 +246,12 @@ public class SemossAgentHarness implements IAgentHarness {
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
 								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
 								.withParamMap(reflectionParams).build();
+						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
 						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
 
 					} else {
 						state.setFinalText(response.getContent());
+						finalOutputMessageId = response.getMessageId();
 						state.setTerminal(true);
 					}
 
@@ -266,6 +277,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					logger.warn("SemossAgentHarness: unexpected MessageType {} at iteration={} - treating as terminal",
 							msgType, state.getIterations());
 					state.setFinalText(response.getContent());
+					finalOutputMessageId = response.getMessageId();
 					state.setTerminal(true);
 				}
 			}
@@ -277,7 +289,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
-					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed());
+					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
+					finalOutputMessageId);
 		} finally {
 			// Always restore -- we always mutated options.instructions above.
 			if (hadInstructions) {
@@ -302,6 +315,16 @@ public class SemossAgentHarness implements IAgentHarness {
 			return;
 		}
 		insight.setInsightFolder(filePath.trim());
+	}
+
+	private static void tagAgentRun(AbstractMessage message, String runId, String role) {
+		if (message == null || runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		message.setOrnament(ORNAMENT_AGENT_RUN_ID, runId);
+		if (role != null && !role.trim().isEmpty()) {
+			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
+		}
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {

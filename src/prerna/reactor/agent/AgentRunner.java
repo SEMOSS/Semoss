@@ -125,6 +125,7 @@ public final class AgentRunner {
      * @param maxTurns        Optional. Maximum SEMOSS harness tool-call rounds.
      * @param maxReflections  Optional. Maximum SEMOSS harness self-critique rounds.
      * @param paramMap        Optional. Extra model parameters (temperature, max_tokens, etc.).
+     * @param runId           Optional durable AGENT_RUN id used to tag room messages.
      * @param insight         Required. Current insight context (user, project, etc.).
      * @return Rich result containing final text, iteration count, and tool-call trace.
      * @throws Exception on unrecoverable errors during execution.
@@ -138,6 +139,7 @@ public final class AgentRunner {
             int maxReflections,
             Map<String, Object> paramMap,
             Map<String, Object> agentParamMap,
+            String runId,
             Insight insight
             ) throws Exception {
 
@@ -204,6 +206,7 @@ public final class AgentRunner {
                 .insight(insight)
                 .userId(room.getUserId())
                 .input(input)
+                .runId(runId)
                 .sandboxPolicy(sandboxPolicy)
                 // Root runs are not registered as subagents and resolve to depth 0.
                 // Child runs are recorded by AgentSubAgentRegistry before their

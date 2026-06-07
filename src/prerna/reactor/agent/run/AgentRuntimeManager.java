@@ -68,9 +68,14 @@ public final class AgentRuntimeManager {
 					request.getMaxReflections(),
 					request.getParamMap(),
 					request.getAgentParamMap(),
+					runId,
 					request.getInsight());
 
 			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
+			if (result != null) {
+				store.markInputMessage(runId, result.getInputMessageId());
+				store.markFinalOutputMessage(runId, result.getFinalOutputMessageId());
+			}
 			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
 			return new RunAgentResult(runId, AgentRunStatus.COMPLETED, result);
 		} catch (Exception e) {
