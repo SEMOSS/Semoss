@@ -40,6 +40,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -92,6 +93,10 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
 	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
+	private static final String RUN_ROLE_ASSISTANT = "assistant";
+	private static final String RUN_ROLE_ASSISTANT_TOOL = "assistant_tool";
+	private static final String RUN_ROLE_TOOL_RESULT = "tool_result";
+	private static final String RUN_ROLE_FINAL_OUTPUT = "final_output";
 
 	@Override
 	public String getName() {
@@ -183,6 +188,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			AgentLoopState state = new AgentLoopState();
 			String inputMessageId = null;
 			String finalOutputMessageId = null;
+			int runMessageStartIndex = room.getMessages().size();
 
 			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
 					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
@@ -193,6 +199,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
 			ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
+			tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 
 			// Honor cancellation that arrived during the initial ask before doing any tool
 			// work.
@@ -248,20 +255,24 @@ public class SemossAgentHarness implements IAgentHarness {
 								.withParamMap(reflectionParams).build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
 						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 
 					} else {
 						state.setFinalText(response.getContent());
 						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
 						state.setTerminal(true);
 					}
 
 				} else if (msgType == MessageType.RESPONSE_TOOL) {
 
 					room.updateToolResponseMeta(response);
+					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
 					// Re-inject synthesized tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectSubAgentTools(paramMap, subAgentTools);
 					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
 					state.incrementIterations();
 
 					if (next != null) {
@@ -278,9 +289,11 @@ public class SemossAgentHarness implements IAgentHarness {
 							msgType, state.getIterations());
 					state.setFinalText(response.getContent());
 					finalOutputMessageId = response.getMessageId();
+					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
 					state.setTerminal(true);
 				}
 			}
+			persistAgentRunTags(room, ctx);
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
@@ -325,6 +338,57 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (role != null && !role.trim().isEmpty()) {
 			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
 		}
+	}
+
+	private static void tagAgentRunMessagesFrom(Room room, int startIndex, String runId) {
+		if (room == null || runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		List<AbstractMessage> messages = room.getMessages();
+		int from = Math.max(0, startIndex);
+		for (int i = from; i < messages.size(); i++) {
+			AbstractMessage message = messages.get(i);
+			if (message == null) {
+				continue;
+			}
+			Object existingRole = message.getOrnament(ORNAMENT_AGENT_RUN_ROLE);
+			String role = existingRole == null ? roleForMessage(message) : String.valueOf(existingRole);
+			tagAgentRun(message, runId, role);
+		}
+	}
+
+	private static String roleForMessage(AbstractMessage message) {
+		if (message instanceof InputMessage && message.hasToolResultPart()) {
+			return RUN_ROLE_TOOL_RESULT;
+		}
+		if (message instanceof InputMessage) {
+			return RUN_ROLE_INPUT;
+		}
+		if (message instanceof ResponseMessage) {
+			return roleForAssistant((ResponseMessage) message);
+		}
+		return null;
+	}
+
+	private static String roleForAssistant(ResponseMessage message) {
+		if (message != null && message.getMessageType() == MessageType.RESPONSE_TOOL) {
+			return RUN_ROLE_ASSISTANT_TOOL;
+		}
+		return RUN_ROLE_ASSISTANT;
+	}
+
+	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {
+		if (room == null || ctx == null || ctx.getRunId() == null || ctx.getRunId().trim().isEmpty()) {
+			return;
+		}
+		String userId = ctx.getUserId();
+		if (userId == null || userId.trim().isEmpty()) {
+			userId = room.getUserId();
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			return;
+		}
+		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), userId, room.getMessagesAsString());
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
