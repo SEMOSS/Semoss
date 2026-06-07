@@ -62,19 +62,19 @@ public class TransposeRowsReactor extends TaskBuilderReactor {
 		// also add this to the store!!!
 		this.insight.getTaskStore().addTask(this.task);
 	}
-	
+
 	private String determineTypes() {
 		List<Map<String, Object>> curHeaderInfo = this.task.getHeaderInfo();
 		int size = curHeaderInfo.size();
 		String type = null;
-		for(int i = 0; i < size; i++) {
+		for (int i = 0; i < size; i++) {
 			Map<String, Object> headerMap = curHeaderInfo.get(i);
 			String curType = headerMap.get("type").toString();
-			if(curType.equals("STRING")) {
+			if (curType.equals("STRING")) {
 				return "STRING";
-			} else if(type == null){
+			} else if (type == null) {
 				type = curType;
-			} else if(type == curType) {
+			} else if (type.equals(curType)) {
 				// do nothing
 			} else {
 				// this means type and curType are not the same
@@ -89,15 +89,15 @@ class TransposeRowTaskIterator extends AbstractTaskOperation {
 
 	private IHeadersDataRow row = null;
 	private int curCol = 0;
-	private String[] newHeaders = new String[]{"Attribute","Value"};
-	
+	private String[] newHeaders = new String[] { "Attribute", "Value" };
+
 	public TransposeRowTaskIterator(ITask innerTask) {
 		super(innerTask);
 	}
 
 	@Override
 	public boolean hasNext() {
-		if(this.row == null) {
+		if (this.row == null) {
 			// not initialized
 			// see if we have another row to get
 			return this.innerTask.hasNext();
@@ -105,7 +105,7 @@ class TransposeRowTaskIterator extends AbstractTaskOperation {
 			// see if the total number of records
 			// is more than the current column index
 			int totalCols = this.row.getRecordLength();
-			if(totalCols > this.curCol) {
+			if (totalCols > this.curCol) {
 				return true;
 			} else {
 				return this.innerTask.hasNext();
@@ -115,21 +115,21 @@ class TransposeRowTaskIterator extends AbstractTaskOperation {
 
 	@Override
 	public IHeadersDataRow next() {
-		if(this.row == null) {
+		if (this.row == null) {
 			this.row = innerTask.next();
 			this.curCol = 0;
 		}
 		Object[] values = new Object[2];
 		values[0] = this.row.getHeaders()[this.curCol];
 		values[1] = this.row.getValues()[this.curCol];
-		
+
 		// update to grab the next column value
 		this.curCol++;
 		// if we reached the end, set the row to null
-		if(this.curCol == this.row.getRecordLength()) {
+		if (this.curCol == this.row.getRecordLength()) {
 			this.row = null;
 		}
-		
+
 		HeadersDataRow dataRow = new HeadersDataRow(this.newHeaders, values);
 		return dataRow;
 	}

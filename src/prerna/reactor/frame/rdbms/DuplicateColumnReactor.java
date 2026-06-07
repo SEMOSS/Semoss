@@ -40,7 +40,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class DuplicateColumnReactor extends AbstractFrameReactor {
 
@@ -95,7 +94,8 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		try {
 			frame.getBuilder().runQuery(addNewCol);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add duplicate column {} from source {} on table {}", newColName, srcCol, table,
+					e);
 		}
 
 		// update new column with the duplicate data
@@ -103,7 +103,8 @@ public class DuplicateColumnReactor extends AbstractFrameReactor {
 		try {
 			frame.getBuilder().runQuery(duplicate);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to populate duplicate column {} from source {} on table {}", newColName, srcCol,
+					table, e);
 		}
 
 		// update meta data

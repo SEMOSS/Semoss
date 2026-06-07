@@ -38,14 +38,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 /**
  * This reactor changes the data type of an existing column The inputs to the
  * reactor are: 1) the column to update 2) the desired column type 3) if the
  * desired type is a date, can enter the current date format
  */
-
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ChangeColumnTypeReactor.class);
@@ -99,7 +97,8 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(convertString);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to convert column {} on table {} to date using format {}", column, table,
+						dateFormat, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 		} else {
@@ -108,7 +107,7 @@ public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 			try {
 				frame.getBuilder().runQuery(update);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to alter column {} on table {} to type {}", column, table, newType, e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 		}

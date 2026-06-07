@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExtractNumbersReactor extends AbstractPyFrameReactor {
@@ -67,7 +66,7 @@ public class ExtractNumbersReactor extends AbstractPyFrameReactor {
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 
-		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
+		List<PixelOperationType> opTypes = new ArrayList<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		// update existing columns
 		if (overrideColumn) {
@@ -82,7 +81,8 @@ public class ExtractNumbersReactor extends AbstractPyFrameReactor {
 						frame.getMetaData().modifyDataTypeToProperty(frame.getName() + "__" + column, frame.getName(),
 								SemossDataType.DOUBLE.toString());
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to extract numeric values in-place for column {} on frame {}.",
+								column, frame.getName(), e);
 					}
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
@@ -115,7 +115,7 @@ public class ExtractNumbersReactor extends AbstractPyFrameReactor {
 
 	private List<String> getColumns() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		Vector<String> columns = new Vector<String>();
+		List<String> columns = new ArrayList<String>();
 		NounMetadata noun;
 		if (grs != null) {
 			for (int i = 0; i < grs.size(); i++) {

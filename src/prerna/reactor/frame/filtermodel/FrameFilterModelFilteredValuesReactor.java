@@ -57,25 +57,21 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelFilteredValuesReactor.class);
-	
+
 	/**
 	 * This reactor has many inputs
 	 * 
-	 * 1) columnName <- required
-	 * 2) filterWord <- optional
-	 * 3) limit <- optional
-	 * 4) offset <- optional
-	 * 5) panel <- optional
+	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional 4)
+	 * offset <- optional 5) panel <- optional
 	 * 
-	 * This reactor returns the filter values that are filtered out
-	 * i.e. these would be values that are unchecked in a drop down selection
+	 * This reactor returns the filter values that are filtered out i.e. these would
+	 * be values that are unchecked in a drop down selection
 	 */
-	
+
 	public FrameFilterModelFilteredValuesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.FILTER_WORD.getKey(),
 				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.PANEL.getKey() };
@@ -118,7 +114,8 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 		return getFilterModel(dataframe, tableCol, filterWord, limit, offset, panel);
 	}
 
-	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit, int offset, InsightPanel panel) {
+	public NounMetadata getFilterModel(ITableDataFrame dataframe, String tableCol, String filterWord, int limit,
+			int offset, InsightPanel panel) {
 		// store results in this map
 		Map<String, Object> retMap = new HashMap<String, Object>();
 		// first just return the info that was passed in
@@ -140,7 +137,7 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 		if (panel != null) {
 			baseFilters.merge(panel.getPanelFilters().copy());
 		}
-		
+
 		// if the current filters doesn't use the column
 		// there is no values that are unchecked to select
 		// i.e. nothing is done that is filtered that the user can undo for this column
@@ -160,15 +157,18 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 						SimpleQueryFilter fCopy = (SimpleQueryFilter) filter.copy();
 						fCopy.reverseComparator();
 
-						if(IQueryFilter.comparatorIsNotEquals(fCopy.getComparator()) && !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
+						if (IQueryFilter.comparatorIsNotEquals(fCopy.getComparator())
+								&& !SimpleQueryFilter.colValuesContainsNull(fCopy)) {
 							// include a show of null
 							// so we need to add this fCopy with a null find
-							NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
+							NounMetadata nullLComparison = new NounMetadata(new QueryColumnSelector(tableCol),
+									PixelDataType.COLUMN);
 							List<Object> nullList = new Vector<Object>();
 							nullList.add(null);
 							NounMetadata nullRComparison = new NounMetadata(nullList, PixelDataType.CONST_STRING);
-							SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==", nullRComparison);
-							
+							SimpleQueryFilter nullFilter = new SimpleQueryFilter(nullLComparison, "==",
+									nullRComparison);
+
 							OrQueryFilter orFilter = new OrQueryFilter(fCopy, nullFilter);
 							inverseFilters.addFilters(orFilter);
 						} else {
@@ -189,7 +189,7 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 			// to get the filtered values
 			// run with the inverse filters of the current column
 			qs.setExplicitFilters(inverseFilters);
-			
+
 			// add the filter word as a like filter
 			if (filterWord != null && !filterWord.trim().isEmpty()) {
 				NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(tableCol), PixelDataType.COLUMN);
@@ -198,8 +198,7 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				SimpleQueryFilter wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 				qs.addExplicitFilter(wFilter);
 			}
-			
-			
+
 			// flush out the values
 			IRawSelectWrapper filterValuesIt = null;
 			try {
@@ -208,13 +207,16 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 					filterValues.add(filterValuesIt.next().getValues()[0]);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered-out values for column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(filterValuesIt != null) {
+				if (filterValuesIt != null) {
 					try {
 						filterValuesIt.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to close filtered-values iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -234,7 +236,7 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
+
 			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 
@@ -245,13 +247,15 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMin", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -261,13 +265,15 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMax", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -279,13 +285,15 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				it = dataframe.query(mathQS);
 				minMaxMap.put("max", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -295,13 +303,15 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 				it = dataframe.query(mathQS);
 				minMaxMap.put("min", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}

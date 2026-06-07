@@ -52,69 +52,72 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class ConvertReactor extends AbstractFrameReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ConvertReactor.class);
-	
+
 	public ConvertReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey(), 
-				ReactorKeysEnum.ALIAS.toString()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME_TYPE.getKey(), ReactorKeysEnum.FRAME.getKey(),
+				ReactorKeysEnum.ALIAS.toString() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		ITableDataFrame frame = getFrame();
 		GenRowFilters curFilters = frame.getFrameFilters().copy();
 		SelectQueryStruct qs = frame.getMetaData().getFlatTableQs(false);
 		qs.setFrame(frame);
-		if(qs.getSelectors().size() == 0) {
+		if (qs.getSelectors().size() == 0) {
 			throw new IllegalArgumentException("There are no selectors in this frame to move to R");
 		}
-		
+
 		IRawSelectWrapper it = null;
 		ITableDataFrame newFrame = null;
 		// get the name of the frame type
 		String frameType = getFrameType();
 		String alias = getAlias();
 		try {
-			if(!(frame instanceof NativeFrame)) {
+			if (!(frame instanceof NativeFrame)) {
 				try {
 					it = frame.query(qs);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to query source frame {} before conversion to {}.", frame.getName(),
+							frameType, e);
 					throw new SemossPixelException(
-							new NounMetadata("Error occurred executing query before loading into frame", 
+							new NounMetadata("Error occurred executing query before loading into frame",
 									PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				}
 				try {
-					if(!FrameSizeRetrictions.importWithinLimit(frame, it)) {
-						SemossPixelException exception = new SemossPixelException(
-								new NounMetadata("Frame size is too large, please limit the data size before proceeding", 
-										PixelDataType.CONST_STRING, 
-										PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED, PixelOperationType.ERROR));
+					if (!FrameSizeRetrictions.importWithinLimit(frame, it)) {
+						SemossPixelException exception = new SemossPixelException(new NounMetadata(
+								"Frame size is too large, please limit the data size before proceeding",
+								PixelDataType.CONST_STRING, PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
+								PixelOperationType.ERROR));
 						exception.setContinueThreadOfExecution(false);
 						throw exception;
 					}
 				} catch (SemossPixelException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Frame conversion size validation failed for source frame {} to {}.",
+							frame.getName(), frameType, e);
 					throw e;
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
-					throw new SemossPixelException(getError("Error occurred executing query before loading into frame"));
+					classLogger.error("Failed while checking conversion size limits for source frame {} to {}.",
+							frame.getName(), frameType, e);
+					throw new SemossPixelException(
+							getError("Error occurred executing query before loading into frame"));
 				}
 			}
-			
-			// will assume the person wants me to 
+
+			// will assume the person wants me to
 			// override the existing variable
-			if(alias == null) {
+			if (alias == null) {
 				alias = frame.getName();
 			}
 			try {
 				newFrame = FrameFactory.getFrame(this.insight, frameType, alias);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create target frame of type {} with alias {}.", frameType, alias, e);
 				throw new IllegalArgumentException("Error occurred trying to create frame of type " + frameType, e);
 			}
 			// insert the data for the new frame
@@ -122,15 +125,17 @@ public class ConvertReactor extends AbstractFrameReactor {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to import data from source frame {} into converted frame {}.",
+						frame.getName(), alias, e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close source iterator while converting frame {} to {}.",
+							frame.getName(), frameType, e);
 				}
 			}
 		}
@@ -142,56 +147,57 @@ public class ConvertReactor extends AbstractFrameReactor {
 		VarStore varStore = this.insight.getVarStore();
 		// if it is the same name
 		// override the reference
-		if(frame.getName().equals(alias)) {
+		if (frame.getName().equals(alias)) {
 			newFrame.setFrameFilters(curFilters);
 			Set<String> curReferences = varStore.getAllAliasForObjectReference(frame);
 			// switch to the new frame
-			for(String reference : curReferences) {
+			for (String reference : curReferences) {
 				varStore.put(reference, noun);
 			}
 		}
 		this.insight.getVarStore().put(alias, noun);
-		
+
 		// return the noun
 		return noun;
 	}
-	
+
 	/**
 	 * Get an alias for the frame
+	 * 
 	 * @return
 	 */
 	private String getAlias() {
 		GenRowStruct grs = this.store.getGenRowStruct(PixelDataType.ALIAS.getKey());
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
-			String alias = grs.getNoun(0).getValue()+"";
+			String alias = grs.getNoun(0).getValue() + "";
 			return alias;
 		}
-		
+
 		List<Object> alias = this.curRow.getValuesOfType(PixelDataType.ALIAS);
-		if(alias != null && alias.size() > 0) {
+		if (alias != null && alias.size() > 0) {
 			return alias.get(0).toString();
 		}
-			
+
 		return null;
 	}
 
-	
 	/**
 	 * Get the frame type
+	 * 
 	 * @return
 	 */
 	private String getFrameType() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.get(0).toString();
 		}
-		
+
 		List<String> inputValues = this.curRow.getAllStrValues();
-		if(!inputValues.isEmpty()) {
+		if (!inputValues.isEmpty()) {
 			return inputValues.get(0);
 		}
 		throw new IllegalArgumentException("Must define the output frame type");
 	}
-	
+
 }

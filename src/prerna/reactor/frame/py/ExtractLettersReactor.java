@@ -27,8 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.frame.py;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,7 +41,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ExtractLettersReactor extends AbstractPyFrameReactor {
@@ -71,7 +70,7 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 		// mv['add'] = mv.apply(lambda x: re.sub('\d+', '', x['MovieBudget']) if
 		// not(isinstance(x['MovieBudget'], int)) else x['MovieBudget'] , axis=1)
 
-		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
+		List<PixelOperationType> opTypes = new ArrayList<PixelOperationType>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		StringBuilder commands = new StringBuilder();
 		// update existing columns
@@ -84,7 +83,8 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 					try {
 						commands.append(wrapperFrameName + ".extract_alpha('" + column + "')\n");
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to prepare alphabetic extraction command for column {} on frame {}.",
+								column, frame.getName(), e);
 					}
 				} else {
 					throw new IllegalArgumentException("Column type must be string");
@@ -119,7 +119,7 @@ public class ExtractLettersReactor extends AbstractPyFrameReactor {
 
 	private List<String> getColumns() {
 		GenRowStruct grs = this.store.getGenRowStruct(keysToGet[0]);
-		Vector<String> columns = new Vector<String>();
+		List<String> columns = new ArrayList<String>();
 		NounMetadata noun;
 		if (grs != null) {
 			for (int i = 0; i < grs.size(); i++) {

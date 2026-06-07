@@ -31,8 +31,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,12 +45,12 @@ import prerna.ds.rdbms.h2.H2Frame;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class SynchronizeToRReactor extends AbstractRFrameReactor {
-	protected static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
+
+	private static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
 
 	/**
 	 * This reactor takes a frame and synchronizes it to an r frame inputs are: 1)
@@ -178,7 +178,8 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			gridFrame.getBuilder().runQuery("CALL CSVWRITE('" + outputLocation + "', 'SELECT " + selectors + " FROM "
 					+ gridFrame.getName() + "', 'charset=UTF-8 fieldDelimiter= fieldSeparator=' || CHAR(9));");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to export grid frame {} to temporary TSV {} for R synchronization.",
+					gridFrame.getName(), outputLocation, e);
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(rDataTableName + " <- fread(\"" + outputLocation + "\", sep=\"\t\");");
@@ -192,7 +193,6 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 		String[] currHeaders = this.rJavaTranslator.getColumns(rDataTableName);
 		renameColumn(rDataTableName, currHeaders, colSelectors, false);
 		storeVariable("GRID_NAME", new NounMetadata(rDataTableName, PixelDataType.CONST_STRING));
-		System.out.println("Completed synchronization as " + rDataTableName);
 
 		long end = java.lang.System.currentTimeMillis();
 		// logger.info("Done synchronizing to R data.table...");
@@ -239,16 +239,15 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 			storeVariable("GRAPH_NAME", new NounMetadata(rDataTableName, PixelDataType.CONST_STRING));
 
 			// store the directories used for the iGraph
-			List<String> graphLocs = new Vector<String>();
+			List<String> graphLocs = new ArrayList<String>();
 			if (retrieveVariable(R_GRAQH_FOLDERS) != null) {
 				graphLocs = (List<String>) retrieveVariable(R_GRAQH_FOLDERS);
 			}
 			graphLocs.add(wd);
 			storeVariable(R_GRAQH_FOLDERS, new NounMetadata(graphLocs, PixelDataType.CONST_STRING));
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
-			System.out.println(
-					"ERROR ::: Could not convert TinkerFrame into igraph.\nPlease make sure iGraph package is installed.");
+			classLogger.error("Failed to synchronize graph frame {} to R in working directory {}.", frame.getName(), wd,
+					ex);
 		} finally {
 			// reset back to the original wd
 			if (curWd != null) {
@@ -275,14 +274,15 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 				os = new FileOutputStream(fileName);
 				graph.io(IoCore.graphml()).writer().normalize(true).create().writeGraph(os, graph);
 			} catch (Exception ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to serialize graph frame {} to GraphML file {}.", frame.getName(), fileName,
+						ex);
 			} finally {
 				try {
 					if (os != null) {
 						os.close();
 					}
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close GraphML output stream for file {}.", fileName, e);
 				}
 			}
 		}

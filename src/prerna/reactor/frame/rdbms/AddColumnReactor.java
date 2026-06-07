@@ -37,24 +37,22 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
-
 
 public class AddColumnReactor extends AbstractFrameReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(AddColumnReactor.class);
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor are: 
-	 * 1) the name for the new column 
-	 * 2) the new column type
-	 * 3) the column to duplicate values from
+	 * This reactor adds an empty column to the frame The inputs to the reactor are:
+	 * 1) the name for the new column 2) the new column type 3) the column to
+	 * duplicate values from
 	 */
-	
+
 	public AddColumnReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(), ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
+				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
@@ -85,11 +83,11 @@ public class AddColumnReactor extends AbstractFrameReactor {
 				metaData.addProperty(table, table + "__" + newColName);
 				metaData.setAliasToProperty(table + "__" + newColName, newColName);
 				metaData.setDataTypeToProperty(table + "__" + newColName, dataType);
-				if(adtlDataType != null && !adtlDataType.isEmpty()) {
+				if (adtlDataType != null && !adtlDataType.isEmpty()) {
 					metaData.setAddtlDataTypeToProperty(frame.getName() + "__" + newColName, adtlDataType);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to add column {} with type {} on table {}", newColName, dataType, table, e);
 			}
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
