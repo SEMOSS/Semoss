@@ -250,15 +250,6 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
 			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_WORKSPACE_ID_INDEX", "AGENT_RUN", "WORKSPACE_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_STATUS_INDEX", "AGENT_RUN", "STATUS");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_DATE_CREATED_INDEX", "AGENT_RUN", "DATE_CREATED");
-			executeSql(conn, sql);
 		} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
@@ -312,21 +303,6 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_WORKSPACE_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_WORKSPACE_ID_INDEX", "AGENT_RUN", "WORKSPACE_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_STATUS_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_STATUS_INDEX", "AGENT_RUN", "STATUS");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_DATE_CREATED_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_DATE_CREATED_INDEX", "AGENT_RUN", "DATE_CREATED");
 				executeSql(conn, sql);
 			}
 		}
