@@ -42,6 +42,7 @@ public final class AgentRuntimeManager {
 	private static final AgentRuntimeManager INSTANCE = new AgentRuntimeManager(new AgentRunStore());
 
 	private final AgentRunStore store;
+	private final AgentRunQueueCoordinator queueCoordinator;
 
 	public static AgentRuntimeManager get() {
 		return INSTANCE;
@@ -49,16 +50,27 @@ public final class AgentRuntimeManager {
 
 	AgentRuntimeManager(AgentRunStore store) {
 		this.store = store;
+		this.queueCoordinator = new AgentRunQueueCoordinator(store);
 	}
 
 	public RunAgentResult run(RunAgentRequest request) throws Exception {
 		String runId = GUID.v7().toUUID().toString();
 		String userId = resolveUserId(request.getInsight());
-		store.insertCreated(runId, request, userId);
+		boolean queueEnabled = AgentRunQueueCoordinator.isQueueEnabled();
+		if (queueEnabled) {
+			store.insertQueued(runId, request, userId);
+		} else {
+			store.insertCreated(runId, request, userId);
+		}
 
 		String jobId = ThreadStore.getJobId();
-		store.markRunning(runId, jobId);
+		AgentRunQueueCoordinator.ActiveRunLease activeRunLease = AgentRunQueueCoordinator.ActiveRunLease.NO_OP;
 		try {
+			if (queueEnabled) {
+				activeRunLease = queueCoordinator.awaitTurn(runId, request);
+			}
+			store.markRunning(runId, jobId);
+
 			AgentHarnessResult result = AgentRunner.run(
 					request.getRoomId(),
 					request.getInput(),
@@ -86,6 +98,8 @@ public final class AgentRuntimeManager {
 				store.markFailed(runId, jobId, boundedError(e));
 			}
 			throw e;
+		} finally {
+			activeRunLease.close();
 		}
 	}
 

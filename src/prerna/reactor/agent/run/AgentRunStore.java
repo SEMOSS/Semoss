@@ -28,6 +28,7 @@
 package prerna.reactor.agent.run;
 
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Types;
 
 import com.google.gson.Gson;
@@ -42,6 +43,14 @@ public final class AgentRunStore {
 	private static final Gson GSON = new Gson();
 
 	public void insertCreated(String runId, RunAgentRequest request, String userId) {
+		insert(runId, request, userId, AgentRunStatus.CREATED);
+	}
+
+	public void insertQueued(String runId, RunAgentRequest request, String userId) {
+		insert(runId, request, userId, AgentRunStatus.QUEUED);
+	}
+
+	private void insert(String runId, RunAgentRequest request, String userId, AgentRunStatus status) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
@@ -57,12 +66,12 @@ public final class AgentRunStore {
 			setNullableString(ps, idx++, request.getEngineIdFallback());
 			setNullableString(ps, idx++, request.getHarnessType());
 			ps.setNull(idx++, Types.VARCHAR);
-			ps.setString(idx++, AgentRunStatus.CREATED.name());
+			ps.setString(idx++, status.name());
 			setClob(db, ps, idx++, request.getInput());
 			ps.setNull(idx++, Types.VARCHAR);
-			ps.setNull(idx++, Types.NULL);
+			ps.setNull(idx++, Types.CLOB);
 			ps.setNull(idx++, Types.VARCHAR);
-			ps.setNull(idx++, Types.NULL);
+			ps.setNull(idx++, Types.CLOB);
 			ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
 			ps.setNull(idx++, Types.TIMESTAMP);
 			ps.setNull(idx++, Types.TIMESTAMP);
@@ -73,6 +82,28 @@ public final class AgentRunStore {
 			throw new IllegalStateException("Failed to create AGENT_RUN row for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	public boolean isOldestQueuedRunForRoom(String runId, String roomId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT RUN_ID FROM AGENT_RUN WHERE ROOM_ID = ? AND STATUS = ? "
+					+ "ORDER BY DATE_CREATED ASC, RUN_ID ASC";
+			ps = db.getPreparedStatement(query);
+			setNullableString(ps, 1, roomId);
+			ps.setString(2, AgentRunStatus.QUEUED.name());
+			rs = ps.executeQuery();
+			if (!rs.next()) {
+				return false;
+			}
+			return runId.equals(rs.getString(1));
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to inspect AGENT_RUN queue for roomId=" + roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 	}
 
@@ -150,7 +181,8 @@ public final class AgentRunStore {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
-			String query = "UPDATE AGENT_RUN SET " + columnName + " = ? WHERE RUN_ID = ?";
+			String safeColumnName = safeMessageIdColumn(columnName);
+			String query = "UPDATE AGENT_RUN SET " + safeColumnName + " = ? WHERE RUN_ID = ?";
 			ps = db.getPreparedStatement(query);
 			setNullableString(ps, 1, messageId);
 			ps.setString(2, runId);
@@ -163,6 +195,16 @@ public final class AgentRunStore {
 		}
 	}
 
+	private static String safeMessageIdColumn(String columnName) {
+		if ("INPUT_MESSAGE_ID".equals(columnName)) {
+			return "INPUT_MESSAGE_ID";
+		}
+		if ("FINAL_OUTPUT_MESSAGE_ID".equals(columnName)) {
+			return "FINAL_OUTPUT_MESSAGE_ID";
+		}
+		throw new IllegalArgumentException("Unsupported AGENT_RUN message-id column: " + columnName);
+	}
+
 	private static void setNullableString(PreparedStatement ps, int idx, String value) throws Exception {
 		if (value == null || value.trim().isEmpty()) {
 			ps.setNull(idx, Types.VARCHAR);
@@ -173,7 +215,7 @@ public final class AgentRunStore {
 
 	private static void setClob(IRDBMSEngine db, PreparedStatement ps, int idx, String value) throws Exception {
 		if (value == null) {
-			ps.setNull(idx, Types.NULL);
+			ps.setNull(idx, Types.CLOB);
 		} else {
 			db.getQueryUtil().handleInsertionOfClob(ps, value, idx, GSON);
 		}

@@ -67,20 +67,21 @@ public final class RoomMessageStore {
 	private static final String REDIS_PORT = "ROOM_MESSAGE_STORE_REDIS_PORT";
 	private static final String REDIS_PASSWORD = "ROOM_MESSAGE_STORE_REDIS_PASSWORD";
 	private static final String REDIS_TIMEOUT_MS = "ROOM_MESSAGE_STORE_REDIS_TIMEOUT_MS";
+	private static final String REDIS_POOL_MAX_TOTAL = "ROOM_MESSAGE_STORE_REDIS_POOL_MAX_TOTAL";
+	private static final String REDIS_POOL_MAX_IDLE = "ROOM_MESSAGE_STORE_REDIS_POOL_MAX_IDLE";
+	private static final String REDIS_POOL_MIN_IDLE = "ROOM_MESSAGE_STORE_REDIS_POOL_MIN_IDLE";
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
 
 	private static final ThreadLocal<Map<String, HeldLock>> HELD_LOCKS = ThreadLocal.withInitial(HashMap::new);
+	private static volatile RoomMessageRedisClient cachedRedisClient;
+	private static volatile String cachedRedisClientKey;
 
 	private RoomMessageStore() {
 	}
 
 	public static List<AbstractMessage> loadFromPersistedJson(Room room, String messagesJson) {
 		String projection = messagesJson;
-		String redisProjection = getRedisProjection(room);
-		if (redisProjection != null) {
-			projection = redisProjection;
-		}
 		if (projection == null || projection.trim().isEmpty()) {
 			return new ArrayList<>();
 		}
@@ -318,19 +319,6 @@ public final class RoomMessageStore {
 		}
 	}
 
-	private static String getRedisProjection(Room room) {
-		if (room == null || room.getId() == null || !isRedisEnabled()) {
-			return null;
-		}
-		try {
-			String messages = redisClient().getMessages(room.getId());
-			return messages == null || messages.trim().isEmpty() ? null : messages;
-		} catch (Exception e) {
-			classLogger.warn("Failed to read Redis room-message projection for room={}", room.getId(), e);
-			return null;
-		}
-	}
-
 	private static void updateRedisProjection(Room room, String messageHistory) {
 		if (room == null || room.getId() == null || !isRedisEnabled()) {
 			return;
@@ -344,11 +332,11 @@ public final class RoomMessageStore {
 		}
 	}
 
-	static boolean isRedisEnabled() {
+	public static boolean isRedisEnabled() {
 		return Boolean.parseBoolean(String.valueOf(Utility.getDIHelperProperty(REDIS_ENABLED)));
 	}
 
-	private static RoomMessageRedisClient redisClient() {
+	public static RoomMessageRedisClient redisClient() {
 		String host = Utility.getDIHelperProperty(REDIS_HOST);
 		if (host == null || host.trim().isEmpty()) {
 			host = "localhost";
@@ -356,7 +344,36 @@ public final class RoomMessageStore {
 		int port = (int) getLongProperty(REDIS_PORT, 6379L);
 		int timeoutMs = (int) getLongProperty(REDIS_TIMEOUT_MS, 2000L);
 		String password = Utility.getDIHelperProperty(REDIS_PASSWORD);
-		return new RoomMessageRedisClient(host, port, password, timeoutMs);
+		int poolMaxTotal = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_TOTAL, 64L));
+		int poolMaxIdle = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_IDLE, 16L));
+		poolMaxIdle = Math.min(poolMaxIdle, poolMaxTotal);
+		int poolMinIdle = Math.max(0, (int) getLongProperty(REDIS_POOL_MIN_IDLE, 1L));
+		poolMinIdle = Math.min(poolMinIdle, poolMaxIdle);
+		String cacheKey = host + "|" + port + "|" + timeoutMs + "|" + nullToEmpty(password)
+				+ "|" + poolMaxTotal + "|" + poolMaxIdle + "|" + poolMinIdle;
+		RoomMessageRedisClient client = cachedRedisClient;
+		if (client != null && cacheKey.equals(cachedRedisClientKey)) {
+			return client;
+		}
+		synchronized (RoomMessageStore.class) {
+			client = cachedRedisClient;
+			if (client != null && cacheKey.equals(cachedRedisClientKey)) {
+				return client;
+			}
+			RoomMessageRedisClient previous = cachedRedisClient;
+			RoomMessageRedisClient next = new RoomMessageRedisClient(host, port, password, timeoutMs,
+					poolMaxTotal, poolMaxIdle, poolMinIdle);
+			cachedRedisClient = next;
+			cachedRedisClientKey = cacheKey;
+			if (previous != null) {
+				previous.close();
+			}
+			return next;
+		}
+	}
+
+	private static String nullToEmpty(String value) {
+		return value == null ? "" : value;
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {

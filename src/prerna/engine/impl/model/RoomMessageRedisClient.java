@@ -30,6 +30,8 @@ package prerna.engine.impl.model;
 import java.util.Collections;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.params.SetParams;
 
 /**
@@ -42,16 +44,21 @@ public final class RoomMessageRedisClient {
 	private static final String RENEW_SCRIPT =
 			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
 
-	private final String host;
-	private final int port;
-	private final String password;
-	private final int timeoutMs;
+	private final JedisPool pool;
 
-	RoomMessageRedisClient(String host, int port, String password, int timeoutMs) {
-		this.host = host;
-		this.port = port;
-		this.password = password;
-		this.timeoutMs = timeoutMs;
+	RoomMessageRedisClient(String host, int port, String password, int timeoutMs,
+			int poolMaxTotal, int poolMaxIdle, int poolMinIdle) {
+		JedisPoolConfig poolConfig = new JedisPoolConfig();
+		poolConfig.setMaxTotal(poolMaxTotal);
+		poolConfig.setMaxIdle(poolMaxIdle);
+		poolConfig.setMinIdle(poolMinIdle);
+		poolConfig.setTestOnBorrow(true);
+		poolConfig.setTestWhileIdle(true);
+		if (password != null && !password.trim().isEmpty()) {
+			this.pool = new JedisPool(poolConfig, host, port, timeoutMs, password);
+		} else {
+			this.pool = new JedisPool(poolConfig, host, port, timeoutMs);
+		}
 	}
 
 	boolean tryAcquireLock(String roomId, String token, long ttlMs) {
@@ -81,15 +88,31 @@ public final class RoomMessageRedisClient {
 		withJedis(jedis -> jedis.incr(versionKey(roomId)));
 	}
 
+	public boolean tryClaimActiveRun(String roomId, String runId, String token, long ttlMs) {
+		return withJedis(jedis -> "OK".equals(jedis.set(activeRunKey(roomId), activeRunValue(runId, token),
+				SetParams.setParams().nx().px(ttlMs))));
+	}
+
+	public void releaseActiveRun(String roomId, String runId, String token) {
+		withJedis(jedis -> jedis.eval(UNLOCK_SCRIPT, Collections.singletonList(activeRunKey(roomId)),
+				Collections.singletonList(activeRunValue(runId, token))));
+	}
+
+	public void renewActiveRun(String roomId, String runId, String token, long ttlMs) {
+		withJedis(jedis -> jedis.eval(RENEW_SCRIPT, Collections.singletonList(activeRunKey(roomId)),
+				java.util.Arrays.asList(activeRunValue(runId, token), String.valueOf(ttlMs))));
+	}
+
 	private <T> T withJedis(JedisCallback<T> callback) {
-		try (Jedis jedis = new Jedis(host, port, timeoutMs)) {
-			if (password != null && !password.trim().isEmpty()) {
-				jedis.auth(password);
-			}
+		try (Jedis jedis = pool.getResource()) {
 			return callback.apply(jedis);
 		} catch (Exception e) {
 			throw new IllegalStateException("Redis room-message command failed: " + e.getMessage(), e);
 		}
+	}
+
+	void close() {
+		pool.close();
 	}
 
 	private static String messagesKey(String roomId) {
@@ -102,6 +125,14 @@ public final class RoomMessageRedisClient {
 
 	private static String lockKey(String roomId) {
 		return "room:" + roomId + ":lock";
+	}
+
+	private static String activeRunKey(String roomId) {
+		return "room:" + roomId + ":active_run";
+	}
+
+	private static String activeRunValue(String runId, String token) {
+		return runId + "|" + token;
 	}
 
 	private interface JedisCallback<T> {
