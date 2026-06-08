@@ -176,13 +176,15 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		// Dual-write CONFIG_JSON: mirror system_prompt + MCP engine/project refs into
 		// WORKSPACE.CONFIG_JSON. Preserve any other CONFIG_JSON fields (e.g. hooks)
-		// the workspace already has. Best-effort — a failure here is logged but does
-		// not fail the reactor, since the legacy SYSTEM_PROMPT column + WORKSPACE_RESOURCE
-		// rows already landed and AgentConfigLoader still resolves correctly from those.
+		// the workspace already has. Best-effort - a failure here is logged but does
+		// not fail the reactor, since the legacy SYSTEM_PROMPT column +
+		// WORKSPACE_RESOURCE rows already landed and AgentConfigLoader still resolves
+		// correctly from those.
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies);
 		} catch (Exception e) {
-			classLogger.warn("Failed to mirror system_prompt/mcps into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
+			classLogger.warn(
+					"Failed to mirror system_prompt/mcps into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",
 					workspaceId, e);
 			Map<String, Object> partial = new HashMap<>();
 			partial.put("success", true);
@@ -197,14 +199,14 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 	 * Persist {@code system_prompt} and the engine/project MCP refs into
 	 * {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already there.
 	 *
-	 * <p>Empty {@code engines} + empty {@code projects} writes an empty
-	 * {@code mcps} array — intentional, since the user may be removing all MCPs.
-	 * Null {@code systemPrompt} omits the key (vs. writing JSON null), so the
-	 * loader falls through to the legacy SYSTEM_PROMPT column read for that
-	 * field.
+	 * <p>
+	 * Empty {@code engines} + empty {@code projects} writes an empty {@code mcps}
+	 * array - intentional, since the user may be removing all MCPs. Null
+	 * {@code systemPrompt} omits the key (vs. writing JSON null), so the loader
+	 * falls through to the legacy SYSTEM_PROMPT column read for that field.
 	 */
-	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt,
-			Set<String> engines, Set<String> projects) throws Exception {
+	private static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();

@@ -247,7 +247,7 @@ class OpenAiAudioClient:
     ) -> tuple:
         """
         Pull base64 audio from inputs. Prefers a MEDIA part (proper structured
-        input); falls back to the last INPUT text, treated as raw base64 — that
+        input); falls back to the last INPUT text, treated as raw base64 - that
         way callers can just pass the base64 string in `command` from the pixel
         without any Java-side plumbing for media.
         """

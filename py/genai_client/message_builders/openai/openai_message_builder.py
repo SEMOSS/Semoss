@@ -1163,7 +1163,7 @@ class OpenAIMessageBuilder:
     # ) -> List[dict]:
     #     """
     #     Returns a ChatML history whose **total** token count
-    #     is ≤ safe_window.
+    #     is <= safe_window.
     #     Oldest non-system messages are dropped first; when only
     #     one message needs trimming we cut tokens from its *start*.
     #     """

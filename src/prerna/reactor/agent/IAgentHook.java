@@ -27,6 +27,35 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-// Marker. {@link IAgentRunHook} fires once per agent run; {@link IToolHook} fires per tool call.
-// A single class may implement both; the loader classifies by instanceof at resolve time.
-public interface IAgentHook {}
+import org.json.JSONObject;
+
+/**
+ * Marker for agent hooks. Sub-interfaces:
+ * <ul>
+ *   <li>{@link IAgentRunHook} fires at run-level lifecycle points
+ *       (room creation, init, de-init, before/after run)</li>
+ *   <li>{@link IToolHook} fires per tool call</li>
+ * </ul>
+ * A single class may implement both; the loader classifies by
+ * {@code instanceof} at resolve time.
+ *
+ * <p>Hooks may optionally read per-instance configuration from the
+ * {@code WORKSPACE.CONFIG_JSON.hooks[]} entry that produced them by
+ * overriding {@link #configure(JSONObject)}. The loader calls
+ * {@code configure(spec)} immediately after constructing the hook from
+ * the registry factory. Hooks that don't need per-instance config (e.g.
+ * {@link prerna.reactor.agent.hooks.LoggingToolHook}) can ignore it;
+ * config-bearing hooks (e.g. {@link prerna.reactor.agent.hooks.PixelReactorHook})
+ * override to extract their fields.
+ */
+public interface IAgentHook {
+
+    /**
+     * Called once by {@code AgentConfigLoader} after the hook is
+     * constructed, with the full JSON spec for this hook entry
+     * (including {@code "kind"} and any kind-specific fields). Throw
+     * to signal a misconfigured spec — the loader logs and skips that
+     * hook. Default: no-op.
+     */
+    default void configure(JSONObject spec) {}
+}

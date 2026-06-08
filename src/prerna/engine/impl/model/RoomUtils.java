@@ -121,55 +121,52 @@ public final class RoomUtils {
 			roomId = insight.getInsightId();
 		}
 
-		boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
-		if (!roomExistsInDB) {
-			String agentType = null;
-			String engineId = null;
-			if (modelEngine != null) {
-				agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
-				engineId = modelEngine.getEngineId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {
+			boolean roomExistsInDB = ModelInferenceLogsUtils.doCheckRoomExists(roomId);
+			if (!roomExistsInDB) {
+				String agentType = null;
+				String engineId = null;
+				if (modelEngine != null) {
+					agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+					engineId = modelEngine.getEngineId();
+				}
+				User user = insight.getUser();
+				AccessToken userToken = user.getPrimaryLoginToken();
+				String userName = userToken.getName();
+				String userEmail = userToken.getEmail();
+				if (projectId == null) {
+					projectId = insight.getContextProjectId();
+				}
+				if (projectId == null) {
+					projectId = insight.getProjectId();
+				}
+				String projectName = null;
+				// ignore playground project id
+				if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+					IProject project = Utility.getProject(projectId);
+					projectName = project != null ? project.getProjectName() : null;
+				}
+				String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
+				// @formatter:off
+				ModelInferenceLogsUtils.doCreateNewConversation(
+						insight.getInsightId(),
+						roomId,
+						roomName,
+						context,
+						userToken.getId(),
+						userName,
+						userEmail,
+						agentType,
+						engineId,
+						true,
+						projectId,
+						projectName,
+						workspaceId,
+						options,
+						parentRoomId
+				);
+				// @formatter:on
 			}
-			User user = insight.getUser();
-			AccessToken userToken = user.getPrimaryLoginToken();
-			String userName = userToken.getName();
-			String userEmail = userToken.getEmail();
-			if (projectId == null) {
-				projectId = insight.getContextProjectId();
-			}
-			if (projectId == null) {
-				projectId = insight.getProjectId();
-			}
-			String projectName = null;
-			// ignore playground project id
-			if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
-				IProject project = Utility.getProject(projectId);
-				projectName = project != null ? project.getProjectName() : null;
-			}
-			String roomName = (question != null) ? question.substring(0, Math.min(question.length(), 100)) : null;
-			// @formatter:off
-            ModelInferenceLogsUtils.doCreateNewConversation(
-            		insight.getInsightId(),
-                    roomId,
-                    roomName,
-                    context,
-                    userToken.getId(),
-                    userName,
-                    userEmail,
-                    agentType,
-                    engineId,
-                    true,
-                    projectId,
-                    projectName,
-                    workspaceId,
-                    options,
-                    parentRoomId
-            );
-    		// @formatter:on
-
-			// Always get the loaded room object (avoiding any skipping, ensures in-memory
-			// cache is filled)
-			return RoomUtils.getOrLoadRoom(roomId, insight);
-		} else {
 			return RoomUtils.getOrLoadRoom(roomId, insight);
 		}
 	}
@@ -188,6 +185,7 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = (Room) insight.getUser().getRoomHash().get(roomId);
+				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
 				ensureRoomMessagesUpToDate(room, insight);
 				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
@@ -227,6 +225,13 @@ public final class RoomUtils {
 		insight.getUser().getRoomHash().put(roomId, room);
 		symlinkRoomFolderIfNeeded(room, insight);
 		return room;
+	}
+
+	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null || !RoomMessageStore.isRedisEnabled()) {
+			return;
+		}
+		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**
@@ -310,8 +315,7 @@ public final class RoomUtils {
 		if (!changed && upgraded.equals(json)) {
 			return;
 		}
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				upgraded);
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**
@@ -336,9 +340,7 @@ public final class RoomUtils {
 
 		// set and persist the normalized messages in one pass
 		room.setMessages(messages);
-		String messageJson = room.getMessagesAsString();
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				messageJson);
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 	}
 
 	/**

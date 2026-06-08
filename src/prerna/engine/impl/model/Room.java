@@ -275,88 +275,85 @@ public class Room {
 			return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 		}
 
-		// if we dont have to keep history. then wipe all previous messages.
-		if (!modelEngine.keepsConversationHistory()) {
-			messages.clear();
-		}
-
-		// drop orphan tool_use (cancel mid-tool, crash) before building the outbound branch
-		// — providers reject unpaired tool_use, and the cached in-memory list may have one
-		// even though sanitize on rehydration covers cold loads
-		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(this.messages, this);
-		if (sanitized != this.messages) {
-			setMessages(sanitized);
-		}
-
-		// Set model type and add message to history
-		msg.setModel(modelEngine);
-
-		// Set parentMessageId for this message
-		// first check that messages is not empty. otherwise its the first message of
-		// the thread and parent is null
-		if (!messages.isEmpty()) {
-			// if a parent message id is passed in, validate it exists and use it.
-			if (parentMessageId != null && !parentMessageId.isEmpty()) {
-				msg.setParentMessageId(parentMessageId);
-			} else {
-				// if no parent message id is passed in, use the last message as the parent.
-				AbstractMessage lastMsg = messages.get(messages.size() - 1);
-				msg.setParentMessageId(lastMsg.getMessageId());
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			RoomMessageStore.refreshFromLatestProjection(this, userId);
+			// if we dont have to keep history. then wipe all previous messages.
+			if (!modelEngine.keepsConversationHistory()) {
+				messages.clear();
 			}
-		} else {
-			msg.setParentMessageId(null); // first message
-		}
 
-		ResponseMessage response = null;
-		try {
-			String messageJsonString = MessageUtils.getMessageHistoryWithNewMessage(this.messages, msg);
-			kwArgMap.put("message_json", messageJsonString);
+			// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
+			// branch so providers do not reject the next payload
+			RoomMessageStore.normalizeForProviderPayload(this);
 
-			AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
-			applyInputUsageFromModelResponse(msg, llmResponse);
-			response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
-		} catch (Exception e) {
-			classLogger.error("Error running new message in room", e);
-			throw e;
-		}
-		// on success, add the message
-		if (appendToHistory) {
-			messages.add(msg);
-			messages.add(response);
-		}
+			// Set model type and add message to history
+			msg.setModel(modelEngine);
 
-		// Save the old (before) roomName for comparison
-		String prevRoomName = this.roomName;
+			// Set parentMessageId for this message
+			// first check that messages is not empty. otherwise its the first message of
+			// the thread and parent is null
+			if (!messages.isEmpty()) {
+				// if a parent message id is passed in, validate it exists and use it.
+				if (parentMessageId != null && !parentMessageId.isEmpty()) {
+					msg.setParentMessageId(parentMessageId);
+				} else {
+					// if no parent message id is passed in, use the last message as the parent.
+					AbstractMessage lastMsg = messages.get(messages.size() - 1);
+					msg.setParentMessageId(lastMsg.getMessageId());
+				}
+			} else {
+				msg.setParentMessageId(null); // first message
+			}
 
-		// Try to infer/set roomName if missing
-		if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
-			for (AbstractMessage m : this.messages) {
-				if (m instanceof InputMessage) {
-					InputMessage im = (InputMessage) m;
-					String prompt = im.getInputUIPrompt();
-					if (prompt != null && !prompt.trim().isEmpty()) {
-						this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
-						break;
+			ResponseMessage response = null;
+			try {
+				String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
+				kwArgMap.put("message_json", messageJsonString);
+
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				applyInputUsageFromModelResponse(msg, llmResponse);
+				response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
+			} catch (Exception e) {
+				classLogger.error("Error running new message in room", e);
+				throw e;
+			}
+			// on success, add the message
+			if (appendToHistory) {
+				messages.add(msg);
+				messages.add(response);
+			}
+
+			// Save the old (before) roomName for comparison
+			String prevRoomName = this.roomName;
+
+			// Try to infer/set roomName if missing
+			if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+				for (AbstractMessage m : this.messages) {
+					if (m instanceof InputMessage) {
+						InputMessage im = (InputMessage) m;
+						String prompt = im.getInputUIPrompt();
+						if (prompt != null && !prompt.trim().isEmpty()) {
+							this.roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+							break;
+						}
 					}
 				}
 			}
-		}
 
-		// Persist message history - room name was just updated
-		if (appendToHistory) {
-			if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
-					&& !this.roomName.trim().isEmpty()) {
-				// Only update with room name if we just set it now!
-				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
-						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString(), this.roomName,
-						modelEngine.getEngineId());
-			} else {
-				// Otherwise, regular update
-				ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id,
-						insight.getUser().getPrimaryLoginToken().getId(), getMessagesAsString());
+			// Persist message history - room name was just updated
+			if (appendToHistory) {
+				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && this.roomName != null
+						&& !this.roomName.trim().isEmpty()) {
+					// Only update with room name if we just set it now!
+					RoomMessageStore.persist(this, userId, this.roomName, modelEngine.getEngineId());
+				} else {
+					// Otherwise, regular update
+					RoomMessageStore.persist(this, userId);
+				}
 			}
+			return response;
 		}
-		return response;
 	}
 
 	/**
@@ -384,18 +381,21 @@ public class Room {
 	public synchronized AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus) {
-		if (messages.isEmpty()) {
-			throw new IllegalStateException("No messages to match tool call context");
-		}
+		String userId = insight.getUser().getPrimaryLoginToken().getId();
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			RoomMessageStore.refreshFromLatestProjection(this, userId);
+			if (messages.isEmpty()) {
+				throw new IllegalStateException("No messages to match tool call context");
+			}
 
-		String lastMessageId = null;
-		if (parentMessageId != null && !parentMessageId.isEmpty()) {
-			lastMessageId = parentMessageId;
-		} else {
-			// if no parent message id is passed in, use the last message as the parent.
-			AbstractMessage lastMsg = messages.get(messages.size() - 1);
-			lastMessageId = lastMsg.getMessageId();
-		}
+			String lastMessageId = null;
+			if (parentMessageId != null && !parentMessageId.isEmpty()) {
+				lastMessageId = parentMessageId;
+			} else {
+				// if no parent message id is passed in, use the last message as the parent.
+				AbstractMessage lastMsg = messages.get(messages.size() - 1);
+				lastMessageId = lastMsg.getMessageId();
+			}
 
 		// 1. Find the last RESPONSE_TOOL message (assistant tool_calls)
 		ResponseMessage toolResponse = null;
@@ -516,8 +516,7 @@ public class Room {
 		// otherwise, we add the message and save the result
 		if (!answeredIds.containsAll(allIds) || allIds.size() == 0) {
 			// persist the new message (or just the part) into the room
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
+			RoomMessageStore.persist(this, userId);
 		} else {
 			// we have to add the tool results into the message history
 			// so that we can track for multiple tools
@@ -526,7 +525,7 @@ public class Room {
 			// as opposed to the normal
 			// getMessageHistoryWithNewMessage(List<AbstractMessage> messages,
 			// AbstractMessage newMessage) method
-			String messageJsonString = MessageUtils.getCurrentMessageHistory(this.messages);
+			String messageJsonString = RoomMessageStore.currentMessageHistory(this);
 			if (paramValuesMap == null) {
 				paramValuesMap = new HashMap<>();
 			}
@@ -588,13 +587,13 @@ public class Room {
 			}
 			// --------- END TRANSACTION ID PROPAGATION ---------
 
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room_id, insight.getUser().getPrimaryLoginToken().getId(),
-					getMessagesAsString());
+			RoomMessageStore.persist(this, userId);
 
 			return llmResponse;
 		}
 		// Not all tool_calls fulfilled yet
 		return null;
+		}
 	}
 
 	/**
@@ -732,21 +731,24 @@ public class Room {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
 	 * back to their original engine IDs and function names.
 	 *
-	 * <p><b>In-process LLM path.</b> This is the resolution used by the
-	 * {@code semoss} harness (and the playground COT reactors). It reads
+	 * <p>
+	 * <b>In-process LLM path.</b> This is the resolution used by the {@code semoss}
+	 * harness (and the playground COT reactors). It reads
 	 * {@code room.options.mcp[]} plus the {@code WORKSPACE_RESOURCE} rows for
 	 * {@code room.options.workspace.workspace_id}, resolves each engine through
-	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and
-	 * returns full tool definition maps for the LLM call.
+	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and returns
+	 * full tool definition maps for the LLM call.
 	 *
-	 * <p>External-CLI harnesses ({@code claude_code}, {@code github_copilot},
+	 * <p>
+	 * External-CLI harnesses ({@code claude_code}, {@code github_copilot},
 	 * {@code github_copilot_py}) take a sibling path:
 	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
 	 * the same two sources, but returning engine refs ({@code id}/{@code name})
-	 * rather than resolved tool defs - the external CLI does its own MCP
-	 * handshake to discover tools.
+	 * rather than resolved tool defs - the external CLI does its own MCP handshake
+	 * to discover tools.
 	 *
-	 * <p>Both paths honor {@code room.options.workspace.workspace_id}, so the
+	 * <p>
+	 * Both paths honor {@code room.options.workspace.workspace_id}, so the
 	 * {@code workspaceId} arg on {@code RunAgent} (applied via
 	 * {@code AgentRunner}'s workspace overlay) yields the same MCP set in either
 	 * harness style.
@@ -816,7 +818,9 @@ public class Room {
 						if (arr != null) {
 							for (int i = 0; i < arr.length(); i++) {
 								JSONObject mcp = arr.optJSONObject(i);
-								if (mcp == null) continue;
+								if (mcp == null) {
+									continue;
+								}
 								String toolId = mcp.optString("id", null);
 								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
 									aggregated.addAll(getToolJson(toolId, maxLength));
@@ -825,8 +829,8 @@ public class Room {
 							}
 						}
 					} catch (Exception e) {
-						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}",
-								workspaceId, e.getMessage());
+						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}", workspaceId,
+								e.getMessage());
 					}
 				}
 			} catch (ClassCastException e) {
@@ -945,7 +949,7 @@ public class Room {
 	}
 
 	/**
-	 * Returns the current per-call reverse-lookup map (LLM-facing name → enriched
+	 * Returns the current per-call reverse-lookup map (LLM-facing name -> enriched
 	 * tool entry). The map is rebuilt each time
 	 * {@link #getAllToolsJsonForRoom(int)} is called.
 	 *
@@ -1674,7 +1678,7 @@ public class Room {
 			this.setMessages(new ArrayList<>());
 			return;
 		}
-		List<AbstractMessage> loaded = MessageUtils.fromJsonArray(messagesJson, this);
+		List<AbstractMessage> loaded = RoomMessageStore.loadFromPersistedJson(this, messagesJson);
 
 		this.setMessages(loaded != null ? loaded : new ArrayList<>());
 	}

@@ -90,8 +90,7 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 		if (!Files.exists(this.pathPrefixRoot)) {
 			Files.createDirectories(this.pathPrefixRoot);
 		} else if (!Files.isDirectory(this.pathPrefixRoot)) {
-			throw new IllegalArgumentException(
-					PATH_PREFIX + " must point to a directory: " + this.pathPrefixRoot);
+			throw new IllegalArgumentException(PATH_PREFIX + " must point to a directory: " + this.pathPrefixRoot);
 		}
 	}
 
@@ -225,9 +224,8 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 		if (Files.isRegularFile(source)) {
 			// When destination is an existing directory, the actual target file is
 			// <destination>/<source-filename>. Use a new local so the parameter stays
-			// effectively final — the lambdas below capture `destination` and require it.
-			Path target = Files.isDirectory(destination)
-					? destination.resolve(source.getFileName().toString())
+			// effectively final - the lambdas below capture `destination` and require it.
+			Path target = Files.isDirectory(destination) ? destination.resolve(source.getFileName().toString())
 					: destination;
 			Files.createDirectories(target.getParent());
 			copyIfChanged(source, target);
@@ -405,7 +403,7 @@ public class DeveloperLocalFileSystemStorageEngine extends AbstractStorageEngine
 	}
 
 	/**
-	 * No-op. This engine is stateless — there are no connections, streams, or
+	 * No-op. This engine is stateless - there are no connections, streams, or
 	 * background processes to release.
 	 */
 	@Override

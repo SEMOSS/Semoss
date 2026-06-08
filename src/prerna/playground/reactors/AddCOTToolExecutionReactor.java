@@ -35,6 +35,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -132,8 +133,7 @@ public class AddCOTToolExecutionReactor extends AbstractReactor {
 		pixelReturn.put("toolExecution", jsonToMap(MessageUtils.toJson(toolExecutionMessage)));
 		pixelReturn.put("toolResponse", jsonToMap(MessageUtils.toJson(toolAcknowledgedMessage)));
 
-		ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(), insight.getUser().getPrimaryLoginToken().getId(),
-				room.getMessagesAsString());
+		RoomMessageStore.persist(room, insight.getUser().getPrimaryLoginToken().getId());
 
 		return new NounMetadata(pixelReturn, PixelDataType.MAP);
 	}
