@@ -27,13 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.Map;
+
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
 import prerna.om.Insight;
-import prerna.om.ThreadStore;
-import prerna.reactor.agent.AgentHarnessResult;
-import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 
 public final class AgentRuntimeManager {
@@ -43,6 +42,7 @@ public final class AgentRuntimeManager {
 
 	private final AgentRunStore store;
 	private final AgentRunQueueCoordinator queueCoordinator;
+	private final AgentRunWorker worker;
 
 	public static AgentRuntimeManager get() {
 		return INSTANCE;
@@ -51,59 +51,30 @@ public final class AgentRuntimeManager {
 	AgentRuntimeManager(AgentRunStore store) {
 		this.store = store;
 		this.queueCoordinator = new AgentRunQueueCoordinator(store);
+		this.worker = new AgentRunWorker(this, store, queueCoordinator);
 	}
 
-	public RunAgentResult run(RunAgentRequest request) throws Exception {
+	public RunAgentResult run(RunAgentRequest request) {
 		String runId = GUID.v7().toUUID().toString();
 		String userId = resolveUserId(request.getInsight());
-		boolean queueEnabled = AgentRunQueueCoordinator.isQueueEnabled();
-		if (queueEnabled) {
-			store.insertQueued(runId, request, userId);
-		} else {
-			store.insertCreated(runId, request, userId);
-		}
-
-		String jobId = ThreadStore.getJobId();
-		AgentRunQueueCoordinator.ActiveRunLease activeRunLease = AgentRunQueueCoordinator.ActiveRunLease.NO_OP;
-		try {
-			if (queueEnabled) {
-				activeRunLease = queueCoordinator.awaitTurn(runId, request);
-			}
-			store.markRunning(runId, jobId);
-
-			AgentHarnessResult result = AgentRunner.run(
-					request.getRoomId(),
-					request.getInput(),
-					request.getEngineIdFallback(),
-					request.getHarnessType(),
-					request.getMaxTurns(),
-					request.getMaxReflections(),
-					request.getParamMap(),
-					request.getAgentParamMap(),
-					runId,
-					request.getInsight());
-
-			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
-			if (result != null) {
-				store.markInputMessage(runId, result.getInputMessageId());
-				store.markFinalOutputMessage(runId, result.getFinalOutputMessageId());
-			}
-			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
-			return new RunAgentResult(runId, AgentRunStatus.COMPLETED, result);
-		} catch (Exception e) {
-			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
-			if (isCancelled(e)) {
-				store.markCancelled(runId, jobId, boundedError(e));
-			} else {
-				store.markFailed(runId, jobId, boundedError(e));
-			}
-			throw e;
-		} finally {
-			activeRunLease.close();
-		}
+		store.insertQueued(runId, request, userId);
+		worker.rememberInsight(runId, request.getInsight());
+		worker.signal();
+		return new RunAgentResult(runId, request.getRoomId(), AgentRunStatus.QUEUED, null);
 	}
 
-	private static boolean isCancelled(Throwable t) {
+	public Map<String, Object> getRun(String runId, Insight insight) {
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		Map<String, Object> run = store.getRunMap(runId, insight);
+		if (run == null) {
+			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
+		}
+		return run;
+	}
+
+	boolean isCancelled(Throwable t) {
 		Throwable cur = t;
 		while (cur != null) {
 			if (cur instanceof AgentCancelledException) {
@@ -114,7 +85,7 @@ public final class AgentRuntimeManager {
 		return Thread.currentThread().isInterrupted();
 	}
 
-	private static String boundedError(Throwable t) {
+	String boundedError(Throwable t) {
 		String message = t == null ? null : t.getMessage();
 		if (message == null || message.trim().isEmpty()) {
 			message = t == null ? "Unknown agent run failure" : t.getClass().getName();
@@ -136,10 +107,11 @@ public final class AgentRuntimeManager {
 		return user.getPrimaryLoginToken().getId();
 	}
 
-	private static String firstNonBlank(String first, String second) {
+	String firstNonBlank(String first, String second) {
 		if (first != null && !first.trim().isEmpty()) {
 			return first;
 		}
 		return second;
 	}
+
 }

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.om.Insight;
+import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
 
 public final class RunAgentRequest {
@@ -102,5 +103,59 @@ public final class RunAgentRequest {
 
 	public Insight getInsight() {
 		return insight;
+	}
+
+	public Map<String, Object> toPersistedMap() {
+		Map<String, Object> map = new HashMap<>();
+		map.put("roomId", roomId);
+		map.put("input", input);
+		map.put("engineIdFallback", engineIdFallback);
+		map.put("harnessType", harnessType);
+		map.put("workspaceId", workspaceId);
+		map.put("maxTurns", maxTurns);
+		map.put("maxReflections", maxReflections);
+		map.put("paramMap", getParamMap());
+		map.put("agentParamMap", getAgentParamMap());
+		return map;
+	}
+
+	@SuppressWarnings("unchecked")
+	public static RunAgentRequest fromPersistedMap(Map<String, Object> map, Insight insight) {
+		if (map == null) {
+			return null;
+		}
+		return new RunAgentRequest(
+				stringValue(map.get("roomId")),
+				stringValue(map.get("input")),
+				stringValue(map.get("engineIdFallback")),
+				stringValue(map.get("harnessType")),
+				stringValue(map.get("workspaceId")),
+				intValue(map.get("maxTurns"), AgentRunContext.DEFAULT_MAX_TURNS),
+				intValue(map.get("maxReflections"), AgentRunContext.DEFAULT_MAX_REFLECTIONS),
+				map.get("paramMap") instanceof Map ? (Map<String, Object>) map.get("paramMap") : null,
+				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
+				insight);
+	}
+
+	private static String stringValue(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String str = String.valueOf(value);
+		return str.trim().isEmpty() ? null : str;
+	}
+
+	private static int intValue(Object value, int defaultValue) {
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		if (value != null) {
+			try {
+				return Integer.parseInt(String.valueOf(value));
+			} catch (NumberFormatException ignored) {
+				return defaultValue;
+			}
+		}
+		return defaultValue;
 	}
 }

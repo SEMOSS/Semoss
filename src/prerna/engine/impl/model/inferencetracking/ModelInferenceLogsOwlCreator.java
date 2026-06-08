@@ -221,6 +221,7 @@ public class ModelInferenceLogsOwlCreator {
 				Pair.with("JOB_ID", "VARCHAR(50)"),
 				Pair.with("STATUS", "VARCHAR(50)"),
 				Pair.with("INPUT", CLOB_DATATYPE_NAME),
+				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("INPUT_MESSAGE_ID", "VARCHAR(50)"),
 				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
 				Pair.with("FINAL_OUTPUT_MESSAGE_ID", "VARCHAR(50)"),

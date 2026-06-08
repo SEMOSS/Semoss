@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.RoomMessageRedisClient;
 import prerna.engine.impl.model.RoomMessageStore;
-import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
 final class AgentRunQueueCoordinator {
@@ -42,11 +41,8 @@ final class AgentRunQueueCoordinator {
 	private static final Logger logger = LogManager.getLogger(AgentRunQueueCoordinator.class);
 
 	private static final String QUEUE_ENABLED = "AGENT_RUN_QUEUE_ENABLED";
-	private static final String QUEUE_WAIT_TIMEOUT_MS = "AGENT_RUN_QUEUE_WAIT_TIMEOUT_MS";
 	private static final String ACTIVE_TTL_MS = "AGENT_RUN_ACTIVE_TTL_MS";
-	private static final long DEFAULT_QUEUE_WAIT_TIMEOUT_MS = 3600000L;
 	private static final long DEFAULT_ACTIVE_TTL_MS = 300000L;
-	private static final long POLL_MS = 250L;
 
 	private final AgentRunStore store;
 
@@ -62,30 +58,19 @@ final class AgentRunQueueCoordinator {
 		return Boolean.parseBoolean(configured.trim());
 	}
 
-	ActiveRunLease awaitTurn(String runId, RunAgentRequest request) throws AgentCancelledException {
-		String roomId = request.getRoomId();
-		long waitTimeoutMs = Math.max(0L, getLongProperty(QUEUE_WAIT_TIMEOUT_MS, DEFAULT_QUEUE_WAIT_TIMEOUT_MS));
+	ActiveRunLease tryClaimTurn(String runId, String roomId) {
+		if (!isQueueEnabled()) {
+			return ActiveRunLease.NO_OP;
+		}
 		long activeTtlMs = Math.max(1000L, getLongProperty(ACTIVE_TTL_MS, DEFAULT_ACTIVE_TTL_MS));
-		long deadline = System.currentTimeMillis() + waitTimeoutMs;
 		RoomMessageRedisClient redis = RoomMessageStore.redisClient();
 		String token = UUID.randomUUID().toString();
-
-		while (true) {
-			if (Thread.currentThread().isInterrupted()) {
-				throw new AgentCancelledException("RunAgent cancelled while waiting for room queue turn.");
-			}
-			if (store.isOldestQueuedRunForRoom(runId, roomId)
-					&& redis.tryClaimActiveRun(roomId, runId, token, activeTtlMs)) {
-				ActiveRunLease lease = new ActiveRunLease(redis, roomId, runId, token, activeTtlMs);
-				lease.startRenewal();
-				return lease;
-			}
-			long remaining = deadline - System.currentTimeMillis();
-			if (remaining <= 0L) {
-				throw new IllegalStateException("Timed out waiting for RunAgent queue turn for room: " + roomId);
-			}
-			sleepOrCancel(Math.min(POLL_MS, remaining));
+		if (!redis.tryClaimActiveRun(roomId, runId, token, activeTtlMs)) {
+			return null;
 		}
+		ActiveRunLease lease = new ActiveRunLease(redis, roomId, runId, token, activeTtlMs);
+		lease.startRenewal();
+		return lease;
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {
@@ -97,15 +82,6 @@ final class AgentRunQueueCoordinator {
 			return Long.parseLong(value.trim());
 		} catch (NumberFormatException e) {
 			return defaultValue;
-		}
-	}
-
-	private static void sleepOrCancel(long millis) throws AgentCancelledException {
-		try {
-			Thread.sleep(millis);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new AgentCancelledException("RunAgent cancelled while waiting for room queue turn.");
 		}
 	}
 

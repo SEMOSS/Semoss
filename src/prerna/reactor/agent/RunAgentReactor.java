@@ -48,7 +48,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
+/** Enqueues a durable generic agent run and returns a structured run handle. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
@@ -133,11 +133,15 @@ public class RunAgentReactor extends AbstractReactor {
             RunAgentResult handle = AgentRuntimeManager.get().run(request);
             AgentHarnessResult result = handle.getResult();
 
-            logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
-                    handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
-                    result.getToolCallRecords().size());
+            if (result != null) {
+                logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
+                        handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
+                        result.getToolCallRecords().size());
+            } else {
+                logger.info("RunAgentReactor: runId={} status={}", handle.getRunId(), handle.getStatus());
+            }
 
-            return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
+            return new NounMetadata(handle.toMap(), PixelDataType.MAP,
                     PixelOperationType.OPERATION);
 
         } catch (AgentMaxTurnsException e) {
@@ -150,7 +154,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Run a generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+        return "Queue a durable generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
     }
 
     // Helpers
