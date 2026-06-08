@@ -698,10 +698,7 @@ public final class AgentConfigLoader {
             logger.warn("AgentConfigLoader: unknown hook kind '{}' - skipping", kind);
             return null;
         }
-        // Pass the full spec so config-bearing hooks (e.g. PixelReactorHook)
-        // can extract their kind-specific fields. Stateless hooks ignore
-        // it via the no-op default. A configure() failure skips this hook
-        // but doesn't poison the rest of the run.
+
         try {
             hook.configure(spec);
         } catch (Exception e) {
