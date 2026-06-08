@@ -52,6 +52,6 @@ public class GetProjectTeamTokenLimitsReactor extends AbstractPrincipalTokenLimi
 		requireCanEditProject(user, projectId);
 		List<Map<String, Object>> limits = SecurityPrincipalTokenLimitUtils.getProjectTeamTokenLimits(projectId,
 				value(GROUP_ID_KEY), value(GROUP_TYPE_KEY), value(SCOPED_ENGINE_ID_KEY));
-		return new NounMetadata(limits, PixelDataType.FORMATTED_DATA_SET);
+		return new NounMetadata(limits, PixelDataType.VECTOR);
 	}
 }

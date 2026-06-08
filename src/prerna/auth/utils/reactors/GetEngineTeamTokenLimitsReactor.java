@@ -52,6 +52,6 @@ public class GetEngineTeamTokenLimitsReactor extends AbstractPrincipalTokenLimit
 		requireCanEditEngine(user, engineId);
 		List<Map<String, Object>> limits = SecurityPrincipalTokenLimitUtils.getEngineTeamTokenLimits(engineId,
 				value(GROUP_ID_KEY), value(GROUP_TYPE_KEY));
-		return new NounMetadata(limits, PixelDataType.FORMATTED_DATA_SET);
+		return new NounMetadata(limits, PixelDataType.VECTOR);
 	}
 }

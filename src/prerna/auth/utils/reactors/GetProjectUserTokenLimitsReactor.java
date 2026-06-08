@@ -41,7 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetProjectUserTokenLimitsReactor extends AbstractPrincipalTokenLimitReactor {
 
 	public GetProjectUserTokenLimitsReactor() {
-		this.keysToGet = new String[] { PROJECT_ID_KEY, USER_ID_KEY, SCOPED_ENGINE_ID_KEY };
+		this.keysToGet = new String[] { PROJECT_ID_KEY, SCOPED_ENGINE_ID_KEY };
 	}
 
 	@Override
@@ -49,9 +49,10 @@ public class GetProjectUserTokenLimitsReactor extends AbstractPrincipalTokenLimi
 		organizeKeys();
 		User user = this.insight.getUser();
 		String projectId = value(PROJECT_ID_KEY);
+        String userId = this.insight.getUserId();
 		requireCanEditProject(user, projectId);
-		List<Map<String, Object>> limits = SecurityPrincipalTokenLimitUtils.getProjectUserTokenLimits(projectId,
-				value(USER_ID_KEY), value(SCOPED_ENGINE_ID_KEY));
-		return new NounMetadata(limits, PixelDataType.FORMATTED_DATA_SET);
+		List<Map<String, Object>> limits = SecurityPrincipalTokenLimitUtils.getProjectUserTokenLimits(projectId, userId,
+				value(SCOPED_ENGINE_ID_KEY));
+		return new NounMetadata(limits, PixelDataType.VECTOR);
 	}
 }
