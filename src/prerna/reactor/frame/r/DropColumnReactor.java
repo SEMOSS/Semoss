@@ -32,7 +32,6 @@ import java.util.Vector;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,8 +41,16 @@ import prerna.sablecc2.om.nounmeta.RemoveHeaderNounMetadata;
 public class DropColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor drops columns from the frame. The inputs to the reactor are: 1)
-	 * list of columns to drop
+	 * <p>
+	 * This reactor drops columns from the frame.
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>list of columns to drop</li>
+	 * </ul>
 	 */
 
 	public DropColumnReactor() {
@@ -65,7 +72,7 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		List<String> remCols = new Vector<String>();
 
 		// get inputs
-		List<String> columns = getColumns();
+		List<String> columns = getListStringFromKeyOrCurRow(this.keysToGet[0]);
 		StringBuilder builder = new StringBuilder();
 		for (int i = 0; i < columns.size(); i++) {
 			String col = columns.get(i);
@@ -101,32 +108,4 @@ public class DropColumnReactor extends AbstractRFrameReactor {
 		return retNoun;
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
-	private List<String> getColumns() {
-		List<String> columns = new Vector<String>();
-
-		GenRowStruct colGrs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (colGrs != null && !colGrs.isEmpty()) {
-			for (int selectIndex = 0; selectIndex < colGrs.size(); selectIndex++) {
-				String column = colGrs.get(selectIndex) + "";
-				columns.add(column);
-			}
-		} else {
-			GenRowStruct inputsGRS = this.getCurRow();
-			// keep track of selectors to change to upper case
-			if (inputsGRS != null && !inputsGRS.isEmpty()) {
-				for (int selectIndex = 0; selectIndex < inputsGRS.size(); selectIndex++) {
-					String column = inputsGRS.get(selectIndex) + "";
-					columns.add(column);
-				}
-			}
-		}
-
-		return columns;
-	}
 }

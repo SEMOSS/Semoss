@@ -64,13 +64,26 @@ public class FilterModelStateReactor extends AbstractFilterReactor {
 	public static final String CLASS_NAME = FilterModelStateReactor.class.getName();
 
 	/**
+	 * <p>
 	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional 4)
-	 * offset <- optional 5) panel <- required 6) dynamic <- optional
-	 * 
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- required</li>
+	 * <li>dynamic <- optional</li>
+	 * </ul>
+	 *
+	 * <p>
 	 * This reactor returns the filter values that are filtered out i.e. these would
 	 * be values that are unchecked in a drop down selection
+	 * </p>
 	 */
 
 	public FilterModelStateReactor() {

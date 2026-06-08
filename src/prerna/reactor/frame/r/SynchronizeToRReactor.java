@@ -53,9 +53,17 @@ public class SynchronizeToRReactor extends AbstractRFrameReactor {
 	private static final Logger classLogger = LogManager.getLogger(SynchronizeToRReactor.class);
 
 	/**
-	 * This reactor takes a frame and synchronizes it to an r frame inputs are: 1)
-	 * table name for the synchronized frame 2) working directory, which is optional
-	 * and only used for tinker frame
+	 * <p>
+	 * This reactor takes a frame and synchronizes it to an r frame
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>table name for the synchronized frame</li>
+	 * <li>working directory, which is optional and only used for tinker frame</li>
+	 * </ul>
 	 */
 
 	// keys used to retrieve user input

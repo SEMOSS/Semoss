@@ -29,7 +29,6 @@ package prerna.reactor.frame.rdbms;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -188,19 +187,9 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getGenRowStruct(SEPARATOR_KEY);
-		if (separatorGrs == null || separatorGrs.isEmpty()) {
-			throw new IllegalArgumentException("Need to define a separator to split the column with");
-		}
-		String separator = separatorGrs.get(0).toString();
-		if (separator.isEmpty()) {
+		String separator = getString(SEPARATOR_KEY);
+		if (separator == null || separator.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
 		return separator;
@@ -217,26 +206,10 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new ArrayList<>();
-
-		// try its own key
-		GenRowStruct colsGrs = this.store.getGenRowStruct(COLUMNS_KEY);
-		if (colsGrs != null && !colsGrs.isEmpty()) {
-			int size = colsGrs.size();
-			for (int i = 0; i < size; i++) {
-				cols.add(colsGrs.get(i).toString());
-			}
+		List<String> cols = getListStringFromKeyOrCurRow(COLUMNS_KEY);
+		if (!cols.isEmpty()) {
 			return cols;
 		}
-
-		int inputSize = this.getCurRow().size();
-		if (inputSize > 0) {
-			for (int i = 0; i < inputSize; i++) {
-				cols.add(this.getCurRow().get(i).toString());
-			}
-			return cols;
-		}
-
 		throw new IllegalArgumentException("Need to define the columns to split");
 	}
 

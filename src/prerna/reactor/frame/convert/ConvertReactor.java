@@ -188,14 +188,9 @@ public class ConvertReactor extends AbstractFrameReactor {
 	 * @return
 	 */
 	private String getFrameType() {
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString();
-		}
-
-		List<String> inputValues = this.curRow.getAllStrValues();
-		if (!inputValues.isEmpty()) {
-			return inputValues.get(0);
+		String frameType = getStringFromKeyOrCurRowStringValue(this.keysToGet[0]);
+		if (frameType != null && !frameType.isEmpty()) {
+			return frameType;
 		}
 		throw new IllegalArgumentException("Must define the output frame type");
 	}

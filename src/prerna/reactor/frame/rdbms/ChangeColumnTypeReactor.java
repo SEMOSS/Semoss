@@ -40,9 +40,18 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * This reactor changes the data type of an existing column The inputs to the
- * reactor are: 1) the column to update 2) the desired column type 3) if the
- * desired type is a date, can enter the current date format
+ * <p>
+ * This reactor changes the data type of an existing column
+ * </p>
+ *
+ * <p>
+ * The inputs to the reactor are:
+ * </p>
+ * <ul>
+ * <li>the column to update</li>
+ * <li>the desired column type</li>
+ * <li>if the desired type is a date, can enter the current date format</li>
+ * </ul>
  */
 public class ChangeColumnTypeReactor extends AbstractFrameReactor {
 

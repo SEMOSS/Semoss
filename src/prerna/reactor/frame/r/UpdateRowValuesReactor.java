@@ -37,7 +37,6 @@ import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -46,9 +45,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor updates row values to a new value based on a filter condition
-	 * (where a column equals a specified value) The inputs to the reactor are: 1)
-	 * the column to update 2) the new value 3) the filter condition
+	 * (where a column equals a specified value)
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to update</li>
+	 * <li>the new value</li>
+	 * <li>the filter condition</li>
+	 * </ul>
 	 */
 
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
@@ -77,7 +86,7 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		}
 
 		// second noun will be the value to update (the new value)
-		String newValue = getNewValue();
+		String newValue = getStringFromKeyOrCurRow(this.keysToGet[1], 1);
 
 		// use method to retrieve a single column type
 		String columnSelect = table + "$" + column;
@@ -182,57 +191,16 @@ public class UpdateRowValuesReactor extends AbstractRFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private String getUpdateColumn() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (inputsGRS == null) {
-			inputsGRS = this.getCurRow();
-		}
-		if (inputsGRS != null && !inputsGRS.isEmpty()) {
-			// first noun will be the column to update
-			NounMetadata noun1 = inputsGRS.getNoun(0);
-			String fullUpdateCol = noun1.getValue() + "";
-			if (fullUpdateCol.length() == 0) {
-				throw new IllegalArgumentException("Need to define column to update");
-			}
+		String fullUpdateCol = getStringFromKeyOrCurRow(this.keysToGet[0], 0);
+		if (fullUpdateCol != null && !fullUpdateCol.isEmpty()) {
 			return fullUpdateCol;
 		}
 		throw new IllegalArgumentException("Need to define column to update");
 	}
 
-	private String getNewValue() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[1]);
-		if (inputsGRS != null) {
-			return inputsGRS.get(0) + "";
-		}
-		inputsGRS = this.getCurRow();
-		NounMetadata noun2 = inputsGRS.getNoun(1);
-		String value = noun2.getValue() + "";
-		return value;
-	}
-
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[2]);
-		if (inputsGRS != null) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			// filter is query struct pksl type
-			// the qs is the value of the filterNoun
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			if (qs == null) {
-				throw new IllegalArgumentException("Need to define filter condition");
-			}
-			return qs;
-		}
-		inputsGRS = this.getCurRow();
-		NounMetadata filterNoun = inputsGRS.getNoun(2);
-		// filter is query struct pksl type
-		// the qs is the value of the filterNoun
-		SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+		SelectQueryStruct qs = (SelectQueryStruct) getValueFromKeyOrCurRow(this.keysToGet[2], 2);
 		if (qs == null) {
 			throw new IllegalArgumentException("Need to define filter condition");
 		}

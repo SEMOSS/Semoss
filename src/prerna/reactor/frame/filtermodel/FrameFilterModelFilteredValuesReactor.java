@@ -63,13 +63,25 @@ public class FrameFilterModelFilteredValuesReactor extends AbstractFilterReactor
 	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelFilteredValuesReactor.class);
 
 	/**
+	 * <p>
 	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional 4)
-	 * offset <- optional 5) panel <- optional
-	 * 
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- optional</li>
+	 * </ul>
+	 *
+	 * <p>
 	 * This reactor returns the filter values that are filtered out i.e. these would
 	 * be values that are unchecked in a drop down selection
+	 * </p>
 	 */
 
 	public FrameFilterModelFilteredValuesReactor() {

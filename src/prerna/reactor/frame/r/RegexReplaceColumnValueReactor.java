@@ -27,13 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.frame.r;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 import java.util.regex.Pattern;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,10 +41,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor updates row values based on a regex It replaces all portions of
-	 * the current cell value that is an exact match to the input value The inputs
-	 * to the reactor are: 1) the column to update 2) the regex to look for 3) value
-	 * to replace the regex with
+	 * the current cell value that is an exact match to the
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to update</li>
+	 * <li>the regex to look for</li>
+	 * <li>value to replace the regex with</li>
+	 * </ul>
 	 */
 
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
@@ -72,15 +80,15 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		List<String> columnNames = getColumns();
 
 		// get regular expression
-		String regex = this.keyValue.get(this.keysToGet[1]);
+		String regex = getStringFromKeyOrCurRow(this.keysToGet[1], 1);
 		if (regex == null) {
-			regex = getRegex();
+			throw new IllegalArgumentException("Need to define " + this.keysToGet[1]);
 		}
 
 		// get new value
-		String newValue = this.keyValue.get(this.keysToGet[2]);
+		String newValue = getStringFromKeyOrCurRow(this.keysToGet[2], 2);
 		if (newValue == null) {
-			newValue = getNewValue();
+			throw new IllegalArgumentException("Need to define " + this.keysToGet[2]);
 		}
 
 		// iterate through all passed columns
@@ -162,42 +170,16 @@ public class RegexReplaceColumnValueReactor extends AbstractRFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private List<String> getColumns() {
-		List<String> cols = new Vector<String>();
-
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (grs != null && !grs.isEmpty()) {
-			for (int i = 0; i < grs.size(); i++) {
-				String column = grs.get(i).toString();
-				if (column.contains("__")) {
-					column = column.split("__")[1];
-				}
-				cols.add(column);
+		List<String> cols = getListString(this.keysToGet[0], new ArrayList<String>());
+		for (int i = 0; i < cols.size(); i++) {
+			String column = cols.get(i);
+			if (column.contains("__")) {
+				column = column.split("__")[1];
 			}
-			return cols;
+			cols.set(i, column);
 		}
-
 		return cols;
-	}
-
-	private String getRegex() {
-		// second input is the regex
-		NounMetadata input2 = this.getCurRow().getNoun(1);
-		String regex = input2.getValue() + "";
-		return regex;
-	}
-
-	private String getNewValue() {
-		// third input is the new value
-		NounMetadata input3 = this.getCurRow().getNoun(2);
-		String newValue = input3.getValue() + "";
-		return newValue;
 	}
 
 }

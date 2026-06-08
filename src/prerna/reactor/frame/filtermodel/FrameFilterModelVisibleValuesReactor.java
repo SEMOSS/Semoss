@@ -59,13 +59,25 @@ public class FrameFilterModelVisibleValuesReactor extends AbstractFilterReactor 
 	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelVisibleValuesReactor.class);
 
 	/**
+	 * <p>
 	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional 4)
-	 * offset <- optional 5) panel <- optional
-	 * 
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- optional</li>
+	 * </ul>
+	 *
+	 * <p>
 	 * This reactor returns the visible values for a column i.e. these would be
 	 * values that are checked in a drop down selection
+	 * </p>
 	 */
 
 	public FrameFilterModelVisibleValuesReactor() {

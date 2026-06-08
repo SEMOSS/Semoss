@@ -43,11 +43,19 @@ public class AddColumnReactor extends AbstractFrameReactor {
 	private static final Logger classLogger = LogManager.getLogger(AddColumnReactor.class);
 
 	/**
-	 * This reactor adds an empty column to the frame The inputs to the reactor are:
-	 * 1) the name for the new column 2) the new column type 3) the column to
-	 * duplicate values from
+	 * <p>
+	 * This reactor adds an empty column to the frame
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the name for the new column</li>
+	 * <li>the new column type</li>
+	 * <li>the column to duplicate values from</li>
+	 * </ul>
 	 */
-
 	public AddColumnReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NEW_COLUMN.getKey(), ReactorKeysEnum.DATA_TYPE.getKey(),
 				ReactorKeysEnum.ADDITIONAL_DATA_TYPE.getKey() };

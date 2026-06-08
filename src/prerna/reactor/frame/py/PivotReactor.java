@@ -42,10 +42,21 @@ import prerna.util.Utility;
 public class PivotReactor extends AbstractPyFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor pivots a column so that the unique values will be transformed
-	 * into new headers The inputs to the reactor are: 1) the column to pivot 2) the
-	 * column to turn into values for the selected pivot column 3) the aggregate
-	 * function 4) the other columns to maintain 5) the optional no value replace
+	 * into new headers
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to pivot</li>
+	 * <li>the column to turn into values for the selected pivot column</li>
+	 * <li>the aggregate function</li>
+	 * <li>the other columns to maintain</li>
+	 * <li>the optional no value replace</li>
+	 * </ul>
 	 */
 
 	private static final String PIVOT_COLUMN_KEY = "pivotCol";
