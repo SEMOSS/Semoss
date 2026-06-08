@@ -49,16 +49,16 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(FrameFilterModelNumericRangeReactor.class);
 
 	/**
-	 * Get the absolute min/max for the column and the relative min/max based on the filters
+	 * Get the absolute min/max for the column and the relative min/max based on the
+	 * filters
 	 */
-	
+
 	public FrameFilterModelNumericRangeReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.PANEL.getKey() };
 	}
@@ -95,7 +95,7 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 		if (panel != null) {
 			baseFilters.merge(panel.getPanelFilters().copy());
 		}
-		
+
 		// for numerical, also add the min/max
 		String alias = selector.getAlias();
 		String metaName = dataframe.getMetaData().getUniqueNameFromAlias(alias);
@@ -110,7 +110,7 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 			QueryFunctionSelector mathSelector = new QueryFunctionSelector();
 			mathSelector.addInnerSelector(innerSelector);
 			mathSelector.setFunction(QueryFunctionHelper.MIN);
-			
+
 			SelectQueryStruct mathQS = new SelectQueryStruct();
 			mathQS.addSelector(mathSelector);
 
@@ -121,13 +121,15 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMin", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -137,13 +139,15 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("absMax", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve absolute maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -155,13 +159,15 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("max", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered maximum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}
@@ -171,13 +177,15 @@ public class FrameFilterModelNumericRangeReactor extends AbstractFilterReactor {
 				it = dataframe.query(mathQS);
 				minMaxMap.put("min", it.next().getValues()[0]);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve filtered minimum for numeric column {} in frame filter model.",
+						tableCol, e);
 			} finally {
-				if(it != null) {
+				if (it != null) {
 					try {
 						it.close();
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close numeric-range iterator for column {} in frame filter model.",
+								tableCol, e);
 					}
 				}
 			}

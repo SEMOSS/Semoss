@@ -43,12 +43,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class CumulativeSumReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor performs the cumulative sum by grouping data in a columns Input
-	 * Keys are as follows: 0) newCol = Name of the new column being created 1)
-	 * value = The instance value in a column, or the numeric or string value used
-	 * in a operation 2) groupByCols = List of columns used to groupBy cumulative
-	 * sum 3) sortCols = List of Columns used to sort data 4) sort = Sort direction:
-	 * ascending ("asc") or descending ("desc")
+	 * <p>
+	 * This reactor performs the cumulative sum by grouping data in a columns
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>value = The instance value in a column, or the numeric or string value
+	 * used in a operation</li>
+	 * <li>groupByCols = List of columns used to groupBy cumulative sum</li>
+	 * <li>sortCols = List of Columns used to sort data</li>
+	 * <li>sort = Sort direction: ascending ("asc") or descending ("desc")</li>
+	 * </ul>
 	 */
 
 	private static final String GROUP_BY_COLUMNS_KEY = "groupByCols";

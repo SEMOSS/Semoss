@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.frame.rdbms;
 
+import java.sql.PreparedStatement;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -44,7 +45,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class UpdateRowValuesReactor extends AbstractFrameReactor {
 
@@ -56,9 +56,9 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		String updateColumnInput = "";
 		String updateTable = "";
 		String updateColumn = "";
-		String updateValueSQL = "";
+		Object updateValue = null;
+		PixelDataType updateValueType = null;
 		GenRowStruct inputsGRS = this.getCurRow();
-		String sqlStatements = "";
 		// get update column
 		updateColumnInput = inputsGRS.getNoun(0).getValue() + "";
 		if (updateColumnInput.contains("__")) {
@@ -71,10 +71,8 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 		}
 		// get update value
 		NounMetadata noun = inputsGRS.getNoun(1);
-		PixelDataType nounType = noun.getNounType();
-		if (nounType.equals(PixelDataType.CONST_STRING)) {
-			updateValueSQL = noun.getValue() + "";
-		}
+		updateValueType = noun.getNounType();
+		updateValue = noun.getValue();
 
 		// validate updateColumn exists
 		String[] existCols = getColNames(frame);
@@ -82,62 +80,74 @@ public class UpdateRowValuesReactor extends AbstractFrameReactor {
 			throw new IllegalArgumentException("Column " + updateColumn + " doesn't exist.");
 		}
 
-		// clean updateValueSQL value
+		// clean update value
 		HeadersException colNameChecker = HeadersException.getInstance();
-		updateValueSQL = "'" + colNameChecker.removeIllegalCharacters(updateValueSQL) + "'";
+		if (updateValueType.equals(PixelDataType.CONST_STRING) && updateValue != null) {
+			updateValue = colNameChecker.removeIllegalCharacters(String.valueOf(updateValue));
+		}
 
 		// get filters
-		String update = "UPDATE " + updateTable + " SET " + updateColumn + " = " + updateValueSQL + " WHERE ";
 		NounMetadata filterNoun = inputsGRS.getNoun(2);
 		PixelDataType filterNounType = filterNoun.getNounType();
-		if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			GenRowFilters grf = qs.getExplicitFilters();
-			Set<String> filteredColumns = grf.getAllFilteredColumns();
-			for (String column : filteredColumns) {
-				List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(column);
-				for (SimpleQueryFilter queryFilter : filterList) {
-					String sqlCondition = "";
-					// col to values
-					NounMetadata leftComp = queryFilter.getLComparison();
-					String columnComp = leftComp.getValue() + "";
-					if (columnComp.contains("__")) {
-						String[] split = columnComp.split("__");
-						sqlCondition += split[1];
-					}
-					// does sqlCondition exist
-					if (Arrays.asList(existCols).contains(sqlCondition) != true) {
-						throw new IllegalArgumentException("Column " + sqlCondition + " doesn't exist.");
-					}
-					String nounComparator = queryFilter.getComparator();
-					// clean nounComparator for sql statement
-					if (nounComparator.equals("==")) {
-						nounComparator = "=";
-					} else if (nounComparator.equals("<>")) {
-						nounComparator = "!=";
-					}
-					sqlCondition += " " + nounComparator + " ";
-					// rightComp has values
-					NounMetadata rightComp = queryFilter.getRComparison();
-					Object value = rightComp.getValue();
+		try {
+			if (filterNounType.equals(PixelDataType.QUERY_STRUCT)) {
+				SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+				GenRowFilters grf = qs.getExplicitFilters();
+				Set<String> filteredColumns = grf.getAllFilteredColumns();
+				for (String column : filteredColumns) {
+					List<SimpleQueryFilter> filterList = grf.getAllSimpleQueryFiltersContainingColumn(column);
+					for (SimpleQueryFilter queryFilter : filterList) {
+						String sqlCondition = "";
+						// col to values
+						NounMetadata leftComp = queryFilter.getLComparison();
+						String columnComp = leftComp.getValue() + "";
+						if (columnComp.contains("__")) {
+							String[] split = columnComp.split("__");
+							sqlCondition += split[1];
+						} else {
+							sqlCondition += columnComp;
+						}
+						// does sqlCondition exist
+						if (Arrays.asList(existCols).contains(sqlCondition) != true) {
+							throw new IllegalArgumentException("Column " + sqlCondition + " doesn't exist.");
+						}
+						String nounComparator = queryFilter.getComparator();
+						// clean nounComparator for sql statement
+						if (nounComparator.equals("==")) {
+							nounComparator = "=";
+						} else if (nounComparator.equals("<>")) {
+							nounComparator = "!=";
+						}
+						// rightComp has values
+						NounMetadata rightComp = queryFilter.getRComparison();
+						Object value = rightComp.getValue();
 
-					// clean value
-					value = colNameChecker.removeIllegalCharacters(String.valueOf(value));
+						// clean value
+						if (rightComp.getNounType().equals(PixelDataType.CONST_STRING) && value != null) {
+							value = colNameChecker.removeIllegalCharacters(String.valueOf(value));
+						}
 
-					// if it is a string put quotes
-					if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
-						sqlStatements += update + sqlCondition + "'" + value + "' ; ";
-					} else {
-						sqlStatements += update + sqlCondition + "'" + value + "' ; ";
+						String updateSql = "UPDATE " + updateTable + " SET " + updateColumn + " = ? WHERE "
+								+ sqlCondition + " " + nounComparator + " ?";
+						try (PreparedStatement statement = frame.getConn().prepareStatement(updateSql)) {
+							if (updateValueType.equals(PixelDataType.CONST_STRING)) {
+								statement.setString(1, updateValue == null ? null : String.valueOf(updateValue));
+							} else {
+								statement.setObject(1, updateValue);
+							}
+							if (rightComp.getNounType().equals(PixelDataType.CONST_STRING)) {
+								statement.setString(2, value == null ? null : String.valueOf(value));
+							} else {
+								statement.setObject(2, value);
+							}
+							statement.executeUpdate();
+						}
 					}
 				}
 			}
-		}
-
-		try {
-			frame.getBuilder().runQuery(sqlStatements);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update column {} on table {} using filter type {}", updateColumn, updateTable,
+					filterNounType, e);
 		}
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}

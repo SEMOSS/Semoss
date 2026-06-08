@@ -38,8 +38,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class SortColumnReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor sorts a column based on a given sort direction The inputs to the
-	 * reactor are: 1) the column to sort 2) the sort direction
+	 * <p>
+	 * This reactor sorts a column based on a given sort direction
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to sort</li>
+	 * <li>the sort direction</li>
+	 * </ul>
 	 */
 
 	public SortColumnReactor() {

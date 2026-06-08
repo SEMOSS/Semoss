@@ -33,7 +33,6 @@ import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -42,8 +41,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class DropRowsReactor extends AbstractRFrameReactor {
 
 	/**
-	 * This reactor drops rows based on a comparison The inputs to the reactor are:
-	 * 1) the filter comparison for dropping rows
+	 * <p>
+	 * This reactor drops rows based on a comparison
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the filter comparison for dropping rows</li>
+	 * </ul>
 	 */
 
 	public DropRowsReactor() {
@@ -85,23 +92,7 @@ public class DropRowsReactor extends AbstractRFrameReactor {
 	}
 
 	private SelectQueryStruct getQueryStruct() {
-		GenRowStruct inputsGRS = this.store.getGenRowStruct(this.keysToGet[0]);
-		if (inputsGRS != null) {
-			NounMetadata filterNoun = inputsGRS.getNoun(0);
-			// filter is query struct pksl type
-			// the qs is the value of the filterNoun
-			SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
-			if (qs == null) {
-				throw new IllegalArgumentException("Need to define filter condition");
-			}
-			return qs;
-		}
-
-		inputsGRS = this.getCurRow();
-		NounMetadata filterNoun = inputsGRS.getNoun(0);
-		// filter is query struct pksl type
-		// the qs is the value of the filterNoun
-		SelectQueryStruct qs = (SelectQueryStruct) filterNoun.getValue();
+		SelectQueryStruct qs = (SelectQueryStruct) getValueFromKeyOrCurRow(this.keysToGet[0], 0);
 		if (qs == null) {
 			throw new IllegalArgumentException("Need to define filter condition");
 		}
