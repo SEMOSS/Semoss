@@ -47,128 +47,131 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Reactor that sets the agent hook list on a workspace, persisting to
  * {@code WORKSPACE.CONFIG_JSON.hooks[]}. Pixel: {@code SetAgentHooks}.
  *
- * <p>Input keys:
+ * <p>
+ * Input keys:
  * <ul>
- *   <li>{@code workspaceId} — required</li>
- *   <li>{@code hooks} — required, list of maps. Each entry must have a
- *       {@code kind} known to {@link AgentHookRegistry}. Kind-specific
- *       fields (e.g. {@code pixel}, {@code events} for {@code kind="pixel"})
- *       are persisted as-is and reach the loader's
- *       {@code hook.configure(spec)} call at run time.</li>
+ * <li>{@code workspaceId} - required</li>
+ * <li>{@code hooks} - required, list of maps. Each entry must have a
+ * {@code kind} known to {@link AgentHookRegistry}. Kind-specific fields (e.g.
+ * {@code pixel}, {@code events} for {@code kind="pixel"}) are persisted as-is
+ * and reach the loader's {@code hook.configure(spec)} call at run time.</li>
  * </ul>
  *
- * <p>Validation rejects unknown {@code kind} values at write time so the
- * run-time loader doesn't silently drop them. Kind-specific required
- * fields are also enforced here (e.g. {@code kind="pixel"} must carry a
- * non-empty {@code pixel} field).
+ * <p>
+ * Validation rejects unknown {@code kind} values at write time so the run-time
+ * loader doesn't silently drop them. Kind-specific required fields are also
+ * enforced here (e.g. {@code kind="pixel"} must carry a non-empty {@code pixel}
+ * field).
  *
- * <p>To add a new hook: implement {@link prerna.reactor.agent.IAgentRunHook}
- * or {@link prerna.reactor.agent.IToolHook} (or both) and register it
- * with
+ * <p>
+ * To add a new hook: implement {@link prerna.reactor.agent.IAgentRunHook} or
+ * {@link prerna.reactor.agent.IToolHook} (or both) and register it with
  * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}.
  *
- * <p>Returns the new full {@code CONFIG_JSON} as a {@link PixelDataType#CONST_STRING}
- * for FE display.
+ * <p>
+ * Returns the new full {@code CONFIG_JSON} as a
+ * {@link PixelDataType#CONST_STRING} for FE display.
  */
 public class SetAgentHooksReactor extends AbstractWorkspaceReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(SetAgentHooksReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SetAgentHooksReactor.class);
 
-    private static final String HOOKS_KEY = "hooks";
+	private static final String HOOKS_KEY = "hooks";
 
-    public SetAgentHooksReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), HOOKS_KEY };
-        this.keyRequired = new int[] { 1, 1 };
-    }
+	public SetAgentHooksReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), HOOKS_KEY };
+		this.keyRequired = new int[] { 1, 1 };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
 
-        User user = this.insight.getUser();
-        String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-        if (workspaceId == null || workspaceId.trim().isEmpty()) {
-            throw new IllegalArgumentException("workspaceId is required");
-        }
+		User user = this.insight.getUser();
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		if (workspaceId == null || workspaceId.trim().isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
 
-        Map<String, Object> currentRow = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-        if (currentRow == null) {
-            throw new IllegalArgumentException("Workspace not found: " + workspaceId);
-        }
-        if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
-            throw new IllegalArgumentException(
-                    "Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
-        }
+		Map<String, Object> currentRow = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+		if (currentRow == null) {
+			throw new IllegalArgumentException("Workspace not found: " + workspaceId);
+		}
+		if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
 
-        List<Map<String, Object>> rawHooks = getList(HOOKS_KEY, List.of());
-        JSONArray validated = validateAndBuildHooks(rawHooks);
+		List<Map<String, Object>> rawHooks = getList(HOOKS_KEY, List.of());
+		JSONArray validated = validateAndBuildHooks(rawHooks);
 
-        // Merge into existing CONFIG_JSON (preserve other fields), then write back.
-        JSONObject cfg;
-        try {
-            cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
-        } catch (Exception e) {
-            classLogger.warn("Failed to load existing CONFIG_JSON for workspaceId '{}'; starting fresh", workspaceId, e);
-            cfg = null;
-        }
-        if (cfg == null) {
-            cfg = new JSONObject();
-            cfg.put("schema_version", 1);
-        }
-        cfg.put("hooks", validated);
+		// Merge into existing CONFIG_JSON (preserve other fields), then write back.
+		JSONObject cfg;
+		try {
+			cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+		} catch (Exception e) {
+			classLogger.warn("Failed to load existing CONFIG_JSON for workspaceId '{}'; starting fresh", workspaceId,
+					e);
+			cfg = null;
+		}
+		if (cfg == null) {
+			cfg = new JSONObject();
+			cfg.put("schema_version", 1);
+		}
+		cfg.put("hooks", validated);
 
-        try {
-            ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
-        } catch (Exception e) {
-            classLogger.error("Failed to persist CONFIG_JSON.hooks for workspaceId '{}'.", workspaceId, e);
-            throw new IllegalArgumentException("Failed to update workspace hooks: " + e.getMessage(), e);
-        }
+		try {
+			ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, cfg);
+		} catch (Exception e) {
+			classLogger.error("Failed to persist CONFIG_JSON.hooks for workspaceId '{}'.", workspaceId, e);
+			throw new IllegalArgumentException("Failed to update workspace hooks: " + e.getMessage(), e);
+		}
 
-        return new NounMetadata(cfg.toString(), PixelDataType.CONST_STRING);
-    }
+		return new NounMetadata(cfg.toString(), PixelDataType.CONST_STRING);
+	}
 
-    /**
-     * Validates each entry has a known {@code kind} and rebuilds the JSON array
-     * canonically. Throws on the first unknown kind so the FE gets a clear
-     * error rather than silent drop at read time.
-     */
-    private static JSONArray validateAndBuildHooks(List<Map<String, Object>> raw) {
-        JSONArray out = new JSONArray();
-        if (raw == null) {
-            return out;
-        }
-        for (int i = 0; i < raw.size(); i++) {
-            Map<String, Object> entry = raw.get(i);
-            if (entry == null) {
-                throw new IllegalArgumentException("hooks[" + i + "] is null");
-            }
-            Object kindObj = entry.get("kind");
-            if (kindObj == null) {
-                throw new IllegalArgumentException("hooks[" + i + "] missing required 'kind'");
-            }
-            String kind = String.valueOf(kindObj);
-            if (!AgentHookRegistry.isKnown(kind)) {
-                throw new IllegalArgumentException("hooks[" + i + "] unknown kind '" + kind
-                        + "'. Known kinds: " + AgentHookRegistry.knownKinds());
-            }
+	/**
+	 * Validates each entry has a known {@code kind} and rebuilds the JSON array
+	 * canonically. Throws on the first unknown kind so the FE gets a clear error
+	 * rather than silent drop at read time.
+	 */
+	private static JSONArray validateAndBuildHooks(List<Map<String, Object>> raw) {
+		JSONArray out = new JSONArray();
+		if (raw == null) {
+			return out;
+		}
+		for (int i = 0; i < raw.size(); i++) {
+			Map<String, Object> entry = raw.get(i);
+			if (entry == null) {
+				throw new IllegalArgumentException("hooks[" + i + "] is null");
+			}
+			Object kindObj = entry.get("kind");
+			if (kindObj == null) {
+				throw new IllegalArgumentException("hooks[" + i + "] missing required 'kind'");
+			}
+			String kind = String.valueOf(kindObj);
+			if (!AgentHookRegistry.isKnown(kind)) {
+				throw new IllegalArgumentException(
+						"hooks[" + i + "] unknown kind '" + kind + "'. Known kinds: " + AgentHookRegistry.knownKinds());
+			}
 
-            // Kind-specific validation. The loader's hook.configure(spec)
-            // also validates at run time, but we catch obvious errors here
-            // so the FE gets a synchronous error rather than discovering
-            // the misconfiguration on the next agent run.
-            if (AgentHookRegistry.PIXEL.equals(kind)) {
-                Object pixelObj = entry.get("pixel");
-                if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
-                    throw new IllegalArgumentException(
-                            "hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
-                }
-            }
+			// Kind-specific validation. The loader's hook.configure(spec)
+			// also validates at run time, but we catch obvious errors here
+			// so the FE gets a synchronous error rather than discovering
+			// the misconfiguration on the next agent run.
+			if (AgentHookRegistry.PIXEL.equals(kind)) {
+				Object pixelObj = entry.get("pixel");
+				if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
+					throw new IllegalArgumentException(
+							"hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
+				}
+			}
 
-            // Persist the whole entry as-is so kind-specific fields
-            // (pixel, events, params, future additions) round-trip
-            // through the config and reach the loader's configure() call.
-            out.put(new JSONObject(entry));
-        }
-        return out;
-    }
+			// Persist the whole entry as-is so kind-specific fields
+			// (pixel, events, params, future additions) round-trip
+			// through the config and reach the loader's configure() call.
+			out.put(new JSONObject(entry));
+		}
+		return out;
+	}
 }

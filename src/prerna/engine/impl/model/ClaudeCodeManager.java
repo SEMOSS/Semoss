@@ -177,10 +177,10 @@ public class ClaudeCodeManager {
 	 * <ol>
 	 * <li>DIHelper override via {@link #CFG_CLAUDE_CLI_PATH}</li>
 	 * <li>Binary bundled inside the installed {@code claude-agent-sdk} Python
-	 * package ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) — the
-	 * same binary the SDK uses when no {@code cli_path} is set</li>
+	 * package ({@code <site-packages>/claude_agent_sdk/_bundled/claude}) - the same
+	 * binary the SDK uses when no {@code cli_path} is set</li>
 	 * <li>Common npm / system install paths</li>
-	 * <li>{@code "claude"} sentinel — OS PATH lookup at exec time</li>
+	 * <li>{@code "claude"} sentinel - OS PATH lookup at exec time</li>
 	 * </ol>
 	 */
 	public static String resolveClaudeBinary() {
@@ -286,7 +286,7 @@ public class ClaudeCodeManager {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
 						timeout, "INFO");
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for Claude Code Agent: {}", e);
+				classLogger.error("Failed to create python process for Claude Code agent", e);
 				throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -294,7 +294,7 @@ public class ClaudeCodeManager {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for Claude Code Agent: {}", e);
+				classLogger.error("Failed to reconnect python process for Claude Code agent", e);
 				throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent: {}", e);
 			}
 		}
@@ -317,7 +317,7 @@ public class ClaudeCodeManager {
 
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error("Failed to  to the python process for Claude Code", e);
+			classLogger.error("Failed to initialize Claude Code python process with startup commands", e);
 			if (cpwToInit != null) {
 				classLogger.warn("Able to start the python process for Claude Code but the start script failed");
 				cpwToInit.shutdown(false);

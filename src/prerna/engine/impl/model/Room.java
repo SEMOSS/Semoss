@@ -280,8 +280,10 @@ public class Room {
 			messages.clear();
 		}
 
-		// drop orphan tool_use (cancel mid-tool, crash) before building the outbound branch
-		// — providers reject unpaired tool_use, and the cached in-memory list may have one
+		// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
+		// branch
+		// - providers reject unpaired tool_use, and the cached in-memory list may have
+		// one
 		// even though sanitize on rehydration covers cold loads
 		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(this.messages, this);
 		if (sanitized != this.messages) {
@@ -316,7 +318,7 @@ public class Room {
 			applyInputUsageFromModelResponse(msg, llmResponse);
 			response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 		} catch (Exception e) {
-			classLogger.error("Error running new message in room", e);
+			classLogger.error("Failed to run new room message for roomId '{}'", room_id, e);
 			throw e;
 		}
 		// on success, add the message
@@ -558,7 +560,7 @@ public class Room {
 			} catch (Exception e) {
 				// remove the entire input message since it failed
 				messages.removeLast();
-				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+				classLogger.error("Failed to append tool result message and get follow-up model response: {}",
 						e.getMessage(), e);
 				throw e;
 			}
@@ -732,21 +734,24 @@ public class Room {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can resolve LLM-facing names
 	 * back to their original engine IDs and function names.
 	 *
-	 * <p><b>In-process LLM path.</b> This is the resolution used by the
-	 * {@code semoss} harness (and the playground COT reactors). It reads
+	 * <p>
+	 * <b>In-process LLM path.</b> This is the resolution used by the {@code semoss}
+	 * harness (and the playground COT reactors). It reads
 	 * {@code room.options.mcp[]} plus the {@code WORKSPACE_RESOURCE} rows for
 	 * {@code room.options.workspace.workspace_id}, resolves each engine through
-	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and
-	 * returns full tool definition maps for the LLM call.
+	 * {@link prerna.reactor.agent.mcp.MCPUtility#getAggregatedTools}, and returns
+	 * full tool definition maps for the LLM call.
 	 *
-	 * <p>External-CLI harnesses ({@code claude_code}, {@code github_copilot},
+	 * <p>
+	 * External-CLI harnesses ({@code claude_code}, {@code github_copilot},
 	 * {@code github_copilot_py}) take a sibling path:
 	 * {@code AgentConfig.getMcps()}, populated by {@code AgentConfigLoader} from
 	 * the same two sources, but returning engine refs ({@code id}/{@code name})
-	 * rather than resolved tool defs - the external CLI does its own MCP
-	 * handshake to discover tools.
+	 * rather than resolved tool defs - the external CLI does its own MCP handshake
+	 * to discover tools.
 	 *
-	 * <p>Both paths honor {@code room.options.workspace.workspace_id}, so the
+	 * <p>
+	 * Both paths honor {@code room.options.workspace.workspace_id}, so the
 	 * {@code workspaceId} arg on {@code RunAgent} (applied via
 	 * {@code AgentRunner}'s workspace overlay) yields the same MCP set in either
 	 * harness style.
@@ -816,7 +821,9 @@ public class Room {
 						if (arr != null) {
 							for (int i = 0; i < arr.length(); i++) {
 								JSONObject mcp = arr.optJSONObject(i);
-								if (mcp == null) continue;
+								if (mcp == null) {
+									continue;
+								}
 								String toolId = mcp.optString("id", null);
 								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
 									aggregated.addAll(getToolJson(toolId, maxLength));
@@ -825,8 +832,8 @@ public class Room {
 							}
 						}
 					} catch (Exception e) {
-						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}",
-								workspaceId, e.getMessage());
+						classLogger.warn("CONFIG_JSON.mcps read failed for workspaceId={}: {}", workspaceId,
+								e.getMessage());
 					}
 				}
 			} catch (ClassCastException e) {
@@ -945,7 +952,7 @@ public class Room {
 	}
 
 	/**
-	 * Returns the current per-call reverse-lookup map (LLM-facing name → enriched
+	 * Returns the current per-call reverse-lookup map (LLM-facing name -> enriched
 	 * tool entry). The map is rebuilt each time
 	 * {@link #getAllToolsJsonForRoom(int)} is called.
 	 *

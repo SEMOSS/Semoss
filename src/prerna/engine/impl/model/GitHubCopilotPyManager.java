@@ -221,8 +221,8 @@ public class GitHubCopilotPyManager {
 	 * per-room session state to
 	 * {@code <roomFolder>/session-state/<roomId>/events.jsonl}; if that file exists
 	 * the next turn must call {@code resume_session}, otherwise
-	 * {@code create_session}. This is pure pass-through — no drift between what
-	 * we tell the SDK and what the CLI is about to load.
+	 * {@code create_session}. This is pure pass-through - no drift between what we
+	 * tell the SDK and what the CLI is about to load.
 	 */
 	private boolean sessionStateExists(String roomFolderPath, String roomId) {
 		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
@@ -237,7 +237,7 @@ public class GitHubCopilotPyManager {
 		return trimmed.isEmpty() ? null : trimmed;
 	}
 
-	// Sidecar process plumbing — copied from ClaudeCodeManager.
+	// Sidecar process plumbing - copied from ClaudeCodeManager.
 
 	protected synchronized void startServer(int port, String initScript) {
 		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
@@ -275,7 +275,7 @@ public class GitHubCopilotPyManager {
 				cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
 						timeout, "INFO");
 			} catch (Exception e) {
-				classLogger.error("Failed to create the python process for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to create python process for GitHub Copilot Py agent", e);
 				throw new IllegalArgumentException("Unable to connect to server for python GitHub Copilot Py Agent.");
 			}
 		} else if (!cpwToInit.getSocketClient().isConnected()) {
@@ -283,7 +283,7 @@ public class GitHubCopilotPyManager {
 			try {
 				cpwToInit.reconnect();
 			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to the python process for GitHub Copilot Py Agent: {}", e);
+				classLogger.error("Failed to reconnect python process for GitHub Copilot Py agent", e);
 				throw new IllegalArgumentException("Failed to start TCP Server for GitHub Copilot Py Agent: {}", e);
 			}
 		}
@@ -303,7 +303,7 @@ public class GitHubCopilotPyManager {
 			setPrefix(cpwToInit);
 			this.cpw = cpwToInit;
 		} catch (Exception e) {
-			classLogger.error("Failed init for GitHub Copilot Py python process", e);
+			classLogger.error("Failed to initialize GitHub Copilot Py python process with startup commands", e);
 			if (cpwToInit != null) {
 				classLogger.warn("Started python process for GitHub Copilot Py but the init script failed");
 				cpwToInit.shutdown(false);
