@@ -215,20 +215,28 @@ public final class ModelUsageRestrictionUtility {
 		List<Map<String, Object>> engineUserTokenLimits = SecurityPrincipalTokenLimitUtils
 				.getApplicableEngineUserTokenLimits(user, engineId);
 		boolean hasDedicatedUserLimit = false;
+		boolean hasDedicatedUserTokenLimit = false;
+		boolean hasDedicatedUserComputeLimit = false;
 		for (Map<String, Object> limit : engineUserTokenLimits) {
 			if (!hasActiveConfiguredPrincipalLimit(limit)) {
 				continue;
 			}
 			hasDedicatedUserLimit = true;
-			applyEngineRestriction(user, engineId, currentDateTime, (String) limit.get("usageRestriction"),
-					(String) limit.get("usageFrequency"), (Number) limit.get("maxTokens"),
-					(Number) limit.get("maxInputTokens"), (Number) limit.get("maxOutputTokens"),
-					(Number) limit.get("maxResponseTime"), userRestrictionMap, ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
+			String restriction = (String) limit.get("usageRestriction");
+			Number maxTokens = (Number) limit.get("maxTokens");
+			Number maxInputTokens = (Number) limit.get("maxInputTokens");
+			Number maxOutputTokens = (Number) limit.get("maxOutputTokens");
+			Number maxResponseTime = (Number) limit.get("maxResponseTime");
+			if (isComputeRestriction(restriction, maxTokens, maxInputTokens, maxOutputTokens, maxResponseTime)) {
+				hasDedicatedUserComputeLimit = true;
+			} else {
+				hasDedicatedUserTokenLimit = true;
+			}
+			applyEngineRestriction(user, engineId, currentDateTime, restriction,
+					(String) limit.get("usageFrequency"), maxTokens, maxInputTokens, maxOutputTokens,
+					maxResponseTime, userRestrictionMap, ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 					ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 					ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
-		}
-		if (hasDedicatedUserLimit) {
-			return;
 		}
 
 		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user, engineId);
@@ -251,13 +259,21 @@ public final class ModelUsageRestrictionUtility {
 					engineMaxResponseTime)) {
 				continue;
 			}
+			boolean isComputeRestriction = isComputeRestriction(engineRestriction, engineMaxTokens, engineMaxInputTokens,
+					engineMaxOutputTokens, engineMaxResponseTime);
+			if (isComputeRestriction && hasDedicatedUserComputeLimit) {
+				continue;
+			}
+			if (!isComputeRestriction && hasDedicatedUserTokenLimit) {
+				continue;
+			}
 			hasSpecificUserLimit = true;
 			applyEngineRestriction(user, engineId, currentDateTime, engineRestriction, engineFrequency, engineMaxTokens,
 					engineMaxInputTokens, engineMaxOutputTokens, engineMaxResponseTime, userRestrictionMap,
 					ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_INPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE,
 					ENGINE_OUTPUT_TOKEN_LIMIT_EXCEEDED_MESSAGE, ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE);
 		}
-		if (hasSpecificUserLimit) {
+		if (hasDedicatedUserLimit || hasSpecificUserLimit) {
 			return;
 		}
 
@@ -659,6 +675,16 @@ public final class ModelUsageRestrictionUtility {
 			return false;
 		}
 		return maxTokens != null || maxInputTokens != null || maxOutputTokens != null || maxResponseTime != null;
+	}
+
+	private static boolean isComputeRestriction(String restriction, Number maxTokens, Number maxInputTokens,
+			Number maxOutputTokens, Number maxResponseTime) {
+		if (restriction != null
+				&& Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction.trim())) {
+			return true;
+		}
+		boolean hasTokenLimit = maxTokens != null || maxInputTokens != null || maxOutputTokens != null;
+		return !hasTokenLimit && maxResponseTime != null;
 	}
 
 	private static boolean isActive(Object isActiveObj) {
