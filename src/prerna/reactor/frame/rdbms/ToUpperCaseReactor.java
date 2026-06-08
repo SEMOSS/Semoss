@@ -38,7 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class ToUpperCaseReactor extends AbstractFrameReactor {
 
@@ -79,7 +78,8 @@ public class ToUpperCaseReactor extends AbstractFrameReactor {
 				try {
 					frame.getBuilder().runQuery(update);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to convert selected columns to uppercase on frame {}", frame.getName(),
+							e);
 				}
 			}
 		}

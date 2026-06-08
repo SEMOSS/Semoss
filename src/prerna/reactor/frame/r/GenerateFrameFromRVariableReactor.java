@@ -32,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.reactor.imports.ImportUtility;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,7 +50,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		init();
 		organizeKeys();
-		String varName = getVarName();
+		String varName = getStringFromKeyOrCurRow(ReactorKeysEnum.VARIABLE.getKey(), 0);
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(varName, varName));
 		// recreate a new frame and set the frame name
 		String[] colNames = this.rJavaTranslator.getColumns(varName);
@@ -68,7 +67,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, varName);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
-		if (overrideFrame()) {
+		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
 			this.insight.setDataMaker(newTable);
 		}
 		// add the alias as a noun by default
@@ -78,32 +77,6 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 
 		return noun;
 	}
-
-	private boolean overrideFrame() {
-		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey());
-		if (overrideGrs != null && !overrideGrs.isEmpty()) {
-			return (boolean) overrideGrs.get(0);
-		}
-		// default is to override
-		return true;
-	}
-
-	/**
-	 * Get the input being the r variable name
-	 * 
-	 * @return
-	 */
-	private String getVarName() {
-		// key based
-		GenRowStruct overrideGrs = this.store.getGenRowStruct(ReactorKeysEnum.VARIABLE.getKey());
-		if (overrideGrs != null && !overrideGrs.isEmpty()) {
-			return (String) overrideGrs.get(0);
-		}
-		// first input
-		return this.curRow.get(0).toString();
-	}
-
-	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {

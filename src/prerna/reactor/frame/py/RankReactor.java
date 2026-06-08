@@ -42,10 +42,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RankReactor extends AbstractPyFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor ranks the data based on a given column(s) and sort direction.
-	 * The inputs to the reactor are: 1) the column(s) to be used for rank 2) the
-	 * name of the rank column 3) the sorting order for each column 4) the partition
-	 * column's to be used for rank
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column(s) to be used for rank</li>
+	 * <li>the name of the rank column</li>
+	 * <li>the sorting order for each column</li>
+	 * <li>the partition column's to be used for rank</li>
+	 * </ul>
 	 */
 
 	private static final String PARTITION_BY_COLS = "partitionByCols";

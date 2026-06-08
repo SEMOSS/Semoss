@@ -45,14 +45,24 @@ import prerna.util.ArrayUtilityMethods;
 import prerna.util.Utility;
 
 /**
+ * <p>
  * This reactor updates determines the outlier rows based on the selected
  * attribute columns The result is a new column added to the data frame with
- * values of TRUE (is an outlier) or FALSE (not an outlier) The inputs to the
- * reactor are: 1) the attribute columns 2) alpha
- * 
+ * values of TRUE (is an outlier) or FALSE (not an outlier)
+ * </p>
+ *
+ * <p>
+ * The inputs to the reactor are:
+ * </p>
+ * <ul>
+ * <li>the attribute columns</li>
+ * <li>alpha</li>
+ * </ul>
+ *
+ * <p>
  * RunOutlier(attributes=["Revenue_International","Revenue_Domestic","MovieBudget"],alpha=[0.05],nullHandleType=["As_Is"])
  * RunOutlier(attributes=["bp_1d","bp_1s","bp_2d","bp_2s"],alpha=[0.05],nullHandleType=["Impute"])
- * 
+ * </p>
  */
 public class RunOutlierReactor extends AbstractRFrameReactor {
 

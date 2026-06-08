@@ -42,10 +42,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class RegexReplaceColumnValueReactor extends AbstractPyFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor updates row values based on a regex It replaces all portions of
-	 * the current cell value that is an exact match to the input value The inputs
-	 * to the reactor are: 1) the column to update 2) the regex to look for 3) value
-	 * to replace the regex with
+	 * the current cell value that is an exact match to the
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to update</li>
+	 * <li>the regex to look for</li>
+	 * <li>value to replace the regex with</li>
+	 * </ul>
 	 */
 
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");

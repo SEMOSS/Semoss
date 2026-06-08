@@ -38,9 +38,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class CountIfReactor extends AbstractRFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor creates a new column based on the count of regex matches of an
-	 * existing column The inputs to the reactor are: 1) the column to count regex
-	 * instances in 2) the regex 3) the new column name
+	 * existing column
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to count regex instances in</li>
+	 * <li>the regex</li>
+	 * <li>the new column name</li>
+	 * </ul>
 	 */
 
 	public CountIfReactor() {
