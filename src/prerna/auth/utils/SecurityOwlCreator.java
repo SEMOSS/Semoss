@@ -648,7 +648,7 @@ public class SecurityOwlCreator {
 			owler.addProp(tableName, "DEFAULTVALUES", "VARCHAR(500)");
 		}
 
-		// ROOMTOKENLIMIT — per-room token limits configured at the platform level
+		// ROOMTOKENLIMIT — platform-wide room token policy with optional per-user overrides
 		owler.addConcept("ROOMTOKENLIMIT", null, null);
 		owler.addProp("ROOMTOKENLIMIT", "USERID", "VARCHAR(255)");
 		owler.addProp("ROOMTOKENLIMIT", "MAX_TOKENS", "BIGINT");

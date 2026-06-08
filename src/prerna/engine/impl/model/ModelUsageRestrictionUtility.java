@@ -104,20 +104,22 @@ public final class ModelUsageRestrictionUtility {
 	}
 
 	/**
-	 * Check all applicable usage restrictions for a user on a model engine in priority order of room, engine, project, user
+	 * Check all applicable usage restrictions for a user on a model engine in
+	 * priority order of room policy, engine, project, user.
 	 *
 	 *
 	 * @param user      the requesting user
 	 * @param engineId  the model engine id
 	 * @param projectId optional project id for project-level checks
-	 * @param roomId    optional room id for room-level token limit checks
+	 * @param roomId    optional room id for room-usage checks against the platform
+	 *                  room policy
 	 * @return map with restriction mode and current/max values for the response payload
 	 */
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId, String projectId, String roomId) {
 		Map<String, Object> userRestrictionMap = new HashMap<>();
 		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
 
-		// room-level token limit check
+		// platform room-policy check against this room's usage
 		if (roomId != null && !roomId.trim().isEmpty()) {
 			checkRoomLevelRestriction(user, roomId, userRestrictionMap);
 		}
@@ -692,9 +694,10 @@ public final class ModelUsageRestrictionUtility {
 	}
 
 	/**
-	 * Check room-level token limits.
-	 * Retrieves the effective limit for the user (user-specific or default) from ROOMTOKENLIMIT,
-	 * then checks combined, input, and output token counts for this room.
+	 * Check the platform room-token policy for this room.
+	 * Retrieves the effective limit for the user (user-specific override or
+	 * platform default) from ROOMTOKENLIMIT, then checks combined, input, and
+	 * output token counts for this room.
 	 */
 	private static void checkRoomLevelRestriction(User user, String roomId,
 			Map<String, Object> userRestrictionMap) {

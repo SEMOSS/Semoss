@@ -42,7 +42,8 @@ import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 
 /**
- * Utility class for managing room-level token limits stored in the security database.
+ * Utility class for managing the platform-wide room token policy stored in the
+ * security database, with optional per-user overrides.
  */
 public class SecurityRoomTokenUtils {
 
@@ -53,9 +54,9 @@ public class SecurityRoomTokenUtils {
 	}
 
 	/**
-	 * Get the effective room token limit for a user.
-	 * Returns the user-specific override if one exists and is active,
-	 * otherwise returns the default.
+	 * Get the effective room token policy for a user.
+	 * Returns the active user-specific override when present, otherwise the
+	 * platform default.
 	 */
 	public static Map<String, Object> getEffectiveRoomTokenLimit(String userId) {
 		Map<String, Object> userLimit = getRoomTokenLimitForUser(userId);

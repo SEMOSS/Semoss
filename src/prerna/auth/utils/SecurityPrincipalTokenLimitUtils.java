@@ -132,6 +132,24 @@ public class SecurityPrincipalTokenLimitUtils {
 		return getLimits(query.toString(), projectId);
 	}
 
+	public static List<Map<String, Object>> getProjectUserTokenLimitsForAnyEngine(String projectId, String userId) {
+		if (isBlank(projectId)) {
+			return new ArrayList<>();
+		}
+		StringBuilder query = new StringBuilder("SELECT USER_ID, PROJECT_ID, ENGINE_ID, USAGE_RESTRICTION, "
+				+ "USAGE_FREQUENCY, MAX_TOKENS, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, MAX_RESPONSE_TIME, "
+				+ "RESTRICT_PER_MODEL, IS_ACTIVE, CREATED_BY, CREATED_BY_TYPE, DATE_CREATED, DATE_MODIFIED FROM "
+				+ PROJECT_USER_TABLE + " WHERE PROJECT_ID=?");
+		if (!isBlank(userId)) {
+			query.append(" AND USER_ID=?");
+		}
+		query.append(" ORDER BY USER_ID, ENGINE_ID, USAGE_FREQUENCY");
+		if (!isBlank(userId)) {
+			return getLimits(query.toString(), projectId, userId);
+		}
+		return getLimits(query.toString(), projectId);
+	}
+
 	public static List<Map<String, Object>> getEngineTeamTokenLimits(String engineId, String groupId, String groupType) {
 		if (isBlank(engineId)) {
 			return new ArrayList<>();
@@ -263,6 +281,29 @@ public class SecurityPrincipalTokenLimitUtils {
 		if (!ALL_ENGINES_SENTINEL.equals(scopedEngineId)) {
 			query.append(" AND ENGINE_ID=?");
 			params.add(scopedEngineId);
+		}
+		query.append(" ORDER BY GROUP_ID, GROUP_TYPE, ENGINE_ID, USAGE_FREQUENCY");
+		return getLimits(query.toString(), params.toArray(new String[0]));
+	}
+
+	public static List<Map<String, Object>> getProjectTeamTokenLimitsForAnyEngine(String projectId, String groupId,
+			String groupType) {
+		if (isBlank(projectId)) {
+			return new ArrayList<>();
+		}
+		StringBuilder query = new StringBuilder("SELECT GROUP_ID, GROUP_TYPE, PROJECT_ID, ENGINE_ID, "
+				+ "USAGE_RESTRICTION, USAGE_FREQUENCY, MAX_TOKENS, MAX_INPUT_TOKENS, MAX_OUTPUT_TOKENS, "
+				+ "MAX_RESPONSE_TIME, RESTRICT_PER_MODEL, IS_ACTIVE, CREATED_BY, CREATED_BY_TYPE, DATE_CREATED, "
+				+ "DATE_MODIFIED FROM " + PROJECT_TEAM_TABLE + " WHERE PROJECT_ID=?");
+		List<String> params = new ArrayList<>();
+		params.add(projectId);
+		if (!isBlank(groupId)) {
+			query.append(" AND GROUP_ID=?");
+			params.add(groupId);
+		}
+		if (!isBlank(groupType)) {
+			query.append(" AND GROUP_TYPE=?");
+			params.add(groupType);
 		}
 		query.append(" ORDER BY GROUP_ID, GROUP_TYPE, ENGINE_ID, USAGE_FREQUENCY");
 		return getLimits(query.toString(), params.toArray(new String[0]));
