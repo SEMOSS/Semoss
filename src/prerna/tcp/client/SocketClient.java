@@ -316,31 +316,31 @@ public class SocketClient implements Runnable, Closeable {
 	public boolean stopServer() {
 		try {
 			if (isConnected()) {
-				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+					Callable<Boolean> callableTask = () -> {
+						PayloadStruct ps = new PayloadStruct();
+						ps.methodName = "CLOSE_ALL_LOGOUT<o>";
+						ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
+						writePayload(ps);
+						return true;
+					};
 
-				Callable<Boolean> callableTask = () -> {
-					PayloadStruct ps = new PayloadStruct();
-					ps.methodName = "CLOSE_ALL_LOGOUT<o>";
-					ps.payload = new String[] { "CLOSE_ALL_LOGOUT<o>" };
-					writePayload(ps);
-					return true;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					// wait 1 minute at most
-					boolean result = future.get(60, TimeUnit.SECONDS);
-					classLogger.info("Stop PyServe result = {}", result);
-					return result;
-				} catch (TimeoutException e) {
-					classLogger.warn("Not able to release the payload structs within a timely fashion");
-					future.cancel(true);
-					return false;
-				} catch (InterruptedException | ExecutionException e) {
-					classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
-					return false;
-				} finally {
-					executor.shutdown();
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						// wait 1 minute at most
+						boolean result = future.get(60, TimeUnit.SECONDS);
+						classLogger.info("Stop PyServe result = {}", result);
+						return result;
+					} catch (TimeoutException e) {
+						classLogger.warn("Not able to release the payload structs within a timely fashion");
+						future.cancel(true);
+						return false;
+					} catch (InterruptedException | ExecutionException e) {
+						classLogger.error("Error stopping socket server at {}:{}", this.HOST, this.PORT, e);
+						return false;
+					} finally {
+						executor.shutdown();
+					}
 				}
 			} else {
 				return true;

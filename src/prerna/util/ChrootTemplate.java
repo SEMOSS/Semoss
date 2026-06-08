@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -756,18 +757,22 @@ public class ChrootTemplate {
 	 */
 	private void copyDirectoryRecursively(Path source, Path target) throws IOException {
 		if (source.toFile().exists()) {
-			Files.walk(source).forEach(src -> {
-				try {
-					Path dest = target.resolve(source.relativize(src));
-					if (Files.isDirectory(src)) {
-						Files.createDirectories(dest);
-					} else {
-						Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+			try (Stream<Path> stream = Files.walk(source)) {
+				stream.forEach(src -> {
+					try {
+						Path dest = target.resolve(source.relativize(src));
+						if (Files.isDirectory(src)) {
+							Files.createDirectories(dest);
+						} else {
+							Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
+						}
+					} catch (IOException e) {
+						throw new UncheckedIOException(e);
 					}
-				} catch (IOException e) {
-					throw new UncheckedIOException(e);
-				}
-			});
+				});
+			} catch (IOException e) {
+				throw new UncheckedIOException(e);
+			}
 		}
 	}
 

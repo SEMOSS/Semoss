@@ -127,7 +127,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def _apply_cache_to_tools(request_config: "AnthropicRequestConfig") -> None:
         """
         Add cache_control to the last tool definition. Tools are evaluated
-        first in Anthropic's cache breakpoint order (tools → system → messages),
+        first in Anthropic's cache breakpoint order (tools -> system -> messages),
         so caching them saves tokens whenever the tool list is large and static.
         """
         tools = request_config.tools
@@ -153,7 +153,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 {"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}
             ]
         elif isinstance(system, list):
-            # Already a list — attach to the last text block.
+            # Already a list - attach to the last text block.
             for block in reversed(system):
                 if isinstance(block, dict) and block.get("type") == "text":
                     block["cache_control"] = {"type": "ephemeral"}
@@ -172,7 +172,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         On each turn the last message is the newest one, so the marker
         naturally moves forward through the conversation as history grows.
 
-        Supports text, tool_result, image, and document blocks — not just text —
+        Supports text, tool_result, image, and document blocks - not just text -
         so that tool execution turns (whose last message contains tool_result
         blocks) are also cached correctly.
         """
@@ -444,7 +444,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         stream_kwargs = request_config.model_dump(exclude_none=True)
         if self.use_beta_header and not use_beta_stream:
             # Bedrock: beta.messages has no .stream; pass beta via extra_headers so
-            # the Bedrock SDK converts anthropic-beta header → anthropic_beta body field
+            # the Bedrock SDK converts anthropic-beta header -> anthropic_beta body field
             stream_kwargs.pop("betas", None)
             stream_kwargs["extra_headers"] = {"anthropic-beta": self.beta_feature_name}
 

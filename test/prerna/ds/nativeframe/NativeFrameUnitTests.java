@@ -949,7 +949,7 @@ public class NativeFrameUnitTests {
 		assertSame(frame2.getQueryStruct(), frame2.getOriginalQueryStruct());
 	}
 
-	// ── querySQL Tests ──────────────────────────────────────────────────
+	// -- querySQL Tests --------------------------------------------------
 
 	@Test
 	void testQuerySQL() throws Exception {
@@ -1021,7 +1021,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── Query exception path Tests ──────────────────────────────────────
+	// -- Query exception path Tests --------------------------------------
 
 	@Test
 	void testGetMin_queryException_returnsNull() throws Exception {
@@ -1140,7 +1140,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── IOException close() path Tests ──────────────────────────────────
+	// -- IOException close() path Tests ----------------------------------
 
 	@Test
 	void testIsEmpty_closeThrowsIOException() throws Exception {
@@ -1299,7 +1299,7 @@ public class NativeFrameUnitTests {
 		}
 	}
 
-	// ── Deprecated method Tests ─────────────────────────────────────────
+	// -- Deprecated method Tests -----------------------------------------
 
 	@Test
 	void testDeprecatedMethods_noOp() {
