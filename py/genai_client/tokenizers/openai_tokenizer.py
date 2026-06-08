@@ -135,12 +135,12 @@ class OpenAiTokenizer(AbstractTokenizer):
 
     def _safe_encode(self, text: str) -> List[int]:
         """
-        Convert text → list[int] without special tokens.
+        Convert text -> list[int] without special tokens.
         """
         return self.tokenizer.encode(text)
 
     def _safe_decode(self, tokens: List[int]) -> str:
         """
-        Convert list[int] → text.  Just delegates to tiktoken.
+        Convert list[int] -> text.  Just delegates to tiktoken.
         """
         return self.tokenizer.decode(tokens)
