@@ -682,7 +682,7 @@ public final class AgentConfigLoader {
      * both, and register it via
      * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}
      * (built-ins live in the registry's static init block). The registry is
-     * the same source of truth {@code SetWorkspaceHooksReactor} validates
+     * the same source of truth {@code SetAgentHooksReactor} validates
      * against on write.
      *
      * @return new hook instance, or {@code null} for an unknown kind (logged warn)
@@ -696,6 +696,15 @@ public final class AgentConfigLoader {
         IAgentHook hook = AgentHookRegistry.resolve(kind);
         if (hook == null) {
             logger.warn("AgentConfigLoader: unknown hook kind '{}' - skipping", kind);
+            return null;
+        }
+
+        try {
+            hook.configure(spec);
+        } catch (Exception e) {
+            logger.warn("AgentConfigLoader: hook kind '{}' configure() threw — skipping. cause: {}",
+                    kind, e.getMessage(), e);
+            return null;
         }
         return hook;
     }

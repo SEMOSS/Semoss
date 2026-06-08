@@ -29,7 +29,6 @@ package prerna.reactor.frame.rdbms;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -51,7 +50,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class SplitColumnsReactor extends AbstractFrameReactor {
 
@@ -60,28 +58,28 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 	private static final String COLUMNS_KEY = "columns";
 	private static final String SEPARATOR_KEY = "sep";
 	private static final String SEARCH_TYPE = "search";
-	
+
 	private static final String REGEX = "Regex";
-	
+
 	@Override
 	public NounMetadata execute() {
 		List<String> cols = getColumns();
 		String separator = getSeparator();
 		boolean isRegex = isRegex();
-		if(!isRegex) {
+		if (!isRegex) {
 			separator = Pattern.quote(separator);
 		}
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) getFrame();
 		PreparedStatement ps = null;
 
-		for(int i = 1; i < cols.size(); i++) {
+		for (int i = 1; i < cols.size(); i++) {
 			String column = cols.get(i);
 			SelectQueryStruct qs = new SelectQueryStruct();
 			QueryColumnSelector selector = new QueryColumnSelector(column);
 			qs.addSelector(selector);
 
 			String table = frame.getName();
-			if(column.contains("__")) {
+			if (column.contains("__")) {
 				String[] split = column.split("__");
 				column = split[1];
 				table = split[0];
@@ -91,7 +89,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 			try {
 				colIterator = frame.query(qs);
 			} catch (Exception e) {
-				logger.error(Constants.STACKTRACE, e);
+				logger.error("Failed to query values for split column {} on table {}", column, table, e);
 				throw new IllegalArgumentException("Error executing query with message = " + e.getMessage());
 			}
 
@@ -103,16 +101,17 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 			int count = 0;
 			try {
 				// iterate through the unique values
-				while(colIterator.hasNext()) {
+				while (colIterator.hasNext()) {
 					// hold the existing value
 					String nextVal = (String) colIterator.next().getRawValues()[0];
 					// hold the array for the complex split
 					String[] newVals = nextVal.split(separator);
 
 					// since we do not know how many possible new columns will be generated
-					// we need to check each time if we need to create a new "column" if not already present
-					if(newVals.length > highestIndex) {
-						if(ps != null) {
+					// we need to check each time if we need to create a new "column" if not already
+					// present
+					if (newVals.length > highestIndex) {
+						if (ps != null) {
 							// since the update query now needs to change
 							// flush all the current values in that were
 							// not in the last batch
@@ -120,22 +119,24 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 						}
 						Map<String, Set<String>> newEdgeHash = new LinkedHashMap<>();
 						Set<String> set = new LinkedHashSet<>();
-						for(int j = highestIndex; j < newVals.length; j++) {
-							set.add(colSplitBase+j);
-							addedColumns.add(colSplitBase+j);
+						for (int j = highestIndex; j < newVals.length; j++) {
+							set.add(colSplitBase + j);
+							addedColumns.add(colSplitBase + j);
 						}
 						newEdgeHash.put(column, set);
-						// TODO: empty  HashMap will default types to string, need to also be able to create other type columns
+						// TODO: empty HashMap will default types to string, need to also be able to
+						// create other type columns
 						// in cases of splitting dates and decimals
 						highestIndex = newVals.length;
 						String[] columnTypes = new String[addedColumns.size()];
 						String[] newColumns = new String[addedColumns.size()];
-						for(int k = 0; k < columnTypes.length; k++) {
+						for (int k = 0; k < columnTypes.length; k++) {
 							newColumns[k] = addedColumns.get(k);
 							columnTypes[k] = "STRING";
 						}
 						frame.addNewColumn(newColumns, columnTypes, frame.getName());
-						ps = frame.getBuilder().createUpdatePreparedStatement(frame.getName(), addedColumns.toArray(new String[]{}), new String[]{column});
+						ps = frame.getBuilder().createUpdatePreparedStatement(frame.getName(),
+								addedColumns.toArray(new String[] {}), new String[] { column });
 					}
 
 					int colIndex = 0;
@@ -143,39 +144,42 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 						throw new NullPointerException("PreparedStatement ps cannot be null here.");
 					}
 
-					for(; colIndex < newVals.length; colIndex++) {
-						ps.setString(colIndex+1, newVals[colIndex]);
+					for (; colIndex < newVals.length; colIndex++) {
+						ps.setString(colIndex + 1, newVals[colIndex]);
 					}
 					// need to set empty values for the other columns
 					// even if this split doesn't reach the end
 					// otherwise the statement will error
-					for(; colIndex < highestIndex; colIndex++) {
-						ps.setString(colIndex+1, "");
+					for (; colIndex < highestIndex; colIndex++) {
+						ps.setString(colIndex + 1, "");
 					}
 
 					// now set the where variable in the ps
-					ps.setString(colIndex+1, nextVal); 
+					ps.setString(colIndex + 1, nextVal);
 					// add the update into the batch
 					ps.addBatch();
 					// batch commit based on size
-					if(++count % batchSize == 0) {
+					if (++count % batchSize == 0) {
 						ps.executeBatch();
 					}
 				}
-				// do not forget to add the final things in the batch that have not been committed!
+				// do not forget to add the final things in the batch that have not been
+				// committed!
 				if (ps != null) {
 					ps.executeBatch();
 				}
 			} catch (SQLException e) {
-				logger.error("StackTrace: ", e);
+				logger.error("Failed to split values for column {} on table {} with separator {}", column, table,
+						separator, e);
 			} finally {
-			      if(ps != null) {
-		                try {
-		                	ps.close();
-		          } catch (SQLException e) {
-		              logger.error(Constants.STACKTRACE, e);
-		          }
-		        }
+				if (ps != null) {
+					try {
+						ps.close();
+					} catch (SQLException e) {
+						logger.error("Failed to close split update statement for column {} on table {}", column, table,
+								e);
+					}
+				}
 			}
 			frame.syncHeaders();
 		}
@@ -183,20 +187,9 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
-
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	///////////////////////// GET PIXEL INPUT ////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////
-
 	private String getSeparator() {
-		GenRowStruct separatorGrs = this.store.getGenRowStruct(SEPARATOR_KEY);
-		if(separatorGrs == null || separatorGrs.isEmpty()) {
-			throw new IllegalArgumentException("Need to define a separator to split the column with");
-		}
-		String separator = separatorGrs.get(0).toString();
-		if(separator.isEmpty()) {
+		String separator = getString(SEPARATOR_KEY);
+		if (separator == null || separator.isEmpty()) {
 			throw new IllegalArgumentException("Need to define a separator to split the column with");
 		}
 		return separator;
@@ -204,7 +197,7 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 
 	private boolean isRegex() {
 		GenRowStruct regexGrs = this.store.getGenRowStruct(SEARCH_TYPE);
-		if(regexGrs == null || regexGrs.isEmpty()) {
+		if (regexGrs == null || regexGrs.isEmpty()) {
 			return true;
 		}
 		String val = regexGrs.get(0).toString();
@@ -213,26 +206,10 @@ public class SplitColumnsReactor extends AbstractFrameReactor {
 	}
 
 	private List<String> getColumns() {
-		List<String> cols = new ArrayList<>();
-
-		// try its own key
-		GenRowStruct colsGrs = this.store.getGenRowStruct(COLUMNS_KEY);
-		if(colsGrs != null && !colsGrs.isEmpty()) {
-			int size = colsGrs.size();
-			for(int i = 0; i < size; i++) {
-				cols.add(colsGrs.get(i).toString());
-			}
+		List<String> cols = getListStringFromKeyOrCurRow(COLUMNS_KEY);
+		if (!cols.isEmpty()) {
 			return cols;
 		}
-
-		int inputSize = this.getCurRow().size();
-		if(inputSize > 0) {
-			for(int i = 0; i < inputSize; i++) {
-				cols.add(this.getCurRow().get(i).toString());
-			}
-			return cols;
-		}
-
 		throw new IllegalArgumentException("Need to define the columns to split");
 	}
 

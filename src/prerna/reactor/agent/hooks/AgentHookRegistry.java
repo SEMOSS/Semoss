@@ -42,7 +42,7 @@ import prerna.reactor.agent.IAgentRunHook;
 
 /**
  * Static registry for {@link IAgentHook} kinds. One source of truth for both
- * the validate-on-write path ({@code SetWorkspaceHooksReactor}) and the
+ * the validate-on-write path ({@code SetAgentHooksReactor}) and the
  * resolve-on-read path ({@code AgentConfigLoader.resolveHook}).
  *
  * <p>Built-in hooks registered at class-load time:
@@ -73,10 +73,14 @@ public final class AgentHookRegistry {
     
     public static final String PPT_TO_PDF = "ppt_to_pdf";
 
+    /** JSON {@code kind} value for {@link PixelReactorHook}. */
+    public static final String PIXEL = "pixel";
+
     static {
         Map<String, Supplier<? extends IAgentHook>> m = new HashMap<>();
         m.put(GIT_COMMIT, GitCommitAgentHook::new);
         m.put(LOG_TOOLS,  LoggingToolHook::new);
+        m.put(PIXEL,      PixelReactorHook::new);
         m.put(PPT_TO_PDF, JdocFileConvertHook::new);
         REGISTRY = Collections.synchronizedMap(m);
     }

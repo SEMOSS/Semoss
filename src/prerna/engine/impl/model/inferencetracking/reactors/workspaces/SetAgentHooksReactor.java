@@ -44,32 +44,39 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reactor that sets the hook list on a workspace, persisting to
- * {@code WORKSPACE.CONFIG_JSON.hooks[]}.
+ * Reactor that sets the agent hook list on a workspace, persisting to
+ * {@code WORKSPACE.CONFIG_JSON.hooks[]}. Pixel: {@code SetAgentHooks}.
  *
  * <p>Input keys:
  * <ul>
  *   <li>{@code workspaceId} — required</li>
  *   <li>{@code hooks} — required, list of maps. Each entry must have a
- *       {@code kind} known to {@link AgentHookRegistry}; other keys are
- *       persisted as-is but ignored by the loader today.</li>
+ *       {@code kind} known to {@link AgentHookRegistry}. Kind-specific
+ *       fields (e.g. {@code pixel}, {@code events} for {@code kind="pixel"})
+ *       are persisted as-is and reach the loader's
+ *       {@code hook.configure(spec)} call at run time.</li>
  * </ul>
  *
- * <p>Validation rejects unknown {@code kind} values at write time so the run-time
- * loader doesn't silently drop them. To add a new hook: implement
- * {@link prerna.reactor.agent.IMessageHook} and register it with
+ * <p>Validation rejects unknown {@code kind} values at write time so the
+ * run-time loader doesn't silently drop them. Kind-specific required
+ * fields are also enforced here (e.g. {@code kind="pixel"} must carry a
+ * non-empty {@code pixel} field).
+ *
+ * <p>To add a new hook: implement {@link prerna.reactor.agent.IAgentRunHook}
+ * or {@link prerna.reactor.agent.IToolHook} (or both) and register it
+ * with
  * {@link AgentHookRegistry#register(String, java.util.function.Supplier)}.
  *
  * <p>Returns the new full {@code CONFIG_JSON} as a {@link PixelDataType#CONST_STRING}
  * for FE display.
  */
-public class SetWorkspaceHooksReactor extends AbstractWorkspaceReactor {
+public class SetAgentHooksReactor extends AbstractWorkspaceReactor {
 
-    private static final Logger classLogger = LogManager.getLogger(SetWorkspaceHooksReactor.class);
+    private static final Logger classLogger = LogManager.getLogger(SetAgentHooksReactor.class);
 
     private static final String HOOKS_KEY = "hooks";
 
-    public SetWorkspaceHooksReactor() {
+    public SetAgentHooksReactor() {
         this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), HOOKS_KEY };
         this.keyRequired = new int[] { 1, 1 };
     }
@@ -144,14 +151,23 @@ public class SetWorkspaceHooksReactor extends AbstractWorkspaceReactor {
                 throw new IllegalArgumentException("hooks[" + i + "] unknown kind '" + kind
                         + "'. Known kinds: " + AgentHookRegistry.knownKinds());
             }
-            JSONObject spec = new JSONObject();
-            spec.put("kind", kind);
-            // Pass through optional params blob untouched (loader-internal today).
-            Object params = entry.get("params");
-            if (params instanceof Map) {
-                spec.put("params", new JSONObject((Map<?, ?>) params));
+
+            // Kind-specific validation. The loader's hook.configure(spec)
+            // also validates at run time, but we catch obvious errors here
+            // so the FE gets a synchronous error rather than discovering
+            // the misconfiguration on the next agent run.
+            if (AgentHookRegistry.PIXEL.equals(kind)) {
+                Object pixelObj = entry.get("pixel");
+                if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
+                }
             }
-            out.put(spec);
+
+            // Persist the whole entry as-is so kind-specific fields
+            // (pixel, events, params, future additions) round-trip
+            // through the config and reach the loader's configure() call.
+            out.put(new JSONObject(entry));
         }
         return out;
     }

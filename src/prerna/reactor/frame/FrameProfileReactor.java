@@ -50,7 +50,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 /**
  * This class lets user profile the data in a frame. It analyzes the data in a
@@ -62,58 +61,59 @@ import prerna.util.Constants;
  *
  */
 
-public class FrameProfileReactor extends AbstractFrameReactor{
+public class FrameProfileReactor extends AbstractFrameReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(FrameProfileReactor.class);
-	
+
 	private static final String DOUBLE_UNDERSCORE = "__";
 	private static final String NA = "NA";
 	private static final String DOUBLE_EQUALS = "==";
-	
+
 	public FrameProfileReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FRAME.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey() };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		classLogger.info("Starting Frame Profile execution.");
-		
+
 		organizeKeys();
 		ITableDataFrame actFrame = getFrame();
 		String tableName = actFrame.getName();
-		
+
 		/*
 		 * Get the datatype of the columns and store it in a map for further processing.
 		 */
 		OwlTemporalEngineMeta metaData = actFrame.getMetaData();
 		Map<String, SemossDataType> headerDatatypeMap = metaData.getHeaderToTypeMap();
 		String[] actFrameHeaders = actFrame.getQsHeaders();
-		
+
 		/*
-		 * Create a new frame of type ITableDataFrame. When dealing with R/Python frame we 
-		 * want to use the existing user connection. For this we use the FrameFactory, as this
-		 * takes in the insight which contains the user space and gives back the required frame. 
+		 * Create a new frame of type ITableDataFrame. When dealing with R/Python frame
+		 * we want to use the existing user connection. For this we use the
+		 * FrameFactory, as this takes in the insight which contains the user space and
+		 * gives back the required frame.
 		 */
 		ITableDataFrame newFrame = null;
 		try {
-			// Pass the frame type as grid and blank in the alias param so that you get a new frame.
+			// Pass the frame type as grid and blank in the alias param so that you get a
+			// new frame.
 			newFrame = FrameFactory.getFrame(this.insight, DataFrameTypeEnum.GRID.getTypeAsString(), "");
-		}catch(Exception e) {
-			throw new IllegalArgumentException("Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e);
+		} catch (Exception e) {
+			throw new IllegalArgumentException(
+					"Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e);
 		}
 		String newFrameAlias = newFrame.getName();
-		
-		
+
 		/*
-		 * The new headers and data types that will be included in the frame. This can change
-		 * afterwards and is just for the first iteration of the functionality.
+		 * The new headers and data types that will be included in the frame. This can
+		 * change afterwards and is just for the first iteration of the functionality.
 		 */
-		String[] newHeaders = new String[] { "TABLE_NAME", "COLUMN_NAME", "NUMBER_OF_BLANKS", 
-				"NUM_OF_UNIQUE_VALUES", "MIN", "AVG", "MAX", "SUM", 
-				"NUMBER_OF_NULLS" };
-		String[] dataTypes = new String[] { "String", "String", "Double", "Double", 
-				"Double", "Double", "Double", "Double" , "Double" };
-		
+		String[] newHeaders = new String[] { "TABLE_NAME", "COLUMN_NAME", "NUMBER_OF_BLANKS", "NUM_OF_UNIQUE_VALUES",
+				"MIN", "AVG", "MAX", "SUM", "NUMBER_OF_NULLS" };
+		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double",
+				"Double", "Double" };
+
 		/*
 		 * Update metadata for new frame
 		 */
@@ -123,47 +123,49 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		 * Using below utility to fill up the metadata in the new frame.
 		 */
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrameMetadata, newHeaders, dataTypes, newTableName);
-		 
+
 		/*
 		 * Iterate over the headers and profile each column based on the datatype. If
 		 * column is numeric, then call getNumericalProfileDataOnFrame() because we have
 		 * to perform min/max/avg etc on the column data. Else treat every other col as
 		 * string and call getStringProfileDataOnFrame().
 		 */
-		for(String header : actFrameHeaders) {
+		for (String header : actFrameHeaders) {
 			String[] row = null;
 			String colName = header.split(DOUBLE_UNDERSCORE)[1];
-			if(SemossDataType.isNotString(headerDatatypeMap.get(header))){
-				row = getNumericalProfileDataOnFrame( actFrame, tableName, colName);
-			}else {
-				row = getStringProfileDataOnFrame(actFrame, tableName, colName); 
+			if (SemossDataType.isNotString(headerDatatypeMap.get(header))) {
+				row = getNumericalProfileDataOnFrame(actFrame, tableName, colName);
+			} else {
+				row = getStringProfileDataOnFrame(actFrame, tableName, colName);
 			}
 			newFrame.addRow(row, newHeaders);
-			classLogger.info("New row added to the new frame for column " + colName);
+			classLogger.info("New row added to the profile frame for column {}", colName);
 		}
-		
+
 		/*
 		 * Create the NounMetadata and store it in the varStore object.
 		 */
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		this.insight.getVarStore().put(newFrameAlias, noun);
-		classLogger.info("New Frame created with alias and has been set in the insight**********" + newFrameAlias);
+		classLogger.info("New profile frame created with alias {} and set in insight.", newFrameAlias);
 		classLogger.info("Completed execution of FrameProfileReactor.");
 		return noun;
 	}
-	
-	
+
 	/**
 	 * Profile data on columns which are of Numerical datatype in the frame.
+	 * 
 	 * @param frame
 	 * @param tableName
 	 * @param colName
 	 * @return
 	 */
 	private String[] getNumericalProfileDataOnFrame(ITableDataFrame frame, String tableName, String colName) {
-		//----FORMAT------
-		//"table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue", "averageValue", "maxValue", "sumValue", "numOfNullValues"
-		//"String", 		"String", 		"Double", 		"Double",		  "Double", 	"Double", 	  "Double",   "Double" , 		"Double" 
+		// ----FORMAT------
+		// "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue",
+		// "averageValue", "maxValue", "sumValue", "numOfNullValues"
+		// "String", "String", "Double", "Double", "Double", "Double", "Double",
+		// "Double" , "Double"
 		String[] row = new String[9];
 		row[0] = tableName;
 		row[1] = colName;
@@ -172,20 +174,23 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		row[8] = getNumOfNullValues(frame, colName);
 		return row;
 	}
-	
+
 	/**
 	 * Profile data on columns which are of String datatype in the frame.
+	 * 
 	 * @param frame
 	 * @param tableName
 	 * @param colName
 	 * @return
 	 */
 	private String[] getStringProfileDataOnFrame(ITableDataFrame frame, String tableName, String colName) {
-		//----FORMAT------
-		//"table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue", "averageValue", "maxValue", "sumValue", "numOfNullValues"
-		//"String", 		"String", 		"Double", 		"Double",		  "Double", 	"Double", 	  "Double",   "Double" , 		"Double" 
+		// ----FORMAT------
+		// "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue",
+		// "averageValue", "maxValue", "sumValue", "numOfNullValues"
+		// "String", "String", "Double", "Double", "Double", "Double", "Double",
+		// "Double" , "Double"
 		String[] row = new String[9];
-		
+
 		row[0] = tableName;
 		row[1] = colName;
 		row[2] = getNumOfBlanks(frame, colName);
@@ -197,64 +202,66 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		row[8] = getNumOfNullValues(frame, colName); // Need to debug. Getting exception
 		return row;
 	}
-	
+
 	/*
-	 * We query on the frame in the below utility methods, hence we use the query method in the frame. 
-	 * This helps us to run the queries in a frametype agnostic manner.
+	 * We query on the frame in the below utility methods, hence we use the query
+	 * method in the frame. This helps us to run the queries in a frametype agnostic
+	 * manner.
 	 */
-	
+
 	/*
 	 * ----------------------------Profile routines-----------------------------
 	 */
-	
+
 	/**
 	 * Get the number of blank values in a column which is of String datatype
+	 * 
 	 * @param frame
 	 * @param colName
 	 * @return
 	 */
 	private String getNumOfBlanks(ITableDataFrame frame, String colName) {
-		
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		QueryFunctionSelector uniqueCountSelector = new QueryFunctionSelector();
 		uniqueCountSelector.setFunction(QueryFunctionHelper.COUNT);
 		QueryColumnSelector innerSelector = new QueryColumnSelector(colName);
 		uniqueCountSelector.addInnerSelector(innerSelector);
 		qs.addSelector(uniqueCountSelector);
-		
+
 		QueryColumnSelector colSelector = new QueryColumnSelector(colName);
 		SimpleQueryFilter blankFilter = new SimpleQueryFilter(new NounMetadata(colSelector, PixelDataType.COLUMN),
 				DOUBLE_EQUALS, new NounMetadata("", PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(blankFilter);
-		
+
 		int blankCnts = 0;
 		IRawSelectWrapper blanksWrapper = null;
 		try {
 			blanksWrapper = frame.query(qs);
-			if(blanksWrapper.hasNext()) {
-				blankCnts = ((Number)blanksWrapper.next().getValues()[0]).intValue();
-			}else {
+			if (blanksWrapper.hasNext()) {
+				blankCnts = ((Number) blanksWrapper.next().getValues()[0]).intValue();
+			} else {
 				classLogger.info("Blanks Wrapper is empty. No blanks!");
 			}
-		}catch(Exception e) {
-			classLogger.warn("Exception during execution of query." + e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-		}finally {
-			//Cleanup.
-			if(blanksWrapper != null) {
+		} catch (Exception e) {
+			classLogger.error("Failed to count blank values for column {}.", colName, e);
+		} finally {
+			// Cleanup.
+			if (blanksWrapper != null) {
 				try {
 					blanksWrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close blank-value iterator for column {}.", colName, e);
 				}
 			}
 		}
-		
+
 		return Integer.toString(blankCnts);
 	}
-	
+
 	/**
 	 * Get the number of unique values in a column which is of String datatype.
+	 * 
 	 * @param frame
 	 * @param colName
 	 * @return
@@ -274,29 +281,29 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		Object value = null;
 		try {
 			uniqueWrapper = frame.query(qs_unique);
-			if(uniqueWrapper.hasNext()) {
+			if (uniqueWrapper.hasNext()) {
 				value = uniqueWrapper.next().getValues()[0];
-			}else {
+			} else {
 				classLogger.info("Unique Wrapper is empty. No unique elements.");
 			}
 		} catch (Exception e) {
-			classLogger.warn("Exception during execution of query." + e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to count unique values for column {}.", colName, e);
 		} finally {
 			if (uniqueWrapper != null) {
 				try {
 					uniqueWrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close unique-value iterator for column {}.", colName, e);
 				}
 			}
 		}
 
 		return String.valueOf(value);
 	}
-	
+
 	/**
 	 * Get the number of null values in a column with String datatype.
+	 * 
 	 * @param frame
 	 * @param colName
 	 * @return
@@ -310,12 +317,10 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		uniqueCountSelector.addInnerSelector(innerSelector);
 		qs_null.addSelector(uniqueCountSelector);
 		QueryColumnSelector col = new QueryColumnSelector(colName);
-		SimpleQueryFilter nullFilter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), 
-				DOUBLE_EQUALS,
+		SimpleQueryFilter nullFilter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), DOUBLE_EQUALS,
 				new NounMetadata(null, PixelDataType.NULL_VALUE));
-		SimpleQueryFilter stringNullFilter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), 
-				DOUBLE_EQUALS,
-				new NounMetadata("null", PixelDataType.NULL_VALUE));
+		SimpleQueryFilter stringNullFilter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN),
+				DOUBLE_EQUALS, new NounMetadata("null", PixelDataType.NULL_VALUE));
 		OrQueryFilter orfilter = new OrQueryFilter();
 		orfilter.addFilter(nullFilter);
 		orfilter.addFilter(stringNullFilter);
@@ -325,33 +330,34 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		IRawSelectWrapper nullWrapper = null;
 		try {
 			nullWrapper = frame.query(qs_null);
-			if(nullWrapper.hasNext()) {
+			if (nullWrapper.hasNext()) {
 				nullCount = ((Number) nullWrapper.next().getValues()[0]).intValue();
-			}else {
+			} else {
 				classLogger.info("Null Wrapper is empty. No null values.");
 			}
 		} catch (Exception e) {
-			classLogger.warn("Exception during execution of query." + e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
-		}finally {
-			if(nullWrapper != null) {
+			classLogger.error("Failed to count null values for column {}.", colName, e);
+		} finally {
+			if (nullWrapper != null) {
 				try {
 					nullWrapper.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close null-value iterator for column {}.", colName, e);
 				}
 			}
 		}
 
 		return Integer.toString(nullCount);
 	}
-	
+
 	/*
-	 * ----------------------------Profile routines for numerical columns-----------------------------
+	 * ----------------------------Profile routines for numerical
+	 * columns-----------------------------
 	 */
-	
+
 	/**
 	 * Get unique/min/max/avg/sum over the numerical columns
+	 * 
 	 * @param row
 	 * @param frame
 	 * @param colName
@@ -364,42 +370,44 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		qs.addSelector(getAvgFunctionSelector(innerSelector, colName));
 		qs.addSelector(getMaxFunctionSelector(innerSelector, colName));
 		qs.addSelector(getSumFunctionSelector(innerSelector, colName));
-		
+
 		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 		IRawSelectWrapper resultWrapper = null;
 		try {
 			resultWrapper = frame.query(qs);
-			if(resultWrapper.hasNext()) {
+			if (resultWrapper.hasNext()) {
 				IHeadersDataRow datarow = resultWrapper.next();
 				Object[] dataArr = datarow.getValues();
 				int offset = 3;
-				for(int i = 0; i < dataArr.length; i++) {
+				for (int i = 0; i < dataArr.length; i++) {
 					row[offset + i] = String.valueOf(dataArr[i]);
 				}
-			}else {
-				classLogger.info("Wrapper for calculating unique/min/max/avg/sum is empty for column name " + colName);
+			} else {
+				classLogger.info("Wrapper for calculating unique/min/max/avg/sum is empty for column {}.", colName);
 			}
-		}catch(Exception e) {
-			classLogger.warn("Exception during execution of query." + e.getMessage());
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (Exception e) {
+			classLogger.error("Failed to compute numeric profile metrics for column {}.", colName, e);
 		}
 	}
-	
+
 	/**
 	 * Create and return a Unique Count QueryFunctionSelector
+	 * 
 	 * @param innerSelector
 	 * @param colName
 	 * @return
 	 */
-	private static QueryFunctionSelector getUniqueCountFunctionSelector(QueryColumnSelector innerSelector, String colName) {
+	private static QueryFunctionSelector getUniqueCountFunctionSelector(QueryColumnSelector innerSelector,
+			String colName) {
 		QueryFunctionSelector uniquefuncSelector = new QueryFunctionSelector();
 		uniquefuncSelector.setFunction(QueryFunctionHelper.UNIQUE_COUNT);
 		uniquefuncSelector.addInnerSelector(innerSelector);
 		return uniquefuncSelector;
 	}
-	
+
 	/**
 	 * Create and return a Min QueryFunctionSelector
+	 * 
 	 * @param innerSelector
 	 * @param colName
 	 * @return
@@ -410,9 +418,10 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		minFuncSelector.addInnerSelector(innerSelector);
 		return minFuncSelector;
 	}
-	
+
 	/**
 	 * Create and return an Average QueryFunctionSelector
+	 * 
 	 * @param innerSelector
 	 * @param colName
 	 * @return
@@ -423,9 +432,10 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		avgFuncSelector.addInnerSelector(innerSelector);
 		return avgFuncSelector;
 	}
-	
+
 	/**
 	 * Create and return a Max QueryFunctionSelector
+	 * 
 	 * @param innerSelector
 	 * @param colName
 	 * @return
@@ -436,9 +446,10 @@ public class FrameProfileReactor extends AbstractFrameReactor{
 		maxFuncSelector.addInnerSelector(innerSelector);
 		return maxFuncSelector;
 	}
-	
+
 	/**
 	 * Create and return a Sum QueryFunctionSelector
+	 * 
 	 * @param innerSelector
 	 * @param colName
 	 * @return
