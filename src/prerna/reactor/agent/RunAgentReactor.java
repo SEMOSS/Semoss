@@ -39,13 +39,16 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.RunAgentRequest;
+import prerna.reactor.agent.run.RunAgentResult;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Runs the generic agent loop and returns the final text as {@code CONST_STRING}. */
+/** Enqueues a durable generic agent run and returns a structured run handle. */
 public class RunAgentReactor extends AbstractReactor {
 
     private static final Logger logger = LogManager.getLogger(RunAgentReactor.class);
@@ -104,9 +107,6 @@ public class RunAgentReactor extends AbstractReactor {
                 AgentRunContext.DEFAULT_MAX_REFLECTIONS, 0);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
-        if (explicitWorkspaceId != null) {
-            paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, explicitWorkspaceId);
-        }
 
         if (roomId == null || roomId.trim().isEmpty()) {
             throw new IllegalArgumentException("roomId is required for RunAgent");
@@ -119,21 +119,29 @@ public class RunAgentReactor extends AbstractReactor {
                 roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections);
 
         try {
-            AgentHarnessResult result = AgentRunner.run(
+            RunAgentRequest request = new RunAgentRequest(
                     roomId,
                     input,
                     engineIdFallback,
                     harnessType,
+                    explicitWorkspaceId,
                     maxTurns,
                     maxReflections,
                     paramMap,
                     agentParams,
                     this.insight);
+            RunAgentResult handle = AgentRuntimeManager.get().run(request);
+            AgentHarnessResult result = handle.getResult();
 
-            logger.info("RunAgentReactor: completed iterations={} reflections={} tools={}",
-                    result.getIterations(), result.getReflectionsUsed(), result.getToolCallRecords().size());
+            if (result != null) {
+                logger.info("RunAgentReactor: completed runId={} iterations={} reflections={} tools={}",
+                        handle.getRunId(), result.getIterations(), result.getReflectionsUsed(),
+                        result.getToolCallRecords().size());
+            } else {
+                logger.info("RunAgentReactor: runId={} status={}", handle.getRunId(), handle.getStatus());
+            }
 
-            return new NounMetadata(result.getFinalText(), PixelDataType.CONST_STRING,
+            return new NounMetadata(handle.toMap(), PixelDataType.MAP,
                     PixelOperationType.OPERATION);
 
         } catch (AgentMaxTurnsException e) {
@@ -146,7 +154,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Run a generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+        return "Queue a durable generic agent loop using a pluggable harness. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
     }
 
     // Helpers

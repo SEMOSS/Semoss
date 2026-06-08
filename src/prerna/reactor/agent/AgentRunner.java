@@ -125,6 +125,7 @@ public final class AgentRunner {
      * @param maxTurns        Optional. Maximum SEMOSS harness tool-call rounds.
      * @param maxReflections  Optional. Maximum SEMOSS harness self-critique rounds.
      * @param paramMap        Optional. Extra model parameters (temperature, max_tokens, etc.).
+     * @param runId           Optional durable AGENT_RUN id used to tag room messages.
      * @param insight         Required. Current insight context (user, project, etc.).
      * @return Rich result containing final text, iteration count, and tool-call trace.
      * @throws Exception on unrecoverable errors during execution.
@@ -138,6 +139,7 @@ public final class AgentRunner {
             int maxReflections,
             Map<String, Object> paramMap,
             Map<String, Object> agentParamMap,
+            String runId,
             Insight insight
             ) throws Exception {
 
@@ -152,9 +154,21 @@ public final class AgentRunner {
         }
         try {
 
-        Room room = RoomUtils.getOrLoadRoom(roomId, insight);
+        IModelEngine modelEngine = null;
+        String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
+        if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+            modelEngine = Utility.getModel(runtimeModelId);
+            if (modelEngine == null) {
+                throw new IllegalArgumentException(
+                        "Could not load model engine '" + runtimeModelId + "' for room '" + roomId + "'");
+            }
+        }
 
-        String modelId = resolveModelId(room, engineIdFallback);
+        Room room = modelEngine != null
+                ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+                : RoomUtils.getOrLoadRoom(roomId, insight);
+
+        String modelId = resolveModelId(room, runtimeModelId);
         if (modelId == null || modelId.trim().isEmpty()) {
             throw new IllegalArgumentException(
                     "No model engine found for room '" + roomId + "'. "
@@ -162,7 +176,9 @@ public final class AgentRunner {
         }
         logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
 
-        IModelEngine modelEngine = Utility.getModel(modelId);
+        if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
+            modelEngine = Utility.getModel(modelId);
+        }
         if (modelEngine == null) {
             throw new IllegalArgumentException(
                     "Could not load model engine '" + modelId + "' for room '" + roomId + "'");
@@ -204,6 +220,7 @@ public final class AgentRunner {
                 .insight(insight)
                 .userId(room.getUserId())
                 .input(input)
+                .runId(runId)
                 .sandboxPolicy(sandboxPolicy)
                 // Root runs are not registered as subagents and resolve to depth 0.
                 // Child runs are recorded by AgentSubAgentRegistry before their
@@ -221,46 +238,17 @@ public final class AgentRunner {
         WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
         AgentHarnessResult result = null;
         try {
-            // Lifecycle: onRoomCreation — observation-only, exceptions swallowed
-            for (IAgentRunHook h : hooks) {
-                try {
-                    h.onRoomCreation(ctx);
-                } catch (Exception hookEx) {
-                    logger.warn("AgentRunner: onRoomCreation hook {} threw — logging and continuing",
-                            h.getClass().getSimpleName(), hookEx);
-                }
-            }
-            // Lifecycle: beforeRun — veto point, exceptions abort the run
             for (IAgentRunHook h : hooks) {
                 h.beforeRun(ctx);
-            }
-            // Lifecycle: afterAgentInit — observation-only, exceptions swallowed
-            for (IAgentRunHook h : hooks) {
-                try {
-                    h.afterAgentInit(ctx);
-                } catch (Exception hookEx) {
-                    logger.warn("AgentRunner: afterAgentInit hook {} threw — logging and continuing",
-                            h.getClass().getSimpleName(), hookEx);
-                }
             }
             result = harness.execute(ctx);
         } finally {
             AgentHarnessResult finalResult = result;
-            // Lifecycle: afterRun — observation-only, exceptions swallowed
             for (IAgentRunHook h : hooks) {
                 try {
                     h.afterRun(ctx, finalResult);
                 } catch (Exception hookEx) {
                     logger.warn("AgentRunner: afterRun hook {} threw — logging and continuing",
-                            h.getClass().getSimpleName(), hookEx);
-                }
-            }
-            // Lifecycle: beforeAgentDeInit — last chance before overlay is restored
-            for (IAgentRunHook h : hooks) {
-                try {
-                    h.beforeAgentDeInit(ctx, finalResult);
-                } catch (Exception hookEx) {
-                    logger.warn("AgentRunner: beforeAgentDeInit hook {} threw — logging and continuing",
                             h.getClass().getSimpleName(), hookEx);
                 }
             }
