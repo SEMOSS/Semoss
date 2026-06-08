@@ -29,7 +29,7 @@ final class AgentRunWorker {
 	private final AgentRunQueueCoordinator queueCoordinator;
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
-	private final Map<String, Insight> insightsByRun = new ConcurrentHashMap<>();
+	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
 	private final Set<String> localActiveRooms = ConcurrentHashMap.newKeySet();
 
 	AgentRunWorker(AgentRuntimeManager runtime, AgentRunStore store, AgentRunQueueCoordinator queueCoordinator) {
@@ -67,11 +67,11 @@ final class AgentRunWorker {
 			try {
 				List<AgentRunRecord> records = store.getQueuedRuns(SCAN_LIMIT, null);
 				for (AgentRunRecord record : records) {
-					Insight insight = insightsByRun.get(record.getRunId());
-					if (insight == null) {
+					InsightHandle insightHandle = insightsByRun.get(record.getRunId());
+					if (insightHandle == null) {
 						continue;
 					}
-					if (tryExecute(record, insight)) {
+					if (tryExecute(record, insightHandle)) {
 						didWork = true;
 					}
 				}
@@ -84,7 +84,7 @@ final class AgentRunWorker {
 		}
 	}
 
-	private boolean tryExecute(AgentRunRecord record, Insight insight) {
+	private boolean tryExecute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
 		String roomId = record.getRoomId();
 		if (!store.isOldestQueuedRunForRoom(runId, roomId)) {
@@ -104,11 +104,12 @@ final class AgentRunWorker {
 			if (!store.markRunningIfQueued(runId, jobId)) {
 				lease.close();
 				localActiveRooms.remove(roomId);
+				cleanupInsight(runId, insightHandle);
 				return false;
 			}
 			Thread.ofVirtual().name("agent-run-" + runId).start(() -> {
 				try {
-					execute(record, insight);
+					execute(record, insightHandle);
 				} finally {
 					lease.close();
 					localActiveRooms.remove(roomId);
@@ -122,7 +123,7 @@ final class AgentRunWorker {
 		}
 	}
 
-	private void execute(AgentRunRecord record, Insight insight) {
+	private void execute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
 		String jobId = ThreadStore.getJobId();
 		try {
@@ -137,7 +138,7 @@ final class AgentRunWorker {
 					request.getParamMap(),
 					request.getAgentParamMap(),
 					runId,
-					insight);
+					insightHandle.insight);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -147,7 +148,6 @@ final class AgentRunWorker {
 				store.markFinalOutputMessage(runId, result.getFinalOutputMessageId());
 			}
 			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
-			insightsByRun.remove(runId);
 		} catch (Exception e) {
 			jobId = runtime.firstNonBlank(ThreadStore.getJobId(), jobId);
 			if (runtime.isCancelled(e)) {
@@ -155,8 +155,9 @@ final class AgentRunWorker {
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
 			}
-			insightsByRun.remove(runId);
 			logger.warn("AgentRunWorker: runId={} failed: {}", runId, e.getMessage(), e);
+		} finally {
+			cleanupInsight(runId, insightHandle);
 		}
 	}
 
@@ -170,13 +171,31 @@ final class AgentRunWorker {
 		}
 	}
 
-	private static Insight cloneInsight(Insight source) {
+	private void cleanupInsight(String runId, InsightHandle insightHandle) {
+		InsightHandle removed = insightsByRun.remove(runId);
+		InsightHandle toCleanup = removed != null ? removed : insightHandle;
+		if (toCleanup != null && toCleanup.insightId != null) {
+			InsightStore.getInstance().remove(toCleanup.insightId);
+		}
+	}
+
+	private static InsightHandle cloneInsight(Insight source) {
 		Insight clone = new Insight();
 		clone.setUser(source.getUser());
 		clone.setBaseURL(source.getBaseURL());
 		clone.setProjectId(source.getProjectId());
 		clone.setContextProjectId(source.getContextProjectId());
-		InsightStore.getInstance().put(clone);
-		return clone;
+		String insightId = InsightStore.getInstance().put(clone);
+		return new InsightHandle(clone, insightId);
+	}
+
+	private static final class InsightHandle {
+		private final Insight insight;
+		private final String insightId;
+
+		private InsightHandle(Insight insight, String insightId) {
+			this.insight = insight;
+			this.insightId = insightId;
+		}
 	}
 }
