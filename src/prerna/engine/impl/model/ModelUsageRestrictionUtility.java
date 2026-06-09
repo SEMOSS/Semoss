@@ -381,7 +381,7 @@ public final class ModelUsageRestrictionUtility {
 					"Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
 		}
 
-		if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) {
+		if (maxResponseTime != null && maxResponseTime.doubleValue() >= 0) {
 			Number currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
 					Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime, frequency);
 			if (maxResponseTime != null && currentUsage.doubleValue() > maxResponseTime.doubleValue()) {
@@ -395,7 +395,6 @@ public final class ModelUsageRestrictionUtility {
 					currentUsage.intValue());
 			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 					maxResponseTime != null ? maxResponseTime.intValue() : 0);
-			return;
 		}
 
 		checkEngineLevelTokenLimits(user, engineId, currentDateTime, frequency, maxTokens, maxInputTokens,
@@ -632,7 +631,7 @@ public final class ModelUsageRestrictionUtility {
 		}
 
 		String scopedEngineId = restrictPerModel ? engineId : null;
-		if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) {
+		if (maxResponseTime != null && maxResponseTime.doubleValue() >= 0) {
 			Number computeUsage = ModelInferenceLogsUtils.getTotalTokensForProject(
 					Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, projectId, scopedEngineId, currentDateTime,
 					frequency, null);
@@ -644,7 +643,6 @@ public final class ModelUsageRestrictionUtility {
 					computeUsage.intValue());
 			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_PROJECT_MAX,
 					maxResponseTime != null ? maxResponseTime.intValue() : 0);
-			return;
 		}
 
 		checkProjectTokenLimits(user, projectId, scopedEngineId, currentDateTime, frequency, maxTokens,
@@ -793,6 +791,11 @@ public final class ModelUsageRestrictionUtility {
 		}
 		comparison = compareNullableLimitNumbers((Number) left.get("maxOutputTokens"),
 				(Number) right.get("maxOutputTokens"));
+		if (comparison != 0) {
+			return comparison >= 0 ? left : right;
+		}
+		comparison = compareNullableLimitNumbers((Number) left.get("maxResponseTime"),
+				(Number) right.get("maxResponseTime"));
 		if (comparison != 0) {
 			return comparison >= 0 ? left : right;
 		}
