@@ -348,47 +348,46 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		synchronized (lockDestroy) {
 			if (this.socketClient != null && this.socketClient.isConnected()) {
-				ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
-				Callable<Boolean> callableTask = () -> {
-					boolean result = false;
-					if (cleanUpFolder) {
-						this.socketClient.stopServer();
-						classLogger.info("Sucessfully stopped the process");
-						// remove the insight scratch dir plus namespace sandbox dirs
-						// (no-ops when those are null)
-						result = deleteFolderWithRetries(this.serverDirectory)
-								& deleteFolderWithRetries(this.sandboxIoDir)
-								& deleteFolderWithRetries(this.sandboxJailDir)
-								& deleteFolderWithRetries(this.sandboxControlDir);
-					} else {
-						this.socketClient.stopServer();
-						classLogger.info("Sucessfully stopped the process");
-						result = true;
+					Callable<Boolean> callableTask = () -> {
+						boolean result = false;
+						if (cleanUpFolder) {
+							this.socketClient.stopServer();
+							classLogger.info("Sucessfully stopped the process");
+							// remove the insight scratch dir plus namespace sandbox dirs
+							// (no-ops when those are null)
+							result = deleteFolderWithRetries(this.serverDirectory)
+									& deleteFolderWithRetries(this.sandboxIoDir)
+									& deleteFolderWithRetries(this.sandboxJailDir)
+									& deleteFolderWithRetries(this.sandboxControlDir);
+						} else {
+							this.socketClient.stopServer();
+							classLogger.info("Sucessfully stopped the process");
+							result = true;
+						}
+						return result;
+					};
+
+					Future<Boolean> future = executor.submit(callableTask);
+					try {
+						// dont have the user wait forever...
+						Boolean result = future.get(15, TimeUnit.SECONDS);
+						if (!result) {
+							classLogger.warn("Failed to shutdown the process");
+						}
+					} catch (TimeoutException e) {
+						classLogger.warn("Task did not finish within the timeout");
+						future.cancel(true);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						classLogger.error("Interrupted while waiting for socket client shutdown task to finish", e);
+					} catch (ExecutionException e) {
+						classLogger.error("Socket client shutdown task failed", e);
+					} finally {
+						// reset the venv path
+						this.venvPath = null;
 					}
-					return result;
-				};
-
-				Future<Boolean> future = executor.submit(callableTask);
-				try {
-					// dont have the user wait forever...
-					Boolean result = future.get(15, TimeUnit.SECONDS);
-					if (!result) {
-						classLogger.warn("Failed to shutdown the process");
-					}
-				} catch (TimeoutException e) {
-					classLogger.warn("Task did not finish within the timeout");
-					future.cancel(true);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					classLogger.error("Interrupted while waiting for socket client shutdown task to finish", e);
-				} catch (ExecutionException e) {
-					classLogger.error("Socket client shutdown task failed", e);
-				} finally {
-					executor.shutdown();
-
-					// reset the venv path
-					this.venvPath = null;
 				}
 			}
 			// you know what, always try this...
@@ -899,30 +898,38 @@ public class ClientProcessWrapper {
 				StringBuilder errorMsg = new StringBuilder();
 				if (pyLogCapture) {
 					try {
-						if (stdoutGobbler != null) { stdoutGobbler.join(200); }
-						if (stderrGobbler != null) { stderrGobbler.join(200); }
+						if (stdoutGobbler != null) {
+							stdoutGobbler.join(200);
+						}
+						if (stderrGobbler != null) {
+							stderrGobbler.join(200);
+						}
 					} catch (InterruptedException ie) {
 						Thread.currentThread().interrupt();
 					}
 					boolean inTraceback = false;
 					for (String line : capturedLines) {
-						if (line.startsWith("Traceback")) { inTraceback = true; }
-						if (inTraceback) { errorMsg.append(line).append("\n"); }
+						if (line.startsWith("Traceback")) {
+							inTraceback = true;
+						}
+						if (inTraceback) {
+							errorMsg.append(line).append("\n");
+						}
 					}
 				} else {
 					// if it crashed here, then the outputFile will contain the error. Read file and
 					// send error back
-					BufferedReader reader = new BufferedReader(new FileReader(outputFile));
-					String line;
-					while ((line = reader.readLine()) != null) {
-						if (line.startsWith("Traceback")) {
-							errorMsg.append(line).append("\n");
-							while ((line = reader.readLine()) != null) {
+					try (FileReader fr = new FileReader(outputFile); BufferedReader br = new BufferedReader(fr)) {
+						String line;
+						while ((line = br.readLine()) != null) {
+							if (line.startsWith("Traceback")) {
 								errorMsg.append(line).append("\n");
+								while ((line = br.readLine()) != null) {
+									errorMsg.append(line).append("\n");
+								}
 							}
 						}
 					}
-					reader.close();
 				}
 				if (!errorMsg.toString().isEmpty()) {
 					throw new IllegalStateException(errorMsg.toString());
@@ -1136,8 +1143,12 @@ public class ClientProcessWrapper {
 					String startupLog;
 					if (pyLogCapture) {
 						try {
-							if (stdoutGobbler != null) { stdoutGobbler.join(200); }
-							if (stderrGobbler != null) { stderrGobbler.join(200); }
+							if (stdoutGobbler != null) {
+								stdoutGobbler.join(200);
+							}
+							if (stderrGobbler != null) {
+								stderrGobbler.join(200);
+							}
 						} catch (InterruptedException ie2) {
 							Thread.currentThread().interrupt();
 						}
@@ -1145,8 +1156,8 @@ public class ClientProcessWrapper {
 					} else {
 						startupLog = readSandboxStartupLog(consoleFile);
 					}
-					throw new IllegalStateException("Namespace sandbox exited during startup with code " + p.exitValue()
-							+ ". " + startupLog);
+					throw new IllegalStateException(
+							"Namespace sandbox exited during startup with code " + p.exitValue() + ". " + startupLog);
 				}
 			} catch (InterruptedException ie) {
 				Thread.currentThread().interrupt();
