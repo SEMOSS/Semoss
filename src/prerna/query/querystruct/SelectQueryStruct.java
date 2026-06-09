@@ -314,8 +314,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	public List<Map<String, Object>> getHeaderInfo() {
 		// these are the only types
 		// where we have metadata for additional types
-		boolean frameQuery = qsType == QUERY_STRUCT_TYPE.FRAME;
-		boolean engineQuery = qsType == QUERY_STRUCT_TYPE.ENGINE;
+		boolean frameQuery = qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME;
+		boolean engineQuery = qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE;
 
 		List<Map<String, Object>> headerInfo = new ArrayList<Map<String, Object>>();
 		for (IQuerySelector selector : this.selectors) {
@@ -442,10 +442,10 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	public SelectQueryStruct getNewBaseQueryStruct() {
 		SelectQueryStruct newQs = new SelectQueryStruct();
 		newQs.setQsType(this.qsType);
-		if (this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
+		if (this.qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE) {
 			newQs.setEngineId(this.engineId);
 			newQs.setEngine(this.engine);
-		} else if (this.qsType == SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
+		} else if (this.qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			newQs.setFrame(this.frame);
 		}
 		newQs.setDistinct(this.isDistinct);
@@ -463,7 +463,8 @@ public class SelectQueryStruct extends AbstractQueryStruct {
 	 */
 	public static String getExecutingQueryMessage(SelectQueryStruct qs) {
 		String message = null;
-		if (qs.getQsType() == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY || qs.getQsType() == QUERY_STRUCT_TYPE.FRAME) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY
+				|| qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME) {
 			if (qs.getFrame() instanceof NativeFrame) {
 				message = "Executing query against the database and generating the result set";
 			} else {
