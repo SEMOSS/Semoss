@@ -37,10 +37,13 @@ import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.util.Utility;
 
 public final class AgentRuntimeManager {
 
 	private static final int MAX_ERROR_LENGTH = 8000;
+	private static final String WAIT_TIMEOUT_MS = "AGENT_RUN_WAIT_TIMEOUT_MS";
+	private static final long DEFAULT_WAIT_TIMEOUT_MS = 3600000L;
 	private static final AgentRuntimeManager INSTANCE = new AgentRuntimeManager(new AgentRunStore());
 
 	private final AgentRunStore store;
@@ -83,7 +86,8 @@ public final class AgentRuntimeManager {
 			throw new IllegalArgumentException("runId is required");
 		}
 		long start = System.currentTimeMillis();
-		long deadline = timeoutMs > 0 ? start + timeoutMs : Long.MAX_VALUE;
+		long effectiveTimeoutMs = timeoutMs > 0 ? timeoutMs : getLongProperty(WAIT_TIMEOUT_MS, DEFAULT_WAIT_TIMEOUT_MS);
+		long deadline = start + effectiveTimeoutMs;
 		LinkedBlockingQueue<AgentRunEventBus.AgentRunEvent> events = new LinkedBlockingQueue<>();
 		AutoCloseable subscription = AgentRunEventBus.get().subscribe(runId, events::offer);
 		try {
@@ -151,6 +155,19 @@ public final class AgentRuntimeManager {
 			return message;
 		}
 		return message.substring(0, MAX_ERROR_LENGTH);
+	}
+
+	private static long getLongProperty(String key, long defaultValue) {
+		String value = Utility.getDIHelperProperty(key);
+		if (value == null || value.trim().isEmpty()) {
+			return defaultValue;
+		}
+		try {
+			long parsed = Long.parseLong(value.trim());
+			return parsed > 0 ? parsed : defaultValue;
+		} catch (NumberFormatException e) {
+			return defaultValue;
+		}
 	}
 
 	private static String resolveUserId(Insight insight) {

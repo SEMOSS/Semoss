@@ -25,9 +25,6 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *******************************************************************************/
 package prerna.reactor.agent.run;
 
 import java.util.List;
@@ -131,12 +128,13 @@ final class AgentRunWorker {
 			return false;
 		}
 
-		AgentRunQueueCoordinator.ActiveRunLease lease = queueCoordinator.tryClaimTurn(runId, roomId);
-		if (lease == null) {
-			localActiveRooms.remove(roomId);
-			return false;
-		}
+		AgentRunQueueCoordinator.ActiveRunLease lease = null;
 		try {
+			lease = queueCoordinator.tryClaimTurn(runId, roomId);
+			if (lease == null) {
+				localActiveRooms.remove(roomId);
+				return false;
+			}
 			String jobId = runId;
 			if (!store.markRunningIfSubmitted(runId, jobId)) {
 				lease.close();
@@ -158,7 +156,9 @@ final class AgentRunWorker {
 			thread.start();
 			return true;
 		} catch (RuntimeException e) {
-			lease.close();
+			if (lease != null) {
+				lease.close();
+			}
 			localActiveRooms.remove(roomId);
 			throw e;
 		}
@@ -170,16 +170,9 @@ final class AgentRunWorker {
 		try {
 			seedThreadStore(runId, insightHandle);
 			RunAgentRequest request = record.getRequest();
-			AgentHarnessResult result = AgentRunner.run(
-					request.getRoomId(),
-					request.getInput(),
-					request.getEngineIdFallback(),
-					request.getHarnessType(),
-					request.getMaxTurns(),
-					request.getMaxReflections(),
-					request.getParamMap(),
-					request.getAgentParamMap(),
-					runId,
+			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
+					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
+					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(), runId,
 					insightHandle.insight);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
@@ -280,8 +273,8 @@ final class AgentRunWorker {
 		private final String localProtocol;
 		private final Integer localPort;
 
-		private InsightHandle(Insight insight, String insightId, String sessionId, String routeId,
-				String localHostname, String localProtocol, Integer localPort) {
+		private InsightHandle(Insight insight, String insightId, String sessionId, String routeId, String localHostname,
+				String localProtocol, Integer localPort) {
 			this.insight = insight;
 			this.insightId = insightId;
 			this.sessionId = sessionId;
