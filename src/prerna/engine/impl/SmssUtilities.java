@@ -410,16 +410,11 @@ public class SmssUtilities {
 		final String newLine = "\n";
 		final String tab = "\t";
 		File f1 = new File(smssFile);
-		FileReader fr = null;
-		BufferedReader br = null;
 		String line = null;
-		FileWriter fw = null;
-		BufferedWriter out = null;
-		try {
-			fr = new FileReader(f1);
-			br = new BufferedReader(fr);
-			fw = new FileWriter(newSmssFile);
-			out = new BufferedWriter(fw);
+		try (FileReader fr = new FileReader(f1);
+				BufferedReader br = new BufferedReader(fr);
+				FileWriter fw = new FileWriter(newSmssFile);
+				BufferedWriter out = new BufferedWriter(fw);) {
 			while ((line = br.readLine()) != null) {
 				if (line.contains(Constants.ENGINE_ALIAS)) {
 					line = Constants.ENGINE_ALIAS + tab + newAppName;
@@ -432,18 +427,6 @@ public class SmssUtilities {
 				// line = Constants.OWL + tab + owlLocation;
 				// }
 				out.write(line + newLine);
-
-			}
-		} finally {
-			if (fr != null) {
-				fr.close();
-			}
-			if (br != null) {
-				br.close();
-			}
-			if (out != null) {
-				out.flush();
-				out.close();
 			}
 		}
 	}

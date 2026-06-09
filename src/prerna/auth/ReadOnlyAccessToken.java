@@ -42,45 +42,30 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 
 	public static AccessToken unmodifiableToken(AccessToken token) {
 		ReadOnlyAccessToken newToken = new ReadOnlyAccessToken();
-		newToken.provider = token.provider;
-		if (token.userGroups != null) {
-			newToken.userGroups = Collections.unmodifiableCollection(token.userGroups);
-		}
-		newToken.userGroupType = token.userGroupType;
-		newToken.id = token.id;
-		newToken.username = token.username;
-		newToken.access_token = token.access_token;
-		newToken.instance_url = token.instance_url;
-		newToken.expires_in = token.expires_in;
-		newToken.token_type = token.token_type;
-		newToken.startTime = token.startTime;
-		newToken.email = token.email;
-		newToken.name = token.name;
-		newToken.profile = token.profile;
-		newToken.gender = token.gender;
-		newToken.locale = token.locale;
-		newToken.phone = token.phone;
-		newToken.phoneExtension = token.phoneExtension;
-		newToken.countryCode = token.countryCode;
-		if (token.sans != null) {
-			newToken.sans = Collections.unmodifiableMap(token.sans);
-		}
-		if (token.meta != null) {
-			// Make a deep mutable copy of meta so callers can update metadata via
-			// AccessToken helper methods (e.g., addMetaValue). We still prevent
-			// modification of other AccessToken fields by throwing from setters.
-			Map<String, Collection<String>> deepMutableMeta = token.meta.entrySet().stream().collect(Collectors.toMap(
-					Map.Entry::getKey, e -> (e.getValue() == null) ? null : new java.util.ArrayList<>(e.getValue())));
-			newToken.meta = new java.util.HashMap<>(deepMutableMeta);
-		}
-		newToken.locked = token.locked;
-		newToken.lastLogin = token.lastLogin;
-		newToken.lastPasswordReset = token.lastPasswordReset;
 
-		newToken.modelMaxTokens = token.modelMaxTokens;
-		newToken.modelMaxResponseTime = token.modelMaxResponseTime;
-		newToken.modelUsageFrequency = token.modelUsageFrequency;
-		newToken.modelUsageRestriction = token.modelUsageRestriction;
+		// copy all scalar fields straight across via the protected hook (raw values, no
+		// setter validation or getter fallbacks). The public setters cannot be used
+		// here
+		// because this class overrides them to throw.
+		newToken.copyScalarFieldsFrom(token);
+
+		// install unmodifiable views of the collection-valued fields so they cannot be
+		// mutated through this read-only token
+		Collection<String> userGroups = token.getUserGroups();
+		if (userGroups != null) {
+			newToken.setUserGroupsInternal(Collections.unmodifiableCollection(userGroups));
+		}
+		Map<String, String> sans = token.getSAN();
+		if (sans != null) {
+			newToken.setSansInternal(Collections.unmodifiableMap(sans));
+		}
+
+		// setMeta on a ReadOnlyAccessToken already makes a deep, mutable copy of the
+		// map,
+		// so callers can still update metadata via the AccessToken helper methods
+		// (e.g.,
+		// addMetaValue) while every other field stays immutable.
+		newToken.setMeta(token.getMeta());
 
 		return newToken;
 	}
@@ -94,7 +79,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
-    @Override
+	@Override
 	public void setInstance_url(String instanceUrl) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
@@ -182,21 +167,25 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	@Override
 	public void setMeta(Map<String, Collection<String>> meta) {
 		// Allow updating metadata on a read-only token by making a deep mutable copy.
+		// The base setMeta is the raw assignment, so route the copy through super to
+		// store
+		// it (this class' own setMeta override would otherwise be the one invoked).
 		if (meta == null) {
-			this.meta = null;
+			super.setMeta(null);
 			return;
 		}
 		Map<String, Collection<String>> deepMutableMeta = meta.entrySet().stream().collect(Collectors.toMap(
 				Map.Entry::getKey, e -> (e.getValue() == null) ? null : new java.util.ArrayList<>(e.getValue())));
-		this.meta = new java.util.HashMap<>(deepMutableMeta);
+		super.setMeta(new java.util.HashMap<>(deepMutableMeta));
 	}
 
 	@Override
 	public Map<String, Collection<String>> getMeta() {
-		if (this.meta == null) {
+		Map<String, Collection<String>> meta = super.getMeta();
+		if (meta == null) {
 			return null;
 		}
-		return Collections.unmodifiableMap(this.meta);
+		return Collections.unmodifiableMap(meta);
 	}
 
 	@Override
