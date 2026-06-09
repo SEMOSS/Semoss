@@ -78,7 +78,8 @@ public abstract class AbstractMessage {
 	protected MessageFeedback feedback;
 	protected int tokens;
 
-	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on response messages.
+	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on
+	// response messages.
 	@SerializedName("cacheReadTokens")
 	protected Integer cacheReadTokens;
 
@@ -91,7 +92,8 @@ public abstract class AbstractMessage {
 	@SerializedName("platform_generated")
 	protected boolean platformGenerated = false;
 
-	protected transient Room room;
+	protected transient String roomId;
+	protected transient String roomFolderPath;
 
 	private SemossDate dateCreated;
 
@@ -269,11 +271,18 @@ public abstract class AbstractMessage {
 	}
 
 	public void setRoom(Room room) {
-		this.room = room;
+		if (room != null) {
+			this.roomId = room.getId();
+			this.roomFolderPath = room.getRoomFolderPath();
+		}
 	}
 
-	public Room getRoom() {
-		return this.room;
+	public String getRoomId() {
+		return this.roomId;
+	}
+
+	public String getRoomFolderPath() {
+		return this.roomFolderPath;
 	}
 
 	public boolean isVisible() {

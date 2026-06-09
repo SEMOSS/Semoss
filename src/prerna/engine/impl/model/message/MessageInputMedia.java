@@ -44,7 +44,6 @@ import org.apache.tika.mime.MediaType;
 import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 
 public class MessageInputMedia {
@@ -94,20 +93,17 @@ public class MessageInputMedia {
 		return info;
 	}
 
-	public static MessageInputMedia fromUrlOrFile(String url, Room room) {
-		if (url != null && RoomUtils.isBase64MediaDataUri(url) && room != null
-				&& room.getRoomFolderPath() != null) {
+	public static MessageInputMedia fromUrlOrFile(String url, String roomId, String roomFolderPath) {
+		if (url != null && RoomUtils.isBase64MediaDataUri(url) && roomId != null && roomFolderPath != null) {
 			try {
-				Path roomDir = Paths.get(room.getRoomFolderPath());
+				Path roomDir = Paths.get(roomFolderPath);
 				String fileName = RoomUtils.writeBase64ImageDataUriToDir(url, roomDir);
 				if (fileName != null) {
-					return fromFile(fileName, room.getId(), null, room.getRoomFolderPath());
+					return fromFile(fileName, roomId, null, roomFolderPath);
 				}
-				classLogger.warn("Failed to flush data URI media to room {}; falling back to URL storage",
-						room.getId());
+				classLogger.warn("Failed to flush data URI media to room {}; falling back to URL storage", roomId);
 			} catch (Exception e) {
-				classLogger.warn("Error flushing data URI media to room {}; falling back to URL storage",
-						room.getId(), e);
+				classLogger.warn("Error flushing data URI media to room {}; falling back to URL storage", roomId, e);
 			}
 		}
 		return fromUrl(url);
