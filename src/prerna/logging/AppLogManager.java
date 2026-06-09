@@ -33,8 +33,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -60,8 +58,12 @@ import prerna.util.AssetUtility;
  * to that project's log file — all other events are silently dropped by the
  * {@link ThreadContextMapFilter}.
  * <p>
+ * Log4j2's own {@link Configuration} is the single source of truth for whether
+ * an appender has been registered. This means appenders are automatically
+ * re-registered if Log4j2 reloads its configuration at runtime.
+ * <p>
  * Log files are written to:
- * <pre>{projectAssetsFolder}/logs/app.log</pre>
+ * <pre>{projectVersionFolder}/logs/app.log</pre>
  * The {@code logs/} directory is added to the project's {@code .gitignore} to
  * prevent log files from being committed to git and causing pod filespace issues.
  */
@@ -76,9 +78,6 @@ public final class AppLogManager {
 	/** Loggers that should write to per-project files (mirrors log4j2.xml AsyncLoggers). */
 	private static final String[] TARGET_LOGGERS = { "prerna", "EngineLogger" };
 
-	/** Tracks projects that already have an appender to avoid duplicate registration. */
-	private static final Set<String> REGISTERED = ConcurrentHashMap.newKeySet();
-
 	private AppLogManager() {
 		// utility class — no instances
 	}
@@ -86,23 +85,36 @@ public final class AppLogManager {
 	/**
 	 * Ensures a per-project log appender is registered for the given project.
 	 * <p>
-	 * Idempotent and thread-safe — safe to call on every {@code setContext()} invocation.
-	 * If the appender is already registered for this {@code projectId}, this is a no-op.
+	 * Uses the Log4j2 {@link Configuration} as the single source of truth —
+	 * no separate tracking set. Handles Log4j2 config reloads automatically:
+	 * if the config is refreshed and the appender is lost, the next
+	 * {@code setContext()} call will re-register it.
+	 * <p>
+	 * Idempotent — safe to call on every {@code setContext()} invocation.
 	 *
 	 * @param projectId   the project whose logs should be captured
-	 * @param projectName the project display name used to resolve the assets path
+	 * @param projectName the project display name used to resolve the version folder path
 	 */
 	public static void ensureAppender(String projectId, String projectName) {
-		if (projectId == null || projectId.isBlank() || REGISTERED.contains(projectId)) {
+		if (projectId == null || projectId.isBlank()) {
 			return;
 		}
-		synchronized (REGISTERED) {
-			if (REGISTERED.contains(projectId)) {
-				return; // double-checked inside lock
+		String appenderName = "AppFile-" + projectId;
+		LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+
+		// Fast path — appender already registered in the current config
+		if (ctx.getConfiguration().getAppender(appenderName) != null) {
+			return;
+		}
+
+		// Slow path — register under a class-level lock to prevent concurrent
+		// double-registration when multiple threads load the same app simultaneously
+		synchronized (AppLogManager.class) {
+			if (ctx.getConfiguration().getAppender(appenderName) != null) {
+				return; // another thread registered it while we waited
 			}
 			try {
-				registerAppender(projectId, projectName);
-				REGISTERED.add(projectId);
+				registerAppender(projectId, projectName, appenderName, ctx);
 			} catch (Exception e) {
 				classLogger.warn("Failed to register per-project log appender for '{}': {}",
 						projectId, e.getMessage(), e);
@@ -124,7 +136,8 @@ public final class AppLogManager {
 
 	// ── private ────────────────────────────────────────────────────────────
 
-	private static void registerAppender(String projectId, String projectName) throws IOException {
+	private static void registerAppender(String projectId, String projectName,
+			String appenderName, LoggerContext ctx) throws IOException {
 		// Write to version/logs/ — sits alongside assets/ so editors browsing the
 		// assets folder never see log files, but it's still within the project tree.
 		String versionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
@@ -140,15 +153,7 @@ public final class AppLogManager {
 		// Ensure logs/ is gitignored — .gitignore is at the version folder root
 		ensureLogsGitIgnored(versionFolder);
 
-		// Build the appender
-		String appenderName = "AppFile-" + projectId;
-		LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
 		Configuration config = ctx.getConfiguration();
-
-		// Guard against duplicate registration after a config reload
-		if (config.getAppender(appenderName) != null) {
-			return;
-		}
 
 		// Filter: ACCEPT only events where MDC projectId == this project's ID
 		ThreadContextMapFilter filter = ThreadContextMapFilter.createFilter(

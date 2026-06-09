@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -87,7 +88,7 @@ public class PixelJobRunner implements Runnable {
 		if (projectId != null && !projectId.isBlank()) {
 			enrichedContextMap.put("projectId", projectId);
 		}
-		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(enrichedContextMap)) {
+		try (var ctx = CloseableThreadContext.putAll(enrichedContextMap)) {
 			// set ThreadStore
 			ThreadStore.setInsightId(insight.getInsightId());
 			ThreadStore.setSessionId(sessionId);

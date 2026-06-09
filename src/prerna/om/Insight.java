@@ -44,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.nio.file.FileSystems;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -85,6 +86,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
+import prerna.logging.AppLogManager;
 
 public class Insight implements Serializable {
 
@@ -679,7 +681,7 @@ public class Insight implements Serializable {
 			// Register a per-project log appender the first time this app is loaded.
 			// AppLogManager is idempotent — subsequent setContext() calls for the same
 			// project are a no-op.
-			prerna.logging.AppLogManager.ensureAppender(projectId, resolvedName);
+			AppLogManager.ensureAppender(projectId, resolvedName);
 		}
 
 		// if we have a chroot, mount the project for that user.
