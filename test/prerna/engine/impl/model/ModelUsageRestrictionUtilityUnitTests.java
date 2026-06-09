@@ -328,6 +328,55 @@ public class ModelUsageRestrictionUtilityUnitTests extends SemossUnitTest {
 	}
 
 	@Test
+	void selectEffectiveRowsByFrequency_SpecificTeamOverridesDefaultTeam() {
+		Map<String, Map<String, Object>> selected = ModelUsageRestrictionUtility.selectEffectiveRowsByFrequency(
+				List.of(), List.of(), List.of(limit("DAY", 100, true)), List.of(limit("DAY", 500, true)));
+
+		assertEquals(100, selected.get("DAY").get("maxTokens"));
+	}
+
+	@Test
+	void selectEffectiveRowsByFrequency_UsesHighestSpecificTeamLimit() {
+		Map<String, Map<String, Object>> selected = ModelUsageRestrictionUtility.selectEffectiveRowsByFrequency(
+				List.of(), List.of(), List.of(limit("DAY", 100, true), limit("DAY", 300, true)), List.of());
+
+		assertEquals(300, selected.get("DAY").get("maxTokens"));
+	}
+
+	@Test
+	void selectEffectiveRowsByFrequency_UsesHigherSpecificUserOrTeamLimit() {
+		Map<String, Map<String, Object>> selected = ModelUsageRestrictionUtility.selectEffectiveRowsByFrequency(
+				List.of(limit("DAY", 200, false)), List.of(), List.of(limit("DAY", 300, true)), List.of());
+
+		assertEquals(300, selected.get("DAY").get("maxTokens"));
+	}
+
+	@Test
+	void selectEffectiveRowsByFrequency_SpecificUserOverridesDefaultUser() {
+		Map<String, Map<String, Object>> selected = ModelUsageRestrictionUtility.selectEffectiveRowsByFrequency(
+				List.of(limit("DAY", 200, false)), List.of(limit("DAY", 500, false)), List.of(), List.of());
+
+		assertEquals(200, selected.get("DAY").get("maxTokens"));
+	}
+
+	@Test
+	void selectEffectiveRowsByFrequency_UsesHigherDefaultUserOrTeamLimit() {
+		Map<String, Map<String, Object>> selected = ModelUsageRestrictionUtility.selectEffectiveRowsByFrequency(
+				List.of(), List.of(limit("DAY", 200, false)), List.of(), List.of(limit("DAY", 300, true)));
+
+		assertEquals(300, selected.get("DAY").get("maxTokens"));
+	}
+
+	private static Map<String, Object> limit(String frequency, int maxTokens, boolean teamScoped) {
+		Map<String, Object> limit = new HashMap<>();
+		limit.put("usageRestriction", Constants.MODEL_TOKEN_RESTRICTION_VALUE);
+		limit.put("usageFrequency", frequency);
+		limit.put("maxTokens", maxTokens);
+		limit.put("_teamScoped", teamScoped);
+		return limit;
+	}
+
+	@Test
 	void updateRestrictionMapCurrentUsage_TokenRestriction() {
 		@SuppressWarnings("unchecked")
 		AbstractModelEngineResponse<String> mockResponse = mock(AbstractModelEngineResponse.class);
