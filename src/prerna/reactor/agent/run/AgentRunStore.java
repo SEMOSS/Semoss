@@ -47,12 +47,8 @@ public final class AgentRunStore {
 
 	private static final Gson GSON = new Gson();
 
-	public void insertCreated(String runId, RunAgentRequest request, String userId) {
-		insert(runId, request, userId, AgentRunStatus.CREATED);
-	}
-
-	public void insertQueued(String runId, RunAgentRequest request, String userId) {
-		insert(runId, request, userId, AgentRunStatus.QUEUED);
+	public void insertSubmitted(String runId, RunAgentRequest request, String userId) {
+		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
 	}
 
 	private void insert(String runId, RunAgentRequest request, String userId, AgentRunStatus status) {
@@ -70,7 +66,7 @@ public final class AgentRunStore {
 			setNullableString(ps, idx++, request.getWorkspaceId());
 			setNullableString(ps, idx++, request.getEngineIdFallback());
 			setNullableString(ps, idx++, request.getHarnessType());
-			ps.setNull(idx++, Types.VARCHAR);
+			ps.setString(idx++, runId);
 			ps.setString(idx++, status.name());
 			setClob(db, ps, idx++, request.getInput());
 			setClob(db, ps, idx++, GSON.toJson(request.toPersistedMap()));
@@ -96,10 +92,12 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
+			String userId = resolveInsightUserId(insight);
 			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
-					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE RUN_ID = ?";
+					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
+			ps.setString(2, userId);
 			rs = ps.executeQuery();
 			if (!rs.next()) {
 				return null;
@@ -108,6 +106,9 @@ public final class AgentRunStore {
 			return new AgentRunRecord(rs.getString("RUN_ID"), rs.getString("ROOM_ID"),
 					parseRunStatus(rs.getString("STATUS")), request, rs.getString("USER_ID"), rs.getString("JOB_ID"));
 		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
 			throw new IllegalStateException("Failed to load AGENT_RUN row for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
@@ -119,11 +120,13 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
+			String userId = resolveInsightUserId(insight);
 			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, JOB_ID, STATUS, INPUT, "
 					+ "REQUEST_JSON, INPUT_MESSAGE_ID, FINAL_OUTPUT, FINAL_OUTPUT_MESSAGE_ID, ERROR_MESSAGE, "
-					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ?";
+					+ "DATE_CREATED, STARTED_AT, COMPLETED_AT, USER_ID FROM AGENT_RUN WHERE RUN_ID = ? AND USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
+			ps.setString(2, userId);
 			rs = ps.executeQuery();
 			if (!rs.next()) {
 				return null;
@@ -145,15 +148,36 @@ public final class AgentRunStore {
 			map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
 			map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
 			map.put("userId", rs.getString("USER_ID"));
+			map.put("artifacts", new ArrayList<>());
 			return map;
 		} catch (Exception e) {
+			if (e instanceof SecurityException) {
+				throw (SecurityException) e;
+			}
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 	}
 
-	public List<AgentRunRecord> getQueuedRuns(int limit, Insight insight) {
+	boolean runExists(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT 1 FROM AGENT_RUN WHERE RUN_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, runId);
+			rs = ps.executeQuery();
+			return rs.next();
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to inspect AGENT_RUN existence for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	public List<AgentRunRecord> getSubmittedRuns(int limit, Insight insight) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -161,7 +185,7 @@ public final class AgentRunStore {
 			String query = "SELECT RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
 					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE STATUS = ? ORDER BY DATE_CREATED ASC, RUN_ID ASC";
 			ps = db.getPreparedStatement(query);
-			ps.setString(1, AgentRunStatus.QUEUED.name());
+			ps.setString(1, AgentRunStatus.SUBMITTED.name());
 			rs = ps.executeQuery();
 			List<AgentRunRecord> records = new ArrayList<>();
 			while (rs.next() && (limit <= 0 || records.size() < limit)) {
@@ -172,13 +196,13 @@ public final class AgentRunStore {
 			}
 			return records;
 		} catch (Exception e) {
-			throw new IllegalStateException("Failed to inspect queued AGENT_RUN rows", e);
+			throw new IllegalStateException("Failed to inspect submitted AGENT_RUN rows", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 	}
 
-	public boolean isOldestQueuedRunForRoom(String runId, String roomId) {
+	public boolean isOldestSubmittedRunForRoom(String runId, String roomId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -187,7 +211,7 @@ public final class AgentRunStore {
 					+ "ORDER BY DATE_CREATED ASC, RUN_ID ASC";
 			ps = db.getPreparedStatement(query);
 			setNullableString(ps, 1, roomId);
-			ps.setString(2, AgentRunStatus.QUEUED.name());
+			ps.setString(2, AgentRunStatus.SUBMITTED.name());
 			rs = ps.executeQuery();
 			if (!rs.next()) {
 				return false;
@@ -204,8 +228,8 @@ public final class AgentRunStore {
 		updateStatus(runId, AgentRunStatus.RUNNING, jobId, null, null, true, false);
 	}
 
-	public boolean markRunningIfQueued(String runId, String jobId) {
-		return updateStatusIfCurrent(runId, AgentRunStatus.QUEUED, AgentRunStatus.RUNNING, jobId, null, null,
+	public boolean markRunningIfSubmitted(String runId, String jobId) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.SUBMITTED, AgentRunStatus.RUNNING, jobId, null, null,
 				true, false);
 	}
 
@@ -227,6 +251,32 @@ public final class AgentRunStore {
 
 	public void markCancelled(String runId, String jobId, String errorMessage) {
 		updateStatus(runId, AgentRunStatus.CANCELLED, jobId, null, errorMessage, false, true);
+	}
+
+	public boolean markCancelledIfNotTerminal(String runId, String jobId, String errorMessage) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			String query = "UPDATE AGENT_RUN SET STATUS = ?, JOB_ID = ?, ERROR_MESSAGE = ?, COMPLETED_AT = ? "
+					+ "WHERE RUN_ID = ? AND STATUS IN (?, ?, ?)";
+			ps = db.getPreparedStatement(query);
+			int idx = 1;
+			ps.setString(idx++, AgentRunStatus.CANCELLED.name());
+			setNullableString(ps, idx++, jobId);
+			setClob(db, ps, idx++, errorMessage);
+			ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(idx++, runId);
+			ps.setString(idx++, AgentRunStatus.SUBMITTED.name());
+			ps.setString(idx++, AgentRunStatus.RUNNING.name());
+			ps.setString(idx++, AgentRunStatus.INPUT_REQUIRED.name());
+			int updated = ps.executeUpdate();
+			commitIfNeeded(ps);
+			return updated > 0;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to cancel AGENT_RUN runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
 	}
 
 	private void updateStatus(String runId, AgentRunStatus status, String jobId, String finalOutput, String errorMessage,
@@ -371,6 +421,17 @@ public final class AgentRunStore {
 			return null;
 		}
 		return AgentRunStatus.valueOf(value.trim());
+	}
+
+	private static String resolveInsightUserId(Insight insight) {
+		if (insight == null) {
+			throw new SecurityException("AGENT_RUN access requires an authenticated user");
+		}
+		String insightUserId = insight.getUserId();
+		if (insightUserId == null || insightUserId.trim().isEmpty() || "-1".equals(insightUserId)) {
+			throw new SecurityException("AGENT_RUN access requires an authenticated user");
+		}
+		return insightUserId;
 	}
 
 	private static void setNullableString(PreparedStatement ps, int idx, String value) throws Exception {

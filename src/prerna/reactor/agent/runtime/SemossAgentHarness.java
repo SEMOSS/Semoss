@@ -89,6 +89,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_PERMISSION_MODE_SNAKE = "permission_mode";
 	private static final String PARAM_PROJECT = "project";
 	private static final String PARAM_SUBDIR = "subdir";
+	private static final String PARAM_WORKSPACE_ID = "workspace_id";
+	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
 	private static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
 	private static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
@@ -200,9 +202,6 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
 			tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
-
-			// Honor cancellation that arrived during the initial ask before doing any tool
-			// work.
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
 			}
@@ -214,8 +213,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			while (!state.isTerminal()) {
 
 				if (Thread.currentThread().isInterrupted()) {
-					logger.info("SemossAgentHarness: cancellation detected at iteration={} room={}",
-							state.getIterations(), room.getId());
+					logger.info("SemossAgentHarness: cancelled room={} after iterations={}", room.getId(),
+							state.getIterations());
 					throw new AgentCancelledException(
 							"Agent run cancelled after " + state.getIterations() + " iterations");
 				}
@@ -405,6 +404,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
 		paramMap.remove(PARAM_PROJECT);
 		paramMap.remove(PARAM_SUBDIR);
+		paramMap.remove(PARAM_WORKSPACE_ID);
+		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
 	}
 
 	private static int lengthOrZero(String s) {
@@ -553,4 +554,5 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		return 0;
 	}
+
 }

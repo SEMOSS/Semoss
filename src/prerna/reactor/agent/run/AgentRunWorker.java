@@ -39,11 +39,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.User;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
 
 final class AgentRunWorker {
 
@@ -57,6 +59,7 @@ final class AgentRunWorker {
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
+	private final Map<String, Thread> activeThreadsByRun = new ConcurrentHashMap<>();
 	private final Set<String> localActiveRooms = ConcurrentHashMap.newKeySet();
 
 	AgentRunWorker(AgentRuntimeManager runtime, AgentRunStore store, AgentRunQueueCoordinator queueCoordinator) {
@@ -79,6 +82,13 @@ final class AgentRunWorker {
 		}
 	}
 
+	void cancel(String runId) {
+		Thread activeThread = activeThreadsByRun.get(runId);
+		if (activeThread != null) {
+			activeThread.interrupt();
+		}
+	}
+
 	private void start() {
 		if (!started.compareAndSet(false, true)) {
 			return;
@@ -92,7 +102,7 @@ final class AgentRunWorker {
 		while (true) {
 			boolean didWork = false;
 			try {
-				List<AgentRunRecord> records = store.getQueuedRuns(SCAN_LIMIT, null);
+				List<AgentRunRecord> records = store.getSubmittedRuns(SCAN_LIMIT, null);
 				for (AgentRunRecord record : records) {
 					InsightHandle insightHandle = insightsByRun.get(record.getRunId());
 					if (insightHandle == null) {
@@ -114,7 +124,7 @@ final class AgentRunWorker {
 	private boolean tryExecute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
 		String roomId = record.getRoomId();
-		if (!store.isOldestQueuedRunForRoom(runId, roomId)) {
+		if (!store.isOldestSubmittedRunForRoom(runId, roomId)) {
 			return false;
 		}
 		if (!localActiveRooms.add(roomId)) {
@@ -127,21 +137,25 @@ final class AgentRunWorker {
 			return false;
 		}
 		try {
-			String jobId = ThreadStore.getJobId();
-			if (!store.markRunningIfQueued(runId, jobId)) {
+			String jobId = runId;
+			if (!store.markRunningIfSubmitted(runId, jobId)) {
 				lease.close();
 				localActiveRooms.remove(roomId);
 				cleanupInsight(runId, insightHandle);
 				return false;
 			}
-			Thread.ofVirtual().name("agent-run-" + runId).start(() -> {
+			AgentRunEventBus.get().publishStatus(runId, roomId, AgentRunStatus.RUNNING, false);
+			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
 				try {
 					execute(record, insightHandle);
 				} finally {
+					activeThreadsByRun.remove(runId);
 					lease.close();
 					localActiveRooms.remove(roomId);
 				}
 			});
+			activeThreadsByRun.put(runId, thread);
+			thread.start();
 			return true;
 		} catch (RuntimeException e) {
 			lease.close();
@@ -152,8 +166,9 @@ final class AgentRunWorker {
 
 	private void execute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
-		String jobId = ThreadStore.getJobId();
+		String jobId = runId;
 		try {
+			seedThreadStore(runId, insightHandle);
 			RunAgentRequest request = record.getRequest();
 			AgentHarnessResult result = AgentRunner.run(
 					request.getRoomId(),
@@ -174,16 +189,35 @@ final class AgentRunWorker {
 			if (result != null) {
 				store.markFinalOutputMessage(runId, result.getFinalOutputMessageId());
 			}
+			if (Thread.currentThread().isInterrupted()) {
+				throw new AgentCancelledException();
+			}
 			store.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			Map<String, Object> eventData = new java.util.HashMap<>();
+			eventData.put("runId", runId);
+			eventData.put("roomId", record.getRoomId());
+			eventData.put("status", AgentRunStatus.COMPLETED.name());
+			eventData.put("finalText", result != null ? result.getFinalText() : null);
+			eventData.put("inputMessageId", result != null ? result.getInputMessageId() : null);
+			eventData.put("finalOutputMessageId", result != null ? result.getFinalOutputMessageId() : null);
+			AgentRunEventBus.get().publish(runId, "status", eventData, true);
 		} catch (Exception e) {
 			jobId = runtime.firstNonBlank(ThreadStore.getJobId(), jobId);
 			if (runtime.isCancelled(e)) {
 				store.markCancelled(runId, jobId, runtime.boundedError(e));
+				AgentRunEventBus.get().publishStatus(runId, record.getRoomId(), AgentRunStatus.CANCELLED, true);
 			} else {
 				store.markFailed(runId, jobId, runtime.boundedError(e));
+				Map<String, Object> eventData = new java.util.HashMap<>();
+				eventData.put("runId", runId);
+				eventData.put("roomId", record.getRoomId());
+				eventData.put("status", AgentRunStatus.FAILED.name());
+				eventData.put("errorMessage", runtime.boundedError(e));
+				AgentRunEventBus.get().publish(runId, "status", eventData, true);
 			}
 			logger.warn("AgentRunWorker: runId={} failed: {}", runId, e.getMessage(), e);
 		} finally {
+			ThreadStore.remove();
 			cleanupInsight(runId, insightHandle);
 		}
 	}
@@ -208,21 +242,53 @@ final class AgentRunWorker {
 
 	private static InsightHandle cloneInsight(Insight source) {
 		Insight clone = new Insight();
-		clone.setUser(source.getUser());
+		User user = source.getUser();
+		if (user == null) {
+			user = ThreadStore.getUser();
+		}
+		clone.setUser(user);
 		clone.setBaseURL(source.getBaseURL());
 		clone.setProjectId(source.getProjectId());
 		clone.setContextProjectId(source.getContextProjectId());
 		String insightId = InsightStore.getInstance().put(clone);
-		return new InsightHandle(clone, insightId);
+		return new InsightHandle(clone, insightId, ThreadStore.getSessionId(), ThreadStore.getRouteId(),
+				ThreadStore.getLocalHostname(), ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort());
+	}
+
+	private static void seedThreadStore(String runId, InsightHandle insightHandle) {
+		ThreadStore.setJobId(runId);
+		if (insightHandle == null) {
+			return;
+		}
+		ThreadStore.setInsightId(insightHandle.insightId);
+		if (insightHandle.insight != null) {
+			ThreadStore.setUser(insightHandle.insight.getUser());
+		}
+		ThreadStore.setSessionId(insightHandle.sessionId);
+		ThreadStore.setRouteId(insightHandle.routeId);
+		ThreadStore.setLocalHostname(insightHandle.localHostname);
+		ThreadStore.setLocalProtocol(insightHandle.localProtocol);
+		ThreadStore.setLocalPort(insightHandle.localPort);
 	}
 
 	private static final class InsightHandle {
 		private final Insight insight;
 		private final String insightId;
+		private final String sessionId;
+		private final String routeId;
+		private final String localHostname;
+		private final String localProtocol;
+		private final Integer localPort;
 
-		private InsightHandle(Insight insight, String insightId) {
+		private InsightHandle(Insight insight, String insightId, String sessionId, String routeId,
+				String localHostname, String localProtocol, Integer localPort) {
 			this.insight = insight;
 			this.insightId = insightId;
+			this.sessionId = sessionId;
+			this.routeId = routeId;
+			this.localHostname = localHostname;
+			this.localProtocol = localProtocol;
+			this.localPort = localPort;
 		}
 	}
 }

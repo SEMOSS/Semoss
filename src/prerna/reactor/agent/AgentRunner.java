@@ -69,6 +69,7 @@ public final class AgentRunner {
      * paramMap by {@link #extractExplicitWorkspaceId(Map)} before the model engine call.
      */
     public static final String PARAM_WORKSPACE_ID = "workspace_id";
+    private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
 
     /**
      * paramMap key: target SEMOSS project (workspace) the agent should operate inside.
@@ -364,11 +365,15 @@ public final class AgentRunner {
     }
 
     /**
-     * Extract and strip the {@link #PARAM_WORKSPACE_ID} key from {@code params}.
+     * Extract and strip workspace override keys from {@code params}.
      * Returns {@code null} when absent or blank.
      */
     private static String extractExplicitWorkspaceId(Map<String, Object> params) {
         Object raw = params.remove(PARAM_WORKSPACE_ID);
+        Object camelRaw = params.remove(PARAM_WORKSPACE_ID_CAMEL);
+        if (raw == null) {
+            raw = camelRaw;
+        }
         if (raw == null) {
             return null;
         }

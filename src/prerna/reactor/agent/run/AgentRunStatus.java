@@ -28,9 +28,9 @@
 package prerna.reactor.agent.run;
 
 public enum AgentRunStatus {
-	CREATED,
-	QUEUED,
+	SUBMITTED,
 	RUNNING,
+	INPUT_REQUIRED,
 	COMPLETED,
 	FAILED,
 	CANCELLED
