@@ -39,7 +39,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
@@ -154,14 +154,14 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 							+ Utility.getRandomString(6) + ".tsv";
 					newFile = Utility.writeResultToFile(newFileLoc, it2, null, "\t");
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write the frame column values to a TSV file for fuzzy matching", e);
 					throw new SemossPixelException(e.getMessage());
 				} finally {
 					if (iterator != null) {
 						try {
 							iterator.close();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close the frame query iterator used for fuzzy matching", e);
 						}
 					}
 				}
@@ -293,9 +293,10 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 		}
 
 		// handle some defaults
-		QUERY_STRUCT_TYPE qsType = qs.getQsType();
+		AbstractQueryStruct.QUERY_STRUCT_TYPE qsType = qs.getQsType();
 		// first, do a basic check
-		if (qsType != QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && qsType != QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if (qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				&& qsType != AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			// it is not a hard query
 			// we need to make sure there is at least a selector
 			if (qs.getSelectors().isEmpty()) {
@@ -304,7 +305,8 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 			}
 		}
 
-		if (qsType == QUERY_STRUCT_TYPE.FRAME || qsType == QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
+		if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME
+				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
 			if (frame == null) {
 				frame = (ITableDataFrame) this.insight.getDataMaker();

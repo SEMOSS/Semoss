@@ -39,6 +39,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -275,7 +276,7 @@ public class FrameProfileReactor extends AbstractFrameReactor {
 		functionSelector.addInnerSelector(inSelector);
 		functionSelector.setDistinct(true);
 		qs_unique.addSelector(functionSelector);
-		qs_unique.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+		qs_unique.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 
 		IRawSelectWrapper uniqueWrapper = null;
 		Object value = null;
@@ -371,7 +372,7 @@ public class FrameProfileReactor extends AbstractFrameReactor {
 		qs.addSelector(getMaxFunctionSelector(innerSelector, colName));
 		qs.addSelector(getSumFunctionSelector(innerSelector, colName));
 
-		qs.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.FRAME);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME);
 		IRawSelectWrapper resultWrapper = null;
 		try {
 			resultWrapper = frame.query(qs);

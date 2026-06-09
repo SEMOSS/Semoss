@@ -52,7 +52,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.masterdatabase.utility.MetadataUtility;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.joins.BasicRelationship;
@@ -66,7 +66,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class NativeImporter extends AbstractImporter {
@@ -96,7 +95,8 @@ public class NativeImporter extends AbstractImporter {
 		SemossDataType[] executedDataTypes = null;
 		String[] columnNames = null;
 		IDatabaseEngine database = this.qs.retrieveQueryStructEngine();
-		if (this.qs.getQsType() == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY && database instanceof IRDBMSEngine) {
+		if (this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				&& database instanceof IRDBMSEngine) {
 			IRDBMSEngine rdbms = (IRDBMSEngine) database;
 			// if you are RDBMS
 			// we will make a new QS
@@ -121,19 +121,19 @@ public class NativeImporter extends AbstractImporter {
 					executedDataTypes[i] = SemossDataType.convertStringToDataType(rsMeta.getColumnTypeName(i + 1));
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to retrieve result set metadata for the raw engine query", e);
 			} finally {
 				if (ps != null) {
 					try {
 						ps.close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close the prepared statement for the raw engine query", e);
 					}
 					if (rdbms.isConnectionPooling()) {
 						try {
 							ps.getConnection().close();
 						} catch (SQLException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to close the pooled connection for the raw engine query", e);
 						}
 					}
 				}
@@ -185,7 +185,7 @@ public class NativeImporter extends AbstractImporter {
 			newQs.setPragmap(this.qs.getPragmap());
 
 			this.qs = newQs;
-			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 //			// lets see what happens
 //			OpaqueSqlParser parser = new OpaqueSqlParser();
 ////			SqlParser parser = new SqlParser();
@@ -196,7 +196,7 @@ public class NativeImporter extends AbstractImporter {
 //				// we were able to parse successfully
 //				// override the reference
 //				this.qs = newQs;
-//				this.qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+//				this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 //				
 //				// we need to figure out the columns if there is a *
 //				cleanUpSelectors(this.qs.getEngineId(), this.qs.getSelectors(), this.qs.getRelations());
@@ -210,14 +210,16 @@ public class NativeImporter extends AbstractImporter {
 			}
 		}
 		boolean ignore = true;
-		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
-		if (qsType == QUERY_STRUCT_TYPE.ENGINE || qsType == QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
-				|| qsType == QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
+		AbstractQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
+		if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE
+				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY
+				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_JDBC_ENGINE_QUERY) {
 			ignore = MetadataUtility.ignoreConceptData(this.qs.getEngineId());
-		} else if (qsType == QUERY_STRUCT_TYPE.FRAME && qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE) {
+		} else if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.FRAME
+				&& qs.getFrame().getFrameType() == DataFrameTypeEnum.NATIVE) {
 			ignore = MetadataUtility.ignoreConceptData(((NativeFrame) qs.getFrame()).getEngineId());
 			this.qs.setEngineId(((NativeFrame) qs.getFrame()).getEngineId());
-			this.qs.setQsType(QUERY_STRUCT_TYPE.ENGINE);
+			this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 			this.qs = QSAliasToPhysicalConverter.getPhysicalQs(this.qs, qs.getFrame().getMetaData());
 		}
 
@@ -233,10 +235,10 @@ public class NativeImporter extends AbstractImporter {
 
 	@Override
 	public ITableDataFrame mergeData(List<Join> joins) throws Exception {
-		QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
+		AbstractQueryStruct.QUERY_STRUCT_TYPE qsType = this.qs.getQsType();
 		String engineId = this.dataframe.getEngineId();
 
-		if (qsType == QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
+		if (qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE && engineId.equals(this.qs.getEngineId())) {
 			boolean ignore = MetadataUtility.ignoreConceptData(engineId);
 			if (ignore) {
 				// this join may not be defined within the QS itself
@@ -321,7 +323,7 @@ public class NativeImporter extends AbstractImporter {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify the native frame data is within the frame size limit", e);
 			throw new SemossPixelException(e.getMessage());
 		}
 
@@ -335,7 +337,7 @@ public class NativeImporter extends AbstractImporter {
 		try {
 			mergeFrameIt = ImportUtility.generateIterator(this.qs, this.dataframe);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred executing query before loading into frame", e);
 			throw new SemossPixelException(new NounMetadata("Error occurred executing query before loading into frame",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
@@ -349,7 +351,7 @@ public class NativeImporter extends AbstractImporter {
 				throw exception;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify the merge data is within the frame size limit", e);
 			throw new SemossPixelException(e.getMessage());
 		}
 
