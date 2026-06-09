@@ -217,14 +217,17 @@ public class AzureNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Delete extra blobs from azure storage
 			syncStorageDeletion(containerClient, blobDirectory, localBasePath);
 
-			Files.walk(localFilePath).filter(Files::isRegularFile).forEach(file -> {
-				try {
-					uploadedFiles.add(uploadFileToBlob(file, localFilePath, containerClient, blobDirectory, metadata));
-				} catch (Exception e) {
-					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: {}", file, e);
-				}
-			});
+			try (Stream<Path> stream = Files.walk(localFilePath)) {
+				stream.filter(Files::isRegularFile).forEach(file -> {
+					try {
+						uploadedFiles
+								.add(uploadFileToBlob(file, localFilePath, containerClient, blobDirectory, metadata));
+					} catch (Exception e) {
+						failedFiles.add(file.toString());
+						classLogger.error("Failed to upload file: {}", file, e);
+					}
+				});
+			}
 			found = true;
 		} catch (Exception e) {
 			classLogger.error("Sync operation failed. Rolling back failed uploads.", e);
