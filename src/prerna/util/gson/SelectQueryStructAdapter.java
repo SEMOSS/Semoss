@@ -41,7 +41,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.joins.IRelation;
@@ -66,7 +66,7 @@ public class SelectQueryStructAdapter extends AbstractSemossTypeAdapter<SelectQu
 		while (in.hasNext()) {
 			String name = in.nextName();
 			if (name.equals("qsType")) {
-				qs.setQsType(QUERY_STRUCT_TYPE.valueOf(in.nextString()));
+				qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.valueOf(in.nextString()));
 			}
 			// engineName is legacy key - used in pipeline - do not delete
 			else if (name.equals("engineName")) {
