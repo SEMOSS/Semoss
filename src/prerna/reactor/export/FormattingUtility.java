@@ -128,7 +128,7 @@ public class FormattingUtility {
 						double exponitalValue = exponentialType(formatType);
 
 						if (!Double.isNaN(numericValue)) {
-							BigDecimal bigD = new BigDecimal((Math.abs(numericValue) / exponitalValue));
+							BigDecimal bigD = BigDecimal.valueOf((Math.abs(numericValue) / exponitalValue));
 							formatted = bigD.setScale(2, RoundingMode.HALF_UP).doubleValue();
 							// removing the all the zeros after dot if any
 
@@ -162,8 +162,8 @@ public class FormattingUtility {
 							if (round != null) {
 								double shift = Math.pow(10, round);
 								if (!Double.isNaN(numericValue)) {
-									formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
-											RoundingMode.HALF_UP);
+									formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift)
+											.setScale(round, RoundingMode.HALF_UP);
 
 								}
 								dontRound = true;
@@ -193,7 +193,7 @@ public class FormattingUtility {
 						// rounding the value
 						if (round != null) {
 							double shift = Math.pow(10, round);
-							formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+							formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift).setScale(round,
 									RoundingMode.HALF_UP);
 						} else {
 							formatted = numericValue;
@@ -208,7 +208,7 @@ public class FormattingUtility {
 				if ((round != null) && !dontRound) {
 					double shift = Math.pow(10, round);
 					if (!Double.isNaN(numericValue)) {
-						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+						formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift).setScale(round,
 								RoundingMode.HALF_UP);
 					}
 				}
@@ -316,7 +316,7 @@ public class FormattingUtility {
 							throw new IllegalArgumentException("exponitalValue can not be 0");
 						}
 						if (!Double.isNaN(numericValue)) {
-							BigDecimal bigD = new BigDecimal((Math.abs(numericValue) / exponitalValue));
+							BigDecimal bigD = BigDecimal.valueOf((Math.abs(numericValue) / exponitalValue));
 							formatted = bigD.setScale(2, RoundingMode.HALF_UP).doubleValue();
 							// removing the all the zeros after dot if any
 
@@ -350,8 +350,8 @@ public class FormattingUtility {
 							if (round != null) {
 								double shift = Math.pow(10, round);
 								if (!Double.isNaN(numericValue)) {
-									formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
-											RoundingMode.HALF_UP);
+									formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift)
+											.setScale(round, RoundingMode.HALF_UP);
 
 								}
 								dontRound = true;
@@ -379,7 +379,7 @@ public class FormattingUtility {
 						// rounding the value
 						if (round != null) {
 							double shift = Math.pow(10, round);
-							formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+							formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift).setScale(round,
 									RoundingMode.HALF_UP);
 						} else {
 							formatted = numericValue;
@@ -393,7 +393,7 @@ public class FormattingUtility {
 				if ((round != null) && !dontRound) {
 					double shift = Math.pow(10, round);
 					if (!Double.isNaN(numericValue)) {
-						formatted = new BigDecimal(Math.round(shift * numericValue) / shift).setScale(round,
+						formatted = BigDecimal.valueOf(Math.round(shift * numericValue) / shift).setScale(round,
 								RoundingMode.HALF_UP);
 					}
 				}

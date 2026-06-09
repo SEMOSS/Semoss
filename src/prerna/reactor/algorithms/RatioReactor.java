@@ -64,10 +64,9 @@ import prerna.util.Utility;
 
 public class RatioReactor extends AbstractFrameReactor {
 
-	private static final Logger logger = LogManager.getLogger(RatioReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(RatioReactor.class);
 
 	private static final String CLASS_NAME = RatioReactor.class.getName();
-	private static final String STACKTRACE = "StackTrace: ";
 	private static final String WEIGHTS_KEY = "weight";
 
 	// keys for resulting frame
@@ -160,14 +159,14 @@ public class RatioReactor extends AbstractFrameReactor {
 						bufferedWriter.close();
 					}
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 				try {
 					if (writer != null) {
 						writer.close();
 					}
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -318,21 +317,21 @@ public class RatioReactor extends AbstractFrameReactor {
 			}
 			bufferedWriter.close();
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				if (bufferedWriter != null) {
 					bufferedWriter.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			try {
 				if (writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
-				logger.error(STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		Configurator.setLevel(logger.getName(), Level.INFO);
@@ -396,13 +395,13 @@ public class RatioReactor extends AbstractFrameReactor {
 				instancValues.add(it.next().getRawValues()[0]);
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -441,13 +440,13 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 		} catch (Exception e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					logger.error(STACKTRACE, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -520,7 +519,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		HashMap<String, Double> weightMap = null;
 		if (columnGrs != null && !columnGrs.isEmpty()) {
 			for (int i = 0; i < columnGrs.size(); i++) {
-				logger.info(columnGrs.get(i));
+				classLogger.info(columnGrs.get(i));
 			}
 		}
 		// calculate weights

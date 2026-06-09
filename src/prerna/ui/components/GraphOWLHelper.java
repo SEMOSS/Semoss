@@ -43,7 +43,7 @@ import prerna.om.GraphDataModel;
  */
 public class GraphOWLHelper {
 
-	static final Logger logger = LogManager.getLogger(GraphOWLHelper.class.getName());
+	static final Logger classLogger = LogManager.getLogger(GraphOWLHelper.class.getName());
 
 	/**
 	 * Loads the hierarchy of concepts (subjects).
