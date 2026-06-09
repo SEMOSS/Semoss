@@ -2599,18 +2599,20 @@ public class MasterDatabaseUtility {
 		// and ec.physicalname in ('Title', 'Actor');
 		Map<String, List<String>> map = new HashMap<>();
 		ResultSet rs = null;
-		Statement stmt = null;
+		PreparedStatement stmt = null;
 		try {
 			String query = "SELECT e.engineName as sourceEngine, c.conceptualName as sourceConceptual, ec.physicalName as sourcePhysical, c.logicalName, "
 					+ "targetEngine, targetConceptual, targetPhysical from engine e, engineconcept ec, concept c  "
 					+ "INNER JOIN (SELECT e.engineName as targetEngine, c.conceptualName as targetConceptual, "
 					+ "ec.physicalName as targetPhysical, c.logicalName as targetLogical "
-					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '"
-					+ targetDB + "' " + "and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
-					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = '" + sourceDB
-					+ "' and c.conceptualName != c.logicalName";
-			stmt = conn.createStatement();
-			rs = stmt.executeQuery(query);
+					+ "from engine e, engineconcept ec, concept c WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+					+ " and c.conceptualName != c.logicalName) ON c.logicalName = targetLogical "
+					+ "WHERE e.id=ec.engine and ec.localConceptID = c.localConceptID and e.id = ?"
+					+ " and c.conceptualName != c.logicalName";
+			stmt = conn.prepareStatement(query);
+			stmt.setString(1, targetDB);
+			stmt.setString(2, sourceDB);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				String sourceEngine = rs.getString(1);
 				String sourceConceptual = rs.getString(2);
@@ -2948,7 +2950,7 @@ public class MasterDatabaseUtility {
 			String query = "select config from xrayconfigs where filename = ?";
 			stmt = conn.prepareStatement(query);
 			stmt.setString(1, filename);
-			rs = stmt.executeQuery(query);
+			rs = stmt.executeQuery();
 			while (rs.next()) {
 				configFile = rs.getString(1);
 			}
