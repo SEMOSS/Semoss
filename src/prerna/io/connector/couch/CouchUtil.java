@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.io.connector.couch;
 
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -41,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.imageio.ImageIO;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
@@ -81,10 +78,10 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.AssetUtility;
+import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
-import prerna.util.insight.TextToGraphic;
 
 /**
  * Utility class to handle image operations in a partitioned CouchDB database.
@@ -452,9 +449,9 @@ public class CouchUtil {
 	 * revision tag is sought for the eventual CouchDB update of the image
 	 * attachment. The default image is created by first searching for a local image
 	 * in the associated DB, project, and insight image locations. If found, the
-	 * byte array contents are returned. Otherwise, an image is formed based on the
-	 * database/project name or the insight layout type as appropriate. Before
-	 * returning, the image is also uploaded to CouchDB for later use.
+	 * byte array contents are returned. Otherwise, a stock image is selected as the
+	 * default. Before returning, the image is also uploaded to CouchDB for later
+	 * use.
 	 * 
 	 * @param partitionId  The partition of the database that will contain the image
 	 * @param documentData A <a href="#{@link}">{@link ObjectNode}</a> with contents
@@ -463,7 +460,7 @@ public class CouchUtil {
 	 * @see CouchUtil#retrieveDocumentInfo
 	 * @see CouchUtil#updateDocument
 	 * @see InsightUtility#findImageFile
-	 * @see TextToGraphic#buildBufferedImage
+	 * @see DefaultImageGeneratorUtil#pickRandomImageBytes
 	 * @see AbstractSecurityUtils#getStockImage
 	 * @throws CouchException If an exception is encountered
 	 */
@@ -520,10 +517,8 @@ public class CouchUtil {
 				} else {
 					attachmentName = "image.png";
 					contentType = "image/png";
-					BufferedImage img = TextToGraphic.buildBufferedImage(databaseName);
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ImageIO.write(img, "png", baos);
-					fileContent = baos.toByteArray();
+					fileContent = DefaultImageGeneratorUtil
+							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName));
 				}
 			} else if (PROJECT.equals(partitionId)) {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -546,10 +541,8 @@ public class CouchUtil {
 				} else {
 					attachmentName = "image.png";
 					contentType = "image/png";
-					BufferedImage img = TextToGraphic.buildBufferedImage(projectName);
-					ByteArrayOutputStream baos = new ByteArrayOutputStream();
-					ImageIO.write(img, "png", baos);
-					fileContent = baos.toByteArray();
+					fileContent = DefaultImageGeneratorUtil
+							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName));
 				}
 			} else {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -576,6 +569,26 @@ public class CouchUtil {
 			classLogger.error("Failed to create default image for Couch partition '{}'.", partitionId, e);
 			throw new CouchException("Error processing image creation");
 		}
+	}
+
+	/**
+	 * Builds the deterministic seed used to pick a stock image. Formatted as
+	 * {@code <partition>|<alias>__<id>} so that DefaultImageGeneratorUtil can strip
+	 * the random id suffix and drive selection off the human alias - this keeps
+	 * differently-named entities (e.g. "TestCSV" vs "TestDB1") on distinct images.
+	 * The id is retained so a same-named pair still varies if the alias is missing.
+	 */
+	private static String buildStockSeed(String partitionId, String entityId, String entityName) {
+		StringBuilder builder = new StringBuilder();
+		builder.append(partitionId == null ? "" : partitionId).append("|");
+		String id = entityId == null ? "" : entityId;
+		if (entityName == null || entityName.isBlank()) {
+			// no alias to drive selection - fall back to the id (kept whole, no "__")
+			builder.append(id);
+		} else {
+			builder.append(entityName).append("__").append(id);
+		}
+		return builder.toString();
 	}
 
 	/**
