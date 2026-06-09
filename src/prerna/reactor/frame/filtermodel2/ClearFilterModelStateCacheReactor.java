@@ -39,7 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ClearFilterModelStateCacheReactor extends AbstractFilterReactor {
 
-	private static final Logger logger = LogManager.getLogger(ClearFilterModelStateCacheReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ClearFilterModelStateCacheReactor.class);
 
 	public ClearFilterModelStateCacheReactor() {
 		this.keysToGet = new String[] {};
@@ -52,7 +52,7 @@ public class ClearFilterModelStateCacheReactor extends AbstractFilterReactor {
 			try {
 				filterCaches.remove(key).close();
 			} catch (Exception e) {
-				logger.error("Failed to clear cached filter model frame for key {}.", key, e);
+				classLogger.error("Failed to clear cached filter model frame for key {}.", key, e);
 			}
 		}
 

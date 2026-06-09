@@ -53,7 +53,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 
 public class JoinTransformation extends AbstractTransformation {
 
-	private static final Logger logger = LogManager.getLogger(JoinTransformation.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(JoinTransformation.class.getName());
 
 	private static final String STACKTRACE = "StackTrace: ";
 	public static final String METHOD_NAME = "join";
@@ -75,29 +75,29 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void setProperties(Map<String, Object> props) {
-		//TODO: validate hash and set values
+		// TODO: validate hash and set values
 		this.props = props;
 	}
 
 	@Override
-	public void setDataMakers(IDataMaker... dms){
-		if(preTransformation) {
+	public void setDataMakers(IDataMaker... dms) {
+		if (preTransformation) {
 			this.dm = dms[0];
 		} else {
 			this.dm = dms[0];
-			if(dms.length>1) {
+			if (dms.length > 1) {
 				this.nextDm = dms[1];
 			}
 		}
 	}
 
 	@Override
-	public void setDataMakerComponent(DataMakerComponent dmc){
+	public void setDataMakerComponent(DataMakerComponent dmc) {
 		this.dmc = dmc;
 	}
 
 	@Override
-	public void setTransformationType(Boolean preTransformation){
+	public void setTransformationType(Boolean preTransformation) {
 		this.preTransformation = preTransformation;
 	}
 
@@ -134,7 +134,7 @@ public class JoinTransformation extends AbstractTransformation {
 					try {
 						rowIt = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						logger.error(STACKTRACE, e);
+						classLogger.error(STACKTRACE, e);
 					}
 				} else {
 					// tinker
@@ -142,7 +142,7 @@ public class JoinTransformation extends AbstractTransformation {
 					try {
 						rowIt = ((ITableDataFrame) dm).query(qs2);
 					} catch (Exception e) {
-						logger.error(STACKTRACE, e);
+						classLogger.error(STACKTRACE, e);
 					}
 				}
 
@@ -161,26 +161,25 @@ public class JoinTransformation extends AbstractTransformation {
 			dmc.getPostTrans().add(0, this);
 			preTransformation = false;
 		}
-  }
+	}
 
-	
-	private void processPostTransformation(){
+	private void processPostTransformation() {
 		String[] allCols = ((ITableDataFrame) dm).getColumnHeaders();
-		for(int i = 0; i < allCols.length; i++) {
+		for (int i = 0; i < allCols.length; i++) {
 			String val = allCols[i];
-			if(!this.prevHeaders.contains(val)) {
+			if (!this.prevHeaders.contains(val)) {
 				addedColumns.add(val);
 			}
 		}
-		if(this.props.get(JOIN_TYPE) != null && ((String) this.props.get(JOIN_TYPE)).equals(PARTIAL)){
-			String colName = this.props.get(COLUMN_ONE_KEY) +"";
-			if(dm instanceof TinkerFrame){
-				((TinkerFrame)dm).insertBlanks(colName, addedColumns);
+		if (this.props.get(JOIN_TYPE) != null && ((String) this.props.get(JOIN_TYPE)).equals(PARTIAL)) {
+			String colName = this.props.get(COLUMN_ONE_KEY) + "";
+			if (dm instanceof TinkerFrame) {
+				((TinkerFrame) dm).insertBlanks(colName, addedColumns);
 			}
 		}
 //		((TinkerFrame)dm).removeExtraneousNodes(); though this call makes sense in terms of keeping the tinker free of unnecessary nodes, it is quite slow. Going to try to call this only when necessary (serializing)
 	}
-	
+
 	@Override
 	public Map<String, Object> getProperties() {
 		props.put(TYPE, METHOD_NAME);
@@ -189,28 +188,28 @@ public class JoinTransformation extends AbstractTransformation {
 
 	@Override
 	public void undoTransformation() {
-		if(dm instanceof GraphDataModel){
+		if (dm instanceof GraphDataModel) {
 			((GraphDataModel) dm).undoData();
 			return;
 		}
 		Method method = null;
 		try {
 			method = dm.getClass().getMethod(UNDO_METHOD_NAME, String.class);
-			logger.info("Successfully got method : " + UNDO_METHOD_NAME);
+			classLogger.info("Successfully got method : " + UNDO_METHOD_NAME);
 
 			// iterate from leaf to root for efficiency in removing connections
-			for(int i = addedColumns.size()-1; i >= 0; i--) {
+			for (int i = addedColumns.size() - 1; i >= 0; i--) {
 				method.invoke(dm, addedColumns.get(i));
-				logger.info("Successfully invoked method : " + UNDO_METHOD_NAME);
+				classLogger.info("Successfully invoked method : " + UNDO_METHOD_NAME);
 			}
 		} catch (NoSuchMethodException | SecurityException se) {
-			logger.error(STACKTRACE, se);
+			classLogger.error(STACKTRACE, se);
 		} catch (IllegalAccessException iae) {
-			logger.error(STACKTRACE, iae);
+			classLogger.error(STACKTRACE, iae);
 		} catch (IllegalArgumentException iare) {
-			logger.error(STACKTRACE, iare);
+			classLogger.error(STACKTRACE, iare);
 		} catch (InvocationTargetException ite) {
-			logger.error(STACKTRACE, ite);
+			classLogger.error(STACKTRACE, ite);
 		}
 	}
 
@@ -223,10 +222,12 @@ public class JoinTransformation extends AbstractTransformation {
 		joinCopy.setTransformationType(preTransformation);
 		joinCopy.addedColumns = this.addedColumns;
 
-		if(props != null) {
-			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues().setPrettyPrinting().create();
+		if (props != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().serializeSpecialFloatingPointValues()
+					.setPrettyPrinting().create();
 			String propCopy = gson.toJson(props);
-			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {}.getType());
+			Map<String, Object> newProps = gson.fromJson(propCopy, new TypeToken<Map<String, Object>>() {
+			}.getType());
 			joinCopy.setProperties(newProps);
 		}
 

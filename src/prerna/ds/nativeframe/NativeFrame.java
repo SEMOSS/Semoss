@@ -83,7 +83,7 @@ import prerna.util.gson.SelectQueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
-	private static final Logger logger = LogManager.getLogger(NativeFrame.class);
+	private static final Logger classLogger = LogManager.getLogger(NativeFrame.class);
 
 	public static final String DATA_MAKER_NAME = "NativeFrame";
 
