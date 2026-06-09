@@ -676,6 +676,10 @@ public class Insight implements Serializable {
 
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(resolvedName, projectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
+			// Register a per-project log appender the first time this app is loaded.
+			// AppLogManager is idempotent — subsequent setContext() calls for the same
+			// project are a no-op.
+			prerna.logging.AppLogManager.ensureAppender(projectId, resolvedName);
 		}
 
 		// if we have a chroot, mount the project for that user.

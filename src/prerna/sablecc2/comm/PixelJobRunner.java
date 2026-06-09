@@ -28,6 +28,7 @@
 package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,7 +80,14 @@ public class PixelJobRunner implements Runnable {
 	@Override
 	public void run() {
 		this.executingThread = Thread.currentThread();
-		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(this.log4jContextMap)) {
+		// Enrich the captured MDC context with this insight's projectId so every log
+		// line written during pixel execution carries [project=<id>] for log streaming.
+		Map<String, String> enrichedContextMap = new HashMap<>(this.log4jContextMap);
+		String projectId = insight.getProjectId();
+		if (projectId != null && !projectId.isBlank()) {
+			enrichedContextMap.put("projectId", projectId);
+		}
+		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(enrichedContextMap)) {
 			// set ThreadStore
 			ThreadStore.setInsightId(insight.getInsightId());
 			ThreadStore.setSessionId(sessionId);
