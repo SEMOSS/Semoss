@@ -161,7 +161,7 @@ public class ToPdfReactor extends AbstractReactor {
 				htmlToParse = processMustacheTemplate(htmlToParse);
 			}
 		} catch (IOException e) {
-			logger.error("Failed to process HTML content", e);
+			logger.error("Failed to process input HTML content before PDF generation", e);
 			throw new IllegalArgumentException("Failed to process HTML content: " + e.getMessage(), e);
 		}
 
@@ -257,7 +257,7 @@ public class ToPdfReactor extends AbstractReactor {
 			classLogger.debug("Mustache template compiled successfully");
 			return compiled;
 		} catch (Exception e) {
-			classLogger.error("Mustache compilation failed", e);
+			classLogger.error("Failed to compile mustache template for PDF export", e);
 			throw new IllegalArgumentException("Invalid mustache template or variables", e);
 		}
 	}
@@ -380,7 +380,7 @@ public class ToPdfReactor extends AbstractReactor {
 						element.attr("style", "max-width: 100%; height: auto;");
 					}
 				} catch (Exception e) {
-					classLogger.error("Failed to process semoss tag", e);
+					classLogger.error("Failed to process semoss tag for URL '{}'", url, e);
 				}
 			});
 
@@ -474,7 +474,7 @@ public class ToPdfReactor extends AbstractReactor {
 				currentPageNum++;
 			}
 		} catch (IOException e) {
-			classLogger.error("Error adding page numbers", e);
+			classLogger.error("Failed to add page numbers to PDF", e);
 		}
 	}
 
@@ -576,7 +576,7 @@ public class ToPdfReactor extends AbstractReactor {
 			// Prepare download response
 			return prepareDownloadResponse(finalPdfPath, user);
 		} catch (Exception e) {
-			classLogger.error("Error generating PDF", e);
+			classLogger.error("Failed to generate PDF using Playwright workflow", e);
 			throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
 		} finally {
 			// Cleanup temp files
@@ -593,9 +593,9 @@ public class ToPdfReactor extends AbstractReactor {
 
 		String pdfPath = insightFolder + DIR_SEPARATOR + UUID.randomUUID() + ".pdf";
 
-		try (Playwright pw = Playwright.create()) {
-			Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
-			Page page = browser.newPage();
+		try (Playwright pw = Playwright.create();
+				Browser browser = pw.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+				Page page = browser.newPage();) {
 
 			// Navigate to HTML file
 			page.navigate("file:///" + tempHtmlPath);
@@ -612,7 +612,6 @@ public class ToPdfReactor extends AbstractReactor {
 					.setBottom("1in").setLeft("1in"));
 
 			page.pdf(pdfOptions);
-			browser.close();
 		}
 
 		// Clean up temp HTML
@@ -728,7 +727,7 @@ public class ToPdfReactor extends AbstractReactor {
 			FileUtils.writeStringToFile(tempXhtml, doc.html(), Charset.forName("UTF-8"));
 			tempPaths.add(Paths.get(tempXhtmlPath));
 		} catch (IOException e1) {
-			logger.error("Error writing temp XHTML file", e1);
+			logger.error("Failed to write temporary XHTML file for PDF conversion", e1);
 		}
 
 		// Convert from xhtml to pdf using IText
@@ -752,14 +751,7 @@ public class ToPdfReactor extends AbstractReactor {
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_SIGNATURE_BLOCK.getKey()) + "");
 		boolean addPageNumbers = Boolean
 				.parseBoolean(this.keyValue.get(ReactorKeysEnum.PDF_PAGE_NUMBERS.getKey()) + "");
-		PDDocument document = null;
-		try {
-			document = PDFUtility.createDocument(outputFileLocation);
-		} catch (IOException e) {
-			classLogger.error("Error creating pdf: ", e);
-		}
-
-		if (document != null) {
+		try (PDDocument document = PDFUtility.createDocument(outputFileLocation)) {
 			if (addSignatureBlock || addPageNumbers) {
 				try {
 					if (addSignatureBlock) {
@@ -776,17 +768,19 @@ public class ToPdfReactor extends AbstractReactor {
 					document.save(outputFileLocation);
 					logger.info("PDF post-processing completed");
 				} catch (IOException e) {
-					logger.error("Error during PDF post-processing", e);
+					logger.error("Failed during legacy PDF post-processing", e);
 				} finally {
 					if (document != null) {
 						try {
 							document.close();
 						} catch (IOException e) {
-							logger.error("Error closing PDF document", e);
+							logger.error("Failed to close PDF document after post-processing", e);
 						}
 					}
 				}
 			}
+		} catch (IOException e) {
+			classLogger.error("Failed to create PDF document from generated file", e);
 		}
 
 		// Clean up temp files

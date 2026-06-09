@@ -44,6 +44,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryArithmeticSelector;
@@ -60,7 +61,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DatabaseProfileReactor extends AbstractFrameReactor {
@@ -68,57 +68,63 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 	private static final Logger classLogger = LogManager.getLogger(DatabaseProfileReactor.class);
 
 	public DatabaseProfileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPTS.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.DATABASE.getKey(),
+				ReactorKeysEnum.CONCEPTS.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database " + databaseId + " does not exist or user does not have access to database");
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"Database " + databaseId + " does not exist or user does not have access to database");
 		}
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		if(database == null) {
+		if (database == null) {
 			throw new IllegalArgumentException("Could not find database " + databaseId);
 		}
-		
+
 		// output frame
 		ITableDataFrame table = null;
 		try {
 			table = getFrame();
-			if(!(table instanceof AbstractRdbmsFrame)) {
+			if (!(table instanceof AbstractRdbmsFrame)) {
 				throw new IllegalArgumentException("Frame must be a grid to use DatabaseProfile");
 			}
-		} catch(NullPointerException e) {
+		} catch (NullPointerException e) {
 			// ignore - make a new frame
 			try {
 				table = FrameFactory.getFrame(this.insight, DataFrameTypeEnum.GRID.getTypeAsString(), "");
 			} catch (Exception e2) {
-				throw new IllegalArgumentException("Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(), e2);
+				throw new IllegalArgumentException(
+						"Error occurred trying to create frame of type " + DataFrameTypeEnum.GRID.getTypeAsString(),
+						e2);
 			}
 		}
 		AbstractRdbmsFrame frame = (AbstractRdbmsFrame) table;
 		String tableName = frame.getName();
 
-		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue", "averageValue", "maxValue", "sumValue", "numOfNullValues" };
-		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double", "Double" , "Double" };
+		String[] headers = new String[] { "table_name", "column_name", "numOfBlanks", "numOfUniqueValues", "minValue",
+				"averageValue", "maxValue", "sumValue", "numOfNullValues" };
+		String[] dataTypes = new String[] { "String", "String", "Double", "Double", "Double", "Double", "Double",
+				"Double", "Double" };
 		// add headers to metadata output frame
 		OwlTemporalEngineMeta metaData = frame.getMetaData();
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(metaData, headers, dataTypes, tableName);
-		
+
 		List<String> conceptList = getConceptList();
 		// get concept properties from local master
-		for(String concept : conceptList) {
+		for (String concept : conceptList) {
 			List<String> pixelSelectors = MasterDatabaseUtility.getConceptPixelSelectors(concept, databaseId);
 			// the pixel selectors will already be in TABLE__COLUMN format
-			for(String selector : pixelSelectors) {
+			for (String selector : pixelSelectors) {
 				String semossName = selector;
 				String parentSemossName = null;
-				if(semossName.contains("__")) {
+				if (semossName.contains("__")) {
 					String[] split = selector.split("__");
 					semossName = split[1];
 					parentSemossName = split[0];
@@ -133,13 +139,13 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				}
 			}
 		}
-		
+
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE);
 	}
 
 	private String[] getStringProfileData(IDatabaseEngine database, String selector) {
 		String[] retRow = new String[9];
-		if(selector.contains("__")) {
+		if (selector.contains("__")) {
 			String[] split = selector.split("__");
 			// table name
 			retRow[0] = split[0];
@@ -161,14 +167,12 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			uniqueCountSelector.addInnerSelector(innerSelector);
 			qs2.addSelector(uniqueCountSelector);
 			QueryColumnSelector col = new QueryColumnSelector(selector);
-			SimpleQueryFilter filter = new SimpleQueryFilter(
-					new NounMetadata(col, PixelDataType.COLUMN), "==",
+			SimpleQueryFilter filter = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), "==",
 					new NounMetadata("", PixelDataType.CONST_STRING));
 			qs2.addExplicitFilter(filter);
 			// nulls
 			qs_nulls.addSelector(uniqueCountSelector);
-			SimpleQueryFilter nulls = new SimpleQueryFilter(
-					new NounMetadata(col, PixelDataType.COLUMN), "==",
+			SimpleQueryFilter nulls = new SimpleQueryFilter(new NounMetadata(col, PixelDataType.COLUMN), "==",
 					new NounMetadata(null, PixelDataType.NULL_VALUE));
 			qs_nulls.addExplicitFilter(nulls);
 		}
@@ -181,13 +185,13 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				blankCount = ((Number) blankIt.next().getValues()[0]).longValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query blank value count for selector {}", selector, e);
 		} finally {
-			if(blankIt != null) {
+			if (blankIt != null) {
 				try {
 					blankIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close blank value count query iterator for selector {}", selector, e);
 				}
 			}
 		}
@@ -205,13 +209,13 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query null value count for selector {}", selector, e);
 		} finally {
-			if(nullIt != null) {
+			if (nullIt != null) {
 				try {
 					nullIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close null value count query iterator for selector {}", selector, e);
 				}
 			}
 		}
@@ -221,7 +225,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 
 	private String[] getNumericalProfileData(IDatabaseEngine database, String selector) {
 		String[] retRow = new String[9];
-		if(selector.contains("__")) {
+		if (selector.contains("__")) {
 			String[] split = selector.split("__");
 			// table name
 			retRow[0] = split[0];
@@ -267,7 +271,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			sum.addInnerSelector(innerSelector);
 			qs2.addSelector(sum);
 		}
-		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+		qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(database, qs2);
@@ -286,17 +290,17 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				retRow[7] = values[4] + "";
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query numerical profile data for selector {}", selector, e);
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close numerical profile data query iterator for selector {}", selector, e);
 				}
 			}
 		}
-		
+
 		// nulls
 		qs_nulls = new SelectQueryStruct();
 		{
@@ -317,7 +321,7 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			}
 			arithmaticSelector.setLeftSelector(countAllRows);
 			arithmaticSelector.setRightSelector(countNonNulls);
-			
+
 			qs_nulls.addSelector(arithmaticSelector);
 		}
 		// get null values count
@@ -327,13 +331,13 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			nullIt = WrapperManager.getInstance().getRawWrapper(database, qs_nulls);
 			nullCount = ((Number) nullIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to query null value count for numerical selector {}", selector, e);
 		} finally {
-			if(nullIt != null) {
+			if (nullIt != null) {
 				try {
 					nullIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close null value count query iterator for numerical selector {}", selector, e);
 				}
 			}
 		}
@@ -351,29 +355,30 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 			funSelector.setDistinct(distinct);
 			qs2.addSelector(funSelector);
 		}
-		qs2.setQsType(SelectQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
+		qs2.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 		IRawSelectWrapper it = null;
 		try {
 			it = WrapperManager.getInstance().getRawWrapper(database, qs2);
 			Object value = it.next().getValues()[0];
 			return value;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute {} aggregate query for selector {}", functionName, selector, e);
 		} finally {
-			if(it != null) {
+			if (it != null) {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close {} aggregate query iterator for selector {}", functionName, selector, e);
 				}
 			}
 		}
-		
+
 		return null;
 	}
 
 	/**
 	 * Get the list of concepts to profile
+	 * 
 	 * @return
 	 */
 	private List<String> getConceptList() {

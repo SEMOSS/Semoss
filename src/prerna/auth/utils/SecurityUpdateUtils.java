@@ -618,8 +618,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			if (isNative) {
 				userName = id;
 				if (password != null && !password.isEmpty()) {
-					salt = SecurityQueryUtils.generateSalt();
-					hashedPassword = (SecurityQueryUtils.hash(password, salt));
+					salt = AbstractSecurityUtils.generateSalt();
+					hashedPassword = (AbstractSecurityUtils.hash(password, salt));
 				}
 			}
 		}

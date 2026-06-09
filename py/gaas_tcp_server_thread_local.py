@@ -3,8 +3,8 @@ import sys
 import threading
 
 # Thread-local populated by handle_python before each exec() and cleared after.
-# active_paths  — list of asset path strings for per-project import isolation
-# insight_globals — reference to the current insight's globals dict
+# active_paths  - list of asset path strings for per-project import isolation
+# insight_globals - reference to the current insight's globals dict
 _asset_thread_local = threading.local()
 
 
@@ -28,8 +28,8 @@ def smss_clear_app_imports():
 
     Returns:
         dict with keys:
-            "modules"     — list of sys.modules keys that were deleted
-            "mcp_aliases" — list of insight_globals keys that were deleted
+            "modules"     - list of sys.modules keys that were deleted
+            "mcp_aliases" - list of insight_globals keys that were deleted
     """
     active_paths = getattr(_asset_thread_local, "active_paths", None) or []
     ig = getattr(_asset_thread_local, "insight_globals", None)

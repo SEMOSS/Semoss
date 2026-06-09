@@ -65,7 +65,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class MergeFramesReactor extends AbstractReactor {
 
@@ -246,7 +245,7 @@ public class MergeFramesReactor extends AbstractReactor {
 							importer.insertData();
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to merge native frames using the same engine", e);
 						}
 					}
 				}
@@ -272,14 +271,14 @@ public class MergeFramesReactor extends AbstractReactor {
 					((NativeFrame) targetFrame).getQueryStruct().setFrame(targetFrame);
 					mergeFrame = mergeNative(targetFrame, qs, joins);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to merge data into the native target frame", e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			} else if (qs != null) {
 				try {
 					mergeFrame = mergeFromQs(targetFrame, qs, joins);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to merge frames", e);
 					throw new SemossPixelException(e.getMessage());
 				}
 			}
@@ -410,7 +409,8 @@ public class MergeFramesReactor extends AbstractReactor {
 
 						qs.addImplicitFilter(SimpleQueryFilter.makeColToValFilter(rColumnJoin, "==", values, dataType));
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to query existing frame values to build the join filter on column {}",
+								leftColumnJoin, e);
 						throw new IllegalArgumentException(
 								"Trying to merge on a column that does not exist within the frame!");
 					}
@@ -436,7 +436,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		try {
 			it = ImportUtility.generateIterator(qs, frame);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error occurred executing query before loading into frame", e);
 			throw new SemossPixelException(new NounMetadata("Error occurred executing query before loading into frame",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 		}
@@ -452,7 +452,7 @@ public class MergeFramesReactor extends AbstractReactor {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to verify the merge data is within the frame size limit", e);
 			throw new SemossPixelException(e.getMessage());
 		}
 
@@ -461,9 +461,9 @@ public class MergeFramesReactor extends AbstractReactor {
 		// this only happens for native frame
 		frame = importer.mergeData(joins);
 
-		if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
+		if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.CSV_FILE) {
 			storeCsvFileMeta((CsvQueryStruct) qs, this.curRow.getAllJoins());
-		} else if (qs.getQsType() == SelectQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
+		} else if (qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.EXCEL_FILE) {
 			storeExcelFileMeta((ExcelQueryStruct) qs, this.curRow.getAllJoins());
 		}
 

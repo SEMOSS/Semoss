@@ -237,8 +237,8 @@ public class ClaudeCodeTranscriptParser {
 	/**
 	 * Extract and concatenate all meaningful entries from a content array.
 	 *
-	 * Recognized entry types: - type="text" → appends the text value directly -
-	 * type="tool_reference" → appends "[Tool: {tool_name}]"
+	 * Recognized entry types: - type="text" -> appends the text value directly -
+	 * type="tool_reference" -> appends "[Tool: {tool_name}]"
 	 */
 	private static String extractTextFromContentArray(JSONArray contentArray) {
 		if (contentArray == null || contentArray.length() == 0) {
@@ -356,8 +356,7 @@ public class ClaudeCodeTranscriptParser {
 		return toEvent("assistant", data, raw);
 	}
 
-	// --- Helpers to extract a useful description from tool input ---
-
+	// - Helpers to extract a useful description from tool input
 	private static String extractDescription(JSONObject input) {
 		if (input == null) {
 			return "";

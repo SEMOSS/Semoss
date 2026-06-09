@@ -74,10 +74,12 @@ public abstract class AbstractMessage {
 	protected String messageId;
 	protected String transactionId;
 	protected String parentMessageId;
+	protected String summaryLeafMessageId;
 	protected MessageFeedback feedback;
 	protected int tokens;
 
-	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on response messages.
+	// Cache token counts: cacheReadTokens on input messages, cacheCreationTokens on
+	// response messages.
 	@SerializedName("cacheReadTokens")
 	protected Integer cacheReadTokens;
 
@@ -85,11 +87,13 @@ public abstract class AbstractMessage {
 	protected Integer cacheCreationTokens;
 
 	protected boolean visible = true;
+	protected boolean pruneToolsAbove = false;
 
 	@SerializedName("platform_generated")
 	protected boolean platformGenerated = false;
 
-	protected transient Room room;
+	protected transient String roomId;
+	protected transient String roomFolderPath;
 
 	private SemossDate dateCreated;
 
@@ -190,6 +194,14 @@ public abstract class AbstractMessage {
 		return hasPartType(MessagePartType.TOOL_RESULT);
 	}
 
+	public boolean getPruneToolsAbove() {
+		return this.pruneToolsAbove;
+	}
+
+	public void setPruneToolsAbove(boolean pruneToolsAbove) {
+		this.pruneToolsAbove = pruneToolsAbove;
+	}
+
 	public boolean hasThinkingPart() {
 		return hasPartType(MessagePartType.THINKING);
 	}
@@ -242,6 +254,14 @@ public abstract class AbstractMessage {
 		this.parentMessageId = parentMessageId;
 	}
 
+	public String getSummaryLeafMessageId() {
+		return summaryLeafMessageId;
+	}
+
+	public void setSummaryLeafMessageId(String summaryLeafMessageId) {
+		this.summaryLeafMessageId = summaryLeafMessageId;
+	}
+
 	public MessageFeedback getFeedback() {
 		return feedback;
 	}
@@ -251,11 +271,18 @@ public abstract class AbstractMessage {
 	}
 
 	public void setRoom(Room room) {
-		this.room = room;
+		if (room != null) {
+			this.roomId = room.getId();
+			this.roomFolderPath = room.getRoomFolderPath();
+		}
 	}
 
-	public Room getRoom() {
-		return this.room;
+	public String getRoomId() {
+		return this.roomId;
+	}
+
+	public String getRoomFolderPath() {
+		return this.roomFolderPath;
 	}
 
 	public boolean isVisible() {

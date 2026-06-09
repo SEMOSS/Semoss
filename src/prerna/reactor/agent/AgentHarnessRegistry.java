@@ -41,21 +41,21 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
  *
  * <p>Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "room_loop"} → {@link RoomAgentHarness} — legacy vendor-delegating loop
- *   <li>{@code "semoss"}    → {@link SemossAgentHarness} — SEMOSS-native canonical harness
- *   <li>{@code "claude_code"} → {@link ClaudeCodeAgentHarness}
- *   <li>{@code "github_copilot"} → {@link GitHubCopilotAgentHarness}
- *   <li>{@code "github_copilot_py"} → {@link GitHubCopilotPyAgentHarness}
+ *   <li>{@code "room_loop"} -> {@link RoomAgentHarness} - deprecated legacy SEMOSS room loop
+ *   <li>{@code "semoss"}    -> {@link SemossAgentHarness} - SEMOSS-native canonical harness
+ *   <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
+ *   <li>{@code "github_copilot"} -> {@link GitHubCopilotAgentHarness}
+ *   <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
  * <p>Custom harnesses can be registered at application startup via {@link #register}.
- * The default harness (used when the requested name is unknown) is {@code "room_loop"}.
+ * The default harness (used when the requested name is unknown) is {@code "semoss"}.
  */
 public final class AgentHarnessRegistry {
 
     private static final Logger logger = LogManager.getLogger(AgentHarnessRegistry.class);
 
-    public static final String DEFAULT_HARNESS = "room_loop";
+    public static final String DEFAULT_HARNESS = "semoss";
 
     private static final Map<String, IAgentHarness> REGISTRY;
 
@@ -108,7 +108,7 @@ public final class AgentHarnessRegistry {
         if (name != null && !name.trim().isEmpty()) {
             IAgentHarness h = REGISTRY.get(name.trim());
             if (h != null) return h;
-            logger.warn("AgentHarnessRegistry: unknown harness '{}' — falling back to '{}'",
+            logger.warn("AgentHarnessRegistry: unknown harness '{}' - falling back to '{}'",
                     name, DEFAULT_HARNESS);
         }
         return REGISTRY.get(DEFAULT_HARNESS);

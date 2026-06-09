@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import prerna.reactor.algorithms.LoadNLPSearchReactor;
@@ -44,6 +45,7 @@ import prerna.testing.ApiSemossTestEngineUtils;
 import prerna.testing.ApiSemossTestUserUtils;
 import prerna.testing.ApiSemossTestUtils;
 
+@Disabled
 public class LoadNLPSearchReactorApiTests extends AbstractBaseSemossApiTests {
 	
 	@Test

@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -161,28 +162,31 @@ public abstract class AbstractEngine implements IEngine {
 				// i will move everything you have into the assets folder
 				// with exception of .mv.db files
 				Path assetsPath = Path.of(this.engineAssetsFolder);
-				Files.list(Path.of(this.engineBaseFolder)).forEach(item -> {
-					// skip if the item is already within app_root or app_root/versions
-					// this would really only be for the engine image
-					String fileName = item.getFileName().toString();
-					if (item.toString().replace("\\", "/").contains("/" + Constants.APP_ROOT_FOLDER + "/")
-							|| fileName.equals(Constants.APP_ROOT_FOLDER)) {
-						return; // skip
-					}
-
-					if (!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl") && !fileName.endsWith(".sqlite")) {
-						try {
-							Path targetPath = assetsPath.resolve(item.getFileName());
-							classLogger.info("Performing asset restructure for {} > {}", item, targetPath);
-							Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
-						} catch (IOException e) {
-							classLogger.error("Failed to move legacy engine asset '{}' to '{}' during restructure",
-									item, assetsPath.resolve(item.getFileName()), e);
+				try (Stream<Path> stream = Files.list(Path.of(this.engineBaseFolder))) {
+					stream.forEach(item -> {
+						// skip if the item is already within app_root or app_root/versions
+						// this would really only be for the engine image
+						String fileName = item.getFileName().toString();
+						if (item.toString().replace("\\", "/").contains("/" + Constants.APP_ROOT_FOLDER + "/")
+								|| fileName.equals(Constants.APP_ROOT_FOLDER)) {
+							return; // skip
 						}
-					} else {
-						classLogger.info("Ignoring asset restructure for {}", item);
-					}
-				});
+
+						if (!fileName.endsWith(".mv.db") && !fileName.endsWith(".jnl")
+								&& !fileName.endsWith(".sqlite")) {
+							try {
+								Path targetPath = assetsPath.resolve(item.getFileName());
+								classLogger.info("Performing asset restructure for {} > {}", item, targetPath);
+								Files.move(item, targetPath, StandardCopyOption.REPLACE_EXISTING);
+							} catch (IOException e) {
+								classLogger.error("Failed to move legacy engine asset '{}' to '{}' during restructure",
+										item, assetsPath.resolve(item.getFileName()), e);
+							}
+						} else {
+							classLogger.info("Ignoring asset restructure for {}", item);
+						}
+					});
+				}
 			}
 			if (!AssetUtility.isGit(this.engineVersionFolder)) {
 				GitRepoUtils.init(this.engineVersionFolder);

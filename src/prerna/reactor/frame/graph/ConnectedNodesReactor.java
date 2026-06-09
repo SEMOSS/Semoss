@@ -51,18 +51,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class ConnectedNodesReactor extends AbstractFrameReactor {
 
-	private static final String DEGREE_SEPERATION = "deg"; 
-	private static final String DIRECTION = "dir"; 
+	private static final String DEGREE_SEPERATION = "deg";
+	private static final String DIRECTION = "dir";
 
 	public ConnectedNodesReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(), 
-				ReactorKeysEnum.VALUES.getKey(), DEGREE_SEPERATION, DIRECTION};
+		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.COLUMN.getKey(),
+				ReactorKeysEnum.VALUES.getKey(), DEGREE_SEPERATION, DIRECTION };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		TinkerFrame tinker = (TinkerFrame) getFrame();
-		
+
 		String nodeType = getColumn();
 		List<String> nodeValues = getValues();
 		int seperation = getDegreeSep();
@@ -71,60 +71,59 @@ public class ConnectedNodesReactor extends AbstractFrameReactor {
 		return new NounMetadata(true, PixelDataType.BOOLEAN, PixelOperationType.FRAME_FILTER);
 	}
 
-	public static void findConnectedVertices(TinkerFrame tf, String columnType, List<String> instances, int numTraversals, String direction) {
+	private static void findConnectedVertices(TinkerFrame tf, String columnType, List<String> instances,
+			int numTraversals, String direction) {
 		// get the correct physical name
 		String nodeType = tf.getMetaData().getPhysicalName(columnType);
-		
-		//keep set of all vertices to keep
+
+		// keep set of all vertices to keep
 		List<Vertex> instancesToKeep = new Vector<Vertex>();
-		
-		GraphTraversal<Vertex, Vertex> t1 = tf.g.traversal().V()
-				.has(TinkerFrame.TINKER_TYPE, nodeType)
-				.has(TinkerFrame.TINKER_NAME, P.within(instances))
-				.emit();
-		
+
+		GraphTraversal<Vertex, Vertex> t1 = tf.g.traversal().V().has(TinkerFrame.TINKER_TYPE, nodeType)
+				.has(TinkerFrame.TINKER_NAME, P.within(instances)).emit();
+
 		// use if we want directions or both
-		if(direction.equals("in")) {
+		if (direction.equals("in")) {
 			t1 = t1.repeat(__.in().simplePath());
-		} else if(direction.equals("out")) {
+		} else if (direction.equals("out")) {
 			t1 = t1.repeat(__.out().simplePath());
 		} else {
 			t1 = t1.repeat(__.both().simplePath());
 		}
-		
+
 		t1 = t1.times(numTraversals).dedup();
-		
-		while(t1.hasNext()) {
+
+		while (t1.hasNext()) {
 			Vertex v = t1.next();
 			instancesToKeep.add(v);
 		}
-		
+
 		int size = instancesToKeep.size();
-		if(size == 0) {
+		if (size == 0) {
 			throw new IllegalStateException("Could not find any paths");
 		}
-		
+
 		// remove the current frame filters
 		tf.getFrameFilters().removeAllFilters();
-		
+
 		Map<String, List<Object>> colToValues = new HashMap<String, List<Object>>();
-		for(Vertex v : instancesToKeep) {
+		for (Vertex v : instancesToKeep) {
 			String type = v.value(TinkerFrame.TINKER_TYPE);
 			Object value = v.value(TinkerFrame.TINKER_NAME);
-			
+
 			List<Object> values = null;
-			if(colToValues.containsKey(type)) {
+			if (colToValues.containsKey(type)) {
 				values = colToValues.get(type);
 			} else {
 				values = new ArrayList<>();
 				colToValues.put(type, values);
 			}
-			
+
 			values.add(value);
 		}
-		
+
 		// need to add the filters to the graph
-		for(String type : colToValues.keySet()) {
+		for (String type : colToValues.keySet()) {
 			NounMetadata lComparison = new NounMetadata(new QueryColumnSelector(type), PixelDataType.COLUMN);
 			NounMetadata rComparison = new NounMetadata(colToValues.get(type), PixelDataType.CONST_STRING);
 			IQueryFilter newFilter = new SimpleQueryFilter(lComparison, "==", rComparison);
@@ -132,20 +131,10 @@ public class ConnectedNodesReactor extends AbstractFrameReactor {
 		}
 	}
 
-
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////
-
 	private String getColumn() {
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
-		if(grs != null) {
-			return (String) grs.get(0);
-		}
-
-		List<String> vals = this.curRow.getAllStrValues();
-		if(!vals.isEmpty()) {
-			return vals.get(0);
+		String column = getStringFromKeyOrCurRowStringValue(this.keysToGet[1]);
+		if (column != null && !column.isEmpty()) {
+			return column;
 		}
 
 		throw new IllegalArgumentException("Must define the node type");
@@ -153,12 +142,12 @@ public class ConnectedNodesReactor extends AbstractFrameReactor {
 
 	private List<String> getValues() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[2]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return grs.getAllStrValues();
 		}
 
 		List<String> vals = this.curRow.getAllStrValues();
-		if(vals.size() > 3) {
+		if (vals.size() > 3) {
 			// index 0 is the column
 			vals.remove(0);
 			return vals;
@@ -166,25 +155,25 @@ public class ConnectedNodesReactor extends AbstractFrameReactor {
 
 		throw new IllegalArgumentException("Must define at least 2 nodes to find connections between");
 	}
-	
+
 	private int getDegreeSep() {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[3]);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			return ((Number) grs.get(0)).intValue();
 		}
 
 		List<Object> vals = this.curRow.getAllNumericColumns();
-		if(!vals.isEmpty()) {
+		if (!vals.isEmpty()) {
 			return ((Number) vals).intValue();
 		}
-		
+
 		throw new IllegalArgumentException("Must define a value for the degrees of seperation");
 	}
-	
+
 	private String getDirection() {
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[4]);
-		if(grs != null && !grs.isEmpty()) {
-			return grs.get(0).toString().toLowerCase();
+		String direction = getString(this.keysToGet[4]);
+		if (direction != null && !direction.isEmpty()) {
+			return direction.toLowerCase();
 		}
 
 		return "both";

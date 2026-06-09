@@ -43,10 +43,20 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ReplaceColumnValueReactor extends AbstractPyFrameReactor {
 
 	/**
+	 * <p>
 	 * This reactor updates row values to a new value based on the existing value
-	 * The inputs to the reactor are: 1) the column to update 2) the old value 3)
-	 * the new value
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the column to update</li>
+	 * <li>the old value</li>
+	 * <li>the new value</li>
+	 * </ul>
 	 */
+
 	private static final Pattern NUMERIC_PATTERN = Pattern.compile("-?\\d+(\\.\\d+)?");
 
 	public ReplaceColumnValueReactor() {

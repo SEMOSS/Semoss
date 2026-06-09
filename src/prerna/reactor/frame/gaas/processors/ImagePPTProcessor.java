@@ -32,7 +32,6 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,87 +42,68 @@ import org.apache.poi.xslf.usermodel.XSLFSlide;
 import org.apache.poi.xslf.usermodel.XSLFTextShape;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
-import prerna.util.Constants;
 
 public class ImagePPTProcessor extends AbstractFileImageProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
-	
+
 	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		super(filePath, writer);
 	}
-	
+
+	@Override
 	public void process() {
-		FileInputStream is = null;
-		XMLSlideShow ppt = null;
-		try {
-			try {
-				is = new FileInputStream(this.filePath);
-			} catch (FileNotFoundException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				return;
-			}
-			try {
-				ppt = new XMLSlideShow(is);
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				return;
-			}
+		try (FileInputStream is = new FileInputStream(this.filePath); XMLSlideShow ppt = new XMLSlideShow(is);) {
 			processSlides(ppt);
-		} finally {
-			if (ppt != null) {
-				try {
-					is.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+		} catch (IOException e) {
+			classLogger.error("Failed to process PPT file into images: {}", e.getMessage(), e);
+			return;
 		}
-		
 	}
-	
+
 	private void processSlides(XMLSlideShow ppt) {
 		String source = getSource(this.filePath);
 		Dimension pgsize = ppt.getPageSize();
 		int slideCount = 1;
-		
+
 		for (XSLFSlide slide : ppt.getSlides()) {
 			BufferedImage img = new BufferedImage(pgsize.width, pgsize.height, BufferedImage.TYPE_INT_RGB);
 			Graphics2D graphics = img.createGraphics();
-			
+
 			try {
 				renderSlide(slide, graphics, pgsize);
 			} catch (NoClassDefFoundError | ClassNotFoundException e) {
 				renderFallbackSlide(slide, graphics, pgsize);
 				classLogger.warn("Used fallback rendering for slide " + slideCount + " due to " + e.getMessage());
 			}
-			
+
 			// Convert the image to base64
 			String imageId = generateUniqueImageId();
 			String base64Image = convertToBase64(img);
 			imageMap.put(imageId, base64Image);
-			
+
 			// Write to CSV
 			this.writer.writeRow(source, String.valueOf(slideCount), imageId);
-			
+
 			slideCount++;
 			graphics.dispose();
 		}
 	}
-	
-	private void renderSlide(XSLFSlide slide, Graphics2D graphics, Dimension pgsize) throws NoClassDefFoundError, ClassNotFoundException {
+
+	private void renderSlide(XSLFSlide slide, Graphics2D graphics, Dimension pgsize)
+			throws NoClassDefFoundError, ClassNotFoundException {
 		// Clear the drawing area
 		graphics.setPaint(slide.getBackground().getFillColor());
 		graphics.fill(new java.awt.Rectangle(0, 0, pgsize.width, pgsize.height));
-		
+
 		slide.draw(graphics);
 	}
-	
+
 	private void renderFallbackSlide(XSLFSlide slide, Graphics2D graphics, Dimension pgsize) {
 		// Clear the drawing area
 		graphics.setPaint(slide.getBackground().getFillColor());
 		graphics.fill(new java.awt.Rectangle(0, 0, pgsize.width, pgsize.height));
-		
+
 		// Draw a basic representation of shapes and text
 		graphics.setPaint(Color.BLACK);
 		int yOffset = 50;
@@ -139,5 +119,5 @@ public class ImagePPTProcessor extends AbstractFileImageProcessor {
 		}
 		graphics.drawString("Slide content may be incomplete due to rendering limitations", 50, pgsize.height - 50);
 	}
-	
+
 }

@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Logger;
 
@@ -53,14 +52,15 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class RunClassificationReactor extends AbstractRFrameReactor {
+
 	/**
 	 * RunClassification(classify=[Species],attributes=["PetalLength","PetalWidth","SepalLength","SepalWidth"],
 	 * panel=[0])
 	 * RunClassification(classify=[race],attributes=["age","workclass","education","marital_status","relationship","sex","capital_gain","capital_loss","income"],
 	 * panel=[0])
 	 */
-	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 
+	private static final String CLASS_NAME = RunClassificationReactor.class.getName();
 	private static final String CLASSIFICATION_COLUMN = "classify";
 
 	public RunClassificationReactor() {
@@ -292,67 +292,26 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 		}
 	}
 
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-	////////////////////// Input Methods///////////////////////////
-	//////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////
-
 	private String getClassificationColumn() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(CLASSIFICATION_COLUMN);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-
-		// else, we assume it is the first column
-		if (this.curRow == null || this.curRow.size() == 0) {
+		String classificationColumn = getStringFromKeyOrCurRow(CLASSIFICATION_COLUMN, 0);
+		if (classificationColumn == null || classificationColumn.isEmpty()) {
 			String errorString = "Could not find the column predict";
 			throw new IllegalArgumentException(errorString);
 		}
-		return this.curRow.get(0).toString();
+		return classificationColumn;
 	}
 
 	private List<String> getColumns() {
-		// see if defined as individual key
 		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[1]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				List<Object> values = columnGrs.getAllValues();
-				List<String> strValues = new Vector<String>();
-				for (Object obj : values) {
-					strValues.add(obj.toString());
-				}
-				return strValues;
-			}
-		} else {
+		if (columnGrs == null) {
 			throw new IllegalArgumentException("Attribute columns must be specified.");
 		}
-
-		// else, we assume it is column values in the curRow
-		List<Object> values = this.curRow.getAllValues();
-		List<String> strValues = new Vector<String>();
-		for (Object obj : values) {
-			strValues.add(obj.toString());
-		}
-
-		return strValues;
+		return getListStringFromKeyOrCurRow(keysToGet[1]);
 	}
 
 	private String getPanelId() {
-		// see if defined as individual key
-		GenRowStruct columnGrs = this.store.getGenRowStruct(keysToGet[2]);
-		if (columnGrs != null) {
-			if (columnGrs.size() > 0) {
-				return columnGrs.get(0).toString();
-			}
-		}
-		return null;
+		return getString(keysToGet[2]);
 	}
-
-	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
 	protected String getDescriptionForKey(String key) {
@@ -362,4 +321,5 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 			return super.getDescriptionForKey(key);
 		}
 	}
+
 }

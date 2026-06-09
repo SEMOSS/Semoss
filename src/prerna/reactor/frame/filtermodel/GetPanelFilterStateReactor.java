@@ -52,20 +52,24 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GetPanelFilterStateReactor.class);
 
 	/**
-	 * This reactor has many inputs
-	 * 
-	 * 1) columnName <- required 2) filterWord <- optional 3) limit <- optional
-	 * 4) offset <- optional 5) panel <- optional
-	 * 
-	 * This reactor returns the filter values that are filtered out i.e. these
-	 * would be values that are unchecked in a drop down selection
+	 * <p>This reactor has many inputs</p>
+	 *
+	 * <p>The inputs to the reactor are:</p>
+	 * <ul>
+	 * <li>columnName <- required</li>
+	 * <li>filterWord <- optional</li>
+	 * <li>limit <- optional</li>
+	 * <li>offset <- optional</li>
+	 * <li>panel <- optional</li>
+	 * </ul>
+	 *
+	 * <p>This reactor returns the filter values that are filtered out i.e. these would be values that are unchecked in a drop down selection</p>
 	 */
 
 	public GetPanelFilterStateReactor() {
@@ -140,7 +144,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		// get total count of options
 		SelectQueryStruct totalCountQS = new SelectQueryStruct();
 		totalCountQS.addSelector(uCountFunc);
-		
+
 		// if search add to totalCount
 		// add the filter word as a like filter
 		SimpleQueryFilter wFilter = null;
@@ -151,7 +155,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 			wFilter = new SimpleQueryFilter(lComparison, comparator, rComparison);
 			totalCountQS.addExplicitFilter(wFilter);
 		}
-		
+
 		int totalCount = 0;
 		IRawSelectWrapper totalCountIt = null;
 		try {
@@ -161,17 +165,19 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				totalCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to retrieve total distinct count for column {} in panel filter state.", tableCol,
+					e1);
 		} finally {
-			if(totalCountIt != null) {
+			if (totalCountIt != null) {
 				try {
 					totalCountIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close total-count iterator for column {} in panel filter state.",
+							tableCol, e);
 				}
 			}
 		}
-		
+
 		retMap.put("totalCount", totalCount);
 
 		// set the base info in the query struct to collect values
@@ -181,7 +187,7 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		qs.setLimit(limit);
 		qs.setOffSet(offset);
 		qs.addOrderBy(new QueryColumnOrderBySelector(tableCol));
-		
+
 		if (filterWord != null && !filterWord.trim().isEmpty()) {
 			qs.addExplicitFilter(wFilter);
 		}
@@ -195,22 +201,19 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				options.add(allValuesIt.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve option values for column {} in panel filter state.", tableCol, e);
 		} finally {
-			if(allValuesIt != null) {
+			if (allValuesIt != null) {
 				try {
 					allValuesIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close options iterator for column {} in panel filter state.", tableCol,
+							e);
 				}
 			}
 		}
-		
 		retMap.put("options", options);
 
-		////////////////////////////////////////
-		//// get options
-		///////////////////////////////////////
 		// set the base info in the query struct
 		SelectQueryStruct qs2 = new SelectQueryStruct();
 		qs2.addSelector(selector);
@@ -232,25 +235,26 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 		qs2.setExplicitFilters(baseFilters);
 
 //		if (!selectAll) {
-			// now run and flush out the values
-			IRawSelectWrapper unFilterValuesIt = null;
-			try {
-				unFilterValuesIt = dataframe.query(qs2);
-				while (unFilterValuesIt.hasNext()) {
-					selectedValues.add(unFilterValuesIt.next().getValues()[0]);
-				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if(unFilterValuesIt != null) {
-					try {
-						unFilterValuesIt.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
+		// now run and flush out the values
+		IRawSelectWrapper unFilterValuesIt = null;
+		try {
+			unFilterValuesIt = dataframe.query(qs2);
+			while (unFilterValuesIt.hasNext()) {
+				selectedValues.add(unFilterValuesIt.next().getValues()[0]);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to retrieve selected values for column {} in panel filter state.", tableCol, e);
+		} finally {
+			if (unFilterValuesIt != null) {
+				try {
+					unFilterValuesIt.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to close selected-values iterator for column {} in panel filter state.",
+							tableCol, e);
 				}
 			}
-			
+		}
+
 //		} else {
 //			selectedValues.addAll(options);
 //		}
@@ -271,17 +275,19 @@ public class GetPanelFilterStateReactor extends AbstractFilterReactor {
 				selectedCount = ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve selected distinct count for column {} in panel filter state.",
+					tableCol, e);
 		} finally {
-			if(selectedCountIt != null) {
+			if (selectedCountIt != null) {
 				try {
 					selectedCountIt.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close selected-count iterator for column {} in panel filter state.",
+							tableCol, e);
 				}
 			}
 		}
-		
+
 		retMap.put("selectedCount", selectedCount);
 
 		return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PANEL_FILTER_MODEL);

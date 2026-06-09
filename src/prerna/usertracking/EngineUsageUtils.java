@@ -56,7 +56,7 @@ import prerna.util.SystemEngineRegistry;
 
 public class EngineUsageUtils extends UserTrackingUtils {
 
-	private static Logger logger = LogManager.getLogger(EngineUsageUtils.class);
+	private static Logger classLogger = LogManager.getLogger(EngineUsageUtils.class);
 	private static String EU_TN = "ENGINE_USES";
 	private static String EU_PRE = "ENGINE_USES__";
 
@@ -118,12 +118,12 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -146,12 +146,12 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -171,12 +171,12 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -198,7 +198,7 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				insightids.add(Pair.of(insight, project));
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return insightids;
@@ -230,7 +230,7 @@ public class EngineUsageUtils extends UserTrackingUtils {
 				viewsByDate.add(Pair.of(date, view));
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return viewsByDate;

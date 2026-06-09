@@ -94,7 +94,7 @@ class FAISSSearcher:
         # BM25 components are kicked off in a background warmup thread when hybrid
         # search is enabled: the JSON corpus + bm25s file load is I/O-heavy and
         # would otherwise dominate cold-start. Callers retrieve the searcher via
-        # the `bm25_searcher` property, which awaits the same Future — so a
+        # the `bm25_searcher` property, which awaits the same Future - so a
         # request that lands before the warmup finishes just blocks on it
         # instead of starting a duplicate load. If hybrid is disabled or the
         # background load fails we fall back to building inline on first access.

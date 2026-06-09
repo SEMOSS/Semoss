@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import socket
 import socketserver
 import threading
 import asyncio
@@ -29,11 +30,13 @@ class Server(socketserver.ThreadingTCPServer):
         start=True,
         blocking=False,
         logger_level: str = "INFO",
+        uds_path=None,
     ):
         self.logger = logging.getLogger("SocketServer")
         self.logger.debug("__init__")
         self.stop = False
         self.port = port
+        self.uds_path = uds_path
         self.max_count = max_count
         self.cur_count = 0
         self.user_mode = self.max_count == 1
@@ -54,7 +57,16 @@ class Server(socketserver.ThreadingTCPServer):
         # set the current folder to pick up scripts from
         sys.path.append(py_folder)
 
-        self.server_address = ("localhost", self.port)
+        if self.uds_path:
+            self.address_family = socket.AF_UNIX
+            self.server_address = self.uds_path
+            try:
+                if os.path.exists(self.uds_path):
+                    os.unlink(self.uds_path)
+            except OSError:
+                pass
+        else:
+            self.server_address = ("localhost", self.port)
         socketserver.ThreadingTCPServer.__init__(
             self, self.server_address, handler_class
         )
@@ -147,6 +159,14 @@ def parse_args():
         "--logger_level", type=str, default="INFO", help="The level of the logger"
     )
     parser.add_argument("--userChrootFolder", type=str, help="Directory to chroot into")
+    parser.add_argument(
+        "--uds-path",
+        type=str,
+        default=None,
+        help="Listen on this AF_UNIX socket path instead of a TCP port "
+        "(used by the namespace sandbox, whose empty netns makes TCP "
+        "loopback unreachable)",
+    )
     return parser.parse_args()
 
 
@@ -196,4 +216,5 @@ if __name__ == "__main__":
         prefix=args.prefix,
         timeout=args.timeout,
         start=args.start,
+        uds_path=args.uds_path,
     )
