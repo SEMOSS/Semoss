@@ -419,23 +419,6 @@ public class MasterDatabaseUtility {
 			}
 		}
 
-		// bitly
-		colNames = new String[] { "FANCY", "EMBED" };
-		types = new String[] { "varchar(255)", "varchar(8000)" };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("BITLY", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if table exists
-			if (!queryUtil.tableExists(engine, "BITLY", database, schema)) {
-				// make the table
-				String sql = queryUtil.createTable("BITLY", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
 		// metamodel position
 		colNames = new String[] { "ENGINEID", "TABLENAME", "XPOS", "YPOS" };
 		types = new String[] { "VARCHAR(255)", "VARCHAR(255)", "FLOAT", "FLOAT" };

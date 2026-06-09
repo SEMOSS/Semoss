@@ -51,7 +51,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminExecQueryReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(AdminExecQueryReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(AdminExecQueryReactor.class);
 
 	private NounMetadata qStruct = null;
 
@@ -111,11 +111,11 @@ public class AdminExecQueryReactor extends AbstractReactor {
 			update = false;
 		}
 
-		logger.info("EXEC QUERY.... {}", query);
+		classLogger.info("EXEC QUERY.... {}", query);
 		try {
 			engine.insertData(query);
 		} catch (Exception e) {
-			logger.error("Unable to execute the admin database query.", e);
+			classLogger.error("Unable to execute the admin database query.", e);
 			String errorMessage = "An error occurred trying to execute the query in the database";
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				errorMessage += ": " + e.getMessage();

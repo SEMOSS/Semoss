@@ -29,7 +29,6 @@ package prerna.io.connector.surveymonkey;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
@@ -43,65 +42,61 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
-public class SurveyMonkeyListSurveysReactor extends AbstractReactor{
+public class SurveyMonkeyListSurveysReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
 		String url_str = "https://api.surveymonkey.com/v3/surveys";
-		List<Map<String, Object>> masterList = new ArrayList<Map<String, Object>>();
+		List<Map<String, Object>> masterList = new ArrayList<>();
 
-		String [] beanProps = {"id", "name"};
+		String[] beanProps = { "id", "name" };
 		String jsonPattern = "data[].{id: id, name: title}";
 
-		//get access token
-		String accessToken=null;
+		// get access token
+		String accessToken = null;
 		User user = this.insight.getUser();
-		try{
-			if(user == null){
-				Map<String, Object> retMap = new HashMap<String, Object>();
+		try {
+			if (user == null || user.getAccessToken(AuthProvider.SURVEYMONKEY) == null) {
+				Map<String, Object> retMap = new HashMap<>();
 				retMap.put("type", "surveymonkey");
 				retMap.put("message", "Please login to your Survey Monkey account");
 				throwLoginError(retMap);
-			}
-			else if (user != null) {
+			} else {
 				AccessToken token = user.getAccessToken(AuthProvider.SURVEYMONKEY);
 				accessToken = token.getAccess_token();
 			}
-		}
-		catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
+		} catch (Exception e) {
+			Map<String, Object> retMap = new HashMap<>();
 			retMap.put("type", "surveymonkey");
 			retMap.put("message", "Please login to your Survey Monkey account");
 			throwLoginError(retMap);
 		}
 
-
 		// query params
-		Hashtable params = new Hashtable();
+		Map<String, Object> params = new HashMap<>();
 		params.put("per_page", 1000);
 		params.put("sort_order", "DESC");
 		// make the call
 		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, true);
-		
+
 		// fill the bean with the return
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());
-		if(C instanceof RemoteItem){
-			RemoteItem fileList= (RemoteItem) C;
-			HashMap<String, Object> tempMap = new HashMap<String, Object>();
+		if (C instanceof RemoteItem) {
+			RemoteItem fileList = (RemoteItem) C;
+			HashMap<String, Object> tempMap = new HashMap<>();
 			tempMap.put("name", fileList.getName());
 			tempMap.put("id", fileList.getId());
 			masterList.add(tempMap);
-		}
-		else{
+		} else {
 			List<RemoteItem> fileList = (List<RemoteItem>) C;
-			for(RemoteItem entry : fileList){
-				HashMap<String, Object> tempMap = new HashMap<String, Object>();
+			for (RemoteItem entry : fileList) {
+				HashMap<String, Object> tempMap = new HashMap<>();
 				tempMap.put("name", entry.getName());
 				tempMap.put("id", entry.getId());
 				masterList.add(tempMap);
 			}
 		}
-		
+
 		return new NounMetadata(masterList, PixelDataType.MAP);
 	}
 }

@@ -42,6 +42,7 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -822,8 +823,7 @@ public final class Utility {
 	 * @return double
 	 */
 	public static double round(double valueToRound, int numberOfDecimalPlaces) {
-		BigDecimal bigD = new BigDecimal(valueToRound);
-		return bigD.setScale(numberOfDecimalPlaces, BigDecimal.ROUND_HALF_UP).doubleValue();
+		return BigDecimal.valueOf(valueToRound).setScale(numberOfDecimalPlaces, RoundingMode.HALF_EVEN).doubleValue();
 	}
 
 	/**
