@@ -42,7 +42,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class ColumnAverageReactor extends AbstractPyFrameReactor {
 
 	/**
-	 * This reactor averages columns 1) the columns 2) the new column name
+	 * <p>
+	 * This reactor averages columns
+	 * </p>
+	 *
+	 * <p>
+	 * The inputs to the reactor are:
+	 * </p>
+	 * <ul>
+	 * <li>the columns</li>
+	 * <li>the new column name</li>
+	 * </ul>
 	 */
 
 	public ColumnAverageReactor() {

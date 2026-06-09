@@ -37,8 +37,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Creates a skill under {@code <project>/client/.claude/skills/<slug>/SKILL.md}.
  *
- * <p>Replaces {@code ClaudeCodeCreateSkillReactor}; the layout is shared by every
- * harness that extends {@link AppBuildingHarness}.
+ * <p>Skill files live at {@code <project>/client/.claude/skills/<slug>/SKILL.md}.
+ * The backing static is on {@link AppBuilderHarnessConfiguration}.
  */
 public class CreateAppSkillReactor extends AbstractReactor {
 
@@ -55,7 +55,7 @@ public class CreateAppSkillReactor extends AbstractReactor {
 		String skillContent = this.keyValue.get("skillContent");
 
 		User user = this.insight.getUser();
-		Boolean response = AppBuildingHarness.createSkill(user, projectId, skillName, skillContent);
+		Boolean response = AppBuilderHarnessConfiguration.createSkill(user, projectId, skillName, skillContent);
 		return new NounMetadata(response, PixelDataType.BOOLEAN, PixelOperationType.OPERATION);
 	}
 }

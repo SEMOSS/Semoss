@@ -2,9 +2,8 @@ import base64
 from typing import Dict, List, Optional, Union, Any, Literal
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 import urllib.request
-from ...utils import StringEnum
+from ...utils import StringEnum, deprecated
 import json
-from deprecated import deprecated
 
 
 class SEMOSSMediaInputType(StringEnum):

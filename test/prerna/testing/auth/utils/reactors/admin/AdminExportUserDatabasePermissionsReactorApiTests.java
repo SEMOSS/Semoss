@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.testing.auth.utils.reactors.admin;
 
-import org.junit.Before;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

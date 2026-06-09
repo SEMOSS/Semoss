@@ -33,11 +33,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.logging.log4j.LogManager;
@@ -55,7 +55,6 @@ import org.apache.parquet.schema.Type;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.om.HeadersException;
-import prerna.util.Constants;
 
 public class ParquetFileHelper {
 
@@ -131,14 +130,13 @@ public class ParquetFileHelper {
 		try {
 			GroupReadSupport readSupport = new GroupReadSupport();
 			this.reader = ParquetReader.builder(readSupport, new org.apache.hadoop.fs.Path(this.fileLocation))
-					.withConf(new Configuration())
-					.build();
+					.withConf(new Configuration()).build();
 			// read the schema
-			try(ParquetFileReader fileReader = ParquetFileReader.open(new LocalInputFile(Paths.get(fileLocation)))) {
+			try (ParquetFileReader fileReader = ParquetFileReader.open(new LocalInputFile(Paths.get(fileLocation)))) {
 				this.schema = fileReader.getFooter().getFileMetaData().getSchema();
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create parquet reader: {}", e.getMessage(), e);
 		}
 	}
 
@@ -172,7 +170,7 @@ public class ParquetFileHelper {
 			if (propFileExists) {
 				numCols--;
 			}
-			newUniqueParquetHeaders = new Vector<String>(numCols);
+			newUniqueParquetHeaders = new ArrayList<>(numCols);
 
 			// create the integer array s.t. we can reset the value to get in the future
 			headerIntegerArray = new Integer[numCols];
@@ -194,7 +192,7 @@ public class ParquetFileHelper {
 				// fill in integer array
 				headerIntegerArray[colIdx] = colIdx;
 			}
-			
+
 			currHeaders = newUniqueParquetHeaders.toArray(new String[] {});
 		}
 	}
@@ -278,25 +276,24 @@ public class ParquetFileHelper {
 
 					case INT64:
 						if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-					        LogicalTypeAnnotation.TimestampLogicalTypeAnnotation ts = 
-					                (LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) logicalType;
-					        long raw = group.getLong(headerIndex, 0);
-					        Instant instant;
+							LogicalTypeAnnotation.TimestampLogicalTypeAnnotation ts = (LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) logicalType;
+							long raw = group.getLong(headerIndex, 0);
+							Instant instant;
 
-					        switch (ts.getUnit()) {
-					            case MICROS:
-					                instant = Instant.ofEpochMilli(raw / 1000); // micros -> millis
-					                break;
-					            case MILLIS:
-					            default:
-					                instant = Instant.ofEpochMilli(raw);
-					                break;
-					        }
+							switch (ts.getUnit()) {
+							case MICROS:
+								instant = Instant.ofEpochMilli(raw / 1000); // micros -> millis
+								break;
+							case MILLIS:
+							default:
+								instant = Instant.ofEpochMilli(raw);
+								break;
+							}
 
-					        row[i] = LocalDateTime.ofInstant(instant, ZoneOffset.UTC); // LocalDateTime
-					    } else {
-					        row[i] = group.getLong(headerIndex, 0);
-					    }
+							row[i] = LocalDateTime.ofInstant(instant, ZoneOffset.UTC); // LocalDateTime
+						} else {
+							row[i] = group.getLong(headerIndex, 0);
+						}
 						break;
 
 					case FLOAT:
@@ -312,7 +309,7 @@ public class ParquetFileHelper {
 						break;
 
 					case FIXED_LEN_BYTE_ARRAY:
-						// often DECIMAL — leaving as string for now
+						// often DECIMAL - leaving as string for now
 						row[i] = group.getValueToString(headerIndex, 0);
 						break;
 
@@ -326,7 +323,7 @@ public class ParquetFileHelper {
 			}
 			return row;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read next parquet row: {}", e.getMessage(), e);
 		}
 		return null;
 	}
@@ -347,11 +344,11 @@ public class ParquetFileHelper {
 			try {
 				this.reader.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close parquet reader: {}", e.getMessage(), e);
 			}
 		}
 	}
-	
+
 	/**
 	 * Return the headers and data valid types of the parquet file
 	 * 
@@ -359,95 +356,96 @@ public class ParquetFileHelper {
 	 * @throws IOException
 	 */
 	public static Map<String, SemossDataType> getHeadersAndDataTypes(String fileLocation) throws IOException {
-	    Map<String, SemossDataType> headersPlusDataTypes = new LinkedHashMap<>();
+		Map<String, SemossDataType> headersPlusDataTypes = new LinkedHashMap<>();
 
-	    ParquetFileReader reader = null;
-	    try {
-	        reader = ParquetFileReader.open(new LocalInputFile(Paths.get(fileLocation)));
-	        MessageType schema = reader.getFooter().getFileMetaData().getSchema();
+		ParquetFileReader reader = null;
+		try {
+			reader = ParquetFileReader.open(new LocalInputFile(Paths.get(fileLocation)));
+			MessageType schema = reader.getFooter().getFileMetaData().getSchema();
 
-	        int numCols = schema.getFieldCount();
-	        List<ColumnDescriptor> columns = schema.getColumns();
-	        List<String[]> paths = schema.getPaths();
-	        boolean[] missingColumns = new boolean[numCols];
+			int numCols = schema.getFieldCount();
+			List<ColumnDescriptor> columns = schema.getColumns();
+			List<String[]> paths = schema.getPaths();
+			boolean[] missingColumns = new boolean[numCols];
 
-	        for (int i = 0; i < schema.getFieldCount(); ++i) {
-	            Type t = schema.getFields().get(i);
+			for (int i = 0; i < schema.getFieldCount(); ++i) {
+				Type t = schema.getFields().get(i);
 
-	            if (!t.isPrimitive() || t.isRepetition(Type.Repetition.REPEATED)) {
-	                throw new UnsupportedOperationException("Complex types not supported.");
-	            }
+				if (!t.isPrimitive() || t.isRepetition(Type.Repetition.REPEATED)) {
+					throw new UnsupportedOperationException("Complex types not supported.");
+				}
 
-	            String colName = t.getName();
-	            PrimitiveTypeName primitiveType = t.asPrimitiveType().getPrimitiveTypeName();
-	            LogicalTypeAnnotation logicalType = t.getLogicalTypeAnnotation();
+				String colName = t.getName();
+				PrimitiveTypeName primitiveType = t.asPrimitiveType().getPrimitiveTypeName();
+				LogicalTypeAnnotation logicalType = t.getLogicalTypeAnnotation();
 
-	            SemossDataType dtype;
-	            switch (primitiveType) {
-	                case BOOLEAN:
-	                    dtype = SemossDataType.BOOLEAN;
-	                    break;
+				SemossDataType dtype;
+				switch (primitiveType) {
+				case BOOLEAN:
+					dtype = SemossDataType.BOOLEAN;
+					break;
 
-	                case INT32:
-	                    if (logicalType instanceof LogicalTypeAnnotation.DateLogicalTypeAnnotation) {
-	                        dtype = SemossDataType.DATE;
-	                    } else {
-	                        dtype = SemossDataType.INT;
-	                    }
-	                    break;
+				case INT32:
+					if (logicalType instanceof LogicalTypeAnnotation.DateLogicalTypeAnnotation) {
+						dtype = SemossDataType.DATE;
+					} else {
+						dtype = SemossDataType.INT;
+					}
+					break;
 
-	                case INT64:
-	                    if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
-	                        dtype = SemossDataType.TIMESTAMP;
-	                    } else {
-	                        dtype = SemossDataType.INT;
-	                    }
-	                    break;
+				case INT64:
+					if (logicalType instanceof LogicalTypeAnnotation.TimestampLogicalTypeAnnotation) {
+						dtype = SemossDataType.TIMESTAMP;
+					} else {
+						dtype = SemossDataType.INT;
+					}
+					break;
 
-	                case FLOAT:
-	                case DOUBLE:
-	                    dtype = SemossDataType.DOUBLE;
-	                    break;
+				case FLOAT:
+				case DOUBLE:
+					dtype = SemossDataType.DOUBLE;
+					break;
 
-	                case FIXED_LEN_BYTE_ARRAY:
-	                case BINARY:
-	                	if (logicalType instanceof LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) {
-	                        dtype = SemossDataType.DOUBLE;
-	                    } else {
-	                        dtype = SemossDataType.STRING;
-	                    }
-	                    break;
+				case FIXED_LEN_BYTE_ARRAY:
+				case BINARY:
+					if (logicalType instanceof LogicalTypeAnnotation.DecimalLogicalTypeAnnotation) {
+						dtype = SemossDataType.DOUBLE;
+					} else {
+						dtype = SemossDataType.STRING;
+					}
+					break;
 
-	                default:
-	                    dtype = SemossDataType.STRING;
-	            }
+				default:
+					dtype = SemossDataType.STRING;
+				}
 
-	            String[] colPath = paths.get(i);
-	            if (schema.containsPath(colPath)) {
-	                ColumnDescriptor fd = schema.getColumnDescription(colPath);
-	                if (!fd.equals(columns.get(i))) {
-	                    throw new UnsupportedOperationException("Schema evolution not supported.");
-	                }
-	            } else {
-	                if (columns.get(i).getMaxDefinitionLevel() == 0) {
-	                    throw new IOException("Required column is missing in data file. Col: " + Arrays.toString(colPath));
-	                }
-	                missingColumns[i] = true;
-	            }
+				String[] colPath = paths.get(i);
+				if (schema.containsPath(colPath)) {
+					ColumnDescriptor fd = schema.getColumnDescription(colPath);
+					if (!fd.equals(columns.get(i))) {
+						throw new UnsupportedOperationException("Schema evolution not supported.");
+					}
+				} else {
+					if (columns.get(i).getMaxDefinitionLevel() == 0) {
+						throw new IOException(
+								"Required column is missing in data file. Col: " + Arrays.toString(colPath));
+					}
+					missingColumns[i] = true;
+				}
 
-	            headersPlusDataTypes.put(colName, dtype);
-	        }
+				headersPlusDataTypes.put(colName, dtype);
+			}
 
-	        return headersPlusDataTypes;
-	    } finally {
-	        if (reader != null) {
-	            try {
-	                reader.close();
-	            } catch (IOException e) {
-	                classLogger.error(e.toString());
-	            }
-	        }
-	    }
+			return headersPlusDataTypes;
+		} finally {
+			if (reader != null) {
+				try {
+					reader.close();
+				} catch (IOException e) {
+					classLogger.error(e.toString());
+				}
+			}
+		}
 	}
 
 }

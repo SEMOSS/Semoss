@@ -609,4 +609,14 @@ public final class ProjectHelper {
 		return project;
 	}
 
+	public static IProject createSkillProject(String projectId, String projectName,
+			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, false, null,
+				gitProvider, gitCloneUrl, user, logger);
+		Map<String, Object> metadata = new HashMap<>();
+		metadata.put("tag", ModelInferenceLogsUtils.SKILL_PROJECT_TAG);
+		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		return project;
+	}
+
 }

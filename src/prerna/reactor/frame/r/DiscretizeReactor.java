@@ -41,23 +41,40 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class DiscretizeReactor extends AbstractRFrameReactor {
+
 	/**
+	 * <p>
 	 * Discretize([{"column":"PetalLength"}, {"column":"SepalLength",
 	 * "breaks":"(4.3, 5.5, 6.7, 7.9)", "labels":"(Short,Medium,Long)"},
 	 * {"column":"PetalWidth", "breaks":"0:5*.5"}])
-	 * Discretize({"column":"MovieBudget", "numDigits":"10"}) Input keys: 1. column
-	 * (required) 2. breaks (conditionally required - req only if labels specified)
-	 * - can be one of 3 types: integer, breakpoints as a list, mathematical
-	 * notation of range - breakpoints as a list or mathematical notation of range
-	 * need to be specified in ascending order 3. labels (optional) 4. numDigits
-	 * (optional) specifies number of digits used in formatting the break/range
-	 * numbers
-	 * 
-	 * Return format: if labels is not specified, then the discretized ranges will
-	 * be wrapped with [ ] (inclusive) or () or a combination and contain the lower
-	 * and upper range, comma separated: ex. [0, 100) aka 0 =< x < 100
-	 * 
+	 * </p>
+	 *
+	 * <p>
+	 * Discretize({"column":"MovieBudget", "numDigits":"10"})
+	 * </p>
+	 *
+	 * <p>
+	 * Input keys:
+	 * </p>
+	 * <ul>
+	 * <li>column (required)</li>
+	 * <li>breaks (conditionally required; required only if labels specified) - can
+	 * be one of three types: integer, breakpoints as a list, or mathematical
+	 * notation of range. Breakpoints as a list or mathematical notation of range
+	 * must be specified in ascending order</li>
+	 * <li>labels (optional)</li>
+	 * <li>numDigits (optional) - specifies number of digits used in formatting the
+	 * break/range numbers</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * Return format: if labels is not specified, then the discretized ranges are
+	 * wrapped with [ ] (inclusive), () (exclusive), or a combination and contain
+	 * the lower and upper range comma-separated, for example [0, 100) which means 0
+	 * =< x < 100.
+	 * </p>
 	 */
+
 	private static final String requestMap = "requestMap";
 
 	public DiscretizeReactor() {

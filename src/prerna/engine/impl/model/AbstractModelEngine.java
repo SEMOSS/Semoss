@@ -100,7 +100,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
-	 * 
+	 *
 	 * @param question
 	 * @param fullPrompt
 	 * @param context
@@ -139,79 +139,82 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// AbstractMessages
 		// then set the message_json to be the new abstractMessages
 		Object fullPrompt = parameters.remove(FULL_PROMPT);
-		if (fullPrompt != null) {
-			List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
-			Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
-			if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
-				room.getMessages().addAll(messageList);
-				messageList = room.getMessages();
-			} else {
-				room.setMessages(messageList);
-			}
-			String messageJson = MessageUtils.toJsonArrayWithImageData(messageList);
-			question = messageJson;
-			parameters.put("message_json", messageJson);
-
-			Object toolChoiceObj = parameters.get("tool_choice");
-			if (toolChoiceObj != null) {
-				Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
-				if (mcpToolChoice != null) {
-					parameters.put("tool_choice", mcpToolChoice);
+		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore
+				.acquireMutationLock(fullPrompt != null ? room : null)) {
+			if (fullPrompt != null) {
+				List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
+				Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
+				if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
+					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
+					RoomMessageStore.refreshFromLatestProjection(room, userId);
+					room.getMessages().addAll(messageList);
+					messageList = room.getMessages();
+				} else {
+					room.setMessages(messageList);
 				}
-			}
+				String messageJson = RoomMessageStore.providerMessageHistory(room, messageList);
+				question = messageJson;
+				parameters.put("message_json", messageJson);
 
-			Object toolsObj = parameters.get("tools");
-			if (toolsObj instanceof List<?>) {
-				boolean convertable = true;
-				List<?> toolsListRaw = (List<?>) toolsObj;
-				for (Object obj : toolsListRaw) {
-					if (!(obj instanceof Map)) {
-						convertable = false;
-						break;
+				Object toolChoiceObj = parameters.get("tool_choice");
+				if (toolChoiceObj != null) {
+					Map<String, Object> mcpToolChoice = MessageUtils.toMCPToolChoice(toolChoiceObj);
+					if (mcpToolChoice != null) {
+						parameters.put("tool_choice", mcpToolChoice);
 					}
 				}
-				if (convertable) {
-					@SuppressWarnings("unchecked")
-					List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
-					List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
-					if (mcpTools != null) {
-						parameters.put("tools", mcpTools);
+
+				Object toolsObj = parameters.get("tools");
+				if (toolsObj instanceof List<?>) {
+					boolean convertable = true;
+					List<?> toolsListRaw = (List<?>) toolsObj;
+					for (Object obj : toolsListRaw) {
+						if (!(obj instanceof Map)) {
+							convertable = false;
+							break;
+						}
+					}
+					if (convertable) {
+						@SuppressWarnings("unchecked")
+						List<Map<String, Object>> toolsList = (List<Map<String, Object>>) toolsObj;
+						List<Map<String, Object>> mcpTools = MessageUtils.convertOpenAIToMCPTools(toolsList);
+						if (mcpTools != null) {
+							parameters.put("tools", mcpTools);
+						}
 					}
 				}
+
+				fullPrompt = MessageUtils.toJsonArray(room.getMessages());
+				question = MessageUtils.toJsonArray(room.getMessages());
 			}
 
-			fullPrompt = MessageUtils.toJsonArray(room.getMessages());
-			question = MessageUtils.toJsonArray(room.getMessages());
+			ZonedDateTime inputTime = ZonedDateTime.now();
+			AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+					parameters);
+			ZonedDateTime outputTime = ZonedDateTime.now();
 
-		}
+			if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
+				AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
+				classLogger.error(
+						"An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}",
+						errorDetails.getClient(), errorDetails.getCode(), errorDetails.getModel(),
+						errorDetails.getStringResponse(), errorDetails.getTraceback());
 
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
-				parameters);
-		ZonedDateTime outputTime = ZonedDateTime.now();
+				askModelResponse.setMessageId(GUID.v7().toUUID().toString());
+				askModelResponse.setRoomId(room.getId());
 
-		if (AskModelEngineResponse.ERROR.equals(askModelResponse.getMessageType())) {
-			AskErrorModelEngineResponse errorDetails = (AskErrorModelEngineResponse) askModelResponse;
-			classLogger.error(
-					"An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}",
-					errorDetails.getClient(), errorDetails.getCode(), errorDetails.getModel(),
-					errorDetails.getStringResponse(), errorDetails.getTraceback());
+				throw new SemossModelEngineException(askModelResponse);
+			}
 
 			askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 			askModelResponse.setRoomId(room.getId());
 
-			throw new SemossModelEngineException(askModelResponse);
-		}
-
-		askModelResponse.setMessageId(GUID.v7().toUUID().toString());
-		askModelResponse.setRoomId(room.getId());
-
-		String insightId = room.getInsight().getInsightId();
-		String projectId = room.getInsight().getProjectId();
-		// if the insight project id is null, check fi one exists on the room
-		if (projectId == null) {
-			projectId = room.getProjectId();
-		}
+			String insightId = room.getInsight().getInsightId();
+			String projectId = room.getInsight().getProjectId();
+			// if the insight project id is null, check fi one exists on the room
+			if (projectId == null) {
+				projectId = room.getProjectId();
+			}
 
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
@@ -244,53 +247,51 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 		// @formatter:on
 
-		// update current usage based on this new request
-		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse, inputTime,
-				outputTime);
+			// update current usage based on this new request
+			ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse,
+					inputTime, outputTime);
 
-		String currentRoomName = room.getRoomName();
+			String currentRoomName = room.getRoomName();
 
-		if (fullPrompt != null) {
-
-			// Grabbing room name from first input message if room name is empty
-			if (currentRoomName == null || currentRoomName.isEmpty()) {
-				String roomName = null;
-				if (!room.getMessages().isEmpty()) {
-					AbstractMessage first = room.getMessages().get(0);
-					if (first instanceof InputMessage) {
-						String uiPrompt = ((InputMessage) first).getInputUIPrompt();
-						if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
-							roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+			if (fullPrompt != null) {
+				// Grabbing room name from first input message if room name is empty
+				if (currentRoomName == null || currentRoomName.isEmpty()) {
+					String roomName = null;
+					if (!room.getMessages().isEmpty()) {
+						AbstractMessage first = room.getMessages().get(0);
+						if (first instanceof InputMessage) {
+							String uiPrompt = ((InputMessage) first).getInputUIPrompt();
+							if (uiPrompt != null && !uiPrompt.trim().isEmpty()) {
+								roomName = uiPrompt.substring(0, Math.min(uiPrompt.length(), 100));
+							}
 						}
+					}
+
+					if (roomName != null && !roomName.trim().isEmpty()) {
+						ModelInferenceLogsUtils.doSetNameForRoom(
+								room.getInsight().getUser().getPrimaryLoginToken().getId(), room.getId(), roomName);
 					}
 				}
 
-				if (roomName != null && !roomName.trim().isEmpty()) {
-					ModelInferenceLogsUtils.doSetNameForRoom(room.getInsight().getUser().getPrimaryLoginToken().getId(),
-							room.getId(), roomName);
-				}
+				ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
+				room.getMessages().add(response);
+
+				// set transaction id for both pieces
+				inputMessage.setTransactionId(response.getMessageId());
+				inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+				inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
+				response.setTransactionId(response.getMessageId());
+
+				// Create the assistant's response message and add to history
+				response.setModel(this);
+				response.setParentMessageId(inputMessage.getMessageId());
+				response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
+
+				RoomMessageStore.persist(room, room.getInsight().getUser().getPrimaryLoginToken().getId());
 			}
 
-			ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(askModelResponse).build();
-			room.getMessages().add(response);
-
-			// set transaction id for both pieces
-			inputMessage.setTransactionId(response.getMessageId());
-			inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
-			inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
-			response.setTransactionId(response.getMessageId());
-
-			// Create the assistant's response message and add to history
-			response.setModel(this);
-			response.setParentMessageId(inputMessage.getMessageId());
-			response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
-
-			ModelInferenceLogsUtils.llm2_updateRoomMessages(room.getId(),
-					room.getInsight().getUser().getPrimaryLoginToken().getId(),
-					MessageUtils.toJsonArray(room.getMessages()));
+			return askModelResponse;
 		}
-
-		return askModelResponse;
 	}
 
 	@Override
@@ -307,7 +308,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
-	 * 
+	 *
 	 * @param stringsToEmbed
 	 * @param insight
 	 * @param parameters
@@ -332,9 +333,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageId = GUID.v7().toUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/messageId,
-					/*transactionId*/messageId, 
-					/*messageMethod*/"embeddings", 
-					/*engine*/this, 
+					/*transactionId*/messageId,
+					/*messageMethod*/"embeddings",
+					/*engine*/this,
 					/*insightId*/insight.getInsightId(),
 					/*projectContextId*/insight.getContextProjectId(),
 					/*projectId*/insight.getProjectId(),
@@ -345,7 +346,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*prompt*/null,
 					/*fullPrompt*/stringsToEmbed,
 					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
+					/*inputTime*/inputTime,
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
@@ -364,7 +365,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * This is an abstract method for the implementation class such that tracking
 	 * occurs
-	 * 
+	 *
 	 * @param stringsToEmbed
 	 * @param insight
 	 * @param parameters
@@ -388,9 +389,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			String messageId = GUID.v7().toUUID().toString();
 			Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
 					/*messageId*/messageId,
-					/*transactionId*/messageId, 
-					/*messageMethod*/"embeddings", 
-					/*engine*/this, 
+					/*transactionId*/messageId,
+					/*messageMethod*/"embeddings",
+					/*engine*/this,
 					/*insightId*/insight.getInsightId(),
 					/*projectContextId*/insight.getContextProjectId(),
 					/*projectId*/insight.getProjectId(),
@@ -401,7 +402,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					/*prompt*/null,
 					/*fullPrompt*/imagesToEmbed,
 					/*promptTokens*/embeddingsResponse.getNumberOfTokensInPrompt(),
-					/*inputTime*/inputTime, 
+					/*inputTime*/inputTime,
 					/*response*/"",
 					/*responseTokens*/embeddingsResponse.getNumberOfTokensInResponse(),
 					/*outputTime*/outputTime
@@ -418,7 +419,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * 
+	 *
 	 * @return
 	 */
 	@Override

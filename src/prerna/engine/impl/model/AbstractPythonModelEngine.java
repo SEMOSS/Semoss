@@ -208,7 +208,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
 				commands[commandIndex] = fillVars(commands[commandIndex]);
 			}
-			this.pyTranslator.runEmptyPy(commands);
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
 			// for debugging...
 			classLogger.info("Initializing " + SmssUtilities.getUniqueName(this.engineName, this.engineId)
 					+ " python process with commands >>> " + String.join("\n", commands));
@@ -340,7 +340,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		classLogger.debug("Running model command {}", callMaker.toString());
 
-		Object output = pyTranslator.runDirectPy(insight, callMaker.toString());
+		Object output = pyTranslator.runDirectPyNoCancelTrace(insight, callMaker.toString());
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
@@ -383,7 +383,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		Object output = pyTranslator.runDirectPy(callMaker.toString());
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
@@ -419,7 +419,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		Object output = pyTranslator.runDirectPy(callMaker.toString());
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);

@@ -27,13 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.frame.r;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -57,13 +56,13 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		// get table name
 		String table = frame.getName();
 		// get columns to extract numeric characters
-		List<String> columns = getColumns();
+		List<String> columns = getListString(this.keysToGet[0], new ArrayList<>());
 		// check if user want to override the column or create new columns
-		boolean overrideColumn = getOverride();
+		boolean overrideColumn = getBoolean(this.keysToGet[1], false);
 		// we need to check data types this will only be valid on non numeric values
 		OwlTemporalEngineMeta metadata = frame.getMetaData();
 
-		List<PixelOperationType> opTypes = new Vector<PixelOperationType>();
+		List<PixelOperationType> opTypes = new ArrayList<>();
 		opTypes.add(PixelOperationType.FRAME_DATA_CHANGE);
 		// update existing columns
 		if (overrideColumn) {
@@ -108,35 +107,6 @@ public class ExtractNumbersReactor extends AbstractRFrameReactor {
 		}
 
 		return new NounMetadata(frame, PixelDataType.FRAME, opTypes);
-	}
-
-	private List<String> getColumns() {
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[0]);
-		Vector<String> columns = new Vector<String>();
-		NounMetadata noun;
-		if (grs != null) {
-			for (int i = 0; i < grs.size(); i++) {
-				noun = grs.getNoun(i);
-				if (noun != null) {
-					String column = noun.getValue() + "";
-					if (column.length() > 0) {
-						columns.add(column);
-					}
-				}
-			}
-		}
-		return columns;
-	}
-
-	private boolean getOverride() {
-		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
-		boolean override = false;
-		NounMetadata noun;
-		if (grs != null) {
-			noun = grs.getNoun(0);
-			override = (Boolean) noun.getValue();
-		}
-		return override;
 	}
 
 }
