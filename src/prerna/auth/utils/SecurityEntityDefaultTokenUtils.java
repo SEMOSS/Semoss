@@ -76,31 +76,31 @@ public class SecurityEntityDefaultTokenUtils {
 	}
 
 	public static void setEngineDefaultTokenLimit(String engineId, String usageFrequency, long maxTokens,
-			long maxInputTokens, long maxOutputTokens, boolean isActive, String createdBy, String createdByType,
-			String existingUsageFrequency) {
+			long maxInputTokens, long maxOutputTokens, Double maxResponseTime, boolean isActive, String createdBy,
+			String createdByType, String existingUsageFrequency) {
 		setDefaultTokenLimit(USER_DEFAULT_TABLE, ENGINE_ENTITY_TYPE, engineId, usageFrequency, existingUsageFrequency, maxTokens,
-				maxInputTokens, maxOutputTokens, null, isActive, createdBy, createdByType, false);
+				maxInputTokens, maxOutputTokens, maxResponseTime, isActive, createdBy, createdByType, false);
 	}
 
 	public static void setProjectDefaultTokenLimit(String projectId, String usageFrequency, long maxTokens,
-			long maxInputTokens, long maxOutputTokens, boolean isActive, String createdBy, String createdByType,
-			boolean restrictPerModel, String existingUsageFrequency) {
+			long maxInputTokens, long maxOutputTokens, Double maxResponseTime, boolean isActive, String createdBy,
+			String createdByType, boolean restrictPerModel, String existingUsageFrequency) {
 		setDefaultTokenLimit(USER_DEFAULT_TABLE, PROJECT_ENTITY_TYPE, projectId, usageFrequency, existingUsageFrequency, maxTokens,
-				maxInputTokens, maxOutputTokens, null, isActive, createdBy, createdByType, restrictPerModel);
+				maxInputTokens, maxOutputTokens, maxResponseTime, isActive, createdBy, createdByType, restrictPerModel);
 	}
 
 	public static void setEngineDefaultTeamTokenLimit(String engineId, String usageFrequency, long maxTokens,
-			long maxInputTokens, long maxOutputTokens, boolean isActive, String createdBy, String createdByType,
-			String existingUsageFrequency) {
+			long maxInputTokens, long maxOutputTokens, Double maxResponseTime, boolean isActive, String createdBy,
+			String createdByType, String existingUsageFrequency) {
 		setDefaultTokenLimit(TEAM_DEFAULT_TABLE, ENGINE_ENTITY_TYPE, engineId, usageFrequency, existingUsageFrequency, maxTokens,
-				maxInputTokens, maxOutputTokens, null, isActive, createdBy, createdByType, false);
+				maxInputTokens, maxOutputTokens, maxResponseTime, isActive, createdBy, createdByType, false);
 	}
 
 	public static void setProjectDefaultTeamTokenLimit(String projectId, String usageFrequency, long maxTokens,
-			long maxInputTokens, long maxOutputTokens, boolean isActive, String createdBy, String createdByType,
-			String existingUsageFrequency) {
+			long maxInputTokens, long maxOutputTokens, Double maxResponseTime, boolean isActive, String createdBy,
+			String createdByType, String existingUsageFrequency) {
 		setDefaultTokenLimit(TEAM_DEFAULT_TABLE, PROJECT_ENTITY_TYPE, projectId, usageFrequency, existingUsageFrequency, maxTokens,
-				maxInputTokens, maxOutputTokens, null, isActive, createdBy, createdByType, false);
+				maxInputTokens, maxOutputTokens, maxResponseTime, isActive, createdBy, createdByType, false);
 	}
 
 	public static void removeEngineDefaultTokenLimit(String engineId, String usageFrequency) {
