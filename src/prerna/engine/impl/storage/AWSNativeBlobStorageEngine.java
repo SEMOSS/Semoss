@@ -107,16 +107,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		if (this.accessKey == null || this.accessKey.isEmpty()) {
-			throw new RuntimeException("Must pass in an access key");
+			throw new IllegalArgumentException("Must pass in an access key");
 		}
 		if (this.secretKey == null || this.secretKey.isEmpty()) {
-			throw new RuntimeException("Must pass in a secret key");
+			throw new IllegalArgumentException("Must pass in a secret key");
 		}
 		if (this.region == null || this.region.isEmpty()) {
-			throw new RuntimeException("Must pass in a region");
+			throw new IllegalArgumentException("Must pass in a region");
 		}
 		if (this.bucket == null || this.bucket.isEmpty()) {
-			throw new RuntimeException("Must pass in a S3BucketPath");
+			throw new IllegalArgumentException("Must pass in a S3BucketPath");
 		}
 		createServiceClient();
 	}
@@ -259,14 +259,16 @@ public class AWSNativeBlobStorageEngine extends AbstractStorageEngine {
 			// Delete extra directory from AWS s3 storage
 			syncStorageDeletion(storagePath, localBasePath);
 
-			Files.walk(localFilePath).filter(Files::isRegularFile).forEach(file -> {
-				try {
-					uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
-				} catch (Exception e) {
-					failedFiles.add(file.toString());
-					classLogger.error("Failed to upload file: {}", file, e);
-				}
-			});
+			try (Stream<Path> stream = Files.walk(localFilePath)) {
+				stream.filter(Files::isRegularFile).forEach(file -> {
+					try {
+						uploadedFiles.add(uploadFileToS3(storagePath, file, localBasePath, metadata));
+					} catch (Exception e) {
+						failedFiles.add(file.toString());
+						classLogger.error("Failed to upload file: {}", file, e);
+					}
+				});
+			}
 			found = true;
 		} catch (Exception e) {
 			classLogger.error("Sync operation failed.Rolling back failed uploads.", e);

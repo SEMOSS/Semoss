@@ -743,8 +743,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						Thread.currentThread().interrupt();
 						classLogger.error("Interrupted or execution failure during stop server", e);
 						return false;
-					} finally {
-						executor.shutdown();
 					}
 				}
 			} else {
@@ -796,8 +794,6 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			} catch (InterruptedException | ExecutionException e) {
 				Thread.currentThread().interrupt();
 				classLogger.error("Interrupted or execution failure during crash", e);
-			} finally {
-				executor.shutdown();
 			}
 		}
 

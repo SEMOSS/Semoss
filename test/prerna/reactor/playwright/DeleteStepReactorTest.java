@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
@@ -35,12 +35,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.MockitoAnnotations;
 
 import prerna.auth.User;
 import prerna.om.Insight;
@@ -48,7 +47,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-@RunWith(MockitoJUnitRunner.class)
 public class DeleteStepReactorTest {
 
 	private DeleteStepReactor reactor;
@@ -65,8 +63,9 @@ public class DeleteStepReactorTest {
 	@Mock
 	private NounStore mockNounStore;
 
-	@Before
+	@BeforeEach
 	public void setUp() {
+		MockitoAnnotations.openMocks(this);
 		reactor = new DeleteStepReactor();
 		reactor.setInsight(mockInsight);
 		reactor.setNounStore(mockNounStore);
@@ -135,7 +134,7 @@ public class DeleteStepReactorTest {
 		}
 	}
 
-	@Test(expected = IllegalStateException.class)
+	@Test
 	public void testExecute_SessionNotFound_ThrowsException() {
 		String sessionId = "nonexistent";
 		reactor.keyValue.put("sessionId", sessionId);
@@ -144,10 +143,10 @@ public class DeleteStepReactorTest {
 
 		when(mockUser.getPlaywrightSession(sessionId)).thenReturn(null);
 
-		reactor.execute();
+		assertThrows(IllegalStateException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_StepNotFound_ThrowsException() {
 		String sessionId = "session123";
 		String tabId = "tab-1";
@@ -175,10 +174,10 @@ public class DeleteStepReactorTest {
 		when(history.steps()).thenReturn(stepsMap);
 		mockSession.history = history;
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_TabNotFound_ThrowsException() {
 		String sessionId = "session123";
 		String tabId = "nonexistent-tab";
@@ -195,31 +194,31 @@ public class DeleteStepReactorTest {
 		when(history.steps()).thenReturn(stepsMap);
 		mockSession.history = history;
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_MissingSessionId_ThrowsException() {
 		reactor.keyValue.put("tabId", "tab-1");
 		reactor.keyValue.put("stepId", "1");
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_MissingTabId_ThrowsException() {
 		reactor.keyValue.put("sessionId", "session123");
 		reactor.keyValue.put("stepId", "1");
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_MissingStepId_ThrowsException() {
 		reactor.keyValue.put("sessionId", "session123");
 		reactor.keyValue.put("tabId", "tab-1");
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 	@Test
@@ -317,16 +316,16 @@ public class DeleteStepReactorTest {
 		}
 	}
 
-	@Test(expected = NumberFormatException.class)
+	@Test
 	public void testExecute_InvalidStepIdFormat_ThrowsException() {
 		reactor.keyValue.put("sessionId", "session123");
 		reactor.keyValue.put("tabId", "tab-1");
 		reactor.keyValue.put("stepId", "not-a-number");
 
-		reactor.execute();
+		assertThrows(NumberFormatException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_EmptyPages() {
 		String sessionId = "session123";
 		String tabId = "tab-1";
@@ -348,7 +347,7 @@ public class DeleteStepReactorTest {
 		when(history.steps()).thenReturn(stepsMap);
 		mockSession.history = history;
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 	@Test
@@ -453,7 +452,7 @@ public class DeleteStepReactorTest {
 		}
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_NegativeStepId() {
 		reactor.keyValue.put("sessionId", "session123");
 		reactor.keyValue.put("tabId", "tab-1");
@@ -477,10 +476,10 @@ public class DeleteStepReactorTest {
 		when(history.steps()).thenReturn(stepsMap);
 		mockSession.history = history;
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test
 	public void testExecute_ZeroStepId() {
 		reactor.keyValue.put("sessionId", "session123");
 		reactor.keyValue.put("tabId", "tab-1");
@@ -504,7 +503,7 @@ public class DeleteStepReactorTest {
 		when(history.steps()).thenReturn(stepsMap);
 		mockSession.history = history;
 
-		reactor.execute();
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 

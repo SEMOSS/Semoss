@@ -40,7 +40,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetInsightParametersReactor extends AbstractInsightParameterReactor {
 
-	private static final Logger logger = LogManager.getLogger(GetInsightParametersReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(GetInsightParametersReactor.class);
 
 	@Override
 	public NounMetadata execute() {
@@ -49,15 +49,15 @@ public class GetInsightParametersReactor extends AbstractInsightParameterReactor
 		// and return the parameter list
 		List<String> parameterKeys = varStore.getInsightParameterKeys();
 		List<ParamStruct> paramList = new Vector<>();
-		for(String paramName : parameterKeys) {
+		for (String paramName : parameterKeys) {
 			NounMetadata paramNoun = varStore.get(paramName);
-			if(paramNoun != null) {
+			if (paramNoun != null) {
 				paramList.add((ParamStruct) paramNoun.getValue());
 			} else {
-				logger.info("Unable to find parameter name = " + paramName);
+				classLogger.info("Unable to find parameter name = " + paramName);
 			}
 		}
-		
+
 		NounMetadata pStructNoun = new NounMetadata(paramList, PixelDataType.PARAM_STRUCT);
 		return pStructNoun;
 	}

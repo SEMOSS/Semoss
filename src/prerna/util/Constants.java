@@ -847,7 +847,6 @@ public class Constants {
 
 	public static final String SEMOSS_EXTENSION = ".smss";
 	public static final String HIDDEN_FILE_EXTENSION = ".hidden";
-	public static final String ENCRYPT_SMSS = "ENCRYPT_SMSS";
 
 	// Concept Metadata Table
 	public static final String CONCEPT_METADATA_TABLE = "CONCEPTMETADATA";
