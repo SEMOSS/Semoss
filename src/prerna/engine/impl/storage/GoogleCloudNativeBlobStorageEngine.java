@@ -348,16 +348,17 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 		}
 
 		// Delete local files not present in GCS
-		Files.walk(localDirectory).filter(Files::isRegularFile)
-				.filter(localFile -> !cloudFiles.contains(localFile.toString())).forEach(localFile -> {
-					try {
-						Files.delete(localFile);
-						classLogger.info("Deleted extra local file: {}", localFile);
-					} catch (IOException e) {
-						classLogger.error("Failed to delete extra file: {}", localFile, e);
-					}
-				});
-
+		try (Stream<Path> stream = Files.walk(localDirectory)) {
+			stream.filter(Files::isRegularFile).filter(localFile -> !cloudFiles.contains(localFile.toString()))
+					.forEach(localFile -> {
+						try {
+							Files.delete(localFile);
+							classLogger.info("Deleted extra local file: {}", localFile);
+						} catch (IOException e) {
+							classLogger.error("Failed to delete extra file: {}", localFile, e);
+						}
+					});
+		}
 		// Delete Empty Directories Locally
 		deleteEmptyDirectories(localDirectory);
 
@@ -391,8 +392,8 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 			deleteEmptyDirectories(filePath);
 
 			if (Files.isDirectory(filePath)) {
-				try (Stream<Path> fileStream = Files.walk(filePath).filter(Files::isRegularFile)) {
-					fileStream.forEach(file -> {
+				try (Stream<Path> stream = Files.walk(filePath)) {
+					stream.filter(Files::isRegularFile).forEach(file -> {
 						try {
 							uploadedFiles.add(uploadFileToGCS(filePath, file, storageFolderPath, metadata));
 						} catch (Exception e) {
@@ -792,9 +793,8 @@ public class GoogleCloudNativeBlobStorageEngine extends AbstractStorageEngine {
 	}
 
 	private void deleteEmptyDirectories(Path rootPath) {
-		try {
-
-			List<Path> directories = Files.walk(rootPath).sorted(Comparator.reverseOrder()) // Delete children first
+		try (Stream<Path> stream = Files.walk(rootPath)) {
+			List<Path> directories = stream.sorted(Comparator.reverseOrder()) // Delete children first
 					.filter(Files::isDirectory).collect(Collectors.toList());
 
 			for (Path dir : directories) {

@@ -57,7 +57,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.project.api.IProject;
-import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
+import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -709,7 +709,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		qs.setQsType(QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
+		qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -836,8 +836,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				error += e.getMessage();
 			}
 			if (error.isEmpty()) {
-				newSalt = SecurityQueryUtils.generateSalt();
-				newHashPass = SecurityQueryUtils.hash(password, newSalt);
+				newSalt = AbstractSecurityUtils.generateSalt();
+				newHashPass = AbstractSecurityUtils.hash(password, newSalt);
 			}
 		}
 		if (phone != null && !phone.isEmpty()) {

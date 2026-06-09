@@ -69,7 +69,6 @@ import prerna.reactor.imports.RdbmsImporter;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.ui.components.playsheets.datamakers.JoinTransformation;
-import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -189,7 +188,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the statement after caching the H2 frame", e);
 				}
 			}
 		}
@@ -245,7 +244,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			r = new InputStreamReader(gis);
 			RunScript.execute(this.conn, r);
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error opening the cached H2 frame", e);
 			throw new IOException("Error occurred opening cached SQL Frame");
 		} finally {
 			try {
@@ -259,7 +258,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 					r.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error closing the streams while opening the cached H2 frame", e);
 			}
 
 			// open the meta details
@@ -290,7 +289,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				serverURL = "jdbc:h2:" + server.getURL() + "/nio:" + this.schema;
 				server.start();
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error starting the H2 TCP server", e);
 			}
 		}
 		System.out.println("URL... " + serverURL);
@@ -343,14 +342,14 @@ public class H2Frame extends AbstractRdbmsFrame {
 
 				tablePermissions.put(tableName, retString);
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Error creating the H2 read-only user for table {}", tableName, e);
 			} finally {
 				if (stmt != null) {
 					try {
 						stmt.close();
 					} catch (SQLException e) {
 						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Error closing the statement after creating the H2 user", e);
 					}
 				}
 			}
@@ -390,7 +389,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 			return stmt.executeQuery();
 		} catch (SQLException e) {
 			error = true;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing the query {}", query, e);
 		} finally {
 			// it is the responsibility of the code executing this
 			// to take the statement and close it if no error
@@ -398,7 +397,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 				try {
 					stmt.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the statement after executing the query", e);
 				}
 			}
 		}
@@ -411,7 +410,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		try {
 			this.builder.runQuery(query);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error deleting all rows from the H2 frame", e);
 		}
 	}
 
@@ -489,7 +488,7 @@ public class H2Frame extends AbstractRdbmsFrame {
 		}
 
 		long time2 = System.currentTimeMillis();
-		classLogger.info(" Processed Merging Data: " + (time2 - time1) + " ms");
+		classLogger.info(" Processed Merging Data: {} ms", (time2 - time1));
 	}
 
 	// @formatter:off
