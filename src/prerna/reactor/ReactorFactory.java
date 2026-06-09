@@ -84,7 +84,6 @@ import prerna.reactor.algorithms.xray.GetLocalSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXLSchemaReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigFileReactor;
 import prerna.reactor.algorithms.xray.GetXrayConfigListReactor;
-import prerna.reactor.cluster.CleanUpDatabasesReactor;
 import prerna.reactor.cluster.OpenDatabaseReactor;
 import prerna.reactor.cluster.VersionReactor;
 import prerna.reactor.database.DatabaseColumnUniqueReactor;
@@ -381,11 +380,7 @@ import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
-import prerna.reactor.utils.BDelReactor;
-import prerna.reactor.utils.BQReactor;
 import prerna.reactor.utils.BackupDatabaseReactor;
-import prerna.reactor.utils.BaddReactor;
-import prerna.reactor.utils.BupdReactor;
 import prerna.reactor.utils.CheckRPackagesReactor;
 import prerna.reactor.utils.CheckRecommendOptimizationReactor;
 import prerna.reactor.utils.DatabaseProfileReactor;
@@ -1028,7 +1023,6 @@ public class ReactorFactory {
 
 		// Clusters
 		reactorHash.put("OpenDatabase", OpenDatabaseReactor.class);
-		reactorHash.put("CleanUpDatabases", CleanUpDatabasesReactor.class);
 		reactorHash.put("Version", VersionReactor.class);
 		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
@@ -1089,12 +1083,6 @@ public class ReactorFactory {
 //		reactorHash.put("TaxRetrieveValue", TaxRetrieveValue2.class);
 //		reactorHash.put("RunAliasMatch", RunAliasMatchReactor.class);
 //		reactorHash.put("SaveTaxScenario", SaveTaxScenarioReactor.class);
-
-		// bitly
-		reactorHash.put("badd", BaddReactor.class);
-		reactorHash.put("bupd", BupdReactor.class);
-		reactorHash.put("bdel", BDelReactor.class);
-		reactorHash.put("bq", BQReactor.class);
 
 		// Dates
 		reactorHash.put("DATE", DateReactor.class);

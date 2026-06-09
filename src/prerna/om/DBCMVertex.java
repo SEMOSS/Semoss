@@ -39,190 +39,195 @@ import org.openrdf.model.Literal;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-
 /**
  */
-public class DBCMVertex{
-	
-	
+public class DBCMVertex {
+
 	public String uri = null;
-	public Hashtable <String, Object> propHash = new Hashtable<String,Object>();
-	transient Hashtable <String, String>uriHash = new Hashtable<String,String>();
-	Vector <DBCMEdge> inEdge = new Vector<DBCMEdge>();
-	Vector <DBCMEdge> outEdge = new Vector<DBCMEdge>();
-	
-	transient static final Logger logger = LogManager.getLogger(DBCMVertex.class.getName());
-	
+	public Hashtable<String, Object> propHash = new Hashtable<String, Object>();
+	transient Hashtable<String, String> uriHash = new Hashtable<String, String>();
+	Vector<DBCMEdge> inEdge = new Vector<DBCMEdge>();
+	Vector<DBCMEdge> outEdge = new Vector<DBCMEdge>();
+
+	transient static final Logger classLogger = LogManager.getLogger(DBCMVertex.class.getName());
+
 	// TODO need to find a way to identify the source i.e. put that as a property
-	
+
 	/**
 	 * Constructor for DBCMVertex.
+	 * 
 	 * @param uri String
 	 */
-	public DBCMVertex(String uri)
-	{
+	public DBCMVertex(String uri) {
 		this.uri = uri;
 		putProperty(Constants.URI, uri);
-		
+
 		// parse out all the oth er properties
-		logger.debug("URI " + uri);
+		classLogger.debug("URI " + uri);
 		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
 //		int totalTok = tokens.countTokens();
 		String className = Utility.getClassName(uri);
 		String instanceName = Utility.getInstanceName(uri);
-		
-		logger.debug("Class Name " + className + " Instance Name " + instanceName);
 
-		if(instanceName == null)
+		classLogger.debug("Class Name " + className + " Instance Name " + instanceName);
+
+		if (instanceName == null) {
 			instanceName = uri;
-		if(className == null)
+		}
+		if (className == null) {
 			className = instanceName;
-		
+		}
+
 		putProperty(Constants.VERTEX_TYPE, className);
-		logger.debug("Type is " + className);
-		
+		classLogger.debug("Type is " + className);
+
 		putProperty(Constants.VERTEX_NAME, instanceName);
-		logger.debug("Name is " + instanceName);
+		classLogger.debug("Name is " + instanceName);
 
 	}
-	
+
 	/**
 	 * Constructor for DBCMVertex.
+	 * 
 	 * @param type String
 	 * @param vert Object
 	 */
-	public DBCMVertex(String type, Object vert)
-	{
+	public DBCMVertex(String type, Object vert) {
 		this.uri = type + "/" + vert;
 		putProperty(Constants.URI, this.uri);
-		
-		String value = vert +"";
-		if(vert instanceof Literal)
-		{
-			//logger.info("This is a literal impl >>>>>> "  + ((Literal)propValue).doubleValue());
+
+		String value = vert + "";
+		if (vert instanceof Literal) {
+			// logger.info("This is a literal impl >>>>>> " +
+			// ((Literal)propValue).doubleValue());
 			try {
-				propHash.put(type, ((Literal)vert).doubleValue());				
-			}catch(Exception ex)
-			{logger.debug(ex);}
-			try{
+				propHash.put(type, ((Literal) vert).doubleValue());
+			} catch (Exception ex) {
+				classLogger.debug(ex);
+			}
+			try {
 				propHash.put(type, vert + "");
-			}catch (Exception ex)
-			{logger.debug(ex);}
+			} catch (Exception ex) {
+				classLogger.debug(ex);
+			}
 		}
 
 		// parse out all the oth er properties
-		logger.debug("URI " + uri);
+		classLogger.debug("URI " + uri);
 		String className = Utility.getInstanceName(uri);
-				
-		putProperty(Constants.VERTEX_TYPE, className);
-		logger.debug("Type is " + className);
-		
-		putProperty(Constants.VERTEX_NAME, value);
-		logger.debug("Name is " + value);
 
+		putProperty(Constants.VERTEX_TYPE, className);
+		classLogger.debug("Type is " + className);
+
+		putProperty(Constants.VERTEX_NAME, value);
+		classLogger.debug("Name is " + value);
 	}
 
-	
 	/**
 	 * Method getProperty.
-	
-	 * @return Hashtable */
-	public Hashtable getProperty()
-	{
+	 * 
+	 * @return Hashtable
+	 */
+	public Hashtable getProperty() {
 		return this.propHash;
 	}
-	
+
 	/**
 	 * Method addInEdge.
+	 * 
 	 * @param edge DBCMEdge
 	 */
-	public void addInEdge(DBCMEdge edge)
-	{
+	public void addInEdge(DBCMEdge edge) {
 		inEdge.add(edge);
 		double edgeCount = 0.0;
-		if(propHash.containsKey(Constants.INEDGE_COUNT))
-			edgeCount = (Double)propHash.get(Constants.INEDGE_COUNT);
+		if (propHash.containsKey(Constants.INEDGE_COUNT)) {
+			edgeCount = (Double) propHash.get(Constants.INEDGE_COUNT);
+		}
 		edgeCount++;
 		propHash.put(Constants.INEDGE_COUNT, edgeCount);
-		
+
 		addVertexCounter(edge.inVertex);
 	}
-	
+
 	/**
 	 * Method addVertexCounter.
+	 * 
 	 * @param outVert DBCMVertex
 	 */
-	public void addVertexCounter(DBCMVertex outVert)
-	{
-		// also create specific 
+	public void addVertexCounter(DBCMVertex outVert) {
+		// also create specific
 		// find the type
 		// get the node on other side
-		String vertType = (String)outVert.getProperty(Constants.VERTEX_TYPE);
-		//logger.info("Vertex Type is >>>>>>>>>>>>>>>>>" + vertType);
+		String vertType = (String) outVert.getProperty(Constants.VERTEX_TYPE);
+		// logger.info("Vertex Type is >>>>>>>>>>>>>>>>>" + vertType);
 		Integer vertTypeCount = new Integer(0);
-		if(propHash.containsKey(vertType))
-			vertTypeCount = (Integer)propHash.get(vertType);	
+		if (propHash.containsKey(vertType)) {
+			vertTypeCount = (Integer) propHash.get(vertType);
+		}
 		vertTypeCount++;
 		propHash.put(vertType, vertTypeCount);
 	}
-	
-	
+
 	/**
 	 * Method addOutEdge.
+	 * 
 	 * @param edge DBCMEdge
 	 */
-	public void addOutEdge(DBCMEdge edge)
-	{
+	public void addOutEdge(DBCMEdge edge) {
 		outEdge.add(edge);
 		double edgeCount = 0.0;
-		if(propHash.containsKey(Constants.OUTEDGE_COUNT))
-			edgeCount = (Double)propHash.get(Constants.OUTEDGE_COUNT);
+		if (propHash.containsKey(Constants.OUTEDGE_COUNT)) {
+			edgeCount = (Double) propHash.get(Constants.OUTEDGE_COUNT);
+		}
 		edgeCount++;
 		propHash.put(Constants.OUTEDGE_COUNT, edgeCount);
 
 		addVertexCounter(edge.outVertex);
 	}
-	
+
 	/**
 	 * Method getInEdges.
-	
-	 * @return Vector<DBCMEdge> */
-	public Vector<DBCMEdge> getInEdges()
-	{
+	 * 
+	 * @return Vector<DBCMEdge>
+	 */
+	public Vector<DBCMEdge> getInEdges() {
 		return this.inEdge;
 	}
 
 	/**
 	 * Method getOutEdges.
-	
-	 * @return Vector<DBCMEdge> */
-	public Vector<DBCMEdge> getOutEdges()
-	{
+	 * 
+	 * @return Vector<DBCMEdge>
+	 */
+	public Vector<DBCMEdge> getOutEdges() {
 		return this.outEdge;
 	}
 
 	/**
 	 * Method getURI.
-	
-	 * @return String */
-	public String getURI()
-	{
+	 * 
+	 * @return String
+	 */
+	public String getURI() {
 		return uri;
 	}
 
 	/**
 	 * Method getProperty.
+	 * 
 	 * @param arg0 String
-	
-	 * @return Object */
+	 * 
+	 * @return Object
+	 */
 	public Object getProperty(String arg0) {
 		return propHash.get(arg0);
 	}
 
 	/**
 	 * Method getPropertyKeys.
-	
-	 * @return Set<String> */
+	 * 
+	 * @return Set<String>
+	 */
 	public Set<String> getPropertyKeys() {
 		// TODO: Don't return null
 		return null;
@@ -230,27 +235,30 @@ public class DBCMVertex{
 
 	/**
 	 * Method removeProperty.
+	 * 
 	 * @param arg0 String
-	
-	 * @return Object */
+	 * 
+	 * @return Object
+	 */
 	public Object removeProperty(String arg0) {
 		return propHash.remove(arg0);
 	}
 
 	/**
 	 * Method putProperty.
-	 * @param propName String
+	 * 
+	 * @param propName  String
 	 * @param propValue String
 	 */
-	public void putProperty(String propName, String propValue)
-	{
+	public void putProperty(String propName, String propValue) {
 		propHash.put(propName, propValue);
 	}
-	
+
 	/**
 	 * Method setProperty.
+	 * 
 	 * @param propNameURI String
-	 * @param propValue Object
+	 * @param propValue   Object
 	 */
 	public void setProperty(String propNameURI, Object propValue) {
 		// one is a p
@@ -260,102 +268,91 @@ public class DBCMVertex{
 		String instanceName = null;
 
 		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok)
+			if (tokIndex + 2 == totalTok) {
 				className = tokens.nextToken();
-			else if (tokIndex + 1 == totalTok)
+			} else if (tokIndex + 1 == totalTok) {
 				instanceName = tokens.nextToken();
-			else
+			} else {
 				tokens.nextToken();
+			}
 		}
 		uriHash.put(instanceName, propNameURI);
 		// I need to convert these decimals and other BS into a proper value
 		// awesome !!
 		// will come to this in a bit
-		logger.debug(instanceName + "<>" + propValue);
+		classLogger.debug(instanceName + "<>" + propValue);
 
 		// need to write the routine for conversion here
-		
+
 		boolean converted = false;
-		try
-		{
-			if(propValue instanceof Literal)
-			{
-				//logger.info("This is a literal impl >>>>>> "  + ((Literal)propValue).doubleValue());
-				propHash.put(instanceName, ((Literal)propValue).doubleValue());
+		try {
+			if (propValue instanceof Literal) {
+				// logger.info("This is a literal impl >>>>>> " +
+				// ((Literal)propValue).doubleValue());
+				propHash.put(instanceName, ((Literal) propValue).doubleValue());
 				converted = true;
 			}
-		}catch(RuntimeException ex)
-		{
-			logger.debug(ex);
+		} catch (RuntimeException ex) {
+			classLogger.debug(ex);
 		}
-		try
-		{
-			if(propValue instanceof org.apache.jena.rdf.model.Literal)
-			{
-				logger.info("Class is " + propValue.getClass());
+		try {
+			if (propValue instanceof org.apache.jena.rdf.model.Literal) {
+				classLogger.info("Class is " + propValue.getClass());
 				// try double
-				try
-				{
-					Double value = ((org.apache.jena.rdf.model.Literal)propValue).getDouble();
+				try {
+					Double value = ((org.apache.jena.rdf.model.Literal) propValue).getDouble();
 					converted = true;
 					propHash.put(instanceName, value);
-				}catch (RuntimeException ignored) {
-					logger.debug(ignored);
+				} catch (RuntimeException ignored) {
+					classLogger.debug(ignored);
 					converted = false;
 				}
-				
+
 				// try integer
-				if(!converted)
-				{
-					try
-					{
-						Integer value = ((org.apache.jena.rdf.model.Literal)propValue).getInt();
+				if (!converted) {
+					try {
+						Integer value = ((org.apache.jena.rdf.model.Literal) propValue).getInt();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (RuntimeException ignored) {
-						logger.debug(ignored);
+					} catch (RuntimeException ignored) {
+						classLogger.debug(ignored);
 						converted = false;
 					}
 				}
-				
+
 				// try boolean
-				if(!converted)
-				{
-					try
-					{
-						Boolean value = ((org.apache.jena.rdf.model.Literal)propValue).getBoolean();
+				if (!converted) {
+					try {
+						Boolean value = ((org.apache.jena.rdf.model.Literal) propValue).getBoolean();
 						converted = true;
 						propHash.put(instanceName, value);
-					}catch (RuntimeException ignored) {
-						logger.debug(ignored);
+					} catch (RuntimeException ignored) {
+						classLogger.debug(ignored);
 					}
 				}
 				// try string
-				if(!converted)
-				{
-					try
-					{
-						String value = ((org.apache.jena.rdf.model.Literal)propValue).getString();
+				if (!converted) {
+					try {
+						String value = ((org.apache.jena.rdf.model.Literal) propValue).getString();
 						converted = true;
 						propHash.put(instanceName, value);
 
-					}catch (RuntimeException ignored) {
-						logger.debug(ignored);
+					} catch (RuntimeException ignored) {
+						classLogger.debug(ignored);
 						converted = false;
 					}
 				}
-				
-				//propHash.put(instanceName, ((org.apache.jena.rdf.model.Literal)propValue).getDouble());
-				//converted = true;
+
+				// propHash.put(instanceName,
+				// ((org.apache.jena.rdf.model.Literal)propValue).getDouble());
+				// converted = true;
 			}
-		}catch(RuntimeException ex)
-		{
-			logger.debug(ex);
+		} catch (RuntimeException ex) {
+			classLogger.debug(ex);
 		}
-		if(!converted)
-		{
+		if (!converted) {
 			propHash.put(instanceName, propValue);
 		}
-		logger.debug(uri + "<>" + instanceName + "<>" + propValue);
+		classLogger.debug(uri + "<>" + instanceName + "<>" + propValue);
 	}
 }

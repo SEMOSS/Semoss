@@ -54,7 +54,7 @@ import prerna.util.Utility;
 
 public class MgmtUtil {
 
-	protected static final Logger logger = LogManager.getLogger(MgmtUtil.class);
+	protected static final Logger classLogger = LogManager.getLogger(MgmtUtil.class);
 
 	static long previousTime = 0;
 	static SystemInfo si = new SystemInfo();
@@ -73,9 +73,9 @@ public class MgmtUtil {
 		 */
 		OSProcess process;
 		process = os.getProcess(pid);
-		logger.info("Disk I/O Usage :");
-		logger.info("I/O Reads: " + process.getBytesRead());
-		logger.info("I/O Writes: " + process.getBytesWritten());
+		classLogger.info("Disk I/O Usage :");
+		classLogger.info("I/O Reads: " + process.getBytesRead());
+		classLogger.info("I/O Writes: " + process.getBytesWritten());
 	}
 
 	public static void cpuUtilizationPerProcess(int processId) {
@@ -94,8 +94,8 @@ public class MgmtUtil {
 		long timeDifference = currentTime - previousTime;
 		double processCpu = (100 * (timeDifference / 5000d)) / cpuNumber;
 		previousTime = currentTime;
-		logger.info("CPU Usage :");
-		logger.info("CPU : " + (int) processCpu + "%");
+		classLogger.info("CPU Usage :");
+		classLogger.info("CPU : " + (int) processCpu + "%");
 	}
 
 	public static long memoryUtilizationPerProcess(int pid) {
@@ -140,7 +140,7 @@ public class MgmtUtil {
 		List<OSProcess> childProcesses = os.getChildProcesses(pid, null, null, 10);
 
 		for (int childIndex = 0; childIndex < childProcesses.size(); childIndex++) {
-			logger.info("Process id " + childProcesses.get(childIndex).getProcessID() + " <> "
+			classLogger.info("Process id " + childProcesses.get(childIndex).getProcessID() + " <> "
 					+ childProcesses.get(childIndex).getCommandLine());
 		}
 	}
@@ -164,13 +164,13 @@ public class MgmtUtil {
 			long availableMemory = gm.getAvailable();
 			// convert to gigs
 			freeMemory.set(availableMemory / (1024 * 1024 * 1024));
-			logger.info("Server total available memory = " + freeMemory.longValue() + " GB");
+			classLogger.info("Server total available memory = " + freeMemory.longValue() + " GB");
 			// give a 2GB limit
 			String reservedJavaMem = Utility.getDIHelperProperty(Settings.RESERVED_JAVA_MEM);
 			if (reservedJavaMem != null && !(reservedJavaMem = reservedJavaMem.trim()).isEmpty()) {
 				long javaReservedMemory = Long.parseLong(reservedJavaMem);
 				freeMemory.getAndAdd(-1 * javaReservedMemory);
-				logger.info("Total available memory minus RESERVED_JAVA_MEM = " + freeMemory.longValue() + " GB");
+				classLogger.info("Total available memory minus RESERVED_JAVA_MEM = " + freeMemory.longValue() + " GB");
 
 			}
 		}
@@ -210,8 +210,8 @@ public class MgmtUtil {
 					try {
 						return Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						logger.error("pid is not a valid pid");
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error("pid is not a valid pid");
+						classLogger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 				}
@@ -231,14 +231,14 @@ public class MgmtUtil {
 					try {
 						return Integer.parseInt(pid.trim());
 					} catch (NumberFormatException e) {
-						logger.error("pid is not a valid pid");
-						logger.error(Constants.STACKTRACE, e);
+						classLogger.error("pid is not a valid pid");
+						classLogger.error(Constants.STACKTRACE, e);
 						throw e;
 					}
 				}
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			tempFile.delete();
 
@@ -252,18 +252,18 @@ public class MgmtUtil {
 		// remove the user
 		// add the memory back
 		userCount.decrementAndGet();
-		logger.info("User logging out releasing " + memoryInGigs + " GB of memory");
+		classLogger.info("User logging out releasing " + memoryInGigs + " GB of memory");
 		freeMemory.addAndGet(memoryInGigs);
-		logger.info("Total available memory after removing user = " + freeMemory.longValue() + " GB");
+		classLogger.info("Total available memory after removing user = " + freeMemory.longValue() + " GB");
 	}
 
 	public static void addMemory4User(long memoryInGigs) {
 		// add number of users
 		// remove the memory
 		userCount.incrementAndGet();
-		logger.info("User logging in consuming " + memoryInGigs + " GB of memory");
+		classLogger.info("User logging in consuming " + memoryInGigs + " GB of memory");
 		freeMemory.addAndGet(-1 * memoryInGigs);
-		logger.info("Total available memory after adding user = " + freeMemory.longValue() + " GB");
+		classLogger.info("Total available memory after adding user = " + freeMemory.longValue() + " GB");
 	}
 
 	public static long getUserCount() {

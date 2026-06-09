@@ -37,26 +37,26 @@ import org.apache.logging.log4j.Logger;
 
 public class RPAUtil {
 
-	private static final Logger logger = LogManager.getLogger(RPAUtil.class.getName());
+	private static final Logger classLogger = LogManager.getLogger(RPAUtil.class.getName());
 
 	private RPAUtil() {
 		throw new IllegalStateException("Utility class");
 	}
-	
+
 	public static long minutesSinceStartTime(long startTimeMillis) {
-		return (System.currentTimeMillis() - startTimeMillis)/60000;
+		return (System.currentTimeMillis() - startTimeMillis) / 60000;
 	}
 
 	public static long secondsSinceStartTime(long startTimeMillis) {
-		return (System.currentTimeMillis() - startTimeMillis)/1000;
+		return (System.currentTimeMillis() - startTimeMillis) / 1000;
 	}
 
 	public static String readStringFromFile(String filePath) throws IOException {
 		String string;
-		try (InputStream in = new FileInputStream(filePath)){
+		try (InputStream in = new FileInputStream(filePath)) {
 			string = IOUtils.toString(in, "UTF-8");
 		} catch (IOException e) {
-			logger.error("Failed to read the file " + filePath + ".");
+			classLogger.error("Failed to read the file " + filePath + ".");
 			throw e;
 		}
 		return string;

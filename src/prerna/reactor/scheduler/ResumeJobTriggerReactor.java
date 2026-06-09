@@ -49,7 +49,7 @@ import prerna.util.Utility;
 
 public class ResumeJobTriggerReactor extends AbstractReactor {
 
-	private static final Logger logger = LogManager.getLogger(ResumeJobTriggerReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ResumeJobTriggerReactor.class);
 
 	public ResumeJobTriggerReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.JOB_ID.getKey(), ReactorKeysEnum.JOB_GROUP.getKey() };
@@ -100,7 +100,7 @@ public class ResumeJobTriggerReactor extends AbstractReactor {
 				scheduler.resumeTrigger(triggerKey);
 			}
 		} catch (SchedulerException se) {
-			logger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
+			classLogger.error("Failed to resume job trigger for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
 					se.getMessage(), se);
 		}
 

@@ -53,7 +53,7 @@ import prerna.util.SystemEngineRegistry;
 
 public class EngineViewsUtils extends UserTrackingUtils {
 
-	private static Logger logger = LogManager.getLogger(EngineViewsUtils.class);
+	private static Logger classLogger = LogManager.getLogger(EngineViewsUtils.class);
 
 	private static String EV_TN = "ENGINE_VIEWS";
 	private static String EV_PRE = "ENGINE_VIEWS__";
@@ -99,7 +99,7 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				viewsByDate.add(Pair.of(date, view));
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return viewsByDate;
@@ -140,12 +140,12 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -166,12 +166,12 @@ public class EngineViewsUtils extends UserTrackingUtils {
 				ps.getConnection().commit();
 			}
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} finally {
 			try {
 				ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps.getConnection(), ps, null);
 			} catch (SQLException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}

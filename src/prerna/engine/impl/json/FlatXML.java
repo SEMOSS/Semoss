@@ -83,7 +83,7 @@ public class FlatXML {
 	// <specific path pattern>= alias header to use
 
 	// the output is finally cobbled into a R datatable through a c()
-	private static final Logger logger = LogManager.getLogger(FlatXML.class);
+	private static final Logger classLogger = LogManager.getLogger(FlatXML.class);
 
 	public static final String INPUT_TYPE = "input_type";
 	public static final String OUTPUT_TYPE = "output_type";
@@ -132,9 +132,9 @@ public class FlatXML {
 
 			System.out.println(">> " + retString);
 		} catch (ClientProtocolException cpe) {
-			logger.error(STACKTRACE, cpe);
+			classLogger.error(STACKTRACE, cpe);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			classLogger.error(STACKTRACE, ioe);
 		} finally {
 			if (httpclient != null) {
 				try {
@@ -186,8 +186,8 @@ public class FlatXML {
 				numRows = data[pathIndex].size();
 			}
 
-			logger.debug(" >> " + data[pathIndex].toString());
-			logger.debug("Length >> " + data[pathIndex].size());
+			classLogger.debug(" >> " + data[pathIndex].toString());
+			classLogger.debug("Length >> " + data[pathIndex].size());
 
 			Object firstOne = data[pathIndex].get(0);
 			if (firstOne instanceof Integer) {
@@ -201,7 +201,7 @@ public class FlatXML {
 			}
 		}
 
-		logger.debug("Output..  " + data);
+		classLogger.debug("Output..  " + data);
 
 		Hashtable retHash = new Hashtable();
 		retHash.put("TYPES", types);
@@ -252,7 +252,7 @@ public class FlatXML {
 			}
 
 		} catch (IOException e) {
-			logger.error(STACKTRACE, e);
+			classLogger.error(STACKTRACE, e);
 		}
 	}
 
@@ -266,7 +266,7 @@ public class FlatXML {
 			breader = new BufferedReader(reader);
 
 			String jsonString = breader.readLine();
-			logger.debug("String is .. " + jsonString);
+			classLogger.debug("String is .. " + jsonString);
 
 			Object parsedDocument = Configuration.defaultConfiguration().jsonProvider().parse(jsonString);
 
@@ -291,16 +291,16 @@ public class FlatXML {
 			// get the name from min concept
 			Object name = JsonPath.read(document2, "$..minConceptItem['name']");
 
-			logger.debug("Value..  " + rxcuis + " \n" + severity);
+			classLogger.debug("Value..  " + rxcuis + " \n" + severity);
 
-			logger.debug("Value..  " + rxcuis + " \n" + name);
+			classLogger.debug("Value..  " + rxcuis + " \n" + name);
 
 		} catch (InvalidJsonException ije) {
-			logger.error(STACKTRACE, ije);
+			classLogger.error(STACKTRACE, ije);
 		} catch (FileNotFoundException fnfe) {
-			logger.error(STACKTRACE, fnfe);
+			classLogger.error(STACKTRACE, fnfe);
 		} catch (IOException ioe) {
-			logger.error(STACKTRACE, ioe);
+			classLogger.error(STACKTRACE, ioe);
 		} finally {
 			if (inputStream != null) {
 				try {
@@ -334,8 +334,8 @@ public class FlatXML {
 
 		String output = JsonFlattener.flatten(json);
 
-		logger.debug(flattenJson);
-		logger.debug(output);
+		classLogger.debug(flattenJson);
+		classLogger.debug(output);
 
 		return flattenJson;
 	}
@@ -363,7 +363,7 @@ public class FlatXML {
 
 			return flattenJson;
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException("Could not flatten JSON from File: " + file);
 		}
 	}
